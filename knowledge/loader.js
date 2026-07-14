@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const KNOWLEDGE_DIR = path.join(__dirname, '../../max-knowledge');
+const KNOWLEDGE_DIR = path.join(__dirname, '../max-knowledge');
 
 let _cache = null;
 
