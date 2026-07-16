@@ -1,6 +1,50 @@
 // services/claude.js — Max Medicare Guru AI with function-calling
 const Anthropic = require('@anthropic-ai/sdk');
+const https = require('https');
+const http = require('http');
 const { loadKnowledge, searchKnowledge, getKnowledgeByKey } = require('../knowledge/loader');
+
+// Whitelisted domains Max can fetch from
+const ALLOWED_DOMAINS = [
+  'healthexps.com',
+  'www.healthexps.com',
+  'medicare.gov',
+  'www.medicare.gov',
+  'cms.gov',
+  'www.cms.gov',
+  'ssa.gov',
+  'www.ssa.gov',
+  'agentmedicarehub.com',
+  'www.agentmedicarehub.com',
+];
+
+function fetchUrl(url) {
+  return new Promise((resolve, reject) => {
+    try {
+      const parsed = new URL(url);
+      const allowed = ALLOWED_DOMAINS.some(d => parsed.hostname === d || parsed.hostname.endsWith('.' + d));
+      if (!allowed) return resolve(`Not allowed. Approved domains: ${ALLOWED_DOMAINS.filter(d => !d.startsWith('www.')).join(', ')}`);
+      const lib = parsed.protocol === 'https:' ? https : http;
+      const req = lib.get(url, { headers: { 'User-Agent': 'Max-Medicare-Guru/1.0', 'Accept': 'text/html,text/plain' }, timeout: 10000 }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          // Strip HTML tags, collapse whitespace, trim to 6000 chars
+          const text = data.replace(/<style[\s\S]*?<\/style>/gi, ' ')
+            .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+            .replace(/\s+/g, ' ').trim().slice(0, 6000);
+          resolve(text || 'Page loaded but no readable content found.');
+        });
+      });
+      req.on('error', e => resolve(`Fetch error: ${e.message}`));
+      req.on('timeout', () => { req.destroy(); resolve('Request timed out.'); });
+    } catch (e) {
+      resolve(`Invalid URL: ${e.message}`);
+    }
+  });
+}
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -53,6 +97,20 @@ const TOOLS = [
     }
   },
   {
+    name: 'fetch_web_page',
+    description: 'Fetch live content from approved websites: healthexps.com, medicare.gov, cms.gov, ssa.gov, agentmedicarehub.com. Use for current plan info, CMS rules, SSA info, or anything that may have changed recently.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: 'Full URL to fetch, e.g. "https://www.medicare.gov/plan-compare"'
+        }
+      },
+      required: ['url']
+    }
+  },
+  {
     name: 'get_knowledge_doc',
     description: 'Retrieve a specific knowledge document by key.',
     input_schema: {
@@ -74,6 +132,9 @@ function processTool(toolName, toolInput) {
     const results = searchKnowledge(toolInput.query);
     if (!results.length) return 'No results found for that query.';
     return results.map(r => `### ${r.key}\n${r.content.slice(0, 2000)}`).join('\n\n---\n\n');
+  }
+  if (toolName === 'fetch_web_page') {
+    return fetchUrl(toolInput.url);
   }
   if (toolName === 'get_knowledge_doc') {
     const doc = getKnowledgeByKey(toolInput.key);
