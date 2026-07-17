@@ -170,7 +170,9 @@ async function processTool(toolName, toolInput) {
     try {
       const doctorName = toolInput.doctorName || '';
       const zip = toolInput.zip || '33136';
-      const nameParts = doctorName.trim().split(/\s+/);
+      // Strip titles: dr, dr., mrs., mr., ms., dds, md, do, np, pa
+      const cleanName = doctorName.trim().replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|dds\.?|md\.?|do\.?|np\.?|pa\.?)\s+/i, '');
+      const nameParts = cleanName.split(/\s+/);
       const lastName = nameParts[nameParts.length - 1];
       const firstName = nameParts.length > 1 ? nameParts[0] : '';
       // Step 1: NPI Registry lookup
