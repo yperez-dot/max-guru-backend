@@ -40,17 +40,39 @@ app.post('/chat', async (req, res) => {
   if (!Array.isArray(messages) || !messages.length) {
     return res.status(400).json({ error: 'messages array required' });
   }
-  try {
-    const result = await chat(messages, system);
-    if (system) {
-      // Pass-through mode: result is the raw Anthropic response object.
-      // Return it directly so the frontend can parse data.content identically
-      // to direct Claude.ai calls.
-      res.json(result);
-    } else {
-      // Legacy mode: result is a text string.
-      res.json({ ok: true, reply: result });
+
+  if (system) {
+    // PASS-THROUGH MODE — forward verbatim to Anthropic, return their raw response.
+    // data.content[0].text works on the frontend identically to direct Claude.ai calls.
+    // Status codes propagate so 4xx/5xx reach the frontend error handler.
+    try {
+      const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-beta': 'prompt-caching-2024-07-31',
+        },
+        body: JSON.stringify({
+          model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
+          max_tokens: 8000,
+          system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+          messages,
+        }),
+      });
+      const data = await anthropicRes.json();
+      return res.status(anthropicRes.status).json(data);
+    } catch (err) {
+      console.error('Pass-through error:', err.message);
+      return res.status(500).json({ error: 'Having trouble right now — try again in a moment.' });
     }
+  }
+
+  // LEGACY MODE — KB-search path (scheduled for retirement).
+  try {
+    const reply = await chat(messages);
+    res.json({ ok: true, reply });
   } catch (err) {
     console.error('Chat error:', err.message);
     res.status(500).json({ error: 'Having trouble right now — try again in a moment.' });

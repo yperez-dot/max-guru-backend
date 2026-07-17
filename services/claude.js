@@ -145,25 +145,9 @@ function processTool(toolName, toolInput) {
   return 'Unknown tool.';
 }
 
-async function chat(messages, inlineSystem) {
-  // PASS-THROUGH MODE — frontend supplied the full system prompt with embedded
-  // plan data (max-demo-FINAL.html is the single source of truth). No tools,
-  // no KB search: attach key, set model, forward, return. Do not modify or
-  // augment the system prompt here — any change belongs in the frontend file.
-  if (inlineSystem) {
-    // Return raw Anthropic response shape so the frontend can parse
-    // data.content.find(b => b.type === 'text') identically for both
-    // direct Claude.ai calls and proxied Railway calls.
-    return await client.messages.create({
-      model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
-      max_tokens: 1500,
-      system: inlineSystem,
-      messages,
-    });
-  }
-
-  // LEGACY MODE — KB-search path, unchanged. Only used by callers that don't
-  // send a system prompt. Scheduled for retirement once nothing depends on it.
+async function chat(messages) {
+  // LEGACY MODE — KB-search path. Pass-through is handled in server.js.
+  // Scheduled for retirement once nothing depends on it.
   loadKnowledge();
 
   const apiMessages = [...messages];
