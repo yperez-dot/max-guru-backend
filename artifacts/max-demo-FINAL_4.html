@@ -76,19 +76,36 @@ ${JSON.stringify(CARRIER_CHRONIC_CONDITIONS)}`;
 }
 
 async function askGuru(conversationHistory) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1000,
-      system: buildSystemPrompt(),
-      messages: conversationHistory,
-    }),
-  });
-  const data = await response.json();
-  const textBlock = data.content.find((b) => b.type === "text");
-  return textBlock ? textBlock.text : "I couldn't generate a response. Try again.";
+  const isClaudeAI = window.location.hostname.includes("claude.ai");
+  if (isClaudeAI) {
+    // Direct Anthropic call — Claude.ai injects the API key via its own proxy.
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: buildSystemPrompt(),
+        messages: conversationHistory,
+      }),
+    });
+    const data = await response.json();
+    const textBlock = data.content.find((b) => b.type === "text");
+    return textBlock ? textBlock.text : "I couldn't generate a response. Try again.";
+  } else {
+    // Standalone / Netlify — route through Railway backend (pure pass-through).
+    // Backend attaches the API key, sets the model, and forwards {system, messages}.
+    const response = await fetch("https://max-guru-production.up.railway.app/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: conversationHistory,
+        system: buildSystemPrompt(),
+      }),
+    });
+    const data = await response.json();
+    return data.reply || "I couldn't generate a response. Try again.";
+  }
 }
 
 function TypingIndicator() {

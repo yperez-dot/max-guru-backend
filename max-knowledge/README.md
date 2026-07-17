@@ -27,3 +27,16 @@ max-knowledge/
 ## How to use (once Max is deployed)
 These markdown files get chunked and indexed into Max's retrieval layer.  
 Each file should be self-contained with enough context for Max to answer agent questions accurately.
+
+---
+
+## ⚠️ NOT Max's source of truth as of 2026-07-17
+
+As of the proxy switch (commit f538f86), **Max's plan data lives in `max-demo-FINAL_4.html`**, not here.
+
+This folder is kept for:
+- Other tools that may search it
+- Human-readable reference
+
+Do not update these markdown files expecting Max to pick up the changes.
+To update Max's knowledge, update `max-demo-FINAL_4.html` and redeploy to Netlify.
