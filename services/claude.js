@@ -212,15 +212,63 @@ async function processTool(toolName, toolInput) {
         providerResults.push({ name: pName, npi, specialty: spec, address: `${addr.address_1 || ''}, ${addr.city || ''}, FL ${addr.postal_code || ''}`.trim(), inNetworkFor });
       }
       if (!providerResults.length) return `Found NPIs but no network data available.`;
+      // Step 3: Sunfire /v2/provider/list for UHC, Humana, WellCare, CarePlus, etc.
+      const SUNFIRE_BASE = 'https://www.sunfirematrix.com';
+      const SUNFIRE_JWT = process.env.SUNFIRE_JWT || '';
+      const SUNFIRE_SFP = process.env.SUNFIRE_SFP || '';
+      const sunfirePlans = {};
+      if (SUNFIRE_JWT && SUNFIRE_SFP && providerResults.length > 0) {
+        try {
+          const sfProviders = providerResults.map(pr => ({
+            id: pr.npi, name: pr.name, firstName: pr.name.split(' ')[0], radius: 25, primaryDoctor: true
+          }));
+          const sfRes = await fetch(`${SUNFIRE_BASE}/v2/provider/list`, {
+            method: 'POST',
+            headers: {
+              'Authorization': SUNFIRE_JWT,
+              'Content-Type': 'application/json',
+              'Cookie': `sfp-cookie=${SUNFIRE_SFP}`,
+              'Origin': SUNFIRE_BASE,
+              'Referer': `${SUNFIRE_BASE}/app/agent/yourmedicare/`
+            },
+            body: JSON.stringify({
+              type: 'network', county: '12086', year: 2026, zip: '33136',
+              providers: sfProviders, restrictedProviderCarrierId: ''
+            }),
+            signal: AbortSignal.timeout(15000)
+          });
+          if (sfRes.ok) {
+            const sfData = await sfRes.json();
+            const sfPlans = sfData.plans || [];
+            for (const plan of sfPlans) {
+              const docs = plan.doctorInformation || [];
+              for (const doc of docs) {
+                if (doc.covered === 'Y' && (doc.locations || []).some(l => l.covered === 'Y')) {
+                  sunfirePlans[plan.id] = sunfirePlans[plan.id] || [];
+                  sunfirePlans[plan.id].push(doc.id);
+                }
+              }
+            }
+          }
+        } catch(e) { console.log('[Sunfire lookup error]', e.message); }
+      }
+      const sunfirePlanCount = Object.keys(sunfirePlans).length;
+
       let out = `Provider network results for "${doctorName}":\n\n`;
       for (const pr of providerResults) {
         out += `**${pr.name}** (NPI: ${pr.npi})\n`;
         out += `Specialty: ${pr.specialty}\n`;
         out += `Address: ${pr.address}\n`;
-        out += pr.inNetworkFor.length ? `In-network for: ${pr.inNetworkFor.join(', ')}\n` : `Not found in FL Blue, Cigna, HealthSun, or Devoted networks.\n`;
+        const allNetworks = [...pr.inNetworkFor];
+        if (sunfirePlanCount > 0) {
+          out += allNetworks.length ? `FHIR networks: ${allNetworks.join(', ')}\n` : `Not found in FL Blue, Cigna, HealthSun, or Devoted.\n`;
+          out += `Sunfire networks: Found in ${sunfirePlanCount} plan(s) — UHC/Humana/WellCare/CarePlus area. Confirm plan names in Sunfire for enrollment.\n`;
+        } else {
+          out += allNetworks.length ? `In-network for: ${allNetworks.join(', ')}\n` : `Not found in FL Blue, Cigna, HealthSun, or Devoted networks.\n`;
+          out += sunfirePlanCount === 0 && SUNFIRE_SFP ? `Sunfire: No active plans found.\n` : `Sunfire: Session expired — refresh credentials for UHC/Humana/WellCare/CarePlus.\n`;
+        }
         out += '\n';
       }
-      out += `Note: Sunfire-based carriers (UHC, Humana, WellCare, etc.) require a separate lookup not yet integrated.`;
       return out.slice(0, 4000);
     } catch (e) { return `Provider lookup error: ${e.message}`; }
   }
