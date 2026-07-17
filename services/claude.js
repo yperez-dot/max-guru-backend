@@ -175,14 +175,24 @@ async function processTool(toolName, toolInput) {
       const nameParts = cleanName.split(/\s+/);
       const lastName = nameParts[nameParts.length - 1];
       const firstName = nameParts.length > 1 ? nameParts[0] : '';
-      // Step 1: NPI Registry lookup
-      const npiParams = new URLSearchParams({ version: '2.1', last_name: lastName, state: 'FL', enumeration_type: 'NPI-1', limit: '5' });
-      if (firstName) npiParams.set('first_name', firstName);
-      const npiUrl = `https://npiregistry.cms.hhs.gov/api/?${npiParams}`;
-      const npiRes = await fetch(npiUrl, { signal: AbortSignal.timeout(10000) });
-      const npiData = await npiRes.json();
-      const results = npiData.results || [];
-      if (!results.length) return `No providers found matching "${doctorName}" in Florida. Try a more specific name.`;
+      // Step 1: NPI Registry lookup — try multiple name formats for compound last names
+      let results = [];
+      const namesToTry = [
+        { last: lastName, first: firstName },                              // e.g. Calle, Gilda
+        { last: nameParts.slice(1).join(' '), first: nameParts[0] },       // e.g. De La Calle, Gilda
+        { last: nameParts.slice(-2).join(' '), first: firstName },         // e.g. La Calle, Gilda
+        { last: lastName, first: '' },                                     // last name only
+      ];
+      for (const attempt of namesToTry) {
+        if (!attempt.last) continue;
+        const npiParams = new URLSearchParams({ version: '2.1', last_name: attempt.last, state: 'FL', enumeration_type: 'NPI-1', limit: '5' });
+        if (attempt.first) npiParams.set('first_name', attempt.first);
+        const npiRes = await fetch(`https://npiregistry.cms.hhs.gov/api/?${npiParams}`, { signal: AbortSignal.timeout(10000) });
+        const npiData = await npiRes.json();
+        results = npiData.results || [];
+        if (results.length) break;
+      }
+      if (!results.length) return `No providers found matching "${doctorName}" in Florida. Try a different spelling.`;
       // Step 2: FHIR lookup for each NPI
       const CARRIERS = [
         { name: 'Florida Blue', key: 'flblue', base: 'https://apigw.bcbsfl.com/interop/interop-developer-portal/emr/api/v1/fhir' },
