@@ -43,10 +43,18 @@ const CARRIERS = [
     headers:   { Accept: 'application/fhir+json' },
   },
   {
+    name:      'HealthSun',
+    shortName: 'HealthSun',
+    key:       'healthsun',
+    fhirBase:  'https://api.aaneelconnect.com/cms/r4/providerdirectory',
+    extraParams: 'payer-id=8d4e5e9ec9c64b1a9db68fbec4bd6f95',
+    headers:   { Accept: 'application/fhir+json' },
+  },
+  {
     name:      'Devoted Health',
     shortName: 'Devoted',
     key:       'devoted',
-    fhirBase:  'https://fhir.devoted.com/fhir',
+    fhirBase:  'https://fhir.devoted.com/r4',
     headers:   { Accept: 'application/fhir+json' },
   },
 ];
