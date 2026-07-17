@@ -55,20 +55,24 @@ app.post('/chat', async (req, res) => {
       let data;
 
       for (let i = 0; i < 5; i++) {
+        const requestBody = {
+          model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
+          max_tokens: 8000,
+          system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+          messages: apiMessages,
+          tools: TOOLS,
+        };
+        console.log('TOOLS_CHECK', typeof TOOLS, Array.isArray(TOOLS) ? TOOLS.length : 'n/a');
+        console.log('OUTBOUND', JSON.stringify({ ...requestBody, system: '[omitted]' }).slice(0, 1500));
         const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'x-api-key': process.env.ANTHROPIC_API_KEY,
             'anthropic-version': '2023-06-01',
+            'anthropic-beta': 'prompt-caching-2024-07-31',
           },
-          body: JSON.stringify({
-            model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
-            max_tokens: 8000,
-            system: system,
-            messages: apiMessages,
-            tools: TOOLS,
-          }),
+          body: JSON.stringify(requestBody),
         });
         data = await anthropicRes.json();
         if (!anthropicRes.ok) return res.status(anthropicRes.status).json(data);
