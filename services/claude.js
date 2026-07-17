@@ -237,4 +237,4 @@ async function chat(messages) {
   return textBlock?.text || "I'm having trouble right now — please try again.";
 }
 
-module.exports = { chat };
+module.exports = { chat, TOOLS, processTool };

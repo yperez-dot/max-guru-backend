@@ -48,27 +48,47 @@ app.post('/chat', async (req, res) => {
   }
 
   if (system) {
-    // PASS-THROUGH MODE — forward verbatim to Anthropic, return their raw response.
-    // data.content[0].text works on the frontend identically to direct Claude.ai calls.
-    // Status codes propagate so 4xx/5xx reach the frontend error handler.
+    // PASS-THROUGH MODE with tool support
+    const { TOOLS, processTool } = require('./services/claude');
     try {
-      const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-beta': 'prompt-caching-2024-07-31',
-        },
-        body: JSON.stringify({
-          model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
-          max_tokens: 8000,
-          system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
-          messages,
-        }),
-      });
-      const data = await anthropicRes.json();
-      return res.status(anthropicRes.status).json(data);
+      const apiMessages = [...messages];
+      let data;
+
+      for (let i = 0; i < 5; i++) {
+        const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'anthropic-beta': 'prompt-caching-2024-07-31',
+          },
+          body: JSON.stringify({
+            model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
+            max_tokens: 8000,
+            system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+            messages: apiMessages,
+            tools: TOOLS,
+          }),
+        });
+        data = await anthropicRes.json();
+        if (!anthropicRes.ok) return res.status(anthropicRes.status).json(data);
+        if (data.stop_reason !== 'tool_use') break;
+
+        // Handle tool calls
+        apiMessages.push({ role: 'assistant', content: data.content });
+        const toolResults = [];
+        for (const block of data.content) {
+          if (block.type === 'tool_use') {
+            console.log(`[Tool] ${block.name}(${JSON.stringify(block.input)})`);
+            const result = await processTool(block.name, block.input);
+            toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: typeof result === 'string' ? result : await result });
+          }
+        }
+        apiMessages.push({ role: 'user', content: toolResults });
+      }
+
+      return res.json(data);
     } catch (err) {
       console.error('Pass-through error:', err.message);
       return res.status(500).json({ error: 'Having trouble right now — try again in a moment.' });
