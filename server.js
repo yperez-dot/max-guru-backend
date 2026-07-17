@@ -27,6 +27,13 @@ app.use(cors({
 app.use(express.json({ limit: '3mb' }));
 
 // Health check
+app.get('/debug-tools', (req, res) => {
+  try {
+    const { TOOLS } = require('./services/claude');
+    res.json({ toolsType: typeof TOOLS, toolsIsArray: Array.isArray(TOOLS), toolsLength: Array.isArray(TOOLS) ? TOOLS.length : null, toolNames: Array.isArray(TOOLS) ? TOOLS.map(t => t.name) : null });
+  } catch(e) { res.json({ error: e.message }); }
+});
+
 app.get('/health', (req, res) => {
   res.json({ ok: true, service: 'max-guru', ts: new Date().toISOString() });
 });
