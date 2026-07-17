@@ -88,6 +88,30 @@ app.post('/chat', async (req, res) => {
         apiMessages.push({ role: 'user', content: toolResults });
       }
 
+      // Also handle text-narrated tool calls (Claude sometimes writes these as text)
+      const textBlock = (data.content || []).find(b => b.type === 'text');
+      if (textBlock) {
+        const toolMatch = textBlock.text.match(/<tool_call>[\s\S]*?"name"\s*:\s*"(\w+)"[\s\S]*?(?:"arguments"|"parameters"|"input")\s*:\s*(\{[\s\S]*?\})[\s\S]*?<\/tool_call>/);
+        if (toolMatch) {
+          const toolName = toolMatch[1];
+          let toolInput = {};
+          try { toolInput = JSON.parse(toolMatch[2]); } catch(e) {}
+          console.log(`[ReactiveToolCall] ${toolName}(${JSON.stringify(toolInput)})`);
+          const toolResult = await processTool(toolName, toolInput);
+          // Strip the tool call from the text and inject result
+          const cleanText = textBlock.text.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '').replace(/<tool_response>[\s\S]*?<\/tool_response>/g, '').trim();
+          apiMessages.push({ role: 'assistant', content: [{ type: 'text', text: cleanText || 'Let me look that up...' }] });
+          apiMessages.push({ role: 'user', content: `Tool result for ${toolName}:\n${typeof toolResult === 'string' ? toolResult : await toolResult}` });
+          // One more round to get final answer
+          const finalRes = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+            body: JSON.stringify({ model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6', max_tokens: 4000, system: [{ type: 'text', text: system }], messages: apiMessages }),
+          });
+          data = await finalRes.json();
+        }
+      }
+
       return res.json(data);
     } catch (err) {
       console.error('Pass-through error:', err.message);
