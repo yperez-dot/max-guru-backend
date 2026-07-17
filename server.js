@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { chat } = require('./services/claude');
 const { loadKnowledge, getKnowledgeSummary } = require('./knowledge/loader');
+const drugLookupRouter = require('./routes/drugLookup');
 const providerLookupRouter = require('./routes/providerLookup');
 
 const app = express();
@@ -36,6 +37,7 @@ app.get('/knowledge', (req, res) => {
 });
 
 // POST /provider-lookup { doctorName, zip, state? }
+app.use('/drug-search', drugLookupRouter);
 app.use('/provider-lookup', providerLookupRouter);
 
 // POST /chat { messages: [{role, content}], system?: string }
