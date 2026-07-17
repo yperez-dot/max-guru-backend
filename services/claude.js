@@ -168,26 +168,72 @@ async function processTool(toolName, toolInput) {
   }
   if (toolName === 'lookup_provider_network') {
     try {
-      const PORT = process.env.PORT || 3002;
-      const res = await fetch(`http://localhost:${PORT}/provider-lookup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ doctorName: toolInput.doctorName, zip: toolInput.zip, state: toolInput.state || 'FL' }),
-        signal: AbortSignal.timeout(20000)
-      });
-      const data = await res.json();
-      if (data.providers && data.providers.length === 0) return `No providers found matching "${toolInput.doctorName}" in ZIP ${toolInput.zip}. Try a different name or ZIP code.`;
-      return JSON.stringify(data, null, 2).slice(0, 6000);
+      const doctorName = toolInput.doctorName || '';
+      const zip = toolInput.zip || '33136';
+      const nameParts = doctorName.trim().split(/\s+/);
+      const lastName = nameParts[nameParts.length - 1];
+      const firstName = nameParts.length > 1 ? nameParts[0] : '';
+      // Step 1: NPI Registry lookup
+      const npiUrl = `https://npiregistry.cms.hhs.gov/api/?version=2.1&last_name=${encodeURIComponent(lastName)}&first_name=${encodeURIComponent(firstName)}&state=FL&enumeration_type=NPI-1&limit=5`;
+      const npiRes = await fetch(npiUrl, { signal: AbortSignal.timeout(10000) });
+      const npiData = await npiRes.json();
+      const results = npiData.results || [];
+      if (!results.length) return `No providers found matching "${doctorName}" in Florida. Try a more specific name.`;
+      // Step 2: FHIR lookup for each NPI
+      const CARRIERS = [
+        { name: 'Florida Blue', key: 'flblue', base: 'https://apigw.bcbsfl.com/interop/interop-developer-portal/emr/api/v1/fhir' },
+        { name: 'Cigna', key: 'cigna', base: 'https://fhir.cigna.com/ProviderDirectory/v1' },
+        { name: 'HealthSun', key: 'healthsun', base: 'https://api.aaneelconnect.com/cms/r4/providerdirectory', extra: 'payer-id=8d4e5e9ec9c64b1a9db68fbec4bd6f95' },
+        { name: 'Devoted Health', key: 'devoted', base: 'https://fhir.devoted.com/r4' },
+      ];
+      const providerResults = [];
+      for (const p of results.slice(0, 3)) {
+        const npi = p.number;
+        const pName = `${p.basic?.first_name || ''} ${p.basic?.last_name || ''}`.trim();
+        const spec = (p.taxonomies || []).find(t => t.primary)?.desc || 'Unknown';
+        const addr = (p.addresses || []).find(a => a.address_purpose === 'LOCATION') || {};
+        const inNetworkFor = [];
+        for (const carrier of CARRIERS) {
+          try {
+            const url = carrier.extra
+              ? `${carrier.base}/PractitionerRole?practitioner.identifier=${npi}&${carrier.extra}`
+              : `${carrier.base}/PractitionerRole?practitioner.identifier=${npi}`;
+            const r = await fetch(url, { headers: { Accept: 'application/fhir+json' }, signal: AbortSignal.timeout(8000) });
+            if (r.ok) {
+              const fd = await r.json();
+              if ((fd.total || 0) > 0 || (fd.entry || []).length > 0) {
+                inNetworkFor.push(carrier.name);
+              }
+            }
+          } catch(e) { /* skip carrier */ }
+        }
+        providerResults.push({ name: pName, npi, specialty: spec, address: `${addr.address_1 || ''}, ${addr.city || ''}, FL ${addr.postal_code || ''}`.trim(), inNetworkFor });
+      }
+      if (!providerResults.length) return `Found NPIs but no network data available.`;
+      let out = `Provider network results for "${doctorName}":\n\n`;
+      for (const pr of providerResults) {
+        out += `**${pr.name}** (NPI: ${pr.npi})\n`;
+        out += `Specialty: ${pr.specialty}\n`;
+        out += `Address: ${pr.address}\n`;
+        out += pr.inNetworkFor.length ? `In-network for: ${pr.inNetworkFor.join(', ')}\n` : `Not found in FL Blue, Cigna, HealthSun, or Devoted networks.\n`;
+        out += '\n';
+      }
+      out += `Note: Sunfire-based carriers (UHC, Humana, WellCare, etc.) require a separate lookup not yet integrated.`;
+      return out.slice(0, 4000);
     } catch (e) { return `Provider lookup error: ${e.message}`; }
   }
   if (toolName === 'search_drug') {
     try {
-      const PORT = process.env.PORT || 3002;
-      const name = encodeURIComponent(toolInput.name.toLowerCase());
-      const res = await fetch(`http://localhost:${PORT}/drug-search?name=${name}`, { signal: AbortSignal.timeout(10000) });
+      const prefix = encodeURIComponent(toolInput.name.toLowerCase().slice(0, 20));
+      const res = await fetch(`https://www.sunfirematrix.com/v2/drug/search/${prefix}/-1`, {
+        headers: { 'Authorization': process.env.SUNFIRE_JWT || '', 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(10000)
+      });
+      if (!res.ok) return `Drug search unavailable (${res.status}).`;
       const data = await res.json();
-      if (!data.drugs || data.drugs.length === 0) return `No drugs found matching "${toolInput.name}". Try a different spelling.`;
-      return `Found ${data.count} drug(s) matching "${toolInput.name}":\n` + data.drugs.slice(0, 10).map(d => `- ${d.name} (NDC: ${d.ndc}, ID: ${d.id})`).join('\n');
+      const drugs = data.drugs || [];
+      if (!drugs.length) return `No drugs found matching "${toolInput.name}". Try a different spelling.`;
+      return `Found ${drugs.length} drug(s) matching "${toolInput.name}":\n` + drugs.slice(0, 10).map(d => `- ${d.name} (NDC: ${d.ndc})`).join('\n');
     } catch (e) { return `Drug search error: ${e.message}`; }
   }
   return 'Unknown tool.';
