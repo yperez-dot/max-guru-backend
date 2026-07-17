@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { chat } = require('./services/claude');
 const { loadKnowledge, getKnowledgeSummary } = require('./knowledge/loader');
+const providerLookupRouter = require('./routes/providerLookup');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -33,6 +34,9 @@ app.get('/health', (req, res) => {
 app.get('/knowledge', (req, res) => {
   res.json({ ok: true, summary: getKnowledgeSummary() });
 });
+
+// POST /provider-lookup { doctorName, zip, state? }
+app.use('/provider-lookup', providerLookupRouter);
 
 // POST /chat { messages: [{role, content}], system?: string }
 app.post('/chat', async (req, res) => {
