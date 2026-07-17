@@ -174,7 +174,9 @@ async function processTool(toolName, toolInput) {
       const lastName = nameParts[nameParts.length - 1];
       const firstName = nameParts.length > 1 ? nameParts[0] : '';
       // Step 1: NPI Registry lookup
-      const npiUrl = `https://npiregistry.cms.hhs.gov/api/?version=2.1&last_name=${encodeURIComponent(lastName)}&first_name=${encodeURIComponent(firstName)}&state=FL&enumeration_type=NPI-1&limit=5`;
+      const npiParams = new URLSearchParams({ version: '2.1', last_name: lastName, state: 'FL', enumeration_type: 'NPI-1', limit: '5' });
+      if (firstName) npiParams.set('first_name', firstName);
+      const npiUrl = `https://npiregistry.cms.hhs.gov/api/?${npiParams}`;
       const npiRes = await fetch(npiUrl, { signal: AbortSignal.timeout(10000) });
       const npiData = await npiRes.json();
       const results = npiData.results || [];
