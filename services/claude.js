@@ -151,14 +151,15 @@ async function chat(messages, inlineSystem) {
   // no KB search: attach key, set model, forward, return. Do not modify or
   // augment the system prompt here — any change belongs in the frontend file.
   if (inlineSystem) {
-    const response = await client.messages.create({
+    // Return raw Anthropic response shape so the frontend can parse
+    // data.content.find(b => b.type === 'text') identically for both
+    // direct Claude.ai calls and proxied Railway calls.
+    return await client.messages.create({
       model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
       max_tokens: 1500,
       system: inlineSystem,
       messages,
     });
-    const textBlock = response.content.find(b => b.type === 'text');
-    return textBlock?.text || "I'm having trouble right now — please try again.";
   }
 
   // LEGACY MODE — KB-search path, unchanged. Only used by callers that don't

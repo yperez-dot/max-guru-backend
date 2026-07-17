@@ -41,8 +41,16 @@ app.post('/chat', async (req, res) => {
     return res.status(400).json({ error: 'messages array required' });
   }
   try {
-    const reply = await chat(messages, system);
-    res.json({ ok: true, reply });
+    const result = await chat(messages, system);
+    if (system) {
+      // Pass-through mode: result is the raw Anthropic response object.
+      // Return it directly so the frontend can parse data.content identically
+      // to direct Claude.ai calls.
+      res.json(result);
+    } else {
+      // Legacy mode: result is a text string.
+      res.json({ ok: true, reply: result });
+    }
   } catch (err) {
     console.error('Chat error:', err.message);
     res.status(500).json({ error: 'Having trouble right now — try again in a moment.' });
