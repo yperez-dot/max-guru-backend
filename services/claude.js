@@ -133,7 +133,7 @@ function processTool(toolName, toolInput) {
   if (toolName === 'search_knowledge') {
     const results = searchKnowledge(toolInput.query);
     if (!results.length) return 'No results found for that query.';
-    return results.map(r => `### ${r.key}\n${r.content.slice(0, 2000)}`).join('\n\n---\n\n');
+    return results.map(r => `### ${r.key}\n${r.content.slice(0, 8000)}`).join('\n\n---\n\n');
   }
   if (toolName === 'fetch_web_page') {
     return fetchUrl(toolInput.url);
@@ -145,8 +145,24 @@ function processTool(toolName, toolInput) {
   return 'Unknown tool.';
 }
 
-async function chat(messages) {
-  // Ensure knowledge is loaded
+async function chat(messages, inlineSystem) {
+  // PASS-THROUGH MODE — frontend supplied the full system prompt with embedded
+  // plan data (max-demo-FINAL.html is the single source of truth). No tools,
+  // no KB search: attach key, set model, forward, return. Do not modify or
+  // augment the system prompt here — any change belongs in the frontend file.
+  if (inlineSystem) {
+    const response = await client.messages.create({
+      model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
+      max_tokens: 1500,
+      system: inlineSystem,
+      messages,
+    });
+    const textBlock = response.content.find(b => b.type === 'text');
+    return textBlock?.text || "I'm having trouble right now — please try again.";
+  }
+
+  // LEGACY MODE — KB-search path, unchanged. Only used by callers that don't
+  // send a system prompt. Scheduled for retirement once nothing depends on it.
   loadKnowledge();
 
   const apiMessages = [...messages];
