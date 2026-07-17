@@ -133,10 +133,10 @@ const TOOLS = [
       type: 'object',
       properties: {
         doctorName: { type: 'string', description: 'Doctor full name, e.g. "John Smith"' },
-        zip: { type: 'string', description: 'Florida ZIP code for the search area, e.g. "33136"' },
+        zip: { type: 'string', description: 'Florida ZIP code — optional, defaults to Miami-Dade area' },
         state: { type: 'string', description: 'State code, defaults to FL', default: 'FL' }
       },
-      required: ['doctorName', 'zip']
+      required: ['doctorName']
     }
   },
   {
