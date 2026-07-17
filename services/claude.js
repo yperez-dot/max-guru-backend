@@ -125,11 +125,35 @@ const TOOLS = [
       },
       required: ['key']
     }
+  },
+  {
+    name: 'lookup_provider_network',
+    description: 'Look up which Medicare Advantage plans a doctor is in-network for in Florida. Use when an agent asks what plans a doctor accepts, or if a specific doctor is in-network for a plan. Returns real-time data from carrier FHIR APIs.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        doctorName: { type: 'string', description: 'Doctor full name, e.g. "John Smith"' },
+        zip: { type: 'string', description: 'Florida ZIP code for the search area, e.g. "33136"' },
+        state: { type: 'string', description: 'State code, defaults to FL', default: 'FL' }
+      },
+      required: ['doctorName', 'zip']
+    }
+  },
+  {
+    name: 'search_drug',
+    description: 'Search for a drug by name to get NDC code and drug ID. Use when an agent asks about a medication name, spelling, or NDC code.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Drug name or partial name, e.g. "metformin", "lisinopril"' }
+      },
+      required: ['name']
+    }
   }
 ];
 
-// Process tool calls
-function processTool(toolName, toolInput) {
+// Process tool calls (async to support live lookups)
+async function processTool(toolName, toolInput) {
   if (toolName === 'search_knowledge') {
     const results = searchKnowledge(toolInput.query);
     if (!results.length) return 'No results found for that query.';
@@ -141,6 +165,30 @@ function processTool(toolName, toolInput) {
   if (toolName === 'get_knowledge_doc') {
     const doc = getKnowledgeByKey(toolInput.key);
     return doc || `Document "${toolInput.key}" not found.`;
+  }
+  if (toolName === 'lookup_provider_network') {
+    try {
+      const PORT = process.env.PORT || 3002;
+      const res = await fetch(`http://localhost:${PORT}/provider-lookup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doctorName: toolInput.doctorName, zip: toolInput.zip, state: toolInput.state || 'FL' }),
+        signal: AbortSignal.timeout(20000)
+      });
+      const data = await res.json();
+      if (data.providers && data.providers.length === 0) return `No providers found matching "${toolInput.doctorName}" in ZIP ${toolInput.zip}. Try a different name or ZIP code.`;
+      return JSON.stringify(data, null, 2).slice(0, 6000);
+    } catch (e) { return `Provider lookup error: ${e.message}`; }
+  }
+  if (toolName === 'search_drug') {
+    try {
+      const PORT = process.env.PORT || 3002;
+      const name = encodeURIComponent(toolInput.name.toLowerCase());
+      const res = await fetch(`http://localhost:${PORT}/drug-search?name=${name}`, { signal: AbortSignal.timeout(10000) });
+      const data = await res.json();
+      if (!data.drugs || data.drugs.length === 0) return `No drugs found matching "${toolInput.name}". Try a different spelling.`;
+      return `Found ${data.count} drug(s) matching "${toolInput.name}":\n` + data.drugs.slice(0, 10).map(d => `- ${d.name} (NDC: ${d.ndc}, ID: ${d.id})`).join('\n');
+    } catch (e) { return `Drug search error: ${e.message}`; }
   }
   return 'Unknown tool.';
 }
@@ -173,7 +221,7 @@ async function chat(messages) {
     for (const block of response.content) {
       if (block.type === 'tool_use') {
         console.log(`[Tool] ${block.name}(${JSON.stringify(block.input)})`);
-        const result = processTool(block.name, block.input);
+        const result = await processTool(block.name, block.input);
         toolResults.push({
           type: 'tool_result',
           tool_use_id: block.id,
