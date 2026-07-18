@@ -93,9 +93,14 @@ app.post('/chat', async (req, res) => {
           if (block.type === 'tool_use') {
             console.log(`[Tool] ${block.name}(${JSON.stringify(block.input)})`);
             const result = await processTool(block.name, block.input);
-            const resolvedResult = typeof result === 'string' ? result : await result;
+            const resolvedResult = (result && typeof result === 'object' && result.text)
+              ? result.text
+              : (typeof result === 'string' ? result : String(result));
             toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: resolvedResult });
-            collectedToolResults.push({ name: block.name, input: block.input, result: resolvedResult });
+            const toolOutput = (result && typeof result === 'object' && result.structured)
+              ? result.structured
+              : { text: resolvedResult };
+            collectedToolResults.push({ tool: block.name, output: toolOutput });
           }
         }
         apiMessages.push({ role: 'user', content: toolResults });

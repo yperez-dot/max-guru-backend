@@ -281,7 +281,17 @@ async function processTool(toolName, toolInput) {
         }
         out += '\n';
       }
-      return out.slice(0, 4000);
+      // Build structured output for frontend (v11 toolResults schema)
+      const firstProvider = providerResults[0];
+      const structured = firstProvider ? {
+        doctorName: firstProvider.name,
+        npi: firstProvider.npi,
+        networks: CARRIERS.map(c => ({
+          carrier: c.name,
+          inNetwork: firstProvider.inNetworkFor.includes(c.name)
+        }))
+      } : { doctorName, networks: [] };
+      return { text: out.slice(0, 4000), structured };
     } catch (e) { return `Provider lookup error: ${e.message}`; }
   }
   if (toolName === 'search_drug') {
@@ -330,10 +340,11 @@ async function chat(messages) {
       if (block.type === 'tool_use') {
         console.log(`[Tool] ${block.name}(${JSON.stringify(block.input)})`);
         const result = await processTool(block.name, block.input);
+        const resultText = (result && typeof result === 'object' && result.text) ? result.text : result;
         toolResults.push({
           type: 'tool_result',
           tool_use_id: block.id,
-          content: result,
+          content: resultText,
         });
       }
     }
