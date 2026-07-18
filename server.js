@@ -60,6 +60,7 @@ app.post('/chat', async (req, res) => {
     try {
       const apiMessages = [...messages];
       let data;
+      const collectedToolResults = [];  // v11: track all tool calls + results
 
       for (let i = 0; i < 5; i++) {
         const requestBody = {
@@ -92,7 +93,9 @@ app.post('/chat', async (req, res) => {
           if (block.type === 'tool_use') {
             console.log(`[Tool] ${block.name}(${JSON.stringify(block.input)})`);
             const result = await processTool(block.name, block.input);
-            toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: typeof result === 'string' ? result : await result });
+            const resolvedResult = typeof result === 'string' ? result : await result;
+            toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: resolvedResult });
+            collectedToolResults.push({ name: block.name, input: block.input, result: resolvedResult });
           }
         }
         apiMessages.push({ role: 'user', content: toolResults });
@@ -122,6 +125,10 @@ app.post('/chat', async (req, res) => {
         }
       }
 
+      // Attach toolResults to response for frontend (v11 export use)
+      if (collectedToolResults.length > 0) {
+        data = { ...data, toolResults: collectedToolResults };
+      }
       return res.json(data);
     } catch (err) {
       console.error('Pass-through error:', err.message);
