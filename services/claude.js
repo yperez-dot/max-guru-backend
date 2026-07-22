@@ -16,6 +16,8 @@ const ALLOWED_DOMAINS = [
   'www.ssa.gov',
   'agentmedicarehub.com',
   'www.agentmedicarehub.com',
+  'aarp.org',
+  'www.aarp.org',
 ];
 
 function fetchUrl(url) {
