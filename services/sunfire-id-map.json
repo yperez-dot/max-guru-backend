@@ -1,0 +1,1517 @@
+{
+  "260417": {
+    "hRaw": "H1526",
+    "planName": "Gold Heart & Diabetes Complete (HMO-POS C-SNP)",
+    "carrier": "Gold Kidney Health Plan"
+  },
+  "260419": {
+    "hRaw": "H1526",
+    "planName": "Gold Dialysis & Kidney Complete (HMO-POS C-SNP)",
+    "carrier": "Gold Kidney Health Plan"
+  },
+  "260420": {
+    "hRaw": "H1526",
+    "planName": "Gold Health (HMO-POS C-SNP)",
+    "carrier": "Gold Kidney Health Plan"
+  },
+  "260421": {
+    "hRaw": "H1526",
+    "planName": "Gold Dialysis & Kidney (HMO-POS C-SNP)",
+    "carrier": "Gold Kidney Health Plan"
+  },
+  "260583": {
+    "hRaw": "H1032",
+    "planName": "Wellcare Giveback (HMO)",
+    "carrier": "WellCare Health Plans, Inc."
+  },
+  "260589": {
+    "hRaw": "H1032",
+    "planName": "Wellcare Dual Reserve (HMO D-SNP)",
+    "carrier": "WellCare Health Plans, Inc."
+  },
+  "260596": {
+    "hRaw": "H1032",
+    "planName": "Wellcare Simple (HMO)",
+    "carrier": "WellCare Health Plans, Inc."
+  },
+  "260597": {
+    "hRaw": "H1032",
+    "planName": "Wellcare Patriot Giveback (HMO)",
+    "carrier": ""
+  },
+  "260602": {
+    "hRaw": "H1032",
+    "planName": "Wellcare Dual Access Sync (HMO D-SNP)",
+    "carrier": "WellCare Health Plans, Inc."
+  },
+  "260604": {
+    "hRaw": "H1032",
+    "planName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+    "carrier": "WellCare Health Plans, Inc."
+  },
+  "260627": {
+    "hRaw": "H1290",
+    "planName": "DEVOTED CORE 001 FL (HMO)",
+    "carrier": "Devoted Health"
+  },
+  "260631": {
+    "hRaw": "H1290",
+    "planName": "DEVOTED GIVEBACK 013 FL (HMO)",
+    "carrier": "Devoted Health"
+  },
+  "260635": {
+    "hRaw": "H1290",
+    "planName": "DEVOTED DUAL 019 FL (HMO D-SNP)",
+    "carrier": "Devoted Health"
+  },
+  "260651": {
+    "hRaw": "H1290",
+    "planName": "DEVOTED PREMIUM 037 FL (HMO)",
+    "carrier": "Devoted Health"
+  },
+  "260670": {
+    "hRaw": "H1290",
+    "planName": "DEVOTED DUAL PLUS 053 FL (HMO D-SNP)",
+    "carrier": "Devoted Health"
+  },
+  "260679": {
+    "hRaw": "H1290",
+    "planName": "DEVOTED CORE 062 FL (HMO)",
+    "carrier": "Devoted Health"
+  },
+  "260684": {
+    "hRaw": "H1290",
+    "planName": "DEVOTED C-SNP PREMIUM 067 FL (HMO C-SNP)",
+    "carrier": "Devoted Health"
+  },
+  "260693": {
+    "hRaw": "H1290",
+    "planName": "DEVOTED DUAL FULL 078 FL (HMO D-SNP)",
+    "carrier": "Devoted Health"
+  },
+  "260700": {
+    "hRaw": "H1290",
+    "planName": "DEVOTED C-SNP PLUS 085 FL (HMO C-SNP)",
+    "carrier": "Devoted Health"
+  },
+  "260774": {
+    "hRaw": "H1609",
+    "planName": "Aetna Medicare Dual Select (HMO D-SNP)",
+    "carrier": "Aetna Inc."
+  },
+  "260784": {
+    "hRaw": "H1609",
+    "planName": "Aetna Medicare Dual Select (HMO D-SNP)",
+    "carrier": "Aetna Inc."
+  },
+  "260801": {
+    "hRaw": "H1609",
+    "planName": "Aetna Medicare Full Dual Select (HMO D-SNP)",
+    "carrier": "Aetna Inc."
+  },
+  "260820": {
+    "hRaw": "H1609",
+    "planName": "Aetna Medicare Select (HMO)",
+    "carrier": "Aetna Inc."
+  },
+  "260821": {
+    "hRaw": "H1609",
+    "planName": "Aetna Medicare Chronic Care (HMO C-SNP)",
+    "carrier": "Aetna Inc."
+  },
+  "261651": {
+    "hRaw": "H6378",
+    "planName": "AmeriHealth Caritas VIP Care (HMO D-SNP)",
+    "carrier": "AmeriHealth Caritas"
+  },
+  "261982": {
+    "hRaw": "S4802",
+    "planName": "Wellcare Classic (PDP)",
+    "carrier": ""
+  },
+  "262011": {
+    "hRaw": "S4802",
+    "planName": "Wellcare Value Script (PDP)",
+    "carrier": "WellCare Health Plans, Inc."
+  },
+  "262041": {
+    "hRaw": "S5601",
+    "planName": "SilverScript Choice (PDP)",
+    "carrier": "Aetna Inc."
+  },
+  "262283": {
+    "hRaw": "H0710",
+    "planName": "UHC Nursing Home Plan FL-F001 (PPO I-SNP)",
+    "carrier": ""
+  },
+  "262317": {
+    "hRaw": "H1019",
+    "planName": "CareOne Plus (HMO)",
+    "carrier": "Humana Inc."
+  },
+  "262318": {
+    "hRaw": "H1019",
+    "planName": "CareNeeds Platinum (HMO D-SNP)",
+    "carrier": "Humana Inc."
+  },
+  "262331": {
+    "hRaw": "H1019",
+    "planName": "CareComplete Platinum (HMO C-SNP)",
+    "carrier": "Humana Inc."
+  },
+  "262332": {
+    "hRaw": "H1019",
+    "planName": "CareBreeze Platinum (HMO C-SNP)",
+    "carrier": "Humana Inc."
+  },
+  "262335": {
+    "hRaw": "H1019",
+    "planName": "CareSalute (HMO)",
+    "carrier": "Humana Inc."
+  },
+  "262338": {
+    "hRaw": "H1019",
+    "planName": "CareFree Platinum Giveback (HMO)",
+    "carrier": "Humana Inc."
+  },
+  "262345": {
+    "hRaw": "H1019",
+    "planName": "CareAccess (HMO)",
+    "carrier": "Humana Inc."
+  },
+  "262347": {
+    "hRaw": "H1019",
+    "planName": "CareComplete (HMO C-SNP)",
+    "carrier": "Humana Inc."
+  },
+  "262350": {
+    "hRaw": "H1019",
+    "planName": "CareNeeds Extra (HMO D-SNP)",
+    "carrier": "Humana Inc."
+  },
+  "262352": {
+    "hRaw": "H1019",
+    "planName": "CareBreeze (HMO C-SNP)",
+    "carrier": "Humana Inc."
+  },
+  "262355": {
+    "hRaw": "H1036",
+    "planName": "Humana Gold Plus H1036-054C (HMO)",
+    "carrier": "Humana Inc."
+  },
+  "262360": {
+    "hRaw": "H1036",
+    "planName": "Humana Gold Plus SNP-DE H1036-077A (HMO D-SNP)",
+    "carrier": "Humana Inc."
+  },
+  "262363": {
+    "hRaw": "H1036",
+    "planName": "Humana Gold Plus - Diabetes and Heart (HMO C-SNP)",
+    "carrier": "Humana Inc."
+  },
+  "262391": {
+    "hRaw": "H1036",
+    "planName": "Humana USAA Honor Giveback (HMO)",
+    "carrier": "Humana Inc."
+  },
+  "262396": {
+    "hRaw": "H1036",
+    "planName": "Humana Gold Plus Lung (HMO C-SNP)",
+    "carrier": "Humana Inc."
+  },
+  "262402": {
+    "hRaw": "H1036",
+    "planName": "Humana Gold Plus SNP-DE H1036-304 (HMO D-SNP)",
+    "carrier": "Humana Inc."
+  },
+  "262403": {
+    "hRaw": "H1036",
+    "planName": "Humana Gold Plus Giveback H1036-305 (HMO)",
+    "carrier": "Humana Inc."
+  },
+  "262437": {
+    "hRaw": "H1036",
+    "planName": "Humana Dual Integrated (HMO D-SNP)",
+    "carrier": "Humana Inc."
+  },
+  "262440": {
+    "hRaw": "H1045",
+    "planName": "UHC Preferred Medicare Advantage FL-0001 (HMO)",
+    "carrier": "UnitedHealthcare"
+  },
+  "262442": {
+    "hRaw": "H1045",
+    "planName": "UHC Preferred Dual Complete FL-D001 (HMO D-SNP)",
+    "carrier": "UnitedHealthcare"
+  },
+  "262443": {
+    "hRaw": "H1045",
+    "planName": "UHC Preferred Complete Care FL-0003 (HMO C-SNP)",
+    "carrier": "UnitedHealthcare"
+  },
+  "262469": {
+    "hRaw": "H1045",
+    "planName": "UHC Preferred Dual Complete FL-V1 (HMO D-SNP)",
+    "carrier": "UnitedHealthcare"
+  },
+  "262470": {
+    "hRaw": "H1045",
+    "planName": "UHC Preferred Dual Complete FL-Y2 (HMO-POS D-SNP)",
+    "carrier": "UnitedHealthcare"
+  },
+  "262509": {
+    "hRaw": "H1889",
+    "planName": "UHC Dual Complete FL-D003 (PPO D-SNP)",
+    "carrier": "UnitedHealthcare"
+  },
+  "262527": {
+    "hRaw": "H1889",
+    "planName": "UHC Dual Complete FL-Y4 (PPO D-SNP)",
+    "carrier": "UnitedHealthcare"
+  },
+  "262780": {
+    "hRaw": "H2509",
+    "planName": "UHC Dual Complete FL-Y001 (HMO-POS D-SNP)",
+    "carrier": ""
+  },
+  "263156": {
+    "hRaw": "H5216",
+    "planName": "HumanaChoice Florida H5216-068 (PPO)",
+    "carrier": "Humana Inc."
+  },
+  "263232": {
+    "hRaw": "H5216",
+    "planName": "Humana USAA Honor Giveback (PPO)",
+    "carrier": "Humana Inc."
+  },
+  "263271": {
+    "hRaw": "H5216",
+    "planName": "Humana Full Access Giveback H5216-311 (PPO)",
+    "carrier": "Humana Inc."
+  },
+  "263397": {
+    "hRaw": "H5216",
+    "planName": "Humana USAA Honor Giveback (PPO)",
+    "carrier": "Humana Inc."
+  },
+  "263558": {
+    "hRaw": "H5420",
+    "planName": "UHC MedicareMax Medicare Advantage FL-0028 (HMO)",
+    "carrier": "UnitedHealthcare"
+  },
+  "263560": {
+    "hRaw": "H5420",
+    "planName": "UHC MedicareMax Dual Complete FL-D4 (HMO D-SNP)",
+    "carrier": "UnitedHealthcare"
+  },
+  "263561": {
+    "hRaw": "H5420",
+    "planName": "UHC MedicareMax Complete Care FL-30 (HMO C-SNP)",
+    "carrier": "UnitedHealthcare"
+  },
+  "263562": {
+    "hRaw": "H5420",
+    "planName": "UHC MedicareMax Dual Complete FL-V3 (HMO D-SNP)",
+    "carrier": "UnitedHealthcare"
+  },
+  "263563": {
+    "hRaw": "H5420",
+    "planName": "UHC MedicareMax Dual Complete FL-Y6 (HMO-POS D-SNP)",
+    "carrier": "UnitedHealthcare"
+  },
+  "263768": {
+    "hRaw": "H7284",
+    "planName": "HumanaChoice Florida H7284-008 (PPO)",
+    "carrier": "Humana Inc."
+  },
+  "263770": {
+    "hRaw": "H7284",
+    "planName": "HumanaChoice Florida SNP-DE H7284-010 (PPO D-SNP)",
+    "carrier": "Humana Inc."
+  },
+  "263871": {
+    "hRaw": "H7617",
+    "planName": "HumanaChoice Florida H7617-107 (PPO)",
+    "carrier": ""
+  },
+  "263872": {
+    "hRaw": "H7617",
+    "planName": "Humana USAA Honor Giveback (PPO)",
+    "carrier": "Humana Inc."
+  },
+  "263874": {
+    "hRaw": "H7617",
+    "planName": "Humana Full Access Giveback H7617-110 (PPO)",
+    "carrier": ""
+  },
+  "263877": {
+    "hRaw": "H7617",
+    "planName": "HumanaChoice Florida SNP-DE H7617-113 (PPO D-SNP)",
+    "carrier": "Humana Inc."
+  },
+  "263993": {
+    "hRaw": "R0759",
+    "planName": "AARP Medicare Advantage from UHC FL-0031 (Regional PPO)",
+    "carrier": ""
+  },
+  "263994": {
+    "hRaw": "R0759",
+    "planName": "AARP Medicare Advantage Patriot No Rx FL-MA01 (Regional PPO)",
+    "carrier": ""
+  },
+  "263995": {
+    "hRaw": "R0759",
+    "planName": "UHC Dual Complete FL-D005 (Regional PPO D-SNP)",
+    "carrier": ""
+  },
+  "264008": {
+    "hRaw": "R5826",
+    "planName": "HumanaChoice R5826-005 (Regional PPO)",
+    "carrier": ""
+  },
+  "264009": {
+    "hRaw": "R5826",
+    "planName": "HumanaChoice R5826-018 (Regional PPO)",
+    "carrier": "Humana Inc."
+  },
+  "264010": {
+    "hRaw": "R5826",
+    "planName": "HumanaChoice R5826-074 (Regional PPO)",
+    "carrier": ""
+  },
+  "264030": {
+    "hRaw": "S5884",
+    "planName": "Humana Basic Rx Plan (PDP)",
+    "carrier": ""
+  },
+  "264068": {
+    "hRaw": "S5884",
+    "planName": "Humana Premier Rx Plan (PDP)",
+    "carrier": ""
+  },
+  "264101": {
+    "hRaw": "S5884",
+    "planName": "Humana Value Rx Plan (PDP)",
+    "carrier": ""
+  },
+  "264136": {
+    "hRaw": "S5921",
+    "planName": "AARP Medicare Rx Saver from UHC (PDP)",
+    "carrier": ""
+  },
+  "264163": {
+    "hRaw": "S5921",
+    "planName": "AARP Medicare Rx Preferred from UHC (PDP)",
+    "carrier": ""
+  },
+  "264390": {
+    "hRaw": "H5410",
+    "planName": "HealthSpring TotalCare (HMO D-SNP)",
+    "carrier": ""
+  },
+  "264392": {
+    "hRaw": "H5410",
+    "planName": "HealthSpring Preferred (HMO)",
+    "carrier": ""
+  },
+  "264569": {
+    "hRaw": "H1035",
+    "planName": "BlueMedicare Classic (HMO)",
+    "carrier": ""
+  },
+  "264620": {
+    "hRaw": "H5434",
+    "planName": "BlueMedicare Select (PPO)",
+    "carrier": ""
+  },
+  "264634": {
+    "hRaw": "H5434",
+    "planName": "BlueMedicare Patriot (PPO)",
+    "carrier": "Florida Blue"
+  },
+  "264646": {
+    "hRaw": "S5904",
+    "planName": "BlueMedicare Premier Rx (PDP)",
+    "carrier": "Florida Blue"
+  },
+  "264647": {
+    "hRaw": "S5904",
+    "planName": "BlueMedicare Complete Rx (PDP)",
+    "carrier": ""
+  },
+  "264922": {
+    "hRaw": "H5431",
+    "planName": "HealthSun HealthAdvantage Plan (HMO)",
+    "carrier": "HealthSun Health Plans, Inc"
+  },
+  "264923": {
+    "hRaw": "H5431",
+    "planName": "HealthSun MediMax (HMO)",
+    "carrier": "HealthSun Health Plans, Inc"
+  },
+  "264927": {
+    "hRaw": "H5431",
+    "planName": "HealthSun HealthAdvantage Plus (HMO)",
+    "carrier": "HealthSun Health Plans, Inc"
+  },
+  "264929": {
+    "hRaw": "H5431",
+    "planName": "HealthSun MediSun Extra (HMO D-SNP)",
+    "carrier": "HealthSun Health Plans, Inc"
+  },
+  "264931": {
+    "hRaw": "H5431",
+    "planName": "HealthSun VitalCare (HMO C-SNP)",
+    "carrier": "HealthSun Health Plans, Inc"
+  },
+  "264934": {
+    "hRaw": "H5431",
+    "planName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+    "carrier": "HealthSun Health Plans, Inc"
+  },
+  "264935": {
+    "hRaw": "H5471",
+    "planName": "Simply Complete (HMO D-SNP)",
+    "carrier": "Anthem Inc."
+  },
+  "264936": {
+    "hRaw": "H5471",
+    "planName": "Simply More (HMO)",
+    "carrier": ""
+  },
+  "264938": {
+    "hRaw": "H5471",
+    "planName": "Simply Level (HMO C-SNP)",
+    "carrier": ""
+  },
+  "264954": {
+    "hRaw": "H5471",
+    "planName": "Simply Extra Platinum (HMO)",
+    "carrier": ""
+  },
+  "264955": {
+    "hRaw": "H5471",
+    "planName": "Simply More Platinum (HMO)",
+    "carrier": "Anthem Inc."
+  },
+  "264956": {
+    "hRaw": "H5471",
+    "planName": "Simply Complete Platinum (HMO D-SNP)",
+    "carrier": "Anthem Inc."
+  },
+  "264957": {
+    "hRaw": "H5471",
+    "planName": "Simply Level Platinum (HMO C-SNP)",
+    "carrier": ""
+  },
+  "264968": {
+    "hRaw": "H5471",
+    "planName": "Simply Integrated (HMO D-SNP)",
+    "carrier": "Anthem Inc."
+  },
+  "264975": {
+    "hRaw": "H5471",
+    "planName": "Simply Integrated Platinum (HMO D-SNP)",
+    "carrier": "Anthem Inc."
+  },
+  "265685": {
+    "hRaw": "H1036",
+    "planName": "Humana Fully Integrated H1036-280 (HMO D-SNP)",
+    "carrier": ""
+  },
+  "265689": {
+    "hRaw": "H5216",
+    "planName": "L3 Harris",
+    "carrier": ""
+  },
+  "265690": {
+    "hRaw": "H5216",
+    "planName": "Savannah River Mission Completion Low Plan",
+    "carrier": ""
+  },
+  "265691": {
+    "hRaw": "H5216",
+    "planName": "Savannah River Mission Completion High Plan",
+    "carrier": ""
+  },
+  "265692": {
+    "hRaw": "H5216",
+    "planName": "The Clorox Company Low Plan",
+    "carrier": ""
+  },
+  "265693": {
+    "hRaw": "H5216",
+    "planName": "The Clorox Company High Plan",
+    "carrier": ""
+  },
+  "265694": {
+    "hRaw": "H5216",
+    "planName": "Disabled American Veterans Low Plan",
+    "carrier": ""
+  },
+  "265695": {
+    "hRaw": "H5216",
+    "planName": "Disabled American Veterans High Plan",
+    "carrier": ""
+  },
+  "265725": {
+    "hRaw": "H0982",
+    "planName": "Solis Guardian Plan (HMO D-SNP)",
+    "carrier": "Solis Health Plans"
+  },
+  "265732": {
+    "hRaw": "H0982",
+    "planName": "Solis Wellness Plan (HMO C-SNP)",
+    "carrier": "Solis Health Plans"
+  },
+  "265738": {
+    "hRaw": "H0982",
+    "planName": "Solis Healthy Living Plan (HMO)",
+    "carrier": "Solis Health Plans"
+  },
+  "265743": {
+    "hRaw": "H0982",
+    "planName": "Solis Balanced Plan (HMO C-SNP)",
+    "carrier": "Solis Health Plans"
+  },
+  "265744": {
+    "hRaw": "H0982",
+    "planName": "Solis Wellness Giveback Plan (HMO C-SNP)",
+    "carrier": "Solis Health Plans"
+  },
+  "265774": {
+    "hRaw": "H1644",
+    "planName": "Longevity Health Plan (HMO I-SNP)",
+    "carrier": "Longevity Health Plan"
+  },
+  "265940": {
+    "hRaw": "H4140",
+    "planName": "DrMax (HMO)",
+    "carrier": "Doctors HealthCare Plans, Inc."
+  },
+  "265941": {
+    "hRaw": "H4140",
+    "planName": "DrPlus (HMO D-SNP)",
+    "carrier": "Doctors HealthCare Plans, Inc."
+  },
+  "265942": {
+    "hRaw": "H4140",
+    "planName": "DrExtraCare (HMO C-SNP)",
+    "carrier": "Doctors HealthCare Plans, Inc."
+  },
+  "265943": {
+    "hRaw": "H4140",
+    "planName": "DrSelect (HMO)",
+    "carrier": "Doctors HealthCare Plans, Inc."
+  },
+  "265944": {
+    "hRaw": "H4140",
+    "planName": "DrFlex (HMO D-SNP)",
+    "carrier": "Doctors HealthCare Plans, Inc."
+  },
+  "265948": {
+    "hRaw": "H4140",
+    "planName": "DrElite-SFL (HMO)",
+    "carrier": "Doctors HealthCare Plans, Inc."
+  },
+  "265953": {
+    "hRaw": "H4286",
+    "planName": "Leon MediExtra (HMO)",
+    "carrier": "Leon Health, Inc."
+  },
+  "265954": {
+    "hRaw": "H4286",
+    "planName": "Leon MediDual (HMO D-SNP)",
+    "carrier": "Leon Health, Inc."
+  },
+  "265955": {
+    "hRaw": "H4286",
+    "planName": "Leon MediMore (HMO)",
+    "carrier": "Leon Health, Inc."
+  },
+  "265956": {
+    "hRaw": "H4286",
+    "planName": "Leon MediMax (HMO D-SNP)",
+    "carrier": "Leon Health, Inc."
+  },
+  "266275": {
+    "hRaw": "H9917",
+    "planName": "Senior Care (HMO I-SNP)",
+    "carrier": "Align Senior Care"
+  },
+  "266276": {
+    "hRaw": "H9917",
+    "planName": "Premier Care (HMO I-SNP)",
+    "carrier": "Align Senior Care"
+  },
+  "266280": {
+    "hRaw": "H9986",
+    "planName": "Florida Complete Care (HMO I-SNP)",
+    "carrier": "Florida Complete Care"
+  },
+  "266281": {
+    "hRaw": "H9986",
+    "planName": "Florida Complete Care- In The Community (HMO-POS I-SNP)",
+    "carrier": "Florida Complete Care"
+  },
+  "266282": {
+    "hRaw": "H9986",
+    "planName": "Florida Complete Care-Duals VIP (HMO-POS D-SNP)",
+    "carrier": "Florida Complete Care"
+  },
+  "26022970": {
+    "hRaw": "H7617",
+    "planName": "ACCURIDE CORPORATION LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26023087": {
+    "hRaw": "H7617",
+    "planName": "BADGER METER, INC. LPPO  079 / 279",
+    "carrier": ""
+  },
+  "26023095": {
+    "hRaw": "H5216",
+    "planName": "BATON ROUGE WATER LPPO  079 / 060",
+    "carrier": ""
+  },
+  "26023190": {
+    "hRaw": "H5216",
+    "planName": "BVH, INC. LPPO  079 / 055",
+    "carrier": ""
+  },
+  "26023192": {
+    "hRaw": "H5216",
+    "planName": "CALCASIEU PARISH CLERK OF COURT LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26023198": {
+    "hRaw": "H7617",
+    "planName": "CANOOCHEE EMC LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26023199": {
+    "hRaw": "H5216",
+    "planName": "CAOM LPPO  079 / 065",
+    "carrier": ""
+  },
+  "26023200": {
+    "hRaw": "H5216",
+    "planName": "CAROLINAS TELCO FCU LPPO  079 / 066",
+    "carrier": ""
+  },
+  "26023208": {
+    "hRaw": "H5216",
+    "planName": "CATHOLIC DIOCESE OF KC-SJ LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26023256": {
+    "hRaw": "H5216",
+    "planName": "CHOWAN COUNTY GOVERNMENT LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26023299": {
+    "hRaw": "H5216",
+    "planName": "CITY OF BRISTOL LPPO  079 / 065",
+    "carrier": ""
+  },
+  "26023356": {
+    "hRaw": "H5216",
+    "planName": "CITY OF GIBRALTAR LPPO  079 / 066",
+    "carrier": ""
+  },
+  "26023427": {
+    "hRaw": "H5216",
+    "planName": "CITY OF MOBILE LPPO  079 / 344",
+    "carrier": ""
+  },
+  "26023452": {
+    "hRaw": "H1036",
+    "planName": "CITY OF NEW YORK HMO  076 / 517",
+    "carrier": ""
+  },
+  "26023453": {
+    "hRaw": "H1036",
+    "planName": "CITY OF NEW YORK HMO  076 / 517",
+    "carrier": ""
+  },
+  "26023503": {
+    "hRaw": "H5216",
+    "planName": "CITY OF RIVERVIEW LPPO  079 / 066",
+    "carrier": ""
+  },
+  "26023506": {
+    "hRaw": "H7617",
+    "planName": "CITY OF ROME, GA LPPO  079 / 279",
+    "carrier": ""
+  },
+  "26023518": {
+    "hRaw": "H5216",
+    "planName": "CITY OF SLIDELL LPPO  079 / 060",
+    "carrier": ""
+  },
+  "26023524": {
+    "hRaw": "H7617",
+    "planName": "CITY OF ST. PETERSBURG LPPO  079 / 059",
+    "carrier": ""
+  },
+  "26023525": {
+    "hRaw": "H5216",
+    "planName": "CITY OF ST. PETERSBURG LPPO  079 / 059",
+    "carrier": ""
+  },
+  "26023642": {
+    "hRaw": "H5216",
+    "planName": "CLIFTONLARSONALLEN LPPO  079 / 043",
+    "carrier": ""
+  },
+  "26023643": {
+    "hRaw": "H5216",
+    "planName": "CLIFTONLARSONALLEN LPPO  079 / 043",
+    "carrier": ""
+  },
+  "26023646": {
+    "hRaw": "H5216",
+    "planName": "CLINTON COUNTY LPPO  079 / 059",
+    "carrier": ""
+  },
+  "26023669": {
+    "hRaw": "H5216",
+    "planName": "COASTAL FEDERAL CREDIT UNION LPPO  079 / 066",
+    "carrier": ""
+  },
+  "26023683": {
+    "hRaw": "H5216",
+    "planName": "COMMUNITY OF CHRIST LPPO  079 / 278",
+    "carrier": ""
+  },
+  "26023684": {
+    "hRaw": "H5216",
+    "planName": "COMMUNITY OF CHRIST LPPO  079 / 055",
+    "carrier": ""
+  },
+  "26023849": {
+    "hRaw": "H5216",
+    "planName": "CRANE GROUP LTD LPPO  079 / 055",
+    "carrier": ""
+  },
+  "26023850": {
+    "hRaw": "H5216",
+    "planName": "CRANE GROUP LTD LPPO  079 / 055",
+    "carrier": ""
+  },
+  "26023891": {
+    "hRaw": "H5216",
+    "planName": "DC3 RETIREMENT INSURANCE LPPO  079 / 136",
+    "carrier": ""
+  },
+  "26023940": {
+    "hRaw": "H7617",
+    "planName": "DENTONS BINGHAM GREENEBAUM LLP LPPO  079 / 056",
+    "carrier": ""
+  },
+  "26023945": {
+    "hRaw": "H7617",
+    "planName": "DESOTO PARISH SCHOOL BOARD LPPO  079 / 849",
+    "carrier": ""
+  },
+  "26024334": {
+    "hRaw": "H5216",
+    "planName": "EL PASO ELECTRIC COMPANY LPPO  079 / 388",
+    "carrier": ""
+  },
+  "26024335": {
+    "hRaw": "H5216",
+    "planName": "EL PASO ELECTRIC COMPANY LPPO  079 / 388",
+    "carrier": ""
+  },
+  "26024336": {
+    "hRaw": "H5216",
+    "planName": "EL PASO ELECTRIC COMPANY LPPO  079 / 388",
+    "carrier": ""
+  },
+  "26024337": {
+    "hRaw": "H5216",
+    "planName": "EL PASO ELECTRIC COMPANY LPPO  079 / 388",
+    "carrier": ""
+  },
+  "26024338": {
+    "hRaw": "H5216",
+    "planName": "EL PASO ELECTRIC COMPANY LPPO  079 / 388",
+    "carrier": ""
+  },
+  "26024346": {
+    "hRaw": "H5216",
+    "planName": "ELKHART COUNTY LPPO  079 / 060",
+    "carrier": ""
+  },
+  "26024357": {
+    "hRaw": "H7617",
+    "planName": "EMBLEMHEALTH LPPO  079 / 056",
+    "carrier": ""
+  },
+  "26024363": {
+    "hRaw": "H5216",
+    "planName": "ENERSTAR POWER CORP LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26024398": {
+    "hRaw": "H7617",
+    "planName": "FLEMING MASON ENERGY LPPO  079 / 060",
+    "carrier": ""
+  },
+  "26024400": {
+    "hRaw": "H5216",
+    "planName": "FOX VALLEY CONSTRUCTION LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26024410": {
+    "hRaw": "H5216",
+    "planName": "FRANKLIN INTERNATIONAL, INC. LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26024411": {
+    "hRaw": "H5216",
+    "planName": "FRANKLIN INTERNATIONAL, INC. LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26024412": {
+    "hRaw": "H5216",
+    "planName": "FRANKLIN INTERNATIONAL, INC. LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26024445": {
+    "hRaw": "H5216",
+    "planName": "GENISYS CREDIT UNION LPPO  079 / 066",
+    "carrier": ""
+  },
+  "26024463": {
+    "hRaw": "H7617",
+    "planName": "GRAYSON RURAL ELECTRIC LPPO  079 / 061",
+    "carrier": ""
+  },
+  "26024464": {
+    "hRaw": "H5216",
+    "planName": "GREATER PEORIA MASS TRANSIT DISTRICT LPPO  079 / 333",
+    "carrier": ""
+  },
+  "26024497": {
+    "hRaw": "H7617",
+    "planName": "HARRIS ENGINEERING LPPO  079 / 058",
+    "carrier": ""
+  },
+  "26024498": {
+    "hRaw": "S5884",
+    "planName": "HARRIS ENGINEERING PDP  037 / 315",
+    "carrier": ""
+  },
+  "26024565": {
+    "hRaw": "R5826",
+    "planName": "HCSO RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26024566": {
+    "hRaw": "R5826",
+    "planName": "HCSO RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26024655": {
+    "hRaw": "H5216",
+    "planName": "IAMAW LPPO  079 / 699",
+    "carrier": ""
+  },
+  "26024659": {
+    "hRaw": "H5216",
+    "planName": "IBERVILLE PARISH SCH BD LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26024660": {
+    "hRaw": "H5216",
+    "planName": "IBERVILLE PARISH SHERIFFS OFFICE LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26024738": {
+    "hRaw": "S5884",
+    "planName": "IMRF PDP  037 / 105",
+    "carrier": ""
+  },
+  "26024739": {
+    "hRaw": "S5884",
+    "planName": "IMRF PDP  037 / 105",
+    "carrier": ""
+  },
+  "26024745": {
+    "hRaw": "R5826",
+    "planName": "IMRF RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26024746": {
+    "hRaw": "R5826",
+    "planName": "IMRF RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26024782": {
+    "hRaw": "R5826",
+    "planName": "INDIANAPOLIS FOP LODGE #86 RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26024835": {
+    "hRaw": "H5216",
+    "planName": "IUE-CWA LPPO  079 / 700",
+    "carrier": ""
+  },
+  "26024847": {
+    "hRaw": "H1036",
+    "planName": "JACKSON HEALTH SYSTEM HMO  076 / 135",
+    "carrier": ""
+  },
+  "26024848": {
+    "hRaw": "H1036",
+    "planName": "JACKSON HEALTH SYSTEM HMO  076 / 135",
+    "carrier": ""
+  },
+  "26024849": {
+    "hRaw": "H7617",
+    "planName": "JACKSON HEALTH SYSTEM LPPO  079 / 082",
+    "carrier": ""
+  },
+  "26024850": {
+    "hRaw": "H7617",
+    "planName": "JACKSON HEALTH SYSTEM LPPO  079 / 082",
+    "carrier": ""
+  },
+  "26024874": {
+    "hRaw": "H5216",
+    "planName": "KAO AMERICA INC. LPPO  079 / 061",
+    "carrier": ""
+  },
+  "26024879": {
+    "hRaw": "S5884",
+    "planName": "KENT COUNTY ROAD COMMISSION PDP  037 / 146",
+    "carrier": ""
+  },
+  "26025039": {
+    "hRaw": "H7617",
+    "planName": "KSB GIW, INC. LPPO  079 / 055",
+    "carrier": ""
+  },
+  "26025049": {
+    "hRaw": "H5216",
+    "planName": "LAFAYETTE PARISH SCHOOL BD LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26025087": {
+    "hRaw": "H5216",
+    "planName": "LE JONES COMPANY LPPO  079 / 060",
+    "carrier": ""
+  },
+  "26025109": {
+    "hRaw": "H5216",
+    "planName": "LINK-BELT LPPO  079 / 279",
+    "carrier": ""
+  },
+  "26025118": {
+    "hRaw": "R5826",
+    "planName": "LINK-BELT RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26025133": {
+    "hRaw": "H7617",
+    "planName": "LLFLEX LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26025143": {
+    "hRaw": "H5216",
+    "planName": "LOOP LLC LPPO  079 / 056",
+    "carrier": ""
+  },
+  "26025144": {
+    "hRaw": "H7617",
+    "planName": "LOUDON COUNTY GOVERNMENT LPPO  079 / 058",
+    "carrier": ""
+  },
+  "26025197": {
+    "hRaw": "H5216",
+    "planName": "MERCHANTS & FARMERS BANK LPPO  079 / 060",
+    "carrier": ""
+  },
+  "26025337": {
+    "hRaw": "H7617",
+    "planName": "MODERN WOODMEN OF AMERICA LPPO  079 / 065",
+    "carrier": ""
+  },
+  "26025338": {
+    "hRaw": "H7617",
+    "planName": "MODERN WOODMEN OF AMERICA LPPO  079 / 065",
+    "carrier": ""
+  },
+  "26025350": {
+    "hRaw": "H5216",
+    "planName": "MORMAC MARINE GROUP INC LPPO  079 / 066",
+    "carrier": ""
+  },
+  "26025503": {
+    "hRaw": "H7617",
+    "planName": "OKEFENOKE REMC LPPO  079 / 060",
+    "carrier": ""
+  },
+  "26025504": {
+    "hRaw": "H5216",
+    "planName": "OLHSA LPPO  079 / 060",
+    "carrier": ""
+  },
+  "26025505": {
+    "hRaw": "H7617",
+    "planName": "ONE MISSION SOCIETY USA, INC. LPPO  079 / 061",
+    "carrier": ""
+  },
+  "26025523": {
+    "hRaw": "R5826",
+    "planName": "OSCEOLA COUNTY GOVERNMENT RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26025526": {
+    "hRaw": "R5826",
+    "planName": "OSCEOLA COUNTY SHERIFFS OFFICE RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26025538": {
+    "hRaw": "H7617",
+    "planName": "OUTOKUMPU STAINLESS LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26025539": {
+    "hRaw": "H7617",
+    "planName": "OUTOKUMPU STAINLESS LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26025601": {
+    "hRaw": "H5216",
+    "planName": "PLAQUEMINES PARISH SCH BD LPPO  079 / 502",
+    "carrier": ""
+  },
+  "26025608": {
+    "hRaw": "H5216",
+    "planName": "PLASTOMER CORPORATION LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26025609": {
+    "hRaw": "H5216",
+    "planName": "PLASTOMER CORPORATION LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26025610": {
+    "hRaw": "H5216",
+    "planName": "PLASTOMER CORPORATION LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26025611": {
+    "hRaw": "H5216",
+    "planName": "PLASTOMER CORPORATION LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26025841": {
+    "hRaw": "H5216",
+    "planName": "PRIDGEON & CLAY, INC LPPO  079 / 065",
+    "carrier": ""
+  },
+  "26026022": {
+    "hRaw": "H7617",
+    "planName": "REA & ASSOCIATES, INC. LPPO  079 / 066",
+    "carrier": ""
+  },
+  "26026023": {
+    "hRaw": "H5216",
+    "planName": "REINHART BOERNER VAN DEUREN LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26026085": {
+    "hRaw": "H5216",
+    "planName": "ROSS CONTROLS LPPO  079 / 278",
+    "carrier": ""
+  },
+  "26026124": {
+    "hRaw": "H5216",
+    "planName": "SAINT BERNARD PARISH GOVT LPPO  079 / 056",
+    "carrier": ""
+  },
+  "26026125": {
+    "hRaw": "H5216",
+    "planName": "SAINT BERNARD PARISH GOVT LPPO  079 / 056",
+    "carrier": ""
+  },
+  "26026159": {
+    "hRaw": "R5826",
+    "planName": "SENSIENT TECHNOLOGIES INC RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26026204": {
+    "hRaw": "H7617",
+    "planName": "SHELBY ENERGY COOPERATIVE, INC. LPPO  079 / 463",
+    "carrier": ""
+  },
+  "26026220": {
+    "hRaw": "H7617",
+    "planName": "SIMMONS & ASSOCIATES LPPO  079 / 333",
+    "carrier": ""
+  },
+  "26026433": {
+    "hRaw": "H7617",
+    "planName": "SOUTH KENTUCKY RECC LPPO  079 / 060",
+    "carrier": ""
+  },
+  "26026439": {
+    "hRaw": "H7617",
+    "planName": "SPANG & COMPANY LPPO  079 / 825",
+    "carrier": ""
+  },
+  "26026461": {
+    "hRaw": "H5216",
+    "planName": "ST. CHARLES PARISH SCH BRD LPPO  079 / 600",
+    "carrier": ""
+  },
+  "26026463": {
+    "hRaw": "H7617",
+    "planName": "ST. JAMES PARISH SCHOOL BOARD LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26026464": {
+    "hRaw": "H5216",
+    "planName": "ST. JAMES PARISH SCHOOL BOARD LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26026465": {
+    "hRaw": "H5216",
+    "planName": "ST. JOHN PARISH SHERIFFS OFFICE LPPO  079 / 736",
+    "carrier": ""
+  },
+  "26026527": {
+    "hRaw": "R5826",
+    "planName": "TAFT STETTINIUS & HOLLISTER RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26026588": {
+    "hRaw": "H5216",
+    "planName": "TEAMCAREGOLD LPPO  079 / 082",
+    "carrier": ""
+  },
+  "26026682": {
+    "hRaw": "R5826",
+    "planName": "TEAMCAREGOLD RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26026692": {
+    "hRaw": "H5216",
+    "planName": "TECK AMERICAN INC LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26026694": {
+    "hRaw": "S5884",
+    "planName": "TECK AMERICAN INC PDP  037 / 137",
+    "carrier": ""
+  },
+  "26026753": {
+    "hRaw": "H7617",
+    "planName": "THE C.W. ZUMBIEL COMPANY LPPO  079 / 055",
+    "carrier": ""
+  },
+  "26026783": {
+    "hRaw": "H5216",
+    "planName": "TIMKEN COMPANY LPPO  079 / 446",
+    "carrier": ""
+  },
+  "26026784": {
+    "hRaw": "H5216",
+    "planName": "TIMKEN COMPANY LPPO  079 / 446",
+    "carrier": ""
+  },
+  "26026806": {
+    "hRaw": "H5216",
+    "planName": "TOWNSHIP OF SUMMIT LPPO  079 / 066",
+    "carrier": ""
+  },
+  "26026808": {
+    "hRaw": "H5216",
+    "planName": "TRANS WORLD RADIO LPPO  079 / 065",
+    "carrier": ""
+  },
+  "26026838": {
+    "hRaw": "H5216",
+    "planName": "TURNER INDUSTRIES LPPO  079 / 060",
+    "carrier": ""
+  },
+  "26026882": {
+    "hRaw": "R5826",
+    "planName": "UNIVERSITY OF CINCINNATI RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26026970": {
+    "hRaw": "H5216",
+    "planName": "VERNON PARISH CLERK OF COURT LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26026987": {
+    "hRaw": "H5216",
+    "planName": "WBR PARISH COUNCIL LPPO  079 / 060",
+    "carrier": ""
+  },
+  "26026988": {
+    "hRaw": "H5216",
+    "planName": "WBR PARISH COUNCIL - G&W LPPO  079 / 060",
+    "carrier": ""
+  },
+  "26026990": {
+    "hRaw": "H5216",
+    "planName": "WCTC LPPO  079 / 190",
+    "carrier": ""
+  },
+  "26027025": {
+    "hRaw": "H7617",
+    "planName": "WESTERN RESERVE GROUP LPPO  079 / 057",
+    "carrier": ""
+  },
+  "26027037": {
+    "hRaw": "H7617",
+    "planName": "WYATT, TARRANT & COMBS LLP LPPO  079 / 060",
+    "carrier": ""
+  },
+  "26027038": {
+    "hRaw": "S5884",
+    "planName": "WYATT, TARRANT & COMBS LLP PDP  037 / 315",
+    "carrier": ""
+  },
+  "26027119": {
+    "hRaw": "R5826",
+    "planName": "PINELLAS COUNTY SCHOOLS RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26027120": {
+    "hRaw": "R5826",
+    "planName": "PINELLAS COUNTY SCHOOLS RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26027147": {
+    "hRaw": "H7617",
+    "planName": "CARROLL EMC LPPO  079 / 064",
+    "carrier": ""
+  },
+  "26027188": {
+    "hRaw": "R5826",
+    "planName": "KENNETH C. GRIFFIN MUSEUM OF SCIENCE AND INDUSTRY RPPO  079 / 623",
+    "carrier": ""
+  },
+  "26027330": {
+    "hRaw": "H5216",
+    "planName": "RIO TINTO LPPO  079 / 060",
+    "carrier": ""
+  },
+  "26027360": {
+    "hRaw": "S5820",
+    "planName": "UnitedHealthcare MedicareRx for Groups (PDP)",
+    "carrier": ""
+  },
+  "26027361": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027362": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027363": {
+    "hRaw": "S5820",
+    "planName": "UnitedHealthcare MedicareRx for Groups (PDP)",
+    "carrier": ""
+  },
+  "26027364": {
+    "hRaw": "S5820",
+    "planName": "UnitedHealthcare MedicareRx for Groups (PDP)",
+    "carrier": ""
+  },
+  "26027365": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027366": {
+    "hRaw": "S5820",
+    "planName": "UnitedHealthcare MedicareRx for Groups (PDP)",
+    "carrier": ""
+  },
+  "26027367": {
+    "hRaw": "S5820",
+    "planName": "UnitedHealthcare MedicareRx for Groups (PDP)",
+    "carrier": ""
+  },
+  "26027368": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027369": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027370": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027371": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027372": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027373": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027374": {
+    "hRaw": "S5820",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027375": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027376": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027377": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027378": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027379": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027380": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027381": {
+    "hRaw": "S5921",
+    "planName": "UnitedHealthcare MedicareRx for Groups (PDP)",
+    "carrier": ""
+  },
+  "26027382": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027383": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027384": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027385": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027386": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027387": {
+    "hRaw": "S5820",
+    "planName": "UnitedHealthcare MedicareRx for Groups (PDP)",
+    "carrier": ""
+  },
+  "26027388": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027390": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027391": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027392": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027393": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027394": {
+    "hRaw": "S5805",
+    "planName": "UnitedHealthcare MedicareRx for Groups (PDP)",
+    "carrier": ""
+  },
+  "26027395": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027396": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027397": {
+    "hRaw": "S5820",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027398": {
+    "hRaw": "S5820",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027399": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027400": {
+    "hRaw": "H2001",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027401": {
+    "hRaw": "S5820",
+    "planName": "UnitedHealthcare Group Medicare Advantage (PPO)",
+    "carrier": ""
+  },
+  "26027415": {
+    "hRaw": "H7617",
+    "planName": "THE DIOCESE OF DAVENPORT LPPO  079 / 059",
+    "carrier": ""
+  }
+}

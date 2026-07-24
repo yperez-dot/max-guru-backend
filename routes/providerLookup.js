@@ -15,12 +15,26 @@
  */
 
 const { Router } = require('express');
+const fs     = require('fs');
+const path   = require('path');
 const router = Router();
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const NPI_REGISTRY_BASE = 'https://npiregistry.cms.hhs.gov/api/';
 const FETCH_TIMEOUT_MS  = 12_000;
+const SUNFIRE_BASE      = 'https://www.sunfirematrix.com';
+
+// ─── Sunfire Plan Map (internal ID → plan name / carrier) ────────────────────
+// Built 2026-07-23 by intercepting Sunfire's own plan-list API (303 plans).
+let SUNFIRE_PLAN_MAP = {};
+try {
+  const mapPath = path.join(__dirname, '../services/sunfire-id-map.json');
+  SUNFIRE_PLAN_MAP = JSON.parse(fs.readFileSync(mapPath, 'utf8'));
+  console.log(`[providerLookup] Sunfire plan map loaded: ${Object.keys(SUNFIRE_PLAN_MAP).length} plans`);
+} catch (err) {
+  console.warn('[providerLookup] Sunfire plan map not found — Sunfire lookups will return raw IDs:', err.message);
+}
 
 /**
  * The three FHIR-open FL MA carriers.
@@ -340,16 +354,30 @@ router.post('/', async (req, res) => {
     });
   }
 
-  // ── Step 2: Query all 3 carriers for each NPI (carriers run in parallel) ──
+  // ── Step 2: Query FHIR carriers + Sunfire for each NPI (all in parallel) ──
   const providers = [];
+
+  // Derive county FIPS from zip (default Miami-Dade 12086; expand later)
+  const COUNTY_BY_ZIP = { /* key zips → FIPS */
+    '33196': '12086', '33186': '12086', '33176': '12086', '33183': '12086',
+    '33015': '12086', '33012': '12086', '33145': '12086', '33126': '12086',
+    '33010': '12086', '33054': '12086', '33166': '12086', '33174': '12086',
+    // Broward
+    '33004': '12011', '33009': '12011', '33019': '12011', '33021': '12011',
+    '33060': '12011', '33064': '12011', '33312': '12011', '33317': '12011',
+    '33328': '12011', '33334': '12011',
+  };
+  const county = COUNTY_BY_ZIP[zip] || '12086';
 
   for (const npiResult of npiResults) {
     const npi = npiResult.number;
     if (!npi) continue;
 
-    const [flblueResult, cignaResult, devotedResult] = await Promise.all(
-      CARRIERS.map(carrier => queryCarrier(carrier, npi))
-    );
+    // Run FHIR carriers + Sunfire in parallel
+    const [flblueResult, cignaResult, devotedResult, sunfirePlans] = await Promise.all([
+      ...CARRIERS.map(carrier => queryCarrier(carrier, npi)),
+      querySunfire(npi, zip, county),
+    ]);
 
     const inNetworkFor    = [];
     const carriersWithErrors = [];
@@ -362,14 +390,20 @@ router.post('/', async (req, res) => {
       }
     }
 
+    // Merge Sunfire results (deduplicate against FHIR results)
+    for (const plan of sunfirePlans) {
+      if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
+    }
+
     providers.push({
-      name:     getDisplayName(npiResult),
+      name:      getDisplayName(npiResult),
       npi,
       specialty: getSpecialty(npiResult),
-      address:  getLocationAddress(npiResult),
-      phone:    getPhone(npiResult),
+      address:   getLocationAddress(npiResult),
+      phone:     getPhone(npiResult),
       inNetworkFor,
-      carriersChecked:    CARRIERS.map(c => c.name),
+      sunfirePlansCount:  sunfirePlans.length,
+      carriersChecked:    [...CARRIERS.map(c => c.name), 'Sunfire (UHC, Humana, WellCare, CarePlus, HealthSun + more)'],
       carriersWithErrors: carriersWithErrors.length ? carriersWithErrors : undefined,
     });
   }
@@ -379,12 +413,98 @@ router.post('/', async (req, res) => {
     meta: {
       query:           { doctorName, zip, state },
       npiResultCount:  npiResults.length,
-      carriersQueried: CARRIERS.map(c => c.name),
-      note: 'Only FL Blue, Cigna, and Devoted Health have open FHIR endpoints. '
-          + 'Aetna, Humana, UHC, and others require developer-portal registration.',
+      carriersQueried: [...CARRIERS.map(c => c.name), 'Sunfire'],
+      sunfirePlanMapSize: Object.keys(SUNFIRE_PLAN_MAP).length,
+      note: 'FHIR: FL Blue, Cigna, Devoted, HealthSun. Sunfire: UHC, Humana, WellCare, CarePlus, HealthSun + all FL MA carriers.',
       timestamp: new Date().toISOString(),
     },
   });
 });
+
+// ─── Sunfire Provider Lookup ─────────────────────────────────────────────────
+
+/**
+ * Query Sunfire /v2/provider/list for a given NPI.
+ * Returns array of plan name strings the doctor is in-network for.
+ * Requires SUNFIRE_JWT and SUNFIRE_SFP env vars (auto-refreshed weekly via cron).
+ */
+async function querySunfire(npi, zip, county = '12086') {
+  const jwt = process.env.SUNFIRE_JWT;
+  const sfp = process.env.SUNFIRE_SFP;
+
+  if (!jwt || !sfp) {
+    console.warn('[sunfire] Missing SUNFIRE_JWT or SUNFIRE_SFP — skipping Sunfire lookup');
+    return [];
+  }
+
+  const body = {
+    type: 'network',
+    county,
+    providers: [{
+      id: npi,
+      name: npi,
+      firstName: '',
+      radius: 15,
+      address: { state: 'FL', zip },
+      locations: [{ npi, selected: true }],
+      primaryDoctor: true,
+    }],
+    restrictedProviderCarrierId: '',
+    year: 2026,
+    zip,
+  };
+
+  const ctrl  = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10_000);
+
+  try {
+    const res = await fetch(`${SUNFIRE_BASE}/v2/provider/list`, {
+      method:  'POST',
+      headers: {
+        'Authorization': `Bearer ${jwt}`,
+        'Cookie':        `sfp-cookie=${sfp}`,
+        'Content-Type':  'application/json',
+      },
+      body:   JSON.stringify(body),
+      signal: ctrl.signal,
+    });
+
+    if (!res.ok) {
+      console.warn(`[sunfire] provider/list HTTP ${res.status}`);
+      return [];
+    }
+
+    const data  = await res.json();
+    const plans = Array.isArray(data) ? data : (data.plans || []);
+
+    const inNetwork = [];
+    for (const plan of plans) {
+      const covered = (plan.doctorInformation || []).some(di =>
+        (di.locations || []).some(loc => loc.covered === 'Y')
+      );
+      if (!covered) continue;
+
+      const id      = String(plan.id);
+      const mapEntry = SUNFIRE_PLAN_MAP[id];
+      if (mapEntry) {
+        const label = mapEntry.planName
+          ? `${mapEntry.planName} — ${mapEntry.carrier}`.trim()
+          : mapEntry.carrier || `Sunfire plan ${id}`;
+        inNetwork.push(label);
+      } else {
+        inNetwork.push(`Plan ID ${id}`);
+      }
+    }
+
+    console.log(`[sunfire] NPI ${npi}: ${inNetwork.length} in-network plans`);
+    return inNetwork;
+  } catch (err) {
+    const label = err.name === 'AbortError' ? 'Timeout' : err.message;
+    console.warn(`[sunfire] provider/list error: ${label}`);
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 module.exports = router;
