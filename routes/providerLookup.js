@@ -373,16 +373,16 @@ router.post('/', async (req, res) => {
     const npi = npiResult.number;
     if (!npi) continue;
 
-    // Run FHIR carriers + Sunfire in parallel
-    const [flblueResult, cignaResult, devotedResult, sunfirePlans] = await Promise.all([
-      ...CARRIERS.map(carrier => queryCarrier(carrier, npi)),
+    // Run FHIR carriers + Sunfire in parallel (cleanly separated)
+    const [fhirResults, sunfirePlans] = await Promise.all([
+      Promise.all(CARRIERS.map(carrier => queryCarrier(carrier, npi))),
       querySunfire(npi, zip, county),
     ]);
 
-    const inNetworkFor    = [];
+    const inNetworkFor       = [];
     const carriersWithErrors = [];
 
-    for (const result of [flblueResult, cignaResult, devotedResult]) {
+    for (const result of fhirResults) {
       if (result.error) {
         carriersWithErrors.push(result.carrier);
       } else if (result.plans.length) {
