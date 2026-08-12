@@ -3,8 +3,9 @@ const Anthropic = require('@anthropic-ai/sdk');
 const https = require('https');
 const http = require('http');
 const { loadKnowledge, searchKnowledge, getKnowledgeByKey } = require('../knowledge/loader');
+const { lookupProviderNetwork } = require('./providerNetwork');
+const { sunfireAuthorizationHeader } = require('./sunfireAuth');
 
-// Whitelisted domains Max can fetch from
 const ALLOWED_DOMAINS = [
   'healthexps.com',
   'www.healthexps.com',
@@ -21,27 +22,79 @@ const ALLOWED_DOMAINS = [
 ];
 
 function fetchUrl(url) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     try {
       const parsed = new URL(url);
-      const allowed = ALLOWED_DOMAINS.some(d => parsed.hostname === d || parsed.hostname.endsWith('.' + d));
-      if (!allowed) return resolve(`Not allowed. Approved domains: ${ALLOWED_DOMAINS.filter(d => !d.startsWith('www.')).join(', ')}`);
-      const lib = parsed.protocol === 'https:' ? https : http;
-      const req = lib.get(url, { headers: { 'User-Agent': 'Max-Medicare-Guru/1.0', 'Accept': 'text/html,text/plain' }, timeout: 10000 }, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          // Strip HTML tags, collapse whitespace, trim to 6000 chars
-          const text = data.replace(/<style[\s\S]*?<\/style>/gi, ' ')
-            .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-            .replace(/<[^>]+>/g, ' ')
-            .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-            .replace(/\s+/g, ' ').trim().slice(0, 6000);
-          resolve(text || 'Page loaded but no readable content found.');
-        });
+      if (parsed.protocol !== 'https:') {
+        return resolve('Only https URLs are allowed.');
+      }
+      const allowed = ALLOWED_DOMAINS.some(
+        d => parsed.hostname === d || parsed.hostname.endsWith('.' + d)
+      );
+      if (!allowed) {
+        return resolve(
+          `Not allowed. Approved domains: ${ALLOWED_DOMAINS.filter(d => !d.startsWith('www.')).join(', ')}`
+        );
+      }
+      const req = https.get(
+        url,
+        {
+          headers: { 'User-Agent': 'Max-Medicare-Guru/1.0', Accept: 'text/html,text/plain' },
+          timeout: 10000,
+        },
+        (res) => {
+          // Do not follow redirects off-allowlist
+          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            try {
+              const next = new URL(res.headers.location, url);
+              const ok = ALLOWED_DOMAINS.some(
+                d => next.hostname === d || next.hostname.endsWith('.' + d)
+              );
+              if (!ok || next.protocol !== 'https:') {
+                return resolve('Redirect blocked — destination not on allowlist.');
+              }
+              return resolve(fetchUrl(next.toString()));
+            } catch {
+              return resolve('Invalid redirect.');
+            }
+          }
+          let data = '';
+          let truncated = false;
+          res.on('data', (chunk) => {
+            if (data.length > 200000) {
+              truncated = true;
+              req.destroy();
+              return;
+            }
+            data += chunk;
+          });
+          res.on('end', () => {
+            const text = data
+              .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+              .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/&nbsp;/g, ' ')
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .slice(0, 6000);
+            resolve(
+              text
+                ? truncated
+                  ? `${text}\n…[truncated]`
+                  : text
+                : 'Page loaded but no readable content found.'
+            );
+          });
+        }
+      );
+      req.on('error', (e) => resolve(`Fetch error: ${e.message}`));
+      req.on('timeout', () => {
+        req.destroy();
+        resolve('Request timed out.');
       });
-      req.on('error', e => resolve(`Fetch error: ${e.message}`));
-      req.on('timeout', () => { req.destroy(); resolve('Request timed out.'); });
     } catch (e) {
       resolve(`Invalid URL: ${e.message}`);
     }
@@ -78,41 +131,51 @@ HARD RULES -- these override everything else:
 15. HOSPITAL NETWORK DATA -- HOSPITALS below lists 83 South Florida hospitals and which carriers are in-network at each one. Use this whenever an agent asks "is [hospital] in-network for [carrier]" or "which carriers cover [hospital]" or the reverse ("which hospitals does [carrier] cover"). The carrier names in this dataset are informal/brand names, not always the same string as the "carrier" field in PLAN DATA -- notably "MedicareMax" and "Preferred Care Partner" both refer to UHC sub-brands, and "Humana PPO" is distinct from plain "Humana" (HMO) in this dataset, so match carefully rather than assuming an exact string match; when in doubt, ask which specific plan or product the agent means. If a hospital has a "note" field, always surface it -- these capture real restrictions (e.g. University of Miami is in-network for Aetna/Humana/Solis but with a "No UM PCP" restriction, and "Broward Health (ALL)" is a near-duplicate of "Broward Health" that hasn't been confirmed as intentional vs. a data-entry artifact). This dataset does not include hospitals outside the listed set -- if an agent asks about a hospital not in HOSPITALS, say plainly that it's not in the current data rather than guessing whether it's in-network.
 16. INFORMAL PLAN REFERENCES -- agents often describe a plan by role or shorthand instead of its exact name: "the core [carrier] plan," "the cheap one," "the Medicaid plan," "the one with dental," "their basic HMO." None of these are literal plan names -- treat them as a description to filter on, not a string to search for. "Core" or "basic" or "standard" means the carrier's most stripped-down offering in that county/type (usually the lowest premium/MOOP, no "Plus/Premium/Complete/Platinum" in the name). "The Medicaid plan" usually means a D-SNP. "Cheap" means lowest premium and/or MOOP among that carrier's options. Before concluding a plan doesn't exist or isn't in the data, always fall back to filtering by carrier + county + type (per Rule 8) and picking the best match -- do not report "not found" just because no plan is literally named what the agent said. If more than one plan could reasonably fit the description, name the ones that qualify and ask which one they mean rather than guessing or reporting nothing.
 17. NEVER FILL A DATA GAP FROM TRAINING KNOWLEDGE -- if a plan, carrier, or benefit genuinely isn't in PLAN DATA, CARRIER_CHRONIC_CONDITIONS, or HOSPITALS after actually checking (not just a literal name-match miss -- see Rule 16 first), say plainly that it's not in the current data. Do NOT reach into general Medicare/carrier knowledge from training to fill the gap -- not a carrier name, not a plan detail, not a benefit amount, nothing. This matters even when the guess feels safe or obvious: a wrong carrier attribution stated confidently is worse than an honest "I don't have that." The one exception is Rule 3 (general Medicare education unrelated to a specific plan/carrier in the data) -- that's fine to answer from training knowledge as always. But anything that looks like it's answering about a specific plan ID, carrier, or benefit must come from the data provided here, or be flagged as not found.
+18. TOOL USE -- For doctor/provider network questions, ALWAYS call lookup_provider_network (do not narrate a fake tool call in text). For drug name/NDC questions, ALWAYS call search_drug. Never write <tool_call> tags in your reply; use the API tool mechanism only.
 
 KNOWLEDGE BASE ACCESS:
-You have access to THEI's full knowledge base via search_knowledge and get_knowledge_doc tools. The KB contains all 148 FL 2026 plans (Miami-Dade + Broward) with full benefit detail including copays, dental breakdown, drug tiers, hospital networks, carrier contacts, and Medicare reference data.
+You have access to THEI's full knowledge base via search_knowledge and get_knowledge_doc tools. The KB contains FL 2026 plan reference docs with benefit detail including copays, dental breakdown, drug tiers, hospital networks, carrier contacts, and Medicare reference data.
 
 ALWAYS search the KB before answering any plan-specific question. Search by plan ID, carrier name, benefit type, or hospital name.`;
 
-// Tool definitions for function-calling
+const TOOL_USE_APPENDIX = `
+
+ADDITIONAL RUNTIME RULES (server-enforced):
+- Use the provided tools via the API tool_use mechanism. Never invent <tool_call> XML or pretend you looked something up.
+- For questions about whether a doctor/provider is in-network, call lookup_provider_network before answering.
+- For medication name / NDC lookups, call search_drug before answering.
+`;
+
 const TOOLS = [
   {
     name: 'search_knowledge',
-    description: 'Search THEI\'s Medicare knowledge base for plan data, carrier rules, non-commissionable plans, compliance docs, and more.',
+    description:
+      "Search THEI's Medicare knowledge base for plan data, carrier rules, non-commissionable plans, compliance docs, and more.",
     input_schema: {
       type: 'object',
       properties: {
         query: {
           type: 'string',
-          description: 'Search query — e.g. "Humana non-commissionable", "Aetna SEP", "AHIP requirements"'
-        }
+          description: 'Search query — e.g. "Humana non-commissionable", "Aetna SEP", "AHIP requirements"',
+        },
       },
-      required: ['query']
-    }
+      required: ['query'],
+    },
   },
   {
     name: 'fetch_web_page',
-    description: 'Fetch live content from approved websites: healthexps.com, medicare.gov, cms.gov, ssa.gov, agentmedicarehub.com. Use for current plan info, CMS rules, SSA info, or anything that may have changed recently.',
+    description:
+      'Fetch live content from approved websites: healthexps.com, medicare.gov, cms.gov, ssa.gov, agentmedicarehub.com, aarp.org.',
     input_schema: {
       type: 'object',
       properties: {
         url: {
           type: 'string',
-          description: 'Full URL to fetch, e.g. "https://www.medicare.gov/plan-compare"'
-        }
+          description: 'Full HTTPS URL to fetch, e.g. "https://www.medicare.gov/plan-compare"',
+        },
       },
-      required: ['url']
-    }
+      required: ['url'],
+    },
   },
   {
     name: 'get_knowledge_doc',
@@ -122,44 +185,46 @@ const TOOLS = [
       properties: {
         key: {
           type: 'string',
-          description: 'Document key, e.g. "carriers/humana-noncommissionable-florida-2026" or "max-behavior-rules"'
-        }
+          description:
+            'Document key, e.g. "carriers/humana-noncommissionable-florida-2026" or "max-behavior-rules"',
+        },
       },
-      required: ['key']
-    }
+      required: ['key'],
+    },
   },
   {
     name: 'lookup_provider_network',
-    description: 'Look up which Medicare Advantage plans a doctor is in-network for in Florida. Use when an agent asks what plans a doctor accepts, or if a specific doctor is in-network for a plan. Returns real-time data from carrier FHIR APIs.',
+    description:
+      'Look up which Medicare Advantage plans a doctor is in-network for in Florida. Use when an agent asks what plans a doctor accepts, or if a specific doctor is in-network for a plan. Returns real-time data from carrier FHIR APIs and Sunfire.',
     input_schema: {
       type: 'object',
       properties: {
         doctorName: { type: 'string', description: 'Doctor full name, e.g. "John Smith"' },
         zip: { type: 'string', description: 'Florida ZIP code — optional, defaults to Miami-Dade area' },
-        state: { type: 'string', description: 'State code, defaults to FL', default: 'FL' }
+        state: { type: 'string', description: 'State code, defaults to FL', default: 'FL' },
       },
-      required: ['doctorName']
-    }
+      required: ['doctorName'],
+    },
   },
   {
     name: 'search_drug',
-    description: 'Search for a drug by name to get NDC code and drug ID. Use when an agent asks about a medication name, spelling, or NDC code.',
+    description:
+      'Search for a drug by name to get NDC code and drug ID. Use when an agent asks about a medication name, spelling, or NDC code.',
     input_schema: {
       type: 'object',
       properties: {
-        name: { type: 'string', description: 'Drug name or partial name, e.g. "metformin", "lisinopril"' }
+        name: { type: 'string', description: 'Drug name or partial name, e.g. "metformin", "lisinopril"' },
       },
-      required: ['name']
-    }
-  }
+      required: ['name'],
+    },
+  },
 ];
 
-// Process tool calls (async to support live lookups)
 async function processTool(toolName, toolInput) {
   if (toolName === 'search_knowledge') {
     const results = searchKnowledge(toolInput.query);
     if (!results.length) return 'No results found for that query.';
-    return results.map(r => `### ${r.key}\n${r.content.slice(0, 8000)}`).join('\n\n---\n\n');
+    return results.map(r => `### ${r.key}\n${r.content}`).join('\n\n---\n\n');
   }
   if (toolName === 'fetch_web_page') {
     return fetchUrl(toolInput.url);
@@ -170,192 +235,152 @@ async function processTool(toolName, toolInput) {
   }
   if (toolName === 'lookup_provider_network') {
     try {
-      const doctorName = toolInput.doctorName || '';
-      const zip = toolInput.zip || '33136';
-      // Strip titles: dr, dr., mrs., mr., ms., dds, md, do, np, pa
-      const cleanName = doctorName.trim().replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|dds\.?|md\.?|do\.?|np\.?|pa\.?)\s+/i, '');
-      const nameParts = cleanName.split(/\s+/);
-      const lastName = nameParts[nameParts.length - 1];
-      const firstName = nameParts.length > 1 ? nameParts[0] : '';
-      // Step 1: NPI Registry lookup — try multiple name formats for compound last names
-      let results = [];
-      const namesToTry = [
-        { last: lastName, first: firstName },                              // e.g. Calle, Gilda
-        { last: nameParts.slice(1).join(' '), first: nameParts[0] },       // e.g. De La Calle, Gilda
-        { last: nameParts.slice(-2).join(' '), first: firstName },         // e.g. La Calle, Gilda
-        { last: lastName, first: '' },                                     // last name only
-      ];
-      for (const attempt of namesToTry) {
-        if (!attempt.last) continue;
-        const npiParams = new URLSearchParams({ version: '2.1', last_name: attempt.last, state: 'FL', enumeration_type: 'NPI-1', limit: '5' });
-        if (attempt.first) npiParams.set('first_name', attempt.first);
-        const npiRes = await fetch(`https://npiregistry.cms.hhs.gov/api/?${npiParams}`, { signal: AbortSignal.timeout(10000) });
-        const npiData = await npiRes.json();
-        results = npiData.results || [];
-        if (results.length) break;
-      }
-      if (!results.length) return `No providers found matching "${doctorName}" in Florida. Try a different spelling.`;
-      // Step 2: FHIR lookup for each NPI
-      const CARRIERS = [
-        { name: 'Florida Blue', key: 'flblue', base: 'https://apigw.bcbsfl.com/interop/interop-developer-portal/emr/api/v1/fhir' },
-        { name: 'Cigna', key: 'cigna', base: 'https://fhir.cigna.com/ProviderDirectory/v1' },
-        { name: 'HealthSun', key: 'healthsun', base: 'https://api.aaneelconnect.com/cms/r4/providerdirectory', extra: 'payer-id=8d4e5e9ec9c64b1a9db68fbec4bd6f95' },
-        { name: 'Devoted Health', key: 'devoted', base: 'https://fhir.devoted.com/r4' },
-      ];
-      const providerResults = [];
-      for (const p of results.slice(0, 3)) {
-        const npi = p.number;
-        const pName = `${p.basic?.first_name || ''} ${p.basic?.last_name || ''}`.trim();
-        const spec = (p.taxonomies || []).find(t => t.primary)?.desc || 'Unknown';
-        const addr = (p.addresses || []).find(a => a.address_purpose === 'LOCATION') || {};
-        const inNetworkFor = [];
-        for (const carrier of CARRIERS) {
-          try {
-            const url = carrier.extra
-              ? `${carrier.base}/PractitionerRole?practitioner.identifier=${npi}&${carrier.extra}`
-              : `${carrier.base}/PractitionerRole?practitioner.identifier=${npi}`;
-            const r = await fetch(url, { headers: { Accept: 'application/fhir+json' }, signal: AbortSignal.timeout(8000) });
-            if (r.ok) {
-              const fd = await r.json();
-              if ((fd.total || 0) > 0 || (fd.entry || []).length > 0) {
-                inNetworkFor.push(carrier.name);
-              }
-            }
-          } catch(e) { /* skip carrier */ }
-        }
-        providerResults.push({ name: pName, npi, specialty: spec, address: `${addr.address_1 || ''}, ${addr.city || ''}, FL ${addr.postal_code || ''}`.trim(), inNetworkFor });
-      }
-      if (!providerResults.length) return `Found NPIs but no network data available.`;
-      // Step 3: Sunfire /v2/provider/list for UHC, Humana, WellCare, CarePlus, etc.
-      const SUNFIRE_BASE = 'https://www.sunfirematrix.com';
-      const SUNFIRE_JWT = process.env.SUNFIRE_JWT || '';
-      const SUNFIRE_SFP = process.env.SUNFIRE_SFP || '';
-      const sunfirePlans = {};
-      if (SUNFIRE_JWT && SUNFIRE_SFP && providerResults.length > 0) {
-        try {
-          const sfProviders = providerResults.map(pr => ({
-            id: pr.npi, name: pr.name, firstName: pr.name.split(' ')[0], radius: 25, primaryDoctor: true
-          }));
-          const sfRes = await fetch(`${SUNFIRE_BASE}/v2/provider/list`, {
-            method: 'POST',
-            headers: {
-              'Authorization': SUNFIRE_JWT,
-              'Content-Type': 'application/json',
-              'Cookie': `sfp-cookie=${SUNFIRE_SFP}`,
-              'Origin': SUNFIRE_BASE,
-              'Referer': `${SUNFIRE_BASE}/app/agent/yourmedicare/`
-            },
-            body: JSON.stringify({
-              type: 'network', county: '12086', year: 2026, zip: '33136',
-              providers: sfProviders, restrictedProviderCarrierId: ''
-            }),
-            signal: AbortSignal.timeout(15000)
-          });
-          if (sfRes.ok) {
-            const sfData = await sfRes.json();
-            const sfPlans = sfData.plans || [];
-            for (const plan of sfPlans) {
-              const docs = plan.doctorInformation || [];
-              for (const doc of docs) {
-                if (doc.covered === 'Y' && (doc.locations || []).some(l => l.covered === 'Y')) {
-                  sunfirePlans[plan.id] = sunfirePlans[plan.id] || [];
-                  sunfirePlans[plan.id].push(doc.id);
-                }
-              }
-            }
-          }
-        } catch(e) { console.log('[Sunfire lookup error]', e.message); }
-      }
-      const sunfirePlanCount = Object.keys(sunfirePlans).length;
-
-      let out = `Provider network results for "${doctorName}":\n\n`;
-      for (const pr of providerResults) {
-        out += `**${pr.name}** (NPI: ${pr.npi})\n`;
-        out += `Specialty: ${pr.specialty}\n`;
-        out += `Address: ${pr.address}\n`;
-        const allNetworks = [...pr.inNetworkFor];
-        if (sunfirePlanCount > 0) {
-          out += allNetworks.length ? `FHIR networks: ${allNetworks.join(', ')}\n` : `Not found in FL Blue, Cigna, HealthSun, or Devoted.\n`;
-          out += `Sunfire networks: Found in ${sunfirePlanCount} plan(s) — UHC/Humana/WellCare/CarePlus area. Confirm plan names in Sunfire for enrollment.\n`;
-        } else {
-          out += allNetworks.length ? `In-network for: ${allNetworks.join(', ')}\n` : `Not found in FL Blue, Cigna, HealthSun, or Devoted networks.\n`;
-          out += sunfirePlanCount === 0 && SUNFIRE_SFP ? `Sunfire: No active plans found.\n` : `Sunfire: Session expired — refresh credentials for UHC/Humana/WellCare/CarePlus.\n`;
-        }
-        out += '\n';
-      }
-      // Build structured output for frontend (v11 toolResults schema)
-      const firstProvider = providerResults[0];
-      const structured = firstProvider ? {
-        doctorName: firstProvider.name,
-        npi: firstProvider.npi,
-        networks: CARRIERS.map(c => ({
-          carrier: c.name,
-          inNetwork: firstProvider.inNetworkFor.includes(c.name)
-        }))
-      } : { doctorName, networks: [] };
-      return { text: out.slice(0, 4000), structured };
-    } catch (e) { return `Provider lookup error: ${e.message}`; }
+      const result = await lookupProviderNetwork({
+        doctorName: toolInput.doctorName || '',
+        zip: toolInput.zip || '33136',
+        state: toolInput.state || 'FL',
+      });
+      return { text: result.text, structured: result.structured };
+    } catch (e) {
+      return `Provider lookup error: ${e.message}`;
+    }
   }
   if (toolName === 'search_drug') {
     try {
-      const prefix = encodeURIComponent(toolInput.name.toLowerCase().slice(0, 20));
+      const auth = sunfireAuthorizationHeader();
+      if (!auth) return 'Drug search unavailable — Sunfire credentials not configured.';
+      const prefix = encodeURIComponent(String(toolInput.name || '').toLowerCase().slice(0, 20));
       const res = await fetch(`https://www.sunfirematrix.com/v2/drug/search/${prefix}/-1`, {
-        headers: { 'Authorization': process.env.SUNFIRE_JWT || '', 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(10000)
+        headers: { Authorization: auth, Accept: 'application/json' },
+        signal: AbortSignal.timeout(10000),
       });
       if (!res.ok) return `Drug search unavailable (${res.status}).`;
       const data = await res.json();
       const drugs = data.drugs || [];
       if (!drugs.length) return `No drugs found matching "${toolInput.name}". Try a different spelling.`;
-      return `Found ${drugs.length} drug(s) matching "${toolInput.name}":\n` + drugs.slice(0, 10).map(d => `- ${d.name} (NDC: ${d.ndc})`).join('\n');
-    } catch (e) { return `Drug search error: ${e.message}`; }
+      return (
+        `Found ${drugs.length} drug(s) matching "${toolInput.name}":\n` +
+        drugs
+          .slice(0, 10)
+          .map(d => `- ${d.name} (NDC: ${d.ndc})`)
+          .join('\n')
+      );
+    } catch (e) {
+      return `Drug search error: ${e.message}`;
+    }
   }
   return 'Unknown tool.';
 }
 
+function toolResultToText(result) {
+  if (result && typeof result === 'object' && result.text) return result.text;
+  if (typeof result === 'string') return result;
+  return String(result);
+}
+
 async function chat(messages) {
   // LEGACY MODE — KB-search path. Pass-through is handled in server.js.
-  // Scheduled for retirement once nothing depends on it.
   loadKnowledge();
 
   const apiMessages = [...messages];
   let response;
 
-  // Agentic loop — handle tool calls
   for (let i = 0; i < 5; i++) {
     response = await client.messages.create({
       model: process.env.CLAUDE_MODEL || 'claude-haiku-4-5',
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       tools: TOOLS,
+      tool_choice: { type: 'auto' },
       messages: apiMessages,
     });
 
     if (response.stop_reason !== 'tool_use') break;
 
-    // Process tool calls
     const assistantMsg = { role: 'assistant', content: response.content };
     apiMessages.push(assistantMsg);
 
     const toolResults = [];
     for (const block of response.content) {
       if (block.type === 'tool_use') {
-        console.log(`[Tool] ${block.name}(${JSON.stringify(block.input)})`);
+        console.log(`[Tool] ${block.name}`);
         const result = await processTool(block.name, block.input);
-        const resultText = (result && typeof result === 'object' && result.text) ? result.text : result;
         toolResults.push({
           type: 'tool_result',
           tool_use_id: block.id,
-          content: resultText,
+          content: toolResultToText(result),
         });
       }
     }
     apiMessages.push({ role: 'user', content: toolResults });
   }
 
-  // Extract text reply
   const textBlock = response.content.find(b => b.type === 'text');
   return textBlock?.text || "I'm having trouble right now — please try again.";
 }
 
-module.exports = { chat, TOOLS, processTool };
+/**
+ * Detect provider-network questions and extract a doctor name when possible.
+ */
+function detectProviderLookupIntent(messages) {
+  const lastUser = [...messages].reverse().find(m => m.role === 'user');
+  const text = typeof lastUser?.content === 'string' ? lastUser.content : '';
+  if (!text) return null;
+
+  const looksLikeProvider =
+    /\b(dr\.?|doctor|provider|in[- ]?network|accepts?|network)\b/i.test(text) ||
+    /\bwhat plans (is|does)\b/i.test(text);
+  if (!looksLikeProvider) return null;
+
+  const patterns = [
+    /(?:dr\.?|doctor)\s+([A-Z][a-zA-Z'’-]+(?:\s+[A-Z][a-zA-Z'’-]+){0,3})/,
+    /(?:is|does)\s+([A-Z][a-zA-Z'’-]+(?:\s+[A-Z][a-zA-Z'’-]+){1,3})\s+(?:in[- ]?network|accept)/i,
+    /(?:plans?\s+(?:is|for|does)\s+)(?:dr\.?\s+)?([A-Z][a-zA-Z'’-]+(?:\s+[A-Z][a-zA-Z'’-]+){0,3})/i,
+  ];
+  for (const re of patterns) {
+    const m = text.match(re);
+    if (m?.[1]) {
+      return { doctorName: m[1].replace(/[?.!,;:]+$/, '').trim(), zip: '33136' };
+    }
+  }
+  return { doctorName: null, zip: '33136', needsName: true };
+}
+
+function parseNarratedToolCall(text) {
+  if (!text || typeof text !== 'string') return null;
+
+  const tagMatch = text.match(
+    /<tool_call>[\s\S]*?"name"\s*:\s*"(\w+)"[\s\S]*?(?:"arguments"|"parameters"|"input")\s*:\s*(\{[\s\S]*?\})[\s\S]*?<\/tool_call>/
+  );
+  if (tagMatch) {
+    try {
+      return { name: tagMatch[1], input: JSON.parse(tagMatch[2]) };
+    } catch {
+      return { name: tagMatch[1], input: {} };
+    }
+  }
+
+  const fenceMatch = text.match(
+    /```(?:json)?\s*(\{[\s\S]*?"name"\s*:\s*"(lookup_provider_network|search_drug|search_knowledge|get_knowledge_doc|fetch_web_page)"[\s\S]*?\})\s*```/
+  );
+  if (fenceMatch) {
+    try {
+      const obj = JSON.parse(fenceMatch[1]);
+      return { name: obj.name, input: obj.arguments || obj.parameters || obj.input || {} };
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+module.exports = {
+  chat,
+  TOOLS,
+  processTool,
+  SYSTEM_PROMPT,
+  TOOL_USE_APPENDIX,
+  detectProviderLookupIntent,
+  parseNarratedToolCall,
+  toolResultToText,
+};
