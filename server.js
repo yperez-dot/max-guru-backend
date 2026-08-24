@@ -20,8 +20,9 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, cb) => {
+    // Allow non-browser clients (no Origin) and allowlisted browser origins.
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    cb(new Error(`CORS: ${origin} not allowed`));
+    return cb(null, false);
   },
   credentials: true,
 }));
@@ -40,7 +41,18 @@ app.get('/knowledge', requireApiKey, (req, res) => {
 app.use('/drug-search', requireApiKey, drugLookupRouter);
 app.use('/provider-lookup', requireApiKey, providerLookupRouter);
 
+const MAX_CLIENT_SYSTEM_CHARS = Number(process.env.MAX_CLIENT_SYSTEM_CHARS || 400000);
+const TOOL_USE_APPENDIX = `
+
+ADDITIONAL RUNTIME RULES (server-enforced):
+- Use the provided tools via the API tool_use mechanism. Never invent <tool_call> XML or pretend you looked something up.
+- For questions about whether a doctor/provider is in-network, call lookup_provider_network before answering.
+- For medication name / NDC lookups, call search_drug before answering.
+`;
+
 // POST /chat { messages: [{role, content}], system?: string }
+// Netlify (thei-max-guru.netlify.app) always sends system = buildSystemPrompt() (~280KB plan grid).
+// Auth (MAX_API_KEY) is the trust boundary — do not reject client system prompts or the live UI breaks.
 app.post('/chat', requireApiKey, async (req, res) => {
   const { messages, system } = req.body;
   if (!Array.isArray(messages) || !messages.length) {
@@ -48,10 +60,18 @@ app.post('/chat', requireApiKey, async (req, res) => {
   }
 
   if (system) {
-    // SECURITY: reject client-controlled system prompts — use server-owned prompt only
-    return res.status(400).json({ error: 'client system prompt not accepted — use /chat without system field' });
-    // PASS-THROUGH MODE with tool support
+    if (typeof system !== 'string') {
+      return res.status(400).json({ error: 'system must be a string' });
+    }
+    if (system.length > MAX_CLIENT_SYSTEM_CHARS) {
+      return res.status(413).json({
+        error: `system prompt too large (${system.length} chars; max ${MAX_CLIENT_SYSTEM_CHARS})`,
+      });
+    }
+
+    // PASS-THROUGH MODE with tool support (required by Netlify frontend)
     const { TOOLS, processTool } = require('./services/claude');
+    const mergedSystem = `${system}\n${TOOL_USE_APPENDIX}`;
     try {
       const apiMessages = [...messages];
       let data;
@@ -61,12 +81,18 @@ app.post('/chat', requireApiKey, async (req, res) => {
         const requestBody = {
           model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
           max_tokens: 8000,
-          system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+          system: [{ type: 'text', text: mergedSystem, cache_control: { type: 'ephemeral' } }],
           messages: apiMessages,
           tools: TOOLS,
+          tool_choice: { type: 'auto' },
         };
-        console.log('TOOLS_CHECK', typeof TOOLS, Array.isArray(TOOLS) ? TOOLS.length : 'n/a');
-        console.log('OUTBOUND [redacted for PHI]', JSON.stringify({ model: requestBody.model, max_tokens: requestBody.max_tokens, messageCount: requestBody.messages?.length }).slice(0, 200));
+        console.log('OUTBOUND [redacted]', JSON.stringify({
+          model: requestBody.model,
+          max_tokens: requestBody.max_tokens,
+          messageCount: requestBody.messages?.length,
+          systemChars: mergedSystem.length,
+          tools: Array.isArray(TOOLS) ? TOOLS.length : 0,
+        }));
         const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: {
@@ -86,7 +112,7 @@ app.post('/chat', requireApiKey, async (req, res) => {
         const toolResults = [];
         for (const block of data.content) {
           if (block.type === 'tool_use') {
-            console.log(`[Tool] ${block.name}(${JSON.stringify(block.input)})`);
+            console.log(`[Tool] ${block.name}`);
             const result = await processTool(block.name, block.input);
             const resolvedResult = (result && typeof result === 'object' && result.text)
               ? result.text
@@ -109,17 +135,21 @@ app.post('/chat', requireApiKey, async (req, res) => {
           const toolName = toolMatch[1];
           let toolInput = {};
           try { toolInput = JSON.parse(toolMatch[2]); } catch(e) {}
-          console.log(`[ReactiveToolCall] ${toolName}(${JSON.stringify(toolInput)})`);
+          console.log(`[ReactiveToolCall] ${toolName}`);
           const toolResult = await processTool(toolName, toolInput);
+          const resolved =
+            (toolResult && typeof toolResult === 'object' && toolResult.text)
+              ? toolResult.text
+              : (typeof toolResult === 'string' ? toolResult : String(toolResult));
           // Strip the tool call from the text and inject result
           const cleanText = textBlock.text.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '').replace(/<tool_response>[\s\S]*?<\/tool_response>/g, '').trim();
           apiMessages.push({ role: 'assistant', content: [{ type: 'text', text: cleanText || 'Let me look that up...' }] });
-          apiMessages.push({ role: 'user', content: `Tool result for ${toolName}:\n${typeof toolResult === 'string' ? toolResult : await toolResult}` });
+          apiMessages.push({ role: 'user', content: `Tool result for ${toolName}:\n${resolved}` });
           // One more round to get final answer
           const finalRes = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-            body: JSON.stringify({ model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6', max_tokens: 4000, system: [{ type: 'text', text: system }], messages: apiMessages }),
+            body: JSON.stringify({ model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6', max_tokens: 4000, system: [{ type: 'text', text: mergedSystem }], messages: apiMessages }),
           });
           data = await finalRes.json();
         }
