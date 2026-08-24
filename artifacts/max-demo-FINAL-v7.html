@@ -221,34 +221,21 @@ ${JSON.stringify(CARRIER_CHRONIC_CONDITIONS)}`;
 }
 
 // Environment-aware routing:
-// - Inside Claude.ai artifacts, api.anthropic.com works directly (no key needed).
-// - Standalone (Netlify or anywhere else), that call fails, so we route through
-//   THEI's Railway proxy, which holds the API key and passes {system, messages}
-//   straight through to Anthropic untouched. CRITICAL: buildSystemPrompt() is
-//   sent IN FULL on both paths -- rules AND all plan/hospital/carrier data.
-//   Never truncate the system string; it's ~280KB by design.
-const IS_CLAUDE_AI = /(^|\.)claude\.(ai|com)$|claudeusercontent\.com$/.test(window.location.hostname);
+// Netlify / standalone → THEI Railway proxy (xAI Grok holds the model key).
+// buildSystemPrompt() is sent IN FULL — rules AND all plan/hospital/carrier data.
+// Never truncate the system string; it's ~280KB by design.
 const PROXY_URL = "https://max-guru-production.up.railway.app/chat";
 // Set window.MAX_API_KEY via Netlify snippet / deploy inject (do not hardcode).
 const MAX_API_KEY = (typeof window !== "undefined" && window.MAX_API_KEY) || "";
 
 async function askGuru(conversationHistory) {
-  const url = IS_CLAUDE_AI ? "https://api.anthropic.com/v1/messages" : PROXY_URL;
-  const payload = IS_CLAUDE_AI
-    ? {
-        model: "claude-sonnet-4-6",
-        max_tokens: 1000,
-        system: buildSystemPrompt(),
-        messages: conversationHistory,
-      }
-    : {
-        // Proxy path: model + max_tokens are set server-side on Railway.
-        system: buildSystemPrompt(),
-        messages: conversationHistory,
-      };
+  const payload = {
+    system: buildSystemPrompt(),
+    messages: conversationHistory,
+  };
   const headers = { "Content-Type": "application/json" };
   if (MAX_API_KEY) headers["x-max-api-key"] = MAX_API_KEY;
-  const response = await fetch(url, {
+  const response = await fetch(PROXY_URL, {
     method: "POST",
     headers,
     body: JSON.stringify(payload),
@@ -256,6 +243,12 @@ async function askGuru(conversationHistory) {
   const data = await response.json();
   if (response.status === 401) {
     return "Backend auth isn't configured in this deploy (missing MAX_API_KEY inject). Ask admin to set the Netlify snippet.";
+  }
+  if (response.status === 503) {
+    return data.error || "Max's Grok backend isn't configured yet (missing XAI_API_KEY on Railway).";
+  }
+  if (!response.ok) {
+    return data.error || "I couldn't generate a response. Try again.";
   }
   const textBlock = data.content && data.content.find((b) => b.type === "text");
   return textBlock ? textBlock.text : "I couldn't generate a response. Try again.";
