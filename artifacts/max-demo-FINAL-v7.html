@@ -464,7 +464,8 @@ function App() {
 
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      const preferred = "https://max.healthexps.com/";
+      await navigator.clipboard.writeText(preferred);
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     } catch (_) {
@@ -621,7 +622,7 @@ function App() {
 
             <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", letterSpacing: "0.06em", textTransform: "uppercase", margin: "18px 4px 10px" }}>Access</div>
             <div style={{ padding: "12px", borderRadius: 12, border: "1px solid var(--line)", background: "rgba(255,255,255,0.45)", fontSize: 12, color: "var(--muted)", lineHeight: 1.45 }}>
-              Bookmark this page or add it to your phone home screen. Press <kbd style={{ fontFamily: "var(--font)", background: "rgba(69,32,104,0.08)", padding: "1px 6px", borderRadius: 6 }}>/</kbd> to focus the ask box.
+              Best link: <strong style={{ color: "var(--plum)" }}>max.healthexps.com</strong>. Bookmark it or add to your phone home screen. Press <kbd style={{ fontFamily: "var(--font)", background: "rgba(69,32,104,0.08)", padding: "1px 6px", borderRadius: 6 }}>/</kbd> to focus the ask box.
               <button
                 onClick={copyLink}
                 style={{

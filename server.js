@@ -12,6 +12,7 @@ const PORT = process.env.PORT || 3002;
 
 const allowedOrigins = [
   'https://thei-max-guru.netlify.app',
+  'https://max.healthexps.com',
   'https://agentmedicarehub.com',
   'https://www.agentmedicarehub.com',
   'http://localhost:3000',
