@@ -50,3 +50,15 @@ npx netlify deploy --prod --dir=/tmp/max-index --site=<site-id>
 
 Plan IDs like `H5420-001/0028` fuzzy-match grid IDs (`H5420-001/-0028`).
 Asking for “excel” re-offers Export from the **latest** comparison only.
+
+## Invite-only access (cost control)
+
+Max is meant for Yahoska / Katy / Carolina — not the full agent roster.
+
+1. Railway → Variables → set `MAX_ACCESS_PASSWORD` to a strong shared password
+2. Redeploy Railway (automatic on variable change)
+3. Share the password only with those three
+4. Optional: Cloudflare Access on `max.healthexps.com` restricted to your three emails (strongest)
+5. Optional: in https://console.x.ai set a monthly spend limit / alerts
+
+Chat is also rate-limited (~40 requests / hour / session by default via `MAX_CHAT_RATE_MAX`).

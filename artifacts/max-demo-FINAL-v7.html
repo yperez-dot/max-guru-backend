@@ -271,9 +271,40 @@ ${JSON.stringify(CARRIER_CHRONIC_CONDITIONS)}`;
 // Netlify / standalone → THEI Railway proxy (xAI Grok holds the model key).
 // buildSystemPrompt() is sent IN FULL — rules AND all plan/hospital/carrier data.
 // Never truncate the system string; it's ~280KB by design.
-const PROXY_URL = "https://max-guru-production.up.railway.app/chat";
+const API_BASE = "https://max-guru-production.up.railway.app";
+const PROXY_URL = API_BASE + "/chat";
+const UNLOCK_URL = API_BASE + "/auth/unlock";
 // Set window.MAX_API_KEY via Netlify snippet / deploy inject (do not hardcode).
 const MAX_API_KEY = (typeof window !== "undefined" && window.MAX_API_KEY) || "";
+const ACCESS_TOKEN_KEY = "max_access_token";
+
+function getAccessToken() {
+  try { return sessionStorage.getItem(ACCESS_TOKEN_KEY) || ""; } catch (_) { return ""; }
+}
+function setAccessToken(token) {
+  try {
+    if (token) sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+    else sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+  } catch (_) {}
+}
+
+async function unlockMax(password) {
+  const headers = { "Content-Type": "application/json" };
+  if (MAX_API_KEY) headers["x-max-api-key"] = MAX_API_KEY;
+  const response = await fetch(UNLOCK_URL, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ password }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const err = new Error(data.error || "Unlock failed");
+    err.status = response.status;
+    throw err;
+  }
+  if (data.token) setAccessToken(data.token);
+  return data;
+}
 
 async function askGuru(conversationHistory) {
   const payload = {
@@ -282,14 +313,25 @@ async function askGuru(conversationHistory) {
   };
   const headers = { "Content-Type": "application/json" };
   if (MAX_API_KEY) headers["x-max-api-key"] = MAX_API_KEY;
+  const access = getAccessToken();
+  if (access) headers["x-max-access-token"] = access;
   const response = await fetch(PROXY_URL, {
     method: "POST",
     headers,
     body: JSON.stringify(payload),
   });
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
   if (response.status === 401) {
+    if (data.code === "access_required") {
+      setAccessToken("");
+      const err = new Error("access_required");
+      err.code = "access_required";
+      throw err;
+    }
     return "Backend auth isn't configured in this deploy (missing MAX_API_KEY inject). Ask admin to set the Netlify snippet.";
+  }
+  if (response.status === 429) {
+    return data.error || "Max is rate-limited to protect spend — try again shortly.";
   }
   if (response.status === 503) {
     return data.error || "Max's Grok backend isn't configured yet (missing XAI_API_KEY on Railway).";
@@ -391,6 +433,25 @@ const QUICK_ASKS = [
 ];
 
 function App() {
+  const [unlocked, setUnlocked] = useState(() => Boolean(getAccessToken()));
+  const [accessGateOn, setAccessGateOn] = useState(true);
+  const [gatePassword, setGatePassword] = useState("");
+  const [gateError, setGateError] = useState(null);
+  const [gateLoading, setGateLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(API_BASE + "/health")
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        const on = Boolean(d.accessGate);
+        setAccessGateOn(on);
+        if (!on) setUnlocked(true);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -473,6 +534,31 @@ function App() {
     }
   };
 
+  const submitUnlock = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const pw = gatePassword.trim();
+    if (!pw || gateLoading) return;
+    setGateLoading(true);
+    setGateError(null);
+    try {
+      await unlockMax(pw);
+      setUnlocked(true);
+      setGatePassword("");
+      setTimeout(() => inputRef.current?.focus(), 50);
+    } catch (err) {
+      setGateError(err.status === 401 ? "Wrong password." : (err.message || "Couldn’t unlock Max."));
+    } finally {
+      setGateLoading(false);
+    }
+  };
+
+  const lockMax = () => {
+    setAccessToken("");
+    setUnlocked(false);
+    setMessages([]);
+    setError(null);
+  };
+
   const send = async (text) => {
     const content = (text || input).trim();
     if (!content || loading) return;
@@ -527,11 +613,63 @@ function App() {
         setMessages((prev) => [...prev.filter(m => m.role !== 'offer'), assistantMsg]);
       }
     } catch (err) {
+      if (err && err.code === "access_required") {
+        setUnlocked(false);
+        setGateError("Session expired — enter the access password again.");
+        return;
+      }
       setError("Couldn't reach Max. Check your connection and try again — if this keeps happening, Railway may be redeploying.");
     } finally {
       setLoading(false);
     }
   };
+
+  if (accessGateOn && !unlocked) {
+    return (
+      <div style={{ minHeight: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "var(--font)" }}>
+        <form onSubmit={submitUnlock} className="max-fade" style={{
+          width: "100%", maxWidth: 400, padding: "28px 24px", borderRadius: 20,
+          background: "rgba(255,255,255,0.78)", border: "1px solid var(--line)", backdropFilter: "blur(16px)",
+          boxShadow: "0 20px 60px rgba(42,21,64,0.12)",
+        }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}><Avatar size={64} showStatus={true} /></div>
+          <h1 style={{ fontFamily: "var(--display)", fontSize: 34, margin: 0, textAlign: "center", letterSpacing: "-0.03em" }}>Max</h1>
+          <p style={{ margin: "10px 0 0", textAlign: "center", color: "var(--muted)", fontSize: 13.5, lineHeight: 1.45 }}>
+            Invite-only for THEI leadership. Enter the shared access password to continue.
+          </p>
+          <input
+            type="password"
+            value={gatePassword}
+            onChange={(e) => setGatePassword(e.target.value)}
+            placeholder="Access password"
+            autoFocus
+            style={{
+              width: "100%", marginTop: 20, padding: "12px 14px", borderRadius: 12,
+              border: "1px solid var(--line)", background: "#fff", fontFamily: "var(--font)", fontSize: 14.5,
+            }}
+          />
+          {gateError && (
+            <div style={{ marginTop: 10, fontSize: 12.5, color: "#9B1C3C" }}>{gateError}</div>
+          )}
+          <button
+            type="submit"
+            disabled={gateLoading || !gatePassword.trim()}
+            style={{
+              width: "100%", marginTop: 14, padding: "12px 14px", borderRadius: 12, border: "none",
+              background: gateLoading || !gatePassword.trim() ? "rgba(69,32,104,0.25)" : "linear-gradient(135deg, var(--plum), var(--magenta))",
+              color: "#fff", fontWeight: 600, fontSize: 14, cursor: gateLoading || !gatePassword.trim() ? "default" : "pointer",
+              fontFamily: "var(--font)",
+            }}
+          >
+            {gateLoading ? "Checking…" : "Unlock Max"}
+          </button>
+          <p style={{ margin: "14px 0 0", textAlign: "center", fontSize: 11.5, color: "var(--muted)" }}>
+            Costs are metered per question — keep the password off Agent Hub.
+          </p>
+        </form>
+      </div>
+    );
+  }
 
   const shell = {
     display: "flex",
@@ -680,6 +818,9 @@ function App() {
               New chat
             </button>
           )}
+          <button onClick={lockMax} title="Lock Max" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 600, color: "var(--muted)" }}>
+            Lock
+          </button>
         </header>
 
         <div style={{

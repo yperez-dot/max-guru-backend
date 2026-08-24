@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const { passThroughChat, chat: grokChat, DEFAULT_MODEL } = require('./services/grok');
 const { requireApiKey } = require('./middleware/auth');
+const { accessEnabled, requireAccessToken, unlockHandler } = require('./middleware/access');
+const { createRateLimiter } = require('./middleware/rateLimit');
 const { loadKnowledge, getKnowledgeSummary } = require('./knowledge/loader');
 const drugLookupRouter = require('./routes/drugLookup');
 const providerLookupRouter = require('./routes/providerLookup');
@@ -13,11 +15,20 @@ const PORT = process.env.PORT || 3002;
 const allowedOrigins = [
   'https://thei-max-guru.netlify.app',
   'https://max.healthexps.com',
-  'https://agentmedicarehub.com',
-  'https://www.agentmedicarehub.com',
   'http://localhost:3000',
   'http://localhost:5500',
 ];
+
+const chatRateLimit = createRateLimiter({
+  windowMs: Number(process.env.MAX_CHAT_RATE_WINDOW_MS || 60 * 60 * 1000),
+  max: Number(process.env.MAX_CHAT_RATE_MAX || 40),
+  name: 'chat',
+});
+const unlockRateLimit = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.MAX_UNLOCK_RATE_MAX || 20),
+  name: 'unlock',
+});
 
 app.use(cors({
   origin: (origin, cb) => {
@@ -36,19 +47,23 @@ app.get('/health', (req, res) => {
     provider: 'grok',
     model: process.env.GROK_MODEL || DEFAULT_MODEL,
     authRequired: true,
+    accessGate: accessEnabled(),
     xaiConfigured: Boolean(process.env.XAI_API_KEY),
     ts: new Date().toISOString(),
   });
 });
 
+// Shared password unlock → short-lived access token (required when MAX_ACCESS_PASSWORD is set)
+app.post('/auth/unlock', requireApiKey, unlockRateLimit, unlockHandler);
+
 // Knowledge index (admin/debug only)
-app.get('/knowledge', requireApiKey, (req, res) => {
+app.get('/knowledge', requireApiKey, requireAccessToken, (req, res) => {
   res.json({ ok: true, summary: getKnowledgeSummary() });
 });
 
 // POST /provider-lookup { doctorName, zip, state? }
-app.use('/drug-search', requireApiKey, drugLookupRouter);
-app.use('/provider-lookup', requireApiKey, providerLookupRouter);
+app.use('/drug-search', requireApiKey, requireAccessToken, drugLookupRouter);
+app.use('/provider-lookup', requireApiKey, requireAccessToken, providerLookupRouter);
 
 const MAX_CLIENT_SYSTEM_CHARS = Number(process.env.MAX_CLIENT_SYSTEM_CHARS || 400000);
 const TOOL_USE_APPENDIX = `
@@ -64,7 +79,7 @@ ADDITIONAL RUNTIME RULES (server-enforced):
 // Netlify (thei-max-guru.netlify.app) always sends system = buildSystemPrompt() (~280KB plan grid).
 // Auth (MAX_API_KEY) is the trust boundary — do not reject client system prompts or the live UI breaks.
 // LLM: xAI Grok (OpenAI-compatible). Response shape stays Anthropic-like for the Netlify UI.
-app.post('/chat', requireApiKey, async (req, res) => {
+app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, res) => {
   const { messages, system } = req.body;
   if (!Array.isArray(messages) || !messages.length) {
     return res.status(400).json({ error: 'messages array required' });
