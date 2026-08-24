@@ -356,6 +356,9 @@ function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const bottomRef = useRef(null);
+  // Remembers the most recent exportable comparison even after the offer chip is dismissed
+  // or later non-comparison replies push it out of the recent-message window.
+  const lastComparisonPlansRef = useRef([]);
 
   const MIN_SIDEBAR = 72;
   const MAX_SIDEBAR = 400;
@@ -402,12 +405,13 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      // If agent asks for Excel, reuse the latest comparison only (not the whole thread).
+      // If agent asks for Excel, reuse the latest remembered comparison.
       if (wantsExcelExport(content)) {
         const lastOffer = [...newHistory].reverse().find((m) => m.role === "offer" && m.plans?.length >= 2);
-        let fromThread = lastOffer?.plans || [];
+        let fromThread = lastOffer?.plans || lastComparisonPlansRef.current || [];
         if (fromThread.length < 2) {
-          const assistantMsgs = newHistory.filter((m) => m.role === "assistant").slice(-3);
+          // Walk assistant history newest→oldest until we find a real comparison.
+          const assistantMsgs = newHistory.filter((m) => m.role === "assistant");
           for (let i = assistantMsgs.length - 1; i >= 0; i--) {
             const found = findComparisonPlans(assistantMsgs[i].content || "");
             if (found.length >= 2) {
@@ -417,8 +421,8 @@ function App() {
           }
         }
         if (fromThread.length >= 2) {
-          // Cap export to the most recent comparison pair/set (max 4 plans).
           fromThread = fromThread.slice(0, 4);
+          lastComparisonPlansRef.current = fromThread;
           const labels = fromThread.map((p) => `${p.carrier} ${p.planName} (${p.planId})`).join(" vs ");
           const assistantMsg = {
             role: "assistant",
@@ -438,7 +442,8 @@ function App() {
       const assistantMsg = { role: "assistant", content: reply, time: nowLabel() };
       const found = findComparisonPlans(reply);
       if (found.length >= 2) {
-        setMessages((prev) => [...prev.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: found, time: nowLabel() }]);
+        lastComparisonPlansRef.current = found.slice(0, 4);
+        setMessages((prev) => [...prev.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: found.slice(0, 4), time: nowLabel() }]);
       } else {
         setMessages((prev) => [...prev.filter(m => m.role !== 'offer'), assistantMsg]);
       }
