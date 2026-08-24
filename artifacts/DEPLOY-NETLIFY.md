@@ -3,6 +3,11 @@
 The live UI is a single HTML file: `artifacts/max-demo-FINAL-v7.html`
 → publish as `index.html` on the `thei-max-guru` Netlify site.
 
+## Model backend
+
+Max's Railway `/chat` proxy calls **xAI Grok** (`GROK_MODEL`, default `grok-4.6`).
+Set `XAI_API_KEY` on Railway before merge/cutover or chat returns 503.
+
 ## Auth (required)
 
 Do **not** commit `MAX_API_KEY` into the HTML. Inject it at publish time:

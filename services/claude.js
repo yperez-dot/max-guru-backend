@@ -1,5 +1,5 @@
-// services/claude.js — Max Medicare Guru AI with function-calling
-const Anthropic = require('@anthropic-ai/sdk');
+// services/claude.js — tool definitions + legacy helpers for Max.
+// LLM calls live in services/grok.js (xAI Grok). This file keeps TOOLS/processTool.
 const https = require('https');
 const http = require('http');
 const fs = require('fs');
@@ -58,8 +58,6 @@ function fetchUrl(url) {
     }
   });
 }
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const SYSTEM_PROMPT = `You are Max, the internal Medicare knowledge assistant for The Health Experts Insurance (THEI), a Florida Medicare/health insurance brokerage. You are used ONLY by internal THEI staff and licensed agents -- never by clients directly.
 
@@ -333,48 +331,10 @@ async function processTool(toolName, toolInput) {
 }
 
 async function chat(messages) {
-  // LEGACY MODE — KB-search path. Pass-through is handled in server.js.
-  // Scheduled for retirement once nothing depends on it.
+  // LEGACY MODE — delegates to Grok. Pass-through is handled in server.js.
   loadKnowledge();
-
-  const apiMessages = [...messages];
-  let response;
-
-  // Agentic loop — handle tool calls
-  for (let i = 0; i < 5; i++) {
-    response = await client.messages.create({
-      model: process.env.CLAUDE_MODEL || 'claude-haiku-4-5',
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      tools: TOOLS,
-      messages: apiMessages,
-    });
-
-    if (response.stop_reason !== 'tool_use') break;
-
-    // Process tool calls
-    const assistantMsg = { role: 'assistant', content: response.content };
-    apiMessages.push(assistantMsg);
-
-    const toolResults = [];
-    for (const block of response.content) {
-      if (block.type === 'tool_use') {
-        console.log(`[Tool] ${block.name}(${JSON.stringify(block.input)})`);
-        const result = await processTool(block.name, block.input);
-        const resultText = (result && typeof result === 'object' && result.text) ? result.text : result;
-        toolResults.push({
-          type: 'tool_result',
-          tool_use_id: block.id,
-          content: resultText,
-        });
-      }
-    }
-    apiMessages.push({ role: 'user', content: toolResults });
-  }
-
-  // Extract text reply
-  const textBlock = response.content.find(b => b.type === 'text');
-  return textBlock?.text || "I'm having trouble right now — please try again.";
+  const { chat: grokChat } = require('./grok');
+  return grokChat(messages, SYSTEM_PROMPT);
 }
 
-module.exports = { chat, TOOLS, processTool };
+module.exports = { chat, TOOLS, processTool, SYSTEM_PROMPT };
