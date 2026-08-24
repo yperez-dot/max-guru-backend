@@ -79,19 +79,42 @@ function formatBenefitValue(v) {
 // Finds plan records referenced in a message by matching literal plan IDs against PLANS --
 // never parses chat prose for values. Uses a county mention in the text to disambiguate
 // plans that exist in both Miami-Dade and Broward (e.g. H0982-022).
+function normalizePlanIdKey(s) {
+  // H5420-001/0028, H5420-001/-0028, H5420-001/ 0028 → comparable tokens
+  return String(s || "")
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/\/+/g, "/")
+    .replace(/\/-/g, "/");
+}
+
+function planIdMatchesRaw(plan, raw) {
+  const rawKey = normalizePlanIdKey(raw);
+  const ids = [plan.planId, plan.id].filter(Boolean).map(normalizePlanIdKey);
+  for (const id of ids) {
+    if (id === rawKey) return true;
+    // Max often cites H5420-001/0028 while grid stores H5420-001/-0028 or H5420-001/ 0028
+    if (id.startsWith(rawKey + "/") || rawKey.startsWith(id + "/")) return true;
+    // Also match bare contract-PBP prefix: H5420-001 vs H5420-001/0028
+    const rawBase = rawKey.split("/")[0];
+    const idBase = id.split("/")[0];
+    if (rawBase && idBase && rawBase === idBase) return true;
+  }
+  return false;
+}
+
 function findComparisonPlans(text) {
   if (!text) return [];
   const hasBroward = /broward/i.test(text);
   const hasDade = /miami-?dade/i.test(text);
   const countyHint = hasBroward && !hasDade ? "Broward" : (hasDade && !hasBroward ? "Miami-Dade" : null);
-  const idRegex = /\b[HR]\d{3,4}[\s-]?\d{2,4}\b/g;
+  // Capture compound IDs like H5420-001/0028 as well as H5420-001
+  const idRegex = /\b[HR]\d{3,4}[\s-]?\d{2,4}(?:\s*\/\s*-?\d{2,4})?\b/g;
   const rawMatches = [...new Set((text.match(idRegex) || []).map((s) => s.replace(/\s+/g, "")))];
   const found = [];
   const seen = new Set();
   for (const raw of rawMatches) {
-    let candidates = PLANS.filter(
-      (p) => (p.planId || "").replace(/\s+/g, "") === raw || (p.id || "").replace(/\s+/g, "") === raw
-    );
+    let candidates = PLANS.filter((p) => planIdMatchesRaw(p, raw));
     if (candidates.length === 0) continue;
     if (candidates.length > 1 && countyHint) {
       const filtered = candidates.filter((p) => p.county === countyHint);
@@ -105,6 +128,12 @@ function findComparisonPlans(text) {
     }
   }
   return found;
+}
+
+function wantsExcelExport(text) {
+  return /\b(excel|xlsx|spreadsheet)\b/i.test(text)
+    || /\bexport\s+(this|it|that|to|as|in)\b/i.test(text)
+    || /\bside[-\s]?by[-\s]?side\b/i.test(text) && /\b(excel|export|sheet)\b/i.test(text);
 }
 
 function exportComparisonToExcel(plans) {
@@ -161,6 +190,10 @@ HARD RULES -- these override everything else:
 16. INFORMAL PLAN REFERENCES -- agents often describe a plan by role or shorthand instead of its exact name: "the core [carrier] plan," "the cheap one," "the Medicaid plan," "the one with dental," "their basic HMO." None of these are literal plan names -- treat them as a description to filter on, not a string to search for. "Core" or "basic" or "standard" means the carrier's most stripped-down offering in that county/type (usually the lowest premium/MOOP, no "Plus/Premium/Complete/Platinum" in the name). "The Medicaid plan" usually means a D-SNP. "Cheap" means lowest premium and/or MOOP among that carrier's options. Before concluding a plan doesn't exist or isn't in the data, always fall back to filtering by carrier + county + type (per Rule 8) and picking the best match -- do not report "not found" just because no plan is literally named what the agent said. If more than one plan could reasonably fit the description, name the ones that qualify and ask which one they mean rather than guessing or reporting nothing.
 17. NEVER FILL A DATA GAP FROM TRAINING KNOWLEDGE -- if a plan, carrier, or benefit genuinely isn't in PLAN DATA, CARRIER_CHRONIC_CONDITIONS, or HOSPITALS after actually checking (not just a literal name-match miss -- see Rule 16 first), say plainly that it's not in the current data. Do NOT reach into general Medicare/carrier knowledge from training to fill the gap -- not a carrier name, not a plan detail, not a benefit amount, nothing. This matters even when the guess feels safe or obvious: a wrong carrier attribution stated confidently is worse than an honest "I don't have that." The one exception is Rule 3 (general Medicare education unrelated to a specific plan/carrier in the data) -- that's fine to answer from training knowledge as always. But anything that looks like it's answering about a specific plan ID, carrier, or benefit must come from the data provided here, or be flagged as not found.
 
+
+
+17b. EXCEL EXPORT -- this chat UI CAN export a side-by-side Excel comparison when you cite two or more plan IDs (it shows an "Export" button). NEVER say you cannot generate or export Excel, spreadsheets, or files. When an agent asks for Excel / export / side-by-side spreadsheet: briefly restate the plan names with their exact plan IDs from PLAN DATA (one line each), then tell them to click the Export button that appears under your message. Do not invent file downloads yourself and do not send them to build a sheet manually.
+
 18. LIVE LOOKUP TOOLS -- you have two real, working tools that query live external systems: lookup_provider_network (searches the NPI Registry for a doctor by name, then checks live carrier directories -- currently FL Blue, Cigna/HealthSpring, HealthSun, and Devoted -- for that doctor's plan network affiliations) and search_drug (searches the Sunfire drug catalog). These tools are the ONE exception to Rules 4, 15, and 17's "only the data provided here" boundary: for questions about a specific DOCTOR's network status or a specific DRUG, use the appropriate tool rather than answering "not in the data." Use them via the normal tool-calling mechanism -- never write out tool-call syntax, JSON, or tags as text in your reply; just call the tool and wait for the result. Rules for the results: (a) present them concisely per Rule 7 and cite the source as a live lookup (e.g. "per the NPI registry + FL Blue's live directory"); (b) the carrier coverage is only the four listed -- if the agent asks about a carrier the lookup doesn't cover, say plainly that the live check only covers those four and suggest the carrier's own directory, don't extrapolate; (c) if a lookup errors or returns nothing, say the lookup didn't return results and suggest verifying in the carrier directory -- never fill the gap from training knowledge (Rule 17 still governs the answer itself); (d) Rule 1 still applies -- network participation is a fact, never a reason to call one plan better; (e) for HOSPITAL network questions, still use the HOSPITALS data per Rule 15 -- the lookup tool is for individual providers/doctors; (f) live directory data can lag reality, so for enrollment-critical decisions add a one-line suggestion to confirm with the carrier.
 
 PLAN DATA (148 plans, Miami-Dade and Broward, 2026 plan year):
@@ -207,7 +240,7 @@ async function askGuru(conversationHistory) {
       };
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-max-api-key": "57d57dc06acaeb03b1c209bd28d8aded4982b6b011b761ab9e3af6dbc2777d43" },
     body: JSON.stringify(payload),
   });
   const data = await response.json();
@@ -361,6 +394,30 @@ function App() {
     setLoading(true);
     setError(null);
     try {
+      // If agent asks for Excel, prefer re-using plan IDs already in the thread
+      // so we don't depend on the model (which may wrongly refuse file export).
+      if (wantsExcelExport(content)) {
+        const corpus = newHistory
+          .filter((m) => m.role === "assistant" || m.role === "user")
+          .map((m) => m.content)
+          .join("\n");
+        const fromThread = findComparisonPlans(corpus);
+        if (fromThread.length >= 2) {
+          const labels = fromThread.map((p) => `${p.carrier} ${p.planName} (${p.planId})`).join(" vs ");
+          const assistantMsg = {
+            role: "assistant",
+            content: `Got it — here's the side-by-side Excel export for ${labels}. Click Export below.`,
+            time: nowLabel(),
+          };
+          setMessages((prev) => [
+            ...prev.filter((m) => m.role !== "offer"),
+            assistantMsg,
+            { role: "offer", content: "export", plans: fromThread, time: nowLabel() },
+          ]);
+          return;
+        }
+      }
+
       const reply = await askGuru(newHistory.filter(m => m.role !== 'offer').map((m) => ({ role: m.role, content: m.content })));
       const assistantMsg = { role: "assistant", content: reply, time: nowLabel() };
       const found = findComparisonPlans(reply);
