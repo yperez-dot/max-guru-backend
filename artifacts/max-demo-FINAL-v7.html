@@ -223,8 +223,7 @@ ${JSON.stringify(CARRIER_CHRONIC_CONDITIONS)}`;
 //   Never truncate the system string; it's ~280KB by design.
 const IS_CLAUDE_AI = /(^|\.)claude\.(ai|com)$|claudeusercontent\.com$/.test(window.location.hostname);
 const PROXY_URL = "https://max-guru-production.up.railway.app/chat";
-// Set via Netlify snippet / deploy inject: <script>window.MAX_API_KEY="…"</script>
-// Never commit the production key into this file.
+// Set window.MAX_API_KEY via Netlify snippet / deploy inject (do not hardcode).
 const MAX_API_KEY = (typeof window !== "undefined" && window.MAX_API_KEY) || "";
 
 async function askGuru(conversationHistory) {
