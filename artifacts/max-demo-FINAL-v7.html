@@ -223,6 +223,9 @@ ${JSON.stringify(CARRIER_CHRONIC_CONDITIONS)}`;
 //   Never truncate the system string; it's ~280KB by design.
 const IS_CLAUDE_AI = /(^|\.)claude\.(ai|com)$|claudeusercontent\.com$/.test(window.location.hostname);
 const PROXY_URL = "https://max-guru-production.up.railway.app/chat";
+// Set via Netlify snippet / deploy inject: <script>window.MAX_API_KEY="…"</script>
+// Never commit the production key into this file.
+const MAX_API_KEY = (typeof window !== "undefined" && window.MAX_API_KEY) || "";
 
 async function askGuru(conversationHistory) {
   const url = IS_CLAUDE_AI ? "https://api.anthropic.com/v1/messages" : PROXY_URL;
@@ -238,12 +241,17 @@ async function askGuru(conversationHistory) {
         system: buildSystemPrompt(),
         messages: conversationHistory,
       };
+  const headers = { "Content-Type": "application/json" };
+  if (MAX_API_KEY) headers["x-max-api-key"] = MAX_API_KEY;
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-max-api-key": "57d57dc06acaeb03b1c209bd28d8aded4982b6b011b761ab9e3af6dbc2777d43" },
+    headers,
     body: JSON.stringify(payload),
   });
   const data = await response.json();
+  if (response.status === 401) {
+    return "Backend auth isn't configured in this deploy (missing MAX_API_KEY inject). Ask admin to set the Netlify snippet.";
+  }
   const textBlock = data.content && data.content.find((b) => b.type === "text");
   return textBlock ? textBlock.text : "I couldn't generate a response. Try again.";
 }
@@ -394,15 +402,23 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      // If agent asks for Excel, prefer re-using plan IDs already in the thread
-      // so we don't depend on the model (which may wrongly refuse file export).
+      // If agent asks for Excel, reuse the latest comparison only (not the whole thread).
       if (wantsExcelExport(content)) {
-        const corpus = newHistory
-          .filter((m) => m.role === "assistant" || m.role === "user")
-          .map((m) => m.content)
-          .join("\n");
-        const fromThread = findComparisonPlans(corpus);
+        const lastOffer = [...newHistory].reverse().find((m) => m.role === "offer" && m.plans?.length >= 2);
+        let fromThread = lastOffer?.plans || [];
+        if (fromThread.length < 2) {
+          const assistantMsgs = newHistory.filter((m) => m.role === "assistant").slice(-3);
+          for (let i = assistantMsgs.length - 1; i >= 0; i--) {
+            const found = findComparisonPlans(assistantMsgs[i].content || "");
+            if (found.length >= 2) {
+              fromThread = found;
+              break;
+            }
+          }
+        }
         if (fromThread.length >= 2) {
+          // Cap export to the most recent comparison pair/set (max 4 plans).
+          fromThread = fromThread.slice(0, 4);
           const labels = fromThread.map((p) => `${p.carrier} ${p.planName} (${p.planId})`).join(" vs ");
           const assistantMsg = {
             role: "assistant",
