@@ -3,12 +3,59 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Max — THEI Internal Knowledge Assistant</title>
+<title>Max — THEI Medicare Guru</title>
+<meta name="description" content="Max — THEI internal Medicare knowledge assistant for licensed agents." />
+<meta name="theme-color" content="#2A1540" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Max" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23FF4FA8'/%3E%3Cstop offset='1' stop-color='%23452068'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='48' cy='48' r='46' fill='url(%23g)'/%3E%3Cpolyline points='30,64 30,32 48,52 66,32 66,64' fill='none' stroke='%23fff' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --ink: #1A1224;
+    --muted: #6E657A;
+    --line: rgba(69, 32, 104, 0.12);
+    --plum: #452068;
+    --plum-deep: #2A1540;
+    --magenta: #FF1090;
+    --surface: rgba(255,255,255,0.72);
+    --chip: rgba(255,255,255,0.55);
+    --font: "Sora", system-ui, sans-serif;
+    --display: "Fraunces", Georgia, serif;
+  }
+  html, body, #root { height: 100%; margin: 0; }
+  body {
+    font-family: var(--font);
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(255,16,144,0.18), transparent 55%),
+      radial-gradient(900px 500px at 100% 0%, rgba(69,32,104,0.22), transparent 50%),
+      radial-gradient(700px 400px at 50% 110%, rgba(255,79,168,0.12), transparent 45%),
+      linear-gradient(165deg, #F8F3F0 0%, #EFE8F4 45%, #E8E2F0 100%);
+    background-attachment: fixed;
+  }
+  * { box-sizing: border-box; }
+  ::selection { background: rgba(255,16,144,0.22); }
+  .max-scroll::-webkit-scrollbar { width: 8px; }
+  .max-scroll::-webkit-scrollbar-thumb { background: rgba(69,32,104,0.22); border-radius: 8px; }
+  @keyframes maxFadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes maxPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(63,174,92,0.45); }
+    70% { box-shadow: 0 0 0 8px rgba(63,174,92,0); }
+  }
+  .max-fade { animation: maxFadeUp 0.45s ease both; }
+  .max-online-dot { animation: maxPulse 2.2s infinite; }
+</style>
 </head>
 <body>
 <div id="root"></div>
@@ -224,9 +271,40 @@ ${JSON.stringify(CARRIER_CHRONIC_CONDITIONS)}`;
 // Netlify / standalone → THEI Railway proxy (xAI Grok holds the model key).
 // buildSystemPrompt() is sent IN FULL — rules AND all plan/hospital/carrier data.
 // Never truncate the system string; it's ~280KB by design.
-const PROXY_URL = "https://max-guru-production.up.railway.app/chat";
+const API_BASE = "https://max-guru-production.up.railway.app";
+const PROXY_URL = API_BASE + "/chat";
+const UNLOCK_URL = API_BASE + "/auth/unlock";
 // Set window.MAX_API_KEY via Netlify snippet / deploy inject (do not hardcode).
 const MAX_API_KEY = (typeof window !== "undefined" && window.MAX_API_KEY) || "";
+const ACCESS_TOKEN_KEY = "max_access_token";
+
+function getAccessToken() {
+  try { return sessionStorage.getItem(ACCESS_TOKEN_KEY) || ""; } catch (_) { return ""; }
+}
+function setAccessToken(token) {
+  try {
+    if (token) sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+    else sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+  } catch (_) {}
+}
+
+async function unlockMax(password) {
+  const headers = { "Content-Type": "application/json" };
+  if (MAX_API_KEY) headers["x-max-api-key"] = MAX_API_KEY;
+  const response = await fetch(UNLOCK_URL, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ password }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const err = new Error(data.error || "Unlock failed");
+    err.status = response.status;
+    throw err;
+  }
+  if (data.token) setAccessToken(data.token);
+  return data;
+}
 
 async function askGuru(conversationHistory) {
   const payload = {
@@ -235,14 +313,25 @@ async function askGuru(conversationHistory) {
   };
   const headers = { "Content-Type": "application/json" };
   if (MAX_API_KEY) headers["x-max-api-key"] = MAX_API_KEY;
+  const access = getAccessToken();
+  if (access) headers["x-max-access-token"] = access;
   const response = await fetch(PROXY_URL, {
     method: "POST",
     headers,
     body: JSON.stringify(payload),
   });
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
   if (response.status === 401) {
+    if (data.code === "access_required") {
+      setAccessToken("");
+      const err = new Error("access_required");
+      err.code = "access_required";
+      throw err;
+    }
     return "Backend auth isn't configured in this deploy (missing MAX_API_KEY inject). Ask admin to set the Netlify snippet.";
+  }
+  if (response.status === 429) {
+    return data.error || "Max is rate-limited to protect spend — try again shortly.";
   }
   if (response.status === 503) {
     return data.error || "Max's Grok backend isn't configured yet (missing XAI_API_KEY on Railway).";
@@ -331,29 +420,49 @@ function renderMessageText(text) {
 }
 
 const SUGGESTIONS = [
-  "What's the difference between HMO and PPO?",
-  "What's the MOOP on CarePlus CareOne Plus?",
-  "Which Broward D-SNP plans accept partial dual/Medicaid?",
-  "What is IRMAA and how does it work?",
+  { label: "HMO vs PPO", prompt: "What's the difference between HMO and PPO?" },
+  { label: "CareOne Plus MOOP", prompt: "What's the MOOP on CarePlus CareOne Plus?" },
+  { label: "Broward partial duals", prompt: "Which Broward D-SNP plans accept partial dual/Medicaid?" },
+  { label: "IRMAA basics", prompt: "What is IRMAA and how does it work?" },
 ];
 
-const MOCK_THREADS = [
-  { id: 1, name: "Max", preview: "This plan's flagged non-commissionable for new sales...", time: "2:41 PM", active: true },
-  { id: 2, name: "Max", preview: "CarePlus CareFree Platinum has a $155/mo Part B reduction", time: "11:02 AM", active: false },
-  { id: 3, name: "Max", preview: "Checked all 6 carriers -- 3 plans match dental + Broward", time: "Yesterday", active: false },
-  { id: 4, name: "Max", preview: "Humana needs two qualifying conditions plus a completed HRA...", time: "Tuesday", active: false },
+const QUICK_ASKS = [
+  { label: "Miami-Dade givebacks", prompt: "Which Miami-Dade plans have a Part B giveback?" },
+  { label: "DrMax vs MedicareMax", prompt: "Compare Doctors DrMax H4140-001 and UHC MedicareMax H5420-001/0028 in Miami-Dade — premium, MOOP, PCP, specialist, Tier 1-5, OTC." },
+  { label: "Non-commissionable flags", prompt: "Which Florida 2026 plans are flagged non-commissionable for new sales?" },
 ];
 
 function App() {
+  const [unlocked, setUnlocked] = useState(() => Boolean(getAccessToken()));
+  const [accessGateOn, setAccessGateOn] = useState(true);
+  const [gatePassword, setGatePassword] = useState("");
+  const [gateError, setGateError] = useState(null);
+  const [gateLoading, setGateLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(API_BASE + "/health")
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        const on = Boolean(d.accessGate);
+        setAccessGateOn(on);
+        if (!on) setUnlocked(true);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [sidebarWidth, setSidebarWidth] = useState(220);
+  const [sidebarWidth, setSidebarWidth] = useState(248);
   const [isDragging, setIsDragging] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [copied, setCopied] = useState(false);
   const bottomRef = useRef(null);
+  const inputRef = useRef(null);
   // Remembers the most recent exportable comparison even after the offer chip is dismissed
   // or later non-comparison replies push it out of the recent-message window.
   const lastComparisonPlansRef = useRef([]);
@@ -385,6 +494,19 @@ function App() {
     };
   }, [isDragging]);
 
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "/" && document.activeElement !== inputRef.current && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const tag = (document.activeElement && document.activeElement.tagName) || "";
+        if (tag === "INPUT" || tag === "TEXTAREA") return;
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const collapsed = !isMobile && sidebarWidth < 140;
 
   useEffect(() => {
@@ -393,9 +515,54 @@ function App() {
 
   const nowLabel = () => new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
+  const startNewChat = () => {
+    setMessages([]);
+    setError(null);
+    setInput("");
+    if (isMobile) setSidebarOpen(false);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const copyLink = async () => {
+    try {
+      const preferred = "https://max.healthexps.com/";
+      await navigator.clipboard.writeText(preferred);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch (_) {
+      setCopied(false);
+    }
+  };
+
+  const submitUnlock = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const pw = gatePassword.trim();
+    if (!pw || gateLoading) return;
+    setGateLoading(true);
+    setGateError(null);
+    try {
+      await unlockMax(pw);
+      setUnlocked(true);
+      setGatePassword("");
+      setTimeout(() => inputRef.current?.focus(), 50);
+    } catch (err) {
+      setGateError(err.status === 401 ? "Wrong password." : (err.message || "Couldn’t unlock Max."));
+    } finally {
+      setGateLoading(false);
+    }
+  };
+
+  const lockMax = () => {
+    setAccessToken("");
+    setUnlocked(false);
+    setMessages([]);
+    setError(null);
+  };
+
   const send = async (text) => {
     const content = (text || input).trim();
     if (!content || loading) return;
+    if (isMobile) setSidebarOpen(false);
     const userMsg = { role: "user", content, time: nowLabel() };
     const newHistory = [...messages, userMsg];
     setMessages(newHistory);
@@ -446,198 +613,342 @@ function App() {
         setMessages((prev) => [...prev.filter(m => m.role !== 'offer'), assistantMsg]);
       }
     } catch (err) {
-      setError("Couldn't reach the assistant. This works live here in Claude.ai; a standalone deployment would need the same Railway backend pattern as the Agent Desk search.");
+      if (err && err.code === "access_required") {
+        setUnlocked(false);
+        setGateError("Session expired — enter the access password again.");
+        return;
+      }
+      setError("Couldn't reach Max. Check your connection and try again — if this keeps happening, Railway may be redeploying.");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div style={{ display: "flex", height: "100vh", width: "100%", fontFamily: "Inter, sans-serif", background: "#F7F5FA" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');`}</style>
+  if (accessGateOn && !unlocked) {
+    return (
+      <div style={{ minHeight: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "var(--font)" }}>
+        <form onSubmit={submitUnlock} className="max-fade" style={{
+          width: "100%", maxWidth: 400, padding: "28px 24px", borderRadius: 20,
+          background: "rgba(255,255,255,0.78)", border: "1px solid var(--line)", backdropFilter: "blur(16px)",
+          boxShadow: "0 20px 60px rgba(42,21,64,0.12)",
+        }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}><Avatar size={64} showStatus={true} /></div>
+          <h1 style={{ fontFamily: "var(--display)", fontSize: 34, margin: 0, textAlign: "center", letterSpacing: "-0.03em" }}>Max</h1>
+          <p style={{ margin: "10px 0 0", textAlign: "center", color: "var(--muted)", fontSize: 13.5, lineHeight: 1.45 }}>
+            Invite-only for THEI leadership. Enter the shared access password to continue.
+          </p>
+          <input
+            type="password"
+            value={gatePassword}
+            onChange={(e) => setGatePassword(e.target.value)}
+            placeholder="Access password"
+            autoFocus
+            style={{
+              width: "100%", marginTop: 20, padding: "12px 14px", borderRadius: 12,
+              border: "1px solid var(--line)", background: "#fff", fontFamily: "var(--font)", fontSize: 14.5,
+            }}
+          />
+          {gateError && (
+            <div style={{ marginTop: 10, fontSize: 12.5, color: "#9B1C3C" }}>{gateError}</div>
+          )}
+          <button
+            type="submit"
+            disabled={gateLoading || !gatePassword.trim()}
+            style={{
+              width: "100%", marginTop: 14, padding: "12px 14px", borderRadius: 12, border: "none",
+              background: gateLoading || !gatePassword.trim() ? "rgba(69,32,104,0.25)" : "linear-gradient(135deg, var(--plum), var(--magenta))",
+              color: "#fff", fontWeight: 600, fontSize: 14, cursor: gateLoading || !gatePassword.trim() ? "default" : "pointer",
+              fontFamily: "var(--font)",
+            }}
+          >
+            {gateLoading ? "Checking…" : "Unlock Max"}
+          </button>
+          <p style={{ margin: "14px 0 0", textAlign: "center", fontSize: 11.5, color: "var(--muted)" }}>
+            Costs are metered per question — keep the password off Agent Hub.
+          </p>
+        </form>
+      </div>
+    );
+  }
 
+  const shell = {
+    display: "flex",
+    height: "100%",
+    width: "100%",
+    fontFamily: "var(--font)",
+    color: "var(--ink)",
+  };
+
+  return (
+    <div style={shell}>
       {/* Mobile backdrop */}
       {isMobile && sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 20 }} />
+        <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(26,18,36,0.45)", zIndex: 20, backdropFilter: "blur(2px)" }} />
       )}
 
       {/* Sidebar */}
-      <div
+      <aside
         style={
           isMobile
             ? {
-                position: "fixed", top: 0, bottom: 0, left: 0, width: 260, zIndex: 21,
-                background: "#FFFFFF", display: "flex", flexDirection: "column", overflow: "hidden",
-                boxShadow: "2px 0 16px rgba(0,0,0,0.15)",
+                position: "fixed", top: 0, bottom: 0, left: 0, width: 280, zIndex: 21,
+                background: "rgba(255,255,255,0.92)", backdropFilter: "blur(16px)",
+                display: "flex", flexDirection: "column", overflow: "hidden",
+                boxShadow: "8px 0 40px rgba(42,21,64,0.18)",
                 transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
                 transition: "transform 0.25s ease",
+                borderRight: "1px solid var(--line)",
               }
             : {
-                width: sidebarWidth, flexShrink: 0, background: "#FFFFFF", borderRight: "1px solid #ECE8F2",
+                width: sidebarWidth, flexShrink: 0,
+                background: "rgba(255,255,255,0.55)", backdropFilter: "blur(14px)",
+                borderRight: "1px solid var(--line)",
                 display: "flex", flexDirection: "column", overflow: "hidden",
                 userSelect: isDragging ? "none" : "auto",
               }
         }
       >
-        <div style={{ padding: collapsed ? "20px 0" : "20px 18px", background: "#452068", color: "white", display: "flex", justifyContent: collapsed ? "center" : "flex-start" }}>
+        <div style={{ padding: collapsed ? "18px 0" : "22px 18px 16px", display: "flex", flexDirection: "column", alignItems: collapsed ? "center" : "stretch", gap: 10 }}>
           {collapsed ? (
-            <Avatar size={30} />
+            <Avatar size={34} />
           ) : (
             <>
-              <div style={{ fontWeight: 700, fontSize: 17, whiteSpace: "nowrap" }}>THEI Max</div>
-              <div style={{ fontSize: 12, opacity: 0.75, marginTop: 2, whiteSpace: "nowrap" }}>Internal knowledge assistant</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <Avatar size={42} showStatus={true} />
+                <div>
+                  <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 26, lineHeight: 1, letterSpacing: "-0.02em" }}>Max</div>
+                  <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 4, fontWeight: 500 }}>THEI · Internal only</div>
+                </div>
+              </div>
+              <button
+                onClick={startNewChat}
+                style={{
+                  marginTop: 6, width: "100%", padding: "11px 14px", borderRadius: 12,
+                  border: "1px solid transparent",
+                  background: "linear-gradient(135deg, var(--plum-deep) 0%, var(--plum) 55%, var(--magenta) 140%)",
+                  color: "#fff", fontWeight: 600, fontSize: 13.5, cursor: "pointer",
+                  fontFamily: "var(--font)", letterSpacing: "0.01em",
+                }}
+              >
+                New chat
+              </button>
             </>
           )}
+          {collapsed && (
+            <button onClick={startNewChat} title="New chat" style={{ width: 40, height: 40, borderRadius: 12, border: "none", background: "var(--plum)", color: "#fff", cursor: "pointer", fontSize: 20, lineHeight: 1 }}>+</button>
+          )}
         </div>
+
         {!collapsed && (
-          <div style={{ padding: "12px 14px" }}>
-            <input placeholder="Search conversations" style={{ width: "100%", boxSizing: "border-box", padding: "9px 14px", borderRadius: 20, border: "1px solid #ECE8F2", background: "#F7F5FA", fontSize: 13, outline: "none", fontFamily: "Inter, sans-serif" }} />
-          </div>
-        )}
-        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
-          {MOCK_THREADS.map((t) => (
-            <div key={t.id} title={collapsed ? t.preview : undefined} style={{ display: "flex", gap: 12, padding: collapsed ? "12px 0" : "12px 16px", justifyContent: collapsed ? "center" : "flex-start", cursor: "pointer", background: t.active ? "#F3EEF9" : "transparent", borderLeft: t.active ? "3px solid #ff1090" : "3px solid transparent" }}>
-              {collapsed && <Avatar size={32} />}
-              {!collapsed && (
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontWeight: 600, fontSize: 13.5, color: "#1F1B24" }}>{t.name}</span>
-                    <span style={{ fontSize: 11, color: "#9C97A8" }}>{t.time}</span>
-                  </div>
-                  <div style={{ fontSize: 12.5, color: "#6B6578", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
-                    {t.preview}
-                  </div>
-                </div>
-              )}
+          <div className="max-scroll" style={{ flex: 1, overflowY: "auto", padding: "4px 14px 18px" }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", letterSpacing: "0.06em", textTransform: "uppercase", margin: "8px 4px 10px" }}>Quick asks</div>
+            {QUICK_ASKS.map((q) => (
+              <button
+                key={q.label}
+                onClick={() => send(q.prompt)}
+                disabled={loading}
+                style={{
+                  display: "block", width: "100%", textAlign: "left", marginBottom: 8,
+                  padding: "11px 12px", borderRadius: 12, cursor: loading ? "default" : "pointer",
+                  border: "1px solid var(--line)", background: "var(--chip)",
+                  fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 500, color: "var(--ink)",
+                }}
+              >
+                {q.label}
+              </button>
+            ))}
+
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", letterSpacing: "0.06em", textTransform: "uppercase", margin: "18px 4px 10px" }}>Access</div>
+            <div style={{ padding: "12px", borderRadius: 12, border: "1px solid var(--line)", background: "rgba(255,255,255,0.45)", fontSize: 12, color: "var(--muted)", lineHeight: 1.45 }}>
+              Best link: <strong style={{ color: "var(--plum)" }}>max.healthexps.com</strong>. Bookmark it or add to your phone home screen. Press <kbd style={{ fontFamily: "var(--font)", background: "rgba(69,32,104,0.08)", padding: "1px 6px", borderRadius: 6 }}>/</kbd> to focus the ask box.
+              <button
+                onClick={copyLink}
+                style={{
+                  display: "block", width: "100%", marginTop: 10, padding: "9px 10px", borderRadius: 10,
+                  border: "1px solid var(--line)", background: "#fff", cursor: "pointer",
+                  fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 600, color: "var(--plum)",
+                }}
+              >
+                {copied ? "Link copied" : "Copy Max link"}
+              </button>
             </div>
-          ))}
-        </div>
-        {!collapsed && (
-          <div style={{ padding: 14, borderTop: "1px solid #ECE8F2", fontSize: 11, color: "#B5AFC4", textAlign: "center" }}>
-            Conversation history is illustrative -- persistent sidebar history needs the backend build
+            <div style={{ marginTop: 14, fontSize: 11.5, color: "var(--muted)", padding: "0 4px" }}>
+              {PLANS.length} plans loaded · Grok
+            </div>
           </div>
         )}
-      </div>
+      </aside>
 
       {/* Drag handle -- desktop only */}
       {!isMobile && (
         <div
           onMouseDown={() => setIsDragging(true)}
-          style={{ width: 5, flexShrink: 0, cursor: "col-resize", background: isDragging ? "#ff1090" : "transparent", transition: isDragging ? "none" : "background 0.15s", position: "relative" }}
-          onMouseEnter={(e) => { if (!isDragging) e.currentTarget.style.background = "#ECE8F2"; }}
+          style={{ width: 5, flexShrink: 0, cursor: "col-resize", background: isDragging ? "var(--magenta)" : "transparent", transition: isDragging ? "none" : "background 0.15s", position: "relative" }}
+          onMouseEnter={(e) => { if (!isDragging) e.currentTarget.style.background = "rgba(69,32,104,0.12)"; }}
           onMouseLeave={(e) => { if (!isDragging) e.currentTarget.style.background = "transparent"; }}
         />
       )}
 
       {/* Main chat */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 22px", background: "#FFFFFF", borderBottom: "1px solid #ECE8F2" }}>
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <header style={{
+          display: "flex", alignItems: "center", gap: 12, padding: isMobile ? "12px 14px" : "14px 22px",
+          background: "rgba(255,255,255,0.62)", backdropFilter: "blur(14px)",
+          borderBottom: "1px solid var(--line)",
+        }}>
           <button
-            onClick={() => { if (isMobile) { setSidebarOpen((v) => !v); } else { setSidebarWidth((w) => (w < 140 ? 220 : MIN_SIDEBAR)); } }}
-            aria-label="Toggle conversation list"
-            style={{ width: 34, height: 34, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#6B6578" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#F3EEF9")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            onClick={() => { if (isMobile) { setSidebarOpen((v) => !v); } else { setSidebarWidth((w) => (w < 140 ? 248 : MIN_SIDEBAR)); } }}
+            aria-label="Toggle menu"
+            style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.7)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "var(--plum)" }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
-          <Avatar size={40} showStatus={true} />
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 15, color: "#1F1B24" }}>Max</div>
-            <div style={{ fontSize: 12, color: "#3FAE5C", display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#3FAE5C", display: "inline-block" }} />
-              Online -- {PLANS.length} plans loaded
+          <Avatar size={38} showStatus={true} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 20, letterSpacing: "-0.02em", lineHeight: 1.1 }}>Max</div>
+            <div style={{ fontSize: 12, color: "#2F9E57", display: "flex", alignItems: "center", gap: 6, marginTop: 2, fontWeight: 500 }}>
+              <span className="max-online-dot" style={{ width: 7, height: 7, borderRadius: "50%", background: "#3FAE5C", display: "inline-block" }} />
+              Online · {PLANS.length} plans
             </div>
           </div>
-        </div>
+          {!isMobile && (
+            <button onClick={startNewChat} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 600, color: "var(--plum)" }}>
+              New chat
+            </button>
+          )}
+          <button onClick={lockMax} title="Lock Max" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 600, color: "var(--muted)" }}>
+            Lock
+          </button>
+        </header>
 
-        <div className="bg-amber-50 border-b border-amber-200 text-amber-800 text-[11px] text-center py-1.5 shrink-0">
-          Real AI, real plan data — works live here in Claude.ai. Never ranks or recommends a specific plan; always cites its source.
+        <div style={{
+          flex: "none", textAlign: "center", padding: "8px 16px",
+          fontSize: 11.5, fontWeight: 500, color: "var(--plum)",
+          background: "rgba(255,16,144,0.06)", borderBottom: "1px solid rgba(255,16,144,0.12)",
+        }}>
+          Internal agents only · cites the THEI grid · never ranks plans
         </div>
 
         {/* Messages */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 22px", display: "flex", flexDirection: "column", gap: 4 }}>
+        <div className="max-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 14px" : "24px 22px", display: "flex", flexDirection: "column", gap: 4 }}>
           {messages.length === 0 && (
-            <div className="text-center mt-8">
-              <div className="text-sm text-slate-400 mb-4">Ask a Medicare question or a specific plan benefit question.</div>
-              <div className="flex flex-col gap-2 items-center">
-                {SUGGESTIONS.map((s) => (
-                  <button key={s} onClick={() => send(s)} className="text-xs px-3 py-2 rounded-full border border-slate-200 bg-white text-slate-600 hover:border-slate-300 transition-colors">
-                    {s}
+            <div className="max-fade" style={{ maxWidth: 560, margin: "8vh auto 0", textAlign: "center" }}>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>
+                <Avatar size={72} showStatus={true} />
+              </div>
+              <h1 style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: isMobile ? 36 : 44, margin: 0, letterSpacing: "-0.03em", lineHeight: 1.05 }}>
+                Max
+              </h1>
+              <p style={{ margin: "12px auto 0", maxWidth: 420, fontSize: 14.5, lineHeight: 1.5, color: "var(--muted)", fontWeight: 400 }}>
+                Your THEI Medicare desk partner — plan benefits, givebacks, duals, and grid facts, cited.
+              </p>
+              <div style={{ marginTop: 28, display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
+                {SUGGESTIONS.map((s, idx) => (
+                  <button
+                    key={s.label}
+                    onClick={() => send(s.prompt)}
+                    className="max-fade"
+                    style={{
+                      animationDelay: `${0.08 * (idx + 1)}s`,
+                      textAlign: "left", padding: "13px 16px", borderRadius: 14,
+                      border: "1px solid var(--line)", background: "rgba(255,255,255,0.7)",
+                      cursor: "pointer", fontFamily: "var(--font)", fontSize: 13.5, fontWeight: 500,
+                      color: "var(--ink)", backdropFilter: "blur(8px)",
+                    }}
+                  >
+                    <span style={{ color: "var(--magenta)", marginRight: 8, fontWeight: 600 }}>Ask</span>
+                    {s.label}
                   </button>
                 ))}
               </div>
             </div>
           )}
           {messages.map((m, i) => m.role === 'offer' ? (
-            <div key={i} style={{ display: "flex", justifyContent: "flex-start", gap: 8, marginBottom: 10 }}>
+            <div key={i} className="max-fade" style={{ display: "flex", justifyContent: "flex-start", gap: 8, marginBottom: 10 }}>
               <Avatar size={30} />
-              <div style={{ maxWidth: "68%", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-                <div style={{ padding: "10px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "#FFFFFF", color: "#1F1B24", fontSize: 14.5, lineHeight: 1.5, boxShadow: "0 1px 2px rgba(0,0,0,0.06)" }}>
-                  <div style={{ marginBottom: 10 }}>Want me to export this comparison to Excel for your client?</div>
-                  <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ maxWidth: "72%", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                <div style={{ padding: "12px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(255,255,255,0.88)", color: "var(--ink)", fontSize: 14.5, lineHeight: 1.5, border: "1px solid var(--line)" }}>
+                  <div style={{ marginBottom: 10 }}>Want this comparison as Excel?</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button onClick={() => { exportComparisonToExcel(m.plans); setMessages(prev => prev.filter((_,j) => j !== i)); }}
-                      style={{ padding: "7px 14px", borderRadius: 20, border: "none", background: "linear-gradient(135deg, #452068 0%, #ff1090 100%)", color: "white", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
-                      📊 Yes, export
+                      style={{ padding: "8px 14px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)", color: "white", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
+                      Export Excel
                     </button>
                     <button onClick={() => setMessages(prev => prev.filter((_,j) => j !== i))}
-                      style={{ padding: "7px 14px", borderRadius: 20, border: "none", background: "#F0EBF6", color: "#452068", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
-                      No thanks
+                      style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
+                      Dismiss
                     </button>
                   </div>
                 </div>
-                <div style={{ fontSize: 11, color: "#9C97A8", marginTop: 4 }}>{m.time}</div>
+                <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{m.time}</div>
               </div>
             </div>
           ) : (
-            <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", gap: 8, marginBottom: 10 }}>
+            <div key={i} className="max-fade" style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", gap: 8, marginBottom: 10 }}>
               {m.role === "assistant" && <Avatar size={30} />}
-              <div style={{ maxWidth: "68%", display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
-                <div style={{ padding: "10px 14px", borderRadius: 16, borderTopLeftRadius: m.role === "assistant" ? 4 : 16, borderTopRightRadius: m.role === "user" ? 4 : 16, background: m.role === "user" ? "#452068" : "#FFFFFF", color: m.role === "user" ? "#FFFFFF" : "#1F1B24", fontSize: 14.5, lineHeight: 1.5, whiteSpace: "pre-wrap", boxShadow: m.role === "assistant" ? "0 1px 2px rgba(0,0,0,0.06)" : "none" }}>
+              <div style={{ maxWidth: "72%", display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
+                <div style={{
+                  padding: "11px 14px", borderRadius: 16,
+                  borderTopLeftRadius: m.role === "assistant" ? 4 : 16,
+                  borderTopRightRadius: m.role === "user" ? 4 : 16,
+                  background: m.role === "user" ? "linear-gradient(135deg, var(--plum-deep), var(--plum))" : "rgba(255,255,255,0.88)",
+                  color: m.role === "user" ? "#FFFFFF" : "var(--ink)",
+                  fontSize: 14.5, lineHeight: 1.55, whiteSpace: "pre-wrap",
+                  border: m.role === "assistant" ? "1px solid var(--line)" : "none",
+                }}>
                   {m.role === "assistant" ? renderMessageText(m.content) : m.content}
                 </div>
-                <div style={{ fontSize: 11, color: "#9C97A8", marginTop: 4 }}>{m.time}</div>
+                <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{m.time}</div>
               </div>
             </div>
           ))}
           {loading && (
             <div style={{ display: "flex", gap: 8 }}>
               <Avatar size={30} />
-              <div style={{ background: "#FFFFFF", borderRadius: 16, borderTopLeftRadius: 4, boxShadow: "0 1px 2px rgba(0,0,0,0.06)" }}>
+              <div style={{ background: "rgba(255,255,255,0.88)", borderRadius: 16, borderTopLeftRadius: 4, border: "1px solid var(--line)" }}>
                 <TypingIndicator />
               </div>
             </div>
           )}
           {error && (
-            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 mt-2">{error}</div>
+            <div style={{ fontSize: 12.5, color: "#9B1C3C", background: "rgba(255,230,236,0.9)", border: "1px solid rgba(155,28,60,0.2)", borderRadius: 12, padding: "10px 12px", marginTop: 8 }}>{error}</div>
           )}
           <div ref={bottomRef} />
         </div>
 
         {/* Input */}
-        <div style={{ padding: "14px 22px", background: "#FFFFFF", borderTop: "1px solid #ECE8F2" }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ padding: isMobile ? "12px 14px max(12px, env(safe-area-inset-bottom))" : "16px 22px", background: "rgba(255,255,255,0.7)", backdropFilter: "blur(14px)", borderTop: "1px solid var(--line)" }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", maxWidth: 900, margin: "0 auto" }}>
             <input
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder="Ask Max about a plan, benefit, or general Medicare rules..."
+              placeholder="Ask Max about a plan, benefit, or Medicare rule…"
               disabled={loading}
-              style={{ flex: 1, padding: "11px 18px", borderRadius: 24, border: "1px solid #ECE8F2", background: "#F7F5FA", fontSize: 14, outline: "none", fontFamily: "Inter, sans-serif" }}
+              style={{
+                flex: 1, padding: "13px 18px", borderRadius: 14,
+                border: "1px solid var(--line)", background: "rgba(255,255,255,0.9)",
+                fontSize: 14.5, outline: "none", fontFamily: "var(--font)", color: "var(--ink)",
+              }}
             />
             <button
               onClick={() => send()}
               disabled={loading || !input.trim()}
-              style={{ width: 42, height: 42, borderRadius: "50%", border: "none", background: loading || !input.trim() ? "#D8D2E5" : "linear-gradient(135deg, #452068 0%, #ff1090 100%)", color: "white", fontSize: 18, cursor: loading || !input.trim() ? "default" : "pointer", flexShrink: 0 }}
+              aria-label="Send"
+              style={{
+                width: 46, height: 46, borderRadius: 14, border: "none",
+                background: loading || !input.trim() ? "rgba(69,32,104,0.25)" : "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)",
+                color: "white", fontSize: 18, cursor: loading || !input.trim() ? "default" : "pointer", flexShrink: 0,
+              }}
             >
               &#8593;
             </button>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

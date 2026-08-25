@@ -3,6 +3,22 @@
 The live UI is a single HTML file: `artifacts/max-demo-FINAL-v7.html`
 → publish as `index.html` on the `thei-max-guru` Netlify site.
 
+## Custom domain
+
+Primary URL: **https://max.healthexps.com**
+
+Netlify site `thei-max-guru` already has `custom_domain=max.healthexps.com`.
+In **Cloudflare** (healthexps.com DNS), add:
+
+| Type | Name | Target | Proxy |
+|------|------|--------|-------|
+| CNAME | `max` | `thei-max-guru.netlify.app` | DNS only (grey cloud) **or** Proxied |
+
+After DNS propagates, Netlify provisions SSL automatically.
+`thei-max-guru.netlify.app` keeps working as a fallback.
+
+Railway CORS allowlists `https://max.healthexps.com`.
+
 ## Model backend
 
 Max's Railway `/chat` proxy calls **xAI Grok** (`GROK_MODEL`, default `grok-4.6`).
@@ -34,3 +50,15 @@ npx netlify deploy --prod --dir=/tmp/max-index --site=<site-id>
 
 Plan IDs like `H5420-001/0028` fuzzy-match grid IDs (`H5420-001/-0028`).
 Asking for “excel” re-offers Export from the **latest** comparison only.
+
+## Invite-only access (cost control)
+
+Max is meant for Yahoska / Katy / Carolina — not the full agent roster.
+
+1. Railway → Variables → set `MAX_ACCESS_PASSWORD` to a strong shared password
+2. Redeploy Railway (automatic on variable change)
+3. Share the password only with those three
+4. Optional: Cloudflare Access on `max.healthexps.com` restricted to your three emails (strongest)
+5. Optional: in https://console.x.ai set a monthly spend limit / alerts
+
+Chat is also rate-limited (~40 requests / hour / session by default via `MAX_CHAT_RATE_MAX`).
