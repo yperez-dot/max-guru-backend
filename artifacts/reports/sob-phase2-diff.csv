@@ -1,0 +1,10 @@
+severity,planId,county,carrier,planName,field,maxValue,sobValue,note,sobUrl
+high,H1032-196,Broward,WellCare,Simple,erCopay,150,130.0,,https://contentserver.destinationrx.com/ContentServer/DRxProductContent/PDFs/149_0/2026/H1032_2026_FL_SB_HMAPD_4626761ENG_M.pdf
+high,H1032-196,Broward,WellCare,Simple,moop,$2500,5000.0,,https://contentserver.destinationrx.com/ContentServer/DRxProductContent/PDFs/149_0/2026/H1032_2026_FL_SB_HMAPD_4626761ENG_M.pdf
+high,H1032-196,Broward,WellCare,Simple,partBGiveback,N/A,157.0,,https://contentserver.destinationrx.com/ContentServer/DRxProductContent/PDFs/149_0/2026/H1032_2026_FL_SB_HMAPD_4626761ENG_M.pdf
+high,H1032-196,Broward,WellCare,Simple,specialistCopay,15,20.0,,https://contentserver.destinationrx.com/ContentServer/DRxProductContent/PDFs/149_0/2026/H1032_2026_FL_SB_HMAPD_4626761ENG_M.pdf
+high,H1035-025,Broward,FL Blue Premier,HMO,erCopay,130,150.0,,https://files.guidewell.com/m/26668a68ad260f83/original/medicare-forms-2026-sb-fbm2520.pdf
+high,H1035-025,Broward,FL Blue Premier,HMO,specialistCopay,35,20.0,,https://files.guidewell.com/m/26668a68ad260f83/original/medicare-forms-2026-sb-fbm2520.pdf
+high,H1290-085,Miami-Dade,Devoted,PLUS (this plan can work w FULL Medicaid),erCopay,$0 / $115,115.0,,https://assets.devoted.com/plan-documents/2026/2026-DEVOTED-C-SNP-PLUS-085-FL-(HMO-C-SNP)-SB-H1290-085-ENG.pdf
+med,H4140-13,Miami-Dade,Doctors DrFlex,Doctors DrFlex,premium,$0 - $1.10,$0–$4.8,,https://www.doctorshcp.com/wp-content/uploads/2026_SOB_SF_DrPlus-DrFlex_ENG.pdf
+med,H4140-13,Broward,Doctors DrFlex,Doctors DrFlex,premium,$0 - $1.10,$0–$4.8,,https://www.doctorshcp.com/wp-content/uploads/2026_SOB_SF_DrPlus-DrFlex_ENG.pdf

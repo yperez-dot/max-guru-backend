@@ -1,0 +1,66 @@
+[
+  {
+    "planId": "H4140-002",
+    "county": "Miami-Dade",
+    "field": "premium",
+    "old": "$0",
+    "new": "$0 - $4.80",
+    "reason": "Current DrPlus SoB monthly premium range"
+  },
+  {
+    "planId": "H4140-13",
+    "county": "Miami-Dade",
+    "field": "premium",
+    "old": "$0",
+    "new": "$0 - $1.10",
+    "reason": "Current DrFlex SoB monthly premium range"
+  },
+  {
+    "planId": "H4140-13",
+    "county": "Broward",
+    "field": "premium",
+    "old": "$0",
+    "new": "$0 - $1.10",
+    "reason": "Current DrFlex SoB monthly premium range"
+  },
+  {
+    "planId": "H0982-022",
+    "county": "Miami-Dade",
+    "field": "tier3",
+    "old": 15,
+    "new": 0,
+    "reason": "SB022 Eng Current: Tier 3 $0"
+  },
+  {
+    "planId": "H0982-022",
+    "county": "Miami-Dade",
+    "field": "tier4",
+    "old": 70,
+    "new": 35,
+    "reason": "SB022 Eng Current: Tier 4 $35"
+  },
+  {
+    "planId": "H0982-007",
+    "county": "Broward",
+    "field": "sobUrl",
+    "old": "https://drive.google.com/file/d/1xIYacI1h39iMCQ_v0t_3egbFfw_JppOo/view?usp=drive_link",
+    "new": "https://soliscdrapi.azurewebsites.net/doc/SB007_Eng_Current",
+    "reason": "Replace wrong Drive/022 SoB with SB007 Broward"
+  },
+  {
+    "planId": "H0982-022",
+    "county": "Broward",
+    "field": "sobUrl",
+    "old": "https://soliscdrapi.azurewebsites.net/doc/SB022_Eng_Current",
+    "new": "https://soliscdrapi.azurewebsites.net/doc/SB007_Eng_Current",
+    "reason": "Broward Healthy Living benefits match SB007 (022 SoB is Miami-only)"
+  },
+  {
+    "planId": "H0982-022",
+    "county": "Broward",
+    "field": "partBGiveback",
+    "old": null,
+    "new": 0,
+    "reason": "SB007 has no Part B reduction"
+  }
+]
