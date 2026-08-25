@@ -33,6 +33,11 @@ python3 scripts/refresh_sep_tracker.py
 python3 scripts/import_hub_knowledge.py
 ```
 
-SEP SoT is the live tracker HTML (`sep-tracker-app.html` /  
-https://www.agentmedicarehub.com/sep-tracker), not the older  
+SEP SoT is the live tracker HTML (`sep-tracker-app.html` /
+https://www.agentmedicarehub.com/sep-tracker), not the older
 `sep-tracker/data/seps.json` snapshot.
+
+### Auto-refresh (production)
+
+1. **Railway (runtime):** on boot + every `SEP_REFRESH_HOURS` (default **24**), Max pulls the live Hub tracker into `max-knowledge/hub/*` and reloads the in-memory KB. Disable with `SEP_REFRESH_ENABLED=false`. Manual: `POST /admin/refresh-seps` (requires API key + access token when gated).
+2. **GitHub Actions (repo):** weekly Monday job opens a PR if the Hub changed, so deploys/cold starts stay current even before the runtime pull.

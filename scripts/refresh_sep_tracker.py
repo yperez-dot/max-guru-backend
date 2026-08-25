@@ -20,7 +20,7 @@ STATE_DIR = OUT / "seps-by-state"
 UA = "Mozilla/5.0 (compatible; THEI-Max-SEP-refresh/1.0)"
 
 SOURCES = [
-    "https://www.agentmedicarehub.com/sep-tracker-app.html?v=20260824",
+    "https://www.agentmedicarehub.com/sep-tracker-app.html",
     "https://raw.githubusercontent.com/yperez-dot/agent-medicare-hub/main/pages/sep-tracker-app.html",
 ]
 

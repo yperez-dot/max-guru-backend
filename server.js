@@ -6,6 +6,7 @@ const { requireApiKey } = require('./middleware/auth');
 const { accessEnabled, requireAccessToken, unlockHandler } = require('./middleware/access');
 const { createRateLimiter } = require('./middleware/rateLimit');
 const { loadKnowledge, getKnowledgeSummary } = require('./knowledge/loader');
+const { startSepRefreshScheduler, refreshSepTracker, getStatus: getSepRefreshStatus } = require('./services/sepRefresh');
 const drugLookupRouter = require('./routes/drugLookup');
 const providerLookupRouter = require('./routes/providerLookup');
 
@@ -49,6 +50,7 @@ app.get('/health', (req, res) => {
     authRequired: true,
     accessGate: accessEnabled(),
     xaiConfigured: Boolean(process.env.XAI_API_KEY),
+    sepRefresh: getSepRefreshStatus(),
     ts: new Date().toISOString(),
   });
 });
@@ -59,6 +61,13 @@ app.post('/auth/unlock', requireApiKey, unlockRateLimit, unlockHandler);
 // Knowledge index (admin/debug only)
 app.get('/knowledge', requireApiKey, requireAccessToken, (req, res) => {
   res.json({ ok: true, summary: getKnowledgeSummary() });
+});
+
+// Force SEP tracker pull from live Hub (admin)
+app.post('/admin/refresh-seps', requireApiKey, requireAccessToken, async (req, res) => {
+  const result = await refreshSepTracker({ reason: 'admin' });
+  const status = result.ok ? 200 : 502;
+  res.status(status).json(result);
 });
 
 // POST /provider-lookup { doctorName, zip, state? }
@@ -128,8 +137,9 @@ app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, 
 // 404
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
-// Preload knowledge on startup
+// Preload knowledge on startup, then keep SEPs fresh from the live Hub tracker
 loadKnowledge();
+startSepRefreshScheduler();
 
 app.listen(PORT, () => {
   console.log(`Max Guru backend running on port ${PORT} (provider=grok model=${process.env.GROK_MODEL || DEFAULT_MODEL})`);
