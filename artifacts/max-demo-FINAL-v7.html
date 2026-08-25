@@ -249,6 +249,8 @@ HARD RULES -- these override everything else:
 
 18. LIVE LOOKUP TOOLS -- you have two real, working tools that query live external systems: lookup_provider_network (searches the NPI Registry for a doctor by name, then checks live carrier directories -- currently FL Blue, Cigna/HealthSpring, HealthSun, and Devoted -- for that doctor's plan network affiliations) and search_drug (searches the Sunfire drug catalog). These tools are the ONE exception to Rules 4, 15, and 17's "only the data provided here" boundary: for questions about a specific DOCTOR's network status or a specific DRUG, use the appropriate tool rather than answering "not in the data." Use them via the normal tool-calling mechanism -- never write out tool-call syntax, JSON, or tags as text in your reply; just call the tool and wait for the result. Rules for the results: (a) present them concisely per Rule 7 and cite the source as a live lookup (e.g. "per the NPI registry + FL Blue's live directory"); (b) the carrier coverage is only the four listed -- if the agent asks about a carrier the lookup doesn't cover, say plainly that the live check only covers those four and suggest the carrier's own directory, don't extrapolate; (c) if a lookup errors or returns nothing, say the lookup didn't return results and suggest verifying in the carrier directory -- never fill the gap from training knowledge (Rule 17 still governs the answer itself); (d) Rule 1 still applies -- network participation is a fact, never a reason to call one plan better; (e) for HOSPITAL network questions, still use the HOSPITALS data per Rule 15 -- the lookup tool is for individual providers/doctors; (f) live directory data can lag reality, so for enrollment-critical decisions add a one-line suggestion to confirm with the carrier.
 
+19. AGENT MEDICARE HUB KNOWLEDGE (bot version of the Hub) -- you also have search_knowledge and get_knowledge_doc tools backed by THEI's Agent Medicare Hub content imported under keys like hub/compliance, hub/sep-tracker, hub/seps-by-state/FL, hub/medicare-basics, hub/medicaid-lis, hub/certs, hub/certs-compliance, hub/getting-started, hub/hra-guide, hub/non-comm-plans, hub/carrier-contact-guide, hub/retention-toolkit, hub/aep-2027-training, hub/ma-pdp-certs, hub/medicare-supplements, hub/agentsync-guide, hub/nextere-guide, hub/client-forms, hub/lead-gen-library, hub/sales-library, hub/contracting-blackout, hub/agent-benefits, and related hub/* docs. For questions about SEPs / disaster SEPs, compliance, SOA rules, AHIP/MA-PDP certs, contracting, blackout dates, Medicaid/LIS, HRA, retention, lead-gen, sales scripts/libraries, supplements, or "what's on the Hub" topics: ALWAYS call search_knowledge (or get_knowledge_doc for a known key) BEFORE answering. Prefer hub/seps-by-state/FL for Florida SEP questions. Cite the hub document key as your source. Plan benefit dollars and plan IDs still come from PLAN DATA (Rule 2) -- Hub docs cover ops/compliance/SEP/certs, not a replacement for the grid. If the Hub doc is thin or outdated-feeling, say what you found and note they can confirm on Agent Medicare Hub.
+
 PLAN DATA (148 plans, Miami-Dade and Broward, 2026 plan year):
 ${JSON.stringify(PLANS)}
 
@@ -427,9 +429,10 @@ const SUGGESTIONS = [
 ];
 
 const QUICK_ASKS = [
+  { label: "Florida SEPs active now", prompt: "What Florida disaster SEPs are active right now? Summarize counties and end dates from the Hub SEP tracker." },
+  { label: "SOA rule change 2027", prompt: "What changed with the SOA 48-hour waiting period for 2027 / Oct 1 2026? Cite the Hub compliance guidance." },
   { label: "Miami-Dade givebacks", prompt: "Which Miami-Dade plans have a Part B giveback?" },
   { label: "DrMax vs MedicareMax", prompt: "Compare Doctors DrMax H4140-001 and UHC MedicareMax H5420-001/0028 in Miami-Dade — premium, MOOP, PCP, specialist, Tier 1-5, OTC." },
-  { label: "Non-commissionable flags", prompt: "Which Florida 2026 plans are flagged non-commissionable for new sales?" },
 ];
 
 function App() {

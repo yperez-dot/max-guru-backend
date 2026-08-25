@@ -1,42 +1,34 @@
 # Max Knowledge Base
 
-Knowledge documents for the Max Medicare AI assistant.  
-These files get imported into Max's data layer when the system is deployed.
+Knowledge documents for Max. Railway loads these for `search_knowledge` / `get_knowledge_doc`.
 
-## Structure
+## Layout
 
 ```
 max-knowledge/
-├── carriers/          # Per-carrier plan rules, transitions, non-commissionables
-├── compliance/        # CMS rules, TPMO, SEP guidance
-├── benefits/          # Benefit details by plan/carrier
-└── operations/        # Enrollment procedures, contacts, certifications
+├── hub/                 # Agent Medicare Hub pack (bot version of the Hub)
+│   ├── seps-by-state/   # SEP tracker split by state (use FL for Florida)
+│   ├── sep-tracker.md   # Full SEP snapshot
+│   ├── compliance.md
+│   ├── medicare-basics.md
+│   └── ...
+├── carriers/            # Per-carrier notes, non-commissionables, blackouts
+└── *.md                 # Medicare reference, hospitals, contacts, behavior rules
 ```
 
-## Files
+## Plan grid vs Hub pack
 
-### carriers/
-| File | Content | Updated |
-|------|---------|---------|
-| `elevance-simply-plan-transitions-noncommissionable.md` | Simply Healthcare plan transitions (1/1/2026) + non-commissionable plan list + agent Q&A | 2026-07-10 |
-| `humana-noncommissionable-florida-2026.md` | Official Humana carrier doc — all FL non-commissionable plans across 3 effective date batches (1/1, 4/1, 6/1). THEI grid cross-reference included. | 2026-07-10 |
-| `florida-noncommissionable-plans-2026.md` | Full FL non-commissionable MA plan list — all carriers, from CMS 4.1.2026 landscape files. 36 non-commissionable plans, 529K enrolled. | 2026-07-10 |
-| `thei-plan-grid-noncommissionable.md` | The 11 non-commissionable plans within THEI's 147-plan grid, with data schema for backend import. | 2026-07-10 |
-| `max-behavior-rules.md` | Max system prompt rules — how to handle non-commissionable plans during comparisons (neutral heads-up, never ranking factor, renewal/new-sale distinction). | 2026-07-10 |
+| Need | Source |
+|------|--------|
+| Plan premiums, MOOP, copays, drug tiers, givebacks | Embedded PLAN DATA in `artifacts/max-demo-FINAL-v7.html` (THEI grid) |
+| SEPs, compliance, SOA, certs, contracting, Hub ops | `max-knowledge/hub/*` via tools |
 
-## How to use (once Max is deployed)
-These markdown files get chunked and indexed into Max's retrieval layer.  
-Each file should be self-contained with enough context for Max to answer agent questions accurately.
+## Refresh Hub content
 
----
+```bash
+# clone/update agent-medicare-hub locally, then:
+python3 scripts/import_hub_knowledge.py
+```
 
-## ⚠️ NOT Max's source of truth as of 2026-07-17
-
-As of the proxy switch (commit f538f86), **Max's plan data lives in `max-demo-FINAL_4.html`**, not here.
-
-This folder is kept for:
-- Other tools that may search it
-- Human-readable reference
-
-Do not update these markdown files expecting Max to pick up the changes.
-To update Max's knowledge, update `max-demo-FINAL_4.html` and redeploy to Netlify.
+Requires `/tmp/amh` (or edit the script path) to point at a checkout of
+`yperez-dot/agent-medicare-hub`, including `sep-tracker/data/seps.json`.

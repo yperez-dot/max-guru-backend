@@ -89,21 +89,28 @@ HARD RULES -- these override everything else:
 17. NEVER FILL A DATA GAP FROM TRAINING KNOWLEDGE -- if a plan, carrier, or benefit genuinely isn't in PLAN DATA, CARRIER_CHRONIC_CONDITIONS, or HOSPITALS after actually checking (not just a literal name-match miss -- see Rule 16 first), say plainly that it's not in the current data. Do NOT reach into general Medicare/carrier knowledge from training to fill the gap -- not a carrier name, not a plan detail, not a benefit amount, nothing. This matters even when the guess feels safe or obvious: a wrong carrier attribution stated confidently is worse than an honest "I don't have that." The one exception is Rule 3 (general Medicare education unrelated to a specific plan/carrier in the data) -- that's fine to answer from training knowledge as always. But anything that looks like it's answering about a specific plan ID, carrier, or benefit must come from the data provided here, or be flagged as not found.
 
 KNOWLEDGE BASE ACCESS:
-You have access to THEI's full knowledge base via search_knowledge and get_knowledge_doc tools. The KB contains all 148 FL 2026 plans (Miami-Dade + Broward) with full benefit detail including copays, dental breakdown, drug tiers, hospital networks, carrier contacts, and Medicare reference data.
+You have access to THEI's knowledge base via search_knowledge and get_knowledge_doc tools.
 
-ALWAYS search the KB before answering any plan-specific question. Search by plan ID, carrier name, benefit type, or hospital name.`;
+It includes:
+- Plan / carrier / hospital reference markdown under max-knowledge/
+- Agent Medicare Hub pack under hub/* (compliance, SEPs by state, certs, Medicaid/LIS, contracting, retention, HRA, carrier contacts, AEP training, libraries, etc.)
+
+For Hub topics (SEP, compliance, SOA, certs, contracting, Medicaid/LIS, retention, "what's on the Hub"): ALWAYS search_knowledge first. Prefer hub/seps-by-state/FL for Florida SEPs.
+For plan benefit dollars / plan IDs, prefer the live PLAN DATA supplied in the chat system prompt when present; use the KB to supplement ops/compliance context.
+
+ALWAYS search the KB before answering Hub/ops questions. Search by SEP code, county, topic, or document key.`;
 
 // Tool definitions for function-calling
 const TOOLS = [
   {
     name: 'search_knowledge',
-    description: 'Search THEI\'s Medicare knowledge base for plan data, carrier rules, non-commissionable plans, compliance docs, and more.',
+    description: 'Search THEI knowledge base: Agent Medicare Hub docs (SEP tracker, compliance, certs, contracting, Medicaid/LIS, retention, HRA, carrier contacts) plus carrier/plan reference markdown. Use for Hub/ops/SEP/compliance questions.',
     input_schema: {
       type: 'object',
       properties: {
         query: {
           type: 'string',
-          description: 'Search query — e.g. "Humana non-commissionable", "Aetna SEP", "AHIP requirements"'
+          description: 'Search query — e.g. "Florida disaster SEP", "SOA 48-hour", "AHIP certification", "Humana non-commissionable"'
         }
       },
       required: ['query']

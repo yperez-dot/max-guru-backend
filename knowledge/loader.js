@@ -6,8 +6,8 @@ const KNOWLEDGE_DIR = path.join(__dirname, '../max-knowledge');
 
 let _cache = null;
 
-function loadKnowledge() {
-  if (_cache) return _cache;
+function loadKnowledge({ force = false } = {}) {
+  if (_cache && !force) return _cache;
 
   const knowledge = {};
 
@@ -23,6 +23,15 @@ function loadKnowledge() {
       } else if (entry.endsWith('.md')) {
         const key = prefix + entry.replace('.md', '');
         knowledge[key] = fs.readFileSync(fullPath, 'utf8');
+      } else if (entry.endsWith('.json') && prefix.startsWith('hub/')) {
+        // Keep structured hub dumps searchable as pretty JSON text
+        const key = prefix + entry.replace('.json', '');
+        try {
+          const parsed = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+          knowledge[key] = `# ${key}\n\n\`\`\`json\n${JSON.stringify(parsed, null, 2).slice(0, 200000)}\n\`\`\`\n`;
+        } catch (_) {
+          knowledge[key] = fs.readFileSync(fullPath, 'utf8').slice(0, 200000);
+        }
       }
     }
   }
@@ -46,16 +55,62 @@ function getKnowledgeByKey(key) {
   return k[key] || null;
 }
 
-function searchKnowledge(query) {
-  const k = loadKnowledge();
-  const q = query.toLowerCase();
-  const results = [];
-  for (const [key, content] of Object.entries(k)) {
-    if (content.toLowerCase().includes(q) || key.toLowerCase().includes(q)) {
-      results.push({ key, content });
-    }
+function excerptAround(content, query, radius = 1200) {
+  const lower = content.toLowerCase();
+  const q = query.toLowerCase().trim();
+  if (!q) return content.slice(0, 8000);
+  const terms = q.split(/\s+/).filter(Boolean);
+  let best = -1;
+  for (const term of terms) {
+    const idx = lower.indexOf(term);
+    if (idx >= 0 && (best < 0 || idx < best)) best = idx;
   }
-  return results;
+  if (best < 0) return content.slice(0, 8000);
+  const start = Math.max(0, best - radius);
+  const end = Math.min(content.length, best + radius);
+  const chunk = content.slice(start, end);
+  return `${start > 0 ? '…' : ''}${chunk}${end < content.length ? '…' : ''}`;
 }
 
-module.exports = { loadKnowledge, getKnowledgeSummary, getKnowledgeByKey, searchKnowledge };
+function searchKnowledge(query, { limit = 8 } = {}) {
+  const k = loadKnowledge();
+  const q = (query || '').toLowerCase().trim();
+  if (!q) return [];
+  const terms = q.split(/\s+/).filter(t => t.length > 1);
+  const scored = [];
+  for (const [key, content] of Object.entries(k)) {
+    const hay = `${key}\n${content}`.toLowerCase();
+    if (!terms.some(t => hay.includes(t)) && !hay.includes(q)) continue;
+    let score = 0;
+    if (key.toLowerCase().includes(q)) score += 50;
+    for (const t of terms) {
+      if (key.toLowerCase().includes(t)) score += 12;
+      // cheap occurrence count cap
+      let idx = 0;
+      let hits = 0;
+      while (hits < 20) {
+        idx = hay.indexOf(t, idx);
+        if (idx < 0) break;
+        hits += 1;
+        idx += t.length;
+      }
+      score += hits;
+    }
+    // Prefer Florida SEP file for FL/SEP queries
+    if (/sep/.test(q) && /florida|\bfl\b/.test(q) && key.includes('seps-by-state/FL')) score += 40;
+    if (/hub\//.test(key)) score += 2;
+    scored.push({ key, content, score });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, limit).map(({ key, content }) => ({
+    key,
+    content: content.length > 9000 ? excerptAround(content, q) : content,
+  }));
+}
+
+module.exports = {
+  loadKnowledge,
+  getKnowledgeSummary,
+  getKnowledgeByKey,
+  searchKnowledge,
+};
