@@ -1,0 +1,1943 @@
+{
+  "H4140-001|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan $0"
+    },
+    "moop": 3000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 100.0
+  },
+  "H4140-002|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 4.8,
+      "raw": "Monthly Plan $0 - $4.80"
+    },
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H5420-001/0028|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 13.0,
+    "moop": 3900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "copay",
+      "value": 25.0
+    },
+    "otc": {
+      "amount": 90.0,
+      "period": "quarter"
+    }
+  },
+  "H1609-093|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "pcpCopay": 0.0,
+    "specialistCopay": 20.0,
+    "erCopay": 150.0,
+    "otc": {
+      "amount": 30.0,
+      "period": "quarter"
+    }
+  },
+  "H1019-006|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 6.0,
+    "moop": 500.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 130.0
+  },
+  "H1019-148|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 6.0,
+    "moop": 2250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 10.0,
+    "erCopay": 150.0
+  },
+  "H1290-001|Miami-Dade": {
+    "moop": 3900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H1290-037|Miami-Dade": {
+    "moop": 3900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H1290-062|Miami-Dade": {
+    "moop": 3900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0,
+    "otc": {
+      "amount": 100.0,
+      "period": "quarter"
+    }
+  },
+  "H4140-012|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan $0"
+    },
+    "moop": 3000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 100.0
+  },
+  "H1035-017|Miami-Dade": {
+    "pcpCopay": 0.0,
+    "specialistCopay": 55.0,
+    "erCopay": 130.0
+  },
+  "H5410-060|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan Premium You pay $0"
+    },
+    "moop": 6750.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 30.0,
+    "erCopay": 130.0
+  },
+  "H5431-001|Miami-Dade": {
+    "partBGiveback": 50.0,
+    "pcpCopay": 0.0,
+    "erCopay": 75.0
+  },
+  "H5431-006|Miami-Dade": {
+    "pcpCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H1036-054C|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 2.0,
+    "moop": 500.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 75.0
+  },
+  "H5471-114-000|Miami-Dade": {
+    "partBGiveback": 50.0,
+    "pcpCopay": 0.0,
+    "erCopay": 75.0
+  },
+  "H5471-065-000|Miami-Dade": {
+    "partBGiveback": 35.0,
+    "pcpCopay": 0.0,
+    "erCopay": 75.0
+  },
+  "H0982-022|Miami-Dade": {
+    "partBGiveback": 3.1,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 50.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier4": {
+      "type": "copay",
+      "value": 35.0
+    },
+    "otc": {
+      "amount": 115.0,
+      "period": "month"
+    }
+  },
+  "H1045-001|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 25.0,
+    "moop": 2900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier4": {
+      "type": "pct",
+      "value": 0.4
+    },
+    "tier5": {
+      "type": "pct",
+      "value": 0.33
+    },
+    "otc": {
+      "amount": 105.0,
+      "period": "quarter"
+    }
+  },
+  "H1032-237|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan Premium $0"
+    },
+    "moop": 1000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "pct",
+      "value": 0.17
+    },
+    "tier4": {
+      "type": "pct",
+      "value": 0.25
+    },
+    "tier5": {
+      "type": "pct",
+      "value": 0.25
+    }
+  },
+  "H1609-094|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H1019-123|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 163.0,
+    "moop": 2000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 10.0,
+    "erCopay": 150.0
+  },
+  "H1019-121|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 162.0,
+    "moop": 2000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 10.0,
+    "erCopay": 150.0
+  },
+  "H1019-150|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 5.0,
+    "moop": 2000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 10.0,
+    "erCopay": 140.0
+  },
+  "H1290-085|Miami-Dade": {
+    "pcpCopay": 0.0,
+    "erCopay": 115.0,
+    "otc": {
+      "amount": 50.0,
+      "period": "quarter"
+    }
+  },
+  "H1290-067|Miami-Dade": {
+    "moop": 3900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 5.0,
+    "erCopay": 150.0,
+    "otc": {
+      "amount": 50.0,
+      "period": "quarter"
+    }
+  },
+  "H4140-004|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan $0"
+    },
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 100.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier5": {
+      "type": "pct",
+      "value": 0.33
+    }
+  },
+  "H1526-002|Miami-Dade": {
+    "moop": 9250.0,
+    "erCopay": 115.0
+  },
+  "H5431-021|Miami-Dade": {
+    "partBGiveback": 185.0,
+    "pcpCopay": 0.0,
+    "erCopay": 90.0
+  },
+  "H1036-121|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 166.0,
+    "moop": 2450.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 15.0,
+    "erCopay": 150.0
+  },
+  "H1036-297|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 166.0,
+    "moop": 2450.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 15.0,
+    "erCopay": 150.0
+  },
+  "H5471-116-0|Miami-Dade": {
+    "partBGiveback": 175.0,
+    "pcpCopay": 0.0,
+    "erCopay": 135.0
+  },
+  "H0982-028|Miami-Dade": {
+    "partBGiveback": 185.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 85.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "copay",
+      "value": 35.0
+    },
+    "tier4": {
+      "type": "copay",
+      "value": 100.0
+    },
+    "otc": {
+      "amount": 115.0,
+      "period": "month"
+    }
+  },
+  "H5420-014|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 14.0,
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier4": {
+      "type": "pct",
+      "value": 0.4
+    },
+    "tier5": {
+      "type": "pct",
+      "value": 0.33
+    },
+    "otc": {
+      "amount": 40.0,
+      "period": "month"
+    }
+  },
+  "H1045-018|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 39.0,
+    "moop": 2900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 80.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier4": {
+      "type": "pct",
+      "value": 0.4
+    },
+    "tier5": {
+      "type": "pct",
+      "value": 0.33
+    },
+    "otc": {
+      "amount": 40.0,
+      "period": "month"
+    }
+  },
+  "H1609-043|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H1609-017|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "otc": {
+      "amount": 140.0,
+      "period": "month"
+    }
+  },
+  "H1609-073|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "otc": {
+      "amount": 290.0,
+      "period": "month"
+    }
+  },
+  "H1019-023|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H1290-019-000|Miami-Dade": {
+    "moop": 3900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0,
+    "otc": {
+      "amount": 50.0,
+      "period": "quarter"
+    }
+  },
+  "H1290-078|Miami-Dade": {
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "otc": {
+      "amount": 50.0,
+      "period": "quarter"
+    }
+  },
+  "H1290-053|Miami-Dade": {
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "otc": {
+      "amount": 50.0,
+      "period": "quarter"
+    }
+  },
+  "H4140-13|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 4.8,
+      "raw": "Monthly Plan $0 - $4.80"
+    },
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H5410-056|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan Premium You pay $0"
+    },
+    "moop": 3500.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H5431-019|Miami-Dade": {
+    "pcpCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H5431-026|Miami-Dade": {
+    "pcpCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H1036-077|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H1036-304|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H1036-339|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H7284-010|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "moop": 4900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H5471-115-0|Miami-Dade": {
+    "pcpCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H5471-064-0|Miami-Dade": {
+    "pcpCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H0982-002|Miami-Dade": {
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "otc": {
+      "amount": 125.0,
+      "period": "month"
+    }
+  },
+  "H5420-006|Miami-Dade": {
+    "premium": {
+      "low": 4.8,
+      "high": 4.8,
+      "raw": "Monthly plan premium $4.80"
+    },
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "otc": {
+      "amount": 214.0,
+      "period": "month"
+    }
+  },
+  "H5420-015|Miami-Dade": {
+    "premium": {
+      "low": 4.8,
+      "high": 4.8,
+      "raw": "Monthly plan premium $4.80"
+    },
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "otc": {
+      "amount": 84.0,
+      "period": "month"
+    }
+  },
+  "H5420-016|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 0.2,
+    "moop": 0.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "otc": {
+      "amount": 297.0,
+      "period": "month"
+    }
+  },
+  "H1045-012-000|Miami-Dade": {
+    "premium": {
+      "low": 4.8,
+      "high": 4.8,
+      "raw": "Monthly plan premium $4.80"
+    },
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "otc": {
+      "amount": 244.0,
+      "period": "month"
+    }
+  },
+  "H1045-063|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "moop": 0.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "otc": {
+      "amount": 360.0,
+      "period": "month"
+    }
+  },
+  "H1045-061|Miami-Dade": {
+    "premium": {
+      "low": 4.8,
+      "high": 4.8,
+      "raw": "Monthly plan premium $4.80"
+    },
+    "moop": 2900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "otc": {
+      "amount": 129.0,
+      "period": "month"
+    }
+  },
+  "H1889-002|Miami-Dade": {
+    "premium": {
+      "low": 4.8,
+      "high": 4.8,
+      "raw": "Monthly plan premium $4.80"
+    },
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "otc": {
+      "amount": 139.0,
+      "period": "month"
+    }
+  },
+  "H1889-026|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 0.5,
+    "moop": 0.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "otc": {
+      "amount": 222.0,
+      "period": "month"
+    }
+  },
+  "H2509-001|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 0.1,
+    "moop": 0.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "otc": {
+      "amount": 400.0,
+      "period": "month"
+    }
+  },
+  "H1032-206|Miami-Dade": {
+    "premium": {
+      "low": 4.8,
+      "high": 4.8,
+      "raw": "Monthly Plan Premium $4.80"
+    },
+    "moop": 3000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H1032-244|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan Premium $0"
+    },
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H1019-136|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 155.0,
+    "moop": 3000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 10.0,
+    "erCopay": 150.0
+  },
+  "H1290-013|Miami-Dade": {
+    "moop": 6750.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 45.0,
+    "erCopay": 130.0,
+    "otc": {
+      "amount": 100.0,
+      "period": "quarter"
+    }
+  },
+  "H4140-019|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan $0"
+    },
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 120.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "copay",
+      "value": 47.0
+    },
+    "tier5": {
+      "type": "pct",
+      "value": 0.33
+    }
+  },
+  "H5431-017|Miami-Dade": {
+    "partBGiveback": 185.0,
+    "pcpCopay": 0.0,
+    "erCopay": 120.0
+  },
+  "H1036-305|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 148.0,
+    "moop": 3850.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 30.0,
+    "erCopay": 150.0
+  },
+  "H5471-113-0|Miami-Dade": {
+    "partBGiveback": 164.9,
+    "pcpCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "R0759-001|Miami-Dade": {
+    "premium": {
+      "low": 62.0,
+      "high": 62.0,
+      "raw": "Monthly plan premium $62"
+    },
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 55.0,
+    "erCopay": 115.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 8.0
+    }
+  },
+  "H7617-107|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "moop": 3900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 35.0,
+    "erCopay": 150.0
+  },
+  "H7617-110|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 171.0,
+    "moop": 6700.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 45.0,
+    "erCopay": 130.0
+  },
+  "H1609-018|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0,
+    "otc": {
+      "amount": 30.0,
+      "period": "quarter"
+    }
+  },
+  "H1609-028|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "pcpCopay": 0.0,
+    "specialistCopay": 30.0,
+    "erCopay": 130.0
+  },
+  "H1019-001|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 6.0,
+    "moop": 2000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H1019-148|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 6.0,
+    "moop": 2250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 10.0,
+    "erCopay": 150.0
+  },
+  "H129-002|Broward": {
+    "moop": 3900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H1290-037|Broward": {
+    "moop": 3900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H1290-056|Broward": {
+    "moop": 3900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0,
+    "otc": {
+      "amount": 100.0,
+      "period": "quarter"
+    }
+  },
+  "H4140-012|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan $0"
+    },
+    "moop": 3000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 100.0
+  },
+  "H1035-019|Broward": {
+    "pcpCopay": 0.0,
+    "specialistCopay": 55.0,
+    "erCopay": 130.0
+  },
+  "H1035-025|Broward": {
+    "pcpCopay": 0.0,
+    "specialistCopay": 20.0,
+    "erCopay": 150.0
+  },
+  "H5410-060|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan Premium You pay $0"
+    },
+    "moop": 6750.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 30.0,
+    "erCopay": 130.0
+  },
+  "H5431-012|Broward": {
+    "partBGiveback": 50.0,
+    "pcpCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H5431-006|Broward": {
+    "pcpCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H1036-065C|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 1.0,
+    "moop": 1000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 115.0
+  },
+  "H5471-077-00|Broward": {
+    "pcpCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H5471-124-000|Broward": {
+    "partBGiveback": 30.0,
+    "pcpCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H0982-022|Broward": {
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 90.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "copay",
+      "value": 15.0
+    },
+    "tier4": {
+      "type": "copay",
+      "value": 70.0
+    },
+    "otc": {
+      "amount": 115.0,
+      "period": "month"
+    }
+  },
+  "H5420-003 FL-0029|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 12.0,
+    "moop": 2900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 25.0,
+    "erCopay": 150.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "pct",
+      "value": 0.19
+    },
+    "tier4": {
+      "type": "pct",
+      "value": 0.41
+    },
+    "tier5": {
+      "type": "pct",
+      "value": 0.29
+    },
+    "otc": {
+      "amount": 25.0,
+      "period": "quarter"
+    }
+  },
+  "H1045-005|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 12.0,
+    "moop": 2900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 15.0,
+    "erCopay": 150.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "pct",
+      "value": 0.16
+    },
+    "tier4": {
+      "type": "pct",
+      "value": 0.42
+    },
+    "tier5": {
+      "type": "pct",
+      "value": 0.3
+    },
+    "otc": {
+      "amount": 45.0,
+      "period": "quarter"
+    }
+  },
+  "H1032-196|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan Premium $0"
+    },
+    "partBGiveback": 157.0,
+    "moop": 5000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 20.0,
+    "erCopay": 130.0
+  },
+  "H1609-043|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H1609-073|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "otc": {
+      "amount": 290.0,
+      "period": "month"
+    }
+  },
+  "H1019-152|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H1019-023|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H129-077|Broward": {
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "otc": {
+      "amount": 50.0,
+      "period": "quarter"
+    }
+  },
+  "H129-020|Broward": {
+    "moop": 3900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0,
+    "otc": {
+      "amount": 50.0,
+      "period": "quarter"
+    }
+  },
+  "H129-054|Broward": {
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "otc": {
+      "amount": 50.0,
+      "period": "quarter"
+    }
+  },
+  "H4140-13|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 4.8,
+      "raw": "Monthly Plan $0 - $4.80"
+    },
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H5410-056|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan Premium You pay $0"
+    },
+    "moop": 3500.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H5431-019|Broward": {
+    "pcpCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H5431-026|Broward": {
+    "pcpCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H1036-077|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H1036-304|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H7284-010|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "moop": 4900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H5471-076|Broward": {
+    "pcpCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H0982-012|Broward": {
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "otc": {
+      "amount": 120.0,
+      "period": "month"
+    }
+  },
+  "H1032-244|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan Premium $0"
+    },
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  },
+  "H1032-202|Broward": {
+    "premium": {
+      "low": 4.8,
+      "high": 4.8,
+      "raw": "Monthly Plan Premium $4.80"
+    },
+    "moop": 3000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H5420-006|Broward": {
+    "premium": {
+      "low": 4.8,
+      "high": 4.8,
+      "raw": "Monthly plan premium $4.80"
+    },
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "otc": {
+      "amount": 214.0,
+      "period": "month"
+    }
+  },
+  "H5420-015|Broward": {
+    "premium": {
+      "low": 4.8,
+      "high": 4.8,
+      "raw": "Monthly plan premium $4.80"
+    },
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "otc": {
+      "amount": 84.0,
+      "period": "month"
+    }
+  },
+  "H5420-016|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 0.2,
+    "moop": 0.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "otc": {
+      "amount": 297.0,
+      "period": "month"
+    }
+  },
+  "H1045-012-000|Broward": {
+    "premium": {
+      "low": 4.8,
+      "high": 4.8,
+      "raw": "Monthly plan premium $4.80"
+    },
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "otc": {
+      "amount": 244.0,
+      "period": "month"
+    }
+  },
+  "H1045-063|Broward": {},
+  "H1045-061|Broward": {
+    "premium": {
+      "low": 4.8,
+      "high": 4.8,
+      "raw": "Monthly plan premium $4.80"
+    },
+    "moop": 2900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "otc": {
+      "amount": 129.0,
+      "period": "month"
+    }
+  },
+  "H1889-002|Broward": {
+    "premium": {
+      "low": 4.8,
+      "high": 4.8,
+      "raw": "Monthly plan premium $4.80"
+    },
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "otc": {
+      "amount": 139.0,
+      "period": "month"
+    }
+  },
+  "H1889-026|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 0.5,
+    "moop": 0.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "otc": {
+      "amount": 222.0,
+      "period": "month"
+    }
+  },
+  "H2509-001|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 0.1,
+    "moop": 0.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "otc": {
+      "amount": 400.0,
+      "period": "month"
+    }
+  },
+  "H1609-080|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H1019-124|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 156.0,
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 20.0,
+    "erCopay": 150.0
+  },
+  "H1019-130|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 157.0,
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 20.0,
+    "erCopay": 150.0
+  },
+  "H1019-150|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 5.0,
+    "moop": 2000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 10.0,
+    "erCopay": 140.0
+  },
+  "H1290-084|Broward": {
+    "pcpCopay": 0.0,
+    "erCopay": 115.0,
+    "otc": {
+      "amount": 50.0,
+      "period": "quarter"
+    }
+  },
+  "H5431-021|Broward": {
+    "partBGiveback": 185.0,
+    "pcpCopay": 0.0,
+    "erCopay": 90.0
+  },
+  "H1036-121|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 166.0,
+    "moop": 2450.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 15.0,
+    "erCopay": 150.0
+  },
+  "H1036-297|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 166.0,
+    "moop": 2450.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 15.0,
+    "erCopay": 150.0
+  },
+  "H5471-080|Broward": {
+    "pcpCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H5471-126-0|Broward": {
+    "partBGiveback": 164.9,
+    "pcpCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H0982-017|Broward": {
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 75.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "copay",
+      "value": 15.0
+    },
+    "tier4": {
+      "type": "copay",
+      "value": 70.0
+    },
+    "otc": {
+      "amount": 125.0,
+      "period": "month"
+    }
+  },
+  "H0982-030|Broward": {
+    "partBGiveback": 185.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 5.0,
+    "erCopay": 85.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "copay",
+      "value": 35.0
+    },
+    "tier4": {
+      "type": "copay",
+      "value": 100.0
+    },
+    "otc": {
+      "amount": 115.0,
+      "period": "month"
+    }
+  },
+  "H5420-014|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 14.0,
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 150.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier4": {
+      "type": "pct",
+      "value": 0.4
+    },
+    "tier5": {
+      "type": "pct",
+      "value": 0.33
+    },
+    "otc": {
+      "amount": 40.0,
+      "period": "month"
+    }
+  },
+  "H1019-135|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 153.0,
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 25.0,
+    "erCopay": 150.0
+  },
+  "H1290-014|Broward": {
+    "moop": 6750.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 45.0,
+    "erCopay": 130.0,
+    "otc": {
+      "amount": 95.0,
+      "period": "quarter"
+    }
+  },
+  "H4140-019|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan $0"
+    },
+    "moop": 3400.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 120.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "copay",
+      "value": 47.0
+    },
+    "tier5": {
+      "type": "pct",
+      "value": 0.33
+    }
+  },
+  "H5431-018|Broward": {
+    "partBGiveback": 185.0,
+    "pcpCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H1036-305|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 148.0,
+    "moop": 3850.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 30.0,
+    "erCopay": 150.0
+  },
+  "H5471-123-0|Broward": {
+    "partBGiveback": 164.9,
+    "pcpCopay": 0.0,
+    "erCopay": 150.0
+  },
+  "H1032-195|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan Premium $0"
+    },
+    "partBGiveback": 157.0,
+    "moop": 5000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 20.0,
+    "erCopay": 130.0
+  },
+  "R0759-001|Broward": {
+    "premium": {
+      "low": 62.0,
+      "high": 62.0,
+      "raw": "Monthly plan premium $62"
+    },
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 55.0,
+    "erCopay": 115.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 8.0
+    }
+  },
+  "H5434-026|Broward": {
+    "specialistCopay": 55.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "pct",
+      "value": 0.21
+    },
+    "tier4": {
+      "type": "pct",
+      "value": 0.3
+    },
+    "tier5": {
+      "type": "pct",
+      "value": 0.25
+    }
+  },
+  "H5434-002|Broward": {
+    "specialistCopay": 60.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "pct",
+      "value": 0.2
+    },
+    "tier4": {
+      "type": "pct",
+      "value": 0.3
+    },
+    "tier5": {
+      "type": "pct",
+      "value": 0.25
+    }
+  },
+  "H7617-107|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "moop": 3900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 35.0,
+    "erCopay": 150.0
+  },
+  "H7617-110|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 171.0,
+    "moop": 6700.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 45.0,
+    "erCopay": 130.0
+  },
+  "H1019-065|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 70.0,
+    "moop": 5000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 20.0,
+    "erCopay": 125.0
+  },
+  "H1019-132|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 125.0,
+    "moop": 3900.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 30.0,
+    "erCopay": 150.0
+  },
+  "H1019-154|Broward": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly plan premium $0"
+    },
+    "partBGiveback": 5.0,
+    "moop": 2000.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 10.0,
+    "erCopay": 140.0
+  },
+  "H0982-007|Broward": {
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 90.0,
+    "tier1": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier2": {
+      "type": "copay",
+      "value": 0.0
+    },
+    "tier3": {
+      "type": "copay",
+      "value": 15.0
+    },
+    "tier4": {
+      "type": "copay",
+      "value": 70.0
+    },
+    "otc": {
+      "amount": 115.0,
+      "period": "month"
+    }
+  },
+  "H1032-245|Miami-Dade": {
+    "premium": {
+      "low": 0.0,
+      "high": 0.0,
+      "raw": "Monthly Plan Premium $0"
+    },
+    "moop": 9250.0,
+    "pcpCopay": 0.0,
+    "specialistCopay": 0.0,
+    "erCopay": 0.0
+  }
+}
