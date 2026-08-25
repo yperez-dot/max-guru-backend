@@ -26,9 +26,13 @@ max-knowledge/
 ## Refresh Hub content
 
 ```bash
-# clone/update agent-medicare-hub locally, then:
+# SEP tracker (live Hub app — preferred; keeps Max in sync with agentmedicarehub.com)
+python3 scripts/refresh_sep_tracker.py
+
+# Other Hub pages (clone agent-medicare-hub to /tmp/amh first):
 python3 scripts/import_hub_knowledge.py
 ```
 
-Requires `/tmp/amh` (or edit the script path) to point at a checkout of
-`yperez-dot/agent-medicare-hub`, including `sep-tracker/data/seps.json`.
+SEP SoT is the live tracker HTML (`sep-tracker-app.html` /  
+https://www.agentmedicarehub.com/sep-tracker), not the older  
+`sep-tracker/data/seps.json` snapshot.

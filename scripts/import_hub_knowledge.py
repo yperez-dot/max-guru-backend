@@ -12,6 +12,9 @@ HUB_PAGES = Path("/tmp/amh/pages")
 SEP_JSON = Path("/tmp/amh/sep-tracker/data/seps.json")
 OUT = Path("/workspace/max-knowledge/hub")
 
+# Prefer: python3 scripts/refresh_sep_tracker.py
+# (pulls live sep-tracker-app.html — newer than sep-tracker/data/seps.json)
+
 INCLUDE = [
     "compliance.html",
     "medicare-basics.html",
