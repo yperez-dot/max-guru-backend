@@ -25,6 +25,7 @@ Last brief update: **2026-09-01** (SOB-grid).
 6. **Non-commissionable** = factual heads-up for *new sales only*; renewals still pay FMV. Never a ranking signal. See `max-knowledge/max-behavior-rules.md`.
 7. **Part B giveback** is a real field when present. Absence ≠ confirmed $0 — say it is not on file.
 8. Informal names (“core Humana,” “the dual”) are filters, not literal plan names.
+9. **2027 questions are allowed.** If an agent asks for 2027 and you have it (KB, Hub, confirmed SoB, confirmed grid cell), answer it and cite the year. If you do not have that 2027 fact, say so — do not substitute 2026 dollars or invent from training. The live `#plan-data` grid is still **2026** for current-year coverage; that is not a gag on 2027.
 
 Full chat rules: `services/claude.js` `SYSTEM_PROMPT` (also baked into the HTML UI).
 
@@ -137,7 +138,7 @@ Plan-ID extractor expects CMS-looking headers (`H1036-054`, `H1032 | 206`, `H542
 
 - **Humana:** 2027 SoBs are live — enter from those files; yellow only where the booklet is ambiguous (multi-column, county mismatch, missing PBP).
 - **Everyone else:** yellow until that carrier’s 2027 SoB is linked on the SoB row.
-- Do not publish 2027 dollars into live Max `#plan-data` until Yahoska/Katy say the 2027 sheet is the source of truth for chat. Until then, live Max stays on the **2026** grid.
+- Live `#plan-data` stays the **2026** grid so current-year quotes do not silently flip. Confirmed 2027 facts go into `max-knowledge/` (and this brief) so live Max can answer when asked. Do not wait for a “publish 2027 grid” gate.
 
 Phase 2 artifacts: `artifacts/reports/sob-phase2-audit.md`, `sob-phase2-corrections.xlsx`, `sob-phase2-applied-fixes.json`.
 
@@ -171,4 +172,4 @@ Invite-only: `MAX_ACCESS_PASSWORD` on Railway (Yahoska / Katy / Carolina).
 
 ## When you learn something
 
-Write it in this file (or `max-knowledge/` if the **chatbot** must cite it). Next Max session has no other memory.
+Write it in this file (or `max-knowledge/` if the **chatbot** must cite it). Next Max session has no other memory. Confirmed 2027 plan dollars belong in `max-knowledge/` as soon as they are SoB-checked — that is how live Max “has it.”

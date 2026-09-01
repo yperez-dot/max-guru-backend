@@ -12,7 +12,7 @@ This is not Igor. Igor is a different THEI agent (`yperez-dot/igor-config` — P
 |-------|--------|
 | Chat API (Grok) | `server.js` → Railway |
 | Agent UI | `artifacts/max-demo-FINAL-v7.html` → Netlify (`max.healthexps.com`) |
-| Plan dollars + `sobUrl` | `#plan-data` inside that HTML (THEI 2026 grid) |
+| Plan dollars + `sobUrl` | `#plan-data` inside that HTML (THEI **2026** grid). Ask 2027 anytime — Max answers if the KB has it. |
 | Hub / SEP / compliance KB | `max-knowledge/` |
 | Grid → Max sync | `scripts/sync_thei_grid_to_max.py`, `scripts/sync_sob_urls_from_grid.py` |
 
