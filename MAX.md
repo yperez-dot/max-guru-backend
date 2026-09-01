@@ -108,13 +108,13 @@ The importer (`LABEL_MAP` in `scripts/sync_thei_grid_to_max.py`) only sees label
 | `Summary of Benefits` / `Note` | Skipped as data. SoB must be a **hyperlink** (see above). |
 | `H4140-012` vs `H4140-001` | Token match is strict on purpose — do not “helpfully” collapse 012 → 001. |
 | Compound IDs | Keep THEI form: `H5420-001/0028`, `H1036-054C`, `H4140-13`, `H5471-077-00`, `H5420-003 FL-0029`. Softening is only letter-PBP (`054C`↔`054`), trailing `-00`/`-000`, and `/0028` duals. |
-| Dual-column SoB booklets | First column is often **the other plan**. Match plan name / PBP to the column before writing. Worst offenders in 2026: Wellcare `H1032-196` (Giveback vs Simple), Cigna/Florida Blue paired ER/specialist columns. |
+| Dual-column SoB booklets | First column is often **the other plan**. Match plan name / PBP to the column before writing. Worst offenders in 2026: Wellcare `H1032-196` (Giveback vs Simple); FL Blue Premier `H1035-025` (Broward) sits in a paired booklet — Max has ER `$130` / specialist `$35`. |
 | Duplicate `H1032-206` Miami-Dade | Two grid rows, one plan key. Don’t “fix” by deleting a county column. |
 | Sheet name typos | `DADE- HMO` (space after hyphen), `Dade- DSNP` (mixed case). A new 2027 sheet name will not import until `SHEETS` is updated. |
 | Carrier header aliases | Preferred / United / MedicareMax → **UHC**. CareOne / CareNeeds / … → **CarePlus**. |
 | `tags.foodCard` | Sync does not set this from “Grocery card” text. Chat must read `groceryCardDetail`. |
 | Null vs zero | A blank cell is unknown. A `0` is $0. The sync script treats those differently on purpose. |
-| `H1035-*` | CMS contract **H1035** is Florida Blue in the non-comm file; some Phase 2 notes said “Cigna.” Trust the **header + SoB cover**, not the nickname. |
+| `H1035-*` | CMS contract **H1035** is **Florida Blue** in Max (`FL Blue Premier` for `H1035-025`) and in the non-comm file. Phase 2 once labeled it Cigna — that nickname is wrong. Trust the header + SoB cover. |
 
 Plan-ID extractor expects CMS-looking headers (`H1036-054`, `H1032 | 206`, `H5420-001/0028`). A column with only a marketing name and no ID will not import.
 
@@ -125,7 +125,7 @@ Plan-ID extractor expects CMS-looking headers (`H1036-054`, `H1032 | 206`, `H542
 **2026 grid / Max plan-data (Phase 2, 2026-08-25):**
 
 - Wellcare `H1032-196` — dual-column booklet; Max matches Simple; Giveback column not auto-applied.
-- Cigna / H1035 paired plans (e.g. `H1035-025`) — $150/$130 ER, $20/$35 specialist; confirm which column is this PBP.
+- FL Blue Premier `H1035-025` (Broward) — paired-booklet SoB; Max currently ER `$130` / specialist `$35`. Confirm the column before changing.
 - Devoted / Humana / Cigna **DSNP** premiums that SoB prints as `$0` while the grid keeps `$0 / $4.80` Extra Help framing — **intentional**; leave unless leadership changes the style.
 - Doctors CDN captcha and Aetna bot-wall **403** — URLs are still the live documents for humans; scrapers need retries / browser UA.
 - `sourceQuality: planfinder_unverified` — carrier marketing page only; no full SoB yet. Don’t invent dental/hearing dollars.
