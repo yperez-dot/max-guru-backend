@@ -170,6 +170,16 @@ Invite-only: `MAX_ACCESS_PASSWORD` on Railway (Yahoska / Katy / Carolina).
 
 ---
 
+## How to add to the KB (so live Max can cite it)
+
+Cursor Max reads the whole repo. **Live chat only searches `max-knowledge/**/*.md`.**
+
+1. Add or edit a markdown file under `max-knowledge/` (use `carriers/` for one carrier, e.g. `carriers/humana-plans-florida-2027.md`).
+2. Tool key = path minus `.md` (`carriers/humana-plans-florida-2027`). Put **2027**, carrier, county, and plan IDs in the heading so `search_knowledge` finds it.
+3. Source + date at the top. No yellow cells.
+4. Merge to `main` → Railway redeploy. Boot loads the folder. No upload UI. Only SEPs hot-reload (`POST /admin/refresh-seps`).
+5. Full steps: [max-knowledge/README.md](max-knowledge/README.md).
+
 ## When you learn something
 
 Write it in this file (or `max-knowledge/` if the **chatbot** must cite it). Next Max session has no other memory. Confirmed 2027 plan dollars belong in `max-knowledge/` as soon as they are SoB-checked — that is how live Max “has it.”
