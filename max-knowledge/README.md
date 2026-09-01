@@ -1,6 +1,8 @@
 # Max Knowledge Base
 
-Knowledge documents for Max. Railway loads these for `search_knowledge` / `get_knowledge_doc`.
+Knowledge documents for **Max** (THEI Medicare guru — not Igor). Railway loads these for `search_knowledge` / `get_knowledge_doc`.
+
+Cursor / desk brief: repo-root [MAX.md](../MAX.md) (read that first). Identity: [AGENTS.md](../AGENTS.md). Watcher prompt: [WATCHER.md](../WATCHER.md).
 
 ## Layout
 
