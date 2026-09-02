@@ -9,11 +9,13 @@
  * Live sources (not Sunfire):
  *   FHIR — FL Blue, Cigna, HealthSun (payer-id required), Devoted (/fhir)
  *   Doctors HealthCare Plans — POST providersearch.doctorshcp.com/ProviderSearch
+ *   Aetna — guest health.aetna.com (cookie + public SPA token, no member login)
+ *   Simply — Find Care guest JWT + search-box (no member login)
  *
  * THEI Sunfire does not return Doctors / Solis / HealthSun provider matches.
  * HealthSun is FHIR (Aaneel). Solis has no live API — county PDFs only.
  *
- * Humana fhir.humana.com is WAF 403 from this host. UHC / Aetna / Wellcare /
+ * Humana fhir.humana.com is WAF 403 from this host. UHC / Wellcare /
  * CarePlus still need Sunfire or a developer-portal key.
  */
 
@@ -21,6 +23,8 @@ const { Router } = require('express');
 const fs     = require('fs');
 const path   = require('path');
 const { queryDoctorsHcp, PLAN_LABEL: DOCTORS_PLAN_LABEL } = require('../services/doctorsHcp');
+const { queryAetnaPublic, CARRIER_LABEL: AETNA_PLAN_LABEL } = require('../services/aetnaPublicSearch');
+const { querySimplyFindcare, CARRIER_LABEL: SIMPLY_PLAN_LABEL } = require('../services/simplyFindcare');
 const { solisLookupNote } = require('../services/solisDirectory');
 const router = Router();
 
@@ -363,7 +367,7 @@ router.post('/', async (req, res) => {
     });
   }
 
-  // ── Step 2: Query FHIR + Doctors + Sunfire for each NPI (all in parallel) ──
+  // ── Step 2: FHIR + Doctors + Aetna + Simply + Sunfire (all in parallel) ──
   const providers = [];
 
   // Derive county FIPS from zip (default Miami-Dade 12086; expand later)
@@ -382,11 +386,15 @@ router.post('/', async (req, res) => {
     const npi = npiResult.number;
     if (!npi) continue;
 
-    // Run FHIR carriers + Doctors directory + Sunfire in parallel
-    const [fhirResults, sunfirePlans, doctorsResult] = await Promise.all([
+    const npiLastName = npiResult.basic?.last_name || lastName;
+
+    // Run FHIR + Doctors + Aetna guest + Simply guest + Sunfire in parallel
+    const [fhirResults, sunfirePlans, doctorsResult, aetnaResult, simplyResult] = await Promise.all([
       Promise.all(CARRIERS.map(carrier => queryCarrier(carrier, npi))),
       querySunfire(npi, zip, county),
       queryDoctorsHcp(npi),
+      queryAetnaPublic(npi, { zip, state, lastName: npiLastName }),
+      querySimplyFindcare(npi, { zip, lastName: npiLastName }),
     ]);
 
     const inNetworkFor       = [];
@@ -411,6 +419,28 @@ router.post('/', async (req, res) => {
       inNetworkFor.push(DOCTORS_PLAN_LABEL);
     }
 
+    if (aetnaResult.error) {
+      carriersWithErrors.push(AETNA_PLAN_LABEL);
+    } else if (aetnaResult.inNetwork) {
+      for (const plan of aetnaResult.plans) {
+        if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
+      }
+      if (!aetnaResult.plans.length && !inNetworkFor.includes(AETNA_PLAN_LABEL)) {
+        inNetworkFor.push(AETNA_PLAN_LABEL);
+      }
+    }
+
+    if (simplyResult.error) {
+      carriersWithErrors.push(SIMPLY_PLAN_LABEL);
+    } else if (simplyResult.inNetwork) {
+      for (const plan of simplyResult.plans) {
+        if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
+      }
+      if (!simplyResult.plans.length && !inNetworkFor.includes(SIMPLY_PLAN_LABEL)) {
+        inNetworkFor.push(SIMPLY_PLAN_LABEL);
+      }
+    }
+
     providers.push({
       name:      getDisplayName(npiResult),
       npi,
@@ -420,9 +450,13 @@ router.post('/', async (req, res) => {
       inNetworkFor,
       sunfirePlansCount:  sunfirePlans.length,
       doctorsMatches: doctorsResult.inNetwork ? doctorsResult.matches : undefined,
+      aetnaMatches: aetnaResult.inNetwork ? aetnaResult.matches : undefined,
+      simplyMatches: simplyResult.inNetwork ? simplyResult.matches : undefined,
       carriersChecked:    [
         ...CARRIERS.map(c => c.name),
         DOCTORS_PLAN_LABEL,
+        AETNA_PLAN_LABEL,
+        SIMPLY_PLAN_LABEL,
         'Solis (PDF directory only)',
         'Sunfire (UHC, Humana, WellCare, CarePlus + contracted FL MA)',
       ],
@@ -435,10 +469,10 @@ router.post('/', async (req, res) => {
     meta: {
       query:           { doctorName, zip, state },
       npiResultCount:  npiResults.length,
-      carriersQueried: [...CARRIERS.map(c => c.name), DOCTORS_PLAN_LABEL, 'Sunfire'],
+      carriersQueried: [...CARRIERS.map(c => c.name), DOCTORS_PLAN_LABEL, AETNA_PLAN_LABEL, SIMPLY_PLAN_LABEL, 'Sunfire'],
       sunfirePlanMapSize: Object.keys(SUNFIRE_PLAN_MAP).length,
       solis: solisLookupNote(zip),
-      note: 'HealthSun via FHIR (not THEI Sunfire). Doctors via ProviderSearch. Solis is county PDF only — see meta.solis. Sunfire: UHC, Humana, WellCare, CarePlus + other contracted FL MA.',
+      note: 'HealthSun via FHIR (not THEI Sunfire). Doctors via ProviderSearch. Aetna via guest find-care (no member login). Simply via Find Care guest search-box. Solis is county PDF only — see meta.solis. Sunfire: UHC, Humana, WellCare, CarePlus + other contracted FL MA.',
       timestamp: new Date().toISOString(),
     },
   });

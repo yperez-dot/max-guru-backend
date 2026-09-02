@@ -1,5 +1,5 @@
 # Carrier Provider & Drug Lookup URLs — 2026
-Last updated: 2026-07-16
+Last updated: 2026-09-02
 Use these links when an agent needs to check if a provider is in-network or if a drug is covered.
 
 > **Note:** Some tools require the member to log in for plan-specific results. Guest/public searches show general network info. Always confirm with the carrier for plan-specific network status.
@@ -8,6 +8,7 @@ Use these links when an agent needs to check if a provider is in-network or if a
 
 ## Aetna (H1609)
 - **Provider Lookup:** https://www.aetna.com/medicare/find-provider.html
+  - _Guest search — Continue as guest → Individual Medicare. No member login. Max queries this API (taxonomy by NPI, then MA search + plan list)._
 - **Drug/Formulary Lookup:** https://www.aetna.com/medicare/prescription-drugs.html
   - _Tip: Members can also log in at AetnaMedicare.com for plan-specific drug search._
 
@@ -77,9 +78,11 @@ Use these links when an agent needs to check if a provider is in-network or if a
 ---
 
 ## Simply Healthcare / Elevance (H5471)
-- **Provider Lookup:** https://shop.simplyhealthcareplans.com/medicare/standalonetools/find-doctor?brand=SIMPLY
+- **Provider Lookup (Find Care guest):** https://findcare.simplyhealthcareplans.com/?brand=SHC
+  - _Basic search as a guest. No member login. Max uses the same guest JWT + search-box (name search, then match NPI). Shop GraphQL getProviders is not usable from Max’s host._
+- **Provider Lookup (shop tool):** https://shop.simplyhealthcareplans.com/medicare/standalonetools/find-doctor?brand=SIMPLY
 - **Drug/Formulary Lookup:** https://shop.simplyhealthcareplans.com/medicare/standalonetools/find-covered-drugs?brand=SIMPLY
-  - _Both tools are public-facing (no login required); show cost estimates across available plans._
+  - _Both shop tools are public-facing (no login required); show cost estimates across available plans._
 
 ---
 
