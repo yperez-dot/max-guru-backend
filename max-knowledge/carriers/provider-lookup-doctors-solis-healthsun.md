@@ -32,6 +32,10 @@ No live provider API. The find-a-provider page is a placeholder; directories are
 
 When an agent asks about Solis + a doctor, say Max cannot search Solis live and point them at the county PDF. Do not invent an in-network / out-of-network answer from training.
 
+## NPI search (all carriers)
+
+If the agent pastes a 10-digit NPI, Max looks that number up first. Name + ZIP is not enough: CMS ZIP is a hard filter (33166 hits a different Lazaro Garcia NP and misses Family Medicine MD `1598792707` at 33125 / Salus Health). Devoted’s public directory (PCP ID `LX358W-AA`) matches FHIR when queried by NPI; `_include=PractitionerRole:network` 400s on Devoted and must not be treated as “not in network.”
+
 ## Aetna (H1609)
 
 Guest search at https://www.aetna.com/medicare/find-provider.html (Continue as guest). No member login. Max uses the public SPA token + `ahpublic_taxonomy` / `ahpublic_search` / provider healthplans. A directory hit is not the same as Medicare Advantage in-network for that ZIP.

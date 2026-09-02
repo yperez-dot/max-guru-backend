@@ -26,11 +26,11 @@ const { queryDoctorsHcp, PLAN_LABEL: DOCTORS_PLAN_LABEL } = require('../services
 const { queryAetnaPublic, CARRIER_LABEL: AETNA_PLAN_LABEL } = require('../services/aetnaPublicSearch');
 const { querySimplyFindcare, CARRIER_LABEL: SIMPLY_PLAN_LABEL } = require('../services/simplyFindcare');
 const { solisLookupNote } = require('../services/solisDirectory');
+const { parseName, extractNpi, resolveNpiRecords } = require('../services/npiRegistry');
 const router = Router();
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const NPI_REGISTRY_BASE = 'https://npiregistry.cms.hhs.gov/api/';
 const FETCH_TIMEOUT_MS  = 12_000;
 const SUNFIRE_BASE      = 'https://www.sunfirematrix.com';
 
@@ -131,32 +131,6 @@ async function fetchJSON(url, options = {}) {
   }
 }
 
-/**
- * Parse a full name string into { firstName, lastName }.
- * Handles:
- *   "John Smith"         → first=John last=Smith
- *   "Smith, John"        → first=John last=Smith
- *   "John A. Smith MD"   → first=John last=Smith (credential stripped)
- */
-function parseName(fullName) {
-  if (!fullName || typeof fullName !== 'string') return {};
-  // Strip trailing credentials (MD, DO, NP, PA, etc.)
-  const cleaned = fullName.replace(/,?\s+(MD|DO|NP|PA|RN|APRN|DDS|DMD|DPM|OD|DC|PharmD|PhD)\.?$/i, '').trim();
-
-  // "Last, First [Middle]" format
-  if (cleaned.includes(',')) {
-    const commaIdx = cleaned.indexOf(',');
-    const last  = cleaned.slice(0, commaIdx).trim();
-    const first = cleaned.slice(commaIdx + 1).trim().split(/\s+/)[0];
-    return { firstName: first, lastName: last };
-  }
-
-  // "First [Middle] Last" – take first and last tokens
-  const parts = cleaned.split(/\s+/);
-  if (parts.length === 1) return { lastName: parts[0] };
-  return { firstName: parts[0], lastName: parts[parts.length - 1] };
-}
-
 /** Extract the terminal ID segment from a FHIR reference string. */
 function extractResourceId(reference) {
   if (!reference) return null;
@@ -207,41 +181,8 @@ function getPhone(result) {
 }
 
 // ─── NPI Registry Query ───────────────────────────────────────────────────────
-
-/**
- * Query the CMS NPI Registry for individual providers (NPI-1).
- * First attempt uses zip code; if that returns nothing, retries without zip
- * (some providers list a different address on record).
- */
-async function lookupNPIs({ firstName, lastName, state = 'FL', zip, limit = 5 }) {
-  const buildUrl = (includeZip) => {
-    const p = new URLSearchParams({
-      version:          '2.1',
-      enumeration_type: 'NPI-1',
-      state,
-      limit:            String(limit),
-    });
-    if (firstName) p.set('first_name', firstName);
-    if (lastName)  p.set('last_name', lastName);
-    if (includeZip && zip) p.set('postal_code', zip);
-    return `${NPI_REGISTRY_BASE}?${p}`;
-  };
-
-  // First pass: include zip
-  let url  = buildUrl(true);
-  let data = await fetchJSON(url);
-  let results = data?.results || [];
-
-  // Second pass: drop zip if no results
-  if (!results.length && zip) {
-    console.log('[providerLookup] No NPI results with zip — retrying without');
-    url     = buildUrl(false);
-    data    = await fetchJSON(url);
-    results = data?.results || [];
-  }
-
-  return results;
-}
+// CMS lookup lives in services/npiRegistry.js (NPI-by-number, statewide name
+// search + ZIP rank — ZIP is not a hard filter).
 
 // ─── FHIR Carrier Query ───────────────────────────────────────────────────────
 
@@ -275,11 +216,13 @@ function parseNetworkNames(bundle, carrierKey) {
     const r = e.resource || {};
     if (r.resourceType !== 'PractitionerRole') continue;
 
+    const roleNetworks = new Set();
+
     // (a) PDex Plan Net extension
     for (const ext of (r.extension || [])) {
       if (ext.url?.includes('network-reference') && ext.valueReference?.reference) {
         const id = extractResourceId(ext.valueReference.reference);
-        if (id) networkIds.add(id);
+        if (id) roleNetworks.add(id);
       }
     }
 
@@ -287,15 +230,17 @@ function parseNetworkNames(bundle, carrierKey) {
     for (const net of (r.network || [])) {
       if (net.reference) {
         const id = extractResourceId(net.reference);
-        if (id) networkIds.add(id);
+        if (id) roleNetworks.add(id);
       }
     }
 
-    // (c) .organization reference (fallback, catches some implementations)
-    if (r.organization?.reference) {
+    // (c) .organization is the practice on Devoted — only use it when no network-reference
+    if (!roleNetworks.size && r.organization?.reference) {
       const id = extractResourceId(r.organization.reference);
-      if (id) networkIds.add(id);
+      if (id) roleNetworks.add(id);
     }
+
+    for (const id of roleNetworks) networkIds.add(id);
   }
 
   const carrierShort = CARRIERS.find(c => c.key === carrierKey)?.shortName || carrierKey;
@@ -303,34 +248,50 @@ function parseNetworkNames(bundle, carrierKey) {
   return Array.from(networkIds).map(id => {
     if (FL_MA_NETWORK_DISPLAY[id])  return FL_MA_NETWORK_DISPLAY[id];  // static map
     if (orgNames[id])               return orgNames[id];                // inline org
+    // Devoted (and similar) use UUID org ids — don't dump the raw id on the agent
+    if (/^organization-[0-9a-f-]+$/i.test(id) || /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(id)) {
+      return carrierShort;
+    }
     return `${carrierShort} – ${id}`;                                   // raw fallback
   });
 }
 
 /** Query a single carrier's FHIR endpoint for a given NPI. */
 async function queryCarrier(carrier, npi) {
-  // Request _include to get Organization names inline (avoids extra round-trips)
-  let url = `${carrier.fhirBase}/PractitionerRole`
-            + `?practitioner.identifier=${encodeURIComponent(npi)}`
-            + `&_include=PractitionerRole%3Anetwork`
-            + `&_include=PractitionerRole%3Aorganization`;
-  if (carrier.extraParams) url += `&${carrier.extraParams}`;
-
-  console.log(`[providerLookup] ${carrier.name} → ${url}`);
-
-  const bundle = await fetchJSON(url, { headers: carrier.headers });
-  if (!bundle) {
-    return { carrier: carrier.name, plans: [], error: 'request_failed' };
+  // Devoted HAPI 400s on _include=PractitionerRole:network (unknown search param).
+  // Try network include first for carriers that support it, then org include, then bare.
+  const qs = `practitioner.identifier=${encodeURIComponent(npi)}`;
+  const extra = carrier.extraParams ? `&${carrier.extraParams}` : '';
+  const includeOrg = '&_include=PractitionerRole%3Aorganization';
+  const includeNet = '&_include=PractitionerRole%3Anetwork';
+  const urls = [];
+  if (carrier.key !== 'devoted') {
+    urls.push(`${carrier.fhirBase}/PractitionerRole?${qs}${includeNet}${includeOrg}${extra}`);
   }
+  urls.push(`${carrier.fhirBase}/PractitionerRole?${qs}${includeOrg}${extra}`);
+  urls.push(`${carrier.fhirBase}/PractitionerRole?${qs}${extra}`);
 
-  const plans = parseNetworkNames(bundle, carrier.key);
-  return { carrier: carrier.name, plans, error: null };
+  let lastError = null;
+  for (const url of urls) {
+    console.log(`[providerLookup] ${carrier.name} → ${url}`);
+    const bundle = await fetchJSON(url, { headers: carrier.headers });
+    if (!bundle || bundle.resourceType !== 'Bundle') {
+      lastError = 'request_failed';
+      continue;
+    }
+    let plans = parseNetworkNames(bundle, carrier.key);
+    const roleHits = (bundle.total || 0) > 0
+      || (bundle.entry || []).some((e) => e.resource?.resourceType === 'PractitionerRole');
+    if (!plans.length && roleHits) plans = [carrier.name];
+    return { carrier: carrier.name, plans, error: null };
+  }
+  return { carrier: carrier.name, plans: [], error: lastError || 'request_failed' };
 }
 
 // ─── Route Handler ────────────────────────────────────────────────────────────
 
 router.post('/', async (req, res) => {
-  const { doctorName, zip, state = 'FL' } = req.body || {};
+  const { doctorName, zip, state = 'FL', npi: npiInput } = req.body || {};
 
   // ── Input validation ──
   if (!doctorName || typeof doctorName !== 'string') {
@@ -340,17 +301,18 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'zip (string) is required' });
   }
 
+  const npiNumber = extractNpi(npiInput) || extractNpi(doctorName);
   const { firstName, lastName } = parseName(doctorName);
-  if (!lastName) {
+  if (!npiNumber && !lastName) {
     return res.status(400).json({ error: 'Could not parse last name from doctorName' });
   }
 
-  console.log(`[providerLookup] "${doctorName}" → first="${firstName}" last="${lastName}" zip=${zip} state=${state}`);
+  console.log(`[providerLookup] "${doctorName}" → first="${firstName || ''}" last="${lastName || ''}" npi=${npiNumber || ''} zip=${zip} state=${state}`);
 
-  // ── Step 1: CMS NPI Registry lookup ──
+  // ── Step 1: CMS NPI Registry lookup (by number when the agent pasted an NPI) ──
   let npiResults;
   try {
-    npiResults = await lookupNPIs({ firstName, lastName, state, zip });
+    npiResults = await resolveNpiRecords({ doctorName, zip, state, npi: npiInput || npiNumber });
   } catch (err) {
     console.error('[providerLookup] NPI lookup threw:', err.message);
     return res.status(502).json({ error: 'NPI registry lookup failed', detail: err.message });

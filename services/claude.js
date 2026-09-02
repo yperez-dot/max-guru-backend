@@ -9,6 +9,7 @@ const { queryDoctorsHcp, PLAN_LABEL: DOCTORS_PLAN_LABEL } = require('./doctorsHc
 const { queryAetnaPublic, CARRIER_LABEL: AETNA_PLAN_LABEL } = require('./aetnaPublicSearch');
 const { querySimplyFindcare, CARRIER_LABEL: SIMPLY_PLAN_LABEL } = require('./simplyFindcare');
 const { formatSolisNote } = require('./solisDirectory');
+const { resolveNpiRecords } = require('./npiRegistry');
 
 // Sunfire plan ID → plan name/carrier map (built 2026-07-23)
 let SUNFIRE_PLAN_MAP = {};
@@ -156,8 +157,9 @@ const TOOLS = [
     input_schema: {
       type: 'object',
       properties: {
-        doctorName: { type: 'string', description: 'Doctor full name, e.g. "John Smith"' },
-        zip: { type: 'string', description: 'Florida ZIP code — optional, defaults to Miami-Dade area' },
+        doctorName: { type: 'string', description: 'Doctor full name, e.g. "Lazaro Miguel Garcia, MD". If the agent pasted a 10-digit NPI in the name, that is used first.' },
+        npi: { type: 'string', description: '10-digit NPI when the agent has it. Prefer this over name search — name search can hit a different Garcia.' },
+        zip: { type: 'string', description: 'Florida ZIP code — optional, ranks nearby matches but does not hide doctors a few miles away' },
         state: { type: 'string', description: 'State code, defaults to FL', default: 'FL' }
       },
       required: ['doctorName']
@@ -194,29 +196,14 @@ async function processTool(toolName, toolInput) {
     try {
       const doctorName = toolInput.doctorName || '';
       const zip = toolInput.zip || '33136';
-      // Strip titles: dr, dr., mrs., mr., ms., dds, md, do, np, pa
-      const cleanName = doctorName.trim().replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|dds\.?|md\.?|do\.?|np\.?|pa\.?)\s+/i, '');
-      const nameParts = cleanName.split(/\s+/);
-      const lastName = nameParts[nameParts.length - 1];
-      const firstName = nameParts.length > 1 ? nameParts[0] : '';
-      // Step 1: NPI Registry lookup — try multiple name formats for compound last names
-      let results = [];
-      const namesToTry = [
-        { last: lastName, first: firstName },                              // e.g. Calle, Gilda
-        { last: nameParts.slice(1).join(' '), first: nameParts[0] },       // e.g. De La Calle, Gilda
-        { last: nameParts.slice(-2).join(' '), first: firstName },         // e.g. La Calle, Gilda
-        { last: lastName, first: '' },                                     // last name only
-      ];
-      for (const attempt of namesToTry) {
-        if (!attempt.last) continue;
-        const npiParams = new URLSearchParams({ version: '2.1', last_name: attempt.last, state: 'FL', enumeration_type: 'NPI-1', limit: '5' });
-        if (attempt.first) npiParams.set('first_name', attempt.first);
-        const npiRes = await fetch(`https://npiregistry.cms.hhs.gov/api/?${npiParams}`, { signal: AbortSignal.timeout(10000) });
-        const npiData = await npiRes.json();
-        results = npiData.results || [];
-        if (results.length) break;
-      }
-      if (!results.length) return `No providers found matching "${doctorName}" in Florida. Try a different spelling.`;
+      const results = await resolveNpiRecords({
+        doctorName,
+        zip,
+        state: toolInput.state || 'FL',
+        npi: toolInput.npi,
+        limit: 5,
+      });
+      if (!results.length) return `No providers found matching "${doctorName}" in Florida. Try a different spelling or paste the 10-digit NPI.`;
       // Step 2: FHIR + Doctors directory for each NPI
       const CARRIERS = [
         { name: 'Florida Blue', key: 'flblue', base: 'https://apigw.bcbsfl.com/interop/interop-developer-portal/emr/api/v1/fhir' },
@@ -225,9 +212,9 @@ async function processTool(toolName, toolInput) {
         { name: 'Devoted Health', key: 'devoted', base: 'https://fhir.devoted.com/fhir' },
       ];
       const providerResults = [];
-      for (const p of results.slice(0, 3)) {
+      for (const p of results.slice(0, 5)) {
         const npi = p.number;
-        const pName = `${p.basic?.first_name || ''} ${p.basic?.last_name || ''}`.trim();
+        const pName = [p.basic?.first_name, p.basic?.middle_name, p.basic?.last_name].filter(Boolean).join(' ');
         const spec = (p.taxonomies || []).find(t => t.primary)?.desc || 'Unknown';
         const addr = (p.addresses || []).find(a => a.address_purpose === 'LOCATION') || {};
         const inNetworkFor = [];
@@ -247,8 +234,8 @@ async function processTool(toolName, toolInput) {
         });
         const [doctorsResult, aetnaResult, simplyResult] = await Promise.all([
           queryDoctorsHcp(npi),
-          queryAetnaPublic(npi, { zip, lastName: p.basic?.last_name || lastName }),
-          querySimplyFindcare(npi, { zip, lastName: p.basic?.last_name || lastName }),
+          queryAetnaPublic(npi, { zip, lastName: p.basic?.last_name || '' }),
+          querySimplyFindcare(npi, { zip, lastName: p.basic?.last_name || '' }),
           Promise.all(fhirLookups),
         ]);
         if (doctorsResult.inNetwork && !inNetworkFor.includes(DOCTORS_PLAN_LABEL)) {

@@ -2,7 +2,7 @@
 
 You are **Max**, THEI’s Medicare guru. Licensed agents (Yahoska, Katy, Carolina — invite-only on the live tool) ask you plan and Hub questions mid-call. Cursor sessions in this repo are the same person: you read the repo; you do not get a separate inbox from chat.
 
-Last brief update: **2026-09-02** (Aetna + Simply guest provider search — no member login; Doctors / Solis / HealthSun still not on THEI Sunfire).
+Last brief update: **2026-09-02** (Aetna + Simply guest search; NPI-by-number + Devoted FHIR include trap — Lazaro Miguel Garcia `1598792707`).
 
 ---
 
@@ -190,6 +190,12 @@ Yahoska: both have public provider search without logging in. Max now calls thos
 ### FHIR provider directories (probe 2026-09-02)
 
 Still open, no auth: **Florida Blue**, **Cigna**, **HealthSun** (with payer-id), **Devoted** at `fhir.devoted.com/fhir` (old `/r4` is 404). Humana `fhir.humana.com` is WAF **403**. UHC, Wellcare, CarePlus: no public unauthenticated Plan Net — those still need Sunfire or a developer-portal key. **Aetna** and **Simply** have guest UIs (above), not Plan Net.
+
+**NPI lookup traps (Lazaro Miguel Garcia, Family Medicine, `1598792707`, 3626 NW 7th St / 33125, Devoted PCP ID `LX358W-AA`):**
+
+- If the agent pastes a 10-digit NPI, look that number up. Do not name-search “Lazaro Garcia” and stop at the psychologist or the Miami Springs NP.
+- CMS `postal_code` is a hard filter. ZIP 33166 (Doral / Miami Springs) matches ARNP `1396233821` and **hides** the MD in 33125. Search statewide, then rank by ZIP / middle name.
+- Devoted FHIR **400**s on `_include=PractitionerRole:network`. Bare `PractitionerRole?practitioner.identifier=` returns him (2027 role). The consumer site is the same directory.
 
 ---
 
