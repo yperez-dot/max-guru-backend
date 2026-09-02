@@ -329,7 +329,12 @@ async function processTool(toolName, toolInput) {
         headers: { 'Authorization': `Bearer ${process.env.SUNFIRE_JWT || ''}`, 'Accept': 'application/json' }, // unified Bearer format
         signal: AbortSignal.timeout(10000)
       });
-      if (!res.ok) return `Drug search unavailable (${res.status}).`;
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          return 'Sunfire session expired — drug catalog is offline until Max refreshes SUNFIRE_JWT on Railway.';
+        }
+        return `Drug search unavailable (${res.status}).`;
+      }
       const data = await res.json();
       const drugs = data.drugs || [];
       if (!drugs.length) return `No drugs found matching "${toolInput.name}". Try a different spelling.`;

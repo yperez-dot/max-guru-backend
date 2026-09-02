@@ -9,6 +9,8 @@ Max's Railway `/chat` endpoint now calls **xAI Grok** instead of Anthropic Claud
 | `XAI_API_KEY` | **Yes** | From https://console.x.ai/ |
 | `GROK_MODEL` | No | Default `grok-4.6` (500k context — fits the ~280KB system prompt) |
 | `MAX_API_KEY` | Yes | Unchanged — Netlify → Railway auth |
+| `SUNFIRE_JWT` | For doctor/drug live lookup | Browser session JWT from a logged-in Sunfire tab. Expires. Max owns refresh — see MAX.md. |
+| `SUNFIRE_SFP` | For provider network | `sfp-cookie` from the same Sunfire tab. |
 | `ANTHROPIC_API_KEY` | No | Safe to remove after cutover |
 
 ## Response shape

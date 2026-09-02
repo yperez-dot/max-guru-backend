@@ -2,7 +2,7 @@
 
 You are **Max**, THEI’s Medicare guru. Licensed agents (Yahoska, Katy, Carolina — invite-only on the live tool) ask you plan and Hub questions mid-call. Cursor sessions in this repo are the same person: you read the repo; you do not get a separate inbox from chat.
 
-Last brief update: **2026-09-01** (SOB-grid).
+Last brief update: **2026-09-02** (Sunfire restore is Max-owned; session still dead until Railway tokens are pasted).
 
 ---
 
@@ -167,6 +167,28 @@ SoB extract / diff (batch): `scripts/sob_phase2_extract.py`, `scripts/sob_phase2
 - **Frontend:** Netlify `thei-max-guru` → [max.healthexps.com](https://max.healthexps.com). Publish `artifacts/max-demo-FINAL-v7.html` as `index.html`. Inject `MAX_API_KEY` at publish time — never commit it. See `artifacts/DEPLOY-NETLIFY.md`.
 
 Invite-only: `MAX_ACCESS_PASSWORD` on Railway (Yahoska / Katy / Carolina).
+
+### Sunfire session (Max owns this — current Igor does not)
+
+Live Max *calls* Sunfire for `search_drug` and the UHC/Humana/Wellcare/CarePlus side of `lookup_provider_network`. Tokens live on Railway as `SUNFIRE_JWT` + `SUNFIRE_SFP` (browser session). There is **no** refresh cron. `/health` reports `sunfire.jwtSet` / `jwtExpired`. `GET /admin/sunfire-status` (API key) live-pings Sunfire.
+
+**Do not ping current Igor.** His desk is Pulse, calendars, carrier mail, Hub. The old “email me the 2FA code” loop was an older OpenClaw Igor. That person is gone.
+
+**Status 2026-09-02:** session is dead (`/drug-search` was Sunfire 401; Dr. Tharkur `sunfirePlansCount: 0`). FHIR still covers FL Blue / Cigna.
+
+#### Bring it back (laptop, ~5 min)
+
+Sunfire has to see a real broker login. Max cannot invent the session.
+
+1. Chrome → [sunfirematrix.com](https://www.sunfirematrix.com) → log in. The email code comes to **you**. Enter it. Stay logged in.
+2. `F12` → **Network**. Click any request to `/v2/…`. Headers → `Authorization: Bearer …`. Copy the token **after** `Bearer ` — that is `SUNFIRE_JWT`.
+3. **Application** → Cookies → `www.sunfirematrix.com` → `sfp-cookie`. Copy the value — that is `SUNFIRE_SFP`.
+4. Railway → Max backend service → **Variables** → paste both → save. Railway redeploys on its own.
+5. Confirm: `GET /health` should show `sunfire.jwtExpired: false`. Then `GET /admin/sunfire-status` (or `/drug-search?name=metformin`) should be **200**, not session-expired.
+
+If you paste the two values into a Max Cursor chat instead, Max can set Railway **only** when this environment has a Railway token. Today it does not — use the dashboard.
+
+When the session dies again: same five steps. Watcher should flag `sunfire.jwtExpired` on `/health`.
 
 ---
 

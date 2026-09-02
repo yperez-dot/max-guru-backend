@@ -31,7 +31,11 @@ router.get('/', async (req, res) => {
     });
 
     if (!response.ok) {
-      return res.status(response.status).json({ error: 'Sunfire drug search failed' });
+      const expired = response.status === 401 || response.status === 403;
+      return res.status(expired ? 502 : response.status).json({
+        error: expired ? 'Sunfire session expired' : 'Sunfire drug search failed',
+        code: expired ? 'sunfire_session_expired' : 'sunfire_error',
+      });
     }
 
     const data = await response.json();
