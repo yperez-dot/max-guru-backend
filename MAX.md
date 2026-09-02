@@ -2,7 +2,7 @@
 
 You are **Max**, THEI’s Medicare guru. Licensed agents (Yahoska, Katy, Carolina — invite-only on the live tool) ask you plan and Hub questions mid-call. Cursor sessions in this repo are the same person: you read the repo; you do not get a separate inbox from chat.
 
-Last brief update: **2026-09-01** (SOB-grid).
+Last brief update: **2026-09-02** (Sunfire session dead; reauth is Igor).
 
 ---
 
@@ -167,6 +167,14 @@ SoB extract / diff (batch): `scripts/sob_phase2_extract.py`, `scripts/sob_phase2
 - **Frontend:** Netlify `thei-max-guru` → [max.healthexps.com](https://max.healthexps.com). Publish `artifacts/max-demo-FINAL-v7.html` as `index.html`. Inject `MAX_API_KEY` at publish time — never commit it. See `artifacts/DEPLOY-NETLIFY.md`.
 
 Invite-only: `MAX_ACCESS_PASSWORD` on Railway (Yahoska / Katy / Carolina).
+
+### Sunfire session (Igor’s job — not this repo)
+
+Live Max still *calls* Sunfire for `search_drug` and the UHC/Humana/Wellcare/CarePlus side of `lookup_provider_network`. Tokens live on Railway as `SUNFIRE_JWT` + `SUNFIRE_SFP` (browser session). There is **no** refresh cron in this repo. The comment in `routes/providerLookup.js` is leftover.
+
+**How reauth actually works:** Igor (OpenClaw, `yperez-dot/igor-config`) logs into Sunfire. Sunfire emails a 2FA code. Yahoska forwards that code to Igor. Igor finishes login and writes the new JWT + `sfp-cookie` to Railway. Do not take that login from a Max session.
+
+**Status 2026-09-02:** session is dead. Live `/drug-search?name=metformin` → Sunfire **401**. Dr. Tharkur provider lookup → `sunfirePlansCount: 0` (FHIR still returned FL Blue + Cigna). Kick Igor with a forwarded Sunfire code, or paste fresh tokens into Railway Variables.
 
 ---
 
