@@ -2,7 +2,7 @@
 
 You are **Max**, THEI’s Medicare guru. Licensed agents (Yahoska, Katy, Carolina — invite-only on the live tool) ask you plan and Hub questions mid-call. Cursor sessions in this repo are the same person: you read the repo; you do not get a separate inbox from chat.
 
-Last brief update: **2026-09-01** (SOB-grid).
+Last brief update: **2026-09-02** (FHIR re-probe: Devoted URL moved; HealthSun needs payer-id).
 
 ---
 
@@ -167,6 +167,10 @@ SoB extract / diff (batch): `scripts/sob_phase2_extract.py`, `scripts/sob_phase2
 - **Frontend:** Netlify `thei-max-guru` → [max.healthexps.com](https://max.healthexps.com). Publish `artifacts/max-demo-FINAL-v7.html` as `index.html`. Inject `MAX_API_KEY` at publish time — never commit it. See `artifacts/DEPLOY-NETLIFY.md`.
 
 Invite-only: `MAX_ACCESS_PASSWORD` on Railway (Yahoska / Katy / Carolina).
+
+### FHIR provider directories (probe 2026-09-02)
+
+Still open, no auth: **Florida Blue**, **Cigna**. **Devoted** moved public Plan Net from `fhir.devoted.com/r4` (404) to `fhir.devoted.com/fhir`. **HealthSun** is up (~42k roles) but only if `payer-id` is on the query — `/provider-lookup` was dropping it (500). Humana `fhir.humana.com` is WAF **403**. UHC, Aetna, Wellcare, CarePlus, Doctors, Simply: no public unauthenticated Plan Net found. Those still need Sunfire or a developer-portal key.
 
 ---
 

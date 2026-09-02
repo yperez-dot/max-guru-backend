@@ -218,7 +218,7 @@ async function processTool(toolName, toolInput) {
         { name: 'Florida Blue', key: 'flblue', base: 'https://apigw.bcbsfl.com/interop/interop-developer-portal/emr/api/v1/fhir' },
         { name: 'Cigna', key: 'cigna', base: 'https://fhir.cigna.com/ProviderDirectory/v1' },
         { name: 'HealthSun', key: 'healthsun', base: 'https://api.aaneelconnect.com/cms/r4/providerdirectory', extra: 'payer-id=8d4e5e9ec9c64b1a9db68fbec4bd6f95' },
-        { name: 'Devoted Health', key: 'devoted', base: 'https://fhir.devoted.com/r4' },
+        { name: 'Devoted Health', key: 'devoted', base: 'https://fhir.devoted.com/fhir' },
       ];
       const providerResults = [];
       for (const p of results.slice(0, 3)) {

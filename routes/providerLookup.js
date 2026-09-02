@@ -6,12 +6,15 @@
  * Given a doctor's name + Florida zip code, returns which Medicare Advantage
  * plans they are in-network for, querying three open FHIR provider directories.
  *
- * Carriers with open, no-auth FHIR endpoints (as of 2026-07-17 probe):
+ * Carriers with open, no-auth FHIR endpoints (re-probed 2026-09-02):
  *   1. Florida Blue (BCBS FL)  – BlueMedicare PPO/HMO plans
  *   2. Cigna                   – Florida MA plans
- *   3. Devoted Health (H1290)  – Florida HMO plans
+ *   3. HealthSun               – needs payer-id query param
+ *   4. Devoted Health (H1290)  – public directory is /fhir (not /r4)
  *
- * Aetna, Humana, UHC, and others require developer-portal registration.
+ * Humana fhir.humana.com is WAF 403 from this host. UHC / Aetna / Wellcare /
+ * CarePlus / Doctors still have no public unauthenticated Plan Net we can hit.
+ * Aetna, Humana, UHC still need developer-portal registration or Sunfire.
  */
 
 const { Router } = require('express');
@@ -39,7 +42,7 @@ try {
 /**
  * The three FHIR-open FL MA carriers.
  * All implement Da Vinci PDex Plan Net IG (FHIR R4).
- * Source: fhir-provider-directory-test-results.md (probe 2026-07-17)
+ * Source: live probe 2026-09-02 (was fhir-provider-directory-test-results.md 2026-07-17)
  */
 const CARRIERS = [
   {
@@ -68,7 +71,7 @@ const CARRIERS = [
     name:      'Devoted Health',
     shortName: 'Devoted',
     key:       'devoted',
-    fhirBase:  'https://fhir.devoted.com/r4',
+    fhirBase:  'https://fhir.devoted.com/fhir',
     headers:   { Accept: 'application/fhir+json' },
   },
 ];
@@ -299,9 +302,10 @@ function parseNetworkNames(bundle, carrierKey) {
 /** Query a single carrier's FHIR endpoint for a given NPI. */
 async function queryCarrier(carrier, npi) {
   // Request _include to get Organization names inline (avoids extra round-trips)
-  const url = `${carrier.fhirBase}/PractitionerRole`
+  let url = `${carrier.fhirBase}/PractitionerRole`
             + `?practitioner.identifier=${encodeURIComponent(npi)}`
             + `&_include=PractitionerRole%3Anetwork`;
+  if (carrier.extraParams) url += `&${carrier.extraParams}`;
 
   console.log(`[providerLookup] ${carrier.name} → ${url}`);
 
