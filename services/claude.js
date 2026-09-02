@@ -5,6 +5,8 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { loadKnowledge, searchKnowledge, getKnowledgeByKey } = require('../knowledge/loader');
+const { queryDoctorsHcp, PLAN_LABEL: DOCTORS_PLAN_LABEL } = require('./doctorsHcp');
+const { formatSolisNote } = require('./solisDirectory');
 
 // Sunfire plan ID → plan name/carrier map (built 2026-07-23)
 let SUNFIRE_PLAN_MAP = {};
@@ -148,7 +150,7 @@ const TOOLS = [
   },
   {
     name: 'lookup_provider_network',
-    description: 'Look up which Medicare Advantage plans a doctor is in-network for in Florida. Use when an agent asks what plans a doctor accepts, or if a specific doctor is in-network for a plan. Returns real-time data from carrier FHIR APIs.',
+    description: 'Look up which Medicare Advantage plans a doctor is in-network for in Florida. Use when an agent asks what plans a doctor accepts, or if a specific doctor is in-network for a plan. Queries FHIR (FL Blue, Cigna, HealthSun, Devoted), Doctors HealthCare Plans ProviderSearch, and Sunfire for contracted carriers. THEI Sunfire does not cover Doctors, Solis, or HealthSun — HealthSun is FHIR, Doctors is ProviderSearch, Solis is a county PDF (the tool returns that link; do not invent a Solis in-network result).',
     input_schema: {
       type: 'object',
       properties: {
@@ -213,12 +215,12 @@ async function processTool(toolName, toolInput) {
         if (results.length) break;
       }
       if (!results.length) return `No providers found matching "${doctorName}" in Florida. Try a different spelling.`;
-      // Step 2: FHIR lookup for each NPI
+      // Step 2: FHIR + Doctors directory for each NPI
       const CARRIERS = [
         { name: 'Florida Blue', key: 'flblue', base: 'https://apigw.bcbsfl.com/interop/interop-developer-portal/emr/api/v1/fhir' },
         { name: 'Cigna', key: 'cigna', base: 'https://fhir.cigna.com/ProviderDirectory/v1' },
         { name: 'HealthSun', key: 'healthsun', base: 'https://api.aaneelconnect.com/cms/r4/providerdirectory', extra: 'payer-id=8d4e5e9ec9c64b1a9db68fbec4bd6f95' },
-        { name: 'Devoted Health', key: 'devoted', base: 'https://fhir.devoted.com/r4' },
+        { name: 'Devoted Health', key: 'devoted', base: 'https://fhir.devoted.com/fhir' },
       ];
       const providerResults = [];
       for (const p of results.slice(0, 3)) {
@@ -227,7 +229,7 @@ async function processTool(toolName, toolInput) {
         const spec = (p.taxonomies || []).find(t => t.primary)?.desc || 'Unknown';
         const addr = (p.addresses || []).find(a => a.address_purpose === 'LOCATION') || {};
         const inNetworkFor = [];
-        for (const carrier of CARRIERS) {
+        const fhirLookups = CARRIERS.map(async (carrier) => {
           try {
             const url = carrier.extra
               ? `${carrier.base}/PractitionerRole?practitioner.identifier=${npi}&${carrier.extra}`
@@ -240,6 +242,13 @@ async function processTool(toolName, toolInput) {
               }
             }
           } catch(e) { /* skip carrier */ }
+        });
+        const [doctorsResult] = await Promise.all([
+          queryDoctorsHcp(npi),
+          Promise.all(fhirLookups),
+        ]);
+        if (doctorsResult.inNetwork && !inNetworkFor.includes(DOCTORS_PLAN_LABEL)) {
+          inNetworkFor.push(DOCTORS_PLAN_LABEL);
         }
         providerResults.push({ name: pName, npi, specialty: spec, address: `${addr.address_1 || ''}, ${addr.city || ''}, FL ${addr.postal_code || ''}`.trim(), inNetworkFor });
       }
@@ -301,12 +310,13 @@ async function processTool(toolName, toolInput) {
         out += `Address: ${pr.address}\n`;
         const allNetworks = [...pr.inNetworkFor];
         if (sunfireInNetwork.length > 0) {
-          out += allNetworks.length ? `FHIR networks: ${allNetworks.join(', ')}\n` : `Not found in FL Blue, Cigna, HealthSun, or Devoted.\n`;
+          out += allNetworks.length ? `Live networks (FHIR + Doctors): ${allNetworks.join(', ')}\n` : `Not found in FL Blue, Cigna, HealthSun, Devoted, or Doctors HealthCare Plans.\n`;
           out += `Sunfire in-network plans (${sunfireInNetwork.length}):\n${sunfireInNetwork.map(p => `  - ${p}`).join('\n')}\n`;
         } else {
-          out += allNetworks.length ? `In-network for: ${allNetworks.join(', ')}\n` : `Not found in FL Blue, Cigna, HealthSun, or Devoted networks.\n`;
+          out += allNetworks.length ? `In-network for: ${allNetworks.join(', ')}\n` : `Not found in FL Blue, Cigna, HealthSun, Devoted, or Doctors HealthCare Plans.\n`;
           out += SUNFIRE_SFP ? `Sunfire: No active plans found.\n` : `Sunfire: Session expired — refresh credentials for UHC/Humana/WellCare/CarePlus.\n`;
         }
+        out += `${formatSolisNote(zip)}\n`;
         out += '\n';
       }
       // Build structured output for frontend (v11 toolResults schema)
@@ -314,10 +324,16 @@ async function processTool(toolName, toolInput) {
       const structured = firstProvider ? {
         doctorName: firstProvider.name,
         npi: firstProvider.npi,
-        networks: CARRIERS.map(c => ({
-          carrier: c.name,
-          inNetwork: firstProvider.inNetworkFor.includes(c.name)
-        }))
+        networks: [
+          ...CARRIERS.map(c => ({
+            carrier: c.name,
+            inNetwork: firstProvider.inNetworkFor.includes(c.name)
+          })),
+          {
+            carrier: DOCTORS_PLAN_LABEL,
+            inNetwork: firstProvider.inNetworkFor.includes(DOCTORS_PLAN_LABEL)
+          }
+        ]
       } : { doctorName, networks: [] };
       return { text: out.slice(0, 4000), structured };
     } catch (e) { return `Provider lookup error: ${e.message}`; }
