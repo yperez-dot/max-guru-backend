@@ -29,9 +29,10 @@ Use these links when an agent needs to check if a provider is in-network or if a
 ---
 
 ## Doctors Healthcare Plans (H4140)
-- **Provider Lookup:** https://www.doctorshcp.com/2026Providers/
+- **Provider Lookup (live search):** https://providersearch.doctorshcp.com
+  - _Max queries this by NPI (PCP + specialist). Not on THEI Sunfire. API does not return a CMS plan ID — a hit means the NPI is in the Doctors directory._
+- **Provider Lookup (SoB / directory landing):** https://www.doctorshcp.com/2026Providers/
 - **Drug/Formulary Lookup:** https://www.doctorshcp.com/2026druglist/
-  - _URLs cited directly in 2026 Summary of Benefits and Provider Directory documents._
 
 ---
 
@@ -61,6 +62,7 @@ Use these links when an agent needs to check if a provider is in-network or if a
 
 ## HealthSun / Elevance (H5431)
 - **Provider Lookup:** https://healthsun.com/provider-directory/
+  - _Not on THEI Sunfire. Max uses HealthSun’s public FHIR directory (Aaneel) with payer-id. Empty FHIR = not in network._
 - **Drug/Formulary Lookup:** https://directorysearch.healthsun.com/
   - _HealthSun Formulary Search tool; also accessible via the HealthSun homepage._
 
@@ -83,7 +85,7 @@ Use these links when an agent needs to check if a provider is in-network or if a
 
 ## Solis Health Plans (H0982)
 - **Provider Lookup:** https://solishealthplans.com/2026/find-a-provider
-  - _Embedded provider/pharmacy directory search; Miami-Dade, Broward & Palm Beach, Central FL directories available._
+  - _Not on THEI Sunfire. Interactive search on the page is a placeholder. Use the county PDFs: Miami-Dade `ProvDirecMD_All_Current`, Broward & Palm Beach `ProvDirecBDPB_All_Current`, Central FL `ProvDirecCFL_All_Current` on `soliscdrapi.azurewebsites.net/doc/`. Max cannot NPI-search those PDFs._
 - **Drug/Formulary Lookup:** https://solishealthplans.com/2026/pharmacy
   - _2026 formulary (Drug List) available as PDF download; no interactive online search tool. Call (833) 516-0475 for drug coverage questions._
 

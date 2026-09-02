@@ -4,22 +4,24 @@
  * POST /provider-lookup
  *
  * Given a doctor's name + Florida zip code, returns which Medicare Advantage
- * plans they are in-network for, querying three open FHIR provider directories.
+ * plans they are in-network for.
  *
- * Carriers with open, no-auth FHIR endpoints (re-probed 2026-09-02):
- *   1. Florida Blue (BCBS FL)  – BlueMedicare PPO/HMO plans
- *   2. Cigna                   – Florida MA plans
- *   3. HealthSun               – needs payer-id query param
- *   4. Devoted Health (H1290)  – public directory is /fhir (not /r4)
+ * Live sources (not Sunfire):
+ *   FHIR — FL Blue, Cigna, HealthSun (payer-id required), Devoted (/fhir)
+ *   Doctors HealthCare Plans — POST providersearch.doctorshcp.com/ProviderSearch
+ *
+ * THEI Sunfire does not return Doctors / Solis / HealthSun provider matches.
+ * HealthSun is FHIR (Aaneel). Solis has no live API — county PDFs only.
  *
  * Humana fhir.humana.com is WAF 403 from this host. UHC / Aetna / Wellcare /
- * CarePlus / Doctors still have no public unauthenticated Plan Net we can hit.
- * Aetna, Humana, UHC still need developer-portal registration or Sunfire.
+ * CarePlus still need Sunfire or a developer-portal key.
  */
 
 const { Router } = require('express');
 const fs     = require('fs');
 const path   = require('path');
+const { queryDoctorsHcp, PLAN_LABEL: DOCTORS_PLAN_LABEL } = require('../services/doctorsHcp');
+const { solisLookupNote } = require('../services/solisDirectory');
 const router = Router();
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -40,9 +42,8 @@ try {
 }
 
 /**
- * The three FHIR-open FL MA carriers.
- * All implement Da Vinci PDex Plan Net IG (FHIR R4).
- * Source: live probe 2026-09-02 (was fhir-provider-directory-test-results.md 2026-07-17)
+ * FHIR-open FL MA carriers (unauthenticated Plan Net).
+ * Source: live probe 2026-09-02.
  */
 const CARRIERS = [
   {
@@ -91,6 +92,9 @@ const FL_MA_NETWORK_DISPLAY = {
   'NCA-2026':   'FL Blue – BlueMedicare Select PPO',
   'NWB-2026':   'FL Blue – BlueOptions PPO',
   'PPC-2026':   'FL Blue – BlueCross Health Plan PPO',
+  // HealthSun – Aaneel org ids (Garcia NPI 1497949424, 2026-09-02)
+  'Healthsun': 'HealthSun Health Plans Network',
+  'network-healthsun-hmo': 'HealthSun Health Plans Network',
   // Cigna – Florida networks (MA + commercial)
   'FL305':  'Cigna – FL OAP Direct',
   'FL710':  'Cigna – FL PPO Direct',
@@ -304,7 +308,8 @@ async function queryCarrier(carrier, npi) {
   // Request _include to get Organization names inline (avoids extra round-trips)
   let url = `${carrier.fhirBase}/PractitionerRole`
             + `?practitioner.identifier=${encodeURIComponent(npi)}`
-            + `&_include=PractitionerRole%3Anetwork`;
+            + `&_include=PractitionerRole%3Anetwork`
+            + `&_include=PractitionerRole%3Aorganization`;
   if (carrier.extraParams) url += `&${carrier.extraParams}`;
 
   console.log(`[providerLookup] ${carrier.name} → ${url}`);
@@ -358,7 +363,7 @@ router.post('/', async (req, res) => {
     });
   }
 
-  // ── Step 2: Query FHIR carriers + Sunfire for each NPI (all in parallel) ──
+  // ── Step 2: Query FHIR + Doctors + Sunfire for each NPI (all in parallel) ──
   const providers = [];
 
   // Derive county FIPS from zip (default Miami-Dade 12086; expand later)
@@ -377,10 +382,11 @@ router.post('/', async (req, res) => {
     const npi = npiResult.number;
     if (!npi) continue;
 
-    // Run FHIR carriers + Sunfire in parallel (cleanly separated)
-    const [fhirResults, sunfirePlans] = await Promise.all([
+    // Run FHIR carriers + Doctors directory + Sunfire in parallel
+    const [fhirResults, sunfirePlans, doctorsResult] = await Promise.all([
       Promise.all(CARRIERS.map(carrier => queryCarrier(carrier, npi))),
       querySunfire(npi, zip, county),
+      queryDoctorsHcp(npi),
     ]);
 
     const inNetworkFor       = [];
@@ -399,6 +405,12 @@ router.post('/', async (req, res) => {
       if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
     }
 
+    if (doctorsResult.error) {
+      carriersWithErrors.push(DOCTORS_PLAN_LABEL);
+    } else if (doctorsResult.inNetwork && !inNetworkFor.includes(DOCTORS_PLAN_LABEL)) {
+      inNetworkFor.push(DOCTORS_PLAN_LABEL);
+    }
+
     providers.push({
       name:      getDisplayName(npiResult),
       npi,
@@ -407,7 +419,13 @@ router.post('/', async (req, res) => {
       phone:     getPhone(npiResult),
       inNetworkFor,
       sunfirePlansCount:  sunfirePlans.length,
-      carriersChecked:    [...CARRIERS.map(c => c.name), 'Sunfire (UHC, Humana, WellCare, CarePlus, HealthSun + more)'],
+      doctorsMatches: doctorsResult.inNetwork ? doctorsResult.matches : undefined,
+      carriersChecked:    [
+        ...CARRIERS.map(c => c.name),
+        DOCTORS_PLAN_LABEL,
+        'Solis (PDF directory only)',
+        'Sunfire (UHC, Humana, WellCare, CarePlus + contracted FL MA)',
+      ],
       carriersWithErrors: carriersWithErrors.length ? carriersWithErrors : undefined,
     });
   }
@@ -417,9 +435,10 @@ router.post('/', async (req, res) => {
     meta: {
       query:           { doctorName, zip, state },
       npiResultCount:  npiResults.length,
-      carriersQueried: [...CARRIERS.map(c => c.name), 'Sunfire'],
+      carriersQueried: [...CARRIERS.map(c => c.name), DOCTORS_PLAN_LABEL, 'Sunfire'],
       sunfirePlanMapSize: Object.keys(SUNFIRE_PLAN_MAP).length,
-      note: 'FHIR: FL Blue, Cigna, Devoted, HealthSun. Sunfire: UHC, Humana, WellCare, CarePlus, HealthSun + all FL MA carriers.',
+      solis: solisLookupNote(zip),
+      note: 'HealthSun via FHIR (not THEI Sunfire). Doctors via ProviderSearch. Solis is county PDF only — see meta.solis. Sunfire: UHC, Humana, WellCare, CarePlus + other contracted FL MA.',
       timestamp: new Date().toISOString(),
     },
   });
