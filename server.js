@@ -9,6 +9,7 @@ const { loadKnowledge, getKnowledgeSummary } = require('./knowledge/loader');
 const { startSepRefreshScheduler, refreshSepTracker, getStatus: getSepRefreshStatus } = require('./services/sepRefresh');
 const drugLookupRouter = require('./routes/drugLookup');
 const providerLookupRouter = require('./routes/providerLookup');
+const { getHealthSnapshot, probeSunfire } = require('./services/sunfireSession');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -50,6 +51,7 @@ app.get('/health', (req, res) => {
     authRequired: true,
     accessGate: accessEnabled(),
     xaiConfigured: Boolean(process.env.XAI_API_KEY),
+    sunfire: getHealthSnapshot(),
     sepRefresh: getSepRefreshStatus(),
     ts: new Date().toISOString(),
   });
@@ -66,6 +68,13 @@ app.get('/knowledge', requireApiKey, requireAccessToken, (req, res) => {
 // Force SEP tracker pull from live Hub (admin)
 app.post('/admin/refresh-seps', requireApiKey, requireAccessToken, async (req, res) => {
   const result = await refreshSepTracker({ reason: 'admin' });
+  const status = result.ok ? 200 : 502;
+  res.status(status).json(result);
+});
+
+// Live Sunfire session probe (JWT drug-search ping). Does not log tokens.
+app.get('/admin/sunfire-status', requireApiKey, requireAccessToken, async (req, res) => {
+  const result = await probeSunfire();
   const status = result.ok ? 200 : 502;
   res.status(status).json(result);
 });

@@ -426,7 +426,8 @@ router.post('/', async (req, res) => {
 /**
  * Query Sunfire /v2/provider/list for a given NPI.
  * Returns array of plan name strings the doctor is in-network for.
- * Requires SUNFIRE_JWT and SUNFIRE_SFP env vars (auto-refreshed weekly via cron).
+ * Requires SUNFIRE_JWT and SUNFIRE_SFP on Railway. Max owns refresh (see MAX.md).
+ * There is no cron in this repo. Current Igor does not log into Sunfire.
  */
 async function querySunfire(npi, zip, county = '12086') {
   const jwt = process.env.SUNFIRE_JWT;

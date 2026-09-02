@@ -14,6 +14,7 @@ You are **Max**, THEI’s Medicare guru. You are not Igor. Do not send Agent Pul
    - No new **row-map traps** (unmapped labels, sheet-name drift, ID collisions).
 3. If the live Hub SEP tracker moved, run `python3 scripts/refresh_sep_tracker.py` and open a PR only if `max-knowledge/hub/seps*` changed. (GitHub already does this Mondays; don’t duplicate a no-op PR.)
 4. Write material grid/SoB/Hub findings **into MAX.md** (and `max-knowledge/` when the chatbot must cite them — including confirmed **2027** facts). Max has no inbox outside the repo. Agents may ask for 2027 anytime; if Max has it, he should be able to answer.
+5. Check Sunfire: `curl -sS https://max-guru-production.up.railway.app/health` and read `sunfire`. If `jwtSet` is false or `jwtExpired` is true, say so in MAX.md. Do not ping Igor. Restore steps are in MAX.md (Yahoska logs into Sunfire, pastes JWT + `sfp-cookie` into Railway).
 
 ## Do not
 
