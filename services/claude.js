@@ -6,7 +6,10 @@ const fs = require('fs');
 const path = require('path');
 const { loadKnowledge, searchKnowledge, getKnowledgeByKey } = require('../knowledge/loader');
 const { queryDoctorsHcp, PLAN_LABEL: DOCTORS_PLAN_LABEL } = require('./doctorsHcp');
+const { queryAetnaPublic, CARRIER_LABEL: AETNA_PLAN_LABEL } = require('./aetnaPublicSearch');
+const { querySimplyFindcare, CARRIER_LABEL: SIMPLY_PLAN_LABEL } = require('./simplyFindcare');
 const { formatSolisNote } = require('./solisDirectory');
+const { resolveNpiRecords } = require('./npiRegistry');
 
 // Sunfire plan ID → plan name/carrier map (built 2026-07-23)
 let SUNFIRE_PLAN_MAP = {};
@@ -150,12 +153,13 @@ const TOOLS = [
   },
   {
     name: 'lookup_provider_network',
-    description: 'Look up which Medicare Advantage plans a doctor is in-network for in Florida. Use when an agent asks what plans a doctor accepts, or if a specific doctor is in-network for a plan. Queries FHIR (FL Blue, Cigna, HealthSun, Devoted), Doctors HealthCare Plans ProviderSearch, and Sunfire for contracted carriers. THEI Sunfire does not cover Doctors, Solis, or HealthSun — HealthSun is FHIR, Doctors is ProviderSearch, Solis is a county PDF (the tool returns that link; do not invent a Solis in-network result).',
+    description: 'Look up which Medicare Advantage plans a doctor is in-network for in Florida. Use when an agent asks what plans a doctor accepts, or if a specific doctor is in-network for a plan. Queries FHIR (FL Blue, Cigna, HealthSun, Devoted), Doctors HealthCare Plans ProviderSearch, Aetna guest find-care, Simply Find Care guest search, and Sunfire for contracted carriers. THEI Sunfire does not cover Doctors, Solis, or HealthSun — HealthSun is FHIR, Doctors is ProviderSearch, Solis is a county PDF (the tool returns that link; do not invent a Solis in-network result). Aetna and Simply guest searches do not need a member login.',
     input_schema: {
       type: 'object',
       properties: {
-        doctorName: { type: 'string', description: 'Doctor full name, e.g. "John Smith"' },
-        zip: { type: 'string', description: 'Florida ZIP code — optional, defaults to Miami-Dade area' },
+        doctorName: { type: 'string', description: 'Doctor full name, e.g. "Lazaro Miguel Garcia, MD". If the agent pasted a 10-digit NPI in the name, that is used first.' },
+        npi: { type: 'string', description: '10-digit NPI when the agent has it. Prefer this over name search — name search can hit a different Garcia.' },
+        zip: { type: 'string', description: 'Florida ZIP code — optional, ranks nearby matches but does not hide doctors a few miles away' },
         state: { type: 'string', description: 'State code, defaults to FL', default: 'FL' }
       },
       required: ['doctorName']
@@ -192,29 +196,14 @@ async function processTool(toolName, toolInput) {
     try {
       const doctorName = toolInput.doctorName || '';
       const zip = toolInput.zip || '33136';
-      // Strip titles: dr, dr., mrs., mr., ms., dds, md, do, np, pa
-      const cleanName = doctorName.trim().replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?|dds\.?|md\.?|do\.?|np\.?|pa\.?)\s+/i, '');
-      const nameParts = cleanName.split(/\s+/);
-      const lastName = nameParts[nameParts.length - 1];
-      const firstName = nameParts.length > 1 ? nameParts[0] : '';
-      // Step 1: NPI Registry lookup — try multiple name formats for compound last names
-      let results = [];
-      const namesToTry = [
-        { last: lastName, first: firstName },                              // e.g. Calle, Gilda
-        { last: nameParts.slice(1).join(' '), first: nameParts[0] },       // e.g. De La Calle, Gilda
-        { last: nameParts.slice(-2).join(' '), first: firstName },         // e.g. La Calle, Gilda
-        { last: lastName, first: '' },                                     // last name only
-      ];
-      for (const attempt of namesToTry) {
-        if (!attempt.last) continue;
-        const npiParams = new URLSearchParams({ version: '2.1', last_name: attempt.last, state: 'FL', enumeration_type: 'NPI-1', limit: '5' });
-        if (attempt.first) npiParams.set('first_name', attempt.first);
-        const npiRes = await fetch(`https://npiregistry.cms.hhs.gov/api/?${npiParams}`, { signal: AbortSignal.timeout(10000) });
-        const npiData = await npiRes.json();
-        results = npiData.results || [];
-        if (results.length) break;
-      }
-      if (!results.length) return `No providers found matching "${doctorName}" in Florida. Try a different spelling.`;
+      const results = await resolveNpiRecords({
+        doctorName,
+        zip,
+        state: toolInput.state || 'FL',
+        npi: toolInput.npi,
+        limit: 5,
+      });
+      if (!results.length) return `No providers found matching "${doctorName}" in Florida. Try a different spelling or paste the 10-digit NPI.`;
       // Step 2: FHIR + Doctors directory for each NPI
       const CARRIERS = [
         { name: 'Florida Blue', key: 'flblue', base: 'https://apigw.bcbsfl.com/interop/interop-developer-portal/emr/api/v1/fhir' },
@@ -223,9 +212,9 @@ async function processTool(toolName, toolInput) {
         { name: 'Devoted Health', key: 'devoted', base: 'https://fhir.devoted.com/fhir' },
       ];
       const providerResults = [];
-      for (const p of results.slice(0, 3)) {
+      for (const p of results.slice(0, 5)) {
         const npi = p.number;
-        const pName = `${p.basic?.first_name || ''} ${p.basic?.last_name || ''}`.trim();
+        const pName = [p.basic?.first_name, p.basic?.middle_name, p.basic?.last_name].filter(Boolean).join(' ');
         const spec = (p.taxonomies || []).find(t => t.primary)?.desc || 'Unknown';
         const addr = (p.addresses || []).find(a => a.address_purpose === 'LOCATION') || {};
         const inNetworkFor = [];
@@ -243,14 +232,47 @@ async function processTool(toolName, toolInput) {
             }
           } catch(e) { /* skip carrier */ }
         });
-        const [doctorsResult] = await Promise.all([
+        const [doctorsResult, aetnaResult, simplyResult] = await Promise.all([
           queryDoctorsHcp(npi),
+          queryAetnaPublic(npi, { zip, lastName: p.basic?.last_name || '' }),
+          querySimplyFindcare(npi, { zip, lastName: p.basic?.last_name || '' }),
           Promise.all(fhirLookups),
         ]);
         if (doctorsResult.inNetwork && !inNetworkFor.includes(DOCTORS_PLAN_LABEL)) {
           inNetworkFor.push(DOCTORS_PLAN_LABEL);
         }
-        providerResults.push({ name: pName, npi, specialty: spec, address: `${addr.address_1 || ''}, ${addr.city || ''}, FL ${addr.postal_code || ''}`.trim(), inNetworkFor });
+        if (!aetnaResult.error && aetnaResult.inNetwork) {
+          for (const plan of aetnaResult.plans) {
+            if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
+          }
+          if (!aetnaResult.plans.length && !inNetworkFor.includes(AETNA_PLAN_LABEL)) {
+            inNetworkFor.push(AETNA_PLAN_LABEL);
+          }
+        }
+        if (!simplyResult.error && simplyResult.inNetwork) {
+          for (const plan of simplyResult.plans) {
+            if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
+          }
+          if (!simplyResult.plans.length && !inNetworkFor.includes(SIMPLY_PLAN_LABEL)) {
+            inNetworkFor.push(SIMPLY_PLAN_LABEL);
+          }
+        }
+        const lookupErrors = [];
+        if (doctorsResult.error) lookupErrors.push('Doctors HealthCare Plans');
+        if (aetnaResult.error) lookupErrors.push('Aetna guest search');
+        if (simplyResult.error) lookupErrors.push('Simply Find Care');
+        const checkedGuest = ['FL Blue', 'Cigna', 'HealthSun', 'Devoted', 'Doctors'];
+        if (!aetnaResult.error) checkedGuest.push('Aetna guest search');
+        if (!simplyResult.error) checkedGuest.push('Simply Find Care');
+        providerResults.push({
+          name: pName,
+          npi,
+          specialty: spec,
+          address: `${addr.address_1 || ''}, ${addr.city || ''}, FL ${addr.postal_code || ''}`.trim(),
+          inNetworkFor,
+          lookupErrors,
+          checkedGuest,
+        });
       }
       if (!providerResults.length) return `Found NPIs but no network data available.`;
       // Step 3: Sunfire /v2/provider/list for UHC, Humana, WellCare, CarePlus, etc.
@@ -309,12 +331,16 @@ async function processTool(toolName, toolInput) {
         out += `Specialty: ${pr.specialty}\n`;
         out += `Address: ${pr.address}\n`;
         const allNetworks = [...pr.inNetworkFor];
+        const missList = (pr.checkedGuest || ['FL Blue', 'Cigna', 'HealthSun', 'Devoted', 'Doctors', 'Aetna guest search', 'Simply Find Care']).join(', ');
         if (sunfireInNetwork.length > 0) {
-          out += allNetworks.length ? `Live networks (FHIR + Doctors): ${allNetworks.join(', ')}\n` : `Not found in FL Blue, Cigna, HealthSun, Devoted, or Doctors HealthCare Plans.\n`;
+          out += allNetworks.length ? `Live networks (FHIR + Doctors + Aetna + Simply): ${allNetworks.join(', ')}\n` : `Not found in ${missList}.\n`;
           out += `Sunfire in-network plans (${sunfireInNetwork.length}):\n${sunfireInNetwork.map(p => `  - ${p}`).join('\n')}\n`;
         } else {
-          out += allNetworks.length ? `In-network for: ${allNetworks.join(', ')}\n` : `Not found in FL Blue, Cigna, HealthSun, Devoted, or Doctors HealthCare Plans.\n`;
+          out += allNetworks.length ? `In-network for: ${allNetworks.join(', ')}\n` : `Not found in ${missList}.\n`;
           out += SUNFIRE_SFP ? `Sunfire: No active plans found.\n` : `Sunfire: Session expired — refresh credentials for UHC/Humana/WellCare/CarePlus.\n`;
+        }
+        if (pr.lookupErrors?.length) {
+          out += `Could not complete: ${pr.lookupErrors.join(', ')} — that is not the same as out-of-network. Hand the agent the guest URL.\n`;
         }
         out += `${formatSolisNote(zip)}\n`;
         out += '\n';
@@ -332,6 +358,14 @@ async function processTool(toolName, toolInput) {
           {
             carrier: DOCTORS_PLAN_LABEL,
             inNetwork: firstProvider.inNetworkFor.includes(DOCTORS_PLAN_LABEL)
+          },
+          {
+            carrier: AETNA_PLAN_LABEL,
+            inNetwork: firstProvider.inNetworkFor.some(p => /aetna/i.test(p))
+          },
+          {
+            carrier: SIMPLY_PLAN_LABEL,
+            inNetwork: firstProvider.inNetworkFor.some(p => /simply/i.test(p))
           }
         ]
       } : { doctorName, networks: [] };

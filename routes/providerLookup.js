@@ -9,11 +9,13 @@
  * Live sources (not Sunfire):
  *   FHIR — FL Blue, Cigna, HealthSun (payer-id required), Devoted (/fhir)
  *   Doctors HealthCare Plans — POST providersearch.doctorshcp.com/ProviderSearch
+ *   Aetna — guest health.aetna.com (cookie + public SPA token, no member login)
+ *   Simply — Find Care guest JWT + search-box (no member login)
  *
  * THEI Sunfire does not return Doctors / Solis / HealthSun provider matches.
  * HealthSun is FHIR (Aaneel). Solis has no live API — county PDFs only.
  *
- * Humana fhir.humana.com is WAF 403 from this host. UHC / Aetna / Wellcare /
+ * Humana fhir.humana.com is WAF 403 from this host. UHC / Wellcare /
  * CarePlus still need Sunfire or a developer-portal key.
  */
 
@@ -21,12 +23,14 @@ const { Router } = require('express');
 const fs     = require('fs');
 const path   = require('path');
 const { queryDoctorsHcp, PLAN_LABEL: DOCTORS_PLAN_LABEL } = require('../services/doctorsHcp');
+const { queryAetnaPublic, CARRIER_LABEL: AETNA_PLAN_LABEL } = require('../services/aetnaPublicSearch');
+const { querySimplyFindcare, CARRIER_LABEL: SIMPLY_PLAN_LABEL } = require('../services/simplyFindcare');
 const { solisLookupNote } = require('../services/solisDirectory');
+const { parseName, extractNpi, resolveNpiRecords } = require('../services/npiRegistry');
 const router = Router();
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const NPI_REGISTRY_BASE = 'https://npiregistry.cms.hhs.gov/api/';
 const FETCH_TIMEOUT_MS  = 12_000;
 const SUNFIRE_BASE      = 'https://www.sunfirematrix.com';
 
@@ -127,32 +131,6 @@ async function fetchJSON(url, options = {}) {
   }
 }
 
-/**
- * Parse a full name string into { firstName, lastName }.
- * Handles:
- *   "John Smith"         → first=John last=Smith
- *   "Smith, John"        → first=John last=Smith
- *   "John A. Smith MD"   → first=John last=Smith (credential stripped)
- */
-function parseName(fullName) {
-  if (!fullName || typeof fullName !== 'string') return {};
-  // Strip trailing credentials (MD, DO, NP, PA, etc.)
-  const cleaned = fullName.replace(/,?\s+(MD|DO|NP|PA|RN|APRN|DDS|DMD|DPM|OD|DC|PharmD|PhD)\.?$/i, '').trim();
-
-  // "Last, First [Middle]" format
-  if (cleaned.includes(',')) {
-    const commaIdx = cleaned.indexOf(',');
-    const last  = cleaned.slice(0, commaIdx).trim();
-    const first = cleaned.slice(commaIdx + 1).trim().split(/\s+/)[0];
-    return { firstName: first, lastName: last };
-  }
-
-  // "First [Middle] Last" – take first and last tokens
-  const parts = cleaned.split(/\s+/);
-  if (parts.length === 1) return { lastName: parts[0] };
-  return { firstName: parts[0], lastName: parts[parts.length - 1] };
-}
-
 /** Extract the terminal ID segment from a FHIR reference string. */
 function extractResourceId(reference) {
   if (!reference) return null;
@@ -203,41 +181,8 @@ function getPhone(result) {
 }
 
 // ─── NPI Registry Query ───────────────────────────────────────────────────────
-
-/**
- * Query the CMS NPI Registry for individual providers (NPI-1).
- * First attempt uses zip code; if that returns nothing, retries without zip
- * (some providers list a different address on record).
- */
-async function lookupNPIs({ firstName, lastName, state = 'FL', zip, limit = 5 }) {
-  const buildUrl = (includeZip) => {
-    const p = new URLSearchParams({
-      version:          '2.1',
-      enumeration_type: 'NPI-1',
-      state,
-      limit:            String(limit),
-    });
-    if (firstName) p.set('first_name', firstName);
-    if (lastName)  p.set('last_name', lastName);
-    if (includeZip && zip) p.set('postal_code', zip);
-    return `${NPI_REGISTRY_BASE}?${p}`;
-  };
-
-  // First pass: include zip
-  let url  = buildUrl(true);
-  let data = await fetchJSON(url);
-  let results = data?.results || [];
-
-  // Second pass: drop zip if no results
-  if (!results.length && zip) {
-    console.log('[providerLookup] No NPI results with zip — retrying without');
-    url     = buildUrl(false);
-    data    = await fetchJSON(url);
-    results = data?.results || [];
-  }
-
-  return results;
-}
+// CMS lookup lives in services/npiRegistry.js (NPI-by-number, statewide name
+// search + ZIP rank — ZIP is not a hard filter).
 
 // ─── FHIR Carrier Query ───────────────────────────────────────────────────────
 
@@ -271,11 +216,13 @@ function parseNetworkNames(bundle, carrierKey) {
     const r = e.resource || {};
     if (r.resourceType !== 'PractitionerRole') continue;
 
+    const roleNetworks = new Set();
+
     // (a) PDex Plan Net extension
     for (const ext of (r.extension || [])) {
       if (ext.url?.includes('network-reference') && ext.valueReference?.reference) {
         const id = extractResourceId(ext.valueReference.reference);
-        if (id) networkIds.add(id);
+        if (id) roleNetworks.add(id);
       }
     }
 
@@ -283,15 +230,17 @@ function parseNetworkNames(bundle, carrierKey) {
     for (const net of (r.network || [])) {
       if (net.reference) {
         const id = extractResourceId(net.reference);
-        if (id) networkIds.add(id);
+        if (id) roleNetworks.add(id);
       }
     }
 
-    // (c) .organization reference (fallback, catches some implementations)
-    if (r.organization?.reference) {
+    // (c) .organization is the practice on Devoted — only use it when no network-reference
+    if (!roleNetworks.size && r.organization?.reference) {
       const id = extractResourceId(r.organization.reference);
-      if (id) networkIds.add(id);
+      if (id) roleNetworks.add(id);
     }
+
+    for (const id of roleNetworks) networkIds.add(id);
   }
 
   const carrierShort = CARRIERS.find(c => c.key === carrierKey)?.shortName || carrierKey;
@@ -299,34 +248,50 @@ function parseNetworkNames(bundle, carrierKey) {
   return Array.from(networkIds).map(id => {
     if (FL_MA_NETWORK_DISPLAY[id])  return FL_MA_NETWORK_DISPLAY[id];  // static map
     if (orgNames[id])               return orgNames[id];                // inline org
+    // Devoted (and similar) use UUID org ids — don't dump the raw id on the agent
+    if (/^organization-[0-9a-f-]+$/i.test(id) || /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(id)) {
+      return carrierShort;
+    }
     return `${carrierShort} – ${id}`;                                   // raw fallback
   });
 }
 
 /** Query a single carrier's FHIR endpoint for a given NPI. */
 async function queryCarrier(carrier, npi) {
-  // Request _include to get Organization names inline (avoids extra round-trips)
-  let url = `${carrier.fhirBase}/PractitionerRole`
-            + `?practitioner.identifier=${encodeURIComponent(npi)}`
-            + `&_include=PractitionerRole%3Anetwork`
-            + `&_include=PractitionerRole%3Aorganization`;
-  if (carrier.extraParams) url += `&${carrier.extraParams}`;
-
-  console.log(`[providerLookup] ${carrier.name} → ${url}`);
-
-  const bundle = await fetchJSON(url, { headers: carrier.headers });
-  if (!bundle) {
-    return { carrier: carrier.name, plans: [], error: 'request_failed' };
+  // Devoted HAPI 400s on _include=PractitionerRole:network (unknown search param).
+  // Try network include first for carriers that support it, then org include, then bare.
+  const qs = `practitioner.identifier=${encodeURIComponent(npi)}`;
+  const extra = carrier.extraParams ? `&${carrier.extraParams}` : '';
+  const includeOrg = '&_include=PractitionerRole%3Aorganization';
+  const includeNet = '&_include=PractitionerRole%3Anetwork';
+  const urls = [];
+  if (carrier.key !== 'devoted') {
+    urls.push(`${carrier.fhirBase}/PractitionerRole?${qs}${includeNet}${includeOrg}${extra}`);
   }
+  urls.push(`${carrier.fhirBase}/PractitionerRole?${qs}${includeOrg}${extra}`);
+  urls.push(`${carrier.fhirBase}/PractitionerRole?${qs}${extra}`);
 
-  const plans = parseNetworkNames(bundle, carrier.key);
-  return { carrier: carrier.name, plans, error: null };
+  let lastError = null;
+  for (const url of urls) {
+    console.log(`[providerLookup] ${carrier.name} → ${url}`);
+    const bundle = await fetchJSON(url, { headers: carrier.headers });
+    if (!bundle || bundle.resourceType !== 'Bundle') {
+      lastError = 'request_failed';
+      continue;
+    }
+    let plans = parseNetworkNames(bundle, carrier.key);
+    const roleHits = (bundle.total || 0) > 0
+      || (bundle.entry || []).some((e) => e.resource?.resourceType === 'PractitionerRole');
+    if (!plans.length && roleHits) plans = [carrier.name];
+    return { carrier: carrier.name, plans, error: null };
+  }
+  return { carrier: carrier.name, plans: [], error: lastError || 'request_failed' };
 }
 
 // ─── Route Handler ────────────────────────────────────────────────────────────
 
 router.post('/', async (req, res) => {
-  const { doctorName, zip, state = 'FL' } = req.body || {};
+  const { doctorName, zip, state = 'FL', npi: npiInput } = req.body || {};
 
   // ── Input validation ──
   if (!doctorName || typeof doctorName !== 'string') {
@@ -336,17 +301,18 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'zip (string) is required' });
   }
 
+  const npiNumber = extractNpi(npiInput) || extractNpi(doctorName);
   const { firstName, lastName } = parseName(doctorName);
-  if (!lastName) {
+  if (!npiNumber && !lastName) {
     return res.status(400).json({ error: 'Could not parse last name from doctorName' });
   }
 
-  console.log(`[providerLookup] "${doctorName}" → first="${firstName}" last="${lastName}" zip=${zip} state=${state}`);
+  console.log(`[providerLookup] "${doctorName}" → first="${firstName || ''}" last="${lastName || ''}" npi=${npiNumber || ''} zip=${zip} state=${state}`);
 
-  // ── Step 1: CMS NPI Registry lookup ──
+  // ── Step 1: CMS NPI Registry lookup (by number when the agent pasted an NPI) ──
   let npiResults;
   try {
-    npiResults = await lookupNPIs({ firstName, lastName, state, zip });
+    npiResults = await resolveNpiRecords({ doctorName, zip, state, npi: npiInput || npiNumber });
   } catch (err) {
     console.error('[providerLookup] NPI lookup threw:', err.message);
     return res.status(502).json({ error: 'NPI registry lookup failed', detail: err.message });
@@ -363,7 +329,7 @@ router.post('/', async (req, res) => {
     });
   }
 
-  // ── Step 2: Query FHIR + Doctors + Sunfire for each NPI (all in parallel) ──
+  // ── Step 2: FHIR + Doctors + Aetna + Simply + Sunfire (all in parallel) ──
   const providers = [];
 
   // Derive county FIPS from zip (default Miami-Dade 12086; expand later)
@@ -382,11 +348,15 @@ router.post('/', async (req, res) => {
     const npi = npiResult.number;
     if (!npi) continue;
 
-    // Run FHIR carriers + Doctors directory + Sunfire in parallel
-    const [fhirResults, sunfirePlans, doctorsResult] = await Promise.all([
+    const npiLastName = npiResult.basic?.last_name || lastName;
+
+    // Run FHIR + Doctors + Aetna guest + Simply guest + Sunfire in parallel
+    const [fhirResults, sunfirePlans, doctorsResult, aetnaResult, simplyResult] = await Promise.all([
       Promise.all(CARRIERS.map(carrier => queryCarrier(carrier, npi))),
       querySunfire(npi, zip, county),
       queryDoctorsHcp(npi),
+      queryAetnaPublic(npi, { zip, state, lastName: npiLastName }),
+      querySimplyFindcare(npi, { zip, lastName: npiLastName }),
     ]);
 
     const inNetworkFor       = [];
@@ -411,6 +381,28 @@ router.post('/', async (req, res) => {
       inNetworkFor.push(DOCTORS_PLAN_LABEL);
     }
 
+    if (aetnaResult.error) {
+      carriersWithErrors.push(AETNA_PLAN_LABEL);
+    } else if (aetnaResult.inNetwork) {
+      for (const plan of aetnaResult.plans) {
+        if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
+      }
+      if (!aetnaResult.plans.length && !inNetworkFor.includes(AETNA_PLAN_LABEL)) {
+        inNetworkFor.push(AETNA_PLAN_LABEL);
+      }
+    }
+
+    if (simplyResult.error) {
+      carriersWithErrors.push(SIMPLY_PLAN_LABEL);
+    } else if (simplyResult.inNetwork) {
+      for (const plan of simplyResult.plans) {
+        if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
+      }
+      if (!simplyResult.plans.length && !inNetworkFor.includes(SIMPLY_PLAN_LABEL)) {
+        inNetworkFor.push(SIMPLY_PLAN_LABEL);
+      }
+    }
+
     providers.push({
       name:      getDisplayName(npiResult),
       npi,
@@ -420,9 +412,13 @@ router.post('/', async (req, res) => {
       inNetworkFor,
       sunfirePlansCount:  sunfirePlans.length,
       doctorsMatches: doctorsResult.inNetwork ? doctorsResult.matches : undefined,
+      aetnaMatches: aetnaResult.inNetwork ? aetnaResult.matches : undefined,
+      simplyMatches: simplyResult.inNetwork ? simplyResult.matches : undefined,
       carriersChecked:    [
         ...CARRIERS.map(c => c.name),
         DOCTORS_PLAN_LABEL,
+        AETNA_PLAN_LABEL,
+        SIMPLY_PLAN_LABEL,
         'Solis (PDF directory only)',
         'Sunfire (UHC, Humana, WellCare, CarePlus + contracted FL MA)',
       ],
@@ -435,10 +431,10 @@ router.post('/', async (req, res) => {
     meta: {
       query:           { doctorName, zip, state },
       npiResultCount:  npiResults.length,
-      carriersQueried: [...CARRIERS.map(c => c.name), DOCTORS_PLAN_LABEL, 'Sunfire'],
+      carriersQueried: [...CARRIERS.map(c => c.name), DOCTORS_PLAN_LABEL, AETNA_PLAN_LABEL, SIMPLY_PLAN_LABEL, 'Sunfire'],
       sunfirePlanMapSize: Object.keys(SUNFIRE_PLAN_MAP).length,
       solis: solisLookupNote(zip),
-      note: 'HealthSun via FHIR (not THEI Sunfire). Doctors via ProviderSearch. Solis is county PDF only — see meta.solis. Sunfire: UHC, Humana, WellCare, CarePlus + other contracted FL MA.',
+      note: 'HealthSun via FHIR (not THEI Sunfire). Doctors via ProviderSearch. Aetna via guest find-care (no member login). Simply via Find Care guest search-box. Solis is county PDF only — see meta.solis. Sunfire: UHC, Humana, WellCare, CarePlus + other contracted FL MA.',
       timestamp: new Date().toISOString(),
     },
   });
