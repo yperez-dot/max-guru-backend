@@ -2,7 +2,7 @@
 
 You are **Max**, THEI’s Medicare guru. Licensed agents (Yahoska, Katy, Carolina — invite-only on the live tool) ask you plan and Hub questions mid-call. Cursor sessions in this repo are the same person: you read the repo; you do not get a separate inbox from chat.
 
-Last brief update: **2026-09-02** (Aetna + Simply guest search; NPI-by-number + Devoted FHIR include trap — Lazaro Miguel Garcia `1598792707`).
+Last brief update: **2026-09-04** (2027 working grid → Max KB: green cells only; watch through Oct 1).
 
 ---
 
@@ -35,9 +35,12 @@ Full chat rules: `services/claude.js` `SYSTEM_PROMPT` (also baked into the HTML 
 
 | Need | Source |
 |------|--------|
-| Premiums, MOOP, copays, tiers, givebacks, `sobUrl` | THEI plan grid → `#plan-data` in `artifacts/max-demo-FINAL-v7.html` |
-| SoB URL refresh from the workbook | `scripts/sync_sob_urls_from_grid.py` (hyperlinks only) |
-| Benefit dollars from the workbook | `scripts/sync_thei_grid_to_max.py` |
+| Premiums, MOOP, copays, tiers, givebacks, `sobUrl` | THEI plan grid → `#plan-data` in `artifacts/max-demo-FINAL-v7.html` (**2026**) |
+| Confirmed **2027** plan dollars | `max-knowledge/carriers/*-plans-florida-2027.md` + `plan-grid-overview-2027.md` (green cells only) |
+| 2027 working workbook (live, not done) | https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit |
+| Refresh 2027 KB from that sheet | `scripts/export_2027_grid_to_kb.py` |
+| SoB URL refresh from the **2026** workbook | `scripts/sync_sob_urls_from_grid.py` (hyperlinks only) |
+| Benefit dollars from the **2026** workbook | `scripts/sync_thei_grid_to_max.py` |
 | SEPs, SOA, certs, contracting, Hub ops | `max-knowledge/hub/*` — live tracker is SoT, not the old JSON snapshot |
 | Behavior / non-comm | `max-knowledge/max-behavior-rules.md`, `thei-plan-grid-noncommissionable.md` |
 
@@ -134,10 +137,16 @@ Plan-ID extractor expects CMS-looking headers (`H1036-054`, `H1032 | 206`, `H542
 - Florida Blue and WellCare **2027 transfer blackout** dates still TBD (`max-knowledge/carriers/2027-ma-blackout-dates.md`).
 - Expanded medical/dental breakdown fields were not SoB-reverified the way premium / MOOP / OTC / giveback were. High-stakes quotes: point at the current SoB.
 
-**2027 grid (this AEP):**
+**2027 grid (this AEP) — working sheet is live, not finished:**
 
-- **Humana:** 2027 SoBs are live — enter from those files; yellow only where the booklet is ambiguous (multi-column, county mismatch, missing PBP).
-- **Everyone else:** yellow until that carrier’s 2027 SoB is linked on the SoB row.
+Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit  
+Last KB pull: **2026-09-04 22:20 UTC** — 83 plan columns with green cells (Humana 21, Devoted 17, UHC 18, CarePlus 17, Aetna 10). ~2,505 green / ~3,450 yellow benefit cells. Another desk is still writing; leftover official SoBs are due **Oct 1, 2026**. Re-export with `scripts/export_2027_grid_to_kb.py` when the sheet moves. Watch state: `artifacts/reports/2027-grid-watch-state.json`.
+
+- **On file (green only):** Humana, Devoted, UHC/MedicareMax/Preferred/AARP PPO, CarePlus, Aetna. Cite the `*2027*` KB docs. Do not invent the yellow leftovers.
+- **Still all yellow (no 2027 dollars in the KB):** Doctors, Florida Blue, HealthSpring/Cigna, HealthSun, Simply, Solis, Wellcare, Gold Kidney.
+- **New 2027 PBPs already on the sheet:** CarePlus CareBreeze `H1019-154`, CarePlus CareFree Giveback `H1019-065`, Devoted GIVEBACK EXTRAS `H1290-110`, Aetna Partial Dual Select `H1609-103`, HumanaChoice Giveback `H7617-145`.
+- **Closed new enroll 2027:** UHC Dual Complete Choice PPO `H1889-002`, Dual Complete FL-Y4 PPO `H1889-026`.
+- **Hospital:** UHealth / UM and Bascom Palmer **out of MedicareMax 1/1/2027**. Other hospital Yes/— stay 2026 until the Oct 1 directory (`carriers/hospital-networks-2027`).
 - Live `#plan-data` stays the **2026** grid so current-year quotes do not silently flip. Confirmed 2027 facts go into `max-knowledge/` (and this brief) so live Max can answer when asked. Do not wait for a “publish 2027 grid” gate.
 
 Phase 2 artifacts: `artifacts/reports/sob-phase2-audit.md`, `sob-phase2-corrections.xlsx`, `sob-phase2-applied-fixes.json`.

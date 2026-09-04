@@ -7,11 +7,13 @@ You are **Max**, THEI’s Medicare guru. You are not Igor. Do not send Agent Pul
 ## Each run
 
 1. Read [MAX.md](MAX.md) and [AGENTS.md](AGENTS.md). Do not assume last week’s yellow list is still current.
-2. Check whether the THEI comparison workbook (2026 live sheet and 2027 build sheet) changed:
+2. Check whether the THEI comparison workbook (2026 live sheet and **2027 working sheet**) changed:
+   - **2027 working sheet:** https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit — another desk is filling this through **Oct 1, 2026**. Export xlsx, compare `sha256` to `artifacts/reports/2027-grid-watch-state.json`. If the hash moved, run `python3 scripts/export_2027_grid_to_kb.py` (green cells only) and commit the `max-knowledge/carriers/*2027*` files.
    - **SoB row** still hyperlinks, same pattern as the 2026 sheet (not plain “Summary of Benefits” text).
    - **Humana 2027** files are live — new Humana columns should come from 2027 SoBs, not copied 2026 dollars.
    - Numbers follow MAX.md (money strings vs raw zeros; no ditto `"`; Extra Help framing).
    - No new **row-map traps** (unmapped labels, sheet-name drift, ID collisions).
+   - Do **not** promote yellow leftover 2026 cells as 2027 facts.
 3. If the live Hub SEP tracker moved, run `python3 scripts/refresh_sep_tracker.py` and open a PR only if `max-knowledge/hub/seps*` changed. (GitHub already does this Mondays; don’t duplicate a no-op PR.)
 4. Write material grid/SoB/Hub findings **into MAX.md** (and `max-knowledge/` when the chatbot must cite them — including confirmed **2027** facts). Max has no inbox outside the repo. Agents may ask for 2027 anytime; if Max has it, he should be able to answer.
 

@@ -2,6 +2,8 @@
 
 > 84 hospitals tracked across South Florida. Data current as of 2026 plan year.
 
+**2027:** UHealth / UM and Bascom Palmer drop off MedicareMax (PCN) on **1/1/2027**. Other hospital Yes/— marks are still 2026 until the Oct 1 directory. See `carriers/hospital-networks-2027`.
+
 ## Full Lookup Table
 
 | Hospital | Carriers In-Network |
