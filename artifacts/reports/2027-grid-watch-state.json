@@ -1,8 +1,8 @@
 {
   "sheetId": "1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N",
-  "pulled": "2026-09-04 22:20 UTC",
-  "sha256": "0d518024e2031b5664e5e68313136b54fa6c3112ed2f0341feed26fddd42f0fb",
-  "bytes": 634730,
+  "pulled": "2026-09-06 00:00 UTC",
+  "sha256": "b4877706c47ee53d80f46659e1ffad8872676c35dd22d1335aba21a41a08e08e",
+  "bytes": 634634,
   "confirmedPlans": 83,
   "byCarrier": {
     "Aetna": 10,

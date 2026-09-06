@@ -1,7 +1,7 @@
 # CarePlus — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-04 22:20 UTC
+Pulled: 2026-09-06 00:00 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1019-001, H1019-006, H1019-023, H1019-065, H1019-121, H1019-123, H1019-124, H1019-130, H1019-135, H1019-136, H1019-148, H1019-150, H1019-154
 

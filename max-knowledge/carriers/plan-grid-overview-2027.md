@@ -1,6 +1,6 @@
 # 2027 THEI plan grid — what Max can cite
 Source: THEI 2027 Plan Benefit Grid working copy ([Google Sheet](https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit))
-Pulled: 2026-09-04 22:20 UTC
+Pulled: 2026-09-06 00:00 UTC
 Sheet stamp: 2505 green / 3450 yellow benefit cells across plan tabs.
 
 Color key on the sheet: **light green** = 2027 number from an official SoB, highlight, or sneak-peek slide (official SoB wins). **Yellow** = still the 2026 number. Max only cites green.

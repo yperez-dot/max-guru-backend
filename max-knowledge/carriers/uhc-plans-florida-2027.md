@@ -1,7 +1,7 @@
 # UHC — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-04 22:20 UTC
+Pulled: 2026-09-06 00:00 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1045-001, H1045-005, H1045-012, H1045-018, H1045-061, H1045-063, H1889-002, H1889-026, H5420-001, H5420-003, H5420-014, R0759-001
 

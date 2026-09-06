@@ -1,7 +1,7 @@
 # Humana — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-04 22:20 UTC
+Pulled: 2026-09-06 00:00 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1036-054C, H1036-065C, H1036-077, H1036-121, H1036-297, H1036-304, H1036-305, H1036-339, H7284-010, H7617-107, H7617-110, H7617-145
 
@@ -1017,7 +1017,7 @@ Out-of-network (confirmed):
 | Urgent Care | $15 |
 | Advanced Imaging (MRI, CT, PET) | FS $200 · OP hospital $335 · office $200 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
-| Dental | $3,000/yr preventive + comprehensive · 50% on most major |
+| Dental | $3,000 · 50% major |
 | Deep Cleaning | 50% (periodontal scaling) |
 | Dentures | 50% |
 | Fillings | Included in $3,000 (basic) |
@@ -1057,7 +1057,7 @@ Out-of-network (confirmed):
 | Urgent Care | $15 |
 | Advanced Imaging (MRI, CT, PET) | 50% |
 | Hearing Services | 95% of cost (reimburse up to 5%) |
-| Dental | $3,000/yr · 50% on most major · OON may balance bill |
+| Dental | $3,000 · 50% major |
 | Deep Cleaning | 50% (periodontal scaling) |
 | Dentures | 50% |
 | Fillings | Included in $3,000 (basic) |

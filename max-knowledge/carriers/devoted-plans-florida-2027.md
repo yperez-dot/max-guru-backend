@@ -1,7 +1,7 @@
 # Devoted — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-04 22:20 UTC
+Pulled: 2026-09-06 00:00 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1290-001, H1290-002, H1290-013, H1290-014, H1290-019, H1290-020, H1290-037, H1290-053, H1290-054, H1290-056, H1290-062, H1290-067, H1290-077, H1290-078, H1290-084, H1290-085, H1290-110
 
