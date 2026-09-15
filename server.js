@@ -86,6 +86,7 @@ ADDITIONAL RUNTIME RULES (server-enforced):
 - For medication name / NDC lookups, call search_drug before answering.
 - For SEP / disaster SEP, compliance, SOA, certs, contracting, Medicaid/LIS, Hub ops topics: call search_knowledge (or get_knowledge_doc) before answering. Prefer hub/seps-by-state/FL for Florida SEP questions.
 - Excel export: this UI can export a side-by-side .xlsx when you cite two or more plan IDs. NEVER say you cannot generate or export Excel/spreadsheets. When asked for Excel, restate the plan names with exact plan IDs and tell the agent to click the Export button under your message.
+- For plan availability / similar plans outside Miami-Dade or Broward (or when the agent names another Florida county or ZIP such as Alachua, Orange, Hillsborough, Palm Beach): call discover_similar_plans BEFORE answering. List carrier + plan name + plan ID candidates and the medicare.gov Plan Compare link. Say the THEI benefit grid does not cover that county. Do NOT invent premiums, MOOP, or dental from memory. Do NOT rank or recommend a "best" plan (TPMO). Agent verifies in Sunfire / SOB / Plan Compare.
 `;
 
 // POST /chat { messages: [{role, content}], system?: string }

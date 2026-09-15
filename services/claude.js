@@ -10,6 +10,7 @@ const { queryAetnaPublic, CARRIER_LABEL: AETNA_PLAN_LABEL } = require('./aetnaPu
 const { querySimplyFindcare, CARRIER_LABEL: SIMPLY_PLAN_LABEL } = require('./simplyFindcare');
 const { formatSolisNote } = require('./solisDirectory');
 const { resolveNpiRecords } = require('./npiRegistry');
+const { discoverPlansForArea } = require('./planDiscover');
 
 // Sunfire plan ID → plan name/carrier map (built 2026-07-23)
 let SUNFIRE_PLAN_MAP = {};
@@ -163,6 +164,21 @@ const TOOLS = [
         state: { type: 'string', description: 'State code, defaults to FL', default: 'FL' }
       },
       required: ['doctorName']
+    }
+  },
+  {
+    name: 'discover_similar_plans',
+    description: 'Shortlist Medicare Advantage plan candidates (carrier + plan name + plan ID when available) for a Florida ZIP/county outside or beyond THEI grid coverage (Miami-Dade/Broward). Uses Sunfire when credentials are set, and always returns a medicare.gov Plan Compare starter URL. Use when the agent asks for similar plans in another county (e.g. Alachua, Orange, Hillsborough, Palm Beach) or an out-of-area ZIP. Does NOT invent benefit dollars. Does NOT rank or recommend a best plan (TPMO). Pass referenceSummary of the client\'s current benefits for LLM-side matching against returned candidates only.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        zip: { type: 'string', description: '5-digit Florida ZIP, e.g. "32601"' },
+        county: { type: 'string', description: 'Florida county name, e.g. "Alachua", "Palm Beach", "Orange"' },
+        year: { type: 'number', description: 'Plan year, default 2026' },
+        planType: { type: 'string', description: 'Optional plan type filter, e.g. "MAPD", "MA", "SNP"' },
+        referenceSummary: { type: 'string', description: 'Short text of the client\'s current plan benefits for similarity matching against returned candidates only' }
+      },
+      required: ['zip']
     }
   },
   {
@@ -371,6 +387,39 @@ async function processTool(toolName, toolInput) {
       } : { doctorName, networks: [] };
       return { text: out.slice(0, 4000), structured };
     } catch (e) { return `Provider lookup error: ${e.message}`; }
+  }
+  if (toolName === 'discover_similar_plans') {
+    try {
+      const result = await discoverPlansForArea({
+        zip: toolInput.zip,
+        county: toolInput.county,
+        year: toolInput.year || 2026,
+        planType: toolInput.planType,
+        referenceSummary: toolInput.referenceSummary,
+      });
+      const lines = [];
+      lines.push(`Plan discovery for ZIP ${result.zip}` + (result.county ? ` (${result.county})` : '') + `, year ${result.year}:`);
+      lines.push(`Source: ${result.source || 'none'}`);
+      lines.push(`Plan Compare (enter ZIP ${result.zip} manually): ${result.planCompareUrl}`);
+      if (result.countyFips) lines.push(`County FIPS: ${result.countyFips}`);
+      if (result.plans && result.plans.length) {
+        lines.push(`Candidates (${result.plans.length}, not ranked — TPMO: do not pick a "best"):`);
+        for (const pl of result.plans) {
+          const idPart = pl.planId ? ` [${pl.planId}]` : '';
+          const sfPart = pl.sunfireId ? ` (Sunfire ${pl.sunfireId})` : '';
+          lines.push(`  - ${pl.carrier}: ${pl.planName}${idPart}${sfPart}`);
+        }
+      } else {
+        lines.push('No Sunfire candidates returned. Use Sunfire broker portal and/or Plan Compare.');
+      }
+      if (result.note) lines.push(`Note: ${result.note}`);
+      if (result.errors && result.errors.length) lines.push(`Errors: ${result.errors.join('; ')}`);
+      if (result.referenceSummary) lines.push(`referenceSummary (echo): ${result.referenceSummary}`);
+      lines.push('THEI benefit grid does not cover this county. Do not invent premiums/MOOP/dental from memory. Agent verifies in Sunfire/SOB/Plan Compare.');
+      return { text: lines.join('\n').slice(0, 8000), structured: result };
+    } catch (e) {
+      return `Plan discovery error: ${e.message}`;
+    }
   }
   if (toolName === 'search_drug') {
     try {
