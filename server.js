@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { passThroughChat, chat: grokChat, DEFAULT_MODEL } = require('./services/grok');
+const { passThroughChat, chat: grokChat, DEFAULT_MODEL, providerConfig } = require('./services/grok');
 const { requireApiKey } = require('./middleware/auth');
 const { accessEnabled, requireAccessToken, unlockHandler } = require('./middleware/access');
 const { createRateLimiter } = require('./middleware/rateLimit');
@@ -42,14 +42,17 @@ app.use(cors({
 app.use(express.json({ limit: '3mb' }));
 
 app.get('/health', (req, res) => {
+  const cfg = providerConfig();
   res.json({
     ok: true,
     service: 'max-guru',
-    provider: 'grok',
-    model: process.env.GROK_MODEL || DEFAULT_MODEL,
+    provider: cfg.provider,
+    model: cfg.model,
     authRequired: true,
     accessGate: accessEnabled(),
+    llmConfigured: Boolean(cfg.key),
     xaiConfigured: Boolean(process.env.XAI_API_KEY),
+    openaiConfigured: Boolean(process.env.OPENAI_API_KEY),
     sepRefresh: getSepRefreshStatus(),
     ts: new Date().toISOString(),
   });
@@ -116,7 +119,7 @@ app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, 
       if (err.payload) return res.status(status).json(err.payload);
       if (status === 503) {
         return res.status(503).json({
-          error: 'Grok is not configured yet — set XAI_API_KEY on Railway.',
+          error: 'LLM is not configured yet — set OPENAI_API_KEY (LLM_PROVIDER=openai) or XAI_API_KEY on Railway.',
         });
       }
       return res.status(500).json({ error: 'Having trouble right now — try again in a moment.' });
@@ -142,5 +145,6 @@ loadKnowledge();
 startSepRefreshScheduler();
 
 app.listen(PORT, () => {
-  console.log(`Max Guru backend running on port ${PORT} (provider=grok model=${process.env.GROK_MODEL || DEFAULT_MODEL})`);
+  const cfg = providerConfig();
+  console.log(`Max Guru backend running on port ${PORT} (provider=${cfg.provider} model=${cfg.model})`);
 });
