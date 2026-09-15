@@ -1,17 +1,45 @@
-// services/grok.js — Max Medicare Guru via xAI Grok (OpenAI-compatible API)
+// services/grok.js — Max Medicare Guru via OpenAI-compatible chat (Grok or OpenAI)
 const { TOOLS, processTool } = require('./claude');
 
-const XAI_BASE = process.env.XAI_API_BASE || 'https://api.x.ai/v1';
-const DEFAULT_MODEL = process.env.GROK_MODEL || 'grok-4.6';
+/**
+ * Provider selection (Railway Variables):
+ *   LLM_PROVIDER=openai  → OPENAI_API_KEY (+ optional OPENAI_MODEL, OPENAI_API_BASE)
+ *   LLM_PROVIDER=grok    → XAI_API_KEY     (+ optional GROK_MODEL, XAI_API_BASE)  [default]
+ */
+function providerConfig() {
+  const provider = String(process.env.LLM_PROVIDER || 'grok').toLowerCase();
+  if (provider === 'openai') {
+    return {
+      provider: 'openai',
+      base: process.env.OPENAI_API_BASE || 'https://api.openai.com/v1',
+      model: process.env.OPENAI_MODEL || 'gpt-4.1',
+      keyEnv: 'OPENAI_API_KEY',
+      key: process.env.OPENAI_API_KEY,
+      label: 'OpenAI',
+    };
+  }
+  return {
+    provider: 'grok',
+    base: process.env.XAI_API_BASE || 'https://api.x.ai/v1',
+    model: process.env.GROK_MODEL || 'grok-4.6',
+    keyEnv: 'XAI_API_KEY',
+    key: process.env.XAI_API_KEY,
+    label: 'Grok',
+  };
+}
+
+const CONFIG = providerConfig();
+const DEFAULT_MODEL = CONFIG.model;
 
 function requireApiKey() {
-  const key = process.env.XAI_API_KEY;
-  if (!key) {
-    const err = new Error('XAI_API_KEY is not set — add it in Railway Variables');
+  if (!CONFIG.key) {
+    const err = new Error(
+      `${CONFIG.keyEnv} is not set — add it in Railway Variables (LLM_PROVIDER=${CONFIG.provider})`
+    );
     err.status = 503;
     throw err;
   }
-  return key;
+  return CONFIG.key;
 }
 
 function toOpenAITools(anthropicTools) {
@@ -26,8 +54,6 @@ function toOpenAITools(anthropicTools) {
 }
 
 function normalizeMessages(messages) {
-  // Frontend sends Anthropic-style { role, content } where content is a string.
-  // Also accept OpenAI multi-part / tool messages if present.
   return (messages || []).map((m) => {
     if (typeof m.content === 'string' || m.content == null) {
       return { role: m.role, content: m.content ?? '' };
@@ -49,7 +75,7 @@ function resolveToolResult(result) {
   return String(result);
 }
 
-async function callGrok({ system, messages, tools, maxTokens }) {
+async function callChatCompletions({ system, messages, tools, maxTokens }) {
   const key = requireApiKey();
   const body = {
     model: DEFAULT_MODEL,
@@ -65,15 +91,18 @@ async function callGrok({ system, messages, tools, maxTokens }) {
     body.tool_choice = 'auto';
   }
 
-  console.log('OUTBOUND [grok redacted]', JSON.stringify({
-    model: body.model,
-    max_tokens: body.max_tokens,
-    messageCount: body.messages.length,
-    systemChars: system ? system.length : 0,
-    tools: tools ? tools.length : 0,
-  }));
+  console.log(
+    `OUTBOUND [${CONFIG.provider} redacted]`,
+    JSON.stringify({
+      model: body.model,
+      max_tokens: body.max_tokens,
+      messageCount: body.messages.length,
+      systemChars: system ? system.length : 0,
+      tools: tools ? tools.length : 0,
+    })
+  );
 
-  const res = await fetch(`${XAI_BASE}/chat/completions`, {
+  const res = await fetch(`${CONFIG.base}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -83,7 +112,9 @@ async function callGrok({ system, messages, tools, maxTokens }) {
   });
   const data = await res.json();
   if (!res.ok) {
-    const err = new Error(data?.error?.message || data?.error || `Grok HTTP ${res.status}`);
+    const err = new Error(
+      data?.error?.message || data?.error || `${CONFIG.label} HTTP ${res.status}`
+    );
     err.status = res.status;
     err.payload = data;
     throw err;
@@ -91,10 +122,14 @@ async function callGrok({ system, messages, tools, maxTokens }) {
   return data;
 }
 
+/** @deprecated use callChatCompletions */
+async function callGrok(opts) {
+  return callChatCompletions(opts);
+}
+
 /**
  * Pass-through chat used by Netlify UI.
  * Returns Anthropic-shaped { content: [{type:'text', text}], toolResults? }
- * so artifacts/max-demo-FINAL-v7.html keep working unchanged.
  */
 async function passThroughChat({ system, messages }) {
   const openaiTools = toOpenAITools(TOOLS);
@@ -104,7 +139,7 @@ async function passThroughChat({ system, messages }) {
   let lastMessage = null;
 
   for (let i = 0; i < 5; i++) {
-    lastData = await callGrok({
+    lastData = await callChatCompletions({
       system,
       messages: apiMessages,
       tools: openaiTools,
@@ -115,7 +150,6 @@ async function passThroughChat({ system, messages }) {
 
     if (!toolCalls.length) break;
 
-    // Append assistant turn with tool_calls, then tool results
     apiMessages.push({
       role: 'assistant',
       content: lastMessage.content || null,
@@ -130,7 +164,7 @@ async function passThroughChat({ system, messages }) {
       } catch (_) {
         input = {};
       }
-      console.log(`[Tool/grok] ${name}`);
+      console.log(`[Tool/${CONFIG.provider}] ${name}`);
       const result = await processTool(name, input);
       const text = resolveToolResult(result);
       const structured =
@@ -146,7 +180,6 @@ async function passThroughChat({ system, messages }) {
     }
   }
 
-  // Reactive fallback: model narrated a <tool_call> in text
   let text = typeof lastMessage?.content === 'string' ? lastMessage.content : '';
   const toolMatch = text.match(
     /<tool_call>[\s\S]*?"name"\s*:\s*"(\w+)"[\s\S]*?(?:"arguments"|"parameters"|"input")\s*:\s*(\{[\s\S]*?\})[\s\S]*?<\/tool_call>/
@@ -157,7 +190,7 @@ async function passThroughChat({ system, messages }) {
     try {
       toolInput = JSON.parse(toolMatch[2]);
     } catch (_) {}
-    console.log(`[ReactiveToolCall/grok] ${toolName}`);
+    console.log(`[ReactiveToolCall/${CONFIG.provider}] ${toolName}`);
     const toolResult = await processTool(toolName, toolInput);
     const resolved = resolveToolResult(toolResult);
     const cleanText = text
@@ -172,7 +205,7 @@ async function passThroughChat({ system, messages }) {
       role: 'user',
       content: `Tool result for ${toolName}:\n${resolved}`,
     });
-    lastData = await callGrok({
+    lastData = await callChatCompletions({
       system,
       messages: apiMessages,
       tools: openaiTools,
@@ -190,7 +223,7 @@ async function passThroughChat({ system, messages }) {
   const out = {
     id: lastData?.id,
     model: lastData?.model || DEFAULT_MODEL,
-    provider: 'grok',
+    provider: CONFIG.provider,
     role: 'assistant',
     content: [{ type: 'text', text: text || "I couldn't generate a response. Try again." }],
     stop_reason: 'end_turn',
@@ -200,7 +233,6 @@ async function passThroughChat({ system, messages }) {
   return out;
 }
 
-/** Legacy KB path — returns plain string reply */
 async function chat(messages, systemPrompt) {
   const data = await passThroughChat({
     system: systemPrompt,
@@ -215,4 +247,5 @@ module.exports = {
   chat,
   toOpenAITools,
   DEFAULT_MODEL,
+  providerConfig,
 };
