@@ -1,10 +1,14 @@
 # Client-Facing Plan Comparison
 
-Workflow for Max when an agent needs a **client-sendable** Medicare Advantage comparison that mirrors Yahoska’s **THEI client Google Sheet** (one tab per client).
+Workflow for Max when an agent needs a **client-sendable** Medicare Advantage comparison.
+
+**Preferred look (Yahoska):** Match **Katy’s ChatGPT comparison PDF** design — titled “YYYY Medicare Advantage Plan Comparison”, subhead with **client full name | ZIP – County, Florida | Prepared Month YYYY**, clean multi-column benefit table, short objective footnotes and SOB citation. **No** ranking blurbs (“closest”, “highest giveback”, “best for”).
+
+**Data workflow:** Still mirror Yahoska’s **THEI client Google Sheet** (one tab per client) for which plans, doctors (True/False), and Rx to include.
 
 **Last updated:** 2026-09-15
 
-Use `search_knowledge` with queries like “client plan comparison”, “client-facing sheet”, “THEI client sheet”, “Carol.Wong”, or “comparison PDF” to retrieve this doc.
+Use `search_knowledge` with queries like “client plan comparison”, “Katy PDF”, “client-facing sheet”, “THEI client sheet”, “Carol.Wong”, or “comparison PDF” to retrieve this doc.
 
 ---
 
@@ -31,6 +35,17 @@ Use `search_knowledge` with queries like “client plan comparison”, “client
 - Out-of-area counties **or** Miami-Dade / Broward when a clean client-facing table is requested.
 
 ---
+
+## Preferred PDF / client-facing presentation (Katy design)
+
+When producing text or a table the agent will send to the client, format like this:
+
+1. **Title:** `{Plan Year} Medicare Advantage Plan Comparison`
+2. **Subhead:** `{Client Full Name} | ZIP {zip} – {County}, Florida | Prepared {Month Year}`
+3. **Benefit table:** plans as columns (carrier, marketing name, plan ID / type); benefits as rows (premium, Part B giveback, deductible, MOOP, PCP, specialist, urgent care, ER, inpatient, Part D deductible/tiers, dental, OTC, etc. — only sourced cells).
+4. **Doctors section** (from THEI sheet / tools): table of doctor (+ specialty) × plan with True/False or In / Out.
+5. **Rx section** (from THEI sheet / tools): drug × plan with known copay/cost; mark unknowns.
+6. **Footer:** Verify providers, formulary, and current SOB/EOC before enrollment. Sources: list SOBs / Plan Compare / grid. **TPMO:** objective only — no “closest / highest / best” marketing blurbs.
 
 ## Output layout (must mirror the sheet)
 
