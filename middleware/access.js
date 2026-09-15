@@ -1,7 +1,7 @@
 /**
- * Shared access password for Max (invite-only).
- * When MAX_ACCESS_PASSWORD is set, /chat requires a short-lived access token
- * from POST /auth/unlock — so the Netlify-injected API key alone is not enough.
+ * Invite-only access for Max.
+ * Requires MAX_ACCESS_PASSWORD and an allowlisted email (MAX_ACCESS_EMAILS).
+ * POST /auth/unlock { email, password } → short-lived access token.
  */
 const crypto = require('crypto');
 
@@ -11,13 +11,23 @@ function accessEnabled() {
   return Boolean(process.env.MAX_ACCESS_PASSWORD);
 }
 
+function allowedEmails() {
+  const raw = process.env.MAX_ACCESS_EMAILS || '';
+  return raw
+    .split(/[,;\s]+/)
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 function signingSecret() {
   return `${process.env.MAX_API_KEY || ''}|${process.env.MAX_ACCESS_PASSWORD || ''}`;
 }
 
-function issueAccessToken() {
+function issueAccessToken(email) {
   const exp = Date.now() + TOKEN_TTL_MS;
-  const payload = Buffer.from(JSON.stringify({ exp, v: 1 })).toString('base64url');
+  const payload = Buffer.from(
+    JSON.stringify({ exp, v: 2, email: String(email || '').toLowerCase() })
+  ).toString('base64url');
   const sig = crypto.createHmac('sha256', signingSecret()).update(payload).digest('base64url');
   return `${payload}.${sig}`;
 }
@@ -33,6 +43,10 @@ function verifyAccessToken(token) {
   try {
     const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
     if (!data.exp || Date.now() > Number(data.exp)) return false;
+    const emails = allowedEmails();
+    if (emails.length && data.email && !emails.includes(String(data.email).toLowerCase())) {
+      return false;
+    }
     return true;
   } catch (_) {
     return false;
@@ -55,7 +69,20 @@ function unlockHandler(req, res) {
     return res.json({ ok: true, accessRequired: false, token: null });
   }
   const password = req.body?.password;
+  const emailRaw = req.body?.email;
   const expected = process.env.MAX_ACCESS_PASSWORD;
+  const emails = allowedEmails();
+
+  if (!emailRaw || typeof emailRaw !== 'string') {
+    return res.status(400).json({ error: 'email required', code: 'email_required' });
+  }
+  const email = emailRaw.trim().toLowerCase();
+  if (!email.includes('@')) {
+    return res.status(400).json({ error: 'valid email required', code: 'email_required' });
+  }
+  if (emails.length && !emails.includes(email)) {
+    return res.status(401).json({ error: 'Email not authorized', code: 'email_denied' });
+  }
   if (!password || typeof password !== 'string') {
     return res.status(400).json({ error: 'password required' });
   }
@@ -64,11 +91,12 @@ function unlockHandler(req, res) {
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
     return res.status(401).json({ error: 'Wrong password' });
   }
-  const token = issueAccessToken();
+  const token = issueAccessToken(email);
   return res.json({
     ok: true,
     accessRequired: true,
     token,
+    email,
     expiresInMs: TOKEN_TTL_MS,
   });
 }
@@ -79,4 +107,5 @@ module.exports = {
   unlockHandler,
   issueAccessToken,
   verifyAccessToken,
+  allowedEmails,
 };

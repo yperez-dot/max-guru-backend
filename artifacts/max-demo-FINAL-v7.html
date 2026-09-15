@@ -292,13 +292,13 @@ function setAccessToken(token) {
   } catch (_) {}
 }
 
-async function unlockMax(password) {
+async function unlockMax(email, password) {
   const headers = { "Content-Type": "application/json" };
   if (MAX_API_KEY) headers["x-max-api-key"] = MAX_API_KEY;
   const response = await fetch(UNLOCK_URL, {
     method: "POST",
     headers,
-    body: JSON.stringify({ password }),
+    body: JSON.stringify({ email, password }),
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -440,6 +440,7 @@ const QUICK_ASKS = [
 function App() {
   const [unlocked, setUnlocked] = useState(() => Boolean(getAccessToken()));
   const [accessGateOn, setAccessGateOn] = useState(true);
+  const [gateEmail, setGateEmail] = useState("");
   const [gatePassword, setGatePassword] = useState("");
   const [gateError, setGateError] = useState(null);
   const [gateLoading, setGateLoading] = useState(false);
@@ -541,17 +542,22 @@ function App() {
 
   const submitUnlock = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
+    const email = gateEmail.trim();
     const pw = gatePassword.trim();
-    if (!pw || gateLoading) return;
+    if (!email || !pw || gateLoading) return;
     setGateLoading(true);
     setGateError(null);
     try {
-      await unlockMax(pw);
+      await unlockMax(email, pw);
       setUnlocked(true);
       setGatePassword("");
       setTimeout(() => inputRef.current?.focus(), 50);
     } catch (err) {
-      setGateError(err.status === 401 ? "Wrong password." : (err.message || "Couldn’t unlock Max."));
+      const msg =
+        err.status === 401
+          ? (String(err.message || "").toLowerCase().includes("email") ? "Email not authorized." : "Wrong password.")
+          : (err.message || "Couldn’t unlock Max.");
+      setGateError(msg);
     } finally {
       setGateLoading(false);
     }
@@ -620,7 +626,7 @@ function App() {
     } catch (err) {
       if (err && err.code === "access_required") {
         setUnlocked(false);
-        setGateError("Session expired — enter the access password again.");
+        setGateError("Session expired — sign in with your email and password again.");
         return;
       }
       setError("Couldn't reach Max. Check your connection and try again — if this keeps happening, Railway may be redeploying.");
@@ -640,16 +646,28 @@ function App() {
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}><Avatar size={64} showStatus={true} /></div>
           <h1 style={{ fontFamily: "var(--display)", fontSize: 34, margin: 0, textAlign: "center", letterSpacing: "-0.03em" }}>Max</h1>
           <p style={{ margin: "10px 0 0", textAlign: "center", color: "var(--muted)", fontSize: 13.5, lineHeight: 1.45 }}>
-            Invite-only for THEI leadership. Enter the shared access password to continue.
+            Invite-only for THEI leadership. Sign in with your THEI email and access password.
           </p>
+          <input
+            type="email"
+            value={gateEmail}
+            onChange={(e) => setGateEmail(e.target.value)}
+            placeholder="you@healthexps.com"
+            autoComplete="username"
+            autoFocus
+            style={{
+              width: "100%", marginTop: 20, padding: "12px 14px", borderRadius: 12,
+              border: "1px solid var(--line)", background: "#fff", fontFamily: "var(--font)", fontSize: 14.5,
+            }}
+          />
           <input
             type="password"
             value={gatePassword}
             onChange={(e) => setGatePassword(e.target.value)}
             placeholder="Access password"
-            autoFocus
+            autoComplete="current-password"
             style={{
-              width: "100%", marginTop: 20, padding: "12px 14px", borderRadius: 12,
+              width: "100%", marginTop: 10, padding: "12px 14px", borderRadius: 12,
               border: "1px solid var(--line)", background: "#fff", fontFamily: "var(--font)", fontSize: 14.5,
             }}
           />
@@ -658,11 +676,11 @@ function App() {
           )}
           <button
             type="submit"
-            disabled={gateLoading || !gatePassword.trim()}
+            disabled={gateLoading || !gateEmail.trim() || !gatePassword.trim()}
             style={{
               width: "100%", marginTop: 14, padding: "12px 14px", borderRadius: 12, border: "none",
-              background: gateLoading || !gatePassword.trim() ? "rgba(69,32,104,0.25)" : "linear-gradient(135deg, var(--plum), var(--magenta))",
-              color: "#fff", fontWeight: 600, fontSize: 14, cursor: gateLoading || !gatePassword.trim() ? "default" : "pointer",
+              background: gateLoading || !gateEmail.trim() || !gatePassword.trim() ? "rgba(69,32,104,0.25)" : "linear-gradient(135deg, var(--plum), var(--magenta))",
+              color: "#fff", fontWeight: 600, fontSize: 14, cursor: gateLoading || !gateEmail.trim() || !gatePassword.trim() ? "default" : "pointer",
               fontFamily: "var(--font)",
             }}
           >
@@ -763,23 +781,6 @@ function App() {
               </button>
             ))}
 
-            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", letterSpacing: "0.06em", textTransform: "uppercase", margin: "18px 4px 10px" }}>Access</div>
-            <div style={{ padding: "12px", borderRadius: 12, border: "1px solid var(--line)", background: "rgba(255,255,255,0.45)", fontSize: 12, color: "var(--muted)", lineHeight: 1.45 }}>
-              Best link: <strong style={{ color: "var(--plum)" }}>max.healthexps.com</strong>. Bookmark it or add to your phone home screen. Press <kbd style={{ fontFamily: "var(--font)", background: "rgba(69,32,104,0.08)", padding: "1px 6px", borderRadius: 6 }}>/</kbd> to focus the ask box.
-              <button
-                onClick={copyLink}
-                style={{
-                  display: "block", width: "100%", marginTop: 10, padding: "9px 10px", borderRadius: 10,
-                  border: "1px solid var(--line)", background: "#fff", cursor: "pointer",
-                  fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 600, color: "var(--plum)",
-                }}
-              >
-                {copied ? "Link copied" : "Copy Max link"}
-              </button>
-            </div>
-            <div style={{ marginTop: 14, fontSize: 11.5, color: "var(--muted)", padding: "0 4px" }}>
-              {PLANS.length} plans loaded · Grok
-            </div>
           </div>
         )}
       </aside>
