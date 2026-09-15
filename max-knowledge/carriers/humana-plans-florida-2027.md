@@ -1,9 +1,9 @@
 # Humana — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-04 22:20 UTC
+Pulled: 2026-09-15 12:28 UTC
 Counties: Broward / Miami-Dade
-CMS IDs on file: H1036-054C, H1036-065C, H1036-077, H1036-121, H1036-297, H1036-304, H1036-305, H1036-339, H7284-010, H7617-107, H7617-110, H7617-145
+CMS IDs on file: H1036-054C, H1036-065C, H1036-077, H1036-121, H1036-297, H1036-304, H1036-305, H1036-339, H7617-107, H7617-110, H7617-145
 
 Yellow leftover 2026 cells are **not** in this file. If a benefit is missing here, Max does not have a confirmed 2027 figure yet.
 
@@ -89,7 +89,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1036-077
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036077000SB27pdf)
-**SoB note:** 2027 official SOB H1036-077 Humana Dual Select (HMO D-SNP). QDWI/QI/QMB/SLMB. Did not write onto H1036-304 or H1036-339. Palm Beach is in the service area; no Palm Beach column on this desk.
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -143,7 +142,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1036-304
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036304000SB27pdf)
-**SoB note:** 2027 official SOB H1036-304 Humana Dual Select (HMO D-SNP). QDWI/QI/QMB/SLMB. Sibling of H1036-077 — different dental/hearing/OTC. Did not write onto 077 or 339.
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -188,60 +186,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Acupuncture | $0 · 25 visits |
 | Fitness | SilverSneakers |
 | Other Cards | Well Dine after IP/SNF · routine chiropractic 12 visits |
-
----
-
-## Humana Dual Select PPO (H7284-010) — Broward D-SNP
-**County:** Broward
-**Type:** D-SNP
-**Plan year:** 2027
-**CMS ID:** H7284-010
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H7284010000SB27pdf)
-**SoB note:** 2027 official SOB H7284-010 Humana Dual Select (PPO D-SNP). IN | OUT in the existing combined column. QDWI/QI/QMB/SLMB. Did not write onto HMO duals.
-**Still yellow on the working grid:** 2 field(s) — not cited below.
-**Premium:** $0
-**Part B Giveback:** No
-**MOOP:** IN $4,900 / combined $8,950
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | No |
-| MSP Levels | QDWI / QI / QMB / SLMB |
-| Max Out of Pocket | IN $4,900 / combined $8,950 |
-| Inpatient Hospital | $0 or $1,000 IN / $0 or $2,500 OUT |
-| Outpatient Hospital | $0 or 20% IN / $0 or 40% OUT |
-| PCP | $0 IN / $0 or 40% OUT |
-| Specialist | $0 IN / $0 or 40% OUT |
-| ER | $0 or $130 |
-| Urgent Care | $0 or $40 |
-| Advanced Imaging (MRI, CT, PET) | $0 or 20% IN / $0 or 40% OUT |
-| Hearing Services | $0 Level 2 IN / 95% OUT |
-| Dental | $1,250 preventive & comprehensive IN or OUT |
-| Deep Cleaning | Included in $1,250 allowance |
-| Dentures | Included in $1,250 allowance |
-| Fillings | Included in $1,250 allowance |
-| Root Canals | Included in $1,250 allowance |
-| Extractions | Included in $1,250 allowance |
-| Crowns | Included in $1,250 allowance |
-| Bridges | Included in $1,250 allowance |
-| Implants | Not covered |
-| Vision Allowance | $200 glasses/contacts · $300 at PLUS provider |
-| Ambulance | $0 or 20% |
-| Transportation | Unlimited IN · 95% coinsurance OUT |
-| RX Deductible | LIS $0 · No LIS $300 Tiers 3–5 |
-| Tier 1 | $0 |
-| Tier 2 | $0 |
-| Tier 3 | 25% |
-| Tier 4 | 25% |
-| Tier 5 | 30% |
-| Tier 6 | n/a |
-| OTC | $50/mo Healthy Options (OTC for all members) |
-| Grocery Card | Groceries / utilities / rent if eligible chronic conditions (same Healthy Options card) |
-| Acupuncture | Medicare-covered only on this SOB |
-| Fitness | SilverSneakers |
-| Other Cards | PPO D-SNP · cost share ranges by Medicaid level · IN \| OUT in one column |
 
 ---
 
@@ -848,59 +792,6 @@ Out-of-network (confirmed):
 
 ---
 
-## Humana Dual Select PPO (H7284-010) — Miami-Dade D-SNP
-**County:** Miami-Dade
-**Type:** D-SNP
-**Plan year:** 2027
-**CMS ID:** H7284-010
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H7284010000SB27pdf)
-**SoB note:** 2027 official SOB H7284-010 Humana Dual Select (PPO D-SNP). IN | OUT in the existing combined column. QDWI/QI/QMB/SLMB. Did not write onto HMO duals.
-**Premium:** $0
-**Part B Giveback:** No
-**MOOP:** IN $4,900 / combined $8,950
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | No |
-| MSP Levels | QDWI / QI / QMB / SLMB |
-| Max Out of Pocket | IN $4,900 / combined $8,950 |
-| Inpatient Hospital | $0 or $1,000 IN / $0 or $2,500 OUT |
-| Outpatient Hospital | $0 or 20% IN / $0 or 40% OUT |
-| PCP | $0 IN / $0 or 40% OUT |
-| Specialist | $0 IN / $0 or 40% OUT |
-| ER | $0 or $130 |
-| Urgent Care | $0 or $40 |
-| Advanced Imaging (MRI, CT, PET) | $0 or 20% IN / $0 or 40% OUT |
-| Hearing Services | $0 Level 2 IN / 95% OUT |
-| Dental | $1,250 preventive & comprehensive IN or OUT |
-| Deep Cleaning | Included in $1,250 allowance |
-| Dentures | Included in $1,250 allowance |
-| Fillings | Included in $1,250 allowance |
-| Root Canals | Included in $1,250 allowance |
-| Extractions | Included in $1,250 allowance |
-| Crowns | Included in $1,250 allowance |
-| Bridges | Included in $1,250 allowance |
-| Implants | Not covered |
-| Vision Allowance | $200 glasses/contacts · $300 at PLUS provider |
-| Ambulance | $0 or 20% |
-| Transportation | Unlimited IN · 95% coinsurance OUT |
-| RX Deductible | LIS $0 · No LIS $300 Tiers 3–5 |
-| Tier 1 | $0 |
-| Tier 2 | $0 |
-| Tier 3 | 25% |
-| Tier 4 | 25% |
-| Tier 5 | 30% |
-| Tier 6 | n/a |
-| OTC | $50/mo Healthy Options (OTC for all members) |
-| Grocery Card | Groceries / utilities / rent if eligible chronic conditions (same Healthy Options card) |
-| Acupuncture | Medicare-covered only on this SOB |
-| Fitness | SilverSneakers |
-| Other | PPO D-SNP · cost share ranges by Medicaid level · IN \| OUT in one column |
-
----
-
 ## Humana Gold Plus Giveback (H1036-305) — Miami-Dade Giveback
 **County:** Miami-Dade
 **Type:** Giveback
@@ -1017,7 +908,7 @@ Out-of-network (confirmed):
 | Urgent Care | $15 |
 | Advanced Imaging (MRI, CT, PET) | FS $200 · OP hospital $335 · office $200 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
-| Dental | $3,000/yr preventive + comprehensive · 50% on most major |
+| Dental | $3,000 · 50% major |
 | Deep Cleaning | 50% (periodontal scaling) |
 | Dentures | 50% |
 | Fillings | Included in $3,000 (basic) |
@@ -1057,7 +948,7 @@ Out-of-network (confirmed):
 | Urgent Care | $15 |
 | Advanced Imaging (MRI, CT, PET) | 50% |
 | Hearing Services | 95% of cost (reimburse up to 5%) |
-| Dental | $3,000/yr · 50% on most major · OON may balance bill |
+| Dental | $3,000 · 50% major |
 | Deep Cleaning | 50% (periodontal scaling) |
 | Dentures | 50% |
 | Fillings | Included in $3,000 (basic) |

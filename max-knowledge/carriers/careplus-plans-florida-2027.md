@@ -1,7 +1,7 @@
 # CarePlus — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-04 22:20 UTC
+Pulled: 2026-09-15 12:28 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1019-001, H1019-006, H1019-023, H1019-065, H1019-121, H1019-123, H1019-124, H1019-130, H1019-135, H1019-136, H1019-148, H1019-150, H1019-154
 
@@ -12,8 +12,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1019-124
-**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019124000SB26.pdf)
-**SoB note:** 2027 CarePlus slide 15 H1019-124 CareBreeze Platinum POS (Broward; Palm Beach skipped). Urgent / imaging not on this slide.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019124000SB27.pdf)
 **Still yellow on the working grid:** 16 field(s) — not cited below.
 **Part B Giveback:** $154
 **MOOP:** $3,400
@@ -50,8 +49,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1019-130
-**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019130000SB26.pdf)
-**SoB note:** 2027 CarePlus slide 15 H1019-130 CareComplete Platinum POS (Broward; Palm Beach skipped). Urgent / imaging not on this slide.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019130000SB27.pdf)
 **Still yellow on the working grid:** 15 field(s) — not cited below.
 **Part B Giveback:** $156
 **MOOP:** $3,400
@@ -88,8 +86,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1019-150
-**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019150000SB26.pdf)
-**SoB note:** 2027 CarePlus slide 13 H1019-150 CareComplete statewide. Urgent / imaging not on this slide.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019150000SB27.pdf)
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Part B Giveback:** $3
 **MOOP:** $2,000
@@ -126,7 +123,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1019-154
-**SoB note:** 2027 CarePlus slide 13 H1019-154 CareBreeze **NEW** statewide (lung). Urgent / imaging not on this slide. Did not write onto H1019-123 / H1019-124 Platinum columns. (no URL on the grid cell)
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019154000SB27.pdf)
 **Part B Giveback:** $5
 **MOOP:** $2,000
 
@@ -162,8 +159,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1019-023
-**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019023000SB26.pdf)
-**SoB note:** 2027 CarePlus D-SNP slide H1019-023 CareNeeds Platinum. Dade + Broward; Palm Beach skipped. Premium / Part B rebate / urgent / imaging not on this slide.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019023000SB27.pdf)
 **Still yellow on the working grid:** 19 field(s) — not cited below.
 **MOOP:** $3,400
 
@@ -198,7 +194,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** Giveback
 **Plan year:** 2027
 **CMS ID:** H1019-065
-**SoB note:** 2027 CarePlus slide 12 H1019-065 CareFree Giveback **NEW** (Broward; Palm Beach skipped). Urgent / imaging / OTC not on this slide. (no URL on the grid cell)
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019065000SB27.pdf)
 **Part B Giveback:** $73.50
 **MOOP:** $5,000
 
@@ -230,8 +226,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** Giveback
 **Plan year:** 2027
 **CMS ID:** H1019-135
-**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019135000SB26.pdf)
-**SoB note:** 2027 CarePlus slide 12 H1019-135 CareFree Platinum (Broward; Palm Beach skipped). Urgent / imaging / OTC not on this slide.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019135000SB27.pdf)
 **Still yellow on the working grid:** 17 field(s) — not cited below.
 **Part B Giveback:** $155
 **MOOP:** $3,400
@@ -264,8 +259,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1019-001
-**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019001000SB26.pdf)
-**SoB note:** 2027 CarePlus South Florida Core slide H1019-001 CareOne Plus HMO-POS (Broward + Palm Beach; not on Dade grid). Urgent / imaging not on this slide.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019001000SB27.pdf)
 **Still yellow on the working grid:** 18 field(s) — not cited below.
 **Part B Giveback:** $9
 **MOOP:** $750
@@ -301,8 +295,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1019-148
-**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019148000SB26.pdf)
-**SoB note:** 2027 CarePlus South Florida Core slide H1019-148 CareAccess. Palm Beach skipped. Urgent / imaging not on this slide.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019148000SB27.pdf)
 **Still yellow on the working grid:** 17 field(s) — not cited below.
 **Part B Giveback:** $10.50
 **MOOP:** $2,250
@@ -338,8 +331,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1019-121
-**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019121000SB26.pdf)
-**SoB note:** 2027 CarePlus slide 14 H1019-121 CareComplete Platinum (Miami-Dade). Urgent / imaging not on this slide.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019121000SB27.pdf)
 **Still yellow on the working grid:** 15 field(s) — not cited below.
 **Part B Giveback:** $167
 **MOOP:** $2,000
@@ -376,8 +368,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1019-123
-**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019123000SB26.pdf)
-**SoB note:** 2027 CarePlus slide 14 H1019-123 CareBreeze Platinum (Miami-Dade). Urgent / imaging not on this slide.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019123000SB27.pdf)
 **Still yellow on the working grid:** 15 field(s) — not cited below.
 **Part B Giveback:** $163
 **MOOP:** $2,000
@@ -414,8 +405,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1019-150
-**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019150000SB26.pdf)
-**SoB note:** 2027 CarePlus slide 13 H1019-150 CareComplete statewide. Urgent / imaging not on this slide.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019150000SB27.pdf)
 **Still yellow on the working grid:** 15 field(s) — not cited below.
 **Part B Giveback:** $3
 **MOOP:** $2,000
@@ -452,7 +442,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1019-154
-**SoB note:** 2027 CarePlus slide 13 H1019-154 CareBreeze **NEW** statewide (lung). Urgent / imaging not on this slide. Did not write onto H1019-123 / H1019-124 Platinum columns. (no URL on the grid cell)
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019154000SB27.pdf)
 **Part B Giveback:** $5
 **MOOP:** $2,000
 
@@ -488,8 +478,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1019-023
-**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019023000SB26.pdf)
-**SoB note:** 2027 CarePlus D-SNP slide H1019-023 CareNeeds Platinum. Dade + Broward; Palm Beach skipped. Premium / Part B rebate / urgent / imaging not on this slide.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019023000SB27.pdf)
 **Still yellow on the working grid:** 18 field(s) — not cited below.
 **MOOP:** $3,400
 
@@ -524,8 +513,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** Giveback
 **Plan year:** 2027
 **CMS ID:** H1019-136
-**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019136000SB26.pdf)
-**SoB note:** 2027 CarePlus slide 11 H1019-136 CareFree Platinum (Miami-Dade). Urgent / imaging / OTC not on this slide.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019136000SB27.pdf)
 **Still yellow on the working grid:** 17 field(s) — not cited below.
 **Part B Giveback:** $178
 **MOOP:** $3,000
@@ -558,8 +546,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1019-006
-**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019006000SB26.pdf)
-**SoB note:** 2027 CarePlus South Florida Core slide H1019-006 CareOne Plus (Miami-Dade). Urgent / imaging not on this slide.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019006000SB27.pdf)
 **Still yellow on the working grid:** 17 field(s) — not cited below.
 **Part B Giveback:** $13.50
 **MOOP:** $500
@@ -595,8 +582,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1019-148
-**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019148000SB26.pdf)
-**SoB note:** 2027 CarePlus South Florida Core slide H1019-148 CareAccess. Palm Beach skipped. Urgent / imaging not on this slide.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019148000SB27.pdf)
 **Still yellow on the working grid:** 16 field(s) — not cited below.
 **Part B Giveback:** $10.50
 **MOOP:** $2,250

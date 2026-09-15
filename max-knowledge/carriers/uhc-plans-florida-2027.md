@@ -1,7 +1,7 @@
 # UHC — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-04 22:20 UTC
+Pulled: 2026-09-15 12:28 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1045-001, H1045-005, H1045-012, H1045-018, H1045-061, H1045-063, H1889-002, H1889-026, H5420-001, H5420-003, H5420-014, R0759-001
 
@@ -12,7 +12,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-012
-**SoB:** [SoB](https://www.aarpmedicareplans.com/alphadog/PCFL26HM0332508_000)
+**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/PCFL26HP0337546_001)
 **SoB note:** 2027 sneak peek H1045-012 FL-QV4 (2026 grid labeled FL-D001)
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Premium:** $0
@@ -56,7 +56,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-061
-**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/PCFL26HM0332535_000)
+**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/UHFL26LP0332567_000)
 **SoB note:** 2027 sneak peek H1045-061 FL-V1 Preferred Dual Complete
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Premium:** $0 – $7.30 (LIS $0)
@@ -100,7 +100,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-063
-**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/PCFL26HP0337546_001)
+**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/PCFL26HM0332535_000)
 **SoB note:** 2027 sneak peek H1045-063-000 Preferred Dual Complete FL-Y6 (portal highlight + SOB)
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Premium:** $0
@@ -144,7 +144,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1889-002
-**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/UHFL26LP0332567_000)
+**SoB:** [SoB](https://www.aarpmedicareplans.com/alphadog/UHFL26LP0332585_000)
 **SoB note:** 2027 sneak peek H1889-002 Dual Complete Choice PPO — CLOSED TO NEW ENROLLMENT
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Premium:** $0
@@ -188,7 +188,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1889-026
-**SoB:** [SoB](https://www.aarpmedicareplans.com/alphadog/UHFL26LP0332585_000)
+**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/UHFL26HP0332783_000)
 **SoB note:** 2027 sneak peek H1889-026 Dual Complete FL-Y4 PPO — CLOSED TO NEW ENROLLMENT (Plan ID missing on paste; matched by $2,000 dental / $222 OTC / 48 trips)
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Premium:** $0
@@ -265,7 +265,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 4 | 27% |
 | Tier 5 | 28% |
 | OTC | Not covered |
-| Fitness | Free gym — core and premium network |
+| Fitness | Renew Active |
 | Other Cards | Rewards not covered |
 | Other | Post-discharge meals: 28 meals over 14 days, unlimited times/year Insulin retail $35 / mail $105 · Mail 100-day T1–T2 $0 / T3 22% |
 
@@ -309,7 +309,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 4 | 28% |
 | Tier 5 | 26% |
 | OTC | Not covered |
-| Fitness | Free gym — core and premium network |
+| Fitness | Renew Active |
 | Other Cards | Rewards not covered |
 | Other | Post-discharge meals: 28 meals over 14 days, unlimited times/year Insulin retail $35 / mail $105 · Mail 100-day T1–T2 $0 / T3 22% |
 
@@ -622,50 +622,6 @@ Out-of-network (confirmed):
 | Grocery Card | Combined with OTC for qualifying members |
 | Fitness | Free gym — core and premium network |
 | Other | **CLOSED TO NEW ENROLLMENT 1/1/2027** — existing members only Medical deductible $0 – $283 combined IN/OON Healthy rewards up to $165 Chiropractic $0 INN / 30% OON · 12 visits/year combined |
-
----
-
-## UHC Dual Complete FL-Y4 PPO (H1889-026) — Miami-Dade D-SNP — CLOSED TO NEW ENROLL 2027
-**County:** Miami-Dade
-**Type:** D-SNP
-**Plan year:** 2027
-**CMS ID:** H1889-026
-**SoB:** [SoB](https://www.aarpmedicareplans.com/alphadog/UHFL26LP0332585_000)
-**SoB note:** 2027 sneak peek H1889-026 Dual Complete FL-Y4 PPO — CLOSED TO NEW ENROLLMENT (Plan ID missing on paste; matched by $2,000 dental / $222 OTC / 48 trips)
-**Still yellow on the working grid:** 13 field(s) — not cited below.
-**Premium:** $0
-**Part B Giveback:** No
-**MOOP:** $0
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | No |
-| MSP Levels | **CLOSED TO NEW ENROLLMENT 1/1/2027** — existing members only · Full dual $0 medical QMB+, SLMB+, FBDE (full dual) |
-| Max Out of Pocket | $0 |
-| Inpatient Hospital | $0 per stay · unlimited days (full dual) |
-| Outpatient Hospital | $0 |
-| PCP | $0 |
-| Specialist | $0 |
-| ER | $0 |
-| Urgent Care | $0 |
-| Advanced Imaging (MRI, CT, PET) | $0 · $0 mammograms |
-| Hearing Services | $2,200 allowance for 2 hearing aids every 2 years (UHC Hearing) |
-| Dental | $2,000 toward covered services · $0 copay |
-| Vision Allowance | $250 eyeglasses or contacts (routine exam $0) |
-| Ambulance | $0 INN (full dual) |
-| Transportation | $0 INN · 75% OON · 48 one-way trips combined INN/OON |
-| RX Deductible | $0 for all covered drugs through Medicaid |
-| Tier 1 | $0 through Medicaid |
-| Tier 2 | $0 through Medicaid |
-| Tier 3 | $0 through Medicaid |
-| Tier 4 | $0 through Medicaid |
-| Tier 5 | $0 through Medicaid |
-| OTC | $222/month OTC and wellness; healthy food and utilities if member qualifies |
-| Grocery Card | Combined with OTC for qualifying members |
-| Fitness | Free gym — core and premium network |
-| Other | **CLOSED TO NEW ENROLLMENT 1/1/2027** — existing members only · Full dual $0 medical Medical deductible $0 combined IN/OON Healthy rewards up to $165 Chiropractic $0 INN / 30% OON · 12 visits/year combined |
 
 ---
 

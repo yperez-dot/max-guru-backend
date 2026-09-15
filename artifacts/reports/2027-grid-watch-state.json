@@ -1,18 +1,19 @@
 {
   "sheetId": "1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N",
-  "pulled": "2026-09-04 22:20 UTC",
-  "sha256": "0d518024e2031b5664e5e68313136b54fa6c3112ed2f0341feed26fddd42f0fb",
-  "bytes": 634730,
-  "confirmedPlans": 83,
+  "pulled": "2026-09-15 12:28 UTC",
+  "sha256": "64fdaabadf4585d3f1b0e32b47584d15e1089ecde2cc80b57bcb6ddfea1ba559",
+  "bytes": 645576,
+  "confirmedPlans": 90,
   "byCarrier": {
     "Aetna": 10,
     "CarePlus": 17,
-    "Devoted": 17,
-    "Humana": 21,
-    "UHC": 18
+    "Devoted": 18,
+    "Doctors": 9,
+    "Humana": 19,
+    "UHC": 17
   },
-  "greenCells": 2505,
-  "yellowCells": 3450,
+  "greenCells": 2694,
+  "yellowCells": 3141,
   "planIds": [
     "H1019-001",
     "H1019-006",
@@ -67,10 +68,14 @@
     "H1609-103",
     "H1889-002",
     "H1889-026",
+    "H4140-001",
+    "H4140-004",
+    "H4140-012",
+    "H4140-013",
+    "H4140-020",
     "H5420-001",
     "H5420-003",
     "H5420-014",
-    "H7284-010",
     "H7617-107",
     "H7617-110",
     "H7617-145",
@@ -78,8 +83,11 @@
   ],
   "new2027": [
     "H1019-154",
+    "H4140-004",
     "H1019-154",
+    "H4140-020",
     "H1609-103",
+    "H4140-020",
     "H1609-103",
     "H1290-110",
     "H1019-065",
@@ -88,7 +96,6 @@
   ],
   "closed2027": [
     "H1889-002",
-    "H1889-026",
     "H1889-002",
     "H1889-026"
   ]

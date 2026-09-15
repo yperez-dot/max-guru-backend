@@ -1,7 +1,7 @@
 # Devoted — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-04 22:20 UTC
+Pulled: 2026-09-15 12:28 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1290-001, H1290-002, H1290-013, H1290-014, H1290-019, H1290-020, H1290-037, H1290-053, H1290-054, H1290-056, H1290-062, H1290-067, H1290-077, H1290-078, H1290-084, H1290-085, H1290-110
 
@@ -23,7 +23,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 |---------|------------------|
 | Premium | $0 |
 | Referrals Needed? | Yes |
-| Deductible | $990 |
+| Deductible | $990 in-network |
 | Part B Rebate | $0 |
 | Max Out of Pocket | $9,850 |
 | Chronic Conditions | Diabetes, CHF, cardiac arrhythmias, CAD, PVD / chronic VTE, valvular heart disease |
@@ -35,19 +35,19 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | 20% |
 | Advanced Imaging (MRI, CT, PET) | 50% |
 | Hearing Services | $399 or $699 per aid |
-| Dental | $3,500 · $0 toward covered dental until limit · in-network dentist |
+| Dental | $3,500 (Network Based) |
 | Implants | No |
 | Vision Allowance | $300 |
 | Ambulance | 50% ground and air |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $461 Tiers 3-5 |
+| RX Deductible | $461 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 15% |
 | Tier 4 | 25% |
 | Tier 5 | 26% |
-| OTC | $50 x quarter |
-| Grocery Card | $492/month Food & Home if chronically ill (SSBCI) |
+| OTC | $50/quarter |
+| Grocery Card | $492/month Food & Home (SSBCI if eligible) |
 | Fitness | SilverSneakers |
 | Other Cards | $150 Wellness Bucks |
 
@@ -70,7 +70,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | SLMB, QI, QDWI (Broward) |
+| MSP Levels | QDWI, QI, SLMB |
 | Max Out of Pocket | $4,400 |
 | Inpatient Hospital | $175 days 1-10 $0 day 11+ |
 | Outpatient Hospital | $175 surgery / $0 colonoscopies ASC $175 |
@@ -80,19 +80,19 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | $45 |
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
-| Dental | $2,500 · $0 toward covered dental until limit · in-network |
+| Dental | $2,500 (Network Based) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $300 ground one-way 20% air |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $700 Tiers 3-5 |
+| RX Deductible | $700 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 11% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
-| OTC | $50 x quarter |
-| Grocery Card | $156/month Food & Home if chronically ill (SSBCI) |
+| OTC | $50/quarter |
+| Grocery Card | $156/month Food & Home (SSBCI if eligible) |
 | Fitness | SilverSneakers |
 | Other Cards | $150 Wellness Bucks |
 
@@ -115,31 +115,31 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | QMB only (Broward) |
+| MSP Levels | QMB |
 | Max Out of Pocket | $9,850 |
-| Inpatient Hospital | $0 per stay · up to 90 days |
+| Inpatient Hospital | Plan: $1,891 per stay QMB typically $0 (cost-share protected) |
 | Outpatient Hospital | $0 |
 | PCP | $0 |
-| Specialist | $0 |
+| Specialist | Plan: 20% QMB typically $0 |
 | ER | $0 |
 | Urgent Care | $0 |
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $399 or $699 per aid |
-| Dental | $2,500 · $0 toward covered dental until limit · in-network |
+| Dental | $2,500 (Network Based) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $0 ground or air |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $700 Tiers 3-5 |
+| RX Deductible | $700 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 11% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
-| OTC | $50 x quarter |
-| Grocery Card | $328/month Food & Home if chronically ill (SSBCI) |
+| OTC | $50/quarter |
+| Grocery Card | $328/month Food & Home (SSBCI if eligible) |
 | Fitness | SilverSneakers |
-| Other Cards | $150 Wellness Bucks |
+| Other Cards | $150 Wellness Bucks · Medical deductible $283 · was DUAL PLUS 054 in 2026 |
 
 ---
 
@@ -160,31 +160,31 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | QMB+, SLMB+, FBDE (Broward) |
+| MSP Levels | FBDE, QMB+, SLMB+ |
 | Max Out of Pocket | $9,850 |
-| Inpatient Hospital | $0 per stay · up to 90 days |
+| Inpatient Hospital | Plan: $2,241 per stay Full Medicaid typically $0 (cost-share protected) |
 | Outpatient Hospital | $0 |
 | PCP | $0 |
-| Specialist | $0 |
+| Specialist | Plan: 20% Full Medicaid typically $0 |
 | ER | $0 |
 | Urgent Care | $0 |
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 copay per TruHearing aid (2 aids) |
-| Dental | $3,500 · $0 toward covered dental until limit · in-network |
+| Dental | $3,500 (Network Based) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $0 ground or air |
 | Transportation | $0 unlimited rides to plan-approved locations |
-| RX Deductible | LIS $0 (Extra Help) · otherwise $700 Tiers 3-5 |
+| RX Deductible | $0 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | $0 |
 | Tier 4 | $0 |
 | Tier 5 | $0 |
-| OTC | $50 x quarter |
-| Grocery Card | $456/month Food & Home if chronically ill (SSBCI) |
+| OTC | $50/quarter |
+| Grocery Card | $456/month Food & Home (SSBCI if eligible) |
 | Fitness | SilverSneakers |
-| Other Cards | $150 Wellness Bucks |
+| Other Cards | $150 Wellness Bucks · Medical deductible $283 |
 
 ---
 
@@ -214,22 +214,22 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | $50 |
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $599 or $899 per aid |
-| Dental | $1,250 yearly allowance toward preventive and comprehensive dental |
+| Dental | $1,250 comprehensive (Direct Member Reimbursement) |
 | Dental Implants | No |
 | Vision Allowance | $350 |
 | Ambulance | $340 ground one-way 20% air |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $650 Tiers 3-5 |
+| RX Deductible | $650 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 21% |
 | Tier 4 | 25% |
 | Tier 5 | 26% |
 | Tier 6 | n/a |
-| OTC | $95 x quarter |
+| OTC | $95/quarter |
 | Fitness | SilverSneakers |
 | Grocery Card | N/A |
-| Other | $150 Wellness Bucks |
+| Other | $150 Wellness Bucks · Medical deductible $400 |
 
 ---
 
@@ -242,13 +242,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **SoB note:** 2027 official SOB H1290-002 Devoted CORE 002 (Broward). Implants not covered. No Part B giveback on this SOB.
 **Still yellow on the working grid:** 3 field(s) — not cited below.
 **Premium:** $0
-**Part B Giveback:** $0
+**Part B Giveback:** No
 **MOOP:** $3,950
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Premium | $0 |
-| Part B Giveback | $0 |
+| Part B Giveback | No |
 | Plan Deductible | $0 |
 | Referrals Needed? | Yes |
 | Max Out of Pocket | $3,950 |
@@ -260,7 +260,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | $45 |
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
-| Dental | $1,500 comprehensive at 50% reimbursement Preventive 100% (does not count toward allowance) Any licensed dentist, reimbursable |
+| Dental | $1,500 comprehensive (Direct Member Reimbursement) |
 | Deep Cleaning | 50% reimbursement up to $1,500 |
 | Dentures | 50% reimbursement up to $1,500 |
 | Fillings | 50% reimbursement up to $1,500 |
@@ -271,7 +271,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Vision Allowance | $150 |
 | Ambulance | $300 ground one-way 20% air one-way |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $650 Tiers 3-5 |
+| RX Deductible | $650 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 25% |
@@ -281,7 +281,44 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | OTC | Not listed on 2027 SOB |
 | Fitness | SilverSneakers |
 | Grocery Card | N/A |
+| Other Cards | $150 Wellness Bucks |
 | Other | $150 Wellness Bucks (fitness & wellness items) |
+
+---
+
+## Devoted CORE 037 (H1290-037) — Broward HMO
+**County:** Broward
+**Type:** HMO
+**Plan year:** 2027
+**CMS ID:** H1290-037
+**Still yellow on the working grid:** 18 field(s) — not cited below.
+**Premium:** $0
+**Part B Giveback:** No
+**MOOP:** $3,900
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+| Premium | $0 |
+| Part B Giveback | No |
+| Plan Deductible | $0 |
+| Referrals Needed? | Yes |
+| Max Out of Pocket | $3,900 |
+| Inpatient Hospital | $175 days 1-5 $0 day 6+ |
+| PCP | $0 |
+| Specialist | $5 |
+| Dental | $1,500 comprehensive (Direct Member Reimbursement) |
+| Vision Allowance | $150 |
+| Transportation | Not covered |
+| RX Deductible | $650 Tiers 3–5 |
+| Tier 1 | $0 |
+| Tier 2 | $0 |
+| Tier 3 | 25% |
+| Tier 4 | 25% |
+| Tier 5 | 26% |
+| OTC | Not listed (Food & Home $20/month SSBCI if eligible) |
+| Fitness | SilverSneakers |
+| Grocery Card | $20/month Food & Home (SSBCI; chronically ill / qualifying conditions) |
+| Other Cards | $150 Wellness Bucks |
 
 ---
 
@@ -294,13 +331,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **SoB note:** 2027 official SOB H1290-056 Devoted CORE 056 (Broward). Implants not covered.
 **Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
-**Part B Giveback:** $0
+**Part B Giveback:** No
 **MOOP:** $3,900
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Premium | $0 |
-| Part B Giveback | $0 |
+| Part B Giveback | No |
 | Plan Deductible | $0 |
 | Referrals Needed? | Yes |
 | Max Out of Pocket | $3,900 |
@@ -312,7 +349,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | $45 |
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
-| Dental | $3,500 comprehensive at 50% reimbursement Preventive 100% (does not count toward allowance) Any licensed dentist, reimbursable |
+| Dental | $3,500 comprehensive (Direct Member Reimbursement) |
 | Deep Cleaning | 50% reimbursement up to $3,500 |
 | Dentures | 50% reimbursement up to $3,500 |
 | Fillings | 50% reimbursement up to $3,500 |
@@ -323,16 +360,17 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Vision Allowance | $400 |
 | Ambulance | $300 ground one-way 20% air one-way |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $465 Tiers 3-5 |
+| RX Deductible | $465 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 15% |
 | Tier 4 | 25% |
 | Tier 5 | 26% |
 | Tier 6 | n/a |
-| OTC | $83 x quarter |
+| OTC | $83/quarter |
 | Fitness | SilverSneakers |
 | Grocery Card | N/A |
+| Other Cards | $150 Wellness Bucks |
 | Other | $150 Wellness Bucks (fitness & wellness items) |
 
 ---
@@ -354,6 +392,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Referrals Needed? | Yes |
 | Part B Rebate | $0 |
+| Deductible | $0 |
 | Max Out of Pocket | $4,400 |
 | Inpatient Hospital | $155 days 1-10 $0 day 11+ |
 | Outpatient Hospital | $155 surgery / $0 colonoscopies ASC $155 |
@@ -363,21 +402,21 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | $45 |
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
-| Dental | $2,500 · $0 toward covered dental until limit · in-network dentist |
+| Dental | $2,500 (Network Based) |
 | Bridges | No |
 | Vision Allowance | $300 |
 | Ambulance | $300 ground one-way 20% air |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $465 Tiers 3-5 |
+| RX Deductible | $465 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 15% |
 | Tier 4 | 25% |
 | Tier 5 | 26% |
-| OTC | $50 x quarter |
-| Grocery Card | $240/month Food & Home if chronically ill (SSBCI) |
+| OTC | $50/quarter |
+| Grocery Card | $240/month Food & Home (SSBCI if eligible) |
 | Fitness | SilverSneakers |
-| Other | $150 Wellness Bucks |
+| Other | $150 Wellness Bucks · was C-SNP PREMIUM 067 in 2026 |
 
 ---
 
@@ -398,8 +437,9 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Referrals Needed? | Yes |
 | Part B Rebate | $0 |
+| Deductible | $990 in-network |
 | Max Out of Pocket | $9,850 |
-| Inpatient Hospital | $2,241 per stay (lower with Medicaid) |
+| Inpatient Hospital | $2,241 per stay |
 | Outpatient Hospital | 50% outpatient surgery (15% or 50% colonoscopies) |
 | PCP | $0 |
 | Specialist | 30% |
@@ -407,19 +447,19 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | 20% |
 | Advanced Imaging (MRI, CT, PET) | 50% |
 | Hearing Services | $399 or $699 per aid |
-| Dental | $3,500 · $0 toward covered dental until limit · in-network dentist |
+| Dental | $3,500 (Network Based) |
 | Bridges | No |
 | Vision Allowance | $300 |
 | Ambulance | 50% ground and air |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $465 Tiers 3-5 |
+| RX Deductible | $465 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 15% |
 | Tier 4 | 25% |
 | Tier 5 | 26% |
-| OTC | $50 x quarter |
-| Grocery Card | $490/month Food & Home if chronically ill (SSBCI) |
+| OTC | $50/quarter |
+| Grocery Card | $490/month Food & Home (SSBCI if eligible) |
 | Fitness | SilverSneakers |
 | Other | $150 Wellness Bucks |
 
@@ -442,7 +482,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | SLMB, QI, QDWI (Miami-Dade) |
+| MSP Levels | QDWI, QI, SLMB |
 | Max Out of Pocket | $4,400 |
 | Inpatient Hospital | $155 days 1-10 $0 day 11+ |
 | Outpatient Hospital | $155 surgery / $0 colonoscopies ASC $155 |
@@ -452,19 +492,19 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | $45 |
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
-| Dental | $2,500 · $0 toward covered dental until limit · in-network |
+| Dental | $2,500 (Network Based) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $300 ground one-way 20% air |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $700 Tiers 3-5 |
+| RX Deductible | $700 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 11% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
-| OTC | $50 x quarter |
-| Grocery Card | $163/month Food & Home if chronically ill (SSBCI) |
+| OTC | $50/quarter |
+| Grocery Card | $163/month Food & Home (SSBCI if eligible) |
 | Fitness | SilverSneakers |
 | Other | $150 Wellness Bucks |
 
@@ -487,31 +527,31 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | QMB only (Miami-Dade) |
+| MSP Levels | QMB |
 | Max Out of Pocket | $9,850 |
-| Inpatient Hospital | $0 per stay · up to 90 days |
+| Inpatient Hospital | Plan: $2,041 per stay QMB typically $0 (cost-share protected) |
 | Outpatient Hospital | $0 |
 | PCP | $0 |
-| Specialist | $0 |
+| Specialist | Plan: 20% QMB typically $0 |
 | ER | $0 |
 | Urgent Care | $0 |
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $399 or $699 per aid |
-| Dental | $2,500 · $0 toward covered dental until limit · in-network |
+| Dental | $2,500 (Network Based) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $0 ground or air |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $700 Tiers 3-5 |
+| RX Deductible | $700 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 11% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
-| OTC | $50 x quarter |
-| Grocery Card | $324/month Food & Home if chronically ill (SSBCI) |
+| OTC | $50/quarter |
+| Grocery Card | $324/month Food & Home (SSBCI if eligible) |
 | Fitness | SilverSneakers |
-| Other | $150 Wellness Bucks |
+| Other | $150 Wellness Bucks · Medical deductible $283 · was DUAL PLUS 053 in 2026 |
 
 ---
 
@@ -532,31 +572,31 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | QMB+, SLMB+, FBDE (Miami-Dade) |
+| MSP Levels | FBDE, QMB+, SLMB+ |
 | Max Out of Pocket | $9,850 |
-| Inpatient Hospital | $0 per stay · up to 90 days |
+| Inpatient Hospital | Plan: $2,241 per stay Full Medicaid typically $0 (cost-share protected) |
 | Outpatient Hospital | $0 |
 | PCP | $0 |
-| Specialist | $0 |
+| Specialist | Plan: 20% Full Medicaid typically $0 |
 | ER | $0 |
 | Urgent Care | $0 |
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 copay per TruHearing Standard aid (2 aids) |
-| Dental | $3,500 · $0 toward covered dental until limit · in-network |
+| Dental | $3,500 (Network Based) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $0 ground or air |
 | Transportation | $0 unlimited rides to plan-approved locations |
-| RX Deductible | LIS $0 (Extra Help) · otherwise $700 Tiers 3-5 |
+| RX Deductible | $0 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | $0 |
 | Tier 4 | $0 |
 | Tier 5 | $0 |
-| OTC | $50 x quarter |
-| Grocery Card | $455/month Food & Home if chronically ill (SSBCI) |
+| OTC | $50/quarter |
+| Grocery Card | $455/month Food & Home (SSBCI if eligible) |
 | Fitness | SilverSneakers |
-| Other | $150 Wellness Bucks |
+| Other | $150 Wellness Bucks · Medical deductible $283 |
 
 ---
 
@@ -586,22 +626,22 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | $50 |
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $599 or $899 per aid |
-| Dental | $1,500 comprehensive at 50% reimbursement Preventive 100% (does not count toward allowance) |
+| Dental | $1,500 comprehensive (Direct Member Reimbursement) |
 | Dental Implants | No |
 | Vision Allowance | $350 |
 | Ambulance | $350 ground one-way 20% air |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $650 Tiers 3-5 |
+| RX Deductible | $650 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 21% |
 | Tier 4 | 25% |
 | Tier 5 | 26% |
 | Tier 6 | n/a |
-| OTC | $100 x quarter |
+| OTC | $100/quarter |
 | Fitness | SilverSneakers |
 | Grocery Card | N/A |
-| Other | $150 Wellness Bucks |
+| Other | $150 Wellness Bucks · Medical deductible $400 |
 
 ---
 
@@ -630,22 +670,22 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | $50 |
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $599 or $899 per aid |
-| Dental | $3,750 yearly allowance · preventive 100% / comprehensive 50% reimbursement · any US dentist |
+| Dental | $3,750 comprehensive (Direct Member Reimbursement) |
 | Dental Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $325 ground one-way 20% air |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $700 Tiers 3-5 |
+| RX Deductible | $700 Tiers 3–5 |
 | Tier 1 | $0 |
-| Tier 2 | $2 retail / $5 mail |
+| Tier 2 | $2 |
 | Tier 3 | 25% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
 | Tier 6 | n/a |
-| OTC | $152 x quarter |
+| OTC | $152/quarter |
 | Fitness | SilverSneakers |
 | Grocery Card | N/A |
-| Other | $150 Wellness Bucks |
+| Other | $150 Wellness Bucks · Medical deductible $350 · **NEW 2027** |
 
 ---
 
@@ -658,13 +698,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **SoB note:** 2027 SOB H1290-001
 **Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
-**Part B Giveback:** $10
+**Part B Giveback:** No
 **MOOP:** $3,900
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Premium | $0 |
-| Part B Giveback | $10 |
+| Part B Giveback | No |
 | Referrals Needed? | Yes |
 | Max Out of Pocket | $3,900 |
 | Inpatient Hospital | $100 days 1-10 $0 day 11+ |
@@ -675,7 +715,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | $45 |
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
-| Dental | $1,500 comprehensive at 50% reimbursement Preventive 100% (does not count toward allowance) Any licensed dentist, reimbursable |
+| Dental | $1,500 comprehensive (Direct Member Reimbursement) |
 | Deep Cleaning | Covered — 50% comprehensive / 100% preventive |
 | Dentures | 50% reimbursement up to $1,500 |
 | Fillings | 50% reimbursement up to $1,500 |
@@ -687,7 +727,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Vision Allowance | $350 |
 | Ambulance | $300 ground one-way 20% air one-way |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $600 Tiers 3-5 |
+| RX Deductible | $600 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 18% |
@@ -697,6 +737,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | OTC | Not listed on 2027 SOB |
 | Fitness | SilverSneakers |
 | Grocery Card | N/A |
+| Other Cards | $150 Wellness Bucks |
 | Other | $150 Wellness Bucks (fitness & wellness items) |
 
 ---
@@ -710,13 +751,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **SoB note:** 2027 SOB H1290-037 (marketed CORE 037; was Premium in 2026 grid)
 **Still yellow on the working grid:** 7 field(s) — not cited below.
 **Premium:** $0
-**Part B Giveback:** $4.80
+**Part B Giveback:** No
 **MOOP:** $3,900
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Premium | $0 |
-| Part B Giveback | $4.80 |
+| Part B Giveback | No |
 | Referrals Needed? | Yes |
 | Max Out of Pocket | $3,900 |
 | Inpatient Hospital | $130 days 1-5 $0 day 6+ |
@@ -727,12 +768,12 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | $45 |
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
-| Dental | $1,500 comprehensive at 50% reimbursement Preventive 100% (does not count toward allowance) Any licensed dentist, reimbursable |
+| Dental | $1,500 comprehensive (Direct Member Reimbursement) |
 | Implants | No |
 | Vision Allowance | $150 |
 | Ambulance | $300 ground one-way 20% air one-way |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $650 Tiers 3-5 |
+| RX Deductible | $650 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 25% |
@@ -741,7 +782,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 6 | n/a |
 | OTC | Not listed as OTC; Food & Home $20/month if SSBCI eligible |
 | Fitness | SilverSneakers |
-| Grocery Card | $20/month Food & Home if chronically ill (SSBCI) |
+| Grocery Card | $20/month Food & Home (SSBCI if eligible) |
+| Other Cards | $150 Wellness Bucks |
 | Other | $150 Wellness Bucks |
 
 ---
@@ -755,13 +797,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **SoB note:** 2027 SOB H1290-062
 **Still yellow on the working grid:** 7 field(s) — not cited below.
 **Premium:** $0
-**Part B Giveback:** $18
+**Part B Giveback:** No
 **MOOP:** $3,400
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Premium | $0 |
-| Part B Giveback | $18 |
+| Part B Giveback | No |
 | Referrals Needed? | Yes |
 | Max Out of Pocket | $3,400 |
 | Inpatient Hospital | $80 days 1-10 $0 day 11+ |
@@ -772,21 +814,22 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | $45 |
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
-| Dental | $3,500 comprehensive at 50% reimbursement Preventive 100% (does not count toward allowance) Any licensed dentist, reimbursable |
+| Dental | $3,500 comprehensive (Direct Member Reimbursement) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $300 ground one-way 20% air one-way |
 | Transportation | Not covered |
-| RX Deductible | LIS $0 No LIS $465 Tiers 3-5 |
+| RX Deductible | $465 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 15% |
 | Tier 4 | 25% |
 | Tier 5 | 26% |
 | Tier 6 | n/a |
-| OTC | $93 x quarter |
+| OTC | $93/quarter |
 | Fitness | SilverSneakers |
 | Grocery Card | N/A |
+| Other Cards | $150 Wellness Bucks |
 | Other | $150 Wellness Bucks |
 
 ---
