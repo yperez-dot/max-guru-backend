@@ -116,13 +116,19 @@ app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, 
       console.error('Grok pass-through error:', err.message);
       if (err.payload) console.error('Grok payload:', JSON.stringify(err.payload).slice(0, 500));
       const status = err.status && Number.isInteger(err.status) ? err.status : 500;
-      if (err.payload) return res.status(status).json(err.payload);
+      // Always return a string error — nested OpenAI {error:{message}} objects crash the Netlify UI
+      // when it treats data.error as chat text and later calls .match on it.
+      const msg =
+        (err && err.message) ||
+        (err.payload && err.payload.error && err.payload.error.message) ||
+        (typeof err.payload?.error === 'string' ? err.payload.error : null) ||
+        'Having trouble right now — try again in a moment.';
       if (status === 503) {
         return res.status(503).json({
           error: 'LLM is not configured yet — set OPENAI_API_KEY (LLM_PROVIDER=openai) or XAI_API_KEY on Railway.',
         });
       }
-      return res.status(500).json({ error: 'Having trouble right now — try again in a moment.' });
+      return res.status(status).json({ error: String(msg) });
     }
   }
 
