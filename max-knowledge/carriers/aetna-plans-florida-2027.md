@@ -1,7 +1,7 @@
 # Aetna — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-04 22:20 UTC
+Pulled: 2026-09-15 12:28 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1609-018, H1609-043, H1609-073, H1609-080, H1609-093, H1609-094, H1609-103
 
@@ -16,7 +16,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **SoB note:** 2027 Aetna C-SNP sneak peek H1609-080 Chronic Care (Broward)
 **Still yellow on the working grid:** 15 field(s) — not cited below.
 **Premium:** $0
-**Part B Giveback:** $0
+**Part B Giveback:** No
 **MOOP:** $3,900
 
 | Benefit | 2027 (confirmed) |
@@ -24,7 +24,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Referrals Needed? | Yes |
 | Deductible | $0 in-network |
-| Part B Rebate | $0 |
+| Part B Rebate | No |
 | Max Out of Pocket | $3,900 |
 | Chronic Conditions | Diabetes, chronic heart failure, and/or certain cardiovascular disorders |
 | Inpatient Hospital | $125 days 1-5 $0 days 6-90 |
@@ -40,9 +40,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 3 | 22% |
 | Tier 4 | 25% |
 | Tier 5 | 33% |
-| OTC | $95/month Extra Benefits Card (OTC; food/personal care/transport/utilities if qualifying chronic) |
+| OTC | $95/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
 | Grocery Card | Combined with Extra Benefits Card if eligible |
 | Fitness | SilverSneakers |
+| Other Cards | Post-discharge meals: 14 meals / 7 days |
 | Other | Post-discharge meals: 14 meals / 7 days LIS generic $0 / $1.65 / $5.80 · brand $0 / $5 / $14.40 |
 
 ---
@@ -64,7 +65,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | QMB only (2026 grid listed all MSP levels) |
+| MSP Levels | QMB only |
 | Max Out of Pocket | $9,850 |
 | PCP | $0 |
 | Specialist | $0 |
@@ -77,9 +78,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 3 | 9% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
-| OTC | $217/month Extra Benefits Card (OTC; food/personal care/transport/utilities if qualifying chronic) |
+| OTC | $217/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
 | Grocery Card | Combined with Extra Benefits Card if eligible |
 | Fitness | SilverSneakers |
+| Other Cards | Post-discharge meals: 28 meals / 14 days Chiropractic: 12 visits/year Fall prevention: $150/year |
 | Other | Post-discharge meals: 28 meals / 14 days Fall prevention $150/year · Chiropractic 12 visits/year Transport not listed on this sneak peek |
 
 ---
@@ -101,7 +103,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | QMB+, SLMB+, FBDE — full Medicaid + managed care · Integrated SEP |
+| MSP Levels | QMB+, SLMB+, FBDE (full dual) |
 | Max Out of Pocket | $9,850 |
 | PCP | $0 |
 | Specialist | $0 |
@@ -115,9 +117,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 3 | 9% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
-| OTC | $331/month Extra Benefits Card (OTC; food/personal care/transport/utilities if qualifying chronic) |
+| OTC | $331/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
 | Grocery Card | Combined with Extra Benefits Card if eligible |
 | Fitness | SilverSneakers |
+| Other Cards | Post-discharge meals: 28 meals / 14 days Chiropractic: 24 visits/year Fall prevention: $150/year |
 | Other | Post-discharge meals: 28 meals / 14 days Fall prevention $150/year · Chiropractic 24 visits/year |
 
 ---
@@ -137,7 +140,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | SLMB, QDWI, QI (partial dual) — NEW 2027 plan |
+| MSP Levels | SLMB, QDWI, QI (partial dual) — NEW 2027 |
 | Max Out of Pocket | $9,850 |
 | PCP | $0 |
 | Specialist | $0 |
@@ -150,9 +153,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 3 | 9% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
-| OTC | $115/month Extra Benefits Card (OTC; food/personal care/transport/utilities if qualifying chronic) |
+| OTC | $115/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
 | Grocery Card | Combined with Extra Benefits Card if eligible |
 | Fitness | SilverSneakers |
+| Other Cards | Post-discharge meals: 28 meals / 14 days Chiropractic: 12 visits/year Fall prevention: $150/year **NEW 2027 plan** |
 | Other | Post-discharge meals: 28 meals / 14 days Fall prevention $150/year · Chiropractic 12 visits/year Transport not listed |
 
 ---
@@ -164,7 +168,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **CMS ID:** H1609-018
 **SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2026/summaryofbenefits/Y0001_H1609_018_HP25_SB2026_M.pdf)
 **SoB note:** 2027 Aetna MAPD sneak peek H1609-018 Select (Broward). ER / urgent / imaging / ambulance not on this sheet.
-**Still yellow on the working grid:** 17 field(s) — not cited below.
+**Still yellow on the working grid:** 16 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $2,900
@@ -191,6 +195,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 33% |
 | OTC | $50 x quarter Extra Benefits Card (OTC) |
 | Fitness | SilverSneakers |
+| Grocery Card | Not included (OTC-only Extra Benefits Card) |
+| Other Cards | Post-discharge meals: 14 meals / 7 days LIS T1–5 generic $0/$1.65/$5.80; brand $0/$5/$14.40 |
 | Other | Post-discharge meals: 14 meals / 7 days LIS T1–5 generic $0 / $1.65 / $5.80 · brand $0 / $5 / $14.40 |
 
 ---
@@ -203,14 +209,14 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **SoB note:** 2027 Aetna C-SNP sneak peek H1609-094 Chronic Care (2026 header said Choice) (no URL on the grid cell)
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
-**Part B Giveback:** $0
+**Part B Giveback:** No
 **MOOP:** $3,900
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Premium | $0 |
 | Referrals Needed? | Yes |
-| Part B Rebate | $0 |
+| Part B Rebate | No |
 | Deductible | $0 in-network |
 | Max Out of Pocket | $3,900 |
 | Chronic Conditions | Diabetes, chronic heart failure, and/or certain cardiovascular disorders |
@@ -227,10 +233,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 3 | 22% |
 | Tier 4 | 25% |
 | Tier 5 | 33% |
-| OTC | $93/month Extra Benefits Card (OTC; food/personal care/transport/utilities if qualifying chronic) |
+| OTC | $93/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
 | Grocery Card | Combined with Extra Benefits Card if eligible |
 | Fitness | SilverSneakers |
-| Other | Post-discharge meals: 14 meals / 7 days LIS generic $0 / $1.65 / $5.80 · brand $0 / $5 / $14.40 |
+| Other | Post-discharge meals: 14 meals / 7 days |
 
 ---
 
@@ -251,7 +257,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | QMB only (2026 grid listed all MSP levels) |
+| MSP Levels | QMB only |
 | Max Out of Pocket | $9,850 |
 | PCP | $0 |
 | Specialist | $0 |
@@ -264,10 +270,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 3 | 9% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
-| OTC | $217/month Extra Benefits Card (OTC; food/personal care/transport/utilities if qualifying chronic) |
+| OTC | $217/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
 | Grocery Card | Combined with Extra Benefits Card if eligible |
 | Fitness | SilverSneakers |
-| Other | Post-discharge meals: 28 meals / 14 days Fall prevention $150/year · Chiropractic 12 visits/year Transport not listed on this sneak peek |
+| Other | Post-discharge meals: 28 meals / 14 days Chiropractic: 12 visits/year Fall prevention: $150/year |
 
 ---
 
@@ -288,7 +294,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | QMB+, SLMB+, FBDE — full Medicaid + managed care · Integrated SEP |
+| MSP Levels | QMB+, SLMB+, FBDE (full dual) |
 | Max Out of Pocket | $9,850 |
 | PCP | $0 |
 | Specialist | $0 |
@@ -302,10 +308,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 3 | 9% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
-| OTC | $331/month Extra Benefits Card (OTC; food/personal care/transport/utilities if qualifying chronic) |
+| OTC | $331/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
 | Grocery Card | Combined with Extra Benefits Card if eligible |
 | Fitness | SilverSneakers |
-| Other | Post-discharge meals: 28 meals / 14 days Fall prevention $150/year · Chiropractic 24 visits/year |
+| Other | Post-discharge meals: 28 meals / 14 days Chiropractic: 24 visits/year Fall prevention: $150/year |
 
 ---
 
@@ -324,7 +330,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | SLMB, QDWI, QI (partial dual) — NEW 2027 plan |
+| MSP Levels | SLMB, QDWI, QI (partial dual) — NEW 2027 |
 | Max Out of Pocket | $9,850 |
 | PCP | $0 |
 | Specialist | $0 |
@@ -337,10 +343,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 3 | 9% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
-| OTC | $115/month Extra Benefits Card (OTC; food/personal care/transport/utilities if qualifying chronic) |
+| OTC | $115/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
 | Grocery Card | Combined with Extra Benefits Card if eligible |
 | Fitness | SilverSneakers |
-| Other | Post-discharge meals: 28 meals / 14 days Fall prevention $150/year · Chiropractic 12 visits/year Transport not listed |
+| Other | Post-discharge meals: 28 meals / 14 days Chiropractic: 12 visits/year Fall prevention: $150/year **NEW 2027 plan** |
 
 ---
 
@@ -377,7 +383,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 33% |
 | OTC | $30 x quarter Extra Benefits Card (OTC) |
 | Fitness | SilverSneakers |
-| Grocery Card | $25/qtr Extra Supports if qualifying chronic condition (food, OTC, personal care, transport, utilities). HVP PCP: +$30/qtr Extra Supports HVP Wallet |
+| Grocery Card | $25/qtr Extra Supports if qualifying chronic condition; +$30/qtr Extra Supports HVP Wallet if high-value PCP |
+| Other Cards | Post-discharge meals: 14 meals / 7 days LIS T1–5 generic $0/$1.65/$5.80; brand $0/$5/$14.40 |
 | Other | Post-discharge meals: 14 meals / 7 days LIS T1–5 generic $0 / $1.65 / $5.80 · brand $0 / $5 / $14.40 |
 
 ---

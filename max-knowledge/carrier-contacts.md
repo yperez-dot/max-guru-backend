@@ -110,7 +110,7 @@
 
 **Broker Reps:**
 - Ivette Almanza (Miami Dade Sales Manager): Phone: 305-742-8699, Email: i.alma01@doctorshcp.com
-- Howard Sanchez (Broward County Sales Manager): Phone: 305-842-6343, Email: hsanc22@doctorshcp.com
+- Nayovi Aguilera (Broward County Sales Manager): Phone: 786-357-1685, Email: n.agui13@doctorshcp.com
 
 **Enrollment & HRA:**
 - Enrollment Portal: Doctors Broker Portal

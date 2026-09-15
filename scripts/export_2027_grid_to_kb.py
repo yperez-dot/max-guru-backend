@@ -19,9 +19,9 @@ import openpyxl
 
 SHEET_ID = "1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N"
 XLSX_PATH = Path("/tmp/thei-2027-grid.xlsx")
-KB_DIR = Path("/workspace/max-knowledge/carriers")
+KB_DIR = Path("/workspace/max-kb-sync/max-knowledge/carriers")
 OVERVIEW_PATH = KB_DIR / "plan-grid-overview-2027.md"
-WATCH_PATH = Path("/workspace/artifacts/reports/2027-grid-watch-state.json")
+WATCH_PATH = Path("/workspace/max-kb-sync/artifacts/reports/2027-grid-watch-state.json")
 
 SHEETS = [
     ("DADE- HMO", "Miami-Dade", "HMO"),
@@ -42,6 +42,7 @@ CARRIER_FILES = {
     "UHC": "uhc-plans-florida-2027.md",
     "CarePlus": "careplus-plans-florida-2027.md",
     "Aetna": "aetna-plans-florida-2027.md",
+    "Doctors": "doctors-plans-florida-2027.md",
 }
 
 CARRIER_ALIASES = [
@@ -87,7 +88,15 @@ def fill_rgb(cell) -> str | None:
 
 def is_green(cell) -> bool:
     rgb = fill_rgb(cell)
-    return bool(rgb and (rgb.endswith("E8F5E9") or rgb.endswith("C8E6C9")))
+    return bool(
+        rgb
+        and (
+            rgb.endswith("E8F5E9")
+            or rgb.endswith("C8E6C9")
+            or rgb.endswith("C6EFCE")  # Excel light green used on working grid
+            or rgb.endswith("D9EAD3")
+        )
+    )
 
 
 def is_yellow(cell) -> bool:
@@ -372,7 +381,6 @@ def render_overview(plans: list[dict], meta: dict, pulled: str, stats: dict) -> 
     noncomm = [p for p in plans if any("NON-COMM" in f for f in p["flags"])]
 
     waiting = [
-        "Doctors",
         "Florida Blue",
         "HealthSpring / Cigna",
         "HealthSun",
@@ -409,6 +417,8 @@ def render_overview(plans: list[dict], meta: dict, pulled: str, stats: dict) -> 
         "Do **not** quote their 2026 leftover numbers as 2027. Say Max does not have that 2027 figure yet."
     )
     lines.append("")
+    carriers_with_plans = {p["carrier"] for p in plans}
+    waiting = [w for w in waiting if w.split(" / ")[0] not in carriers_with_plans and w not in carriers_with_plans]
     for w in waiting:
         lines.append(f"- {w}")
     lines.append("")
