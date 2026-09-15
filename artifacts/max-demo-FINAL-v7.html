@@ -213,7 +213,158 @@ function exportComparisonToExcel(plans) {
 // sources cited so they can verify. Same TPMO discipline still applies --
 // no plan ranking, no "best plan" language -- because internal habits shape
 // what agents say to clients even when this tool itself isn't client-facing.
-function buildSystemPrompt() {
+
+// ---- Cost control: attach only plans that match this ask (county / carrier / plan ID) ----
+const PLAN_FILTER_CAP = 100;
+const CARRIER_ALIASES = [
+  { re: /\bhumana\b/i, match: (c) => /humana/i.test(c) },
+  { re: /\bcare\s*plus\b|\bcareplus\b/i, match: (c) => /care\s*plus|careplus/i.test(c) },
+  { re: /\bdevoted\b/i, match: (c) => /devoted/i.test(c) },
+  { re: /\bdoctors?\b|\bdr\.?\s*(max|select|plus|flex|extra)/i, match: (c) => /doctors/i.test(c) },
+  { re: /\baetna\b/i, match: (c) => /aetna/i.test(c) },
+  { re: /\buhc\b|\bunited(\s*health)?(\s*care)?\b|\bmedicare\s*max\b|\bpreferred\s*care\b|\bjarvis\b/i, match: (c) => /uhc|united|medicaremax|preferred\s*care/i.test(c) },
+  { re: /\bhealth\s*sun\b|\bhealthsun\b/i, match: (c) => /healthsun|health\s*sun/i.test(c) },
+  { re: /\bsolis\b/i, match: (c) => /solis/i.test(c) },
+  { re: /\bwell\s*care\b|\bwellcare\b/i, match: (c) => /wellcare|well\s*care/i.test(c) },
+  { re: /\bflorida\s*blue\b|\bfl\s*blue\b|\bbpag\b/i, match: (c) => /fl\s*blue|florida\s*blue|blue/i.test(c) },
+  { re: /\bhealth\s*spring\b|\bhealthspring\b|\bcigna\b/i, match: (c) => /healthspring|health\s*spring|cigna/i.test(c) },
+  { re: /\bsimply\b|\belevance\b|\banthem\b/i, match: (c) => /simply|elevance|anthem/i.test(c) },
+  { re: /\bgold\s*kidney\b/i, match: (c) => /gold\s*kidney/i.test(c) },
+];
+
+function conversationAskText(conversationHistory) {
+  const msgs = Array.isArray(conversationHistory) ? conversationHistory : [];
+  // Prefer latest user turns (last 4 user messages) so follow-ups keep context
+  const users = msgs.filter((m) => m && m.role === "user").map((m) => String(m.content || ""));
+  const recent = users.slice(-4);
+  return recent.join("\n");
+}
+
+function detectCounties(text) {
+  const t = String(text || "").toLowerCase();
+  const wantsBoth =
+    /\b(both\s+counties|south\s*florida|s\.?\s*fla?|miami[- ]?dade\s+and\s+broward|broward\s+and\s+miami)\b/.test(t) ||
+    (/\bmiami[- ]?dade\b|\bdade\b/.test(t) && /\bbroward\b/.test(t));
+  if (wantsBoth) return ["Miami-Dade", "Broward"];
+  const out = [];
+  if (/\bmiami[- ]?dade\b|\bdade\b|\bmiami\b/.test(t)) out.push("Miami-Dade");
+  if (/\bbroward\b/.test(t)) out.push("Broward");
+  return out;
+}
+
+function detectCarriers(text) {
+  const t = String(text || "");
+  return CARRIER_ALIASES.filter((a) => a.re.test(t)).map((a) => a.match);
+}
+
+function detectPlanIds(text) {
+  const t = String(text || "");
+  const ids = new Set();
+  const re = /\bH\d{3,4}\s*[-–\/]?\s*\d{2,4}(?:\s*\/\s*\d{2,4})?\b/gi;
+  let m;
+  while ((m = re.exec(t))) {
+    ids.add(m[0].replace(/\s+/g, "").replace(/–/g, "-").toUpperCase());
+  }
+  return [...ids];
+}
+
+function looksLikePlanGridAsk(text) {
+  const t = String(text || "").toLowerCase();
+  // Plan IDs / carriers / counties always mean we need grid rows
+  if (detectPlanIds(t).length > 0 || detectCarriers(t).length > 0 || detectCounties(t).length > 0) {
+    return true;
+  }
+  // General Medicare education — no plan grid needed
+  if (
+    /\b(what is|what's|explain|how does|define)\b/.test(t) &&
+    /\b(part\s*[abcd]|irmaa|moop|deductible|sep|aep|oep|lis|medicaid|msp|qmb|slmb)\b/.test(t) &&
+    !/\b(plan|plans|giveback|otc|dental|carrier|humana|careplus|devoted|doctors|uhc|aetna|h\d{3,4})\b/.test(t)
+  ) {
+    return false;
+  }
+  return /\b(plan|plans|giveback|give\s*back|otc|dental|moop|premium|copay|compare|vs\.?|versus|list|which|carrier|hmo|dsnp|d-snp|csnp|c-snp|ppo|network|hospital|sob|formulary|tier\s*[1-6]|specialist|pcp|hearing|vision|transport|grocery|food\s*card)\b/i.test(t);
+}
+
+function selectPlansForAsk(conversationHistory) {
+  const text = conversationAskText(conversationHistory);
+  const counties = detectCounties(text);
+  const carrierMatchers = detectCarriers(text);
+  const planIds = detectPlanIds(text);
+  const wantsFull =
+    /\b(all\s+plans|full\s+grid|every\s+plan|entire\s+grid|both\s+counties|south\s*florida|s\.?\s*fla?)\b/i.test(text);
+
+  // Named plan IDs win
+  let filtered = PLANS.slice();
+  if (planIds.length) {
+    const norm = (s) => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const wanted = planIds.map(norm);
+    filtered = PLANS.filter((p) => {
+      const pid = norm(p.planId);
+      const id = norm(p.id);
+      return wanted.some((w) => (pid && (pid === w || pid.includes(w) || w.includes(pid))) || (id && (id === w || id.includes(w) || w.includes(id))));
+    });
+  } else {
+    if (counties.length) {
+      filtered = filtered.filter((p) => counties.includes(p.county));
+    }
+    if (carrierMatchers.length) {
+      filtered = filtered.filter((p) => carrierMatchers.some((fn) => fn(String(p.carrier || ""))));
+    }
+  }
+
+  const needsGrid = looksLikePlanGridAsk(text);
+  const hasScope = counties.length > 0 || carrierMatchers.length > 0 || planIds.length > 0 || wantsFull;
+
+  if (needsGrid && !hasScope) {
+    return {
+      needClarify: true,
+      clarifyMessage:
+        "Happy to pull that from the grid — which county should I use, Miami-Dade or Broward? If you already know the carrier or plan ID, toss that in too and I’ll narrow faster.",
+      plans: [],
+      meta: { counties, carriers: carrierMatchers.length, planIds, matched: 0 },
+    };
+  }
+
+  // Explicit full South Florida
+  if (wantsFull && !planIds.length && !carrierMatchers.length) {
+    filtered = PLANS.slice();
+  }
+
+  // No plan-grid ask (pure education) → tiny empty plan set; rules still answer Rule 3
+  if (!needsGrid) {
+    filtered = [];
+  }
+
+  if (filtered.length > PLAN_FILTER_CAP && !wantsFull) {
+    // Prefer clarifying over dumping a huge set (e.g. carrier-less both-county)
+    if (counties.length === 0) {
+      return {
+        needClarify: true,
+        clarifyMessage:
+          `That matches a lot of plans (${filtered.length}). Which county — Miami-Dade or Broward? Or name the carrier / plan ID and I’ll pull just those.`,
+        plans: [],
+        meta: { counties, carriers: carrierMatchers.length, planIds, matched: filtered.length },
+      };
+    }
+    // County-wide over cap is rare (~75); if somehow over, keep county filter as-is
+  }
+
+  return {
+    needClarify: false,
+    clarifyMessage: null,
+    plans: filtered,
+    meta: {
+      counties,
+      carriers: carrierMatchers.length,
+      planIds,
+      matched: filtered.length,
+      total: PLANS.length,
+    },
+  };
+}
+
+
+function buildSystemPrompt(selectedPlans) {
   return `You are Max, the internal Medicare knowledge assistant for The Health Experts Insurance (THEI), a Florida Medicare/health insurance brokerage. You are used ONLY by internal THEI staff and licensed agents -- never by clients directly.
 
 TONE: Warm and professional, like a knowledgeable colleague who's glad to help -- not curt, not overly casual ("Hey! What do you need?" is too blunt), and not stiff or robotic either. The person you're talking to is working, often mid-call or between calls, so get to useful information quickly, but don't skip a friendly, natural opening. Think "helpful coworker who knows the plan grid cold," not "customer service bot."
@@ -253,10 +404,12 @@ HARD RULES -- these override everything else:
 
 20. PLAN YEAR 2027 -- agents may ask for 2027 / PY2027 / AEP 2027 at any time. If you have the fact in the knowledge base (medicare-reference, hub/aep-2027-training, hub/compliance, hub/contracting-blackout, plan-year-2027, carriers/2027-ma-blackout-dates, or any *2027* plan notes), ANSWER IT and say it is 2027. ALWAYS search_knowledge on 2027 questions before saying you do not have it. If you do not have that 2027 fact, say so plainly. Do NOT refuse because PLAN DATA is 2026. Do NOT quote 2026 premiums, copays, or givebacks as 2027 numbers. Humana 2027 SoBs are live; other carriers' 2027 plan dollars may not be on file yet.
 
-PLAN DATA (148 plans, Miami-Dade and Broward, 2026 plan year):
-${JSON.stringify(PLANS)}
+FILTERED PLAN ATTACHMENT — PLAN DATA below is a FILTERED SUBSET for this question only (not the full THEI grid). It was narrowed by county, carrier, and/or plan ID from the agent's ask to control cost. If the plan they need is not in PLAN DATA, do NOT invent numbers from training knowledge — ask ONE short clarifying question for county, carrier, or plan ID. If PLAN DATA is empty and the question is general Medicare education (Rule 3), answer from training knowledge. If PLAN DATA is empty and they clearly want plan dollars, ask which county (Miami-Dade or Broward) and carrier/plan.
 
-HOSPITAL NETWORK DATA (83 hospitals, Miami-Dade and Broward):
+PLAN DATA (${(selectedPlans || []).length} plans attached for this ask; full grid has ${PLANS.length} across Miami-Dade and Broward, 2026 plan year):
+${JSON.stringify(selectedPlans || [])}
+
+HOSPITAL NETWORK DATA (83 hospitals, Miami-Dade and Broward — full hospital list; carrier names are informal):
 ${JSON.stringify(HOSPITALS)}
 
 CARRIER-LEVEL CHRONIC CONDITION QUALIFYING RULES -- these apply to conditional
@@ -273,8 +426,8 @@ ${JSON.stringify(CARRIER_CHRONIC_CONDITIONS)}`;
 
 // Environment-aware routing:
 // Netlify / standalone → THEI Railway proxy (xAI Grok holds the model key).
-// buildSystemPrompt() is sent IN FULL — rules AND all plan/hospital/carrier data.
-// Never truncate the system string; it's ~280KB by design.
+// buildSystemPrompt(selectedPlans) sends rules + FILTERED plan rows for this ask (cost control).
+// Hospitals + carrier chronic rules stay attached; vague plan asks clarify instead of dumping the full grid.
 const API_BASE = "https://max-guru-production.up.railway.app";
 const PROXY_URL = API_BASE + "/chat";
 const UNLOCK_URL = API_BASE + "/auth/unlock";
@@ -311,8 +464,12 @@ async function unlockMax(email, password) {
 }
 
 async function askGuru(conversationHistory) {
+  const selection = selectPlansForAsk(conversationHistory);
+  if (selection.needClarify) {
+    return selection.clarifyMessage;
+  }
   const payload = {
-    system: buildSystemPrompt(),
+    system: buildSystemPrompt(selection.plans),
     messages: conversationHistory,
   };
   const headers = { "Content-Type": "application/json" };
