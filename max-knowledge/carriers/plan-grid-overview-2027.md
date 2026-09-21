@@ -1,7 +1,7 @@
 # 2027 THEI plan grid — what Max can cite
 Source: THEI 2027 Plan Benefit Grid working copy ([Google Sheet](https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit))
-Pulled: 2026-09-15 12:28 UTC
-Sheet stamp: 2694 green / 3141 yellow benefit cells across plan tabs.
+Pulled: 2026-09-21 13:48 UTC
+Sheet stamp: 2687 green / 3141 yellow benefit cells across plan tabs.
 
 Color key on the sheet: **light green** = 2027 number from an official SoB, highlight, or sneak-peek slide (official SoB wins). **Yellow** = still the 2026 number. Max only cites green.
 
@@ -16,15 +16,16 @@ Live `#plan-data` stays the **2026** grid. These files are how chat answers 2027
 | UHC | 17 | `carriers/uhc-plans-florida-2027` |
 | CarePlus | 17 | `carriers/careplus-plans-florida-2027` |
 | Aetna | 10 | `carriers/aetna-plans-florida-2027` |
-| Doctors | 9 | `carriers/doctors-plans-florida-2027` |
+| Doctors | 7 | `carriers/doctors-plans-florida-2027` |
 
-## Public SoB status (2026-09-15)
 
-- **Humana:** public 2027 SOB + EOC live on `assets.humana.com`.
-- **CarePlus:** public 2027 SOBs under `BenefitSummary/2027PDFs/` for plans on the grid except CareNeeds Extra `H1019-152` (still 2026 PDF).
-- **Doctors:** public 2027 SOB PDFs for DrMax, DrSelect, DrExtraCare, DrFullDual, DrPartialDual. Duals on grid are `H4140-013` / `H4140-020` (old 2026 duals removed).
-- **Devoted:** nearly all public 2027 SOBs; CORE `H1290-037` still on a 2026 SOB.
-- **UHC:** public alphadog `27` URLs are still “PDF coming soon” placeholders — keep 2026 SoB links for public files. Broker-portal highlight sheets already inform green cells for MedicareMax FL-0028 (`H5420-001`) and Preferred Dual FL-Y6 (`H1045-063`); more portal PDFs pending.
+## Public SoB status (2026-09-21 watcher)
+
+- **Humana:** public 2027 SOB + EOC still live on `assets.humana.com` for probed plans.
+- **CarePlus:** public 2027 SOBs live for H1019-006 / 148 / 023 / **001 (newly live vs 2026-09-15 baseline)**; H1019-152 still 404.
+- **Devoted:** H1290-085 and H1290-001 live; H1290-037 still 404.
+- **Doctors:** DrFullDual live; DrMax / DrSelect / DrExtraCare public URLs are placeholders today; DrPartialDual 404.
+- **UHC:** all 16 probed alphadog `27` URLs still “PDF coming soon” placeholders (uhc_ready=0).
 
 ## Still waiting on the official October 1 SoB
 

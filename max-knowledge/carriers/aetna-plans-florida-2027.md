@@ -1,7 +1,7 @@
 # Aetna — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-15 12:28 UTC
+Pulled: 2026-09-21 13:48 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1609-018, H1609-043, H1609-073, H1609-080, H1609-093, H1609-094, H1609-103
 

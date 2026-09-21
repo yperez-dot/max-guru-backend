@@ -1,7 +1,7 @@
 # Humana — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-15 12:28 UTC
+Pulled: 2026-09-21 13:48 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1036-054C, H1036-065C, H1036-077, H1036-121, H1036-297, H1036-304, H1036-305, H1036-339, H7617-107, H7617-110, H7617-145
 
@@ -89,6 +89,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1036-077
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036077000SB27pdf)
+**SoB note:** 2027 official SOB H1036-077 Humana Dual Select (HMO D-SNP). QDWI/QI/QMB/SLMB. Did not write onto H1036-304 or H1036-339. Palm Beach is in the service area; no Palm Beach column on this desk.
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -142,6 +143,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1036-304
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036304000SB27pdf)
+**SoB note:** 2027 official SOB H1036-304 Humana Dual Select (HMO D-SNP). QDWI/QI/QMB/SLMB. Sibling of H1036-077 — different dental/hearing/OTC. Did not write onto 077 or 339.
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -689,7 +691,7 @@ Out-of-network (confirmed):
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1036-304
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036304000SB27pdf)
+**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036077000SB27pdf)
 **SoB note:** 2027 official SOB H1036-304 Humana Dual Select (HMO D-SNP). QDWI/QI/QMB/SLMB. Sibling of H1036-077 — different dental/hearing/OTC. Did not write onto 077 or 339.
 **Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
