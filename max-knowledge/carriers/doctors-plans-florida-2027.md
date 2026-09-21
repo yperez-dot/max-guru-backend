@@ -1,7 +1,7 @@
 # Doctors — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-15 12:28 UTC
+Pulled: 2026-09-21 13:48 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H4140-001, H4140-004, H4140-012, H4140-013, H4140-020
 
@@ -13,6 +13,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H4140-004
 **SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrExtraCare_ENG.pdf)
+**SoB note:** 2027 SOB H4140-004 DrExtraCare
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
@@ -24,7 +25,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H4140-013
-**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrFullDual_ENG.pdf)
 **Still yellow on the working grid:** 7 field(s) — not cited below.
 **Premium:** $0
 **MOOP:** $3,400
@@ -69,7 +69,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H4140-020
-**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrPartialDual_ENG.pdf)
 **Premium:** $0
 **MOOP:** $3,400
 
@@ -107,37 +106,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 ---
 
-## Doctors DrSelect (H4140-012) — Broward HMO
-**County:** Broward
-**Type:** HMO
-**Plan year:** 2027
-**CMS ID:** H4140-012
-**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax-DrSelect_ENG.pdf)
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-
----
-
-## Doctors DrExtraCare (H4140-004) — Miami-Dade C-SNP
-**County:** Miami-Dade
-**Type:** C-SNP
-**Plan year:** 2027
-**CMS ID:** H4140-004
-**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrExtraCare_ENG.pdf)
-**Still yellow on the working grid:** 36 field(s) — not cited below.
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-
----
-
 ## Doctors DrFullDual-SFL (HMO D-SNP) (H4140-013) — Miami-Dade D-SNP
 **County:** Miami-Dade
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H4140-013
 **SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrFullDual_ENG.pdf)
+**SoB note:** 2027 SOB H4140-013 DrFullDual
 **Still yellow on the working grid:** 9 field(s) — not cited below.
 **Premium:** $0
 **MOOP:** $3,400
@@ -182,7 +157,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H4140-020
-**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrPartialDual_ENG.pdf)
 **Premium:** $0
 **MOOP:** $3,400
 
@@ -225,7 +199,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H4140-001
-**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax_ENG.pdf)
+**SoB note:** Public Doctors 2027 DrMax SOB URL currently returns a placeholder (watcher 2026-09-21); sheet had a mis-pasted CarePlus SOB link which was stripped for Max safety.
 **Premium:** 0
 **Part B Giveback:** 17
 **MOOP:** 3000
