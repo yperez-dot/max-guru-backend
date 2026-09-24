@@ -43,6 +43,7 @@ CARRIER_FILES = {
     "CarePlus": "careplus-plans-florida-2027.md",
     "Aetna": "aetna-plans-florida-2027.md",
     "Doctors": "doctors-plans-florida-2027.md",
+    "HealthSun": "healthsun-plans-florida-2027.md",
 }
 
 CARRIER_ALIASES = [
