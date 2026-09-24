@@ -1,7 +1,7 @@
 # Doctors — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-21 13:48 UTC
+Pulled: 2026-09-24 13:34 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H4140-001, H4140-004, H4140-012, H4140-013, H4140-020
 
@@ -199,7 +199,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H4140-001
-**SoB note:** Public Doctors 2027 DrMax SOB URL currently returns a placeholder (watcher 2026-09-21); sheet had a mis-pasted CarePlus SOB link which was stripped for Max safety.
+**SoB note:** Public Doctors 2027 DrMax SOB URL currently returns a placeholder (watcher 2026-09-24); sheet still has a mis-pasted CarePlus SOB link which was stripped for Max safety.
 **Premium:** 0
 **Part B Giveback:** 17
 **MOOP:** 3000

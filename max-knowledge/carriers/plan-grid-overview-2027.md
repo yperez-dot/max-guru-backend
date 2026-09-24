@@ -1,7 +1,7 @@
 # 2027 THEI plan grid — what Max can cite
 Source: THEI 2027 Plan Benefit Grid working copy ([Google Sheet](https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit))
-Pulled: 2026-09-21 13:48 UTC
-Sheet stamp: 2687 green / 3141 yellow benefit cells across plan tabs.
+Pulled: 2026-09-24 13:34 UTC
+Sheet stamp: 2763 green / 3141 yellow benefit cells across plan tabs.
 
 Color key on the sheet: **light green** = 2027 number from an official SoB, highlight, or sneak-peek slide (official SoB wins). **Yellow** = still the 2026 number. Max only cites green.
 
@@ -17,15 +17,16 @@ Live `#plan-data` stays the **2026** grid. These files are how chat answers 2027
 | CarePlus | 17 | `carriers/careplus-plans-florida-2027` |
 | Aetna | 10 | `carriers/aetna-plans-florida-2027` |
 | Doctors | 7 | `carriers/doctors-plans-florida-2027` |
+| HealthSun | 3 | `carriers/healthsun-plans-florida-2027` |
 
-
-## Public SoB status (2026-09-21 watcher)
+## Public SoB status (2026-09-24 watcher)
 
 - **Humana:** public 2027 SOB + EOC still live on `assets.humana.com` for probed plans.
-- **CarePlus:** public 2027 SOBs live for H1019-006 / 148 / 023 / **001 (newly live vs 2026-09-15 baseline)**; H1019-152 still 404.
+- **CarePlus:** public 2027 SOBs live for H1019-001 / 006 / 023 / 148; H1019-152 still 404.
 - **Devoted:** H1290-085 and H1290-001 live; H1290-037 still 404.
-- **Doctors:** DrFullDual live; DrMax / DrSelect / DrExtraCare public URLs are placeholders today; DrPartialDual 404.
+- **Doctors:** DrFullDual live; DrMax / DrSelect / DrExtraCare public URLs are placeholders; DrPartialDual 404.
 - **UHC:** all 16 probed alphadog `27` URLs still “PDF coming soon” placeholders (uhc_ready=0).
+- **HealthSun:** no public SOB URLs in the watcher; Miami-Dade green cells come from the Plan Benefit Grid (broker/sneak docs), not public PDF links.
 
 ## Still waiting on the official October 1 SoB
 
@@ -33,7 +34,6 @@ These carriers are on the 2027 workbook but every benefit cell is still yellow. 
 
 - Florida Blue
 - HealthSpring / Cigna
-- HealthSun
 - Simply
 - Solis
 - Wellcare
