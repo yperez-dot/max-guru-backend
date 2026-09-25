@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 """Export confirmed (green) 2027 THEI grid cells into max-knowledge markdown.
 
-Yellow cells are leftover 2026 numbers — they are never written as 2027 facts.
-Re-run after each sheet refresh. Does not touch live #plan-data (stays 2026).
+Yellow cells are leftover 2026 numbers — they are never written as 2027 *medical*
+dollar facts (premium, MOOP, copays).
+
+Dental *procedure* sub-rows (Crowns, Bridges, Implants, Dentures, Fillings,
+Root Canals, Extractions, Deep Cleaning) are kept when the cell has a clear
+frequency/Yes-No. Those rows are often still yellow on CarePlus even when the
+Dental summary line is green, and dropping them made Max hedge to SoB on
+questions like "are crowns covered on H1019-150". Vague junk ("$0 varies")
+is not exported; the clearer sibling-county cell for the same CMS ID is used
+instead. Re-run after each sheet refresh. Does not touch live #plan-data.
 """
 
 from __future__ import annotations
@@ -18,10 +26,20 @@ from pathlib import Path
 import openpyxl
 
 SHEET_ID = "1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N"
+REPO_ROOT = Path(__file__).resolve().parents[1]
 XLSX_PATH = Path("/tmp/thei-2027-grid.xlsx")
-KB_DIR = Path("/workspace/max-kb-sync/max-knowledge/carriers")
+KB_DIR = REPO_ROOT / "max-knowledge" / "carriers"
 OVERVIEW_PATH = KB_DIR / "plan-grid-overview-2027.md"
-WATCH_PATH = Path("/workspace/max-kb-sync/artifacts/reports/2027-grid-watch-state.json")
+WATCH_PATH = REPO_ROOT / "artifacts" / "reports" / "2027-grid-watch-state.json"
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dental_procedure_rows import (  # noqa: E402
+    apply_curated_dental,
+    apply_sibling_dental_fill,
+    is_clear_dental_value,
+    is_dental_procedure_label,
+    merge_dental_row,
+)
 
 SHEETS = [
     ("DADE- HMO", "Miami-Dade", "HMO"),
@@ -241,6 +259,7 @@ def parse_grid(xlsx: Path) -> tuple[list[dict], dict]:
             name = clean_plan_name(header_s, pid)
 
             fields_green: list[tuple[str, str]] = []
+            fields_dental_working: list[tuple[str, str]] = []
             fields_yellow = 0
             fields_other = 0
             for r, lab in labels:
@@ -251,6 +270,10 @@ def parse_grid(xlsx: Path) -> tuple[list[dict], dict]:
                     continue
                 if is_green(cell):
                     fields_green.append((lab, val))
+                elif is_dental_procedure_label(lab) and is_clear_dental_value(val):
+                    # Yellow leftover, but a real frequency / Yes-No — keep for chat
+                    merge_dental_row(fields_dental_working, lab, val)
+                    fields_yellow += 1
                 elif is_yellow(cell):
                     fields_yellow += 1
                 else:
@@ -286,6 +309,7 @@ def parse_grid(xlsx: Path) -> tuple[list[dict], dict]:
                     "header": re.sub(r"\s+", " ", header_s.replace("\n", " ")).strip(),
                     "flags": header_flags(header_s),
                     "fields": fields_green,
+                    "dentalWorking": fields_dental_working,
                     "outFields": out_fields,
                     "yellowLeft": fields_yellow,
                     "sobUrl": sob_url,
@@ -340,6 +364,20 @@ def render_plan(p: dict) -> str:
     lines.append("|---------|------------------|")
     for lab, val in p["fields"]:
         lines.append(f"| {md_escape(lab)} | {md_escape(val)} |")
+    dental_working = p.get("dentalWorking") or []
+    if dental_working:
+        lines.append("")
+        lines.append(
+            "Dental procedure rows on the THEI 2027 working grid "
+            "(yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:"
+        )
+        lines.append("")
+        lines.append("| Benefit | 2027 working grid |")
+        lines.append("|---------|-------------------|")
+        for lab, val in dental_working:
+            lines.append(f"| {md_escape(lab)} | {md_escape(val)} |")
+    for note in p.get("dentalSiblingNotes") or []:
+        lines.append(f"- {note}")
     if p["outFields"]:
         lines.append("")
         lines.append("Out-of-network (confirmed):")
@@ -505,6 +543,11 @@ def main() -> int:
     pulled = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     digest = hashlib.sha256(XLSX_PATH.read_bytes()).hexdigest()
     plans, meta = parse_grid(XLSX_PATH)
+    apply_sibling_dental_fill(plans, fields_key="dentalWorking")
+    for p in plans:
+        notes = apply_curated_dental(p["id"], p["county"], p.setdefault("dentalWorking", []))
+        if notes:
+            p.setdefault("dentalSiblingNotes", []).extend(notes)
     stats = count_fills(XLSX_PATH)
 
     by_carrier: dict[str, list[dict]] = defaultdict(list)

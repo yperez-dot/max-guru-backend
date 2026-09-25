@@ -35,6 +35,8 @@ Do **not** put 2027 plan dollars only in `#plan-data` (that JSON is still the 20
 
 The live 2027 working workbook is https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit (green = confirmed, yellow = leftover 2026). Refresh confirmed cells with `python3 scripts/export_2027_grid_to_kb.py`. Index: `carriers/plan-grid-overview-2027`.
 
+Dental procedure sub-rows (Crowns, Bridges, Implants, …) are kept on export when the cell has a clear frequency, even if still yellow. Vague `$0 varies` is not exported; the clearer sibling county for the same CMS ID is used. CarePlus CareComplete H1019-150: `carriers/careplus-carecomplete-h1019-150`.
+
 Hub pages (compliance, AEP training, etc.): update the Hub repo, then `python3 scripts/import_hub_knowledge.py` (clone `agent-medicare-hub` to `/tmp/amh` first). SEPs: `python3 scripts/refresh_sep_tracker.py`.
 
 ## Plan grid vs Hub pack

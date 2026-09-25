@@ -11,8 +11,18 @@ from pathlib import Path
 
 import openpyxl
 
-HTML_PATH = Path("/workspace/artifacts/max-demo-FINAL-v7.html")
+REPO_ROOT = Path(__file__).resolve().parents[1]
+HTML_PATH = REPO_ROOT / "artifacts" / "max-demo-FINAL-v7.html"
 XLSX_PATH = Path("/tmp/thei-grid.xlsx")
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dental_procedure_rows import (  # noqa: E402
+    apply_curated_on_plan_objects,
+    apply_sibling_dental_on_plan_objects,
+    is_clear_dental_value,
+    is_junk_dental_value,
+    DENTAL_FIELD_KEYS,
+)
 
 SHEETS = [
     ("DADE- HMO", "Miami-Dade", "HMO"),
@@ -426,6 +436,9 @@ def main() -> int:
             for k, v in gp["fields"].items():
                 cur = mp.get(k)
                 newv = prefer_store(k, v, cur)
+                # Don't clobber a clear dental procedure cell with "$0 varies" junk
+                if k in DENTAL_FIELD_KEYS and is_junk_dental_value(newv) and is_clear_dental_value(cur):
+                    continue
                 # Grid is source of truth — always write grid value when present
                 if not values_equal(cur, newv):
                     mp[k] = newv
@@ -470,6 +483,10 @@ def main() -> int:
             plans.append(newp)
             created += 1
             by_token = rebuild_token_index(plans)
+
+    sibling_filled = apply_sibling_dental_on_plan_objects(plans)
+    curated = apply_curated_on_plan_objects(plans)
+    print(f"dental sibling-fill={sibling_filled} curated={curated}")
 
     # Validate
     by_token = rebuild_token_index(plans)

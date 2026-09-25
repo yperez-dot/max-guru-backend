@@ -106,6 +106,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | ER | $140 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
 | Dental | Comprehensive — deep cleaning, bridges, dentures, unlimited extractions for dentures, X-rays |
+| Crowns | 2 every 5 years |
+| Bridges | Yes |
 | Vision Allowance | $0 annual exam / $200 allowance |
 | Ambulance | $250 |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
@@ -118,6 +120,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 6 | $0 |
 | OTC | $185/month CareEssentials (automatic, rollover) |
 | Other Cards | $185/month CareEssentials (automatic, rollover) |
+
+Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5 years` / `Yes`). Broward Crowns/Bridges cells were `$0 varies` (junk). CareComplete H1019-150 is statewide — same SoB as Dade. Cite the grid first; SoB/EOC for CDT-level edge cases (prior auth).
 
 ---
 
@@ -434,6 +438,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | ER | $140 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
 | Dental | Comprehensive — deep cleaning, bridges, dentures, unlimited extractions for dentures, X-rays |
+| Crowns | 2 every 5 years |
+| Bridges | Yes |
 | Vision Allowance | $0 annual exam / $200 allowance |
 | Ambulance | $250 |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
@@ -446,6 +452,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 6 | $0 |
 | OTC | $185/month CareEssentials (automatic, rollover) |
 | Other | $185/month CareEssentials (automatic, rollover) |
+
+Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5 years` / `Yes`). Statewide CareComplete — use the same frequency for Broward. Cite the grid first; SoB/EOC for CDT-level edge cases (prior auth).
 
 ---
 
