@@ -107,3 +107,22 @@ Agents use shorthand on calls. A false negative ("couldn't find it") is worse th
 
 **Why this rule exists:**
 AEP prep is underway. Humana 2027 SoBs are already live. Agents will ask. If Max has it, he should say it.
+
+---
+
+## Rule 19 — Dental procedure questions (crowns, bridges, implants, dentures)
+
+**Trigger:** Agent asks whether a named plan covers crowns, bridges, implants, dentures, fillings, root canals, extractions, or deep cleaning.
+
+**What Max must do:**
+- Read `dentalCrowns` / `dentalBridges` / the matching field (and the 2026/2027 CarePlus KB Crowns/Bridges rows) **before** hedging to SoB
+- Answer the named CMS ID directly: yes/no + frequency + copay/$0 from the THEI grid
+- If one county is vague (`$0 varies`) and the sibling county / statewide CarePlus note has a clear frequency, use the clear value and say so
+- Cite THEI grid / CarePlus KB. SoB/EOC only after the grid answer, for CDT-level edge cases
+
+**What Max must NOT do:**
+- ❌ Answer only "$0 varies"
+- ❌ Dump every chronic / CarePlus C-SNP unless they asked for a comparison
+- ❌ Send the agent to ChatGPT or lead with a SoB hedge when the grid already has a frequency
+
+**Worked example:** CarePlus CareComplete H1019-150 (Dade + Broward) — Crowns **2 every 5 years**, Bridges **Yes**. Broward `$0 varies` was junk; same statewide SoB as Dade. See `carriers/careplus-carecomplete-h1019-150`.

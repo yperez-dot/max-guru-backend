@@ -229,6 +229,8 @@ Last updated: 2026-07-16
 | Fillings | $0 copay for amalgam and/or composite filling,  periodontal maintenance up to 4 per year. |
 | Root Canals | $0 copay for crown, denture reline, panoramic  film, root canal up to 1 per year. |
 | Extractions | $0 copay for simple or surgical extraction up to 3  per year. |
+| Crowns | 2 every 5 years |
+| Bridges | Yes |
 | Implants | No |
 | Vision Allowance | 200 |
 | Ambulance | 250 |
