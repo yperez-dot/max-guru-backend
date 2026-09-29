@@ -182,7 +182,7 @@ Devoted
 Broker Support: 877-764-9446 
 Member Services: 1-800-338-6833 
 Enrollment Portal: Devoted Portal (https://agent.devoted.com/) 
-HRA: $50 (all plans) · 5 days 
+HRA: $50 for C-SNP / D-SNP only · within 5 calendar days of enrollment submission (applications written Mar 1, 2026 or later); non-SNP HRAs are unpaid but still encouraged
 
 ### Common situations
 - Enrollment questions → Broker Support
@@ -201,10 +201,10 @@ Enrollment & HRA
 ⌄
 
 HRA
-$50 (all plans)
+$50 for C-SNP / D-SNP only; non-SNP HRAs are unpaid but still encouraged
 
 Timeframe
-5 days (Sunfire / Devoted portal)
+Within 5 calendar days of enrollment submission (applications written Mar 1, 2026 or later)
 
 RX
 Pharmacy & Lab
