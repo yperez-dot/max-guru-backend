@@ -98,6 +98,10 @@ function searchKnowledge(query, { limit = 8 } = {}) {
     }
     // Prefer Florida SEP file for FL/SEP queries
     if (/sep/.test(q) && /florida|\bfl\b/.test(q) && key.includes('seps-by-state/FL')) score += 40;
+    // Carrier Ops rules override stale plan-grid notes for these operational asks.
+    if (key === 'hub/carrier-ops-devoted-hra' && /devoted/.test(q) && /hra|incentive|pay/.test(q)) score += 100;
+    if (key === 'hub/carrier-ops-uhc-fl-dsnp-crosswalk-2026' && /uhc|united/.test(q) && /crosswalk|d-snp|dsnp|medicaid/.test(q)) score += 100;
+    if (key === 'hub/carrier-ops-humana-plex-aep-2027' && /humana/.test(q) && /plex|plan exit|non-renew|nonrenew/.test(q)) score += 100;
     if (/hub\//.test(key)) score += 2;
     scored.push({ key, content, score });
   }

@@ -115,7 +115,7 @@ Last updated: 2026-07-16
 - **Broker | Manager:** Jean-Luc Batista | 786-495-1258 | jean-luc.batista@devoted.com
 - **Broker | Support #:** 877-764-9446
 - **Enrollment | Portals:** Devoted Portal
-- **HRA | Payment:** $50 all plans | TimeFrame: 5 days | Sunfire/ Devoted portal
+- **HRA | Payment:** $50 for C-SNP / D-SNP only | TimeFrame: within 5 calendar days of enrollment submission | applications written Mar 1, 2026 or later | non-SNP HRAs unpaid but still encouraged | Sunfire / Devoted portal
 - **Member | Services #:** 1-800-338-6833
 - **Fitness:** Silver Sneakers
 - **Lab:** LabCorp
