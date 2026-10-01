@@ -1,7 +1,7 @@
 # 2027 THEI plan grid — what Max can cite
 Source: THEI 2027 Plan Benefit Grid working copy ([Google Sheet](https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit))
-Pulled: 2026-09-24 13:34 UTC
-Sheet stamp: 2763 green / 3141 yellow benefit cells across plan tabs.
+Pulled: 2026-10-01 13:17 UTC
+Sheet stamp: 2995 green / 2772 yellow benefit cells across plan tabs.
 
 Color key on the sheet: **light green** = 2027 number from an official SoB, highlight, or sneak-peek slide (official SoB wins). **Yellow** = still the 2026 number. Max only cites green.
 
@@ -13,31 +13,18 @@ Live `#plan-data` stays the **2026** grid. These files are how chat answers 2027
 |---------|----------------------------------|--------|
 | Humana | 19 | `carriers/humana-plans-florida-2027` |
 | Devoted | 18 | `carriers/devoted-plans-florida-2027` |
-| UHC | 17 | `carriers/uhc-plans-florida-2027` |
+| UHC | 18 | `carriers/uhc-plans-florida-2027` |
 | CarePlus | 17 | `carriers/careplus-plans-florida-2027` |
 | Aetna | 10 | `carriers/aetna-plans-florida-2027` |
-| Doctors | 7 | `carriers/doctors-plans-florida-2027` |
-| HealthSun | 3 | `carriers/healthsun-plans-florida-2027` |
-
-## Public SoB status (2026-09-24 watcher)
-
-- **Humana:** public 2027 SOB + EOC still live on `assets.humana.com` for probed plans.
-- **CarePlus:** public 2027 SOBs live for H1019-001 / 006 / 023 / 148; H1019-152 still 404.
-- **Devoted:** H1290-085 and H1290-001 live; H1290-037 still 404.
-- **Doctors:** DrFullDual live; DrMax / DrSelect / DrExtraCare public URLs are placeholders; DrPartialDual 404.
-- **UHC:** all 16 probed alphadog `27` URLs still “PDF coming soon” placeholders (uhc_ready=0).
-- **HealthSun:** no public SOB URLs in the watcher; Miami-Dade green cells come from the Plan Benefit Grid (broker/sneak docs), not public PDF links.
+| Doctors | 9 | `carriers/doctors-plans-florida-2027` |
+| HealthSun | 12 | `carriers/healthsun-plans-florida-2027` |
 
 ## Still waiting on the official October 1 SoB
 
 These carriers are on the 2027 workbook but every benefit cell is still yellow. Do **not** quote their 2026 leftover numbers as 2027. Say Max does not have that 2027 figure yet.
 
-- Florida Blue
 - HealthSpring / Cigna
 - Simply
-- Solis
-- Wellcare
-- Gold Kidney
 
 ## New 2027 plans on the grid
 
@@ -61,9 +48,12 @@ These carriers are on the 2027 workbook but every benefit cell is still yellow. 
 
 ## Marked non-commissionable on the 2027 grid (new sales)
 
+- FL Blue BlueMedicare (`H1035-017`)
+- FL Blue Classic NON-COMMISIONABLE (`H1035-019`)
 - AARP UHC Regional PPO FL-0031 (`R0759-001`)
 - Humana Choice (`H7617-107`)
 - Humana Choice Giveback (`H7617-110`)
+- FL Blue Blue Medicare Select NON-COMMISIONABLE (`H5434-002`)
 
 ## Hospital / network notes already confirmed for 2027
 
@@ -75,12 +65,14 @@ These carriers are on the 2027 workbook but every benefit cell is still yellow. 
 - 2027 Plan Benefit Grid — working copy
 - The Health Experts Insurance · Doral, FL · 1-800-380-6821
 - AEP October 15 – December 7, 2026 (for 2027 coverage)
-- This file is a copy of the 2026 Google Sheet with 2027 numbers written on top.
-- Do not File → Import this into the live 2026 workbook. Upload this file as a NEW Google Sheet.
-- 2026 source: https://docs.google.com/spreadsheets/d/13qp5zQ5FqnoxxOrcfabW21i_O-TZr4hP2UPbEKxoUXA/edit
-- Color key
-- Yellow = still the 2026 number. Not confirmed from a 2027 SOB / sneak peek.
-- Light green = 2027 number entered from an official SOB, highlight, or slide. Official SOB wins.
+- === Hospitals x Carrier CarePlus 2027 directory pass 2026-10-01 ===
+- Sources: CarePlus 2027 Broward H1019FLHM01CG27 + Miami-Dade H1019FLHM01JG27 PDFs from careplushealthplans.com provider-directories (published ~10/01/2026).
+- CarePlus drops: Memorial (all campuses) Yes→No; Mount Sinai Yes→No — absent from Hospitals sections.
+- CarePlus reconfirmed in-network (left Yes): Broward Health campuses; HCA Northwest/University/Westside/Woodmont/Aventura/Kendall; Holy Cross; Florida Medical Center; Kindred Hollywood; Larkin (+Hollywood/Palm Springs); Jackson N/S/W + Memorial; Baptist Miami; Homestead; South Miami; West Kendall Baptist; Doctors; Coral Gables; Hialeah; Palmetto; Northshore; Mercy; Westchester.
+- CarePlus still empty / not in hospital dirs (left unchanged): Bascom Palmer, University of Miami/UHealth, Cleveland Clinic, Bethesda — not listed as network hospitals.
+- University Hospital row left alone (HCA Davie, not UM). Preferred Care Partner × UM left unchanged (PCN/MedicareMax termination is the documented drop; PCP not confirmed out for 2027).
+- Evidence log: /workspace/uploads/sneaks/out/hospitals-2027-dir-log-2026-10-01.json
+- Unverified: Jackson, Baptist SFL, Mount Sinai, HCA, Cleveland Clinic, Holy Cross, Mercy, Larkin, Steward/Hialeah/Palmetto/North Shore, Homestead, Coral Gables — left as prior Yes/empty pending carrier 2027 hospital directories.
 - Hospitals: 2026 Yes/— stays unless a public 2027 directory says otherwise (due Oct 1, 2026).
 - UHealth / University of Miami and Bascom Palmer × MedicareMax are out 1/1/2027.
 - University Hospital on the Hospitals tab is HCA Davie — not UM. Leave it.

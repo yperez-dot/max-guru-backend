@@ -1,7 +1,7 @@
 # Doctors — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-24 13:34 UTC
+Pulled: 2026-10-01 13:17 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H4140-001, H4140-004, H4140-012, H4140-013, H4140-020
 
@@ -13,10 +13,48 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H4140-004
 **SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrExtraCare_ENG.pdf)
-**SoB note:** 2027 SOB H4140-004 DrExtraCare
+**SoB note:** SOB — DrExtraCare
+**Premium:** 0
+**MOOP:** 3400
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | 0 |
+| Referrals Needed? | Yes |
+| Deductible | 0 |
+| Max Out of Pocket | 3400 |
+| Chronic Conditions | •Diabetes •Chronic Heart Failure •Cardiovascular Disorders |
+| Inpatient Hospital | 0 |
+| Outpatient Hospital | $25 / $50 |
+| PCP | 0 |
+| Specialist | 0 |
+| ER | 100 |
+| Urgent Care | 0 |
+| Advanced Imaging (MRI, CT, PET) | 75 |
+| Hearing Services | $1,350 x 2 years |
+| Dental | Preventive & Comprehensive |
+| Deep Cleaning | 1 x 2 years |
+| Dentures | 1 x 5 years |
+| Fillings | 4 |
+| Root Canals | 1 |
+| Extractions | 4 |
+| Crowns | 3 |
+| Bridges | 1 |
+| Implants | 1 |
+| Vision Allowance | 350 |
+| Ambulance | 100 |
+| Transportation | 0 |
+| RX Deductible | N/A |
+| Tier 1 | 0 |
+| Tier 2 | 0 |
+| Tier 3 | 0 |
+| Tier 4 | 55 |
+| Tier 5 | 0.33 |
+| Tier 6 | 0 |
+| OTC | $188 x month |
+| Grocery Card | see above |
+| Acupuncture | $0 x 20 visits |
+| Fitness | NO GYM |
 
 ---
 
@@ -25,6 +63,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H4140-013
+**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrFullDual_ENG.pdf)
+**SoB note:** SOB — DrFullDual
 **Still yellow on the working grid:** 7 field(s) — not cited below.
 **Premium:** $0
 **MOOP:** $3,400
@@ -69,6 +109,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H4140-020
+**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrFullDual_ENG.pdf)
+**SoB note:** SOB — DrPartialDual
 **Premium:** $0
 **MOOP:** $3,400
 
@@ -106,13 +148,78 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 ---
 
+## Doctors DrSelect (H4140-012) — Broward HMO
+**County:** Broward
+**Type:** HMO
+**Plan year:** 2027
+**CMS ID:** H4140-012
+**Premium:** 0
+**Part B Giveback:** 17
+**MOOP:** 3000
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+| Premium | 0 |
+| Part B Giveback | 17 |
+| Plan Deductible | 0 |
+| Referrals Needed? | Yes |
+| Max Out of Pocket | 3000 |
+| Inpatient Hospital | 0 |
+| Outpatient Hospital | $50 / $75 |
+| PCP | 0 |
+| Specialist | 0 |
+| ER | 100 |
+| Urgent Care | 0 |
+| Advanced Imaging (MRI, CT, PET) | 75 |
+| Hearing Services | $1,350 every 2 years |
+| Dental | Preventive & Comprehensive |
+| Deep Cleaning | 1 quadrant x 2 years |
+| Dentures | 1 x 5 years |
+| Fillings | 2 |
+| Root Canals | 1 |
+| Extractions | 4 |
+| Crowns | 1 |
+| Bridges | not listed |
+| Implants | 1 |
+| Vision Allowance | 400 |
+| Ambulance | 125 |
+| Transportation | Unlimited |
+| RX Deductible | 0 |
+| Tier 1 | 0 |
+| Tier 2 | 0 |
+| Tier 3 | 0 |
+| Tier 4 | 55 |
+| Tier 5 | 0.33 |
+| Tier 6 | 0 |
+| OTC | $128 x month (food allowance if they qualify) |
+| Acupuncture | $0 x 20 visits |
+| Fitness | Silver & Fit |
+| Grocery Card | see OTC |
+| Chronic Conditions | Chronic Conditions List |
+
+---
+
+## Doctors DrExtraCare (H4140-004) — Miami-Dade C-SNP
+**County:** Miami-Dade
+**Type:** C-SNP
+**Plan year:** 2027
+**CMS ID:** H4140-004
+**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrExtraCare_ENG.pdf)
+**SoB note:** SOB — DrExtraCare
+**Still yellow on the working grid:** 36 field(s) — not cited below.
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+
+---
+
 ## Doctors DrFullDual-SFL (HMO D-SNP) (H4140-013) — Miami-Dade D-SNP
 **County:** Miami-Dade
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H4140-013
 **SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrFullDual_ENG.pdf)
-**SoB note:** 2027 SOB H4140-013 DrFullDual
+**SoB note:** SOB — DrFullDual
 **Still yellow on the working grid:** 9 field(s) — not cited below.
 **Premium:** $0
 **MOOP:** $3,400
@@ -157,6 +264,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H4140-020
+**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrFullDual_ENG.pdf)
+**SoB note:** SOB — DrPartialDual
 **Premium:** $0
 **MOOP:** $3,400
 
@@ -199,7 +308,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H4140-001
-**SoB note:** Public Doctors 2027 DrMax SOB URL currently returns a placeholder (watcher 2026-09-24); sheet still has a mis-pasted CarePlus SOB link which was stripped for Max safety.
 **Premium:** 0
 **Part B Giveback:** 17
 **MOOP:** 3000
@@ -250,7 +358,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H4140-012
-**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax-DrSelect_ENG.pdf)
 **Premium:** 0
 **Part B Giveback:** nO
 **MOOP:** 3000

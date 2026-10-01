@@ -14,9 +14,9 @@ Agents may ask for **2027** anytime. If Max has the fact, he answers it and cite
 | Devoted 2027 (CORE, GIVEBACK, C-SNP, Dual, GIVEBACK EXTRAS H1290-110) | `carriers/devoted-plans-florida-2027` |
 | UHC / MedicareMax / Preferred / AARP PPO 2027 | `carriers/uhc-plans-florida-2027` |
 | CarePlus 2027 (including new CareBreeze H1019-154, CareFree Giveback H1019-065) | `carriers/careplus-plans-florida-2027` |
-| Doctors 2027 (DrMax, DrSelect, DrExtraCare, DrFullDual H4140-013, DrPartialDual H4140-020) | `carriers/doctors-plans-florida-2027` |
+| Doctors 2027 (9 plans with green cells; DrMax, DrSelect, DrExtraCare, DrFullDual, DrPartialDual) | `carriers/doctors-plans-florida-2027` |
 | Aetna 2027 (including new Partial Dual Select H1609-103) | `carriers/aetna-plans-florida-2027` |
-| HealthSun 2027 (VitalCare H5431-021, MediSun Extra H5431-019, MediSun Full Dual Extra H5431-026 — Miami-Dade green cells) | `carriers/healthsun-plans-florida-2027` |
+| HealthSun 2027 (12 plans with green cells across Miami-Dade/Broward; includes VitalCare / MediSun Extra / MediSun Full Dual Extra) | `carriers/healthsun-plans-florida-2027` |
 | 2027 hospital cuts (UM / Bascom Palmer off MedicareMax 1/1/2027) | `carriers/hospital-networks-2027` |
 
 ## Plan dollars
@@ -26,9 +26,9 @@ Live `#plan-data` is the **2026** THEI grid (151 plans). That is current-year co
 Working 2027 workbook (another desk is still filling it; official leftover SoBs due **Oct 1, 2026**):  
 https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
 
-- **Green cells are on file** for Humana, Devoted, UHC, CarePlus, Aetna, Doctors, and HealthSun (Miami-Dade VitalCare / MediSun Extra / MediSun Full Dual Extra) — cite those 2027 numbers from the carrier `*2027*` docs. Yellow leftover 2026 cells were **not** imported.
+- **Green cells are on file** for Humana (19), Devoted (18), UHC (18), CarePlus (17), HealthSun (12), Aetna (10), and Doctors (9) — cite those 2027 numbers from the carrier `*2027*` docs. Yellow leftover 2026 cells were **not** imported.
 - **Still no 2027 dollars** for Florida Blue, HealthSpring/Cigna, Simply, Solis, Wellcare, Gold Kidney. Say “I don’t have that 2027 figure yet.”
-- **UHC public SoBs:** alphadog `27` URLs are still placeholders (“PDF coming soon”). Prefer green cells + portal highlight notes until real 2027 public SoBs publish.
+- **Public SoBs:** Devoted CORE H1290-037 is live on assets.devoted.com (`…H1290-037-001-ENG.pdf`). Humana CDN + CarePlus 2027PDFs remain live. **UHC** alphadog `27` URLs are still placeholders (“PDF coming soon”). Doctors public SOB URLs hit reCAPTCHA/empty shells — use green cells only. Prefer green cells until real public PDFs publish.
 - Refresh: `scripts/export_2027_grid_to_kb.py` (green cells only). Do not write this sheet into live `#plan-data`.
 
 ## How to cite

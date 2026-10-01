@@ -1,7 +1,7 @@
 # CarePlus — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-21 13:48 UTC
+Pulled: 2026-10-01 13:17 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1019-001, H1019-006, H1019-023, H1019-065, H1019-121, H1019-123, H1019-124, H1019-130, H1019-135, H1019-136, H1019-148, H1019-150, H1019-154
 
@@ -13,21 +13,26 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1019-124
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019124000SB27.pdf)
-**SoB note:** 2027 CarePlus slide 15 H1019-124 CareBreeze Platinum POS (Broward; Palm Beach skipped). Urgent / imaging not on this slide.
-**Still yellow on the working grid:** 16 field(s) — not cited below.
+**SoB note:** SOB — CareBreeze Platinum POS
+**Still yellow on the working grid:** 9 field(s) — not cited below.
+**Premium:** $0
 **Part B Giveback:** $154
 **MOOP:** $3,400
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | $0 |
 | Referrals Needed? | Yes |
 | Part B Rebate | $154 |
 | Max Out of Pocket | $3,400 |
 | Chronic Conditions | Chronic lung disorders |
 | Inpatient Hospital | $150 days 1-7 |
+| Outpatient Hospital | $0 / $100 / $200 |
 | PCP | $0 |
 | Specialist | $20 |
 | ER | $150 |
+| Urgent Care | $20 |
+| Advanced Imaging (MRI, CT, PET) | $150 / $200 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
 | Dental | Comprehensive — root canal, dentures, unlimited extractions for dentures, X-rays (30% coinsurance on dentures) |
 | Vision Allowance | $0 annual exam / $100 allowance |
@@ -41,6 +46,9 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 25% |
 | Tier 6 | $0 |
 | OTC | $25/month CareEssentials (automatic, rollover) |
+| Grocery Card | Combined with CareEssentials if eligible |
+| Acupuncture | $20 x 25 visits |
+| Fitness | SilverSneakers |
 | Other Cards | $25/month CareEssentials (automatic, rollover) |
 
 ---
@@ -51,21 +59,26 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1019-130
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019130000SB27.pdf)
-**SoB note:** 2027 CarePlus slide 15 H1019-130 CareComplete Platinum POS (Broward; Palm Beach skipped). Urgent / imaging not on this slide.
-**Still yellow on the working grid:** 15 field(s) — not cited below.
+**SoB note:** SOB — CareComplete Platinum POS
+**Still yellow on the working grid:** 8 field(s) — not cited below.
+**Premium:** $0
 **Part B Giveback:** $156
 **MOOP:** $3,400
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | $0 |
 | Referrals Needed? | Yes |
 | Part B Rebate | $156 |
 | Max Out of Pocket | $3,400 |
 | Chronic Conditions | Diabetes mellitus, chronic heart failure, and cardiovascular disorders |
 | Inpatient Hospital | $150 days 1-7 |
+| Outpatient Hospital | $0 / $100 / $200 |
 | PCP | $0 |
 | Specialist | $20 |
 | ER | $150 |
+| Urgent Care | $20 |
+| Advanced Imaging (MRI, CT, PET) | $150 / $200 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
 | Dental | Comprehensive — root canal, dentures, unlimited extractions for dentures, X-rays (30% coinsurance on dentures) |
 | Vision Allowance | $0 annual exam / $200 allowance |
@@ -78,7 +91,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 4 | 50% |
 | Tier 5 | 25% |
 | Tier 6 | $0 |
-| OTC | $25/month CareEssentials (automatic, rollover) |
+| OTC | $30/month CareEssentials (automatic, rollover) |
+| Grocery Card | Combined with CareEssentials if eligible |
+| Acupuncture | $20 x 25 visits |
+| Fitness | SilverSneakers |
 | Other Cards | $25/month CareEssentials (automatic, rollover) |
 
 ---
@@ -89,25 +105,28 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1019-150
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019150000SB27.pdf)
-**SoB note:** 2027 CarePlus slide 13 H1019-150 CareComplete statewide. Urgent / imaging not on this slide.
-**Still yellow on the working grid:** 13 field(s) — not cited below.
+**SoB note:** SOB — CareComplete
+**Still yellow on the working grid:** 7 field(s) — not cited below.
+**Premium:** $0
 **Part B Giveback:** $3
 **MOOP:** $2,000
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | $0 |
 | Referrals Needed? | Yes |
 | Part B Rebate | $3 |
 | Max Out of Pocket | $2,000 |
 | Chronic Conditions | Diabetes mellitus, chronic heart failure, and cardiovascular disorders |
 | Inpatient Hospital | $50 days 1-5 |
+| Outpatient Hospital | $0 / $50 |
 | PCP | $0 |
 | Specialist | $10 |
 | ER | $140 |
+| Urgent Care | $10 |
+| Advanced Imaging (MRI, CT, PET) | $25 / $50 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
 | Dental | Comprehensive — deep cleaning, bridges, dentures, unlimited extractions for dentures, X-rays |
-| Crowns | 2 every 5 years |
-| Bridges | Yes |
 | Vision Allowance | $0 annual exam / $200 allowance |
 | Ambulance | $250 |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
@@ -118,10 +137,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 4 | 50% |
 | Tier 5 | 25% |
 | Tier 6 | $0 |
-| OTC | $185/month CareEssentials (automatic, rollover) |
+| OTC | $190/month CareEssentials (automatic, rollover) |
+| Grocery Card | Combined with CareEssentials if eligible |
+| Acupuncture | $20 x 25 visits |
 | Other Cards | $185/month CareEssentials (automatic, rollover) |
-
-Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5 years` / `Yes`). Broward Crowns/Bridges cells were `$0 varies` (junk). CareComplete H1019-150 is statewide — same SoB as Dade. Cite the grid first; SoB/EOC for CDT-level edge cases (prior auth).
 
 ---
 
@@ -131,14 +150,14 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 **Plan year:** 2027
 **CMS ID:** H1019-154
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019154000SB27.pdf)
-**SoB note:** 2027 SOB H1019-154 CareBreeze
-**Part B Giveback:** $5
+**SoB note:** SOB — CareBreeze
+**Part B Giveback:** $4
 **MOOP:** $2,000
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Referrals Needed? | Yes |
-| Part B Rebate | $5 |
+| Part B Rebate | $4 |
 | Max Out of Pocket | $2,000 |
 | Chronic Conditions | Chronic lung disorders |
 | Inpatient Hospital | $50 days 1-5 |
@@ -157,7 +176,7 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 | Tier 4 | 50% |
 | Tier 5 | 25% |
 | Tier 6 | $0 |
-| OTC | $185/month CareEssentials (automatic, rollover) |
+| OTC | $195/month CareEssentials (automatic, rollover) |
 | Other Cards | $185/month CareEssentials (automatic, rollover) |
 
 ---
@@ -168,19 +187,26 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 **Plan year:** 2027
 **CMS ID:** H1019-023
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019023000SB27.pdf)
-**SoB note:** 2027 CarePlus D-SNP slide H1019-023 CareNeeds Platinum. Dade + Broward; Palm Beach skipped. Premium / Part B rebate / urgent / imaging not on this slide.
-**Still yellow on the working grid:** 19 field(s) — not cited below.
+**SoB note:** SOB — CareNeeds Platinum
+**Still yellow on the working grid:** 10 field(s) — not cited below.
+**Premium:** $0
+**Part B Giveback:** No
 **MOOP:** $3,400
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | $0 |
+| Part B Rebate | No |
 | Referrals Needed? | Yes |
 | MSP Levels | QDWI, QI, QMB, SLMB |
 | Max Out of Pocket | $3,400 |
 | Inpatient Hospital | $0 |
+| Outpatient Hospital | $0 |
 | PCP | $0 |
 | Specialist | $0 |
 | ER | $150 |
+| Urgent Care | $0 |
+| Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 Level 1 hearing aid per ear per year |
 | Dental | Defined — periodontal maintenance, dentures, unlimited extractions for dentures |
 | Vision Allowance | $115 allowance |
@@ -192,8 +218,12 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 | Tier 3 | 17% |
 | Tier 4 | 41% |
 | Tier 5 | 25% |
+| Tier 6 | N/A |
 | OTC | $250/month hybrid (rollover) |
+| Grocery Card | Combined with OTC if eligible |
 | Chronic Conditions | SSBCI — 1 qualifying chronic condition |
+| Acupuncture | $0 x 25 visits |
+| Fitness | SilverSneakers |
 | Other Cards | CareEssentials SSBCI — 1 qualifying chronic condition |
 
 ---
@@ -204,7 +234,7 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 **Plan year:** 2027
 **CMS ID:** H1019-065
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019065000SB27.pdf)
-**SoB note:** 2027 SOB H1019-065 CareFree Giveback
+**SoB note:** SOB — CareFree Giveback
 **Part B Giveback:** $73.50
 **MOOP:** $5,000
 
@@ -237,20 +267,25 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 **Plan year:** 2027
 **CMS ID:** H1019-135
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019135000SB27.pdf)
-**SoB note:** 2027 CarePlus slide 12 H1019-135 CareFree Platinum (Broward; Palm Beach skipped). Urgent / imaging / OTC not on this slide.
-**Still yellow on the working grid:** 17 field(s) — not cited below.
+**SoB note:** SOB — CareFree Platinum
+**Still yellow on the working grid:** 8 field(s) — not cited below.
+**Premium:** $0
 **Part B Giveback:** $155
 **MOOP:** $3,400
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | $0 |
 | Referrals Needed? | Yes |
 | Part B Give Back | $155 |
 | Max Out of Pocket | $3,400 |
 | Inpatient Hospital | $225 days 1-7 |
+| Outpatient Hospital | $0 / $150 / $250 |
 | PCP | $0 |
 | Specialist | $25 |
 | ER | $150 |
+| Urgent Care | $25 |
+| Advanced Imaging (MRI, CT, PET) | $200 / $250 |
 | Hearing Services | $0 exam · $575 Level 1 / $750 Level 2 per ear |
 | Dental | Comprehensive — root canal, oral surgery, dentures, unlimited extractions for dentures, X-rays |
 | Vision Allowance | $100 allowance |
@@ -262,6 +297,11 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 | Tier 3 | 12% |
 | Tier 4 | 31% |
 | Tier 5 | 25% |
+| Tier 6 | N/A |
+| OTC | $15/month |
+| Acupuncture | $20 x 25 visits |
+| Fitness | SilverSneakers |
+| Grocery Card | N/A |
 
 ---
 
@@ -271,20 +311,26 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 **Plan year:** 2027
 **CMS ID:** H1019-001
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019001000SB27.pdf)
-**SoB note:** 2027 CarePlus South Florida Core slide H1019-001 CareOne Plus HMO-POS (Broward + Palm Beach; not on Dade grid). Urgent / imaging not on this slide.
-**Still yellow on the working grid:** 18 field(s) — not cited below.
+**SoB note:** SOB — CareOne Plus
+**Still yellow on the working grid:** 9 field(s) — not cited below.
+**Premium:** $0
 **Part B Giveback:** $9
 **MOOP:** $750
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | $0 |
 | Part B Giveback | $9 |
+| Plan Deductible | $0 |
 | Referrals Needed? | Yes |
 | Max Out of Pocket | $750 |
 | Inpatient Hospital | $0 / $200 days 1-4 |
+| Outpatient Hospital | $0 / $50 |
 | PCP | $0 |
 | Specialist | $0 / $35 |
 | ER | $150 |
+| Urgent Care | $0 |
+| Advanced Imaging (MRI, CT, PET) | $30 / $50 |
 | Hearing Services | $0 exam · $0 Level 1 / $275 Level 2 aid |
 | Dental | Comprehensive — root canal, bridge, dentures, unlimited extractions, X-ray |
 | Vision Allowance | $350 allowance / 3 pairs |
@@ -296,7 +342,11 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 | Tier 3 | $0 |
 | Tier 4 | 50% |
 | Tier 5 | 33% |
-| OTC | $60/month hybrid (rollover) |
+| Tier 6 | N/A |
+| OTC | $70/month CareEssentials |
+| Acupuncture | $0 x 25 visits |
+| Fitness | SilverSneakers |
+| Grocery Card | Combined with OTC if eligible |
 | Chronic Conditions | SSBCI — 2 qualifying chronic conditions |
 | Other Cards | CareEssentials SSBCI — 2 qualifying chronic conditions |
 
@@ -308,20 +358,26 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 **Plan year:** 2027
 **CMS ID:** H1019-148
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019148000SB27.pdf)
-**SoB note:** 2027 CarePlus South Florida Core slide H1019-148 CareAccess. Palm Beach skipped. Urgent / imaging not on this slide.
-**Still yellow on the working grid:** 17 field(s) — not cited below.
+**SoB note:** SOB — CareAccess
+**Still yellow on the working grid:** 8 field(s) — not cited below.
+**Premium:** $0
 **Part B Giveback:** $10.50
 **MOOP:** $2,250
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | $0 |
 | Part B Giveback | $10.50 |
+| Plan Deductible | $0 |
 | Referrals Needed? | No |
 | Max Out of Pocket | $2,250 |
 | Inpatient Hospital | $50 days 1-5 |
+| Outpatient Hospital | $0 / $50 / $125 |
 | PCP | $0 |
 | Specialist | $10 |
 | ER | $150 |
+| Urgent Care | $10 |
+| Advanced Imaging (MRI, CT, PET) | $50 / $150 |
 | Hearing Services | $0 exam · $575 Level 1 / $750 Level 2 aid |
 | Dental | Defined benefits — partial/complete dentures, unlimited extractions, root canal, deep cleaning, X-rays |
 | Vision Allowance | $100 allowance / 1 pair |
@@ -333,7 +389,11 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 | Tier 3 | 17% |
 | Tier 4 | 50% |
 | Tier 5 | 33% |
+| Tier 6 | N/A |
 | OTC | $40/month hybrid (rollover) |
+| Acupuncture | $20 x 25 visits |
+| Fitness | SilverSneakers |
+| Grocery Card | Combined with OTC if eligible |
 | Chronic Conditions | SSBCI — 2 qualifying chronic conditions |
 | Other Cards | CareEssentials SSBCI — 2 qualifying chronic conditions |
 
@@ -345,21 +405,26 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 **Plan year:** 2027
 **CMS ID:** H1019-121
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019121000SB27.pdf)
-**SoB note:** 2027 CarePlus slide 14 H1019-121 CareComplete Platinum (Miami-Dade). Urgent / imaging not on this slide.
-**Still yellow on the working grid:** 15 field(s) — not cited below.
+**SoB note:** SOB — CareComplete Platinum
+**Still yellow on the working grid:** 8 field(s) — not cited below.
+**Premium:** $0
 **Part B Giveback:** $167
 **MOOP:** $2,000
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | $0 |
 | Referrals Needed? | Yes |
 | Part B Rebate | $167 |
 | Max Out of Pocket | $2,000 |
 | Chronic Conditions | Diabetes mellitus, chronic heart failure, and cardiovascular disorders |
 | Inpatient Hospital | $50 days 1-5 |
+| Outpatient Hospital | $0 / $25 / $75 |
 | PCP | $0 |
 | Specialist | $10 |
 | ER | $150 |
+| Urgent Care | $10 |
+| Advanced Imaging (MRI, CT, PET) | $50 / $75 |
 | Hearing Services | $0 exam · $299 Level 1 / $575 Level 2 per ear |
 | Dental | Comprehensive — root canal, dentures, unlimited extractions for dentures, X-rays (30% coinsurance on dentures and crowns) |
 | Vision Allowance | $0 annual exam / $100 allowance |
@@ -373,6 +438,9 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 | Tier 5 | 25% |
 | Tier 6 | $0 |
 | OTC | $35/month CareEssentials (automatic, rollover) |
+| Grocery Card | Combined with CareEssentials if eligible |
+| Acupuncture | $20 x 25 visits |
+| Fitness | SilverSneakers |
 | Other | $35/month CareEssentials (automatic, rollover) |
 
 ---
@@ -383,21 +451,26 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 **Plan year:** 2027
 **CMS ID:** H1019-123
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019123000SB27.pdf)
-**SoB note:** 2027 CarePlus slide 14 H1019-123 CareBreeze Platinum (Miami-Dade). Urgent / imaging not on this slide.
-**Still yellow on the working grid:** 15 field(s) — not cited below.
+**SoB note:** SOB — CareBreeze Platinum
+**Still yellow on the working grid:** 8 field(s) — not cited below.
+**Premium:** $0
 **Part B Giveback:** $163
 **MOOP:** $2,000
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | $0 |
 | Referrals Needed? | Yes |
 | Part B Rebate | $163 |
 | Max Out of Pocket | $2,000 |
 | Chronic Conditions | Chronic lung disorders |
 | Inpatient Hospital | $50 days 1-5 |
+| Outpatient Hospital | $0 / $25 / $75 |
 | PCP | $0 |
 | Specialist | $10 |
 | ER | $150 |
+| Urgent Care | $10 |
+| Advanced Imaging (MRI, CT, PET) | $50 / $75 |
 | Hearing Services | $0 exam · $299 Level 1 / $575 Level 2 per ear |
 | Dental | Comprehensive — root canal, dentures, unlimited extractions for dentures, X-rays (30% coinsurance on dentures) |
 | Vision Allowance | $0 annual exam / $350 allowance |
@@ -411,6 +484,9 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 | Tier 5 | 25% |
 | Tier 6 | $0 |
 | OTC | $45/month CareEssentials (automatic, rollover) |
+| Grocery Card | Combined with CareEssentials if eligible |
+| Acupuncture | $20 x 25 visits |
+| Fitness | SilverSneakers |
 | Other | $45/month CareEssentials (automatic, rollover) |
 
 ---
@@ -421,25 +497,28 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 **Plan year:** 2027
 **CMS ID:** H1019-150
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019150000SB27.pdf)
-**SoB note:** 2027 CarePlus slide 13 H1019-150 CareComplete statewide. Urgent / imaging not on this slide.
-**Still yellow on the working grid:** 15 field(s) — not cited below.
+**SoB note:** SOB — CareComplete
+**Still yellow on the working grid:** 8 field(s) — not cited below.
+**Premium:** $0
 **Part B Giveback:** $3
 **MOOP:** $2,000
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | $0 |
 | Referrals Needed? | Yes |
 | Part B Rebate | $3 |
 | Max Out of Pocket | $2,000 |
 | Chronic Conditions | Diabetes mellitus, chronic heart failure, and cardiovascular disorders |
 | Inpatient Hospital | $50 days 1-5 |
+| Outpatient Hospital | $0 / $50 |
 | PCP | $0 |
 | Specialist | $10 |
 | ER | $140 |
+| Urgent Care | $10 |
+| Advanced Imaging (MRI, CT, PET) | $25 / $50 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
 | Dental | Comprehensive — deep cleaning, bridges, dentures, unlimited extractions for dentures, X-rays |
-| Crowns | 2 every 5 years |
-| Bridges | Yes |
 | Vision Allowance | $0 annual exam / $200 allowance |
 | Ambulance | $250 |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
@@ -450,10 +529,11 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 | Tier 4 | 50% |
 | Tier 5 | 25% |
 | Tier 6 | $0 |
-| OTC | $185/month CareEssentials (automatic, rollover) |
+| OTC | $190/month CareEssentials (automatic, rollover) |
+| Grocery Card | Combined with CareEssentials if eligible |
+| Acupuncture | $20 x 25 visits |
+| Fitness | SilverSneakers |
 | Other | $185/month CareEssentials (automatic, rollover) |
-
-Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5 years` / `Yes`). Statewide CareComplete — use the same frequency for Broward. Cite the grid first; SoB/EOC for CDT-level edge cases (prior auth).
 
 ---
 
@@ -463,14 +543,14 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 **Plan year:** 2027
 **CMS ID:** H1019-154
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019154000SB27.pdf)
-**SoB note:** 2027 SOB H1019-154 CareBreeze
-**Part B Giveback:** $5
+**SoB note:** SOB — CareBreeze
+**Part B Giveback:** $4
 **MOOP:** $2,000
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Referrals Needed? | Yes |
-| Part B Rebate | $5 |
+| Part B Rebate | $4 |
 | Max Out of Pocket | $2,000 |
 | Chronic Conditions | Chronic lung disorders |
 | Inpatient Hospital | $50 days 1-5 |
@@ -489,7 +569,7 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 | Tier 4 | 50% |
 | Tier 5 | 25% |
 | Tier 6 | $0 |
-| OTC | $185/month CareEssentials (automatic, rollover) |
+| OTC | $195/month CareEssentials (automatic, rollover) |
 | Other | $185/month CareEssentials (automatic, rollover) |
 
 ---
@@ -500,19 +580,26 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 **Plan year:** 2027
 **CMS ID:** H1019-023
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019023000SB27.pdf)
-**SoB note:** 2027 CarePlus D-SNP slide H1019-023 CareNeeds Platinum. Dade + Broward; Palm Beach skipped. Premium / Part B rebate / urgent / imaging not on this slide.
-**Still yellow on the working grid:** 18 field(s) — not cited below.
+**SoB note:** SOB — CareNeeds Platinum
+**Still yellow on the working grid:** 9 field(s) — not cited below.
+**Premium:** $0
+**Part B Giveback:** No
 **MOOP:** $3,400
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | $0 |
+| Part B Rebate | No |
 | Referrals Needed? | Yes |
 | MSP Levels | QDWI, QI, QMB, SLMB |
 | Max Out of Pocket | $3,400 |
 | Inpatient Hospital | $0 |
+| Outpatient Hospital | $0 |
 | PCP | $0 |
 | Specialist | $0 |
 | ER | $150 |
+| Urgent Care | $0 |
+| Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 Level 1 hearing aid per ear per year |
 | Dental | Defined — periodontal maintenance, dentures, unlimited extractions for dentures |
 | Vision Allowance | $115 allowance |
@@ -524,8 +611,12 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 | Tier 3 | 17% |
 | Tier 4 | 41% |
 | Tier 5 | 25% |
+| Tier 6 | N/A |
 | OTC | $250/month hybrid (rollover) |
+| Grocery Card | Combined with OTC if eligible |
 | Chronic Conditions | SSBCI — 1 qualifying chronic condition |
+| Acupuncture | $0 x 25 visits |
+| Fitness | SilverSneakers |
 | Other | CareEssentials SSBCI — 1 qualifying chronic condition |
 
 ---
@@ -536,20 +627,25 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 **Plan year:** 2027
 **CMS ID:** H1019-136
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019136000SB27.pdf)
-**SoB note:** 2027 CarePlus slide 11 H1019-136 CareFree Platinum (Miami-Dade). Urgent / imaging / OTC not on this slide.
-**Still yellow on the working grid:** 17 field(s) — not cited below.
+**SoB note:** SOB — CareFree Platinum
+**Still yellow on the working grid:** 8 field(s) — not cited below.
+**Premium:** $0
 **Part B Giveback:** $178
 **MOOP:** $3,000
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | $0 |
 | Referrals Needed? | Yes |
 | Part B Give Back | $178 |
 | Max Out of Pocket | $3,000 |
 | Inpatient Hospital | $125 days 1-6 |
+| Outpatient Hospital | $0 / $50 / $150 |
 | PCP | $0 |
 | Specialist | $10 |
 | ER | $150 |
+| Urgent Care | $10 |
+| Advanced Imaging (MRI, CT, PET) | $100 / $150 |
 | Hearing Services | $0 exam · $575 Level 1 / $750 Level 2 per ear |
 | Dental | Oral surgery, dentures, unlimited extractions for dentures, X-rays |
 | Vision Allowance | $100 allowance / 1 pair |
@@ -561,6 +657,11 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 | Tier 3 | 10% |
 | Tier 4 | 30% |
 | Tier 5 | 25% |
+| Tier 6 | N/A |
+| OTC | $10/month |
+| Acupuncture | $0 x 25 visits |
+| Fitness | SilverSneakers |
+| Grocery Card | N/A |
 
 ---
 
@@ -570,20 +671,25 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 **Plan year:** 2027
 **CMS ID:** H1019-006
 **SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019006000SB27.pdf)
-**SoB note:** 2027 CarePlus South Florida Core slide H1019-006 CareOne Plus (Miami-Dade). Urgent / imaging not on this slide.
-**Still yellow on the working grid:** 17 field(s) — not cited below.
+**SoB note:** SOB — CareOne Plus
+**Still yellow on the working grid:** 9 field(s) — not cited below.
+**Premium:** $0
 **Part B Giveback:** $13.50
 **MOOP:** $500
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | $0 |
 | Part B Giveback | $13.50 |
 | Referrals Needed? | Yes |
 | Max Out of Pocket | $500 |
 | Inpatient Hospital | $0 |
+| Outpatient Hospital | $0 |
 | PCP | $0 |
 | Specialist | $0 |
 | ER | $130 |
+| Urgent Care | $0 |
+| Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 exam · $575 Level 1 / $750 Level 2 aid |
 | Dental | Comprehensive — root canal, bridge, dentures, unlimited extractions, X-ray |
 | Vision Allowance | $115 allowance / 1 pair |
@@ -595,7 +701,11 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 | Tier 3 | $0 |
 | Tier 4 | 50% |
 | Tier 5 | 33% |
+| Tier 6 | N/A |
 | OTC | $60/month hybrid (rollover) |
+| Acupuncture | $0 x 25 visits |
+| Fitness | SilverSneakers |
+| Grocery Card | Combined with OTC if eligible |
 | Chronic Conditions | SSBCI — 2 qualifying chronic conditions |
 | Other Cards | CareEssentials SSBCI — 2 qualifying chronic conditions |
 
@@ -606,21 +716,26 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1019-148
-**SoB:** [SoB](https://docs.google.com/spreadsheets/d/1pzfYr4ZSZrej2hx2VqDA4ijodb12wfzq8e-lBtwCAl8/edit?usp=sharing)
-**SoB note:** Chronic Conditions List
-**Still yellow on the working grid:** 16 field(s) — not cited below.
+**SoB:** [SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019148000SB27.pdf)
+**SoB note:** SOB — CareAccess
+**Still yellow on the working grid:** 8 field(s) — not cited below.
+**Premium:** $0
 **Part B Giveback:** $10.50
 **MOOP:** $2,250
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | $0 |
 | Part B Giveback | $10.50 |
 | Referrals Needed? | No |
 | Max Out of Pocket | $2,250 |
 | Inpatient Hospital | $50 days 1-5 |
+| Outpatient Hospital | $0 / $50 / $125 |
 | PCP | $0 |
 | Specialist | $10 |
 | ER | $150 |
+| Urgent Care | $10 |
+| Advanced Imaging (MRI, CT, PET) | $50 / $150 |
 | Hearing Services | $0 exam · $575 Level 1 / $750 Level 2 aid |
 | Dental | Defined benefits — partial/complete dentures, unlimited extractions, root canal, deep cleaning, X-rays |
 | Vision Allowance | $100 allowance / 1 pair |
@@ -632,7 +747,11 @@ Crowns / Bridges: THEI 2027 Plan Comparison Grid DADE-CSNP H1019-150 (`2 every 5
 | Tier 3 | 17% |
 | Tier 4 | 50% |
 | Tier 5 | 33% |
+| Tier 6 | N/A |
 | OTC | $40/month hybrid (rollover) |
+| Acupuncture | $20 x 25 visits |
+| Fitness | SilverSneakers |
+| Grocery Card | Combined with OTC if eligible |
 | Chronic Conditions | SSBCI — 2 qualifying chronic conditions |
 | Other Cards | CareEssentials SSBCI — 2 qualifying chronic conditions |
 

@@ -1,19 +1,63 @@
 # UHC — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-21 13:48 UTC
+Pulled: 2026-10-01 13:17 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1045-001, H1045-005, H1045-012, H1045-018, H1045-061, H1045-063, H1889-002, H1889-026, H5420-001, H5420-003, H5420-014, R0759-001
 
 Yellow leftover 2026 cells are **not** in this file. If a benefit is missing here, Max does not have a confirmed 2027 figure yet.
+
+## UHC MedicareMax Complete Care (H5420-014) — Broward C-SNP
+**County:** Broward
+**Type:** C-SNP
+**Plan year:** 2027
+**CMS ID:** H5420-014
+**SoB:** [SoB](https://www.uhc.com/medicare/alphadog/PNFL27HM0413009_000)
+**SoB note:** SOB — MedicareMax Complete Care FL-30
+**Still yellow on the working grid:** 8 field(s) — not cited below.
+**Premium:** $0 (LIS $0)
+**Part B Giveback:** $61
+**MOOP:** $3,400
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+| Premium | $0 (LIS $0) |
+| Referrals Needed? | Yes |
+| Deductible | $0 in-network |
+| Part B Rebate | $61 |
+| Max Out of Pocket | $3,400 |
+| Chronic Conditions | Diabetes, chronic heart failure, and/or a cardiovascular disorder |
+| Inpatient Hospital | $0 per stay · unlimited days |
+| Outpatient Hospital | ASC $50 / Outpatient hospital $150 $0 colonoscopies |
+| PCP | $0 |
+| Specialist | $0 |
+| ER | $150 |
+| Urgent Care | $65 |
+| Advanced Imaging (MRI, CT, PET) | $150 $0 mammograms / $0 X-rays |
+| Hearing Services | $700 allowance for 2 hearing aids every year (UHC Hearing) |
+| Dental | Preventive & Comprehensive — $0 copay |
+| Vision Allowance | $200 eyeglasses or contacts (routine exam $0) |
+| Ambulance | $125 ground or air |
+| Transportation | $0 INN · 24 one-way trips to plan-approved locations |
+| RX Deductible | $0 all tiers |
+| Tier 1 | $0 |
+| Tier 2 | $0 |
+| Tier 3 | $0 |
+| Tier 4 | 27% |
+| Tier 5 | 33% |
+| Tier 6 | N/A |
+| OTC | Not covered |
+| Grocery Card | Highlight intro: monthly OTC / healthy food credit for qualifying members (dollar amount not listed). Plan Details OTC line is Not Covered. |
+| Fitness | Free gym — core and premium network |
+| Other | Rewards not covered Post-discharge meals: 28 meals over 14 days, unlimited times/year Insulin $0 retail and mail · $0 diabetic supplies |
+
+---
 
 ## UHC Preferred Dual Complete FL-QV4 (H1045-012) — Broward D-SNP
 **County:** Broward
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-012
-**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/PCFL26HP0337546_001)
-**SoB note:** 2027 sneak peek H1045-012 FL-QV4 (2026 grid labeled FL-D001)
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -56,8 +100,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-061
-**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/UHFL26LP0332567_000)
-**SoB note:** 2027 sneak peek H1045-061 FL-V1 Preferred Dual Complete
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Premium:** $0 – $7.30 (LIS $0)
 **Part B Giveback:** No
@@ -100,8 +142,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-063
-**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/PCFL26HM0332535_000)
-**SoB note:** 2027 sneak peek H1045-063-000 Preferred Dual Complete FL-Y6 (portal highlight + SOB)
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -144,8 +184,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1889-002
-**SoB:** [SoB](https://www.aarpmedicareplans.com/alphadog/UHFL26LP0332585_000)
-**SoB note:** 2027 sneak peek H1889-002 Dual Complete Choice PPO — CLOSED TO NEW ENROLLMENT
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -188,8 +226,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1889-026
-**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/UHFL26HP0332783_000)
-**SoB note:** 2027 sneak peek H1889-026 Dual Complete FL-Y4 PPO — CLOSED TO NEW ENROLLMENT (Plan ID missing on paste; matched by $2,000 dental / $222 OTC / 48 trips)
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -232,8 +268,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1045-005
-**SoB:** [SoB](https://www.aarpmedicareplans.com/alphadog/PCFL26HM0332507_000)
-**SoB note:** 2027 sneak peek H1045-005 Preferred Medicare Advantage FL-0002 (Broward)
+**SoB:** [SoB](https://www.uhc.com/medicare/alphadog/PCFL27HM0412409_000)
+**SoB note:** SOB — Preferred FL-0002
 **Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $30
@@ -276,8 +312,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H5420-003
-**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/PNFL26HM0333088_000)
-**SoB note:** 2027 sneak peek H5420-003 MedicareMax FL-0029 (Broward)
+**SoB:** [SoB](https://www.uhc.com/medicare/alphadog/PNFL27HM0413008_000)
+**SoB note:** SOB — MedicareMax FL-0029
 **Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $29
@@ -320,8 +356,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** PPO
 **Plan year:** 2027
 **CMS ID:** R0759-001
-**SoB:** [SoB](https://www.aarpmedicareplans.com/alphadog/AAFL26RP0333156_000)
-**SoB note:** 2027 sneak peek R0759-001 AARP UHC Regional PPO FL-0031 IN-network
 **Still yellow on the working grid:** 17 field(s) — not cited below.
 **Part B Giveback:** N/A
 **MOOP:** $9,850
@@ -364,8 +398,6 @@ Out-of-network (confirmed):
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-018
-**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/PCFL26HM0332509_000)
-**SoB note:** 2027 sneak peek H1045-018 Preferred Care Complete Care (C-SNP)
 **Still yellow on the working grid:** 10 field(s) — not cited below.
 **Premium:** $0 (LIS $0)
 **Part B Giveback:** $101
@@ -409,8 +441,8 @@ Out-of-network (confirmed):
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H5420-014
-**SoB:** [SoB](https://www.aarpmedicareplans.com/alphadog/PNFL26HM0333090_000)
-**SoB note:** 2027 sneak peek H5420-014 MedicareMax Complete Care (C-SNP)
+**SoB:** [SoB](https://www.uhc.com/medicare/alphadog/PNFL27HM0413009_000)
+**SoB note:** SOB — MedicareMax Complete Care FL-30
 **Still yellow on the working grid:** 9 field(s) — not cited below.
 **Premium:** $0 (LIS $0)
 **Part B Giveback:** $61
@@ -454,8 +486,6 @@ Out-of-network (confirmed):
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-012
-**SoB:** [SoB](https://www.aarpmedicareplans.com/alphadog/PCFL26HM0332508_000)
-**SoB note:** 2027 sneak peek H1045-012 FL-QV4 (2026 grid labeled FL-D001)
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -498,8 +528,6 @@ Out-of-network (confirmed):
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-061
-**SoB:** [SoB](https://www.uhc.com/medicare/alphadog/PCFL26HM0332535_000)
-**SoB note:** 2027 sneak peek H1045-061 FL-V1 Preferred Dual Complete
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Premium:** $0 – $7.30 (LIS $0)
 **Part B Giveback:** No
@@ -542,8 +570,6 @@ Out-of-network (confirmed):
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-063
-**SoB:** [SoB](https://www.uhc.com/medicare/alphadog/PCFL26HP0332536_000)
-**SoB note:** 2027 sneak peek H1045-063-000 Preferred Dual Complete FL-Y6 (portal highlight + SOB)
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -586,8 +612,6 @@ Out-of-network (confirmed):
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1889-002
-**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/UHFL26LP0332567_000)
-**SoB note:** 2027 sneak peek H1889-002 Dual Complete Choice PPO — CLOSED TO NEW ENROLLMENT
 **Still yellow on the working grid:** 13 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -630,8 +654,8 @@ Out-of-network (confirmed):
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1045-001
-**SoB:** [SoB](https://www.aarpmedicareplans.com/alphadog/PCFL26HM0332506_000)
-**SoB note:** 2027 sneak peek H1045-001 Preferred Care Preferred Medicare Advantage
+**SoB:** [SoB](https://www.uhc.com/medicare/alphadog/PCFL27HM0412408_000)
+**SoB note:** SOB — Preferred FL-0001
 **Still yellow on the working grid:** 10 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $55
@@ -673,8 +697,8 @@ Out-of-network (confirmed):
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H5420-001
-**SoB:** [SoB](https://www.uhcjarvis.com/alphadog/PNFL26HM0333087_000)
-**SoB note:** 2027 sneak peek H5420-001 FL-0028 (highlight sheet + SOB)
+**SoB:** [SoB](https://www.uhc.com/medicare/alphadog/PNFL27HM0413007_000)
+**SoB note:** SOB — MedicareMax FL-0028
 **Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $50
@@ -716,8 +740,6 @@ Out-of-network (confirmed):
 **Type:** PPO
 **Plan year:** 2027
 **CMS ID:** R0759-001
-**SoB:** [SoB](https://www.aarpmedicareplans.com/alphadog/AAFL26RP0333156_000)
-**SoB note:** 2027 sneak peek R0759-001 AARP UHC Regional PPO FL-0031 IN-network
 **Still yellow on the working grid:** 21 field(s) — not cited below.
 **MOOP:** $9,850
 
