@@ -2,6 +2,8 @@
 
 Source: live API probe 2026-09-02. For broker use when an agent asks if a doctor is in-network for **Doctors HealthCare Plans (H4140)**, **Solis (H0982)**, or **HealthSun (H5431)**.
 
+Max runs the CMS NPI Registry first, then reports carrier affiliations with the source directory named on each hit. A failed or empty carrier check is not proof the provider is out of network; verify in Sunfire or Medicare.gov. Network participation is an objective fact and never a plan-ranking signal.
+
 **These three are not on THEI’s Sunfire provider search.** Do not treat a Sunfire miss as “not in Doctors / Solis / HealthSun.”
 
 ## HealthSun (H5431)
@@ -43,3 +45,10 @@ Guest search at https://www.aetna.com/medicare/find-provider.html (Continue as g
 ## Simply Healthcare (H5471)
 
 Guest Find Care: https://findcare.simplyhealthcareplans.com/?brand=SHC and shop https://shop.simplyhealthcareplans.com/medicare/standalonetools/find-doctor?brand=SIMPLY. No member login. Max uses Find Care guest JWT (`meta-brandcd: SHC`) and search-box by last name, then matches NPI. If search-box times out, say so and hand the agent the guest URL — do not invent Simply in- or out-of-network.
+
+## Still Sunfire / Medicare.gov
+
+- **Humana:** public FHIR is blocked by WAF; no stable unauthenticated API is wired.
+- **UHC, CarePlus, Wellcare:** no stable unauthenticated public provider API is wired.
+
+Use THEI Sunfire when its session is available; otherwise use Medicare.gov or the carrier's public directory. Do not scrape login walls or infer an affiliation from plan catalogs.
