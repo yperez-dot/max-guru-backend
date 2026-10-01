@@ -1,7 +1,7 @@
 # Aetna — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-21 13:48 UTC
+Pulled: 2026-10-01 13:17 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1609-018, H1609-043, H1609-073, H1609-080, H1609-093, H1609-094, H1609-103
 
@@ -12,8 +12,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-080
-**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2026/summaryofbenefits/Y0001_H1609_080_NT46_SB2026_M.pdf)
-**SoB note:** 2027 Aetna C-SNP sneak peek H1609-080 Chronic Care (Broward)
+**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2027/sb/en/Y0001_H1609_080_CS15_SB2027_M.pdf)
+**SoB note:** SOB — Chronic Care (HMO C-SNP)
 **Still yellow on the working grid:** 15 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -53,8 +53,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-043
-**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2026/summaryofbenefits/Y0001_H1609_043_DS06_SB2026_M.pdf)
-**SoB note:** 2027 Aetna D-SNP sneak peek H1609-043 QMB Only Select
+**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2027/sb/en/Y0001_H1609_043_DS06_SB2027_M.pdf)
+**SoB note:** SOB — QMB Only Select (HMO D-SNP)
 **Still yellow on the working grid:** 18 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -91,8 +91,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-073
-**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2026/summaryofbenefits/Y0001_H1609_073_NT25_SB2026_M.pdf)
-**SoB note:** 2027 Aetna D-SNP sneak peek H1609-073 Full Dual Select
+**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2027/sb/en/Y0001_H1609_073_DS12_SB2027_M.pdf)
+**SoB note:** SOB — Full Dual Select (HMO D-SNP)
 **Still yellow on the working grid:** 18 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -130,7 +130,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-103
-**SoB note:** 2027 Aetna D-SNP sneak peek H1609-103 Partial Dual Select **NEW** (no URL on the grid cell)
+**SoB note:** SOB — Partial Dual Select (HMO D-SNP) (no URL on the grid cell)
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -166,8 +166,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1609-018
-**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2026/summaryofbenefits/Y0001_H1609_018_HP25_SB2026_M.pdf)
-**SoB note:** 2027 Aetna MAPD sneak peek H1609-018 Select (Broward). ER / urgent / imaging / ambulance not on this sheet.
+**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2027/sb/en/Y0001_H1609_018_HP25_SB2027_M.pdf)
+**SoB note:** SOB — Select (HMO)
 **Still yellow on the working grid:** 16 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -206,7 +206,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-094
-**SoB note:** 2027 Aetna C-SNP sneak peek H1609-094 Chronic Care (2026 header said Choice) (no URL on the grid cell)
+**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2027/sb/en/Y0001_H1609_094_CS20_SB2027_M.pdf)
+**SoB note:** SOB — Chronic Care (HMO C-SNP)
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -245,8 +246,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-043
-**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2026/summaryofbenefits/Y0001_H1609_043_DS06_SB2026_M.pdf)
-**SoB note:** 2027 Aetna D-SNP sneak peek H1609-043 QMB Only Select
+**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2027/sb/en/Y0001_H1609_043_DS06_SB2027_M.pdf)
+**SoB note:** SOB — QMB Only Select (HMO D-SNP)
 **Still yellow on the working grid:** 17 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -282,8 +283,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-073
-**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2026/summaryofbenefits/Y0001_H1609_073_NT25_SB2026_M.pdf)
-**SoB note:** 2027 Aetna D-SNP sneak peek H1609-073 Full Dual Select
+**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2027/sb/en/Y0001_H1609_073_DS12_SB2027_M.pdf)
+**SoB note:** SOB — Full Dual Select (HMO D-SNP)
 **Still yellow on the working grid:** 18 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -320,7 +321,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-103
-**SoB note:** 2027 Aetna D-SNP sneak peek H1609-103 Partial Dual Select **NEW** (no URL on the grid cell)
+**SoB:** [SoB](https://contentserver.destinationrx.com/ContentServer/DRxProductContent/PDFs/149_0/2027/H1032_246_2027_FL_SB_DSNP_7014668ENG_M.pdf)
+**SoB note:** SOB — Partial Dual Select (HMO D-SNP)
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -355,8 +357,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1609-093
-**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2026/summaryofbenefits/Y0001_H1609_093_NU26_SB2026_M.pdf)
-**SoB note:** 2027 Aetna MAPD sneak peek H1609-093 Select Care (Miami-Dade). ER / urgent / imaging / ambulance not on this sheet.
+**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2027/sb/en/Y0001_H1609_093_HQ26_SB2027_M.pdf)
+**SoB note:** SOB — Select Care (HMO)
 **Still yellow on the working grid:** 15 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No

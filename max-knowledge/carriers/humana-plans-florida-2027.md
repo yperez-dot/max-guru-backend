@@ -1,7 +1,7 @@
 # Humana — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-21 13:48 UTC
+Pulled: 2026-10-01 13:17 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1036-054C, H1036-065C, H1036-077, H1036-121, H1036-297, H1036-304, H1036-305, H1036-339, H7617-107, H7617-110, H7617-145
 
@@ -13,7 +13,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1036-121
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036121000SB27pdf)
-**SoB note:** 2027 Humana MAPD sneak peek slide 21 H1036-121 Diabetes & Heart (Broward). Urgent / imaging / ambulance / hearing not on this slide.
+**SoB note:** SOB - Diabetes & Heart
 **Still yellow on the working grid:** 17 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $166.30
@@ -51,7 +51,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1036-297
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036297000SB27pdf)
-**SoB note:** 2027 Humana MAPD sneak peek slide 21 H1036-297 Lung (Broward). Urgent / imaging / ambulance / hearing not on this slide.
+**SoB note:** SOB - Lung
 **Still yellow on the working grid:** 17 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $166
@@ -88,8 +88,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1036-077
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036077000SB27pdf)
-**SoB note:** 2027 official SOB H1036-077 Humana Dual Select (HMO D-SNP). QDWI/QI/QMB/SLMB. Did not write onto H1036-304 or H1036-339. Palm Beach is in the service area; no Palm Beach column on this desk.
+**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-026-Summary-of-Benefits.pdf)
+**SoB note:** SOB - Dual Select
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -142,8 +142,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1036-304
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036304000SB27pdf)
-**SoB note:** 2027 official SOB H1036-304 Humana Dual Select (HMO D-SNP). QDWI/QI/QMB/SLMB. Sibling of H1036-077 — different dental/hearing/OTC. Did not write onto 077 or 339.
+**SoB note:** SOB - Dual Select (no URL on the grid cell)
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -197,7 +196,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1036-305
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036305000SB27pdf)
-**SoB note:** 2027 Humana MAPD sneak peek slide 21 H1036-305 (Giveback, Broward). Urgent / imaging / ambulance / hearing not on this slide.
+**SoB note:** SOB - Gold Plus Giveback
 **Still yellow on the working grid:** 15 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $148
@@ -234,8 +233,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1036-065C
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036065000SB27pdf)
-**SoB note:** 2027 official SOB H1036-065C Humana Gold Plus (Broward). Implants not in dental allowance. OTC is quarterly, not Healthy Options.
+**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-006-Summary-of-Benefits.pdf)
+**SoB note:** SOB - Gold Plus
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $6.30
@@ -289,7 +288,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H7617-107
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H7617107000SB27pdf)
-**SoB note:** 2027 official SOB H7617-107 HumanaChoice Florida (PPO). Overwrote slide 30 (including the slide's Yes on referrals). Did not write onto 110 or 145.
+**SoB note:** SOB - Choice
 **Premium:** $0
 **Part B Giveback:** $0
 **MOOP:** $3,900 in-network
@@ -380,7 +379,7 @@ Out-of-network (confirmed):
 **Plan year:** 2027
 **CMS ID:** H7617-110
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H7617110000SB27pdf)
-**SoB note:** 2027 official SOB H7617-110 HumanaChoice Giveback (PPO). Overwrote slide 30. Did not write onto 107 or 145.
+**SoB note:** SOB - Choice Giveback
 **Premium:** $0
 **Part B Giveback:** $161.50
 **MOOP:** $7,150 in-network
@@ -471,7 +470,7 @@ Out-of-network (confirmed):
 **Plan year:** 2027
 **CMS ID:** H7617-145
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H7617145000SB27pdf)
-**SoB note:** 2027 official SOB H7617-145 HumanaChoice Giveback (PPO). Overwrote slide 30. Did not write onto 107 or 110.
+**SoB note:** SOB - Choice Giveback
 **Premium:** $0
 **Part B Giveback:** $92
 **MOOP:** $7,150 in-network
@@ -562,7 +561,7 @@ Out-of-network (confirmed):
 **Plan year:** 2027
 **CMS ID:** H1036-121
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036121000SB27pdf)
-**SoB note:** 2027 Humana MAPD sneak peek slide 21 H1036-121 Diabetes & Heart. Urgent / imaging / ambulance / hearing not on this slide.
+**SoB note:** SOB - Diabetes & Heart
 **Still yellow on the working grid:** 9 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $166.30
@@ -600,7 +599,7 @@ Out-of-network (confirmed):
 **Plan year:** 2027
 **CMS ID:** H1036-297
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036297000SB27pdf)
-**SoB note:** 2027 Humana MAPD sneak peek slide 21 H1036-297 Lung. Urgent / imaging / ambulance / hearing not on this slide.
+**SoB note:** SOB - Lung
 **Still yellow on the working grid:** 9 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $166
@@ -637,8 +636,8 @@ Out-of-network (confirmed):
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1036-077
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036077000SB27pdf)
-**SoB note:** 2027 official SOB H1036-077 Humana Dual Select (HMO D-SNP). QDWI/QI/QMB/SLMB. Did not write onto H1036-304 or H1036-339. Palm Beach is in the service area; no Palm Beach column on this desk.
+**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-026-Summary-of-Benefits.pdf)
+**SoB note:** SOB - Dual Select
 **Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -692,7 +691,7 @@ Out-of-network (confirmed):
 **Plan year:** 2027
 **CMS ID:** H1036-304
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036077000SB27pdf)
-**SoB note:** 2027 official SOB H1036-304 Humana Dual Select (HMO D-SNP). QDWI/QI/QMB/SLMB. Sibling of H1036-077 — different dental/hearing/OTC. Did not write onto 077 or 339.
+**SoB note:** SOB - Dual Select
 **Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -745,8 +744,8 @@ Out-of-network (confirmed):
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1036-339
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036339000SB27pdf)
-**SoB note:** 2027 official SOB H1036-339 Humana Dual Integrated (HIDE HMO D-SNP). FBDE/QMB+/SLMB+ only. Miami-Dade column only — no Broward 339 on the 2026 grid. Did not write onto 077 or 304.
+**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036077000SB27pdf)
+**SoB note:** SOB - Dual Integrated
 **Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -800,7 +799,7 @@ Out-of-network (confirmed):
 **Plan year:** 2027
 **CMS ID:** H1036-305
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036305000SB27pdf)
-**SoB note:** 2027 Humana MAPD sneak peek slide 21 H1036-305 (Giveback). Urgent / imaging / ambulance / hearing not on this slide.
+**SoB note:** SOB - Gold Plus Giveback
 **Still yellow on the working grid:** 15 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $148
@@ -837,8 +836,8 @@ Out-of-network (confirmed):
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1036-054C
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036054000SB27pdf)
-**SoB note:** 2027 official SOB H1036-054C Humana Gold Plus (Miami-Dade). Implants not in dental allowance. Healthy Options groceries only if eligible chronic conditions.
+**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-006-Summary-of-Benefits.pdf)
+**SoB note:** SOB - Gold Plus
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $9.30
@@ -891,7 +890,7 @@ Out-of-network (confirmed):
 **Plan year:** 2027
 **CMS ID:** H7617-107
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H7617107000SB27pdf)
-**SoB note:** 2027 official SOB H7617-107 HumanaChoice Florida (PPO). Overwrote slide 30 (including the slide's Yes on referrals). Did not write onto 110 or 145.
+**SoB note:** SOB - Choice
 **Premium:** $0
 **Part B Giveback:** $0
 **MOOP:** $3,900 in-network
@@ -982,7 +981,7 @@ Out-of-network (confirmed):
 **Plan year:** 2027
 **CMS ID:** H7617-110
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H7617110000SB27pdf)
-**SoB note:** 2027 official SOB H7617-110 HumanaChoice Giveback (PPO). Overwrote slide 30. Did not write onto 107 or 145.
+**SoB note:** SOB - Choice Giveback
 **Premium:** $0
 **Part B Giveback:** $161.50
 **MOOP:** $7,150 in-network
@@ -1073,7 +1072,7 @@ Out-of-network (confirmed):
 **Plan year:** 2027
 **CMS ID:** H7617-145
 **SoB:** [SoB](https://assets.humana.com/is/content/humana/H7617145000SB27pdf)
-**SoB note:** 2027 official SOB H7617-145 HumanaChoice Giveback (PPO). Overwrote slide 30. Did not write onto 107 or 110.
+**SoB note:** SOB - Choice Giveback
 **Premium:** $0
 **Part B Giveback:** $92
 **MOOP:** $7,150 in-network

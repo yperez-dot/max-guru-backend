@@ -1,7 +1,7 @@
 # Devoted — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-09-21 13:48 UTC
+Pulled: 2026-10-01 13:17 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1290-001, H1290-002, H1290-013, H1290-014, H1290-019, H1290-020, H1290-037, H1290-053, H1290-054, H1290-056, H1290-062, H1290-067, H1290-077, H1290-078, H1290-084, H1290-085, H1290-110
 
@@ -13,7 +13,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-084
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-C-SNP-PLUS-084-FL-%28HMO-C-SNP%29-SB-H1290-084-ENG.pdf)
-**SoB note:** 2027 official SOB H1290-084 Devoted C-SNP PLUS (Broward). Implants not covered.
+**SoB note:** SOB - C-SNP PLUS
 **Still yellow on the working grid:** 10 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $0
@@ -59,7 +59,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-020
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-DUAL-020-FL-%28HMO-D-SNP%29-SB-H1290-020-ENG.pdf)
-**SoB note:** 2027 official SOB H1290-020 Devoted DUAL 020 (Broward). Did not write onto 077 or 054.
+**SoB note:** SOB — DUAL 020
 **Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -104,7 +104,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-054
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-DUAL-QMB-054-FL-%28HMO-D-SNP%29-SB-H1290-054-ENG.pdf)
-**SoB note:** 2027 official SOB H1290-054 Devoted DUAL QMB (Broward). Did not write onto 077 or 020.
+**SoB note:** SOB — DUAL QMB
 **Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -149,7 +149,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-077
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-DUAL-FULL-077-FL-%28HMO-D-SNP%29-SB-H1290-077-ENG.pdf)
-**SoB note:** 2027 official SOB H1290-077 Devoted DUAL FULL (Broward). Did not write onto 020 or 054.
+**SoB note:** SOB — DUAL FULL
 **Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -194,7 +194,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-014
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-GIVEBACK-014-FL-%28HMO%29-SB-H1290-014-ENG.pdf)
-**SoB note:** 2027 official SOB H1290-014 Devoted GIVEBACK 014 (Broward). Medical deductible $400. Implants not covered. Not eligible for the $202 buydown if Medicaid pays Part B.
+**SoB note:** SOB - GIVEBACK 014
 **Still yellow on the working grid:** 8 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $202
@@ -239,7 +239,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-002
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-CORE-002-FL-%28HMO%29-SB-H1290-002-ENG.pdf)
-**SoB note:** 2027 official SOB H1290-002 Devoted CORE 002 (Broward). Implants not covered. No Part B giveback on this SOB.
+**SoB note:** SOB - CORE 002
 **Still yellow on the working grid:** 3 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -291,6 +291,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1290-037
+**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-CORE-037-FL-%28HMO%29-SB-H1290-037-002-ENG.pdf)
+**SoB note:** SOB — CORE 037
 **Still yellow on the working grid:** 18 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -328,7 +330,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-056
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-CORE-056-FL-%28HMO%29-SB-H1290-056-ENG.pdf)
-**SoB note:** 2027 official SOB H1290-056 Devoted CORE 056 (Broward). Implants not covered.
+**SoB note:** SOB - CORE 056
 **Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -380,8 +382,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1290-067
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-C-SNP-ENHANCED-067-FL-%28HMO-C-SNP%29-SB-H1290-067-ENG.pdf)
-**SoB note:** 2027 SOB H1290-067 C-SNP ENHANCED (was Premium in 2026 grid)
+**SoB note:** =HYPERLINK("https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-C-SNP-ENHANCED-067-FL-%28HMO-C-SNP%29-SB-H1290-067-ENG.pdf","SOB - C-SNP ENHANCED") (no URL on the grid cell)
 **Still yellow on the working grid:** 9 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $0
@@ -426,7 +427,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-085
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-C-SNP-PLUS-085-FL-%28HMO-C-SNP%29-SB-H1290-085-ENG.pdf)
-**SoB note:** 2027 SOB H1290-085 C-SNP PLUS (still works with full Medicaid)
+**SoB note:** SOB - C-SNP PLUS
 **Still yellow on the working grid:** 9 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $0
@@ -471,7 +472,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-019
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-DUAL-019-FL-%28HMO-D-SNP%29-SB-H1290-019-ENG.pdf)
-**SoB note:** 2027 SOB H1290-019 DUAL 019
+**SoB note:** SOB - DUAL 019
 **Still yellow on the working grid:** 10 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -516,7 +517,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-053
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-DUAL-QMB-053-FL-%28HMO-D-SNP%29-SB-H1290-053-ENG.pdf)
-**SoB note:** 2027 SOB H1290-053 DUAL QMB (was Dual Plus in 2026 grid)
+**SoB note:** SOB - DUAL QMB
 **Still yellow on the working grid:** 8 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -561,7 +562,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-078
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-DUAL-FULL-078-FL-%28HMO-D-SNP%29-SB-H1290-078-ENG.pdf)
-**SoB note:** 2027 SOB H1290-078 DUAL FULL
+**SoB note:** SOB - DUAL FULL
 **Still yellow on the working grid:** 10 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -606,7 +607,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-013
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-GIVEBACK-013-FL-%28HMO%29-SB-H1290-013-ENG.pdf)
-**SoB note:** 2027 SOB H1290-013
+**SoB note:** SOB - GIVEBACK 013
 **Still yellow on the working grid:** 9 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $202
@@ -651,7 +652,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-110
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-GIVEBACK-EXTRAS-110-FL-%28HMO%29-SB-H1290-110-ENG.pdf)
-**SoB note:** 2027 SOB H1290-110 NEW plan
+**SoB note:** SOB - GIVEBACK EXTRAS
 **Premium:** $0
 **Part B Giveback:** $70
 **MOOP:** $5,150
@@ -695,7 +696,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-001
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-CORE-001-FL-%28HMO%29-SB-H1290-001-ENG.pdf)
-**SoB note:** 2027 SOB H1290-001
+**SoB note:** SOB - CORE 001
 **Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -747,8 +748,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1290-037
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2026/2026-DEVOTED-PREMIUM-037-FL-(HMO)-SB-H1290-037-001-ENG.pdf)
-**SoB note:** 2027 SOB H1290-037 (marketed CORE 037; was Premium in 2026 grid)
+**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-CORE-037-FL-%28HMO%29-SB-H1290-037-001-ENG.pdf)
+**SoB note:** SOB — CORE 037
 **Still yellow on the working grid:** 7 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -794,7 +795,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1290-062
 **SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-CORE-062-FL-%28HMO%29-SB-H1290-062-ENG.pdf)
-**SoB note:** 2027 SOB H1290-062
+**SoB note:** SOB - CORE 062
 **Still yellow on the working grid:** 7 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
