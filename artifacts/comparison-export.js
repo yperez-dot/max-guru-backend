@@ -615,19 +615,18 @@
 
   function mergeDrugPlanStatus(target, planId, incoming, plans) {
     if (!incoming) return;
+    const want = String(planId || "").replace(/\s+/g, "").toUpperCase().split("/")[0];
     const match = (plans || []).find((p) => {
-      const id = String(p.planId || p.id || "");
-      const disp = displayContractPbp(p);
-      return (
-        String(planId || "").replace(/\s+/g, "").toUpperCase() === id.replace(/\s+/g, "").toUpperCase() ||
-        String(planId || "").replace(/\s+/g, "").toUpperCase() === String(disp || "").replace(/\s+/g, "").toUpperCase() ||
-        String(planId || "").toUpperCase().indexOf(String(disp || "").toUpperCase()) >= 0
-      );
+      const aliases = planIdAliases(p).map((id) => String(id || "").replace(/\s+/g, "").toUpperCase().split("/")[0]);
+      if (aliases.includes(want)) return true;
+      return planColumnSlot(want) === planColumnSlot(planColumnId(p)) && planColumnSlot(want) !== want;
     });
     const key = match ? displayContractPbp(match) || String(match.planId || match.id || "") : planId;
     if (!key) return;
     const prev = target[key] || { verified: false, tier: null };
-    if (incoming.verified && !prev.verified) {
+    const incomingLive = incoming.verified && incoming.source && incoming.source !== "yahoska_verified_2027";
+    const prevLock = prev.verified && prev.source === "yahoska_verified_2027";
+    if (incoming.verified && (!prev.verified || (prevLock && incomingLive))) {
       target[key] = {
         verified: true,
         tier: incoming.tier || null,
@@ -715,6 +714,10 @@
     const aliases = [id, raw, String((plan && plan.id) || "")].filter(Boolean);
     if (id === "H4140-023") aliases.push("H4140-012");
     if (id === "H4140-012") aliases.push("H4140-023");
+    if (id === "H5420-001") aliases.push("H5420-014", "H5420-001/0028");
+    if (id === "H5420-014") aliases.push("H5420-001", "H5420-001/0028");
+    if (id === "H1036-054C") aliases.push("H1036-054");
+    if (id === "H1036-054") aliases.push("H1036-054C");
     return [...new Set(aliases)];
   }
 
@@ -914,10 +917,10 @@
 
   function pickCatalogPlan(catalog, id, county) {
     const list = Array.isArray(catalog) ? catalog : [];
-    const want = String(id || "").toUpperCase().replace(/\s+/g, "");
+    const want = String(id || "").toUpperCase().replace(/\s+/g, "").split("/")[0];
     const match = (p) => {
-      const pid = String(p.planId || "").toUpperCase().replace(/\s+/g, "");
-      const raw = String(p.id || "").toUpperCase().replace(/\s+/g, "");
+      const pid = String(p.planId || "").toUpperCase().replace(/\s+/g, "").split("/")[0];
+      const raw = String(p.id || "").toUpperCase().replace(/\s+/g, "").split("/")[0];
       return pid === want || raw === want;
     };
     if (county) {
@@ -946,6 +949,10 @@
       if (coreHumana && id === "H1036-305" && !wantsGiveback) {
         return pickCatalogPlan(catalog, "H1036-054C", p.county || county) || p;
       }
+      const base = String(id || "").split("/")[0];
+      if (base && base !== id) {
+        return pickCatalogPlan(catalog, base, p.county || county) || Object.assign({}, p, { planId: base, id: base });
+      }
       return p;
     });
     return out;
@@ -957,9 +964,30 @@
     return MUSKAT_PLAN_IDS.every((id) => have.includes(id));
   }
 
+  function muskatComparisonUhcId(plans) {
+    const have = (plans || []).map((p) => String(displayContractPbp(p) || "").toUpperCase());
+    const humana = have.includes("H1036-054C");
+    const doctors = have.includes("H4140-023");
+    if (!humana || !doctors || have.length !== 3) return "";
+    if (have.includes("H5420-001")) return "H5420-001";
+    if (have.includes("H5420-014")) return "H5420-014";
+    return "";
+  }
+
+  function remapLockedDrugPlanIds(drugs, uhcId) {
+    const dest = String(uhcId || "H5420-014").toUpperCase();
+    return (drugs || []).map((d) => {
+      const map = Object.assign({}, d.byPlanId || {});
+      if (dest !== "H5420-014" && map["H5420-014"] && !map[dest]) {
+        map[dest] = map["H5420-014"];
+      }
+      return Object.assign({}, d, { byPlanId: map });
+    });
+  }
+
   function sameExportPlanSet(a, b) {
     const ids = (list) =>
-      (list || [])
+      dedupeComparisonPlans(list)
         .map((p) => String(displayContractPbp(p) || p.planId || p.id || "").toUpperCase().replace(/\s+/g, "").split("/")[0])
         .filter(Boolean)
         .sort()
@@ -985,7 +1013,38 @@
 
   function citedPlanIdsFromText(text) {
     const re = new RegExp(CMS_PLAN_ID_RE.source, "gi");
-    return [...new Set((String(text || "").match(re) || []).map((s) => s.replace(/\s+/g, "").toUpperCase()))];
+    return [
+      ...new Set(
+        (String(text || "").match(re) || []).map((s) => s.replace(/\s+/g, "").toUpperCase().split("/")[0])
+      ),
+    ];
+  }
+
+  function preferPlanForSlot(a, b) {
+    const raw = (p) => String((p && (p.planId || p.id)) || "");
+    const slashy = (p) => /[\/]/.test(raw(p));
+    if (slashy(a) !== slashy(b)) return slashy(a) ? b : a;
+    const ia = planColumnId(a);
+    const ib = planColumnId(b);
+    const rank = (id) => {
+      const i = PREFERRED_COLUMN_IDS.indexOf(id);
+      return i === -1 ? 50 : i;
+    };
+    if (rank(ia) !== rank(ib)) return rank(ia) < rank(ib) ? a : b;
+    if (a && a.county === "Miami-Dade" && b && b.county !== "Miami-Dade") return a;
+    if (b && b.county === "Miami-Dade" && a && a.county !== "Miami-Dade") return b;
+    return a || b;
+  }
+
+  function dedupeComparisonPlans(plans) {
+    const bySlot = new Map();
+    (plans || []).forEach((p) => {
+      const slot = planColumnSlot(planColumnId(p));
+      if (!slot) return;
+      const prev = bySlot.get(slot);
+      bySlot.set(slot, prev ? preferPlanForSlot(prev, p) : p);
+    });
+    return orderComparisonPlans([...bySlot.values()]);
   }
 
   function orderComparisonPlans(plans) {
@@ -1002,8 +1061,8 @@
   function keepCurrentComparisonPlans(latest, prior) {
     const current = (latest || []).slice();
     const remembered = (prior || []).slice();
-    if (!remembered.length) return orderComparisonPlans(current);
-    if (!current.length) return orderComparisonPlans(remembered);
+    if (!remembered.length) return dedupeComparisonPlans(current);
+    if (!current.length) return dedupeComparisonPlans(remembered);
     const currentSlots = new Set(current.map((p) => planColumnSlot(planColumnId(p))));
     const priorSlots = new Set(remembered.map((p) => planColumnSlot(planColumnId(p))));
     const currentIsSubset = [...currentSlots].every((s) => priorSlots.has(s));
@@ -1012,7 +1071,7 @@
         const slot = planColumnSlot(planColumnId(p));
         return current.find((c) => planColumnSlot(planColumnId(c)) === slot) || p;
       });
-      return orderComparisonPlans(merged);
+      return dedupeComparisonPlans(merged);
     }
     const overlap = [...currentSlots].filter((s) => priorSlots.has(s)).length;
     if (overlap >= 1 && (currentIsSubset || overlap >= 2)) {
@@ -1020,12 +1079,12 @@
       current.forEach((c) => {
         const slot = planColumnSlot(planColumnId(c));
         const idx = merged.findIndex((p) => planColumnSlot(planColumnId(p)) === slot);
-        if (idx >= 0) merged[idx] = c;
+        if (idx >= 0) merged[idx] = preferPlanForSlot(merged[idx], c);
         else merged.push(c);
       });
-      return orderComparisonPlans(merged);
+      return dedupeComparisonPlans(merged);
     }
-    return orderComparisonPlans(current);
+    return dedupeComparisonPlans(current);
   }
 
   function verifiedCell(tier, costShare, coverage) {
@@ -1102,7 +1161,8 @@
   }
 
   function applyMuskatLockedFacts(payload, catalog) {
-    if (!currentPlansMatchMuskatLock(payload.plans)) {
+    const uhcId = muskatComparisonUhcId(payload.plans);
+    if (!uhcId) {
       return payload;
     }
     payload.clientName = payload.clientName && /muskat/i.test(payload.clientName)
@@ -1112,16 +1172,31 @@
     payload.county = payload.county || "Miami-Dade";
     payload.doctors = mergeDoctorLists([muskatLockedDoctors(), payload.doctors], payload.plans);
     const live = normalizeDrugs(payload.drugs, payload.plans);
-    const lockedDrugs = normalizeDrugs(muskatLockedDrugs(), payload.plans);
+    let lockedSrc = muskatLockedDrugs();
+    if (uhcId === "H5420-001") {
+      lockedSrc = lockedSrc.filter((d) => /lipitor|atorvastatin|benicar|olmesartan/i.test(String(d.name || "")));
+    }
+    const lockedDrugs = normalizeDrugs(remapLockedDrugPlanIds(lockedSrc, uhcId), payload.plans);
     if (!live.length) {
       payload.drugs = lockedDrugs;
     } else {
       lockedDrugs.forEach((d) => {
-        if (!live.some((x) => String(x.name || "").toLowerCase() === String(d.name || "").toLowerCase())) {
+        const hit = live.find((x) => {
+          const a = String(x.name || "").toLowerCase().replace(/\*+$/, "");
+          const b = String(d.name || "").toLowerCase().replace(/\*+$/, "");
+          return a === b || (x.genericOf && d.genericOf && String(x.genericOf).toLowerCase() === String(d.genericOf).toLowerCase());
+        });
+        if (!hit) {
           live.push(d);
+          return;
         }
+        Object.keys(d.byPlanId || {}).forEach((id) => {
+          mergeDrugPlanStatus(hit.byPlanId, id, d.byPlanId[id], payload.plans);
+        });
+        if (d.brandNotCovered) hit.brandNotCovered = true;
+        if (d.genericOf) hit.genericOf = hit.genericOf || d.genericOf;
       });
-      payload.drugs = live;
+      payload.drugs = applyKnownGenericSuggestions(live, payload.plans);
     }
     payload.genericOnlyNote = GENERIC_ONLY_NOTE;
     if (!hasExplicitTerminatingLanguage(payload.threadText) && !payload.explicitTerminating) {
@@ -1138,7 +1213,7 @@
     const fromText = citedPlanIdsFromText(text)
       .map((id) => pickCatalogPlan(catalog.length ? catalog : plans, id, county) || pickCatalogPlan(catalog.length ? catalog : plans, id))
       .filter(Boolean);
-    const resolvedPlans = orderComparisonPlans(
+    const resolvedPlans = dedupeComparisonPlans(
       keepCurrentComparisonPlans(
         canonicalize2027ComparisonPlans(plans || [], text, catalog.length ? catalog : plans),
         canonicalize2027ComparisonPlans(
@@ -1646,6 +1721,7 @@
     citedPlanIdsFromText,
     orderComparisonPlans,
     keepCurrentComparisonPlans,
+    dedupeComparisonPlans,
     doctorIdentityKey,
     preferredDoctorName,
     isCarrierAsDrugName,

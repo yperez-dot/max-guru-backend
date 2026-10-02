@@ -342,6 +342,7 @@ describe('HTML UI wiring', () => {
     assert.match(html, /H5420-001/);
     assert.match(html, /\\d\{2,4\}\[A-Z\]\?/);
     assert.match(html, /keepCurrentComparisonPlans/);
+    assert.match(html, /dedupeComparisonPlans/);
     assert.match(html, /Medications immediately under Doctors/);
     assert.match(html, /Omit the MSP Levels row unless at least one compared plan is a D-SNP/);
     assert.match(html, /lookup_sob_benefit/);
@@ -859,6 +860,56 @@ MARGOLESKY, JASON is in network on H4140-023 and H5420-001.
     const model = exp.buildComparisonModel(payload);
     const header = model.aoa[1] || model.aoa.find((row) => /H1036-054C/.test(row.join(' ')));
     assert.ok(header && header.some((c) => /H1036-054C/.test(String(c))));
+  });
+
+  it('collapses duplicate 023/001 columns and keeps verified Muskat Rx', () => {
+    const plans = loadPlans();
+    const humana = planById(plans, 'H1036-054C', 'Miami-Dade');
+    const doctors = planById(plans, 'H4140-023', 'Miami-Dade');
+    const doctorsBroward = planById(plans, 'H4140-023', 'Broward') || Object.assign({}, doctors, { county: 'Broward' });
+    const uhc = planById(plans, 'H5420-001', 'Miami-Dade');
+    const uhcSlash = Object.assign({}, uhc, { planId: 'H5420-001/0028', id: 'H5420-001/0028' });
+    const duped = [humana, doctors, doctorsBroward, uhc, uhcSlash].filter(Boolean);
+    assert.ok(duped.length >= 5);
+    const collapsed = exp.dedupeComparisonPlans(duped);
+    assert.deepEqual(
+      collapsed.map((p) => exp.displayContractPbp(p)),
+      ['H1036-054C', 'H4140-023', 'H5420-001']
+    );
+    const thread = `
+Excel for Michael Muskat. Humana Gold Plus H1036-054C, Doctors DrSelect-SFL H4140-023, UHC MedicareMax FL-0028 H5420-001/0028.
+FORMULARY_LOOKUP year=2027 drug=Trintellix plan=H5420-001 verified_tier=3 cost_share=$25 coverage=covered source=sunfire
+FORMULARY_LOOKUP year=2027 drug=Lorazepam plan=H1036-054C verified_tier=4 cost_share=40% coverage=covered source=sunfire
+FORMULARY_LOOKUP year=2027 drug=Gabapentin plan=H4140-023 verified_tier=1 cost_share=$0 coverage=covered source=sunfire
+FORMULARY_LOOKUP year=2027 drug=Memantine plan=H5420-001 verified_tier=2 cost_share=$0 coverage=covered source=sunfire
+`;
+    const payload = exp.buildExportPayload(duped, thread, {
+      catalog: plans,
+      drugs: exp.muskatLockedDrugs(),
+    });
+    assert.deepEqual(
+      payload.plans.map((p) => exp.displayContractPbp(p)),
+      ['H1036-054C', 'H4140-023', 'H5420-001']
+    );
+    const model = exp.buildComparisonModel(payload);
+    const headers = model.aoa.find((row) => row.some((c) => /H1036-054C/.test(String(c))));
+    assert.equal(headers.filter((c) => /H4140-023/.test(String(c))).length, 1);
+    assert.equal(headers.filter((c) => /H5420-001/.test(String(c))).length, 1);
+    const names = model.aoa.map((row) => row[0]);
+    assert.ok(names.includes('Lipitor*'));
+    assert.ok(names.includes('Atorvastatin (generic)'));
+    assert.ok(names.includes('Benicar*'));
+    assert.ok(names.includes('Olmesartan (generic)'));
+    const trin = model.aoa.find((row) => row[0] === 'Trintellix');
+    assert.match(trin[3], /Tier 3/);
+    assert.match(trin[3], /\$25/);
+    assert.equal(trin.slice(1).some((c) => c === 'Unverified'), false);
+    const lor = model.aoa.find((row) => row[0] === 'Lorazepam');
+    assert.match(lor[1], /Tier 4/);
+    const gab = model.aoa.find((row) => row[0] === 'Gabapentin');
+    assert.match(gab[2], /Tier 1/);
+    const mem = model.aoa.find((row) => row[0] === 'Memantine');
+    assert.match(mem[3], /Tier 2/);
   });
 
   it('dedupes legal-name and short-name doctor rows and keeps Margolesky + Miami Neurology', () => {
