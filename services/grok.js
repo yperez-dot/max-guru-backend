@@ -1,5 +1,6 @@
 // services/grok.js — Max Medicare Guru via OpenAI-compatible chat (Grok or OpenAI)
 const { TOOLS, processTool } = require('./claude');
+const { countImagesInMessages, normalizeMessages } = require('./chatImages');
 
 /**
  * Provider selection (Railway Variables):
@@ -53,22 +54,6 @@ function toOpenAITools(anthropicTools) {
   }));
 }
 
-function normalizeMessages(messages) {
-  return (messages || []).map((m) => {
-    if (typeof m.content === 'string' || m.content == null) {
-      return { role: m.role, content: m.content ?? '' };
-    }
-    if (Array.isArray(m.content)) {
-      const text = m.content
-        .filter((b) => b && (b.type === 'text' || typeof b.text === 'string'))
-        .map((b) => b.text || '')
-        .join('\n');
-      return { role: m.role, content: text };
-    }
-    return { role: m.role, content: String(m.content) };
-  });
-}
-
 function resolveToolResult(result) {
   if (result && typeof result === 'object' && result.text) return result.text;
   if (typeof result === 'string') return result;
@@ -98,6 +83,7 @@ async function callChatCompletions({ system, messages, tools, maxTokens }) {
       max_tokens: body.max_tokens,
       messageCount: body.messages.length,
       systemChars: system ? system.length : 0,
+      imageCount: countImagesInMessages(messages),
       tools: tools ? tools.length : 0,
     })
   );
@@ -133,7 +119,7 @@ async function callGrok(opts) {
  */
 async function passThroughChat({ system, messages }) {
   const openaiTools = toOpenAITools(TOOLS);
-  let apiMessages = normalizeMessages(messages);
+  let apiMessages = normalizeMessages(messages, { validate: false });
   const collectedToolResults = [];
   const usageCalls = [];
   let lastData = null;
@@ -254,6 +240,7 @@ async function chat(messages, systemPrompt) {
 module.exports = {
   passThroughChat,
   chat,
+  normalizeMessages,
   toOpenAITools,
   DEFAULT_MODEL,
   providerConfig,

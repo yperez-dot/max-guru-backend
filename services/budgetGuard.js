@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { extractPlainText, summarizeContentForEstimate } = require('./chatImages');
 
 const TIME_ZONE = 'America/New_York';
 const DEFAULT_BUDGET_USD = 10;
@@ -96,24 +97,20 @@ function matchesOverridePhrase(text) {
 function lastUserText(messages) {
   for (let i = (messages || []).length - 1; i >= 0; i -= 1) {
     if (messages[i]?.role !== 'user') continue;
-    const content = messages[i].content;
-    if (typeof content === 'string') return content;
-    if (Array.isArray(content)) {
-      return content.map((block) => block?.text || '').join(' ');
-    }
-    return String(content || '');
+    return extractPlainText(messages[i].content);
   }
   return '';
 }
 
 function estimateContextTokens(system, messages) {
-  const messageChars = (messages || []).reduce((total, message) => {
-    const content = typeof message?.content === 'string'
-      ? message.content
-      : JSON.stringify(message?.content || '');
-    return total + content.length;
-  }, 0);
-  return Math.ceil((String(system || '').length + messageChars) / 4);
+  let messageChars = 0;
+  let imageTokens = 0;
+  for (const message of messages || []) {
+    const summary = summarizeContentForEstimate(message?.content);
+    messageChars += summary.textChars;
+    imageTokens += summary.imageTokens;
+  }
+  return Math.ceil((String(system || '').length + messageChars) / 4) + imageTokens;
 }
 
 function envRate(name) {

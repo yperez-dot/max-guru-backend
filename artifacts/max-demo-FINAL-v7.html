@@ -232,12 +232,63 @@ const CARRIER_ALIASES = [
   { re: /\bgold\s*kidney\b/i, match: (c) => /gold\s*kidney/i.test(c) },
 ];
 
+const MAX_ATTACH_BYTES = 4 * 1024 * 1024;
+const MAX_ATTACH_IMAGES = 4;
+const ALLOWED_ATTACH_TYPES = ["image/png", "image/jpeg", "image/webp"];
+
+function userMessageText(content) {
+  if (typeof content === "string") {
+    return content.trim().startsWith("data:image/") ? "" : String(content || "");
+  }
+  if (!Array.isArray(content)) return String(content || "");
+  return content
+    .map((part) => {
+      if (typeof part === "string") return part.trim().startsWith("data:image/") ? "" : part;
+      return part && (part.type === "text" || typeof part.text === "string") ? part.text || "" : "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function userMessageImages(content) {
+  if (typeof content === "string") {
+    return content.trim().startsWith("data:image/") ? [content] : [];
+  }
+  if (!Array.isArray(content)) return [];
+  return content
+    .map((part) => {
+      if (typeof part === "string" && part.trim().startsWith("data:image/")) return part;
+      if (part && part.type === "image_url") {
+        return typeof part.image_url === "string" ? part.image_url : part.image_url && part.image_url.url;
+      }
+      return "";
+    })
+    .filter(Boolean);
+}
+
 function conversationAskText(conversationHistory) {
   const msgs = Array.isArray(conversationHistory) ? conversationHistory : [];
   // Prefer latest user turns (last 4 user messages) so follow-ups keep context
-  const users = msgs.filter((m) => m && m.role === "user").map((m) => String(m.content || ""));
+  const users = msgs.filter((m) => m && m.role === "user").map((m) => userMessageText(m.content));
   const recent = users.slice(-4);
   return recent.join("\n");
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Could not read that image."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function attachTypeError() {
+  return "Images must be PNG, JPEG, or WebP.";
+}
+
+function attachSizeError() {
+  return "Each image must be 4MB or smaller.";
 }
 
 function detectCounties(text) {
@@ -517,8 +568,16 @@ async function askGuru(conversationHistory) {
   if (response.status === 402 && data.code === "daily_budget_reached") {
     return { text: data.error || "Max reached today’s budget. Say “OK go over” to continue today.", banners: data.banners || [] };
   }
+  if (response.status === 413) {
+    return { text: data.error || "That image is too large. Use PNG, JPEG, or WebP under 4MB each.", banners: data.banners || [] };
+  }
   if (response.status === 503) {
     return { text: data.error || "Max's Grok backend isn't configured yet (missing XAI_API_KEY on Railway).", banners: [] };
+  }
+  if (response.status === 400 && data.code === "invalid_image") {
+    const err = new Error(data.error || "Images must be PNG, JPEG, or WebP under 4MB.");
+    err.code = "invalid_image";
+    throw err;
   }
   if (!response.ok) {
     return { text: data.error || "I couldn't generate a response. Try again.", banners: data.banners || [] };
@@ -644,6 +703,8 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [banners, setBanners] = useState([]);
   const [input, setInput] = useState("");
+  const [pendingImages, setPendingImages] = useState([]);
+  const [attachError, setAttachError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [sidebarWidth, setSidebarWidth] = useState(248);
@@ -653,6 +714,7 @@ function App() {
   const [copied, setCopied] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
   // Remembers the most recent exportable comparison even after the offer chip is dismissed
   // or later non-comparison replies push it out of the recent-message window.
   const lastComparisonPlansRef = useRef([]);
@@ -710,6 +772,9 @@ function App() {
     setBanners([]);
     setError(null);
     setInput("");
+    setPendingImages([]);
+    setAttachError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     if (isMobile) setSidebarOpen(false);
     setTimeout(() => inputRef.current?.focus(), 50);
   };
@@ -753,21 +818,82 @@ function App() {
     setUnlocked(false);
     setMessages([]);
     setError(null);
+    setPendingImages([]);
+    setAttachError(null);
+  };
+
+  const addPendingFiles = async (fileList) => {
+    const files = [...(fileList || [])].filter(Boolean);
+    if (!files.length) return;
+    const next = [...pendingImages];
+    let nextError = null;
+    for (const file of files) {
+      if (next.length >= MAX_ATTACH_IMAGES) {
+        nextError = "You can attach up to 4 images per message.";
+        break;
+      }
+      const type = file.type === "image/jpg" ? "image/jpeg" : file.type;
+      if (!ALLOWED_ATTACH_TYPES.includes(type)) {
+        nextError = attachTypeError();
+        continue;
+      }
+      if (file.size > MAX_ATTACH_BYTES) {
+        nextError = attachSizeError();
+        continue;
+      }
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        next.push({
+          id: `${Date.now()}-${next.length}-${file.name || "image"}`,
+          name: file.name || "screenshot",
+          type,
+          size: file.size,
+          dataUrl,
+        });
+      } catch (_) {
+        nextError = "Could not read that image.";
+      }
+    }
+    setPendingImages(next);
+    setAttachError(nextError);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const onComposerPaste = (e) => {
+    const fromFiles = [...(e.clipboardData?.files || [])].filter((file) => String(file.type || "").startsWith("image/"));
+    const fromItems = [...(e.clipboardData?.items || [])]
+      .filter((item) => item.kind === "file" && String(item.type || "").startsWith("image/"))
+      .map((item) => item.getAsFile())
+      .filter(Boolean);
+    const files = fromFiles.length ? fromFiles : fromItems;
+    if (!files.length) return;
+    e.preventDefault();
+    addPendingFiles(files);
   };
 
   const send = async (text) => {
     const content = (text || input).trim();
-    if (!content || loading) return;
+    const images = pendingImages;
+    if ((!content && !images.length) || loading) return;
     if (isMobile) setSidebarOpen(false);
-    const userMsg = { role: "user", content, time: nowLabel() };
+    const apiContent = images.length
+      ? [
+          { type: "text", text: content || "What's in this screenshot?" },
+          ...images.map((img) => ({ type: "image_url", image_url: { url: img.dataUrl } })),
+        ]
+      : content;
+    const userMsg = { role: "user", content: apiContent, time: nowLabel() };
     const newHistory = [...messages, userMsg];
     setMessages(newHistory);
     setInput("");
+    setPendingImages([]);
+    setAttachError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setLoading(true);
     setError(null);
     try {
       // If agent asks for Excel, reuse the latest remembered comparison.
-      if (wantsExcelExport(content)) {
+      if (wantsExcelExport(userMessageText(apiContent))) {
         const lastOffer = [...newHistory].reverse().find((m) => m.role === "offer" && m.plans?.length >= 2);
         let fromThread = lastOffer?.plans || lastComparisonPlansRef.current || [];
         if (fromThread.length < 2) {
@@ -820,6 +946,10 @@ function App() {
       if (err && err.code === "access_required") {
         setUnlocked(false);
         setGateError("Session expired — sign in with your email and password again.");
+        return;
+      }
+      if (err && err.code === "invalid_image") {
+        setAttachError(err.message || "Images must be PNG, JPEG, or WebP under 4MB.");
         return;
       }
       setError("Couldn't reach Max. Check your connection and try again — if this keeps happening, Railway may be redeploying.");
@@ -1116,7 +1246,18 @@ function App() {
                   fontSize: 14.5, lineHeight: 1.55, whiteSpace: "pre-wrap",
                   border: m.role === "assistant" ? "1px solid var(--line)" : "none",
                 }}>
-                  {m.role === "assistant" ? renderMessageText(m.content) : m.content}
+                  {m.role === "assistant" ? renderMessageText(m.content) : (
+                    <>
+                      {userMessageImages(m.content).length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: userMessageText(m.content) ? 8 : 0 }}>
+                          {userMessageImages(m.content).map((src, idx) => (
+                            <img key={idx} src={src} alt="Attached screenshot" style={{ maxWidth: 168, maxHeight: 120, borderRadius: 8, objectFit: "cover", border: "1px solid rgba(255,255,255,0.25)" }} />
+                          ))}
+                        </div>
+                      )}
+                      {userMessageText(m.content)}
+                    </>
+                  )}
                 </div>
                 <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{m.time}</div>
               </div>
@@ -1137,33 +1278,82 @@ function App() {
         </div>
 
         {/* Input */}
-        <div style={{ padding: isMobile ? "12px 14px max(12px, env(safe-area-inset-bottom))" : "16px 22px", background: "rgba(255,255,255,0.7)", backdropFilter: "blur(14px)", borderTop: "1px solid var(--line)" }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "center", maxWidth: 900, margin: "0 auto" }}>
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder="Ask Max about a plan, benefit, or Medicare rule…"
-              disabled={loading}
-              style={{
-                flex: 1, padding: "13px 18px", borderRadius: 14,
-                border: "1px solid var(--line)", background: "rgba(255,255,255,0.9)",
-                fontSize: 14.5, outline: "none", fontFamily: "var(--font)", color: "var(--ink)",
-              }}
-            />
-            <button
-              onClick={() => send()}
-              disabled={loading || !input.trim()}
-              aria-label="Send"
-              style={{
-                width: 46, height: 46, borderRadius: 14, border: "none",
-                background: loading || !input.trim() ? "rgba(69,32,104,0.25)" : "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)",
-                color: "white", fontSize: 18, cursor: loading || !input.trim() ? "default" : "pointer", flexShrink: 0,
-              }}
-            >
-              &#8593;
-            </button>
+        <div style={{ padding: isMobile ? "12px 14px max(12px, env(safe-area-inset-bottom))" : "16px 22px", background: "rgba(255,255,255,0.7)", backdropFilter: "blur(14px)", borderTop: "1px solid var(--line)" }} onPaste={onComposerPaste}>
+          <div style={{ maxWidth: 900, margin: "0 auto" }}>
+            {pendingImages.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                {pendingImages.map((img) => (
+                  <div key={img.id} style={{ position: "relative", width: 56, height: 56 }}>
+                    <img src={img.dataUrl} alt={img.name || "Attached"} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 10, border: "1px solid var(--line)" }} />
+                    <button
+                      type="button"
+                      onClick={() => setPendingImages((current) => current.filter((item) => item.id !== img.id))}
+                      aria-label="Remove image"
+                      style={{
+                        position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: "50%",
+                        border: "none", background: "var(--plum)", color: "#fff", fontSize: 12, lineHeight: "18px",
+                        cursor: "pointer", padding: 0,
+                      }}
+                    >×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {attachError && (
+              <div style={{ fontSize: 12.5, color: "#9B1C3C", marginBottom: 8 }}>{attachError}</div>
+            )}
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                multiple
+                hidden
+                onChange={(e) => addPendingFiles(e.target.files)}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                aria-label="Attach screenshot"
+                title="Attach PNG, JPEG, or WebP"
+                style={{
+                  width: 46, height: 46, borderRadius: 14, border: "1px solid var(--line)",
+                  background: "rgba(255,255,255,0.9)", color: "var(--plum)", cursor: loading ? "default" : "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M21.4 11.6l-8.8 8.8a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.1-8.1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && send()}
+                onPaste={onComposerPaste}
+                placeholder="Ask Max, or paste a screenshot…"
+                disabled={loading}
+                style={{
+                  flex: 1, padding: "13px 18px", borderRadius: 14,
+                  border: "1px solid var(--line)", background: "rgba(255,255,255,0.9)",
+                  fontSize: 14.5, outline: "none", fontFamily: "var(--font)", color: "var(--ink)",
+                }}
+              />
+              <button
+                onClick={() => send()}
+                disabled={loading || (!input.trim() && !pendingImages.length)}
+                aria-label="Send"
+                style={{
+                  width: 46, height: 46, borderRadius: 14, border: "none",
+                  background: loading || (!input.trim() && !pendingImages.length) ? "rgba(69,32,104,0.25)" : "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)",
+                  color: "white", fontSize: 18, cursor: loading || (!input.trim() && !pendingImages.length) ? "default" : "pointer", flexShrink: 0,
+                }}
+              >
+                &#8593;
+              </button>
+            </div>
           </div>
         </div>
       </main>

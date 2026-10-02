@@ -144,3 +144,41 @@ test('heavy context returns a start-new-chat nudge', (t) => {
   assert.equal(nudge.id, 'long-thread');
   assert.match(nudge.message, /Start a new chat/i);
 });
+
+test('image turns count toward the context estimate and still unlock the daily budget', (t) => {
+  const { guard, cleanup } = fixture();
+  t.after(cleanup);
+
+  const tinyPng =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const imageTurn = [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is this SoB?' },
+        { type: 'image_url', image_url: { url: tinyPng } },
+      ],
+    },
+  ];
+
+  assert.equal(guard.contextNudge('small', [{ role: 'user', content: 'short' }]), null);
+  const imageNudge = guard.contextNudge('small', imageTurn);
+  assert.equal(imageNudge.id, 'long-thread');
+  assert.ok(imageNudge.estimatedTokens > 700);
+
+  guard.recordTurn({ provider: 'openai', usageCalls: openAiUsage(10) });
+  const blocked = guard.checkBeforeTurn(imageTurn);
+  assert.equal(blocked.allowed, false);
+
+  const override = guard.checkBeforeTurn([
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'OK go over' },
+        { type: 'image_url', image_url: { url: tinyPng } },
+      ],
+    },
+  ]);
+  assert.equal(override.allowed, true);
+  assert.equal(override.overrideActivated, true);
+});
