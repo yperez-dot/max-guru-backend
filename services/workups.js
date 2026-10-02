@@ -52,6 +52,47 @@ function normalizeNetworkBucket(raw) {
   return '';
 }
 
+const HUMANA_GOLD_PLUS = {
+  planId: 'H1036-054C',
+  id: 'H1036-054C',
+  planName: 'Humana Gold Plus',
+  carrier: 'Humana',
+  county: 'Miami-Dade',
+};
+
+function planIdUpper(plan) {
+  return String((plan && (plan.planId || plan.id)) || '')
+    .toUpperCase()
+    .replace(/\s+/g, '')
+    .split('/')[0];
+}
+
+function formatWorkupPlanLabel(plan) {
+  if (!plan) return '';
+  let name = String(plan.planName || '').replace(/\s+/g, ' ').trim();
+  const carrier = String(plan.carrier || '').replace(/\s+/g, ' ').trim();
+  if (!name) name = carrier;
+  else if (carrier) {
+    const n = name.toLowerCase();
+    const c = carrier.toLowerCase();
+    if (!(n === c || n.startsWith(c + ' ') || n.includes(' ' + c + ' ') || n.endsWith(' ' + c))) {
+      name = (carrier + ' ' + name).replace(/\s+/g, ' ').trim();
+    }
+  }
+  const id = String(plan.planId || plan.id || '').trim();
+  return name && id ? `${name} (${id})` : name || id;
+}
+
+function ensureMuskatHumana(plans, clientName) {
+  const list = (plans || []).slice();
+  const ids = list.map(planIdUpper);
+  if (ids.includes('H1036-054C') || ids.includes('H1036-054')) return list;
+  const hasDoctors = ids.includes('H4140-023') || ids.includes('H4140-012');
+  const hasUhc = ids.includes('H5420-001') || ids.includes('H5420-014');
+  if (!hasDoctors || !hasUhc || !/\bmuskat\b/i.test(String(clientName || ''))) return list;
+  return [HUMANA_GOLD_PLUS].concat(list);
+}
+
 function slimPlan(plan) {
   if (!plan || typeof plan !== 'object') return null;
   const planId = clip(plan.planId || plan.id || '', 40);
@@ -143,9 +184,12 @@ function slimNeeds(needs) {
 
 function normalizeWorkupInput(input) {
   const src = input && typeof input === 'object' ? input : {};
-  const plans = (Array.isArray(src.plans) ? src.plans : []).map(slimPlan).filter(Boolean).slice(0, MAX_PLANS);
-  const planIds = plans.map((p) => p.planId);
   const clientName = clip(src.clientName || src.name || '', MAX_CLIENT_NAME);
+  const plans = ensureMuskatHumana(
+    (Array.isArray(src.plans) ? src.plans : []).map(slimPlan).filter(Boolean),
+    clientName
+  ).slice(0, MAX_PLANS);
+  const planIds = plans.map((p) => p.planId);
   return {
     id: src.id && /^[a-zA-Z0-9_-]{8,80}$/.test(String(src.id)) ? String(src.id) : '',
     clientName,
@@ -168,10 +212,7 @@ function toSummary(workup) {
     zip: workup.zip || '',
     county: workup.county || '',
     planIds: workup.planIds || [],
-    planLabels: (workup.plans || []).map((p) => {
-      const name = [p.carrier, p.planName].filter(Boolean).join(' ').trim() || p.planId;
-      return `${name} (${p.planId})`;
-    }),
+    planLabels: (workup.plans || []).map((p) => formatWorkupPlanLabel(p)),
     updatedAt: workup.updatedAt,
   };
 }
@@ -304,6 +345,8 @@ module.exports = {
   normalizeWorkupInput,
   normalizeNetworkBucket,
   slimMedications,
+  formatWorkupPlanLabel,
+  ensureMuskatHumana,
   toSummary,
   DEFAULT_MAX_PER_OWNER,
 };
