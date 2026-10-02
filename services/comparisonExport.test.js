@@ -129,9 +129,12 @@ describe('thread extractors', () => {
 describe('Arias-like sheet model from live plan-data', () => {
   it('builds title, terminating, doctors, ordered benefits, SOB/EOC', () => {
     const plans = loadPlans();
-    const a = planById(plans, 'H1045-012-000', 'Miami-Dade') || planById(plans, 'H1045-012-000');
+    const a = planById(plans, 'H1045-012', 'Miami-Dade') || planById(plans, 'H1045-012');
     const b = planById(plans, 'H1045-061', 'Miami-Dade') || planById(plans, 'H1045-061');
     assert.ok(a && b, 'expected H1045-012 and H1045-061 in plan-data');
+    assert.equal(a.year, 2027);
+    assert.equal(a.premium, '$0');
+    assert.equal(String(a.premium).includes('4.8'), false);
 
     const payload = exp.buildExportPayload([a, b], SAMPLE_THREAD, {});
     const model = exp.buildComparisonModel(payload);
@@ -157,7 +160,8 @@ describe('Arias-like sheet model from live plan-data', () => {
     const premium = model.aoa.find((row) => row[0] === 'Premium');
     assert.equal(premium[1], exp.formatBenefitValue(a.premium, 'premium'));
     assert.equal(premium[2], exp.formatBenefitValue(b.premium, 'premium'));
-    assert.equal(premium.includes('$0 – $7.30 (LIS $0)'), false); // do not invent sample dollars
+    assert.equal(premium[1], '$0');
+    assert.equal(premium[2], exp.formatBenefitValue(b.premium, 'premium'));
 
     const companionship = model.aoa.find((row) => row[0] === 'Companionship');
     assert.ok(companionship);
@@ -297,9 +301,15 @@ describe('HTML UI wiring', () => {
   });
 
   it('keeps the 2027 grid export pointed at the working workbook, not Yahoska archive', () => {
-    const py = fs.readFileSync(path.join(__dirname, '../scripts/export_2027_grid_to_kb.py'), 'utf8');
-    assert.match(py, /SHEET_ID = "1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N"/);
-    assert.equal(py.includes('1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A'), false);
+    const common = fs.readFileSync(path.join(__dirname, '../scripts/thei_grid_common.py'), 'utf8');
+    const exporter = fs.readFileSync(path.join(__dirname, '../scripts/export_2027_grid_to_kb.py'), 'utf8');
+    const syncer = fs.readFileSync(path.join(__dirname, '../scripts/sync_thei_grid_to_max.py'), 'utf8');
+    assert.match(common, /1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/);
+    assert.match(exporter, /SHEET_ID_2027 as SHEET_ID/);
+    assert.match(syncer, /SHEET_ID_2027|1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/);
+    assert.equal(common.includes('1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A'), false);
+    assert.equal(exporter.includes('1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A'), false);
+    assert.equal(syncer.includes('1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A'), false);
   });
 
   it('keeps chat compare rule against markdown tables', () => {

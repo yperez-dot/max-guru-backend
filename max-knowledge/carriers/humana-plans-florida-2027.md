@@ -1,7 +1,7 @@
 # Humana — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-01 13:17 UTC
+Pulled: 2026-10-02 21:16 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1036-054C, H1036-065C, H1036-077, H1036-121, H1036-297, H1036-304, H1036-305, H1036-339, H7617-107, H7617-110, H7617-145
 
@@ -12,9 +12,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1036-121
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036121000SB27pdf)
-**SoB note:** SOB - Diabetes & Heart
-**Still yellow on the working grid:** 17 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $166.30
 **MOOP:** $2,450
@@ -23,14 +20,29 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 |---------|------------------|
 | Premium | $0 |
 | Referrals Needed? | Yes |
+| Deductible | 0 |
 | Part B Rebate | $166.30 |
 | Max Out of Pocket | $2,450 |
+| SSBCI Chronic Conditions | •Diabetes Mellitus •Cardiovascular disorders •Chronic heart failure 1 chronic condition required. |
 | Inpatient Hospital | $100 days 1-6 $0 days 7-90 |
+| Outpatient Hospital | $50 / $150 |
 | PCP | $0 |
 | Specialist | $15 |
 | ER | $150 |
+| Urgent Care | 15 |
+| Advanced Imaging (MRI, CT, PET) | $150 / $175 |
+| Hearing Services | 750 |
 | Dental | $1,000 maximum benefit coverage |
+| Deep Cleaning | Yes — 30% (1 proc every 3 calendar years/quadrant) |
+| Dentures | Yes — 30% (1 set /5 yrs) |
+| Fillings | Yes — 30% (1 proc per tooth per surface /2 yrs) |
+| Root Canals | No |
+| Extractions | Yes — 30% (1 proc 1/tooth/lifetime) |
+| Crowns | Yes — 30% (1 proc per tooth /5 yrs) |
+| Bridges | No |
+| Implants | No |
 | Vision Allowance | $300 allowance / 2 Select eyeglasses |
+| Ambulance | $240 x Ground 20% x Air |
 | Transportation | 50 one-way trips |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -41,7 +53,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 6 | $0 |
 | OTC | Combined with Healthy Options Allowance |
 | Grocery Card | $35/month Healthy Options Allowance (rollover) |
+| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr · $0 routine (25/yr) |
+| Fitness | SilverSneakers |
 | Other Cards | $35/month Healthy Options Allowance (rollover) |
+| Evidence of Coverage | EOC — Diabetes & Heart |
 
 ---
 
@@ -50,9 +65,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1036-297
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036297000SB27pdf)
-**SoB note:** SOB - Lung
-**Still yellow on the working grid:** 17 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $166
 **MOOP:** $2,450
@@ -61,14 +73,29 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 |---------|------------------|
 | Premium | $0 |
 | Referrals Needed? | Yes |
+| Deductible | 0 |
 | Part B Rebate | $166 |
 | Max Out of Pocket | $2,450 |
+| SSBCI Chronic Conditions | •Chronic lung disorders 1 chronic condition required. |
 | Inpatient Hospital | $100 days 1-6 $0 days 7-90 |
+| Outpatient Hospital | $50 / $150 |
 | PCP | $0 |
 | Specialist | $15 |
 | ER | $150 |
+| Urgent Care | 15 |
+| Advanced Imaging (MRI, CT, PET) | $150 / $175 |
+| Hearing Services | 750 |
 | Dental | $1,000 maximum benefit coverage |
+| Deep Cleaning | Yes — 30% (1 proc every 3 calendar years/quadrant) |
+| Dentures | Yes — 30% (1 set /5 yrs) |
+| Fillings | Yes — 30% (1 proc per tooth per surface /2 yrs) |
+| Root Canals | No |
+| Extractions | Yes — 30% (1 proc 1/tooth/lifetime) |
+| Crowns | Yes — 30% (1 proc per tooth /5 yrs) |
+| Bridges | No |
+| Implants | No |
 | Vision Allowance | $300 allowance / 2 Select eyeglasses |
+| Ambulance | $240 x Ground 20% x Air |
 | Transportation | 50 one-way trips |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -79,7 +106,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 6 | $0 |
 | OTC | Combined with Healthy Options Allowance |
 | Grocery Card | $55/month Healthy Options Allowance (rollover) |
+| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr · $0 routine (25/yr) |
+| Fitness | SilverSneakers |
 | Other Cards | $55/month Healthy Options Allowance (rollover) |
+| Evidence of Coverage | EOC — Lung |
 
 ---
 
@@ -88,9 +118,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1036-077
-**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-026-Summary-of-Benefits.pdf)
-**SoB note:** SOB - Dual Select
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,400
@@ -111,17 +138,19 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 exam · $0 Level 1 per ear |
 | Dental | $5,000 preventive & comprehensive |
-| Deep Cleaning | Included in $5,000 allowance |
-| Dentures | Included in $5,000 allowance |
-| Fillings | Included in $5,000 allowance |
-| Root Canals | Included in $5,000 allowance |
-| Extractions | Included in $5,000 allowance |
-| Crowns | Included in $5,000 allowance |
-| Bridges | Included in $5,000 allowance |
-| Implants | Not covered |
+| Deep Cleaning | Yes — included in $5,000 allowance (freq limits may apply) |
+| Dentures | Yes — included in $5,000 allowance (freq limits may apply) |
+| Fillings | Yes — included in $5,000 allowance (freq limits may apply) |
+| Root Canals | Yes — included in $5,000 allowance (freq limits may apply) |
+| Extractions | Yes — included in $5,000 allowance (freq limits may apply) |
+| Crowns | Yes — included in $5,000 allowance (freq limits may apply) |
+| Bridges | Yes — included in $5,000 allowance (freq limits may apply) |
+| Implants | No |
 | Vision Allowance | $100 contacts or glasses / or 1 select pair |
 | Ambulance | $0 or $200 ground · $0 or 20% air |
 | Transportation | Unlimited one-way trips to plan-approved locations |
+| Companionship | Not covered |
+| Custodial Care | HHA: 4hrs x day, 80 hrs x year (EOC: custodial personal care generally excluded; HHA per SOB) |
 | RX Deductible | LIS $0 · No LIS $700 Tiers 4–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
@@ -131,9 +160,11 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 6 | n/a |
 | OTC | $130/mo Healthy Options (OTC for all members) |
 | Grocery Card | Groceries / utilities / rent if eligible chronic conditions (same Healthy Options card) |
-| Acupuncture | $0 · 25 visits |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr · $0 routine (25/yr) |
 | Fitness | SilverSneakers |
-| Other Cards | Well Dine after IP/SNF · routine chiropractic 12 visits |
+| Other Cards | routine chiropractic 12 visits |
+| Evidence of Coverage | EOC — Dual Select |
 
 ---
 
@@ -142,8 +173,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1036-304
-**SoB note:** SOB - Dual Select (no URL on the grid cell)
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,400
@@ -164,17 +193,19 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 exam · $0 Level 2 per ear |
 | Dental | $2,500 preventive & comprehensive |
-| Deep Cleaning | Included in $2,500 allowance |
-| Dentures | Included in $2,500 allowance |
-| Fillings | Included in $2,500 allowance |
-| Root Canals | Included in $2,500 allowance |
-| Extractions | Included in $2,500 allowance |
-| Crowns | Included in $2,500 allowance |
-| Bridges | Included in $2,500 allowance |
-| Implants | Not covered |
+| Deep Cleaning | Yes — included in $2,500 allowance (freq limits may apply) |
+| Dentures | Yes — included in $2,500 allowance (freq limits may apply) |
+| Fillings | Yes — included in $2,500 allowance (freq limits may apply) |
+| Root Canals | Yes — included in $2,500 allowance (freq limits may apply) |
+| Extractions | Yes — included in $2,500 allowance (freq limits may apply) |
+| Crowns | Yes — included in $2,500 allowance (freq limits may apply) |
+| Bridges | Yes — included in $2,500 allowance (freq limits may apply) |
+| Implants | No |
 | Vision Allowance | $400 contacts or glasses · 1 pair |
 | Ambulance | $0 or $200 ground · $0 or 20% air |
 | Transportation | Unlimited one-way trips to plan-approved locations |
+| Companionship | Not covered |
+| Custodial Care | HHA: 4hrs x day, 80 hrs x year (EOC: custodial personal care generally excluded; HHA per SOB) |
 | RX Deductible | LIS $0 · No LIS $700 Tiers 4–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
@@ -184,47 +215,11 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 6 | n/a |
 | OTC | $250/mo Healthy Options (OTC for all members) |
 | Grocery Card | Groceries / utilities / rent if eligible chronic conditions (same Healthy Options card) |
-| Acupuncture | $0 · 25 visits |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr |
 | Fitness | SilverSneakers |
-| Other Cards | Well Dine after IP/SNF · routine chiropractic 12 visits |
-
----
-
-## Humana Gold Plus Giveback (H1036-305) — Broward Giveback
-**County:** Broward
-**Type:** Giveback
-**Plan year:** 2027
-**CMS ID:** H1036-305
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036305000SB27pdf)
-**SoB note:** SOB - Gold Plus Giveback
-**Still yellow on the working grid:** 15 field(s) — not cited below.
-**Premium:** $0
-**Part B Giveback:** $148
-**MOOP:** $3,850
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-| Premium | $0 |
-| Referrals Needed? | Yes |
-| Part B Give Back | $148 |
-| Max Out of Pocket | $3,850 |
-| Inpatient Hospital | $250 days 1-7 $0 days 8-90 |
-| PCP | $0 |
-| Specialist | $30 |
-| ER | $150 |
-| Dental | $1,000 maximum benefit coverage |
-| Vision Allowance | $200 allowance / 1 Select eyeglasses |
-| Transportation | 24 one-way trips |
-| RX Deductible | No |
-| Tier 1 | $0 |
-| Tier 2 | $0 |
-| Tier 3 | 9% |
-| Tier 4 | 50% |
-| Tier 5 | 33% |
-| Tier 6 | n/a |
-| OTC | N/A |
-| Grocery Card | N/A |
-| Other | Key extra benefits: N/A |
+| Other Cards | routine chiropractic 12 visits |
+| Evidence of Coverage | EOC — Dual Select |
 
 ---
 
@@ -233,9 +228,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1036-065C
-**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-006-Summary-of-Benefits.pdf)
-**SoB note:** SOB - Gold Plus
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $6.30
 **MOOP:** $1,000
@@ -256,14 +248,14 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | $0 freestanding / $75 outpatient hospital |
 | Hearing Services | $0 exam · $399 Level 1 / $675 Level 2 per ear |
 | Dental | $5,000 preventive & comprehensive |
-| Deep Cleaning | Included in $5,000 allowance |
-| Dentures | Included in $5,000 allowance |
-| Fillings | Included in $5,000 allowance |
-| Root Canals | Included in $5,000 allowance |
-| Extractions | Included in $5,000 allowance |
-| Crowns | Included in $5,000 allowance |
-| Bridges | Included in $5,000 allowance |
-| Implants | Not covered |
+| Deep Cleaning | Yes — included in $5,000 allowance (freq limits may apply) |
+| Dentures | Yes — included in $5,000 allowance (freq limits may apply) |
+| Fillings | Yes — included in $5,000 allowance (freq limits may apply) |
+| Root Canals | Yes — included in $5,000 allowance (freq limits may apply) |
+| Extractions | Yes — included in $5,000 allowance (freq limits may apply) |
+| Crowns | Yes — included in $5,000 allowance (freq limits may apply) |
+| Bridges | Yes — included in $5,000 allowance (freq limits may apply) |
+| Implants | No |
 | Vision Allowance | $400 contacts or glasses / or 3 select pairs |
 | Ambulance | $75 ground · 20% air |
 | Transportation | 50 one-way trips + unlimited if CKD/ESRD/cancer |
@@ -275,20 +267,69 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 33% |
 | Tier 6 | n/a |
 | OTC | $65/quarter OTC |
-| Acupuncture | $0 · 25 visits |
+| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr · $0 routine (25/yr) |
 | Fitness | SilverSneakers |
 | Grocery Card | Not listed on 2027 SOB |
-| Other | Well Dine 14 meals after IP/SNF, 4x/year · post-discharge home care 28 hrs/year · Go365 |
+| Evidence of Coverage | EOC — Gold Plus |
 
 ---
 
-## Humana Choice (H7617-107) — Broward PPO — NON-COMMISSIONABLE (new sales)
+## Humana Gold Plus Giveback (H1036-305) — Broward HMO
+**County:** Broward
+**Type:** HMO
+**Plan year:** 2027
+**CMS ID:** H1036-305
+**Premium:** $0
+**Part B Giveback:** $148
+**MOOP:** $3,850
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+| Premium | $0 |
+| Referrals Needed? | Yes |
+| Part B Give Back | $148 |
+| Max Out of Pocket | $3,850 |
+| Inpatient Hospital | $250 days 1-7 $0 days 8-90 |
+| Outpatient Hospital | $0 / $150 / $250 |
+| PCP | $0 |
+| Specialist | $30 |
+| ER | $150 |
+| Urgent Care | 15 |
+| Advanced Imaging (MRI, CT, PET) | $200 / $250 |
+| Hearing Services | $500 x RX hearing aid x annually |
+| Dental | $1,000 maximum benefit coverage |
+| Deep Cleaning | No SRP — perio maintenance $0 (4 proc /yr) in EOC |
+| Dentures | No |
+| Fillings | Yes — $25 per tooth (2 proc /yr) |
+| Root Canals | No |
+| Extractions | No |
+| Crowns | No |
+| Bridges | No |
+| Dental Implants | No |
+| Vision Allowance | $200 allowance / 1 Select eyeglasses |
+| Ambulance | $240 ground 20% air |
+| Transportation | 24 one-way trips |
+| RX Deductible | No |
+| Tier 1 | $0 |
+| Tier 2 | $0 |
+| Tier 3 | 9% |
+| Tier 4 | 50% |
+| Tier 5 | 33% |
+| Tier 6 | n/a |
+| OTC | N/A |
+| Acupuncture | $5 · Medicare chronic LBP · up to 20/yr · $5 routine (12/yr) |
+| Fitness | Silver Sneakers |
+| Grocery Card | N/A |
+| Other | Key extra benefits: N/A |
+| Evidence of Coverage | EOC — Gold Plus Giveback |
+
+---
+
+## Humana Choice (H7617-107) — Broward PPO
 **County:** Broward
 **Type:** PPO
 **Plan year:** 2027
 **CMS ID:** H7617-107
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H7617107000SB27pdf)
-**SoB note:** SOB - Choice
 **Premium:** $0
 **Part B Giveback:** $0
 **MOOP:** $3,900 in-network
@@ -308,14 +349,14 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | FS $200 · OP hospital $335 · office $200 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
 | Dental | $3,000/yr preventive + comprehensive · 50% on most major |
-| Deep Cleaning | 50% (periodontal scaling) |
-| Dentures | 50% |
-| Fillings | Included in $3,000 (basic) |
-| Root Canals | 50% |
-| Extractions | Included in $3,000 (basic) |
-| Crowns | 50% |
-| Bridges | 50% |
-| Implants | Not covered — allowance cannot be used on implants |
+| Deep Cleaning | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
+| Dentures | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
+| Fillings | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
+| Root Canals | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
+| Extractions | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
+| Crowns | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
+| Bridges | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
+| Implants | No |
 | Vision Allowance | $0 exam (1/year) · $50/yr contacts or glasses · $100 at PLUS provider |
 | Ambulance | $325 ground · 20% air |
 | Transportation | Not covered |
@@ -327,9 +368,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 25% |
 | Tier 6 | n/a |
 | OTC | Not listed on 2027 SOB |
-| Acupuncture | $5 · 20 Medicare visits · $5 routine (12/year) |
+| Acupuncture | $5 · Medicare chronic LBP · up to 20/yr |
 | Fitness | SilverSneakers |
-| Other | Referrals required: No NON-COMMISSIONABLE · South Florida (Broward, Miami-Dade, Palm Beach — no extra Palm Beach column) SNF $0 days 1-20 / $60 days 21-100 Go365 Plus · PPO national travel network |
+| Other | South Florida (Broward, Miami-Dade, Palm Beach — no extra Palm Beach column) SNF $0 days 1-20 / $60 days 21-100 Go365 Plus · PPO national travel network |
+| Evidence of Coverage | EOC — Choice |
 
 Out-of-network (confirmed):
 
@@ -369,17 +411,15 @@ Out-of-network (confirmed):
 | OTC | Not listed on 2027 SOB |
 | Acupuncture | $5 · 20 Medicare visits · $5 routine (12/year) |
 | Fitness | 95% coinsurance (reimburse up to 5%) |
-| Other | Referrals required: No NON-COMMISSIONABLE SNF $250/day days 1-100 OON hearing/fitness reimbursement limited to 5% of allowed |
+| Other | SNF $250/day days 1-100 OON hearing/fitness reimbursement limited to 5% of allowed |
 
 ---
 
-## Humana Choice Giveback (H7617-110) — Broward PPO — NON-COMMISSIONABLE (new sales)
+## Humana Choice Giveback (H7617-110) — Broward PPO
 **County:** Broward
 **Type:** PPO
 **Plan year:** 2027
 **CMS ID:** H7617-110
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H7617110000SB27pdf)
-**SoB note:** SOB - Choice Giveback
 **Premium:** $0
 **Part B Giveback:** $161.50
 **MOOP:** $7,150 in-network
@@ -399,14 +439,14 @@ Out-of-network (confirmed):
 | Advanced Imaging (MRI, CT, PET) | FS $200 · OP hospital $335 · office $200 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
 | Dental | Preventive only — exams, cleanings, X-rays, perio maintenance $0 (DEN650) |
-| Deep Cleaning | Perio maintenance $0 (4/year) |
-| Dentures | Not listed on 2027 SOB |
-| Fillings | Not listed on 2027 SOB |
-| Root Canals | Not listed on 2027 SOB |
-| Extractions | Not listed on 2027 SOB |
-| Crowns | Not listed on 2027 SOB |
-| Bridges | Not listed on 2027 SOB |
-| Implants | Not listed on 2027 SOB |
+| Deep Cleaning | No SRP — perio maintenance $0 (4 proc /yr) in EOC |
+| Dentures | No |
+| Fillings | No |
+| Root Canals | No |
+| Extractions | No |
+| Crowns | No |
+| Bridges | No |
+| Implants | No |
 | Vision Allowance | $0 exam (1/year) · $50/yr contacts or glasses · $100 at PLUS provider |
 | Ambulance | $275 ground · 20% air |
 | Transportation | Not covered |
@@ -418,9 +458,10 @@ Out-of-network (confirmed):
 | Tier 5 | 25% |
 | Tier 6 | n/a |
 | OTC | Not listed on 2027 SOB |
-| Acupuncture | $5 · 20 Medicare visits · $5 routine (12/year) |
+| Acupuncture | $5 · Medicare chronic LBP · up to 20/yr |
 | Fitness | SilverSneakers |
-| Other | Referrals required: No NON-COMMISSIONABLE · South Florida & Treasure Coast (Palm Beach not an extra column) SNF $0 days 1-20 / $60 days 21-100 Deductible $725 combined — ambulance, chemo, DME, labs, PCP, specialist, ER, urgent, preventive excluded Go365 Plus · PPO national travel network |
+| Other | South Florida & Treasure Coast (Palm Beach not an extra column) SNF $0 days 1-20 / $60 days 21-100 Deductible $725 combined — ambulance, chemo, DME, labs, PCP, specialist, ER, urgent, preventive excluded Go365 Plus · PPO national travel network |
+| Evidence of Coverage | EOC — Choice Giveback |
 
 Out-of-network (confirmed):
 
@@ -460,7 +501,7 @@ Out-of-network (confirmed):
 | OTC | Not listed on 2027 SOB |
 | Acupuncture | $5 · 20 Medicare visits · $5 routine (12/year) |
 | Fitness | 95% coinsurance (reimburse up to 5%) |
-| Other | Referrals required: No NON-COMMISSIONABLE SNF $0 days 1-20 / $160 days 21-100 OON hearing/fitness reimbursement limited to 5% of allowed |
+| Other | SNF $0 days 1-20 / $160 days 21-100 OON hearing/fitness reimbursement limited to 5% of allowed |
 
 ---
 
@@ -469,8 +510,6 @@ Out-of-network (confirmed):
 **Type:** PPO
 **Plan year:** 2027
 **CMS ID:** H7617-145
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H7617145000SB27pdf)
-**SoB note:** SOB - Choice Giveback
 **Premium:** $0
 **Part B Giveback:** $92
 **MOOP:** $7,150 in-network
@@ -490,14 +529,14 @@ Out-of-network (confirmed):
 | Advanced Imaging (MRI, CT, PET) | FS $200 · OP hospital $335 · office $200 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
 | Dental | $500/yr max diagnostic + comprehensive · preventive $0 |
-| Deep Cleaning | Perio maintenance $0 (4/year) |
-| Dentures | Not listed on 2027 SOB |
-| Fillings | $25 · 2 per year (counts toward $500) |
-| Root Canals | Not listed on 2027 SOB |
-| Extractions | Not listed on 2027 SOB |
-| Crowns | Not listed on 2027 SOB |
-| Bridges | Not listed on 2027 SOB |
-| Implants | Not listed on 2027 SOB |
+| Deep Cleaning | No SRP — perio maintenance $0 (4 proc /yr) in EOC |
+| Dentures | No |
+| Fillings | Yes — $25 per tooth (2 proc /yr) |
+| Root Canals | No |
+| Extractions | No |
+| Crowns | No |
+| Bridges | No |
+| Implants | No |
 | Vision Allowance | $0 exam (1/year) · $50/yr contacts or glasses · $100 at PLUS provider |
 | Ambulance | $325 ground · 20% air |
 | Transportation | Not covered |
@@ -509,9 +548,10 @@ Out-of-network (confirmed):
 | Tier 5 | 25% |
 | Tier 6 | n/a |
 | OTC | Not listed on 2027 SOB |
-| Acupuncture | $5 · 20 Medicare visits · $5 routine (12/year) |
+| Acupuncture | $5 · Medicare chronic LBP · up to 20/yr |
 | Fitness | SilverSneakers |
-| Other | Referrals required: No **NEW 2027** · South Florida & Treasure Coast (Palm Beach not an extra column) SNF $0 days 1-20 / $160 days 21-100 Deductible $600 combined — ambulance, chemo, DME, labs, PCP, specialist, ER, urgent, preventive excluded Well Dine after IP/SNF 4x/year · post-discharge home care 44 hrs/year · Go365 |
+| Other | **NEW 2027** · South Florida & Treasure Coast (Palm Beach not an extra column) SNF $0 days 1-20 / $160 days 21-100 Deductible $600 combined — ambulance, chemo, DME, labs, PCP, specialist, ER, urgent, preventive excluded post-discharge home care 44 hrs/year · Go365 |
+| Evidence of Coverage | EOC — Choice Giveback |
 
 Out-of-network (confirmed):
 
@@ -551,7 +591,7 @@ Out-of-network (confirmed):
 | OTC | Not listed on 2027 SOB |
 | Acupuncture | $5 · 20 Medicare visits · $5 routine (12/year) |
 | Fitness | 95% coinsurance (reimburse up to 5%) |
-| Other | Referrals required: No **NEW 2027** SNF $0 days 1-20 / $160 days 21-100 OON hearing/fitness reimbursement limited to 5% of allowed |
+| Other | **NEW 2027** SNF $0 days 1-20 / $160 days 21-100 OON hearing/fitness reimbursement limited to 5% of allowed |
 
 ---
 
@@ -560,9 +600,6 @@ Out-of-network (confirmed):
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1036-121
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036121000SB27pdf)
-**SoB note:** SOB - Diabetes & Heart
-**Still yellow on the working grid:** 9 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $166.30
 **MOOP:** $2,450
@@ -573,12 +610,26 @@ Out-of-network (confirmed):
 | Referrals Needed? | Yes |
 | Part B Rebate | $166.30 |
 | Max Out of Pocket | $2,450 |
+| SSBCI Chronic Conditions | •Diabetes Mellitus •Cardiovascular disorders •Chronic heart failure |
 | Inpatient Hospital | $100 days 1-6 $0 days 7-90 |
+| Outpatient Hospital | $50 / $150 |
 | PCP | $0 |
 | Specialist | $15 |
 | ER | $150 |
+| Urgent Care | 15 |
+| Advanced Imaging (MRI, CT, PET) | $150 / $175 |
+| Hearing Services | 750 |
 | Dental | $1,000 maximum benefit coverage |
+| Deep Cleaning | Yes — 30% (1 proc every 3 calendar years/quadrant) |
+| Dentures | Yes — 30% (1 set /5 yrs) |
+| Fillings | Yes — 30% (1 proc per tooth per surface /2 yrs) |
+| Root Canals | No |
+| Extractions | Yes — 30% (1 proc 1/tooth/lifetime) |
+| Crowns | Yes — 30% (1 proc per tooth /5 yrs) |
+| Bridges | No |
+| Implants | No |
 | Vision Allowance | $300 allowance / 2 Select eyeglasses |
+| Ambulance | $240 x Ground 20% x Air |
 | Transportation | 50 one-way trips |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -589,7 +640,9 @@ Out-of-network (confirmed):
 | Tier 6 | $0 |
 | OTC | Combined with Healthy Options Allowance |
 | Grocery Card | $35/month Healthy Options Allowance (rollover) |
-| Other | $35/month Healthy Options Allowance (rollover) |
+| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr · $0 routine (25/yr) |
+| Fitness | SilverSneakers |
+| Evidence of Coverage | EOC — Diabetes & Heart |
 
 ---
 
@@ -598,9 +651,6 @@ Out-of-network (confirmed):
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1036-297
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036297000SB27pdf)
-**SoB note:** SOB - Lung
-**Still yellow on the working grid:** 9 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $166
 **MOOP:** $2,450
@@ -611,12 +661,26 @@ Out-of-network (confirmed):
 | Referrals Needed? | Yes |
 | Part B Rebate | $166 |
 | Max Out of Pocket | $2,450 |
+| SSBCI Chronic Conditions | •Chronic lung disorders |
 | Inpatient Hospital | $100 days 1-6 $0 days 7-90 |
+| Outpatient Hospital | $50 / $150 |
 | PCP | $0 |
 | Specialist | $15 |
 | ER | $150 |
+| Urgent Care | 15 |
+| Advanced Imaging (MRI, CT, PET) | $150 / $175 |
+| Hearing Services | 750 |
 | Dental | $1,000 maximum benefit coverage |
+| Deep Cleaning | Yes — 30% (1 proc every 3 calendar years/quadrant) |
+| Dentures | Yes — 30% (1 set /5 yrs) |
+| Fillings | Yes — 30% (1 proc per tooth per surface /2 yrs) |
+| Root Canals | No |
+| Extractions | Yes — 30% (1 proc 1/tooth/lifetime) |
+| Crowns | Yes — 30% (1 proc per tooth /5 yrs) |
+| Bridges | No |
+| Implants | No |
 | Vision Allowance | $300 allowance / 2 Select eyeglasses |
+| Ambulance | $240 x Ground 20% x Air |
 | Transportation | 50 one-way trips |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -627,7 +691,9 @@ Out-of-network (confirmed):
 | Tier 6 | $0 |
 | OTC | Combined with Healthy Options Allowance |
 | Grocery Card | $55/month Healthy Options Allowance (rollover) |
-| Other | $55/month Healthy Options Allowance (rollover) |
+| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr · $0 routine (25/yr) |
+| Fitness | SilverSneakers |
+| Evidence of Coverage | EOC — Lung |
 
 ---
 
@@ -636,8 +702,6 @@ Out-of-network (confirmed):
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1036-077
-**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-026-Summary-of-Benefits.pdf)
-**SoB note:** SOB - Dual Select
 **Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -659,14 +723,14 @@ Out-of-network (confirmed):
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 exam · $0 Level 1 per ear |
 | Dental | $5,000 preventive & comprehensive |
-| Deep Cleaning | Included in $5,000 allowance |
-| Dentures | Included in $5,000 allowance |
-| Fillings | Included in $5,000 allowance |
-| Root Canals | Included in $5,000 allowance |
-| Extractions | Included in $5,000 allowance |
-| Crowns | Included in $5,000 allowance |
-| Bridges | Included in $5,000 allowance |
-| Implants | Not covered |
+| Deep Cleaning | Yes — included in $5,000 allowance (freq limits may apply) |
+| Dentures | Yes — included in $5,000 allowance (freq limits may apply) |
+| Fillings | Yes — included in $5,000 allowance (freq limits may apply) |
+| Root Canals | Yes — included in $5,000 allowance (freq limits may apply) |
+| Extractions | Yes — included in $5,000 allowance (freq limits may apply) |
+| Crowns | Yes — included in $5,000 allowance (freq limits may apply) |
+| Bridges | Yes — included in $5,000 allowance (freq limits may apply) |
+| Implants | No |
 | Vision Allowance | $100 contacts or glasses / or 1 select pair |
 | Ambulance | $0 or $200 ground · $0 or 20% air |
 | Transportation | Unlimited one-way trips to plan-approved locations |
@@ -679,9 +743,11 @@ Out-of-network (confirmed):
 | Tier 6 | n/a |
 | OTC | $130/mo Healthy Options (OTC for all members) |
 | Grocery Card | Groceries / utilities / rent if eligible chronic conditions (same Healthy Options card) |
-| Acupuncture | $0 · 25 visits |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr · $0 routine (25/yr) |
 | Fitness | SilverSneakers |
-| Other | Well Dine after IP/SNF · routine chiropractic 12 visits |
+| Other | routine chiropractic 12 visits |
+| Evidence of Coverage | EOC — Dual Select |
 
 ---
 
@@ -690,9 +756,6 @@ Out-of-network (confirmed):
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1036-304
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036077000SB27pdf)
-**SoB note:** SOB - Dual Select
-**Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,400
@@ -713,17 +776,19 @@ Out-of-network (confirmed):
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 exam · $0 Level 2 per ear |
 | Dental | $2,500 preventive & comprehensive |
-| Deep Cleaning | Included in $2,500 allowance |
-| Dentures | Included in $2,500 allowance |
-| Fillings | Included in $2,500 allowance |
-| Root Canals | Included in $2,500 allowance |
-| Extractions | Included in $2,500 allowance |
-| Crowns | Included in $2,500 allowance |
-| Bridges | Included in $2,500 allowance |
-| Implants | Not covered |
+| Deep Cleaning | Yes — included in $2,500 allowance (freq limits may apply) |
+| Dentures | Yes — included in $2,500 allowance (freq limits may apply) |
+| Fillings | Yes — included in $2,500 allowance (freq limits may apply) |
+| Root Canals | Yes — included in $2,500 allowance (freq limits may apply) |
+| Extractions | Yes — included in $2,500 allowance (freq limits may apply) |
+| Crowns | Yes — included in $2,500 allowance (freq limits may apply) |
+| Bridges | Yes — included in $2,500 allowance (freq limits may apply) |
+| Implants | No |
 | Vision Allowance | $400 contacts or glasses · 1 pair |
 | Ambulance | $0 or $200 ground · $0 or 20% air |
 | Transportation | Unlimited one-way trips to plan-approved locations |
+| Companionship | Not covered |
+| Custodial Care | HHA: 4hrs x day, 80 hrs x year (EOC: custodial personal care generally excluded; HHA per SOB) |
 | RX Deductible | LIS $0 · No LIS $700 Tiers 4–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
@@ -733,9 +798,11 @@ Out-of-network (confirmed):
 | Tier 6 | n/a |
 | OTC | $250/mo Healthy Options (OTC for all members) |
 | Grocery Card | Groceries / utilities / rent if eligible chronic conditions (same Healthy Options card) |
-| Acupuncture | $0 · 25 visits |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr |
 | Fitness | SilverSneakers |
-| Other | Well Dine after IP/SNF · routine chiropractic 12 visits |
+| Other | routine chiropractic 12 visits |
+| Evidence of Coverage | EOC — Dual Select |
 
 ---
 
@@ -744,9 +811,6 @@ Out-of-network (confirmed):
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1036-339
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036077000SB27pdf)
-**SoB note:** SOB - Dual Integrated
-**Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -767,17 +831,19 @@ Out-of-network (confirmed):
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 exam · $0 Level 1 per ear |
 | Dental | $5,000 preventive & comprehensive |
-| Deep Cleaning | Included in $5,000 allowance |
-| Dentures | Included in $5,000 allowance |
-| Fillings | Included in $5,000 allowance |
-| Root Canals | Included in $5,000 allowance |
-| Extractions | Included in $5,000 allowance |
-| Crowns | Included in $5,000 allowance |
-| Bridges | Included in $5,000 allowance |
-| Implants | Not covered |
+| Deep Cleaning | Yes — included in $5,000 allowance (freq limits may apply) |
+| Dentures | Yes — included in $5,000 allowance (freq limits may apply) |
+| Fillings | Yes — included in $5,000 allowance (freq limits may apply) |
+| Root Canals | Yes — included in $5,000 allowance (freq limits may apply) |
+| Extractions | Yes — included in $5,000 allowance (freq limits may apply) |
+| Crowns | Yes — included in $5,000 allowance (freq limits may apply) |
+| Bridges | Yes — included in $5,000 allowance (freq limits may apply) |
+| Implants | No |
 | Vision Allowance | $100 contacts or glasses · 1 pair |
 | Ambulance | $0 |
 | Transportation | Unlimited one-way trips to plan-approved locations |
+| Companionship | Not covered |
+| Custodial Care | HHA: 4hrs x day, 80 hrs x year (EOC: custodial personal care generally excluded; HHA per SOB) |
 | RX Deductible | LIS $0 · No LIS $700 Tiers 4–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
@@ -787,47 +853,10 @@ Out-of-network (confirmed):
 | Tier 6 | n/a |
 | OTC | $370/mo Healthy Options (OTC for all members) |
 | Grocery Card | Groceries / utilities / rent if eligible chronic conditions (same Healthy Options card) |
-| Acupuncture | $0 · 25 visits |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr · $0 routine (25/yr) |
 | Fitness | SilverSneakers |
-| Other | HIDE D-SNP · Well Dine after IP/SNF |
-
----
-
-## Humana Gold Plus Giveback (H1036-305) — Miami-Dade Giveback
-**County:** Miami-Dade
-**Type:** Giveback
-**Plan year:** 2027
-**CMS ID:** H1036-305
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H1036305000SB27pdf)
-**SoB note:** SOB - Gold Plus Giveback
-**Still yellow on the working grid:** 15 field(s) — not cited below.
-**Premium:** $0
-**Part B Giveback:** $148
-**MOOP:** $3,850
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-| Premium | $0 |
-| Referrals Needed? | Yes |
-| Part B Give Back | $148 |
-| Max Out of Pocket | $3,850 |
-| Inpatient Hospital | $250 days 1-7 $0 days 8-90 |
-| PCP | $0 |
-| Specialist | $30 |
-| ER | $150 |
-| Dental | $1,000 maximum benefit coverage |
-| Vision Allowance | $200 allowance / 1 Select eyeglasses |
-| Transportation | 24 one-way trips |
-| RX Deductible | No |
-| Tier 1 | $0 |
-| Tier 2 | $0 |
-| Tier 3 | 9% |
-| Tier 4 | 50% |
-| Tier 5 | 33% |
-| Tier 6 | n/a |
-| OTC | N/A |
-| Grocery Card | N/A |
-| Other | Key extra benefits: N/A |
+| Evidence of Coverage | EOC — Dual Integrated |
 
 ---
 
@@ -836,9 +865,6 @@ Out-of-network (confirmed):
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1036-054C
-**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-006-Summary-of-Benefits.pdf)
-**SoB note:** SOB - Gold Plus
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $9.30
 **MOOP:** $500
@@ -858,14 +884,14 @@ Out-of-network (confirmed):
 | Advanced Imaging (MRI, CT, PET) | $0 freestanding / $75 outpatient hospital |
 | Hearing Services | $0 exam · $199 Level 1 / $475 Level 2 per ear |
 | Dental | $6,000 preventive & comprehensive |
-| Deep Cleaning | Included in $6,000 allowance |
-| Dentures | Included in $6,000 allowance |
-| Fillings | Included in $6,000 allowance |
-| Root Canals | Included in $6,000 allowance |
-| Extractions | Included in $6,000 allowance |
-| Crowns | Included in $6,000 allowance |
-| Bridges | Included in $6,000 allowance |
-| Implants | Not covered |
+| Deep Cleaning | Yes — included in $6,000 allowance (freq limits may apply) |
+| Dentures | Yes — included in $6,000 allowance (freq limits may apply) |
+| Fillings | Yes — included in $6,000 allowance (freq limits may apply) |
+| Root Canals | Yes — included in $6,000 allowance (freq limits may apply) |
+| Extractions | Yes — included in $6,000 allowance (freq limits may apply) |
+| Crowns | Yes — included in $6,000 allowance (freq limits may apply) |
+| Bridges | Yes — included in $6,000 allowance (freq limits may apply) |
+| Implants | No |
 | Vision Allowance | $450 contacts or glasses / or 3 select pairs (3rd may be sunglasses) |
 | Ambulance | $75 ground · 20% air |
 | Transportation | 50 one-way trips + unlimited if CKD/ESRD/cancer |
@@ -877,20 +903,71 @@ Out-of-network (confirmed):
 | Tier 5 | 33% |
 | Tier 6 | n/a |
 | OTC | $110/mo Healthy Options (OTC for all members) |
-| Acupuncture | $0 · 25 visits |
+| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr |
 | Fitness | SilverSneakers |
 | Grocery Card | Groceries / utilities / rent if eligible chronic conditions (same Healthy Options card) |
-| Other | Well Dine 14 meals after IP/SNF, 4x/year · post-discharge home care 28 hrs/year · Go365 |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Evidence of Coverage | EOC — Gold Plus |
 
 ---
 
-## Humana Choice (H7617-107) — Miami-Dade PPO — NON-COMMISSIONABLE (new sales)
+## Humana Gold Plus Giveback (H1036-305) — Miami-Dade HMO
+**County:** Miami-Dade
+**Type:** HMO
+**Plan year:** 2027
+**CMS ID:** H1036-305
+**Premium:** $0
+**Part B Giveback:** $148
+**MOOP:** $3,850
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+| Premium | $0 |
+| Referrals Needed? | Yes |
+| Part B Give Back | $148 |
+| Max Out of Pocket | $3,850 |
+| Inpatient Hospital | $250 days 1-7 $0 days 8-90 |
+| Outpatient Hospital | $0 / $150 / $250 |
+| PCP | $0 |
+| Specialist | $30 |
+| ER | $150 |
+| Urgent Care | 15 |
+| Advanced Imaging (MRI, CT, PET) | $200/$250 |
+| Hearing Services | $500 x rx hearing aid |
+| Dental | $1,000 maximum benefit coverage |
+| Deep Cleaning | No SRP — perio maintenance $0 (4 proc /yr) in EOC |
+| Dentures | No |
+| Fillings | Yes — $25 per tooth (2 proc /yr) |
+| Root Canals | No |
+| Extractions | No |
+| Crowns | No |
+| Bridges | No |
+| Dental Implants | No |
+| Vision Allowance | $200 allowance / 1 Select eyeglasses |
+| Ambulance | $240 x Ground 20% x Air |
+| Transportation | 24 one-way trips |
+| RX Deductible | No |
+| Tier 1 | $0 |
+| Tier 2 | $0 |
+| Tier 3 | 9% |
+| Tier 4 | 50% |
+| Tier 5 | 33% |
+| Tier 6 | n/a |
+| OTC | N/A |
+| Acupuncture | $5 · Medicare chronic LBP · up to 20/yr · $5 routine (12/yr) |
+| Fitness | Silver Sneakers |
+| Grocery Card | N/A |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Other | Key extra benefits: N/A |
+| Evidence of Coverage | EOC — Gold Plus Giveback |
+
+---
+
+## Humana Choice (H7617-107) — Miami-Dade PPO
 **County:** Miami-Dade
 **Type:** PPO
 **Plan year:** 2027
 **CMS ID:** H7617-107
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H7617107000SB27pdf)
-**SoB note:** SOB - Choice
 **Premium:** $0
 **Part B Giveback:** $0
 **MOOP:** $3,900 in-network
@@ -910,14 +987,14 @@ Out-of-network (confirmed):
 | Advanced Imaging (MRI, CT, PET) | FS $200 · OP hospital $335 · office $200 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
 | Dental | $3,000 · 50% major |
-| Deep Cleaning | 50% (periodontal scaling) |
-| Dentures | 50% |
-| Fillings | Included in $3,000 (basic) |
-| Root Canals | 50% |
-| Extractions | Included in $3,000 (basic) |
-| Crowns | 50% |
-| Bridges | 50% |
-| Implants | Not covered — allowance cannot be used on implants |
+| Deep Cleaning | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
+| Dentures | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
+| Fillings | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
+| Root Canals | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
+| Extractions | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
+| Crowns | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
+| Bridges | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
+| Implants | No |
 | Vision Allowance | $0 exam (1/year) · $50/yr contacts or glasses · $100 at PLUS provider |
 | Ambulance | $325 ground · 20% air |
 | Transportation | Not covered |
@@ -929,9 +1006,10 @@ Out-of-network (confirmed):
 | Tier 5 | 25% |
 | Tier 6 | n/a |
 | OTC | Not listed on 2027 SOB |
-| Acupuncture | $5 · 20 Medicare visits · $5 routine (12/year) |
+| Acupuncture | $5 · Medicare chronic LBP · up to 20/yr |
 | Fitness | SilverSneakers |
-| Other | Referrals required: No NON-COMMISSIONABLE · South Florida (Broward, Miami-Dade, Palm Beach — no extra Palm Beach column) SNF $0 days 1-20 / $60 days 21-100 Go365 Plus · PPO national travel network |
+| Other | South Florida (Broward, Miami-Dade, Palm Beach — no extra Palm Beach column) SNF $0 days 1-20 / $60 days 21-100 Go365 Plus · PPO national travel network |
+| Evidence of Coverage | EOC — Choice |
 
 Out-of-network (confirmed):
 
@@ -971,17 +1049,15 @@ Out-of-network (confirmed):
 | OTC | Not listed on 2027 SOB |
 | Acupuncture | $5 · 20 Medicare visits · $5 routine (12/year) |
 | Fitness | 95% coinsurance (reimburse up to 5%) |
-| Other | Referrals required: No NON-COMMISSIONABLE SNF $250/day days 1-100 OON hearing/fitness reimbursement limited to 5% of allowed |
+| Other | SNF $250/day days 1-100 OON hearing/fitness reimbursement limited to 5% of allowed |
 
 ---
 
-## Humana Choice Giveback (H7617-110) — Miami-Dade PPO — NON-COMMISSIONABLE (new sales)
+## Humana Choice Giveback (H7617-110) — Miami-Dade PPO
 **County:** Miami-Dade
 **Type:** PPO
 **Plan year:** 2027
 **CMS ID:** H7617-110
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H7617110000SB27pdf)
-**SoB note:** SOB - Choice Giveback
 **Premium:** $0
 **Part B Giveback:** $161.50
 **MOOP:** $7,150 in-network
@@ -1001,14 +1077,14 @@ Out-of-network (confirmed):
 | Advanced Imaging (MRI, CT, PET) | FS $200 · OP hospital $335 · office $200 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
 | Dental | Preventive only — exams, cleanings, X-rays, perio maintenance $0 (DEN650) |
-| Deep Cleaning | Perio maintenance $0 (4/year) |
-| Dentures | Not listed on 2027 SOB |
-| Fillings | Not listed on 2027 SOB |
-| Root Canals | Not listed on 2027 SOB |
-| Extractions | Not listed on 2027 SOB |
-| Crowns | Not listed on 2027 SOB |
-| Bridges | Not listed on 2027 SOB |
-| Implants | Not listed on 2027 SOB |
+| Deep Cleaning | No SRP — perio maintenance $0 (4 proc /yr) in EOC |
+| Dentures | No |
+| Fillings | No |
+| Root Canals | No |
+| Extractions | No |
+| Crowns | No |
+| Bridges | No |
+| Implants | No |
 | Vision Allowance | $0 exam (1/year) · $50/yr contacts or glasses · $100 at PLUS provider |
 | Ambulance | $275 ground · 20% air |
 | Transportation | Not covered |
@@ -1020,9 +1096,10 @@ Out-of-network (confirmed):
 | Tier 5 | 25% |
 | Tier 6 | n/a |
 | OTC | Not listed on 2027 SOB |
-| Acupuncture | $5 · 20 Medicare visits · $5 routine (12/year) |
+| Acupuncture | $5 · Medicare chronic LBP · up to 20/yr |
 | Fitness | SilverSneakers |
-| Other | Referrals required: No NON-COMMISSIONABLE · South Florida & Treasure Coast (Palm Beach not an extra column) SNF $0 days 1-20 / $60 days 21-100 Deductible $725 combined — ambulance, chemo, DME, labs, PCP, specialist, ER, urgent, preventive excluded Go365 Plus · PPO national travel network |
+| Other | South Florida & Treasure Coast (Palm Beach not an extra column) SNF $0 days 1-20 / $60 days 21-100 Deductible $725 combined — ambulance, chemo, DME, labs, PCP, specialist, ER, urgent, preventive excluded Go365 Plus · PPO national travel network |
+| Evidence of Coverage | EOC — Choice Giveback |
 
 Out-of-network (confirmed):
 
@@ -1062,7 +1139,7 @@ Out-of-network (confirmed):
 | OTC | Not listed on 2027 SOB |
 | Acupuncture | $5 · 20 Medicare visits · $5 routine (12/year) |
 | Fitness | 95% coinsurance (reimburse up to 5%) |
-| Other | Referrals required: No NON-COMMISSIONABLE SNF $0 days 1-20 / $160 days 21-100 OON hearing/fitness reimbursement limited to 5% of allowed |
+| Other | SNF $0 days 1-20 / $160 days 21-100 OON hearing/fitness reimbursement limited to 5% of allowed |
 
 ---
 
@@ -1071,8 +1148,6 @@ Out-of-network (confirmed):
 **Type:** PPO
 **Plan year:** 2027
 **CMS ID:** H7617-145
-**SoB:** [SoB](https://assets.humana.com/is/content/humana/H7617145000SB27pdf)
-**SoB note:** SOB - Choice Giveback
 **Premium:** $0
 **Part B Giveback:** $92
 **MOOP:** $7,150 in-network
@@ -1092,14 +1167,14 @@ Out-of-network (confirmed):
 | Advanced Imaging (MRI, CT, PET) | FS $200 · OP hospital $335 · office $200 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
 | Dental | $500/yr max diagnostic + comprehensive · preventive $0 |
-| Deep Cleaning | Perio maintenance $0 (4/year) |
-| Dentures | Not listed on 2027 SOB |
-| Fillings | $25 · 2 per year (counts toward $500) |
-| Root Canals | Not listed on 2027 SOB |
-| Extractions | Not listed on 2027 SOB |
-| Crowns | Not listed on 2027 SOB |
-| Bridges | Not listed on 2027 SOB |
-| Implants | Not listed on 2027 SOB |
+| Deep Cleaning | No SRP — perio maintenance $0 (4 proc /yr) in EOC |
+| Dentures | No |
+| Fillings | Yes — $25 per tooth (2 proc /yr) |
+| Root Canals | No |
+| Extractions | No |
+| Crowns | No |
+| Bridges | No |
+| Implants | No |
 | Vision Allowance | $0 exam (1/year) · $50/yr contacts or glasses · $100 at PLUS provider |
 | Ambulance | $325 ground · 20% air |
 | Transportation | Not covered |
@@ -1111,9 +1186,10 @@ Out-of-network (confirmed):
 | Tier 5 | 25% |
 | Tier 6 | n/a |
 | OTC | Not listed on 2027 SOB |
-| Acupuncture | $5 · 20 Medicare visits · $5 routine (12/year) |
+| Acupuncture | $5 · Medicare chronic LBP · up to 20/yr |
 | Fitness | SilverSneakers |
-| Other | Referrals required: No **NEW 2027** · South Florida & Treasure Coast (Palm Beach not an extra column) SNF $0 days 1-20 / $160 days 21-100 Deductible $600 combined — ambulance, chemo, DME, labs, PCP, specialist, ER, urgent, preventive excluded Well Dine after IP/SNF 4x/year · post-discharge home care 44 hrs/year · Go365 |
+| Other | **NEW 2027** · South Florida & Treasure Coast (Palm Beach not an extra column) SNF $0 days 1-20 / $160 days 21-100 Deductible $600 combined — ambulance, chemo, DME, labs, PCP, specialist, ER, urgent, preventive excluded post-discharge home care 44 hrs/year · Go365 |
+| Evidence of Coverage | EOC — Choice Giveback |
 
 Out-of-network (confirmed):
 
@@ -1153,6 +1229,6 @@ Out-of-network (confirmed):
 | OTC | Not listed on 2027 SOB |
 | Acupuncture | $5 · 20 Medicare visits · $5 routine (12/year) |
 | Fitness | 95% coinsurance (reimburse up to 5%) |
-| Other | Referrals required: No **NEW 2027** SNF $0 days 1-20 / $160 days 21-100 OON hearing/fitness reimbursement limited to 5% of allowed |
+| Other | **NEW 2027** SNF $0 days 1-20 / $160 days 21-100 OON hearing/fitness reimbursement limited to 5% of allowed |
 
 ---

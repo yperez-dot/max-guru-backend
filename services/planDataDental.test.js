@@ -15,13 +15,15 @@ function loadPlans() {
 }
 
 describe('H1019-150 crowns / bridges in live plan-data', () => {
-  it('has 2 every 5 years / Yes for both counties (Broward is not $0 varies)', () => {
+  it('uses 2027 grid Crowns=No / Bridges 30% (not the 2026 2-every-5 overlay)', () => {
     const { plans } = loadPlans();
     const hits = plans.filter((p) => (p.id || p.planId) === 'H1019-150');
     assert.equal(hits.length, 2);
     for (const p of hits) {
-      assert.equal(p.dentalCrowns, '2 every 5 years', `${p.county} crowns`);
-      assert.equal(p.dentalBridges, 'Yes', `${p.county} bridges`);
+      assert.equal(p.year, 2027);
+      assert.equal(p.dentalCrowns, 'No', `${p.county} crowns`);
+      assert.match(String(p.dentalBridges), /Yes/i);
+      assert.equal(/2 every 5 years/i.test(String(p.dentalCrowns)), false);
       assert.equal(/varies/i.test(String(p.dentalCrowns)), false);
     }
   });
@@ -51,9 +53,11 @@ describe('KB search hits H1019-150 crowns', () => {
     loadKnowledge({ force: true });
     const doc = getKnowledgeByKey('carriers/careplus-carecomplete-h1019-150');
     assert.ok(doc);
-    assert.match(doc, /2 every 5 years/);
+    assert.match(doc, /Crowns \(2027\)/);
+    assert.match(doc, /\*\*No\.\*\*/);
     assert.match(doc, /H1019-150/);
     assert.match(doc, /Bridges/);
+    assert.match(doc, /do \*\*not\*\* quote the 2026/i);
   });
 
   it('search_knowledge for H1019-150 crowns returns the CarePlus note', () => {
@@ -65,13 +69,13 @@ describe('KB search hits H1019-150 crowns', () => {
       `keys=${keys.join(', ')}`
     );
     const blob = results.map((r) => r.content).join('\n');
-    assert.match(blob, /2 every 5 years/);
+    assert.match(blob, /Crowns \(2027\)|Crowns = `No`|does \*\*not\*\* cover crowns/i);
   });
 
-  it('2027 CarePlus KB has Crowns/Bridges rows on both H1019-150 sections', () => {
+  it('2027 CarePlus KB has Crowns=No on both H1019-150 sections', () => {
     const md = getKnowledgeByKey('carriers/careplus-plans-florida-2027');
     assert.ok(md);
-    const crowns = [...md.matchAll(/## CarePlus CareComplete \(H1019-150\)[\s\S]*?\| Crowns \| 2 every 5 years \|/g)];
-    assert.equal(crowns.length, 2, 'expected Crowns row on Dade and Broward H1019-150');
+    const crowns = [...md.matchAll(/## CarePlus CareComplete[^\n]*\(H1019-150\)[\s\S]*?\| Crowns \| No \|/g)];
+    assert.equal(crowns.length, 2, 'expected Crowns | No on Dade and Broward H1019-150');
   });
 });

@@ -102,10 +102,10 @@ describe('2027 THEI grid cost-share after a verified tier', () => {
   });
 
   it('reads Doctors T1–T6 from the 2027 KB for both old and remapped PBPs', () => {
-    assert.equal(costShareFromKnowledge('H4140-001', 2027, 4).value, '55');
-    assert.equal(costShareFromKnowledge('H4140-022', 2027, 4).value, '55');
-    assert.equal(costShareFromKnowledge('H4140-012', 2027, 4).value, '55');
-    assert.equal(costShareFromKnowledge('H4140-023', 2027, 4).value, '55');
+    assert.equal(costShareFromKnowledge('H4140-001', 2027, 4).value, '$55');
+    assert.equal(costShareFromKnowledge('H4140-022', 2027, 4).value, '$55');
+    assert.equal(costShareFromKnowledge('H4140-012', 2027, 4).value, '$55');
+    assert.equal(costShareFromKnowledge('H4140-023', 2027, 4).value, '$55');
   });
 });
 
@@ -426,7 +426,7 @@ describe('Doctors consumer formulary after medicare.gov misses 2027 H4140', () =
       assert.equal(row.tier, 4, id);
       assert.equal(row.st, true, id);
       assert.equal(row.source, 'doctors_formulary_pdf', id);
-      assert.equal(row.costShare, '55', id);
+      assert.equal(row.costShare, '$55', id);
     }
     assert.equal(result.byPlanId['H4140-001'].formularyPlanId, 'H4140-022');
     assert.equal(result.byPlanId['H4140-012'].formularyPlanId, 'H4140-023');

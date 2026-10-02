@@ -1,20 +1,71 @@
 # Devoted — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-01 13:17 UTC
+Pulled: 2026-10-02 21:16 UTC
 Counties: Broward / Miami-Dade
-CMS IDs on file: H1290-001, H1290-002, H1290-013, H1290-014, H1290-019, H1290-020, H1290-037, H1290-053, H1290-054, H1290-056, H1290-062, H1290-067, H1290-077, H1290-078, H1290-084, H1290-085, H1290-110
+CMS IDs on file: H1290-001, H1290-002, H1290-013, H1290-014, H1290-019, H1290-020, H1290-037, H1290-053, H1290-054, H1290-056, H1290-062, H1290-067, H1290-073, H1290-077, H1290-078, H1290-084, H1290-085, H1290-110, H1290-117
 
 Yellow leftover 2026 cells are **not** in this file. If a benefit is missing here, Max does not have a confirmed 2027 figure yet.
+
+## Devoted C-SNP ENHANCED (H1290-073) — Broward C-SNP — NEW 2027
+**County:** Broward
+**Type:** C-SNP
+**Plan year:** 2027
+**CMS ID:** H1290-073
+**Still yellow on the working grid:** 2 field(s) — not cited below.
+**Premium:** $0
+**Part B Giveback:** $0
+**MOOP:** $4,400
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+| Premium | $0 |
+| Referrals Needed? | Yes |
+| Deductible | $0 |
+| Part B Rebate | $0 |
+| Max Out of Pocket | $4,400 |
+| SSBCI Chronic Conditions | •Diabetes •Congestive / chronic heart failure •Cardiac arrhythmias (incl. AFib) •Coronary artery disease •Peripheral vascular disease / chronic VTE •Valvular heart disease |
+| Inpatient Hospital | $155 days 1-10 $0 day 11+ |
+| Outpatient Hospital | $155 surgery / $0 colonoscopies ASC $155 |
+| PCP | $0 |
+| Specialist | $5 |
+| ER | $150 |
+| Urgent Care | $45 |
+| Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
+| Hearing Services | $399 or $699 per aid |
+| Dental | $2,000 (Network Based) |
+| Deep Cleaning | Yes — $0 network (1/quadrant/3 yrs; PA) |
+| Dentures | Yes — $0 network (1/arch/5 yrs; PA) |
+| Fillings | Yes — $0 network (freq limits) |
+| Root Canals | Yes — $0 network (1/tooth/lifetime) |
+| Extractions | Yes — $0 network (1/tooth/lifetime) |
+| Crowns | Yes — $0 network (1/tooth/5 yrs; PA) |
+| Bridges | Yes — $0 network (1/tooth/5 yrs; PA) |
+| Implants | No |
+| Vision Allowance | $300 |
+| Ambulance | $300 ground one-way 20% air |
+| Transportation | Not covered |
+| RX Deductible | $465 Tiers 3–5 |
+| Tier 1 | $0 |
+| Tier 2 | $0 |
+| Tier 3 | 15% |
+| Tier 4 | 25% |
+| Tier 5 | 26% |
+| Tier 6 | N/A |
+| OTC | $50/quarter |
+| Grocery Card | $240/month Food & Home (SSBCI if eligible) |
+| Acupuncture | $0 · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
+| Fitness | SilverSneakers |
+| Other Cards | $150 Wellness Bucks |
+
+---
 
 ## Devoted C-SNP PLUS (H1290-084) — Broward C-SNP
 **County:** Broward
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1290-084
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-C-SNP-PLUS-084-FL-%28HMO-C-SNP%29-SB-H1290-084-ENG.pdf)
-**SoB note:** SOB - C-SNP PLUS
-**Still yellow on the working grid:** 10 field(s) — not cited below.
+**Still yellow on the working grid:** 3 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $0
 **MOOP:** $9,850
@@ -26,7 +77,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Deductible | $990 in-network |
 | Part B Rebate | $0 |
 | Max Out of Pocket | $9,850 |
-| Chronic Conditions | Diabetes, CHF, cardiac arrhythmias, CAD, PVD / chronic VTE, valvular heart disease |
+| SSBCI Chronic Conditions | •Diabetes •Congestive / chronic heart failure •Cardiac arrhythmias (incl. AFib) •Coronary artery disease •Peripheral vascular disease / chronic VTE •Valvular heart disease |
 | Inpatient Hospital | $2,241 per stay |
 | Outpatient Hospital | 50% outpatient surgery (15% or 50% colonoscopies) |
 | PCP | $0 |
@@ -36,6 +87,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | 50% |
 | Hearing Services | $399 or $699 per aid |
 | Dental | $3,500 (Network Based) |
+| Deep Cleaning | Yes — $0 network (1/quadrant/3 yrs; PA) |
+| Dentures | Yes — $0 network (1/arch/5 yrs; PA) |
+| Fillings | Yes — $0 network (freq limits) |
+| Root Canals | Yes — $0 network (1/tooth/lifetime) |
+| Extractions | Yes — $0 network (1/tooth/lifetime) |
+| Crowns | Yes — $0 network (1/tooth/5 yrs; PA) |
+| Bridges | Yes — $0 network (1/tooth/5 yrs; PA) |
 | Implants | No |
 | Vision Allowance | $300 |
 | Ambulance | 50% ground and air |
@@ -48,6 +106,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 26% |
 | OTC | $50/quarter |
 | Grocery Card | $492/month Food & Home (SSBCI if eligible) |
+| Acupuncture | 30% coinsurance · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
 | Fitness | SilverSneakers |
 | Other Cards | $150 Wellness Bucks |
 
@@ -58,9 +117,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1290-020
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-DUAL-020-FL-%28HMO-D-SNP%29-SB-H1290-020-ENG.pdf)
-**SoB note:** SOB — DUAL 020
-**Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $4,400
@@ -81,20 +137,34 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
 | Dental | $2,500 (Network Based) |
+| Deep Cleaning | Yes — $0 network (1/quadrant/3 yrs; PA) |
+| Dentures | Yes — $0 network (1/arch/5 yrs; PA) |
+| Fillings | Yes — $0 network (freq limits) |
+| Root Canals | Yes — $0 network (1/tooth/lifetime) |
+| Extractions | Yes — $0 network (1/tooth/lifetime) |
+| Crowns | Yes — $0 network (1/tooth/5 yrs; PA) |
+| Bridges | Yes — $0 network (1/tooth/5 yrs; PA) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $300 ground one-way 20% air |
 | Transportation | Not covered |
+| Companionship | not covered |
+| Custodial Care | Not covered (EOC exclusions: custodial care / personal home care) |
 | RX Deductible | $700 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 11% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
+| Tier 6 | 0 |
 | OTC | $50/quarter |
 | Grocery Card | $156/month Food & Home (SSBCI if eligible) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
 | Fitness | SilverSneakers |
 | Other Cards | $150 Wellness Bucks |
+| Other | $150 Wellness Bucks (reimbursement for fitness & wellness related items such as wearable devices, fitness classes.) Devoted Dollars Earn $20 completing HRA |
+| Evidence of Coverage | EOC — DUAL 020 |
 
 ---
 
@@ -103,9 +173,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1290-054
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-DUAL-QMB-054-FL-%28HMO-D-SNP%29-SB-H1290-054-ENG.pdf)
-**SoB note:** SOB — DUAL QMB
-**Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -126,20 +193,34 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $399 or $699 per aid |
 | Dental | $2,500 (Network Based) |
+| Deep Cleaning | Yes — $0 network (1/quadrant/3 yrs; PA) |
+| Dentures | Yes — $0 network (1/arch/5 yrs; PA) |
+| Fillings | Yes — $0 network (freq limits) |
+| Root Canals | Yes — $0 network (1/tooth/lifetime) |
+| Extractions | Yes — $0 network (1/tooth/lifetime) |
+| Crowns | Yes — $0 network (1/tooth/5 yrs; PA) |
+| Bridges | Yes — $0 network (1/tooth/5 yrs; PA) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $0 ground or air |
 | Transportation | Not covered |
+| Companionship | not covered |
+| Custodial Care | Not covered (EOC exclusions: custodial care / personal home care) |
 | RX Deductible | $700 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 11% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
+| Tier 6 | 0 |
 | OTC | $50/quarter |
 | Grocery Card | $328/month Food & Home (SSBCI if eligible) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 or 20% · Medicare chronic LBP acupuncture · up to 12 visits/90 days (varies by Medicaid) |
 | Fitness | SilverSneakers |
 | Other Cards | $150 Wellness Bucks · Medical deductible $283 · was DUAL PLUS 054 in 2026 |
+| Other | $150 Wellness Bucks (reimbursement for fitness & wellness related items such as wearable devices, fitness classes.) Devoted Dollars Earn $20 completing HRA Mental Health Case Management $0 if eligible |
+| Evidence of Coverage | EOC — DUAL QMB |
 
 ---
 
@@ -148,9 +229,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1290-077
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-DUAL-FULL-077-FL-%28HMO-D-SNP%29-SB-H1290-077-ENG.pdf)
-**SoB note:** SOB — DUAL FULL
-**Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -171,65 +249,34 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 copay per TruHearing aid (2 aids) |
 | Dental | $3,500 (Network Based) |
+| Deep Cleaning | Yes — $0 network (1/quadrant/3 yrs; PA) |
+| Dentures | Yes — $0 network (1/arch/5 yrs; PA) |
+| Fillings | Yes — $0 network (freq limits) |
+| Root Canals | Yes — $0 network (1/tooth/lifetime) |
+| Extractions | Yes — $0 network (1/tooth/lifetime) |
+| Crowns | Yes — $0 network (1/tooth/5 yrs; PA) |
+| Bridges | Yes — $0 network (1/tooth/5 yrs; PA) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $0 ground or air |
 | Transportation | $0 unlimited rides to plan-approved locations |
+| Companionship | not covered |
+| Custodial Care | Custodial: see Medicaid-covered home health aide (full dual). Personal Home Care: only may be covered for full Medicaid under age 21 (EOC). |
 | RX Deductible | $0 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | $0 |
 | Tier 4 | $0 |
 | Tier 5 | $0 |
+| Tier 6 | 0 |
 | OTC | $50/quarter |
 | Grocery Card | $456/month Food & Home (SSBCI if eligible) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 or 20% · Medicare chronic LBP acupuncture · up to 12 visits/90 days (varies by Medicaid) |
 | Fitness | SilverSneakers |
 | Other Cards | $150 Wellness Bucks · Medical deductible $283 |
-
----
-
-## Devoted GIVEBACK 014 (H1290-014) — Broward Giveback
-**County:** Broward
-**Type:** Giveback
-**Plan year:** 2027
-**CMS ID:** H1290-014
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-GIVEBACK-014-FL-%28HMO%29-SB-H1290-014-ENG.pdf)
-**SoB note:** SOB - GIVEBACK 014
-**Still yellow on the working grid:** 8 field(s) — not cited below.
-**Premium:** $0
-**Part B Giveback:** $202
-**MOOP:** $7,150
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-| Premium | $0 |
-| Referrals Needed? | Yes |
-| Part B Give Back | $202 |
-| Max Out of Pocket | $7,150 |
-| Inpatient Hospital | $395 days 1-6 $0 day 7+ |
-| Outpatient Hospital | $395 surgery / $0 colonoscopies ASC $395 |
-| PCP | $0 |
-| Specialist | $45 |
-| ER | $130 |
-| Urgent Care | $50 |
-| Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
-| Hearing Services | $599 or $899 per aid |
-| Dental | $1,250 comprehensive (Direct Member Reimbursement) |
-| Dental Implants | No |
-| Vision Allowance | $350 |
-| Ambulance | $340 ground one-way 20% air |
-| Transportation | Not covered |
-| RX Deductible | $650 Tiers 3–5 |
-| Tier 1 | $0 |
-| Tier 2 | $0 |
-| Tier 3 | 21% |
-| Tier 4 | 25% |
-| Tier 5 | 26% |
-| Tier 6 | n/a |
-| OTC | $95/quarter |
-| Fitness | SilverSneakers |
-| Grocery Card | N/A |
-| Other | $150 Wellness Bucks · Medical deductible $400 |
+| Other | $150 Wellness Bucks (reimbursement for fitness & wellness related items such as wearable devices, fitness classes.) Devoted Dollars Earn $20 completing HRA Mental Health Case Management $0 if eligible |
+| Evidence of Coverage | EOC — DUAL FULL |
 
 ---
 
@@ -238,9 +285,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1290-002
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-CORE-002-FL-%28HMO%29-SB-H1290-002-ENG.pdf)
-**SoB note:** SOB - CORE 002
-**Still yellow on the working grid:** 3 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,950
@@ -261,12 +306,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
 | Dental | $1,500 comprehensive (Direct Member Reimbursement) |
-| Deep Cleaning | 50% reimbursement up to $1,500 |
-| Dentures | 50% reimbursement up to $1,500 |
+| Deep Cleaning | Yes — 50% reimbursement up to $1,500 (1/quadrant/3 yrs) |
+| Dentures | 50% reimbursement up to $1,500 (1/arch/5 yrs) |
 | Fillings | 50% reimbursement up to $1,500 |
-| Root Canals | 50% reimbursement up to $1,500 |
-| Extractions | 50% reimbursement up to $1,500 |
-| Crowns | 50% reimbursement up to $1,500 |
+| Root Canals | 50% reimbursement up to $1,500 (1/tooth/lifetime) |
+| Extractions | 50% reimbursement up to $1,500 (1/tooth/lifetime) |
+| Crowns | 50% reimbursement up to $1,500 (1/tooth/5 yrs) |
+| Bridges | 50% reimbursement up to $1,500 (1/tooth/5 yrs) |
 | Implants | No |
 | Vision Allowance | $150 |
 | Ambulance | $300 ground one-way 20% air one-way |
@@ -279,10 +325,62 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 26% |
 | Tier 6 | n/a |
 | OTC | Not listed on 2027 SOB |
+| Acupuncture | $0 · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
 | Fitness | SilverSneakers |
 | Grocery Card | N/A |
 | Other Cards | $150 Wellness Bucks |
 | Other | $150 Wellness Bucks (fitness & wellness items) |
+
+---
+
+## Devoted GIVEBACK 014 (H1290-014) — Broward HMO
+**County:** Broward
+**Type:** HMO
+**Plan year:** 2027
+**CMS ID:** H1290-014
+**Still yellow on the working grid:** 1 field(s) — not cited below.
+**Premium:** $0
+**Part B Giveback:** $202
+**MOOP:** $7,150
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+| Premium | $0 |
+| Referrals Needed? | Yes |
+| Part B Give Back | $202 |
+| Max Out of Pocket | $7,150 |
+| Inpatient Hospital | $395 days 1-6 $0 day 7+ |
+| Outpatient Hospital | $395 surgery / $0 colonoscopies ASC $395 |
+| PCP | $0 |
+| Specialist | $45 |
+| ER | $130 |
+| Urgent Care | $50 |
+| Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
+| Hearing Services | $599 or $899 per aid |
+| Dental | $1,250 comprehensive (Direct Member Reimbursement) |
+| Deep Cleaning | Yes — 50% reimbursement up to $1,250 (1/quadrant/3 yrs) |
+| Dentures | 50% reimbursement up to $1,250 (1/arch/5 yrs) |
+| Fillings | 50% reimbursement up to $1,250 |
+| Root Canals | 50% reimbursement up to $1,250 (1/tooth/lifetime) |
+| Extractions | 50% reimbursement up to $1,250 (1/tooth/lifetime) |
+| Crowns | 50% reimbursement up to $1,250 (1/tooth/5 yrs) |
+| Bridges | 50% reimbursement up to $1,250 (1/tooth/5 yrs) |
+| Dental Implants | No |
+| Vision Allowance | $350 |
+| Ambulance | $340 ground one-way 20% air |
+| Transportation | Not covered |
+| RX Deductible | $650 Tiers 3–5 |
+| Tier 1 | $0 |
+| Tier 2 | $0 |
+| Tier 3 | 21% |
+| Tier 4 | 25% |
+| Tier 5 | 26% |
+| Tier 6 | n/a |
+| OTC | $95/quarter |
+| Acupuncture | $0 · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
+| Fitness | SilverSneakers |
+| Grocery Card | N/A |
+| Other | $150 Wellness Bucks · Medical deductible $400 |
 
 ---
 
@@ -291,9 +389,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1290-037
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-CORE-037-FL-%28HMO%29-SB-H1290-037-002-ENG.pdf)
-**SoB note:** SOB — CORE 037
-**Still yellow on the working grid:** 18 field(s) — not cited below.
+**Still yellow on the working grid:** 9 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,900
@@ -309,6 +405,14 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | PCP | $0 |
 | Specialist | $5 |
 | Dental | $1,500 comprehensive (Direct Member Reimbursement) |
+| Deep Cleaning | Yes — 50% reimbursement up to $1,500 (1/quadrant/3 yrs) |
+| Dentures | 50% reimbursement up to $1,500 (1/arch/5 yrs) |
+| Fillings | 50% reimbursement up to $1,500 |
+| Root Canals | 50% reimbursement up to $1,500 (1/tooth/lifetime) |
+| Extractions | 50% reimbursement up to $1,500 (1/tooth/lifetime) |
+| Crowns | 50% reimbursement up to $1,500 (1/tooth/5 yrs) |
+| Bridges | 50% reimbursement up to $1,500 (1/tooth/5 yrs) |
+| Implants | No |
 | Vision Allowance | $150 |
 | Transportation | Not covered |
 | RX Deductible | $650 Tiers 3–5 |
@@ -318,8 +422,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 4 | 25% |
 | Tier 5 | 26% |
 | OTC | Not listed (Food & Home $20/month SSBCI if eligible) |
+| Acupuncture | $0 · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
 | Fitness | SilverSneakers |
 | Grocery Card | $20/month Food & Home (SSBCI; chronically ill / qualifying conditions) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Other Cards | $150 Wellness Bucks |
 
 ---
@@ -329,9 +435,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1290-056
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-CORE-056-FL-%28HMO%29-SB-H1290-056-ENG.pdf)
-**SoB note:** SOB - CORE 056
-**Still yellow on the working grid:** 2 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,900
@@ -352,12 +456,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
 | Dental | $3,500 comprehensive (Direct Member Reimbursement) |
-| Deep Cleaning | 50% reimbursement up to $3,500 |
-| Dentures | 50% reimbursement up to $3,500 |
+| Deep Cleaning | Yes — 50% reimbursement up to $3,500 (1/quadrant/3 yrs) |
+| Dentures | 50% reimbursement up to $3,500 (1/arch/5 yrs) |
 | Fillings | 50% reimbursement up to $3,500 |
-| Root Canals | 50% reimbursement up to $3,500 |
-| Extractions | 50% reimbursement up to $3,500 |
-| Crowns | 50% reimbursement up to $3,500 |
+| Root Canals | 50% reimbursement up to $3,500 (1/tooth/lifetime) |
+| Extractions | 50% reimbursement up to $3,500 (1/tooth/lifetime) |
+| Crowns | 50% reimbursement up to $3,500 (1/tooth/5 yrs) |
+| Bridges | 50% reimbursement up to $3,500 (1/tooth/5 yrs) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $300 ground one-way 20% air one-way |
@@ -370,10 +475,62 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 26% |
 | Tier 6 | n/a |
 | OTC | $83/quarter |
+| Acupuncture | $0 · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
 | Fitness | SilverSneakers |
 | Grocery Card | N/A |
 | Other Cards | $150 Wellness Bucks |
 | Other | $150 Wellness Bucks (fitness & wellness items) |
+
+---
+
+## Devoted GIVEBACK EXTRAS (H1290-117) — Broward HMO — NEW 2027
+**County:** Broward
+**Type:** HMO
+**Plan year:** 2027
+**CMS ID:** H1290-117
+**Still yellow on the working grid:** 1 field(s) — not cited below.
+**Premium:** $0
+**Part B Giveback:** $70
+**MOOP:** $5,150
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+| Premium | $0 |
+| Referrals Needed? | Yes |
+| Part B Give Back | $70 |
+| Max Out of Pocket | $5,150 |
+| Inpatient Hospital | $305 days 1-8 $0 day 9+ |
+| Outpatient Hospital | $305 surgery / $0 colonoscopies ASC $305 |
+| PCP | $0 |
+| Specialist | $35 |
+| ER | $130 |
+| Urgent Care | $50 |
+| Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
+| Hearing Services | $599 or $899 per aid |
+| Dental | $3,750 comprehensive (Direct Member Reimbursement) |
+| Deep Cleaning | Yes — 50% reimbursement up to $3,750 (1/quadrant/3 yrs) |
+| Dentures | 50% reimbursement up to $3,750 (1/arch/5 yrs) |
+| Fillings | 50% reimbursement up to $3,750 |
+| Root Canals | 50% reimbursement up to $3,750 (1/tooth/lifetime) |
+| Extractions | 50% reimbursement up to $3,750 (1/tooth/lifetime) |
+| Crowns | 50% reimbursement up to $3,750 (1/tooth/5 yrs) |
+| Bridges | 50% reimbursement up to $3,750 (1/tooth/5 yrs) |
+| Dental Implants | No |
+| Vision Allowance | $400 |
+| Ambulance | $320 ground one-way 20% air |
+| Transportation | Not covered |
+| RX Deductible | $700 Tiers 3–5 |
+| Tier 1 | $0 |
+| Tier 2 | $2 |
+| Tier 3 | 25% |
+| Tier 4 | 25% |
+| Tier 5 | 25% |
+| Tier 6 | n/a |
+| OTC | $152/quarter |
+| Acupuncture | $0 · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
+| Fitness | SilverSneakers |
+| Grocery Card | N/A |
+| Other | $150 Wellness Bucks · Medical deductible $350 · **NEW 2027** |
 
 ---
 
@@ -382,8 +539,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1290-067
-**SoB note:** =HYPERLINK("https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-C-SNP-ENHANCED-067-FL-%28HMO-C-SNP%29-SB-H1290-067-ENG.pdf","SOB - C-SNP ENHANCED") (no URL on the grid cell)
-**Still yellow on the working grid:** 9 field(s) — not cited below.
+**Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $0
 **MOOP:** $4,400
@@ -395,6 +551,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Part B Rebate | $0 |
 | Deductible | $0 |
 | Max Out of Pocket | $4,400 |
+| SSBCI Chronic Conditions | •Diabetes •Congestive / chronic heart failure •Cardiac arrhythmias (incl. AFib) •Coronary artery disease •Peripheral vascular disease / chronic VTE •Valvular heart disease |
 | Inpatient Hospital | $155 days 1-10 $0 day 11+ |
 | Outpatient Hospital | $155 surgery / $0 colonoscopies ASC $155 |
 | PCP | $0 |
@@ -404,7 +561,14 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
 | Dental | $2,500 (Network Based) |
-| Bridges | No |
+| Deep Cleaning | Yes — $0 network (1/quadrant/3 yrs; PA) |
+| Dentures | Yes — $0 network (1/arch/5 yrs; PA) |
+| Fillings | Yes — $0 network (freq limits) |
+| Root Canals | Yes — $0 network (1/tooth/lifetime) |
+| Extractions | Yes — $0 network (1/tooth/lifetime) |
+| Crowns | Yes — $0 network (1/tooth/5 yrs; PA) |
+| Bridges | Yes — $0 network (1/tooth/5 yrs; PA) |
+| Implants | No |
 | Vision Allowance | $300 |
 | Ambulance | $300 ground one-way 20% air |
 | Transportation | Not covered |
@@ -416,6 +580,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 26% |
 | OTC | $50/quarter |
 | Grocery Card | $240/month Food & Home (SSBCI if eligible) |
+| Acupuncture | $0 · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
 | Fitness | SilverSneakers |
 | Other | $150 Wellness Bucks · was C-SNP PREMIUM 067 in 2026 |
 
@@ -426,9 +591,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1290-085
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-C-SNP-PLUS-085-FL-%28HMO-C-SNP%29-SB-H1290-085-ENG.pdf)
-**SoB note:** SOB - C-SNP PLUS
-**Still yellow on the working grid:** 9 field(s) — not cited below.
+**Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $0
 **MOOP:** $9,850
@@ -440,6 +603,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Part B Rebate | $0 |
 | Deductible | $990 in-network |
 | Max Out of Pocket | $9,850 |
+| SSBCI Chronic Conditions | •Diabetes •Congestive / chronic heart failure •Cardiac arrhythmias (incl. AFib) •Coronary artery disease •Peripheral vascular disease / chronic VTE •Valvular heart disease |
 | Inpatient Hospital | $2,241 per stay |
 | Outpatient Hospital | 50% outpatient surgery (15% or 50% colonoscopies) |
 | PCP | $0 |
@@ -449,7 +613,14 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | 50% |
 | Hearing Services | $399 or $699 per aid |
 | Dental | $3,500 (Network Based) |
-| Bridges | No |
+| Deep Cleaning | Yes — $0 network (1/quadrant/3 yrs; PA) |
+| Dentures | Yes — $0 network (1/arch/5 yrs; PA) |
+| Fillings | Yes — $0 network (freq limits) |
+| Root Canals | Yes — $0 network (1/tooth/lifetime) |
+| Extractions | Yes — $0 network (1/tooth/lifetime) |
+| Crowns | Yes — $0 network (1/tooth/5 yrs; PA) |
+| Bridges | Yes — $0 network (1/tooth/5 yrs; PA) |
+| Implants | No |
 | Vision Allowance | $300 |
 | Ambulance | 50% ground and air |
 | Transportation | Not covered |
@@ -461,6 +632,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 26% |
 | OTC | $50/quarter |
 | Grocery Card | $490/month Food & Home (SSBCI if eligible) |
+| Acupuncture | 30% coinsurance · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
 | Fitness | SilverSneakers |
 | Other | $150 Wellness Bucks |
 
@@ -471,9 +643,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1290-019
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-DUAL-019-FL-%28HMO-D-SNP%29-SB-H1290-019-ENG.pdf)
-**SoB note:** SOB - DUAL 019
-**Still yellow on the working grid:** 10 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $4,400
@@ -494,20 +663,33 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
 | Dental | $2,500 (Network Based) |
+| Deep Cleaning | Yes — $0 network (1/quadrant/3 yrs; PA) |
+| Dentures | Yes — $0 network (1/arch/5 yrs; PA) |
+| Fillings | Yes — $0 network (freq limits) |
+| Root Canals | Yes — $0 network (1/tooth/lifetime) |
+| Extractions | Yes — $0 network (1/tooth/lifetime) |
+| Crowns | Yes — $0 network (1/tooth/5 yrs; PA) |
+| Bridges | Yes — $0 network (1/tooth/5 yrs; PA) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $300 ground one-way 20% air |
 | Transportation | Not covered |
+| Companionship | Not covered |
+| Custodial Care | Not covered (EOC exclusions: custodial care / personal home care) |
 | RX Deductible | $700 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 11% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
+| Tier 6 | 0 |
 | OTC | $50/quarter |
 | Grocery Card | $163/month Food & Home (SSBCI if eligible) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
 | Fitness | SilverSneakers |
 | Other | $150 Wellness Bucks |
+| Evidence of Coverage | EOC — DUAL 019 |
 
 ---
 
@@ -516,9 +698,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1290-053
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-DUAL-QMB-053-FL-%28HMO-D-SNP%29-SB-H1290-053-ENG.pdf)
-**SoB note:** SOB - DUAL QMB
-**Still yellow on the working grid:** 8 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -539,20 +718,33 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $399 or $699 per aid |
 | Dental | $2,500 (Network Based) |
+| Deep Cleaning | Yes — $0 network (1/quadrant/3 yrs; PA) |
+| Dentures | Yes — $0 network (1/arch/5 yrs; PA) |
+| Fillings | Yes — $0 network (freq limits) |
+| Root Canals | Yes — $0 network (1/tooth/lifetime) |
+| Extractions | Yes — $0 network (1/tooth/lifetime) |
+| Crowns | Yes — $0 network (1/tooth/5 yrs; PA) |
+| Bridges | Yes — $0 network (1/tooth/5 yrs; PA) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $0 ground or air |
 | Transportation | Not covered |
+| Companionship | Not covered |
+| Custodial Care | Not covered (EOC exclusions: custodial care / personal home care) |
 | RX Deductible | $700 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 11% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
+| Tier 6 | 0 |
 | OTC | $50/quarter |
 | Grocery Card | $324/month Food & Home (SSBCI if eligible) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 or 20% · Medicare chronic LBP acupuncture · up to 12 visits/90 days (varies by Medicaid) |
 | Fitness | SilverSneakers |
 | Other | $150 Wellness Bucks · Medical deductible $283 · was DUAL PLUS 053 in 2026 |
+| Evidence of Coverage | EOC — DUAL QMB |
 
 ---
 
@@ -561,9 +753,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1290-078
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-DUAL-FULL-078-FL-%28HMO-D-SNP%29-SB-H1290-078-ENG.pdf)
-**SoB note:** SOB - DUAL FULL
-**Still yellow on the working grid:** 10 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -584,109 +773,33 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 copay per TruHearing Standard aid (2 aids) |
 | Dental | $3,500 (Network Based) |
+| Deep Cleaning | Yes — $0 network (1/quadrant/3 yrs; PA) |
+| Dentures | Yes — $0 network (1/arch/5 yrs; PA) |
+| Fillings | Yes — $0 network (freq limits) |
+| Root Canals | Yes — $0 network (1/tooth/lifetime) |
+| Extractions | Yes — $0 network (1/tooth/lifetime) |
+| Crowns | Yes — $0 network (1/tooth/5 yrs; PA) |
+| Bridges | Yes — $0 network (1/tooth/5 yrs; PA) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $0 ground or air |
 | Transportation | $0 unlimited rides to plan-approved locations |
+| Companionship | Not covered |
+| Custodial Care | Custodial: see Medicaid-covered home health aide (full dual). Personal Home Care: only may be covered for full Medicaid under age 21 (EOC). |
 | RX Deductible | $0 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | $0 |
 | Tier 4 | $0 |
 | Tier 5 | $0 |
+| Tier 6 | 0 |
 | OTC | $50/quarter |
 | Grocery Card | $455/month Food & Home (SSBCI if eligible) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 or 20% · Medicare chronic LBP acupuncture · up to 12 visits/90 days (varies by Medicaid) |
 | Fitness | SilverSneakers |
 | Other | $150 Wellness Bucks · Medical deductible $283 |
-
----
-
-## Devoted GIVEBACK 013 (H1290-013) — Miami-Dade Giveback
-**County:** Miami-Dade
-**Type:** Giveback
-**Plan year:** 2027
-**CMS ID:** H1290-013
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-GIVEBACK-013-FL-%28HMO%29-SB-H1290-013-ENG.pdf)
-**SoB note:** SOB - GIVEBACK 013
-**Still yellow on the working grid:** 9 field(s) — not cited below.
-**Premium:** $0
-**Part B Giveback:** $202
-**MOOP:** $7,150
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-| Premium | $0 |
-| Referrals Needed? | Yes |
-| Part B Give Back | $202 |
-| Max Out of Pocket | $7,150 |
-| Inpatient Hospital | $395 days 1-6 $0 day 7+ |
-| Outpatient Hospital | $395 surgery ASC $395 |
-| PCP | $0 |
-| Specialist | $50 |
-| ER | $130 |
-| Urgent Care | $50 |
-| Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
-| Hearing Services | $599 or $899 per aid |
-| Dental | $1,500 comprehensive (Direct Member Reimbursement) |
-| Dental Implants | No |
-| Vision Allowance | $350 |
-| Ambulance | $350 ground one-way 20% air |
-| Transportation | Not covered |
-| RX Deductible | $650 Tiers 3–5 |
-| Tier 1 | $0 |
-| Tier 2 | $0 |
-| Tier 3 | 21% |
-| Tier 4 | 25% |
-| Tier 5 | 26% |
-| Tier 6 | n/a |
-| OTC | $100/quarter |
-| Fitness | SilverSneakers |
-| Grocery Card | N/A |
-| Other | $150 Wellness Bucks · Medical deductible $400 |
-
----
-
-## Devoted GIVEBACK EXTRAS (H1290-110) — Miami-Dade Giveback — NEW 2027
-**County:** Miami-Dade
-**Type:** Giveback
-**Plan year:** 2027
-**CMS ID:** H1290-110
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-GIVEBACK-EXTRAS-110-FL-%28HMO%29-SB-H1290-110-ENG.pdf)
-**SoB note:** SOB - GIVEBACK EXTRAS
-**Premium:** $0
-**Part B Giveback:** $70
-**MOOP:** $5,150
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-| Premium | $0 |
-| Referrals Needed? | Yes |
-| Part B Give Back | $70 |
-| Max Out of Pocket | $5,150 |
-| Inpatient Hospital | $305 days 1-8 $0 day 9+ |
-| Outpatient Hospital | $305 surgery ASC $305 |
-| PCP | $0 |
-| Specialist | $40 |
-| ER | $130 |
-| Urgent Care | $50 |
-| Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
-| Hearing Services | $599 or $899 per aid |
-| Dental | $3,750 comprehensive (Direct Member Reimbursement) |
-| Dental Implants | No |
-| Vision Allowance | $400 |
-| Ambulance | $325 ground one-way 20% air |
-| Transportation | Not covered |
-| RX Deductible | $700 Tiers 3–5 |
-| Tier 1 | $0 |
-| Tier 2 | $2 |
-| Tier 3 | 25% |
-| Tier 4 | 25% |
-| Tier 5 | 25% |
-| Tier 6 | n/a |
-| OTC | $152/quarter |
-| Fitness | SilverSneakers |
-| Grocery Card | N/A |
-| Other | $150 Wellness Bucks · Medical deductible $350 · **NEW 2027** |
+| Evidence of Coverage | EOC — DUAL FULL |
 
 ---
 
@@ -695,9 +808,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1290-001
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-CORE-001-FL-%28HMO%29-SB-H1290-001-ENG.pdf)
-**SoB note:** SOB - CORE 001
-**Still yellow on the working grid:** 2 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,900
@@ -717,13 +828,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
 | Dental | $1,500 comprehensive (Direct Member Reimbursement) |
-| Deep Cleaning | Covered — 50% comprehensive / 100% preventive |
-| Dentures | 50% reimbursement up to $1,500 |
+| Deep Cleaning | Yes — 50% reimbursement up to $1,500 (1/quadrant/3 yrs) |
+| Dentures | 50% reimbursement up to $1,500 (1/arch/5 yrs) |
 | Fillings | 50% reimbursement up to $1,500 |
-| Root Canals | 50% reimbursement up to $1,500 |
-| Extractions | 50% reimbursement up to $1,500 |
-| Crowns | 50% reimbursement up to $1,500 |
-| Bridges | 50% reimbursement up to $1,500 |
+| Root Canals | 50% reimbursement up to $1,500 (1/tooth/lifetime) |
+| Extractions | 50% reimbursement up to $1,500 (1/tooth/lifetime) |
+| Crowns | 50% reimbursement up to $1,500 (1/tooth/5 yrs) |
+| Bridges | 50% reimbursement up to $1,500 (1/tooth/5 yrs) |
 | Implants | No |
 | Vision Allowance | $350 |
 | Ambulance | $300 ground one-way 20% air one-way |
@@ -736,10 +847,62 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 26% |
 | Tier 6 | n/a |
 | OTC | Not listed on 2027 SOB |
+| Acupuncture | $0 · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
 | Fitness | SilverSneakers |
 | Grocery Card | N/A |
 | Other Cards | $150 Wellness Bucks |
 | Other | $150 Wellness Bucks (fitness & wellness items) |
+
+---
+
+## Devoted GIVEBACK 013 (H1290-013) — Miami-Dade HMO
+**County:** Miami-Dade
+**Type:** HMO
+**Plan year:** 2027
+**CMS ID:** H1290-013
+**Still yellow on the working grid:** 1 field(s) — not cited below.
+**Premium:** $0
+**Part B Giveback:** $202
+**MOOP:** $7,150
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+| Premium | $0 |
+| Referrals Needed? | Yes |
+| Part B Give Back | $202 |
+| Max Out of Pocket | $7,150 |
+| Inpatient Hospital | $395 days 1-6 $0 day 7+ |
+| Outpatient Hospital | $395 surgery ASC $395 |
+| PCP | $0 |
+| Specialist | $50 |
+| ER | $130 |
+| Urgent Care | $50 |
+| Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
+| Hearing Services | $599 or $899 per aid |
+| Dental | $1,500 comprehensive (Direct Member Reimbursement) |
+| Deep Cleaning | Yes — 50% reimbursement up to $1,500 (1/quadrant/3 yrs) |
+| Dentures | 50% reimbursement up to $1,500 (1/arch/5 yrs) |
+| Fillings | 50% reimbursement up to $1,500 |
+| Root Canals | 50% reimbursement up to $1,500 (1/tooth/lifetime) |
+| Extractions | 50% reimbursement up to $1,500 (1/tooth/lifetime) |
+| Crowns | 50% reimbursement up to $1,500 (1/tooth/5 yrs) |
+| Bridges | 50% reimbursement up to $1,500 (1/tooth/5 yrs) |
+| Dental Implants | No |
+| Vision Allowance | $350 |
+| Ambulance | $350 ground one-way 20% air |
+| Transportation | Not covered |
+| RX Deductible | $650 Tiers 3–5 |
+| Tier 1 | $0 |
+| Tier 2 | $0 |
+| Tier 3 | 21% |
+| Tier 4 | 25% |
+| Tier 5 | 26% |
+| Tier 6 | n/a |
+| OTC | $100/quarter |
+| Acupuncture | $0 · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
+| Fitness | SilverSneakers |
+| Grocery Card | N/A |
+| Other | $150 Wellness Bucks · Medical deductible $400 |
 
 ---
 
@@ -748,9 +911,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1290-037
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-CORE-037-FL-%28HMO%29-SB-H1290-037-001-ENG.pdf)
-**SoB note:** SOB — CORE 037
-**Still yellow on the working grid:** 7 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,900
@@ -770,6 +931,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
 | Dental | $1,500 comprehensive (Direct Member Reimbursement) |
+| Deep Cleaning | Yes — 50% reimbursement up to $1,500 (1/quadrant/3 yrs) |
+| Dentures | 50% reimbursement up to $1,500 (1/arch/5 yrs) |
+| Fillings | 50% reimbursement up to $1,500 |
+| Root Canals | 50% reimbursement up to $1,500 (1/tooth/lifetime) |
+| Extractions | 50% reimbursement up to $1,500 (1/tooth/lifetime) |
+| Crowns | 50% reimbursement up to $1,500 (1/tooth/5 yrs) |
+| Bridges | 50% reimbursement up to $1,500 (1/tooth/5 yrs) |
 | Implants | No |
 | Vision Allowance | $150 |
 | Ambulance | $300 ground one-way 20% air one-way |
@@ -782,8 +950,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 26% |
 | Tier 6 | n/a |
 | OTC | Not listed as OTC; Food & Home $20/month if SSBCI eligible |
+| Acupuncture | $0 · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
 | Fitness | SilverSneakers |
 | Grocery Card | $20/month Food & Home (SSBCI if eligible) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Other Cards | $150 Wellness Bucks |
 | Other | $150 Wellness Bucks |
 
@@ -794,9 +964,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1290-062
-**SoB:** [SoB](https://assets.devoted.com/plan-documents/2027/2027-DEVOTED-CORE-062-FL-%28HMO%29-SB-H1290-062-ENG.pdf)
-**SoB note:** SOB - CORE 062
-**Still yellow on the working grid:** 7 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,400
@@ -816,6 +984,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
 | Hearing Services | $399 or $699 per aid |
 | Dental | $3,500 comprehensive (Direct Member Reimbursement) |
+| Deep Cleaning | Yes — 50% reimbursement up to $3,500 (1/quadrant/3 yrs) |
+| Dentures | 50% reimbursement up to $3,500 (1/arch/5 yrs) |
+| Fillings | 50% reimbursement up to $3,500 |
+| Root Canals | 50% reimbursement up to $3,500 (1/tooth/lifetime) |
+| Extractions | 50% reimbursement up to $3,500 (1/tooth/lifetime) |
+| Crowns | 50% reimbursement up to $3,500 (1/tooth/5 yrs) |
+| Bridges | 50% reimbursement up to $3,500 (1/tooth/5 yrs) |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $300 ground one-way 20% air one-way |
@@ -828,9 +1003,61 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 26% |
 | Tier 6 | n/a |
 | OTC | $93/quarter |
+| Acupuncture | $0 · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
 | Fitness | SilverSneakers |
 | Grocery Card | N/A |
 | Other Cards | $150 Wellness Bucks |
 | Other | $150 Wellness Bucks |
+
+---
+
+## Devoted GIVEBACK EXTRAS (H1290-110) — Miami-Dade HMO — NEW 2027
+**County:** Miami-Dade
+**Type:** HMO
+**Plan year:** 2027
+**CMS ID:** H1290-110
+**Still yellow on the working grid:** 1 field(s) — not cited below.
+**Premium:** $0
+**Part B Giveback:** $70
+**MOOP:** $5,150
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+| Premium | $0 |
+| Referrals Needed? | Yes |
+| Part B Give Back | $70 |
+| Max Out of Pocket | $5,150 |
+| Inpatient Hospital | $305 days 1-8 $0 day 9+ |
+| Outpatient Hospital | $305 surgery ASC $305 |
+| PCP | $0 |
+| Specialist | $40 |
+| ER | $130 |
+| Urgent Care | $50 |
+| Advanced Imaging (MRI, CT, PET) | Office $100 / $200 Hospital $200 / $300 |
+| Hearing Services | $599 or $899 per aid |
+| Dental | $3,750 comprehensive (Direct Member Reimbursement) |
+| Deep Cleaning | Yes — 50% reimbursement up to $3,750 (1/quadrant/3 yrs) |
+| Dentures | 50% reimbursement up to $3,750 (1/arch/5 yrs) |
+| Fillings | 50% reimbursement up to $3,750 |
+| Root Canals | 50% reimbursement up to $3,750 (1/tooth/lifetime) |
+| Extractions | 50% reimbursement up to $3,750 (1/tooth/lifetime) |
+| Crowns | 50% reimbursement up to $3,750 (1/tooth/5 yrs) |
+| Bridges | 50% reimbursement up to $3,750 (1/tooth/5 yrs) |
+| Dental Implants | No |
+| Vision Allowance | $400 |
+| Ambulance | $325 ground one-way 20% air |
+| Transportation | Not covered |
+| RX Deductible | $700 Tiers 3–5 |
+| Tier 1 | $0 |
+| Tier 2 | $2 |
+| Tier 3 | 25% |
+| Tier 4 | 25% |
+| Tier 5 | 25% |
+| Tier 6 | n/a |
+| OTC | $152/quarter |
+| Acupuncture | $0 · Medicare chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
+| Fitness | SilverSneakers |
+| Grocery Card | N/A |
+| Other | $150 Wellness Bucks · Medical deductible $350 · **NEW 2027** |
 
 ---

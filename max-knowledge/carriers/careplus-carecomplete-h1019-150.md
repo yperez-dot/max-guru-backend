@@ -1,34 +1,31 @@
 # CarePlus CareComplete (HMO C-SNP) H1019-150 — crowns / bridges
 
-Source: THEI Plan Comparison Grid (DADE-CSNP + BWD-CSNP) and the same CarePlus SoB for both counties.
-Updated: 2026-09-25.
+Source: THEI 2027 Plan Comparison Grid (DADE-CSNP + BWD-CSNP) and the CarePlus 2027 SoB.
+Updated: 2026-10-02.
 
 **CMS ID:** H1019-150
 **Carrier:** CarePlus (Humana)
 **Plan:** CareComplete (HMO C-SNP)
 **Counties:** Miami-Dade and Broward (statewide booklet — same SoB)
+**Plan year:** 2027 (AEP default)
 
-## Crowns
+## Crowns (2027)
 
-Yes. **2 every 5 years.** Grid does not list a separate crown copay (treat as covered / $0 network unless SoB says otherwise).
+**No.** THEI 2027 working grid (non-yellow): Crowns = `No` in both counties.
 
-## Bridges
+## Bridges (2027)
 
-Yes.
+**Yes — 30% (1 proc / 5 yrs).**
 
-## How Max should answer
+## How Max should answer (2027)
 
-Agent Q: "Are crowns covered on CareComplete H1019-150?" (with or without county)
+Agent Q: "Are crowns covered on CareComplete H1019-150?"
 
-Answer shape:
+- No — CarePlus CareComplete H1019-150 does **not** cover crowns on the 2027 THEI grid.
+- Bridges: Yes — 30% (1 every 5 years).
+- Cite carrier + plan + H1019-150 + plan year 2027 + THEI grid. Then SoB/EOC for CDT-level edge cases.
+- Do **not** quote the 2026 “2 every 5 years” crown frequency as 2027.
 
-- Yes — CarePlus CareComplete H1019-150 covers crowns, **2 every 5 years**.
-- Bridges: Yes.
-- Source: THEI plan grid (Miami-Dade Crowns/Bridges cells; Broward `$0 varies` was junk and is aligned to Dade). Same CarePlus SoB for both counties.
-- Then — and only then — SoB/EOC for CDT-level edge cases (prior auth, specific codes). Do **not** lead with a SoB hedge or send the agent to ChatGPT.
-- Do **not** dump every CarePlus chronic plan unless they asked for a comparison.
+2026 archive (`#plan-data-2026`): `dentalCrowns` = `2 every 5 years`, `dentalBridges` = `Yes`. Use only if the agent asked for **2026**.
 
-2026 live `#plan-data`: `dentalCrowns` = `2 every 5 years`, `dentalBridges` = `Yes` (both counties).
-2027 working grid: DADE-CSNP Crowns = `2 every 5 years`, Bridges = `Yes`. BWD-CSNP cells were `$0 varies` — use the Dade / statewide values.
-
-SoB: [2026 SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019150000SB26.pdf) · [2027 SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019150000SB27.pdf)
+SoB: [2027 SoB](https://www.care-plus-health-plans.com/BenefitSummary/2027PDFs/H1019150000SB27.pdf) · [2026 SoB](https://www.care-plus-health-plans.com/BenefitSummary/2026PDFs/H1019150000SB26.pdf)

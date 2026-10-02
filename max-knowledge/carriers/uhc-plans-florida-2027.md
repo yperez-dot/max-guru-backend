@@ -1,64 +1,18 @@
 # UHC — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-01 13:17 UTC
+Pulled: 2026-10-02 21:16 UTC
 Counties: Broward / Miami-Dade
-CMS IDs on file: H1045-001, H1045-005, H1045-012, H1045-018, H1045-061, H1045-063, H1889-002, H1889-026, H5420-001, H5420-003, H5420-014, R0759-001
+CMS IDs on file: H1045-001, H1045-005, H1045-012, H1045-018, H1045-061, H1045-063, H5420-001, H5420-003, H5420-014, R0759-001
 
 Yellow leftover 2026 cells are **not** in this file. If a benefit is missing here, Max does not have a confirmed 2027 figure yet.
-
-## UHC MedicareMax Complete Care (H5420-014) — Broward C-SNP
-**County:** Broward
-**Type:** C-SNP
-**Plan year:** 2027
-**CMS ID:** H5420-014
-**SoB:** [SoB](https://www.uhc.com/medicare/alphadog/PNFL27HM0413009_000)
-**SoB note:** SOB — MedicareMax Complete Care FL-30
-**Still yellow on the working grid:** 8 field(s) — not cited below.
-**Premium:** $0 (LIS $0)
-**Part B Giveback:** $61
-**MOOP:** $3,400
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-| Premium | $0 (LIS $0) |
-| Referrals Needed? | Yes |
-| Deductible | $0 in-network |
-| Part B Rebate | $61 |
-| Max Out of Pocket | $3,400 |
-| Chronic Conditions | Diabetes, chronic heart failure, and/or a cardiovascular disorder |
-| Inpatient Hospital | $0 per stay · unlimited days |
-| Outpatient Hospital | ASC $50 / Outpatient hospital $150 $0 colonoscopies |
-| PCP | $0 |
-| Specialist | $0 |
-| ER | $150 |
-| Urgent Care | $65 |
-| Advanced Imaging (MRI, CT, PET) | $150 $0 mammograms / $0 X-rays |
-| Hearing Services | $700 allowance for 2 hearing aids every year (UHC Hearing) |
-| Dental | Preventive & Comprehensive — $0 copay |
-| Vision Allowance | $200 eyeglasses or contacts (routine exam $0) |
-| Ambulance | $125 ground or air |
-| Transportation | $0 INN · 24 one-way trips to plan-approved locations |
-| RX Deductible | $0 all tiers |
-| Tier 1 | $0 |
-| Tier 2 | $0 |
-| Tier 3 | $0 |
-| Tier 4 | 27% |
-| Tier 5 | 33% |
-| Tier 6 | N/A |
-| OTC | Not covered |
-| Grocery Card | Highlight intro: monthly OTC / healthy food credit for qualifying members (dollar amount not listed). Plan Details OTC line is Not Covered. |
-| Fitness | Free gym — core and premium network |
-| Other | Rewards not covered Post-discharge meals: 28 meals over 14 days, unlimited times/year Insulin $0 retail and mail · $0 diabetic supplies |
-
----
 
 ## UHC Preferred Dual Complete FL-QV4 (H1045-012) — Broward D-SNP
 **County:** Broward
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-012
-**Still yellow on the working grid:** 13 field(s) — not cited below.
+**Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $0 – $9,850 (varies by Medicaid level)
@@ -90,17 +44,28 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | Varies by LIS level |
 | OTC | $240/month OTC and wellness; healthy food and utilities if member qualifies |
 | Grocery Card | Combined with OTC for qualifying members |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Fitness | Free gym — core and premium network |
-| Other | Rewards not covered · Medical deductible $0 – $283 in-network Post-discharge meals: 28 meals over 14 days, unlimited times/year |
+| Other | Rewards not covered · Medical deductible $0 – $283 in-network |
+
+Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
+
+| Benefit | 2027 working grid |
+|---------|-------------------|
+| Deep Cleaning | 2 per year |
+| Dentures | 1 every 5 years |
+| Fillings | 2 per year for 1, 2, 3, or 4 surface teeth |
+| Root Canals | yes |
+| Extractions | yes |
 
 ---
 
-## UHC Preferred Dual Complete FL-V1 (H1045-061) — Broward D-SNP
+## UHC Preferred Dual Complete FL-QV5 (H1045-061) — Broward D-SNP
 **County:** Broward
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-061
-**Still yellow on the working grid:** 13 field(s) — not cited below.
+**Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0 – $7.30 (LIS $0)
 **Part B Giveback:** No
 **MOOP:** $2,900
@@ -132,8 +97,19 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | Varies by LIS level |
 | OTC | $127/month OTC and wellness; healthy food and utilities if member qualifies |
 | Grocery Card | Combined with OTC for qualifying members |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Fitness | Free gym — core and premium network |
-| Other | Rewards not covered · Medical deductible $0 in-network Post-discharge meals: 28 meals over 14 days, unlimited times/year |
+| Other | Rewards not covered · Medical deductible $0 in-network |
+
+Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
+
+| Benefit | 2027 working grid |
+|---------|-------------------|
+| Deep Cleaning | 2 per year |
+| Dentures | 1 every 5 years |
+| Fillings | 2 per year for 1, 2, 3, or 4 surface teeth |
+| Root Canals | yes |
+| Extractions | yes |
 
 ---
 
@@ -142,7 +118,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-063
-**Still yellow on the working grid:** 13 field(s) — not cited below.
+**Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $0
@@ -174,92 +150,22 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | $0 through Medicaid |
 | OTC | $405/month OTC and wellness; healthy food and utilities if member qualifies |
 | Grocery Card | Combined with OTC for qualifying members |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Fitness | Free gym — core and premium network |
-| Other | Rewards not covered · Joining also enrolls in UHC Medicaid Wrap Post-discharge meals: 28 meals over 14 days, unlimited times/year |
+| Other | Rewards not covered · Joining also enrolls in UHC Medicaid Wrap |
 
----
+Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
 
-## UHC Dual Complete Choice PPO (H1889-002) — Broward D-SNP — CLOSED TO NEW ENROLL 2027
-**County:** Broward
-**Type:** D-SNP
-**Plan year:** 2027
-**CMS ID:** H1889-002
-**Still yellow on the working grid:** 13 field(s) — not cited below.
-**Premium:** $0
-**Part B Giveback:** No
-**MOOP:** $0 – $9,850 (varies by Medicaid level)
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | No |
-| MSP Levels | **CLOSED TO NEW ENROLLMENT 1/1/2027** — existing members only 2026 MSP list still yellow until SOB (QMB / SLMB / QI / plus / FBDE were on 2026 grid) |
-| Max Out of Pocket | $0 – $9,850 (varies by Medicaid level) |
-| Inpatient Hospital | $0 – $1,640 per stay · unlimited days |
-| Outpatient Hospital | $0 – 20% ASC / $0 – 20% outpatient hospital $0 colonoscopies |
-| PCP | $0 – 20% |
-| Specialist | $0 – 20% |
-| ER | $0 – $115 |
-| Urgent Care | $0 – $40 |
-| Advanced Imaging (MRI, CT, PET) | $0 – 20% $0 mammograms |
-| Hearing Services | $2,200 allowance for 2 hearing aids every 2 years (UHC Hearing) |
-| Dental | $1,500 toward covered services · $0 copay |
-| Vision Allowance | $250 eyeglasses or contacts (routine exam $0) |
-| Ambulance | $0 – 20% ground or air |
-| Transportation | $0 INN · 75% OON · 36 one-way trips combined INN/OON |
-| RX Deductible | LIS $0 No LIS $0 Tiers 1–2 · $700 Tiers 3–5 |
-| Tier 1 | $0 |
-| Tier 2 | Varies by LIS level |
-| Tier 3 | Varies by LIS level |
-| Tier 4 | Varies by LIS level |
-| Tier 5 | Varies by LIS level |
-| OTC | $115/month OTC and wellness; healthy food and utilities if member qualifies |
-| Grocery Card | Combined with OTC for qualifying members |
-| Fitness | Free gym — core and premium network |
-| Other | **CLOSED TO NEW ENROLLMENT 1/1/2027** — existing members only Medical deductible $0 – $283 combined IN/OON Healthy rewards up to $165 Chiropractic $0 INN / 30% OON · 12 visits/year combined |
-
----
-
-## UHC Dual Complete FL-Y4 PPO (H1889-026) — Broward D-SNP — CLOSED TO NEW ENROLL 2027
-**County:** Broward
-**Type:** D-SNP
-**Plan year:** 2027
-**CMS ID:** H1889-026
-**Still yellow on the working grid:** 13 field(s) — not cited below.
-**Premium:** $0
-**Part B Giveback:** No
-**MOOP:** $0
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | No |
-| MSP Levels | **CLOSED TO NEW ENROLLMENT 1/1/2027** — existing members only · Full dual $0 medical QMB+, SLMB+, FBDE (full dual) |
-| Max Out of Pocket | $0 |
-| Inpatient Hospital | $0 per stay · unlimited days (full dual) |
-| Outpatient Hospital | $0 |
-| PCP | $0 |
-| Specialist | $0 |
-| ER | $0 |
-| Urgent Care | $0 |
-| Advanced Imaging (MRI, CT, PET) | $0 · $0 mammograms |
-| Hearing Services | $2,200 allowance for 2 hearing aids every 2 years (UHC Hearing) |
-| Dental | $2,000 toward covered services · $0 copay |
-| Vision Allowance | $250 eyeglasses or contacts (routine exam $0) |
-| Ambulance | $0 INN (full dual) |
-| Transportation | $0 INN · 75% OON · 48 one-way trips combined INN/OON |
-| RX Deductible | $0 for all covered drugs through Medicaid |
-| Tier 1 | $0 through Medicaid |
-| Tier 2 | $0 through Medicaid |
-| Tier 3 | $0 through Medicaid |
-| Tier 4 | $0 through Medicaid |
-| Tier 5 | $0 through Medicaid |
-| OTC | $222/month OTC and wellness; healthy food and utilities if member qualifies |
-| Grocery Card | Combined with OTC for qualifying members |
-| Fitness | Free gym — core and premium network |
-| Other | **CLOSED TO NEW ENROLLMENT 1/1/2027** — existing members only · Full dual $0 medical Medical deductible $0 combined IN/OON Healthy rewards up to $165 Chiropractic $0 INN / 30% OON · 12 visits/year combined |
+| Benefit | 2027 working grid |
+|---------|-------------------|
+| Deep Cleaning | yes |
+| Dentures | yes |
+| Fillings | yes |
+| Root Canals | yes |
+| Extractions | yes |
+| Crowns | yes |
+| Bridges | yes |
+| Implants | no |
 
 ---
 
@@ -268,8 +174,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1045-005
-**SoB:** [SoB](https://www.uhc.com/medicare/alphadog/PCFL27HM0412409_000)
-**SoB note:** SOB — Preferred FL-0002
 **Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $30
@@ -303,7 +207,15 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | OTC | Not covered |
 | Fitness | Renew Active |
 | Other Cards | Rewards not covered |
-| Other | Post-discharge meals: 28 meals over 14 days, unlimited times/year Insulin retail $35 / mail $105 · Mail 100-day T1–T2 $0 / T3 22% |
+
+Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
+
+| Benefit | 2027 working grid |
+|---------|-------------------|
+| Dentures | 1 x 5 years |
+| Fillings | 2 x year |
+| Extractions | as needed |
+| Implants | No |
 
 ---
 
@@ -312,8 +224,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H5420-003
-**SoB:** [SoB](https://www.uhc.com/medicare/alphadog/PNFL27HM0413008_000)
-**SoB note:** SOB — MedicareMax FL-0029
 **Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $29
@@ -347,7 +257,16 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | OTC | Not covered |
 | Fitness | Renew Active |
 | Other Cards | Rewards not covered |
-| Other | Post-discharge meals: 28 meals over 14 days, unlimited times/year Insulin retail $35 / mail $105 · Mail 100-day T1–T2 $0 / T3 22% |
+
+Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
+
+| Benefit | 2027 working grid |
+|---------|-------------------|
+| Deep Cleaning | $0 |
+| Dentures | 1 x 5 years |
+| Fillings | 2 |
+| Extractions | as needed |
+| Implants | no |
 
 ---
 
@@ -393,12 +312,12 @@ Out-of-network (confirmed):
 
 ---
 
-## UHC Preferred Care Complete Care (H1045-018) — Miami-Dade C-SNP
+## UHC Preferred Complete Care FL-0003 (H1045-018) — Miami-Dade C-SNP
 **County:** Miami-Dade
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-018
-**Still yellow on the working grid:** 10 field(s) — not cited below.
+**Still yellow on the working grid:** 11 field(s) — not cited below.
 **Premium:** $0 (LIS $0)
 **Part B Giveback:** $101
 **MOOP:** $2,900
@@ -410,7 +329,7 @@ Out-of-network (confirmed):
 | Part B Rebate | $101 |
 | Deductible | $0 in-network |
 | Max Out of Pocket | $2,900 |
-| Chronic Conditions | Diabetes, chronic heart failure, and/or a cardiovascular disorder |
+| SSBCI Chronic Conditions | •Diabetes •Cardiovascular disorder •Chronic heart failure |
 | Inpatient Hospital | $0 per stay · unlimited days |
 | Outpatient Hospital | ASC $25 / Outpatient hospital $75 $0 colonoscopies |
 | PCP | $0 |
@@ -432,18 +351,22 @@ Out-of-network (confirmed):
 | OTC | $40 x month |
 | Grocery Card | Healthy food for qualifying members (combined with OTC) |
 | Fitness | Free gym — core and premium network |
-| Other | Rewards not covered Post-discharge meals: 28 meals over 14 days, unlimited times/year Insulin $0 retail and mail · $0 diabetic supplies |
+
+Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
+
+| Benefit | 2027 working grid |
+|---------|-------------------|
+| Dentures | 1 x 5 years |
+| Extractions | 1 per year |
 
 ---
 
-## UHC MedicareMax Complete Care (H5420-014) — Miami-Dade C-SNP
+## UHC MedicareMax Complete Care FL-30 (H5420-014) — Miami-Dade C-SNP
 **County:** Miami-Dade
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H5420-014
-**SoB:** [SoB](https://www.uhc.com/medicare/alphadog/PNFL27HM0413009_000)
-**SoB note:** SOB — MedicareMax Complete Care FL-30
-**Still yellow on the working grid:** 9 field(s) — not cited below.
+**Still yellow on the working grid:** 10 field(s) — not cited below.
 **Premium:** $0 (LIS $0)
 **Part B Giveback:** $61
 **MOOP:** $3,400
@@ -455,7 +378,7 @@ Out-of-network (confirmed):
 | Part B Rebate | $61 |
 | Deductible | $0 in-network |
 | Max Out of Pocket | $3,400 |
-| Chronic Conditions | Diabetes, chronic heart failure, and/or a cardiovascular disorder |
+| SSBCI Chronic Conditions | •Diabetes •Cardiovascular disorder •Chronic heart failure |
 | Inpatient Hospital | $0 per stay · unlimited days |
 | Outpatient Hospital | ASC $50 / Outpatient hospital $150 $0 colonoscopies |
 | PCP | $0 |
@@ -476,8 +399,15 @@ Out-of-network (confirmed):
 | Tier 5 | 33% |
 | OTC | Not covered |
 | Grocery Card | Highlight intro: monthly OTC / healthy food credit for qualifying members (dollar amount not listed). Plan Details OTC line is Not Covered. |
-| Fitness | Free gym — core and premium network |
-| Other | Rewards not covered Post-discharge meals: 28 meals over 14 days, unlimited times/year Insulin $0 retail and mail · $0 diabetic supplies |
+| Fitness | Renew Active: core and premium network |
+
+Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
+
+| Benefit | 2027 working grid |
+|---------|-------------------|
+| Dentures | 1 x 5 years |
+| Fillings | 2 x year |
+| Implants | not covered |
 
 ---
 
@@ -486,7 +416,7 @@ Out-of-network (confirmed):
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-012
-**Still yellow on the working grid:** 13 field(s) — not cited below.
+**Still yellow on the working grid:** 11 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $0 – $9,850 (varies by Medicaid level)
@@ -496,7 +426,7 @@ Out-of-network (confirmed):
 | Premium | $0 |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | QMB, SLMB, QI (partial or QMB — not full dual). 2027 name: FL-QV4 (was FL-D001) |
+| MSP Levels | QMB, SLMB, QI |
 | Max Out of Pocket | $0 – $9,850 (varies by Medicaid level) |
 | Inpatient Hospital | $0 – $2,035 per stay · unlimited days |
 | Outpatient Hospital | $0 – 20% ASC / $0 – 20% outpatient hospital $0 colonoscopies |
@@ -516,19 +446,32 @@ Out-of-network (confirmed):
 | Tier 3 | Varies by LIS level |
 | Tier 4 | Varies by LIS level |
 | Tier 5 | Varies by LIS level |
+| Tier 6 | $0 |
 | OTC | $240/month OTC and wellness; healthy food and utilities if member qualifies |
 | Grocery Card | Combined with OTC for qualifying members |
-| Fitness | Free gym — core and premium network |
-| Other | Rewards not covered · Medical deductible $0 – $283 in-network Post-discharge meals: 28 meals over 14 days, unlimited times/year |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | Acupuncture for chronic low back pain 12 visits in 90 days |
+| Fitness | Renew Active |
+| Other | Rewards not covered · Medical deductible $0 – $283 in-network |
+
+Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
+
+| Benefit | 2027 working grid |
+|---------|-------------------|
+| Deep Cleaning | 2 per year |
+| Dentures | 1 every 5 years |
+| Fillings | 2 per year for 1, 2, 3, or 4 surface teeth |
+| Root Canals | yes |
+| Extractions | yes |
 
 ---
 
-## UHC Preferred Dual Complete FL-V1 (H1045-061) — Miami-Dade D-SNP
+## UHC Preferred Dual Complete FL-QV5 (H1045-061) — Miami-Dade D-SNP
 **County:** Miami-Dade
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-061
-**Still yellow on the working grid:** 13 field(s) — not cited below.
+**Still yellow on the working grid:** 10 field(s) — not cited below.
 **Premium:** $0 – $7.30 (LIS $0)
 **Part B Giveback:** No
 **MOOP:** $2,900
@@ -538,7 +481,7 @@ Out-of-network (confirmed):
 | Premium | $0 – $7.30 (LIS $0) |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | QMB, SLMB, QI (partial or QMB — not full dual FBDE / QMB+ / SLMB+) |
+| MSP Levels | QMB, SLMB, QI |
 | Max Out of Pocket | $2,900 |
 | Inpatient Hospital | $0 per stay · unlimited days |
 | Outpatient Hospital | ASC $25 / Outpatient hospital $75 $0 colonoscopies |
@@ -558,10 +501,23 @@ Out-of-network (confirmed):
 | Tier 3 | Varies by LIS level |
 | Tier 4 | Varies by LIS level |
 | Tier 5 | Varies by LIS level |
+| Tier 6 | $0 |
 | OTC | $127/month OTC and wellness; healthy food and utilities if member qualifies |
 | Grocery Card | Combined with OTC for qualifying members |
-| Fitness | Free gym — core and premium network |
-| Other | Rewards not covered · Medical deductible $0 in-network Post-discharge meals: 28 meals over 14 days, unlimited times/year |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | Acupuncture for chronic low back pain 12 visits in 90 days |
+| Fitness | Renew Active |
+| Other | Rewards not covered · Medical deductible $0 in-network |
+
+Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
+
+| Benefit | 2027 working grid |
+|---------|-------------------|
+| Deep Cleaning | 2 per year |
+| Dentures | 1 every 5 years |
+| Fillings | 2 per year for 1, 2, 3, or 4 surface teeth |
+| Root Canals | yes |
+| Extractions | yes |
 
 ---
 
@@ -570,7 +526,7 @@ Out-of-network (confirmed):
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-063
-**Still yellow on the working grid:** 13 field(s) — not cited below.
+**Still yellow on the working grid:** 8 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $0
@@ -580,7 +536,7 @@ Out-of-network (confirmed):
 | Premium | $0 |
 | Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | Full dual only — FBDE, QMB PLUS, SLMB PLUS · UHC Medicaid Wrap · Integrated SEP (2027 name: FL-Y6, H1045-063) |
+| MSP Levels | FBDE, QMB+, SLMB+ |
 | Max Out of Pocket | $0 |
 | Inpatient Hospital | $0 unlimited days |
 | Outpatient Hospital | $0 |
@@ -594,58 +550,34 @@ Out-of-network (confirmed):
 | Vision Allowance | $300 eyeglasses or contacts (routine exam $0) |
 | Ambulance | $0 ground or air |
 | Transportation | $0 unlimited one-way trips INN |
+| Companionship | Not covered |
+| Custodial Care | Not covered |
 | RX Deductible | $0 through Medicaid |
 | Tier 1 | $0 through Medicaid |
 | Tier 2 | $0 through Medicaid |
 | Tier 3 | $0 through Medicaid |
 | Tier 4 | $0 through Medicaid |
 | Tier 5 | $0 through Medicaid |
+| Tier 6 | n/a |
 | OTC | $405/month OTC and wellness; healthy food and utilities if member qualifies |
 | Grocery Card | Combined with OTC for qualifying members |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | Acupuncture for chronic low back pain 12 visits in 90 days |
 | Fitness | Free gym — core and premium network |
-| Other | Rewards not covered · Joining also enrolls in UHC Medicaid Wrap Post-discharge meals: 28 meals over 14 days, unlimited times/year |
+| Other | Rewards not covered · Joining also enrolls in UHC Medicaid Wrap |
 
----
+Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
 
-## UHC Dual Complete Choice PPO (H1889-002) — Miami-Dade D-SNP — CLOSED TO NEW ENROLL 2027
-**County:** Miami-Dade
-**Type:** D-SNP
-**Plan year:** 2027
-**CMS ID:** H1889-002
-**Still yellow on the working grid:** 13 field(s) — not cited below.
-**Premium:** $0
-**Part B Giveback:** No
-**MOOP:** $0 – $9,850 (varies by Medicaid level)
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | No |
-| MSP Levels | **CLOSED TO NEW ENROLLMENT 1/1/2027** — existing members only 2026 MSP list still yellow until SOB (QMB / SLMB / QI / plus / FBDE were on 2026 grid) |
-| Max Out of Pocket | $0 – $9,850 (varies by Medicaid level) |
-| Inpatient Hospital | $0 – $1,640 per stay · unlimited days |
-| Outpatient Hospital | $0 – 20% ASC / $0 – 20% outpatient hospital $0 colonoscopies |
-| PCP | $0 – 20% |
-| Specialist | $0 – 20% |
-| ER | $0 – $115 |
-| Urgent Care | $0 – $40 |
-| Advanced Imaging (MRI, CT, PET) | $0 – 20% $0 mammograms |
-| Hearing Services | $2,200 allowance for 2 hearing aids every 2 years (UHC Hearing) |
-| Dental | $1,500 toward covered services · $0 copay |
-| Vision Allowance | $250 eyeglasses or contacts (routine exam $0) |
-| Ambulance | $0 – 20% ground or air |
-| Transportation | $0 INN · 75% OON · 36 one-way trips combined INN/OON |
-| RX Deductible | LIS $0 No LIS $0 Tiers 1–2 · $700 Tiers 3–5 |
-| Tier 1 | $0 |
-| Tier 2 | Varies by LIS level |
-| Tier 3 | Varies by LIS level |
-| Tier 4 | Varies by LIS level |
-| Tier 5 | Varies by LIS level |
-| OTC | $115/month OTC and wellness; healthy food and utilities if member qualifies |
-| Grocery Card | Combined with OTC for qualifying members |
-| Fitness | Free gym — core and premium network |
-| Other | **CLOSED TO NEW ENROLLMENT 1/1/2027** — existing members only Medical deductible $0 – $283 combined IN/OON Healthy rewards up to $165 Chiropractic $0 INN / 30% OON · 12 visits/year combined |
+| Benefit | 2027 working grid |
+|---------|-------------------|
+| Deep Cleaning | yes |
+| Dentures | yes |
+| Fillings | yes |
+| Root Canals | yes |
+| Extractions | yes |
+| Crowns | yes |
+| Bridges | yes |
+| Implants | no |
 
 ---
 
@@ -654,9 +586,7 @@ Out-of-network (confirmed):
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1045-001
-**SoB:** [SoB](https://www.uhc.com/medicare/alphadog/PCFL27HM0412408_000)
-**SoB note:** SOB — Preferred FL-0001
-**Still yellow on the working grid:** 10 field(s) — not cited below.
+**Still yellow on the working grid:** 11 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $55
 **MOOP:** $2,900
@@ -686,9 +616,19 @@ Out-of-network (confirmed):
 | Tier 4 | 27% |
 | Tier 5 | 33% |
 | OTC | $25 x quarter |
-| Fitness | Free gym — core and premium network |
-| Other Cards | Rewards not covered |
-| Other | Post-discharge meals: 28 meals over 14 days, unlimited times/year Insulin $0 retail and mail · Mail 100-day T1–T3 $0 |
+| Fitness | Renew Active — core and premium network |
+
+Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
+
+| Benefit | 2027 working grid |
+|---------|-------------------|
+| Dentures | 1 x 5 years |
+| Fillings | 2 per year |
+| Root Canals | 1 per year |
+| Extractions | 1 per year |
+| Crowns | no |
+| Bridges | no |
+| Implants | no |
 
 ---
 
@@ -697,8 +637,6 @@ Out-of-network (confirmed):
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H5420-001
-**SoB:** [SoB](https://www.uhc.com/medicare/alphadog/PNFL27HM0413007_000)
-**SoB note:** SOB — MedicareMax FL-0028
 **Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $50
@@ -729,9 +667,17 @@ Out-of-network (confirmed):
 | Tier 4 | 27% |
 | Tier 5 | 33% |
 | OTC | $25 x quarter |
-| Fitness | Free gym — core and premium network |
-| Other Cards | Rewards not covered |
-| Other | Post-discharge meals: 28 meals over 14 days, unlimited times/year Insulin retail $25 / mail $65 · Mail 100-day T1–T3 $0/$0/$65 |
+| Fitness | Renew Active core and premium network |
+
+Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
+
+| Benefit | 2027 working grid |
+|---------|-------------------|
+| Dentures | 1 x 5 years |
+| Fillings | 2 x year |
+| Root Canals | 1 per year |
+| Extractions | 1 per year |
+| Implants | No |
 
 ---
 
@@ -740,7 +686,7 @@ Out-of-network (confirmed):
 **Type:** PPO
 **Plan year:** 2027
 **CMS ID:** R0759-001
-**Still yellow on the working grid:** 21 field(s) — not cited below.
+**Still yellow on the working grid:** 22 field(s) — not cited below.
 **MOOP:** $9,850
 
 | Benefit | 2027 (confirmed) |

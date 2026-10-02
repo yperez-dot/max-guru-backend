@@ -1,9 +1,9 @@
 # HealthSun — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-01 13:17 UTC
+Pulled: 2026-10-02 21:16 UTC
 Counties: Broward / Miami-Dade
-CMS IDs on file: H5431-001, H5431-006, H5431-017, H5431-019, H5431-021, H5431-026
+CMS IDs on file: H5431-001, H5431-006, H5431-012, H5431-017, H5431-018, H5431-019, H5431-021, H5431-026
 
 Yellow leftover 2026 cells are **not** in this file. If a benefit is missing here, Max does not have a confirmed 2027 figure yet.
 
@@ -12,12 +12,52 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H5431-021
-**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-021-Summary-of-Benefits.pdf)
-**SoB note:** SOB — VitalCare C-SNP
-**Still yellow on the working grid:** 39 field(s) — not cited below.
+**Premium:** 0
+**Part B Giveback:** 185
+**MOOP:** 1900
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | 0 |
+| Referrals Needed? | Yes |
+| Deductible | 0 |
+| Part B Rebate | 185 |
+| Max Out of Pocket | 1900 |
+| SSBCI Chronic Conditions | •Diabetes Mellitus •Chronic Heart Failure •Cardiovascular Disorders |
+| Inpatient Hospital | 0 |
+| Outpatient Hospital | $0 / $75 |
+| PCP | 0 |
+| Specialist | 0 |
+| ER | 90 |
+| Urgent Care | 0 |
+| Advanced Imaging (MRI, CT, PET) | $0 / $75 |
+| Hearing Services | $2,000 x 2 RX aids x 1 year |
+| Dental | Preventive & Comprehensive · $5,000/yr (network $0) |
+| Deep Cleaning | 1 quadrant x year |
+| Dentures | 1 per arch x 3 years |
+| Fillings | 4 |
+| Root Canals | 2 |
+| Extractions | 4 |
+| Crowns | 2 |
+| Bridges | No |
+| Implants | 2 |
+| Vision Allowance | 300 |
+| Ambulance | 20% air $150 ground |
+| Transportation | $0 unlimited - 50 mile cap x trip |
+| RX Deductible | 0 |
+| Tier 1 | 0 |
+| Tier 2 | 0 |
+| Tier 3 | 5 |
+| Tier 4 | $50 / $55 |
+| Tier 5 | 0.33 |
+| Tier 6 | 0 |
+| OTC | $70 x month |
+| Grocery Card | Combined w/ Everyday Options Allowance if eligible |
+| Acupuncture | $0 Available for people with chronic low back pain under certain circumstances |
+| Fitness | Silver Sneakers |
+| Other Cards | Everyday Options Allowance $40 x month (for assistive devices) |
+| Other | • PRP for osteoarthritis pain • Therapeutic massages •PERS |
+| Evidence of Coverage | EOC — VitalCare |
 
 ---
 
@@ -26,11 +66,54 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H5431-019
-**SoB note:** SOB — MediSun Extra D-SNP (no URL on the grid cell)
-**Still yellow on the working grid:** 39 field(s) — not cited below.
+**Premium:** 0
+**Part B Giveback:** N/A
+**MOOP:** 3450
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | 0 |
+| Part B Rebate | N/A |
+| Referrals Needed? | Yes |
+| MSP Levels | QDWI, QMB, SLMB, QI |
+| Max Out of Pocket | 3450 |
+| Inpatient Hospital | 0 |
+| Outpatient Hospital | 0 |
+| PCP | 0 |
+| Specialist | 0 |
+| ER | 0 |
+| Urgent Care | 0 |
+| Advanced Imaging (MRI, CT, PET) | 0 |
+| Hearing Services | $2,000 allowance for 2 prescribed hearing aids |
+| Dental | Preventive & Comprehensive · $5,000/yr (network $0) |
+| Deep Cleaning | 1 quadrant x year |
+| Dentures | 1 per arch x 3 years |
+| Fillings | 4 |
+| Root Canals | 2 |
+| Extractions | 4 |
+| Crowns | 2 |
+| Bridges | No |
+| Implants | 2 |
+| Vision Allowance | 400 |
+| Ambulance | 0 |
+| Transportation | $0 Unlimited |
+| Companionship | Not covered |
+| Custodial Care | Home Health Care $0 |
+| RX Deductible | N/A |
+| Tier 1 | 0 |
+| Tier 2 | 0 |
+| Tier 3 | LIS: $0 - $10 No LIS: $10 |
+| Tier 4 | LIS: $0, $4.90, $12.65 No LIS: $50 |
+| Tier 5 | LIS: $0, $4.90, $12.65 No LIS: 33% |
+| Tier 6 | 0 |
+| OTC | $128 x month |
+| Grocery Card | Combined with Everyday Options Allowance if member qualifies |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 Available for people with chronic low back pain under certain circumstances. |
+| Fitness | SilverSneakers |
+| Other Cards | Everyday Options Allowance $225 x month only for assistive devices |
+| Other | Platelet Rich Plasma Therapeutic Massages |
+| Evidence of Coverage | EOC — MediSun Extra |
 
 ---
 
@@ -39,12 +122,53 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H5431-026
-**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-019-Summary-of-Benefits.pdf)
-**SoB note:** SOB — MediSun Full Dual Plus
-**Still yellow on the working grid:** 38 field(s) — not cited below.
+**Premium:** 0
+**Part B Giveback:** N/A
+**MOOP:** 3450
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | 0 |
+| Part B Rebate | N/A |
+| Referrals Needed? | Yes |
+| MSP Levels | FDBE, QMB+, SLMB+ |
+| Max Out of Pocket | 3450 |
+| Inpatient Hospital | $0 90 Days |
+| Outpatient Hospital | 0 |
+| PCP | 0 |
+| Specialist | 0 |
+| ER | 0 |
+| Urgent Care | 0 |
+| Advanced Imaging (MRI, CT, PET) | 0 |
+| Hearing Services | $2,000 allowance for 2 prescribed hearing aids |
+| Dental | Preventive & Comprehensive · $5,000/yr (network $0) |
+| Deep Cleaning | 1 quadrant x year |
+| Dentures | 1 per arch x 3 years |
+| Fillings | 4 |
+| Root Canals | 2 |
+| Extractions | 4 |
+| Crowns | 2 |
+| Bridges | No |
+| Implants | 2 |
+| Vision Allowance | 400 |
+| Ambulance | 0 |
+| Transportation | $0 Unlimited |
+| Companionship | Not covered |
+| Custodial Care | Home Health Care $0 |
+| RX Deductible | N/A |
+| Tier 1 | 0 |
+| Tier 2 | 0 |
+| Tier 3 | LIS: $0, $1.60, $5.10 No LIS $5 |
+| Tier 4 | LIS: $0, $4.90, $12.65 No LIS: $50 |
+| Tier 5 | LIS: $0, $4.90, $12.65 No LIS: 33% |
+| Tier 6 | 0 |
+| OTC | $125 x month |
+| Grocery Card | Combined with Everyday Options Allowance if member qualifies |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 Available for people with chronic low back pain under certain circumstances. |
+| Fitness | SilverSneakers |
+| Other Cards | Everyday Options Allowance $225 x month only for assistive devices |
+| Evidence of Coverage | EOC — MediSun Full Dual Plus |
 
 ---
 
@@ -53,47 +177,154 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H5431-006
-**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2025/10/1083126FLSENHSP_0256-012.pdf)
-**SoB note:** SOB — MediMax
-**Still yellow on the working grid:** 37 field(s) — not cited below.
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-
----
-
-## HealthSun VitalCare (H5431-021) — Miami-Dade C-SNP
-**County:** Miami-Dade
-**Type:** C-SNP
-**Plan year:** 2027
-**CMS ID:** H5431-021
-**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-021-Summary-of-Benefits.pdf)
-**SoB note:** SOB — VitalCare C-SNP
 **Premium:** 0
-**Part B Giveback:** 202.9
+**Part B Giveback:** 0
+**MOOP:** 3450
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Premium | 0 |
-| Part B Rebate | 202.9 |
+| Part B Giveback | 0 |
+| Plan Deductible | 0 |
+| Referrals Needed? | Yes |
+| Max Out of Pocket | 3450 |
+| Inpatient Hospital | 0 |
+| Outpatient Hospital | 0 |
 | PCP | 0 |
 | Specialist | 0 |
-| Hearing Services | $0 routine exam; $2,000 hearing aid allowance/year |
-| Dental | $5,000 preventive and comprehensive allowance/year |
-| Deep Cleaning | Yes |
-| Dentures | Yes |
-| Fillings | Yes |
-| Root Canals | Yes |
-| Extractions | Yes |
-| Crowns | Yes |
-| Bridges | Yes |
-| Implants | Yes |
-| Vision Allowance | $0 routine exam; up to $300 eyewear/year |
+| ER | 0 |
+| Urgent Care | 0 |
+| Advanced Imaging (MRI, CT, PET) | 0 |
+| Hearing Services | $2,000 x 2 x year |
+| Dental | Preventive & Comprehensive · $5,000/yr (network $0) |
+| Deep Cleaning | 1 quadrant x year |
+| Dentures | 1 per arch x 3 years |
+| Fillings | 4 |
+| Root Canals | 2 |
+| Extractions | 4 |
+| Crowns | 2 |
+| Bridges | No |
+| Implants | 2 |
+| Vision Allowance | 400 |
+| Ambulance | 0 |
+| Transportation | $0 unlimited (50 miles per trip) |
 | RX Deductible | 0 |
 | Tier 1 | 0 |
 | Tier 2 | 0 |
+| Tier 3 | 10 |
+| Tier 4 | 50 |
+| Tier 5 | 0.33 |
+| Tier 6 | n/a |
+| OTC | $90 x month |
+| Acupuncture | 0 |
+| Fitness | Silver Sneakers |
+| Grocery Card | n/a |
+| Other | •PERS •Platelet Rich Plasma •Therapeutic Massages |
+| Evidence of Coverage | EOC — MediMax |
+
+---
+
+## HealthSun HealthAdvantage (H5431-012) — Broward HMO
+**County:** Broward
+**Type:** HMO
+**Plan year:** 2027
+**CMS ID:** H5431-012
+**Premium:** 0
+**Part B Giveback:** 50
+**MOOP:** 2500
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+| Premium | 0 |
+| Part B Giveback | 50 |
+| Plan Deductible | 0 |
+| Referrals Needed? | Yes |
+| Max Out of Pocket | 2500 |
+| Inpatient Hospital | 0 |
+| Outpatient Hospital | $20 / $40 |
+| PCP | 0 |
+| Specialist | 0 |
+| ER | 150 |
+| Urgent Care | 0 |
+| Advanced Imaging (MRI, CT, PET) | 0 |
+| Hearing Services | $2,000 x 2 x year |
+| Dental | Preventive & Comprehensive · $5,000/yr (network $0) |
+| Deep Cleaning | 1 quadrant x year |
+| Dentures | 1 per arch x 3 years |
+| Fillings | 4 |
+| Root Canals | 2 |
+| Extractions | 4 |
+| Crowns | 2 |
+| Bridges | No |
+| Implants | 2 |
+| Vision Allowance | 300 |
+| Ambulance | 20% air $200 ground |
+| Transportation | $0 unlimited (50 miles per trip) |
+| RX Deductible | 0 |
+| Tier 1 | 0 |
+| Tier 2 | 0 |
+| Tier 3 | 5 |
+| Tier 4 | 75 |
+| Tier 5 | 0.33 |
 | Tier 6 | 0 |
-| OTC | $67/month OTC; $40/month Everyday Options |
+| OTC | $82 x month |
+| Acupuncture | $0 Available for people with chronic low back pain under certain circumstances. |
+| Fitness | Silver Sneakers |
+| Grocery Card | n/a |
+| Other Cards | Members enrolled in a non-special needs plan can earn up to $200 per year |
+| Other | •PERS •Platelet Rich Plasma •Therapeutic Massages |
+| Evidence of Coverage | EOC — HealthAdvantage |
+
+---
+
+## HealthSun Health Advantage Plus (H5431-018) — Broward HMO
+**County:** Broward
+**Type:** HMO
+**Plan year:** 2027
+**CMS ID:** H5431-018
+**Premium:** 0
+**Part B Giveback:** 185
+**MOOP:** 3450
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+| Premium | 0 |
+| Referrals Needed? | Yes |
+| Part B Give Back | 185 |
+| Max Out of Pocket | 3450 |
+| Inpatient Hospital | $150 x days 1-5 $0 days 6-90 |
+| Outpatient Hospital | $75 / $200 |
+| PCP | 0 |
+| Specialist | $0 / $15 |
+| ER | 150 |
+| Urgent Care | 25 |
+| Advanced Imaging (MRI, CT, PET) | $0 / $200 |
+| Hearing Services | $2,000 x both RX aids x annually |
+| Dental | Preventive & Comprehensive · $5,000/yr (network $0) |
+| Deep Cleaning | 1 quadrant x year |
+| Dentures | 1 per arch x 3 years |
+| Fillings | 4 |
+| Root Canals | 2 |
+| Extractions | 4 |
+| Crowns | 2 |
+| Bridges | No |
+| Dental Implants | 2 |
+| Vision Allowance | 200 |
+| Ambulance | $230 ground / water 20% air |
+| Transportation | $0 unlimited |
+| RX Deductible | 0 |
+| Tier 1 | 0 |
+| Tier 2 | 0 |
+| Tier 3 | 5 |
+| Tier 4 | 50 |
+| Tier 5 | 0.33 |
+| Tier 6 | 0 |
+| OTC | $103 x month |
+| Acupuncture | $0 Available for people with chronic low back pain under certain circumstances. |
+| Fitness | Silver Sneakers |
+| Grocery Card | n/a |
+| Other | Covers: • Platelet Rich Plasma treatment •Therapeutic massages (24 x year) |
+| Evidence of Coverage | EOC — Health Advantage Plus |
 
 ---
 
@@ -102,12 +333,51 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H5431-021
-**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-021-Summary-of-Benefits.pdf)
-**SoB note:** SOB — VitalCare C-SNP
-**Still yellow on the working grid:** 37 field(s) — not cited below.
+**Premium:** 0
+**Part B Giveback:** 185
+**MOOP:** 1900
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | 0 |
+| Referrals Needed? | Yes |
+| Part B Rebate | 185 |
+| Deductible | N/A |
+| Max Out of Pocket | 1900 |
+| SSBCI Chronic Conditions | •Diabetes Mellitus •Chronic Heart Failure •Cardiovascular Disorders |
+| Inpatient Hospital | 0 |
+| Outpatient Hospital | $0 / $75 |
+| PCP | 0 |
+| Specialist | 0 |
+| ER | 90 |
+| Urgent Care | 0 |
+| Advanced Imaging (MRI, CT, PET) | $0 / $75 |
+| Hearing Services | $2,000 x 2 aids x 1 year |
+| Dental | Preventive & Comprehensive · $5,000/yr (network $0) |
+| Deep Cleaning | 1 quadrant x year |
+| Dentures | 1 per arch x 3 years |
+| Fillings | 4 |
+| Root Canals | 2 |
+| Extractions | 4 |
+| Crowns | 2 |
+| Bridges | No |
+| Implants | 2 |
+| Vision Allowance | 300 |
+| Ambulance | 20% air $150 ground |
+| Transportation | $0, Unlimited routine trips (50 miles per trip cap) |
+| RX Deductible | 0 |
+| Tier 1 | 0 |
+| Tier 2 | 0 |
+| Tier 3 | 5 |
+| Tier 4 | $50 / $55 |
+| Tier 5 | 0.33 |
+| Tier 6 | 0 |
+| OTC | $70 x month |
+| Grocery Card | $40 x month If eligible |
+| Acupuncture | 0 |
+| Fitness | Silver Sneakers |
+| Other | • PRP for osteoarthritis pain • Therapeutic massages •PERS Everyday Options Allowance $40 x month (for assistive devices) |
+| Evidence of Coverage | EOC — VitalCare |
 
 ---
 
@@ -116,17 +386,17 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H5431-019
-**SoB:** [SoB](https://www.aetna.com/medicare/documents/individual/2027/sb/en/Y0001_H1609_103_NS30_SB2027_M.pdf)
-**SoB note:** SOB — MediSun Extra D-SNP
 **Premium:** 0
-**Part B Giveback:** N/A
+**Part B Giveback:** No
+**MOOP:** 3450
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Premium | 0 |
-| Part B Rebate | N/A |
+| Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | FBDE, QMB+, SLMB+ |
+| MSP Levels | QDWI, QMB, SLMB, QI |
+| Max Out of Pocket | 3450 |
 | Inpatient Hospital | 0 |
 | Outpatient Hospital | 0 |
 | PCP | 0 |
@@ -134,20 +404,35 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | ER | 0 |
 | Urgent Care | 0 |
 | Advanced Imaging (MRI, CT, PET) | 0 |
-| Hearing Services | $2,000 hearing aid allowance/year |
-| Dental | $5,000 preventive & comprehensive incl implants/year |
-| Deep Cleaning | Yes |
-| Dentures | Yes |
-| Fillings | Yes |
-| Root Canals | Yes |
-| Extractions | Yes |
-| Crowns | Yes |
-| Bridges | Yes |
-| Implants | Yes |
-| Vision Allowance | $0 exam; up to $400 eyewear/year |
+| Hearing Services | $2,000 for 2 per yr |
+| Dental | Preventive & Comprehensive · $5,000/yr (network $0) |
+| Deep Cleaning | 1 quadrant x year |
+| Dentures | 1 per arch x 3 years |
+| Fillings | 4 |
+| Root Canals | 2 |
+| Extractions | 4 |
+| Crowns | 2 |
+| Bridges | No |
+| Implants | 2 |
+| Vision Allowance | 400 |
+| Ambulance | 0 |
+| Transportation | Unlimited |
+| Companionship | Not covered |
+| Custodial Care | N/A |
 | RX Deductible | 0 |
+| Tier 1 | 0 |
+| Tier 2 | 0 |
+| Tier 3 | $0-10/ LIS |
+| Tier 4 | $0-12.65/ LIS |
+| Tier 5 | $0-12.65/ LIS |
 | Tier 6 | 0 |
-| OTC | $112/month OTC; $275/month Everyday Options |
+| OTC | $128 x month |
+| Grocery Card | Combined w/ Everyday Options Allowance if eligible |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | 0 |
+| Fitness | Silver Sneaker |
+| Other | •PERS •Platelet Rich Plasma •Therapeutic Massages Everyday Options Allowance $225 x month (for assistive devices) |
+| Evidence of Coverage | EOC — MediSun Extra |
 
 ---
 
@@ -156,33 +441,17 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H5431-026
-**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2025/09/1083126FLSENHSP_0174-019.pdf)
-**SoB note:** SOB — MediSun Full Dual Plus
-**Still yellow on the working grid:** 39 field(s) — not cited below.
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
-
----
-
-## HealthSun MediSun Full Dual Extra (H5431-026) — Miami-Dade D-SNP
-**County:** Miami-Dade
-**Type:** D-SNP
-**Plan year:** 2027
-**CMS ID:** H5431-026
-**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-019-Summary-of-Benefits.pdf)
-**SoB note:** SOB — MediSun Full Dual Plus
 **Premium:** 0
-**Part B Giveback:** N/A
-**MOOP:** 0
+**Part B Giveback:** No
+**MOOP:** 3450
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Premium | 0 |
-| Part B Rebate | N/A |
+| Part B Rebate | No |
 | Referrals Needed? | Yes |
-| MSP Levels | FBDE, QMB+, SLMB+ |
-| Max Out of Pocket | 0 |
+| MSP Levels | QMB+, SLMB+, FBDE |
+| Max Out of Pocket | 3450 |
 | Inpatient Hospital | 0 |
 | Outpatient Hospital | 0 |
 | PCP | 0 |
@@ -190,39 +459,35 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | ER | 0 |
 | Urgent Care | 0 |
 | Advanced Imaging (MRI, CT, PET) | 0 |
-| Hearing Services | $2,000 hearing aid allowance/year |
-| Dental | $5,000 preventive & comprehensive incl implants/year |
-| Deep Cleaning | Yes |
-| Dentures | Yes |
-| Fillings | Yes |
-| Root Canals | Yes |
-| Extractions | Yes |
-| Crowns | Yes |
-| Bridges | Yes |
-| Implants | Yes |
-| Vision Allowance | $0 exam; up to $400 eyewear/year |
+| Hearing Services | $2,000 for 2 per yr |
+| Dental | Preventive & Comprehensive · $5,000/yr (network $0) |
+| Deep Cleaning | 1 quadrant x year |
+| Dentures | 1 per arch x 3 years |
+| Fillings | 4 |
+| Root Canals | 2 |
+| Extractions | 4 |
+| Crowns | 2 |
+| Bridges | No |
+| Implants | 2 |
+| Vision Allowance | 400 |
+| Ambulance | 0 |
+| Transportation | Unlimited routine trips (50 miles per trip cap) |
+| Companionship | Not covered |
+| Custodial Care | N/A |
 | RX Deductible | 0 |
 | Tier 1 | 0 |
 | Tier 2 | 0 |
-| Tier 3 | 0 |
-| Tier 4 | 0 |
-| Tier 5 | 0 |
+| Tier 3 | $0-12.65/ LIS |
+| Tier 4 | $0-12.65/ LIS |
+| Tier 5 | $0-12.65/ LIS |
 | Tier 6 | 0 |
-| OTC | $112/month OTC; $255/month Everyday Options |
-
----
-
-## HealthSun Health Advantage Plus (H5431-017) — Miami-Dade Giveback
-**County:** Miami-Dade
-**Type:** Giveback
-**Plan year:** 2027
-**CMS ID:** H5431-017
-**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-017-Summary-of-Benefits.pdf)
-**SoB note:** SOB — HealthAdvantage Plus
-**Still yellow on the working grid:** 36 field(s) — not cited below.
-
-| Benefit | 2027 (confirmed) |
-|---------|------------------|
+| OTC | $125 x month |
+| Grocery Card | Combined w/ Everyday Options Allowance if eligible |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | 0 |
+| Fitness | SilverSneakers |
+| Other | •PERS •Platelet Rich Plasma •Therapeutic Massages Everyday Options Allowance $225 x month (for assistive devices) |
+| Evidence of Coverage | EOC — MediSun Full Dual Plus |
 
 ---
 
@@ -231,11 +496,20 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H5431-001
-**SoB note:** SOB — HealthAdvantage (no URL on the grid cell)
-**Still yellow on the working grid:** 38 field(s) — not cited below.
+**Still yellow on the working grid:** 28 field(s) — not cited below.
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Dental | Preventive & Comprehensive · $5,000/yr (network $0) |
+| Deep Cleaning | 1 quadrant x year |
+| Dentures | 1 per arch x 3 years |
+| Fillings | 4 |
+| Root Canals | 2 |
+| Extractions | 4 |
+| Crowns | 2 |
+| Bridges | No |
+| Implants | 2 |
+| Evidence of Coverage | EOC — HealthAdvantage |
 
 ---
 
@@ -244,11 +518,99 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H5431-006
-**SoB:** [SoB](https://healthsun.com/wp-content/uploads/2026/09/2027-HS-001-Summary-of-Benefits.pdf)
-**SoB note:** SOB — MediMax
-**Still yellow on the working grid:** 36 field(s) — not cited below.
+**Premium:** 0
+**Part B Giveback:** 0
+**MOOP:** 3450
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Premium | 0 |
+| Part B Giveback | 0 |
+| Referrals Needed? | Yes |
+| Max Out of Pocket | 3450 |
+| Inpatient Hospital | 0 |
+| Outpatient Hospital | 0 |
+| PCP | 0 |
+| Specialist | 0 |
+| ER | 0 |
+| Urgent Care | 0 |
+| Advanced Imaging (MRI, CT, PET) | 0 |
+| Hearing Services | $2,000 x 2 x year |
+| Dental | Preventive & Comprehensive · $5,000/yr (network $0) |
+| Deep Cleaning | 1 quadrant x year |
+| Dentures | 1 per arch x 3 years |
+| Fillings | 4 |
+| Root Canals | 2 |
+| Extractions | 4 |
+| Crowns | 2 |
+| Bridges | No |
+| Implants | 2 |
+| Vision Allowance | 400 |
+| Ambulance | 0 |
+| Transportation | $0 unlimited |
+| RX Deductible | 0 |
+| Tier 1 | 0 |
+| Tier 2 | 0 |
+| Tier 3 | 10 |
+| Tier 4 | 50 |
+| Tier 5 | 0.33 |
+| Tier 6 | n/a |
+| OTC | $90 x month |
+| Acupuncture | 0 |
+| Fitness | Silver Sneakers |
+| Grocery Card | N/A |
+| Other | •PERS •Platelet Rich Plasma •Therapeutic Massages |
+| Evidence of Coverage | EOC — MediMax |
+
+---
+
+## HealthSun Health Advantage Plus (H5431-017) — Miami-Dade HMO
+**County:** Miami-Dade
+**Type:** HMO
+**Plan year:** 2027
+**CMS ID:** H5431-017
+**Premium:** 0
+**Part B Giveback:** 185
+**MOOP:** 3450
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+| Premium | 0 |
+| Referrals Needed? | Yes |
+| Part B Give Back | 185 |
+| Max Out of Pocket | 3450 |
+| Inpatient Hospital | 0 |
+| Outpatient Hospital | $0 / $75 |
+| PCP | 0 |
+| Specialist | 0 |
+| ER | 120 |
+| Urgent Care | 0 |
+| Advanced Imaging (MRI, CT, PET) | $0 / $75 |
+| Hearing Services | $2,000 x 2 rx hearing aids |
+| Dental | Preventive & Comprehensive · $5,000/yr (network $0) |
+| Deep Cleaning | 1 quadrant x year |
+| Dentures | 1 per arch x 3 years |
+| Fillings | 4 |
+| Root Canals | 2 |
+| Extractions | 4 |
+| Crowns | 2 |
+| Bridges | No |
+| Dental Implants | 2 |
+| Vision Allowance | 200 |
+| Ambulance | $150 ground 20% air |
+| Transportation | Unlimited |
+| RX Deductible | 0 |
+| Tier 1 | 0 |
+| Tier 2 | 0 |
+| Tier 3 | 5 |
+| Tier 4 | $50 / $55 |
+| Tier 5 | 0.33 |
+| Tier 6 | 0 |
+| OTC | $95 x month |
+| Acupuncture | $0 Available for people with chronic low back pain under certain circumstances |
+| Fitness | Silver Sneakers |
+| Grocery Card | N/A |
+| Other | Home Health Care $0 |
+| Evidence of Coverage | EOC — Health Advantage Plus |
 
 ---

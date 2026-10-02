@@ -1,8 +1,21 @@
 #!/usr/bin/env python3
-"""Sync THEI 2026 plan comparison grid (xlsx) into Max plan-data JSON."""
+"""Sync THEI plan comparison grid (xlsx) into Max plan-data JSON.
+
+Default / `--year 2026`: merge-update live `#plan-data` from the 2026 workbook
+(`/tmp/thei-grid.xlsx`).
+
+`--year 2027`: rebuild live `#plan-data` from the 2027 working workbook
+https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N
+(non-yellow cells only). Yellow leftover cells are never copied as confirmed
+2027 dollars. Archives the previous 2026 `#plan-data` to
+`artifacts/plan-data-2026.json` and `#plan-data-2026` when missing.
+
+Never sync from the finished client-comps archive.
+"""
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -14,6 +27,8 @@ import openpyxl
 REPO_ROOT = Path(__file__).resolve().parents[1]
 HTML_PATH = REPO_ROOT / "artifacts" / "max-demo-FINAL-v7.html"
 XLSX_PATH = Path("/tmp/thei-grid.xlsx")
+XLSX_2027_PATH = Path("/tmp/thei-2027-grid.xlsx")
+ARCHIVE_2026_PATH = REPO_ROOT / "artifacts" / "plan-data-2026.json"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dental_procedure_rows import (  # noqa: E402
@@ -22,6 +37,15 @@ from dental_procedure_rows import (  # noqa: E402
     is_clear_dental_value,
     is_junk_dental_value,
     DENTAL_FIELD_KEYS,
+)
+from thei_grid_common import (  # noqa: E402
+    SHEET_ID_2027,
+    carrier_of as carrier_of_2027,
+    extract_plan_id as extract_plan_id_common,
+    is_confirmed_2027_cell,
+    is_healthspring_dade_broward,
+    is_yellow,
+    resolve_2027_sheets,
 )
 
 SHEETS = [
@@ -79,6 +103,8 @@ LABEL_MAP = {
     "fitness": "fitness",
     "grocery card": "groceryCardDetail",
     "chronic conditions": "chronicConditions",
+    "ssbci chronic conditions": "chronicConditions",
+    "custodial care": "custodialCare",
     "other": "other",
     "msp levels": "mspLevels",
     "deductible": "planDeductible",
@@ -385,18 +411,254 @@ def rebuild_token_index(plans: list[dict]) -> dict:
     return by_token
 
 
-def main() -> int:
-    text = HTML_PATH.read_text(encoding="utf-8")
+def read_plan_data_block(html: str, script_id: str = "plan-data"):
     m = re.search(
-        r'<script id="plan-data" type="application/json">\s*(.*?)\s*</script>',
-        text,
+        rf'<script id="{re.escape(script_id)}" type="application/json">\s*(.*?)\s*</script>',
+        html,
         re.S,
     )
     if not m:
+        return None, None
+    return m, json.loads(m.group(1))
+
+
+def replace_or_insert_script_json(html: str, script_id: str, obj, after_id: str | None = None) -> str:
+    payload = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+    pat = rf'(<script id="{re.escape(script_id)}" type="application/json">)\s*.*?\s*(</script>)'
+    if re.search(pat, html, re.S):
+        return re.sub(pat, lambda m: m.group(1) + payload + m.group(2), html, count=1, flags=re.S)
+    block = f'<script id="{script_id}" type="application/json">{payload}</script>\n'
+    if after_id:
+        after = rf'(<script id="{re.escape(after_id)}" type="application/json">\s*.*?\s*</script>)'
+        if re.search(after, html, re.S):
+            return re.sub(after, lambda m: m.group(1) + "\n" + block, html, count=1, flags=re.S)
+    return html.replace("</head>", block + "</head>", 1)
+
+
+def parse_grid_2027(xlsx: Path) -> list[dict]:
+    wb = openpyxl.load_workbook(xlsx, data_only=False)
+    grid_plans: list[dict] = []
+    for sheet, county, ptype in resolve_2027_sheets(wb):
+        ws = wb[sheet]
+        labels: list[tuple[int, str]] = []
+        sob_row = eoc_row = None
+        for r in range(1, (ws.max_row or 0) + 1):
+            lab = ws.cell(r, 1).value
+            if not lab or not str(lab).strip():
+                continue
+            lab_s = norm_label(lab)
+            if lab_s.startswith("summary of"):
+                sob_row = r
+                continue
+            if lab_s.startswith("evidence of"):
+                eoc_row = r
+                continue
+            if lab_s in {"note", "star ratings", "star rating"}:
+                continue
+            key = LABEL_MAP.get(lab_s)
+            if not key:
+                lab2 = re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ?]+", "", lab_s)).strip()
+                key = LABEL_MAP.get(lab2)
+            if key:
+                labels.append((r, key, lab_s))
+
+        max_col = ws.max_column or 0
+        for c in range(2, max_col + 1):
+            header = ws.cell(1, c).value
+            if header is None or not str(header).strip():
+                continue
+            header_s = str(header)
+            pid = extract_plan_id_common(header_s)
+            if not pid:
+                continue
+            carrier = carrier_of_2027(header_s)
+            if is_healthspring_dade_broward(carrier, pid, county):
+                continue
+            _pid, _c, plan_name = parse_header_meta(header_s)
+            plan_name = plan_name or header_s
+            fields: dict = {}
+            yellow_left = 0
+            for r, key, lab_s in labels:
+                cell = ws.cell(r, c)
+                raw = cell.value
+                if raw is None or (isinstance(raw, str) and not raw.strip()):
+                    continue
+                if is_confirmed_2027_cell(cell):
+                    val = convert_value(key, raw)
+                    if val is None:
+                        continue
+                    if key == "other" and fields.get("other"):
+                        fields["other"] = f"{fields['other']}\n{val}"
+                    else:
+                        fields[key] = val
+                elif is_yellow(cell):
+                    yellow_left += 1
+                    # Yellow dental procedure with a clear frequency — keep (existing helper rule)
+                    if key in DENTAL_FIELD_KEYS and is_clear_dental_value(raw):
+                        val = convert_value(key, raw)
+                        if val is not None and key not in fields:
+                            fields[key] = val
+                            fields.setdefault("_dentalWorkingKeys", []).append(key)
+            sob_url = eoc_url = None
+            if sob_row:
+                sob_cell = ws.cell(sob_row, c)
+                if sob_cell.hyperlink and sob_cell.hyperlink.target:
+                    sob_url = str(sob_cell.hyperlink.target).strip()
+                elif isinstance(sob_cell.value, str) and sob_cell.value.strip().startswith("http"):
+                    sob_url = sob_cell.value.strip()
+            if eoc_row:
+                eoc_cell = ws.cell(eoc_row, c)
+                if eoc_cell.hyperlink and eoc_cell.hyperlink.target:
+                    eoc_url = str(eoc_cell.hyperlink.target).strip()
+                elif isinstance(eoc_cell.value, str) and eoc_cell.value.strip().startswith("http"):
+                    eoc_url = eoc_cell.value.strip()
+            grid_plans.append(
+                {
+                    "id": pid,
+                    "planId": pid,
+                    "carrier": carrier,
+                    "planName": plan_name,
+                    "county": county,
+                    "type": ptype,
+                    "fields": fields,
+                    "yellowLeft": yellow_left,
+                    "sobUrl": sob_url,
+                    "eocUrl": eoc_url,
+                    "header": header_s,
+                }
+            )
+    return grid_plans
+
+
+def build_2027_plan_objects(grid_plans: list[dict]) -> list[dict]:
+    plans: list[dict] = []
+    for gp in grid_plans:
+        fields = dict(gp["fields"])
+        dental_working = set(fields.pop("_dentalWorkingKeys", []) or [])
+        confirmed_keys = [k for k in fields if k not in dental_working]
+        pending = not confirmed_keys
+        newp = {
+            "id": gp["id"],
+            "planId": gp["id"],
+            "carrier": gp["carrier"],
+            "planName": gp["planName"],
+            "county": gp["county"],
+            "type": gp["type"],
+            "year": 2027,
+            "tags": {
+                "dental": bool(fields.get("dental")),
+                "otc": bool(fields.get("otc")),
+                "foodCard": False,
+                "referral": str(fields.get("referral", "")).strip().lower() in ("yes", "y", "true"),
+            },
+            "pros": [],
+            "cons": [],
+            "comment": (
+                "2027 SoB pending — yellow on THEI grid"
+                if pending
+                else "Imported from THEI 2027 plan grid (non-yellow cells)"
+            ),
+            "sourceQuality": "pending_sob" if pending else "grid",
+            "mspLevels": fields.get("mspLevels", ""),
+            "chronicConditions": fields.get("chronicConditions", ""),
+            "dualLevel": {"full": False, "partial": False},
+            "sobUrl": gp.get("sobUrl"),
+            "eocUrl": gp.get("eocUrl"),
+            "groceryCardDetail": fields.get("groceryCardDetail"),
+            "yellowLeft": gp.get("yellowLeft", 0),
+        }
+        for k, v in fields.items():
+            newp[k] = prefer_store(k, v, None)
+        if newp.get("referral") is not None:
+            newp["tags"]["referral"] = str(newp["referral"]).strip().lower() in ("yes", "y", "true")
+        plans.append(newp)
+
+    # Sibling fill for junk dental only — curated 2026 overlay must not overwrite clear 2027 values
+    sibling_filled = apply_sibling_dental_on_plan_objects(plans)
+    curated = apply_curated_on_plan_objects(plans)
+    print(f"2027 dental sibling-fill={sibling_filled} curated={curated}")
+    return plans
+
+
+def archive_2026_plans(plans: list[dict]) -> list[dict]:
+    archived = []
+    for p in plans:
+        q = dict(p)
+        q.setdefault("year", 2026)
+        archived.append(q)
+    ARCHIVE_2026_PATH.parent.mkdir(parents=True, exist_ok=True)
+    ARCHIVE_2026_PATH.write_text(
+        json.dumps(archived, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(f"archived 2026 plan-data → {ARCHIVE_2026_PATH} ({len(archived)} plans)")
+    return archived
+
+
+def sync_2027(xlsx: Path) -> int:
+    if not xlsx.exists():
+        print(f"missing {xlsx}", file=sys.stderr)
+        return 1
+    text = HTML_PATH.read_text(encoding="utf-8")
+    m, current = read_plan_data_block(text, "plan-data")
+    if not m:
         print("plan-data block not found", file=sys.stderr)
         return 1
-    plans = json.loads(m.group(1))
-    grid_plans = parse_grid(XLSX_PATH)
+
+    existing_2026_m, existing_2026 = read_plan_data_block(text, "plan-data-2026")
+    if existing_2026 is None:
+        # Current live block is still 2026 unless it already has year=2027
+        looks_2027 = bool(current) and all(p.get("year") == 2027 for p in current[:3])
+        if not looks_2027:
+            existing_2026 = archive_2026_plans(current)
+        elif ARCHIVE_2026_PATH.exists():
+            existing_2026 = json.loads(ARCHIVE_2026_PATH.read_text(encoding="utf-8"))
+        else:
+            existing_2026 = []
+    elif not ARCHIVE_2026_PATH.exists():
+        archive_2026_plans(existing_2026)
+
+    grid_plans = parse_grid_2027(xlsx)
+    plans = build_2027_plan_objects(grid_plans)
+    print(
+        f"2027 grid columns: {len(grid_plans)}; plan-data objects: {len(plans)} "
+        f"(sheet {SHEET_ID_2027})"
+    )
+    by_carrier = defaultdict(int)
+    pending = 0
+    hs = 0
+    for p in plans:
+        by_carrier[p.get("carrier", "?")] += 1
+        if p.get("sourceQuality") == "pending_sob":
+            pending += 1
+        if is_healthspring_dade_broward(p.get("carrier", ""), p.get("id"), p.get("county", "")):
+            hs += 1
+    print("by carrier", dict(sorted(by_carrier.items())))
+    print(f"pending_sob stubs={pending} healthspring_in_output={hs}")
+
+    text = replace_or_insert_script_json(text, "plan-data", plans)
+    if existing_2026:
+        text = replace_or_insert_script_json(text, "plan-data-2026", existing_2026, after_id="plan-data")
+    HTML_PATH.write_text(text, encoding="utf-8")
+    print(f"wrote {HTML_PATH} ({HTML_PATH.stat().st_size} bytes) year=2027")
+    return 0 if hs == 0 else 2
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--year", type=int, default=2026, choices=(2026, 2027))
+    parser.add_argument("--xlsx", type=Path, default=None)
+    args = parser.parse_args()
+    if args.year == 2027:
+        return sync_2027(args.xlsx or XLSX_2027_PATH)
+
+    xlsx = args.xlsx or XLSX_PATH
+    text = HTML_PATH.read_text(encoding="utf-8")
+    m, plans = read_plan_data_block(text, "plan-data")
+    if not m:
+        print("plan-data block not found", file=sys.stderr)
+        return 1
+    grid_plans = parse_grid(xlsx)
     print(f"grid plans: {len(grid_plans)}; max plans before: {len(plans)}")
 
     by_token = rebuild_token_index(plans)
