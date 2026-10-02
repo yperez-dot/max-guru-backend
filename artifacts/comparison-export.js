@@ -126,10 +126,16 @@
       .replace(/[\\/?%*:|"<>]/g, "-");
   }
 
+  function compactContractPbp(raw) {
+    const s = String(raw || "").toUpperCase().replace(/\s+/g, "");
+    if (!s) return "";
+    const m = s.match(/([HR]\d{3,4})[\-\|]?(\d{2,4}[A-Z]?)/);
+    if (!m) return s.split("/")[0].replace(/-000$/i, "");
+    return m[1] + "-" + m[2];
+  }
+
   function displayContractPbp(plan) {
-    let id = String((plan && (plan.planId || plan.id)) || "").replace(/\s+/g, "");
-    id = id.replace(/-000$/i, "").replace(/\/000$/i, "");
-    return id;
+    return compactContractPbp(plan && (plan.planId || plan.id));
   }
 
   function formatPlanMarketingName(plan) {
@@ -900,12 +906,13 @@
 
   function normalizeExportPayload(plansOrPayload, meta) {
     const extra = meta && typeof meta === "object" ? meta : {};
+    const uniq = (list) => uniquePlansByContractPbp(list);
     if (Array.isArray(plansOrPayload)) {
-      return { plans: plansOrPayload, ...extra };
+      return { plans: uniq(plansOrPayload), ...extra };
     }
     if (plansOrPayload && typeof plansOrPayload === "object") {
       const plans = Array.isArray(plansOrPayload.plans) ? plansOrPayload.plans : [];
-      return { ...plansOrPayload, plans, ...extra };
+      return { ...plansOrPayload, plans: uniq(plans), ...extra };
     }
     return { plans: [], ...extra };
   }
@@ -965,10 +972,12 @@
   }
 
   function muskatComparisonUhcId(plans) {
-    const have = (plans || []).map((p) => String(displayContractPbp(p) || "").toUpperCase());
-    const humana = have.includes("H1036-054C");
-    const doctors = have.includes("H4140-023");
-    if (!humana || !doctors || have.length !== 3) return "";
+    const have = [
+      ...new Set((plans || []).map((p) => compactContractPbp(p && (p.planId || p.id))).filter(Boolean)),
+    ];
+    const humana = have.includes("H1036-054C") || have.includes("H1036-054");
+    const doctors = have.includes("H4140-023") || have.includes("H4140-012");
+    if (!humana || !doctors) return "";
     if (have.includes("H5420-001")) return "H5420-001";
     if (have.includes("H5420-014")) return "H5420-014";
     return "";
@@ -997,10 +1006,7 @@
   }
 
   function planColumnId(plan) {
-    return String(displayContractPbp(plan) || (plan && (plan.planId || plan.id)) || "")
-      .toUpperCase()
-      .replace(/\s+/g, "")
-      .split("/")[0];
+    return compactContractPbp(plan && (plan.planId || plan.id));
   }
 
   function planColumnSlot(id) {
@@ -1036,10 +1042,22 @@
     return a || b;
   }
 
+  function uniquePlansByContractPbp(plans) {
+    const byPbp = new Map();
+    (plans || []).forEach((p) => {
+      const id = compactContractPbp(p && (p.planId || p.id));
+      if (!id) return;
+      const prev = byPbp.get(id);
+      byPbp.set(id, prev ? preferPlanForSlot(prev, p) : p);
+    });
+    return dedupeComparisonPlans([...byPbp.values()]);
+  }
+
   function dedupeComparisonPlans(plans) {
     const bySlot = new Map();
     (plans || []).forEach((p) => {
-      const slot = planColumnSlot(planColumnId(p));
+      const id = planColumnId(p);
+      const slot = planColumnSlot(id) || id;
       if (!slot) return;
       const prev = bySlot.get(slot);
       bySlot.set(slot, prev ? preferPlanForSlot(prev, p) : p);
@@ -1061,8 +1079,8 @@
   function keepCurrentComparisonPlans(latest, prior) {
     const current = (latest || []).slice();
     const remembered = (prior || []).slice();
-    if (!remembered.length) return dedupeComparisonPlans(current);
-    if (!current.length) return dedupeComparisonPlans(remembered);
+    if (!remembered.length) return uniquePlansByContractPbp(current);
+    if (!current.length) return uniquePlansByContractPbp(remembered);
     const currentSlots = new Set(current.map((p) => planColumnSlot(planColumnId(p))));
     const priorSlots = new Set(remembered.map((p) => planColumnSlot(planColumnId(p))));
     const currentIsSubset = [...currentSlots].every((s) => priorSlots.has(s));
@@ -1071,7 +1089,7 @@
         const slot = planColumnSlot(planColumnId(p));
         return current.find((c) => planColumnSlot(planColumnId(c)) === slot) || p;
       });
-      return dedupeComparisonPlans(merged);
+      return uniquePlansByContractPbp(merged);
     }
     const overlap = [...currentSlots].filter((s) => priorSlots.has(s)).length;
     if (overlap >= 1 && (currentIsSubset || overlap >= 2)) {
@@ -1082,9 +1100,9 @@
         if (idx >= 0) merged[idx] = preferPlanForSlot(merged[idx], c);
         else merged.push(c);
       });
-      return dedupeComparisonPlans(merged);
+      return uniquePlansByContractPbp(merged);
     }
-    return dedupeComparisonPlans(current);
+    return uniquePlansByContractPbp(current);
   }
 
   function verifiedCell(tier, costShare, coverage) {
@@ -1213,7 +1231,7 @@
     const fromText = citedPlanIdsFromText(text)
       .map((id) => pickCatalogPlan(catalog.length ? catalog : plans, id, county) || pickCatalogPlan(catalog.length ? catalog : plans, id))
       .filter(Boolean);
-    const resolvedPlans = dedupeComparisonPlans(
+    const resolvedPlans = uniquePlansByContractPbp(
       keepCurrentComparisonPlans(
         canonicalize2027ComparisonPlans(plans || [], text, catalog.length ? catalog : plans),
         canonicalize2027ComparisonPlans(
@@ -1722,6 +1740,8 @@
     orderComparisonPlans,
     keepCurrentComparisonPlans,
     dedupeComparisonPlans,
+    uniquePlansByContractPbp,
+    compactContractPbp,
     doctorIdentityKey,
     preferredDoctorName,
     isCarrierAsDrugName,
