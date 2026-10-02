@@ -639,19 +639,18 @@
 
   function mergeDrugPlanStatus(target, planId, incoming, plans) {
     if (!incoming) return;
+    const want = String(planId || "").replace(/\s+/g, "").toUpperCase().split("/")[0];
     const match = (plans || []).find((p) => {
-      const id = String(p.planId || p.id || "");
-      const disp = displayContractPbp(p);
-      return (
-        String(planId || "").replace(/\s+/g, "").toUpperCase() === id.replace(/\s+/g, "").toUpperCase() ||
-        String(planId || "").replace(/\s+/g, "").toUpperCase() === String(disp || "").replace(/\s+/g, "").toUpperCase() ||
-        String(planId || "").toUpperCase().indexOf(String(disp || "").toUpperCase()) >= 0
-      );
+      const aliases = planIdAliases(p).map((id) => String(id || "").replace(/\s+/g, "").toUpperCase().split("/")[0]);
+      if (aliases.includes(want)) return true;
+      return planColumnSlot(want) === planColumnSlot(planColumnId(p)) && planColumnSlot(want) !== want;
     });
     const key = match ? displayContractPbp(match) || String(match.planId || match.id || "") : planId;
     if (!key) return;
     const prev = target[key] || { verified: false, tier: null };
-    if (incoming.verified && !prev.verified) {
+    const incomingLive = incoming.verified && incoming.source && incoming.source !== "yahoska_verified_2027";
+    const prevLock = prev.verified && prev.source === "yahoska_verified_2027";
+    if (incoming.verified && (!prev.verified || (prevLock && incomingLive))) {
       target[key] = {
         verified: true,
         tier: incoming.tier || null,
@@ -739,6 +738,10 @@
     const aliases = [id, raw, String((plan && plan.id) || "")].filter(Boolean);
     if (id === "H4140-023") aliases.push("H4140-012");
     if (id === "H4140-012") aliases.push("H4140-023");
+    if (id === "H5420-001") aliases.push("H5420-014", "H5420-001/0028");
+    if (id === "H5420-014") aliases.push("H5420-001", "H5420-001/0028");
+    if (id === "H1036-054C") aliases.push("H1036-054");
+    if (id === "H1036-054") aliases.push("H1036-054C");
     return [...new Set(aliases)];
   }
 
@@ -938,10 +941,10 @@
 
   function pickCatalogPlan(catalog, id, county) {
     const list = Array.isArray(catalog) ? catalog : [];
-    const want = String(id || "").toUpperCase().replace(/\s+/g, "");
+    const want = String(id || "").toUpperCase().replace(/\s+/g, "").split("/")[0];
     const match = (p) => {
-      const pid = String(p.planId || "").toUpperCase().replace(/\s+/g, "");
-      const raw = String(p.id || "").toUpperCase().replace(/\s+/g, "");
+      const pid = String(p.planId || "").toUpperCase().replace(/\s+/g, "").split("/")[0];
+      const raw = String(p.id || "").toUpperCase().replace(/\s+/g, "").split("/")[0];
       return pid === want || raw === want;
     };
     if (county) {
@@ -970,6 +973,10 @@
       if (coreHumana && id === "H1036-305" && !wantsGiveback) {
         return pickCatalogPlan(catalog, "H1036-054C", p.county || county) || p;
       }
+      const base = String(id || "").split("/")[0];
+      if (base && base !== id) {
+        return pickCatalogPlan(catalog, base, p.county || county) || Object.assign({}, p, { planId: base, id: base });
+      }
       return p;
     });
     return out;
@@ -981,9 +988,30 @@
     return MUSKAT_PLAN_IDS.every((id) => have.includes(id));
   }
 
+  function muskatComparisonUhcId(plans) {
+    const have = (plans || []).map((p) => String(displayContractPbp(p) || "").toUpperCase());
+    const humana = have.includes("H1036-054C");
+    const doctors = have.includes("H4140-023");
+    if (!humana || !doctors || have.length !== 3) return "";
+    if (have.includes("H5420-001")) return "H5420-001";
+    if (have.includes("H5420-014")) return "H5420-014";
+    return "";
+  }
+
+  function remapLockedDrugPlanIds(drugs, uhcId) {
+    const dest = String(uhcId || "H5420-014").toUpperCase();
+    return (drugs || []).map((d) => {
+      const map = Object.assign({}, d.byPlanId || {});
+      if (dest !== "H5420-014" && map["H5420-014"] && !map[dest]) {
+        map[dest] = map["H5420-014"];
+      }
+      return Object.assign({}, d, { byPlanId: map });
+    });
+  }
+
   function sameExportPlanSet(a, b) {
     const ids = (list) =>
-      (list || [])
+      dedupeComparisonPlans(list)
         .map((p) => String(displayContractPbp(p) || p.planId || p.id || "").toUpperCase().replace(/\s+/g, "").split("/")[0])
         .filter(Boolean)
         .sort()
@@ -1009,7 +1037,38 @@
 
   function citedPlanIdsFromText(text) {
     const re = new RegExp(CMS_PLAN_ID_RE.source, "gi");
-    return [...new Set((String(text || "").match(re) || []).map((s) => s.replace(/\s+/g, "").toUpperCase()))];
+    return [
+      ...new Set(
+        (String(text || "").match(re) || []).map((s) => s.replace(/\s+/g, "").toUpperCase().split("/")[0])
+      ),
+    ];
+  }
+
+  function preferPlanForSlot(a, b) {
+    const raw = (p) => String((p && (p.planId || p.id)) || "");
+    const slashy = (p) => /[\/]/.test(raw(p));
+    if (slashy(a) !== slashy(b)) return slashy(a) ? b : a;
+    const ia = planColumnId(a);
+    const ib = planColumnId(b);
+    const rank = (id) => {
+      const i = PREFERRED_COLUMN_IDS.indexOf(id);
+      return i === -1 ? 50 : i;
+    };
+    if (rank(ia) !== rank(ib)) return rank(ia) < rank(ib) ? a : b;
+    if (a && a.county === "Miami-Dade" && b && b.county !== "Miami-Dade") return a;
+    if (b && b.county === "Miami-Dade" && a && a.county !== "Miami-Dade") return b;
+    return a || b;
+  }
+
+  function dedupeComparisonPlans(plans) {
+    const bySlot = new Map();
+    (plans || []).forEach((p) => {
+      const slot = planColumnSlot(planColumnId(p));
+      if (!slot) return;
+      const prev = bySlot.get(slot);
+      bySlot.set(slot, prev ? preferPlanForSlot(prev, p) : p);
+    });
+    return orderComparisonPlans([...bySlot.values()]);
   }
 
   function orderComparisonPlans(plans) {
@@ -1026,8 +1085,8 @@
   function keepCurrentComparisonPlans(latest, prior) {
     const current = (latest || []).slice();
     const remembered = (prior || []).slice();
-    if (!remembered.length) return orderComparisonPlans(current);
-    if (!current.length) return orderComparisonPlans(remembered);
+    if (!remembered.length) return dedupeComparisonPlans(current);
+    if (!current.length) return dedupeComparisonPlans(remembered);
     const currentSlots = new Set(current.map((p) => planColumnSlot(planColumnId(p))));
     const priorSlots = new Set(remembered.map((p) => planColumnSlot(planColumnId(p))));
     const currentIsSubset = [...currentSlots].every((s) => priorSlots.has(s));
@@ -1036,7 +1095,7 @@
         const slot = planColumnSlot(planColumnId(p));
         return current.find((c) => planColumnSlot(planColumnId(c)) === slot) || p;
       });
-      return orderComparisonPlans(merged);
+      return dedupeComparisonPlans(merged);
     }
     const overlap = [...currentSlots].filter((s) => priorSlots.has(s)).length;
     if (overlap >= 1 && (currentIsSubset || overlap >= 2)) {
@@ -1044,12 +1103,12 @@
       current.forEach((c) => {
         const slot = planColumnSlot(planColumnId(c));
         const idx = merged.findIndex((p) => planColumnSlot(planColumnId(p)) === slot);
-        if (idx >= 0) merged[idx] = c;
+        if (idx >= 0) merged[idx] = preferPlanForSlot(merged[idx], c);
         else merged.push(c);
       });
-      return orderComparisonPlans(merged);
+      return dedupeComparisonPlans(merged);
     }
-    return orderComparisonPlans(current);
+    return dedupeComparisonPlans(current);
   }
 
   function verifiedCell(tier, costShare, coverage) {
@@ -1126,7 +1185,8 @@
   }
 
   function applyMuskatLockedFacts(payload, catalog) {
-    if (!currentPlansMatchMuskatLock(payload.plans)) {
+    const uhcId = muskatComparisonUhcId(payload.plans);
+    if (!uhcId) {
       return payload;
     }
     payload.clientName = payload.clientName && /muskat/i.test(payload.clientName)
@@ -1136,16 +1196,31 @@
     payload.county = payload.county || "Miami-Dade";
     payload.doctors = mergeDoctorLists([muskatLockedDoctors(), payload.doctors], payload.plans);
     const live = normalizeDrugs(payload.drugs, payload.plans);
-    const lockedDrugs = normalizeDrugs(muskatLockedDrugs(), payload.plans);
+    let lockedSrc = muskatLockedDrugs();
+    if (uhcId === "H5420-001") {
+      lockedSrc = lockedSrc.filter((d) => /lipitor|atorvastatin|benicar|olmesartan/i.test(String(d.name || "")));
+    }
+    const lockedDrugs = normalizeDrugs(remapLockedDrugPlanIds(lockedSrc, uhcId), payload.plans);
     if (!live.length) {
       payload.drugs = lockedDrugs;
     } else {
       lockedDrugs.forEach((d) => {
-        if (!live.some((x) => String(x.name || "").toLowerCase() === String(d.name || "").toLowerCase())) {
+        const hit = live.find((x) => {
+          const a = String(x.name || "").toLowerCase().replace(/\*+$/, "");
+          const b = String(d.name || "").toLowerCase().replace(/\*+$/, "");
+          return a === b || (x.genericOf && d.genericOf && String(x.genericOf).toLowerCase() === String(d.genericOf).toLowerCase());
+        });
+        if (!hit) {
           live.push(d);
+          return;
         }
+        Object.keys(d.byPlanId || {}).forEach((id) => {
+          mergeDrugPlanStatus(hit.byPlanId, id, d.byPlanId[id], payload.plans);
+        });
+        if (d.brandNotCovered) hit.brandNotCovered = true;
+        if (d.genericOf) hit.genericOf = hit.genericOf || d.genericOf;
       });
-      payload.drugs = live;
+      payload.drugs = applyKnownGenericSuggestions(live, payload.plans);
     }
     payload.genericOnlyNote = GENERIC_ONLY_NOTE;
     if (!hasExplicitTerminatingLanguage(payload.threadText) && !payload.explicitTerminating) {
@@ -1162,7 +1237,7 @@
     const fromText = citedPlanIdsFromText(text)
       .map((id) => pickCatalogPlan(catalog.length ? catalog : plans, id, county) || pickCatalogPlan(catalog.length ? catalog : plans, id))
       .filter(Boolean);
-    const resolvedPlans = orderComparisonPlans(
+    const resolvedPlans = dedupeComparisonPlans(
       keepCurrentComparisonPlans(
         canonicalize2027ComparisonPlans(plans || [], text, catalog.length ? catalog : plans),
         canonicalize2027ComparisonPlans(
@@ -1670,6 +1745,7 @@
     citedPlanIdsFromText,
     orderComparisonPlans,
     keepCurrentComparisonPlans,
+    dedupeComparisonPlans,
     doctorIdentityKey,
     preferredDoctorName,
     isCarrierAsDrugName,
@@ -2218,7 +2294,7 @@ function findComparisonPlans(text) {
       if (filtered.length) candidates = filtered;
     }
     const plan = candidates[0];
-    const key = plan.planId + "|" + plan.county;
+    const key = String(plan.planId || plan.id || "").toUpperCase().split("/")[0];
     if (!seen.has(key)) {
       seen.add(key);
       found.push(plan);
@@ -2553,7 +2629,7 @@ HARD RULES -- these override everything else:
 
 
 17b. CLIENT COMPARISON EXPORT -- this chat UI CAN export a side-by-side Excel or PDF when you cite two or more plan IDs (Export Excel / Export PDF buttons). NEVER say you cannot generate or export Excel, PDF, spreadsheets, or files. When an agent asks for Excel / PDF / export / side-by-side: briefly restate the plan names with their exact plan IDs from PLAN DATA (one line each), then tell them to click the button under your message. If the thread already has a client name or doctor in-network / out-of-network / not confirmed / need more info results from lookup_provider_network, mention those facts in the same reply so the export can pick them up -- never invent a client name, doctors, or network status. Do NOT add a Plan Terminating row unless the agent explicitly says a current plan is terminating. Export layout is the Yahoska / Arias Lazo sheet: client name as title, plan columns as full marketing name plus contract-PBP on its own line, Doctors section FIRST (In network / Out of network / Not confirmed / Need more info — always include when providers were checked or named), then Medications immediately under Doctors (brand* not covered + generic), then the fixed 2027 green-cell benefit row order plus SOB-only extras (Hearing Aids, SNF days 1–20 / 21–100, Hospital-grade bed / DME) when lookup_sob_benefit found them, then SOB/EOC as links or pending. Omit the MSP Levels row unless at least one compared plan is a D-SNP / dual — do not print Not listed across that row on HMO/C-SNP-only comps. When a asked benefit is not on the grid, call lookup_sob_benefit — never say it is not on the grid and omit it. Never treat carrier names (Doctors, UHC, Humana) as medication rows. When a brand is verified not covered, automatically pull the generic (Lipitor → Atorvastatin, Benicar → Olmesartan) — do not wait for the agent to type the generic. Show brand* as not covered with the asterisk note; generic tier from live lookup_formulary only — never invent a tier. Export the CURRENT thread comparison — never overwrite with an earlier Muskat snapshot. Do not invent file downloads yourself and do not send them to build a sheet manually.
-17c. MUSKAT 2027 -- Excel/PDF must use the CURRENT comparison in this thread (plans, doctors, meds, 2027 green cells), never a hardcoded earlier snapshot. Humana Gold Plus H1036-054C must be the first plan column whenever it is in the current comparison — do not drop it if a later reply only restates H4140-023 and H5420-001 (the plan-ID scanner must match letter-suffix PBPs like H1036-054C). The 014 lock applies ONLY when those three IDs are the current columns. If she later cites stay-put MedicareMax FL-0028 H5420-001, export THAT plan's green cells — not the 014 sheet. One row per doctor: merge legal name + short name (keep In/Out, do not print a second Not confirmed row). Do not drop Jason Margolesky or Miami Neurology & Rehab. Never invent a Plan Terminating row from "no MSP row."
+17c. MUSKAT 2027 -- Excel/PDF must use the CURRENT comparison in this thread (plans, doctors, meds, 2027 green cells), never a hardcoded earlier snapshot. Humana Gold Plus H1036-054C must be the first plan column whenever it is in the current comparison — do not drop it if a later reply only restates H4140-023 and H5420-001. One column per contract-PBP (never two Doctors 023 columns or two UHC 001 columns). Keep verified formulary tiers from this thread; do not blank them to Unverified. Keep Lipitor*/Atorvastatin and Benicar*/Olmesartan when those brands are not covered. The 014 lock applies ONLY when those three IDs are the current columns. Stay-put H5420-001 keeps 001 green cells. One row per doctor. Do not drop Jason Margolesky or Miami Neurology & Rehab. Never invent a Plan Terminating row from "no MSP row."
 
 18. LIVE LOOKUP TOOLS -- you have live tools that query external systems: lookup_provider_network (NPI Registry first — people and clinic orgs — then FL Blue, Cigna/HealthSpring, HealthSun, Devoted, Doctors HealthCare Plans, Aetna guest, Simply guest, UHC public guest Find a Doctor for 2027 Duals/Preferred/MedicareMax — no Jarvis or member login, and Humana public Find Care guest for 2027 Gold Plus/Duals/Choice — no member login), search_clinic_or_provider (CMS NPPES org/DBA search + optional known clinic webpage; never Google SERPs), search_drug (Sunfire catalog — name/NDC only, not a plan tier), lookup_formulary (required before quoting a drug tier / PA / ST / T4 % on a named plan), and lookup_sob_benefit (required when an asked benefit is not on the 2027 grid — hearing aids copay, SNF days 1–20 / 21–100, hospital-grade bed / DME; quote only extracted SOB text, never invent dollars). Solis is county-PDF only. CarePlus and Wellcare still rely on Sunfire or the carrier site. These tools are the ONE exception to Rules 4, 15, and 17's "only the data provided here" boundary. Use normal API function calling -- never print tool-call syntax. Rules for provider results: (a) present them concisely and cite the source directory on each hit; (b) a failed check is not out-of-network — say the lookup failed and hand the guest URL (UHC: uhc.com/find-a-doctor Continue as guest; Humana: findcare.humana.com Search as a guest); (c) empty Sunfire is not UHC or Humana out-of-network; only report UHC/Humana OON when that guest directory returned a successful empty result for that CMS ID or network; (d) never fill a gap from training; (e) Rule 1 still applies — network participation is a fact, never a reason to call one plan better; (f) hospital questions still use HOSPITALS; (g) for enrollment-critical decisions, confirm with the carrier because directory data can lag; (h) a Cigna/HealthSpring directory hit is NOT a 2027 Miami-Dade or Broward MA enrollment option — HealthSpring has no 2027 MA plans in those counties; never say "she's in-network with Cigna so consider HealthSpring."; (i) if a clinic/group/DBA name misses (e.g. Miami Neurology & Rehab Specialists / MNRS vs legal MIAMI NEUROLOGY & REHABILITATION SPECIALISTS, org NPI 1689860280), call search_clinic_or_provider, propose the NPI(s), then re-run lookup_provider_network with npi= — true In/Out is NPI + carrier Find Care only; (j) a clinic insurances-accepted page is marketing, not verified In/Out. If a Humana (or other carrier) logo IS on the page: "Found a Humana logo on their site — here's the link. I recommend you call and confirm." If it is NOT (MNRS / https://miamiphysicaltherapy.com/insurances/ lists Aetna, ASHP, AvMed, Cigna, Doctors Healthcare, GEHA, Golden Rule, Hartford, Harvard Pilgrim, Medicare, NALC, PHCS, TRICARE, UnitedHealthcare, UAIC, UMR, VA, Gallagher Bassett — NO Humana): say "{carrier} is not listed on their accepted-insurances page", link it, recommend calling the office. Do not treat absence on the clinic site as definitive OON if Find Care later returns IN — report both: not listed on clinic site + the NPI Find Care result.
 
@@ -3298,6 +3374,7 @@ function App() {
         if (fromThread.length >= 2) {
           const keep = window.MaxComparisonExport.keepCurrentComparisonPlans;
           const order = window.MaxComparisonExport.orderComparisonPlans;
+          const dedupe = window.MaxComparisonExport.dedupeComparisonPlans;
           const fullText = window.MaxComparisonExport.conversationPlainText(newHistory, userMessageText);
           const fromFull = findComparisonPlans(fullText);
           if (typeof keep === "function") {
@@ -3305,6 +3382,7 @@ function App() {
             fromThread = keep(fromThread, remembered && remembered.plans);
             fromThread = keep(fromThread, lastOffer && lastOffer.plans);
           }
+          fromThread = (typeof dedupe === "function" ? dedupe(fromThread) : fromThread);
           fromThread = (typeof order === "function" ? order(fromThread) : fromThread).slice(0, 4);
           const sameSet = window.MaxComparisonExport.sameExportPlanSet;
           const rememberedFits = remembered && typeof sameSet === "function" && sameSet(remembered.plans, fromThread);
@@ -3355,12 +3433,14 @@ function App() {
         const remembered = lastComparisonExportRef.current;
         const keep = window.MaxComparisonExport.keepCurrentComparisonPlans;
         const order = window.MaxComparisonExport.orderComparisonPlans;
+        const dedupe = window.MaxComparisonExport.dedupeComparisonPlans;
         const fullText = window.MaxComparisonExport.conversationPlainText([...newHistory, assistantMsg], userMessageText);
         let columns = found.slice();
         if (typeof keep === "function") {
           columns = keep(columns, findComparisonPlans(fullText));
           columns = keep(columns, remembered && remembered.plans);
         }
+        columns = (typeof dedupe === "function" ? dedupe(columns) : columns);
         columns = (typeof order === "function" ? order(columns) : columns).slice(0, 4);
         const sameSet = window.MaxComparisonExport.sameExportPlanSet;
         const rememberedFits = remembered && typeof sameSet === "function" && sameSet(remembered.plans, columns);
