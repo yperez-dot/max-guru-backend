@@ -484,6 +484,8 @@ async function lookupSobBenefits(
     const id = String(plan.planId || plan.id || '').trim() || 'unknown';
     const url = String(plan.sobUrl || sobUrl || '').trim();
     const fromGrid = gridFallback(plan, wanted);
+    const keys = requestedFieldKeys(wanted);
+    const gridCoversAll = keys.every((key) => fromGrid[key] && fromGrid[key].value);
     let parsed = {
       hearingAids: null,
       snfDays1to20: null,
@@ -499,7 +501,7 @@ async function lookupSobBenefits(
       parsed = parseSobBenefits(injected);
       sobRead = true;
       sourceUrl = sourceUrl || 'injected';
-    } else if (url) {
+    } else if (url && !gridCoversAll) {
       const fetched = await fetchSobText(url, fetchImpl);
       sourceUrl = fetched.sourceUrl || url;
       if (fetched.ok && fetched.text) {
@@ -508,13 +510,12 @@ async function lookupSobBenefits(
       } else {
         readError = fetched.error || 'sob_unreadable';
       }
-    } else {
+    } else if (!url) {
       readError = 'no_sob_url';
     }
 
     const fromSob = pickRequested(parsed, wanted);
     const fields = {};
-    const keys = requestedFieldKeys(wanted);
     keys.forEach((key) => {
       if (fromGrid[key]) {
         fields[key] = { value: fromGrid[key].value, source: fromGrid[key].source, verified: true };

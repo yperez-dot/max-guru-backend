@@ -105,12 +105,12 @@ describe('lookupSobBenefits grid then SOB', () => {
 
   it('says unverified when there is no SOB URL and no grid cell', async () => {
     const result = await lookupSobBenefits({
-      planId: 'H4140-023',
+      planId: 'H9999-000',
       benefits: ['skilled_nursing'],
     });
     assert.equal(result.verifiedAny, false);
-    assert.equal(result.byPlanId['H4140-023'].fields.snfDays1to20.value, null);
-    assert.equal(result.byPlanId['H4140-023'].fields.snfDays1to20.reason, 'no_sob_url');
+    assert.equal(result.byPlanId['H9999-000'].fields.snfDays1to20.value, null);
+    assert.equal(result.byPlanId['H9999-000'].fields.snfDays1to20.reason, 'no_sob_url');
     assert.match(formatSobLookupText(result), /UNVERIFIED/);
   });
 
