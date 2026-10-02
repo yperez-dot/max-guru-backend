@@ -486,7 +486,7 @@ async function unlockMax(email, password) {
 async function askGuru(conversationHistory) {
   const selection = selectPlansForAsk(conversationHistory);
   if (selection.needClarify) {
-    return selection.clarifyMessage;
+    return { text: selection.clarifyMessage, banners: [] };
   }
   const payload = {
     system: buildSystemPrompt(selection.plans),
@@ -509,19 +509,25 @@ async function askGuru(conversationHistory) {
       err.code = "access_required";
       throw err;
     }
-    return "Backend auth isn't configured in this deploy (missing MAX_API_KEY inject). Ask admin to set the Netlify snippet.";
+    return { text: "Backend auth isn't configured in this deploy (missing MAX_API_KEY inject). Ask admin to set the Netlify snippet.", banners: [] };
   }
   if (response.status === 429) {
-    return data.error || "Max is rate-limited to protect spend — try again shortly.";
+    return { text: data.error || "Max is rate-limited to protect spend — try again shortly.", banners: data.banners || [] };
+  }
+  if (response.status === 402 && data.code === "daily_budget_reached") {
+    return { text: data.error || "Max reached today’s budget. Say “OK go over” to continue today.", banners: data.banners || [] };
   }
   if (response.status === 503) {
-    return data.error || "Max's Grok backend isn't configured yet (missing XAI_API_KEY on Railway).";
+    return { text: data.error || "Max's Grok backend isn't configured yet (missing XAI_API_KEY on Railway).", banners: [] };
   }
   if (!response.ok) {
-    return data.error || "I couldn't generate a response. Try again.";
+    return { text: data.error || "I couldn't generate a response. Try again.", banners: data.banners || [] };
   }
   const textBlock = data.content && data.content.find((b) => b.type === "text");
-  return textBlock ? textBlock.text : "I couldn't generate a response. Try again.";
+  return {
+    text: textBlock ? textBlock.text : "I couldn't generate a response. Try again.",
+    banners: Array.isArray(data.banners) ? data.banners : [],
+  };
 }
 
 function TypingIndicator() {
@@ -636,6 +642,7 @@ function App() {
     return () => { cancelled = true; };
   }, []);
   const [messages, setMessages] = useState([]);
+  const [banners, setBanners] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -700,6 +707,7 @@ function App() {
 
   const startNewChat = () => {
     setMessages([]);
+    setBanners([]);
     setError(null);
     setInput("");
     if (isMobile) setSidebarOpen(false);
@@ -791,7 +799,15 @@ function App() {
         }
       }
 
-      const reply = await askGuru(newHistory.filter(m => m.role !== 'offer').map((m) => ({ role: m.role, content: m.content })));
+      const result = await askGuru(newHistory.filter(m => m.role !== 'offer').map((m) => ({ role: m.role, content: m.content })));
+      const reply = result.text;
+      if (result.banners.length) {
+        setBanners((current) => {
+          const byId = new Map(current.map((banner) => [banner.id, banner]));
+          result.banners.forEach((banner) => byId.set(banner.id, banner));
+          return [...byId.values()];
+        });
+      }
       const assistantMsg = { role: "assistant", content: reply, time: nowLabel() };
       const found = findComparisonPlans(reply);
       if (found.length >= 2) {
@@ -1016,6 +1032,25 @@ function App() {
 
         {/* Messages */}
         <div className="max-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 14px" : "24px 22px", display: "flex", flexDirection: "column", gap: 4 }}>
+          {banners.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+              {banners.map((banner) => (
+                <div key={banner.id} className="max-fade" style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+                  padding: "10px 12px", borderRadius: 12,
+                  border: banner.type === "warning" ? "1px solid rgba(180,83,9,.28)" : "1px solid rgba(109,40,217,.20)",
+                  background: banner.type === "warning" ? "rgba(255,247,237,.94)" : "rgba(245,243,255,.94)",
+                  color: banner.type === "warning" ? "#92400e" : "var(--plum)",
+                  fontSize: 12.5, lineHeight: 1.4,
+                }}>
+                  <span>{banner.message}</span>
+                  <button onClick={() => setBanners((current) => current.filter((item) => item.id !== banner.id))}
+                    aria-label="Dismiss notice"
+                    style={{ border: "none", background: "transparent", color: "inherit", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
           {messages.length === 0 && (
             <div className="max-fade" style={{ maxWidth: 560, margin: "8vh auto 0", textAlign: "center" }}>
               <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>

@@ -135,8 +135,14 @@ async function passThroughChat({ system, messages }) {
   const openaiTools = toOpenAITools(TOOLS);
   let apiMessages = normalizeMessages(messages);
   const collectedToolResults = [];
+  const usageCalls = [];
   let lastData = null;
   let lastMessage = null;
+
+  const captureUsage = (data) => {
+    if (!data?.usage) return;
+    usageCalls.push({ model: data.model || DEFAULT_MODEL, usage: data.usage });
+  };
 
   for (let i = 0; i < 5; i++) {
     lastData = await callChatCompletions({
@@ -145,6 +151,7 @@ async function passThroughChat({ system, messages }) {
       tools: openaiTools,
       maxTokens: 8000,
     });
+    captureUsage(lastData);
     lastMessage = lastData.choices?.[0]?.message || {};
     const toolCalls = lastMessage.tool_calls || [];
 
@@ -211,6 +218,7 @@ async function passThroughChat({ system, messages }) {
       tools: openaiTools,
       maxTokens: 4000,
     });
+    captureUsage(lastData);
     lastMessage = lastData.choices?.[0]?.message || {};
     text = typeof lastMessage.content === 'string' ? lastMessage.content : '';
     if (toolResult && typeof toolResult === 'object' && toolResult.structured) {
@@ -228,6 +236,7 @@ async function passThroughChat({ system, messages }) {
     content: [{ type: 'text', text: text || "I couldn't generate a response. Try again." }],
     stop_reason: 'end_turn',
     usage: lastData?.usage,
+    usageCalls,
   };
   if (collectedToolResults.length) out.toolResults = collectedToolResults;
   return out;
