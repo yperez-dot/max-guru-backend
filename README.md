@@ -26,6 +26,31 @@ npm start              # :3002
 
 Health: `GET /health` (API key required for data routes).
 
+## Daily cost guard
+
+Max keeps a shared daily spend estimate for Carolina, Katy, and Yahoska. The day rolls over in
+`America/New_York`. Configure:
+
+```bash
+MAX_DAILY_BUDGET_USD=10
+MAX_SOFT_WARN_PCT=50,80
+```
+
+The UI shows each warning threshold once per day. At 100%, Max pauses before the next model call
+and asks for an explicit phrase such as `OK go over`, `override budget`, or `continue anyway`.
+That unlock lasts only for the current New York day.
+
+Usage is stored in `data/max-usage.json` by default. For restart-safe Railway persistence, mount a
+volume and set `MAX_USAGE_FILE=/data/max-usage.json`. `GET /usage` requires both the Max API key and,
+when enabled, the invite-only access token; it reports today's spend, budget, percentage, and
+override state.
+
+Built-in price estimates cover the current default models (`grok-4.6` and `gpt-4.1`), including
+cached input and Grok's 200K+ context tier. If the configured model changes, set
+`MAX_MODEL_INPUT_USD_PER_M`, `MAX_MODEL_CACHED_INPUT_USD_PER_M`, and
+`MAX_MODEL_OUTPUT_USD_PER_M`. `MAX_CONTEXT_NUDGE_TOKENS` controls the long-thread “start a new chat”
+notice (default `120000`).
+
 ## Docs
 
 - [MAX.md](MAX.md) — Max’s brief

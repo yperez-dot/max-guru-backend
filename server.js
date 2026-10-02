@@ -1,7 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { passThroughChat, chat: grokChat, DEFAULT_MODEL, providerConfig } = require('./services/grok');
+const { passThroughChat, DEFAULT_MODEL, providerConfig } = require('./services/grok');
+const { BudgetGuard } = require('./services/budgetGuard');
 const { requireApiKey } = require('./middleware/auth');
 const { accessEnabled, requireAccessToken, unlockHandler } = require('./middleware/access');
 const { createRateLimiter } = require('./middleware/rateLimit');
@@ -12,6 +13,7 @@ const providerLookupRouter = require('./routes/providerLookup');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
+const budgetGuard = new BudgetGuard();
 
 const allowedOrigins = [
   'https://thei-max-guru.netlify.app',
@@ -56,6 +58,11 @@ app.get('/health', (req, res) => {
     sepRefresh: getSepRefreshStatus(),
     ts: new Date().toISOString(),
   });
+});
+
+// Authenticated daily cost status for admin/UI diagnostics.
+app.get('/usage', requireApiKey, requireAccessToken, (req, res) => {
+  res.json({ ok: true, ...budgetGuard.summary() });
 });
 
 // Shared password unlock → short-lived access token (required when MAX_ACCESS_PASSWORD is set)
@@ -109,6 +116,15 @@ app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, 
     return res.status(400).json({ error: 'messages array required' });
   }
 
+  const budgetCheck = budgetGuard.checkBeforeTurn(messages);
+  if (!budgetCheck.allowed) {
+    return res.status(402).json({
+      error: budgetCheck.message,
+      code: budgetCheck.code,
+      budget: budgetCheck.usage,
+    });
+  }
+
   if (system) {
     if (typeof system !== 'string') {
       return res.status(400).json({ error: 'system must be a string' });
@@ -122,6 +138,23 @@ app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, 
     const mergedSystem = `${system}\n${TOOL_USE_APPENDIX}`;
     try {
       const data = await passThroughChat({ system: mergedSystem, messages });
+      const budgetResult = budgetGuard.recordTurn({
+        provider: data.provider,
+        usageCalls: data.usageCalls,
+      });
+      const banners = [...budgetResult.banners];
+      if (budgetCheck.overrideActivated) {
+        banners.unshift({
+          id: `budget-${budgetResult.usage.day}-override`,
+          type: 'warning',
+          message: 'Daily budget override is active until the next America/New_York day.',
+        });
+      }
+      const contextNudge = budgetGuard.contextNudge(mergedSystem, messages);
+      if (contextNudge) banners.push(contextNudge);
+      data.banners = banners;
+      data.budget = budgetResult.usage;
+      delete data.usageCalls;
       return res.json(data);
     } catch (err) {
       console.error('Grok pass-through error:', err.message);
@@ -146,8 +179,28 @@ app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, 
   // LEGACY MODE — KB-search path (scheduled for retirement).
   try {
     const { SYSTEM_PROMPT } = require('./services/claude');
-    const reply = await grokChat(messages, SYSTEM_PROMPT);
-    res.json({ ok: true, reply });
+    const data = await passThroughChat({ system: SYSTEM_PROMPT, messages });
+    const budgetResult = budgetGuard.recordTurn({
+      provider: data.provider,
+      usageCalls: data.usageCalls,
+    });
+    const block = (data.content || []).find((item) => item.type === 'text');
+    const banners = [...budgetResult.banners];
+    if (budgetCheck.overrideActivated) {
+      banners.unshift({
+        id: `budget-${budgetResult.usage.day}-override`,
+        type: 'warning',
+        message: 'Daily budget override is active until the next America/New_York day.',
+      });
+    }
+    const contextNudge = budgetGuard.contextNudge(SYSTEM_PROMPT, messages);
+    if (contextNudge) banners.push(contextNudge);
+    res.json({
+      ok: true,
+      reply: block?.text || "I'm having trouble right now — please try again.",
+      banners,
+      budget: budgetResult.usage,
+    });
   } catch (err) {
     console.error('Chat error:', err.message);
     res.status(500).json({ error: 'Having trouble right now — try again in a moment.' });
