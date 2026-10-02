@@ -91,6 +91,21 @@
   const NETWORK_NOT_CONFIRMED = "Not confirmed";
   const NETWORK_NEED_MORE = "Need more info";
   const GENERIC_ONLY_NOTE = "*Brand not covered — these three plans cover the generic only.";
+  // Names only — never invent a generic tier from this map.
+  const BRAND_TO_GENERIC = {
+    lipitor: "Atorvastatin",
+    benicar: "Olmesartan",
+    crestor: "Rosuvastatin",
+    zocor: "Simvastatin",
+    pravachol: "Pravastatin",
+    nexium: "Esomeprazole",
+    prilosec: "Omeprazole",
+    protonix: "Pantoprazole",
+    plavix: "Clopidogrel",
+    norvasc: "Amlodipine",
+    cozaar: "Losartan",
+    diovan: "Valsartan",
+  };
   const MUSKAT_PLAN_IDS = ["H1036-054C", "H4140-023", "H5420-014"];
   const DOCTORS_PBP_2027 = { "H4140-001": "H4140-022", "H4140-012": "H4140-023" };
   const CARRIER_AS_DRUG = /^(doctors?|uhc|united|unitedhealthcare|humana|careplus|care\s*plus|devoted|wellcare|well\s*care|aetna|simply|solis|healthsun|health\s*sun|healthspring|health\s*spring|medicaremax|medicare\s*max|preferred|cigna|anthem|elevance|floridablue|florida\s*blue|goldkidney|gold\s*kidney|gold\s*plus|drselect|drmax)$/i;
@@ -411,6 +426,73 @@
       .trim();
   }
 
+  function drugNameKey(name) {
+    return String(name || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "");
+  }
+
+  function knownGenericFor(drugName) {
+    const key = drugNameKey(drugName);
+    if (!key) return null;
+    if (BRAND_TO_GENERIC[key]) return BRAND_TO_GENERIC[key];
+    const stripped = key.replace(/generic$/, "");
+    return BRAND_TO_GENERIC[stripped] || null;
+  }
+
+  function brandHasNotCovered(drug) {
+    if (!drug) return false;
+    if (drug.brandNotCovered) return true;
+    const map = drug.byPlanId || {};
+    return Object.keys(map).some((id) => {
+      const row = map[id];
+      return row && row.verified && row.coverage === "not_covered";
+    });
+  }
+
+  function isGenericRowFor(drug, brandName, genericName) {
+    if (!drug) return false;
+    const k = drugNameKey(drug.name);
+    const gKey = drugNameKey(genericName);
+    const bKey = drugNameKey(String(brandName || "").replace(/\*+$/, ""));
+    return (
+      k === gKey ||
+      k === gKey + "generic" ||
+      (drug.genericOf && drugNameKey(drug.genericOf) === bKey)
+    );
+  }
+
+  function applyKnownGenericSuggestions(drugs, plans) {
+    if (!Array.isArray(drugs) || !drugs.length) return drugs || [];
+    const out = [];
+    drugs.forEach((d) => {
+      const generic = knownGenericFor(d && d.name);
+      if (generic && brandHasNotCovered(d)) {
+        d.brandNotCovered = true;
+        if (!/\*$/.test(String(d.name || ""))) {
+          d.name = String(d.name).replace(/\*+$/, "") + "*";
+        }
+      }
+      out.push(d);
+      if (!generic || !brandHasNotCovered(d)) return;
+      const existing = drugs.find((x) => x !== d && isGenericRowFor(x, d.name, generic)) ||
+        out.find((x) => x !== d && isGenericRowFor(x, d.name, generic));
+      if (existing) {
+        existing.genericOf = existing.genericOf || String(d.name || "").replace(/\*+$/, "");
+        if (!/\(generic\)/i.test(existing.name || "")) {
+          existing.name = generic + " (generic)";
+        }
+        return;
+      }
+      out.push({
+        name: generic + " (generic)",
+        genericOf: String(d.name || "").replace(/\*+$/, ""),
+        byPlanId: emptyPlanDrugStatuses(plans),
+      });
+    });
+    return out;
+  }
+
   function parseFormularyLookupLine(line) {
     if (!/FORMULARY_LOOKUP/i.test(line || "")) return null;
     const get = (key) => {
@@ -522,7 +604,7 @@
       if (!row) return;
       mergeDrugPlanStatus(row.byPlanId, hit.planId, hit, plans);
     });
-    return [...byName.values()];
+    return applyKnownGenericSuggestions([...byName.values()], plans);
   }
 
   function normalizeDrugs(drugs, plans) {
@@ -555,7 +637,7 @@
         d.lookups.forEach((hit) => mergeDrugPlanStatus(row.byPlanId, hit.planId, hit, plans));
       }
     });
-    return [...byName.values()];
+    return applyKnownGenericSuggestions([...byName.values()], plans);
   }
 
   function formatDrugCell(status, plan) {
@@ -878,7 +960,7 @@
     );
     const fromExtras = normalizeDrugs(extra.drugs, resolvedPlans);
     const fromThread = extractDrugs(text, resolvedPlans);
-    const drugs = fromExtras.length ? fromExtras : fromThread;
+    let drugs = fromExtras.length ? fromExtras : fromThread;
     if (fromExtras.length && fromThread.length) {
       fromThread.forEach((t) => {
         const hit = drugs.find((d) => d.name.toLowerCase() === t.name.toLowerCase());
@@ -890,6 +972,7 @@
         }
       });
     }
+    drugs = applyKnownGenericSuggestions(drugs, resolvedPlans);
     const payload = {
       plans: resolvedPlans,
       clientName: clientName || "",
@@ -900,6 +983,9 @@
       county: extra.county || "",
       threadText: text,
     };
+    if (drugs.some((d) => d.brandNotCovered || /\*$/.test(d.name || "") || d.genericOf)) {
+      payload.genericOnlyNote = GENERIC_ONLY_NOTE;
+    }
     if (isMuskatContext(text, extra) && !extra.skipMuskatLock) {
       applyMuskatLockedFacts(payload, catalog.length ? catalog : resolvedPlans);
     }
@@ -1330,6 +1416,9 @@
     NETWORK_NOT_CONFIRMED,
     NETWORK_NEED_MORE,
     GENERIC_ONLY_NOTE,
+    BRAND_TO_GENERIC,
+    knownGenericFor,
+    applyKnownGenericSuggestions,
     MUSKAT_PLAN_IDS,
     isCarrierAsDrugName,
     looksLikeDrugName,
@@ -1925,6 +2014,9 @@ function collectComparisonExport(history, plans, extras) {
   return window.MaxComparisonExport.buildExportPayload(plans, text, {
     catalog: typeof PLANS !== "undefined" ? PLANS : extra.catalog,
     ...extra,
+    drugs: []
+      .concat(extra.drugs || [])
+      .concat(drugsFromToolResults(extra.toolResults || [])),
     providerLookups: []
       .concat(extra.providerLookups || [])
       .concat(doctorsFromToolResults(extra.toolResults || [])),
@@ -2193,7 +2285,7 @@ HARD RULES -- these override everything else:
 
 
 
-17b. CLIENT COMPARISON EXPORT -- this chat UI CAN export a side-by-side Excel or PDF when you cite two or more plan IDs (Export Excel / Export PDF buttons). NEVER say you cannot generate or export Excel, PDF, spreadsheets, or files. When an agent asks for Excel / PDF / export / side-by-side: briefly restate the plan names with their exact plan IDs from PLAN DATA (one line each), then tell them to click the button under your message. If the thread already has a client name or doctor in-network / out-of-network / not confirmed / need more info results from lookup_provider_network, mention those facts in the same reply so the export can pick them up -- never invent a client name, doctors, or network status. Do NOT add a Plan Terminating row unless the agent explicitly says a current plan is terminating. Export layout is the Yahoska / Arias Lazo sheet: client name as title, plan columns as full marketing name plus contract-PBP on its own line, Doctors section FIRST (In network / Out of network / Not confirmed / Need more info — always include when providers were checked or named), then the fixed 2027 green-cell benefit row order, then Medications, SOB/EOC as links or pending. Never treat carrier names (Doctors, UHC, Humana) as medication rows. Do not invent file downloads yourself and do not send them to build a sheet manually.
+17b. CLIENT COMPARISON EXPORT -- this chat UI CAN export a side-by-side Excel or PDF when you cite two or more plan IDs (Export Excel / Export PDF buttons). NEVER say you cannot generate or export Excel, PDF, spreadsheets, or files. When an agent asks for Excel / PDF / export / side-by-side: briefly restate the plan names with their exact plan IDs from PLAN DATA (one line each), then tell them to click the button under your message. If the thread already has a client name or doctor in-network / out-of-network / not confirmed / need more info results from lookup_provider_network, mention those facts in the same reply so the export can pick them up -- never invent a client name, doctors, or network status. Do NOT add a Plan Terminating row unless the agent explicitly says a current plan is terminating. Export layout is the Yahoska / Arias Lazo sheet: client name as title, plan columns as full marketing name plus contract-PBP on its own line, Doctors section FIRST (In network / Out of network / Not confirmed / Need more info — always include when providers were checked or named), then the fixed 2027 green-cell benefit row order, then Medications, SOB/EOC as links or pending. Never treat carrier names (Doctors, UHC, Humana) as medication rows. When a brand is verified not covered, automatically pull the generic (Lipitor → Atorvastatin, Benicar → Olmesartan) — do not wait for the agent to type the generic. Show brand* as not covered with the asterisk note; generic tier from live lookup_formulary only — never invent a tier. Do not invent file downloads yourself and do not send them to build a sheet manually.
 17c. MUSKAT 2027 LOCKED COMP -- for Michael Muskat / Muskat (ZIP 33176): columns are Humana Gold Plus H1036-054C (core, NOT Giveback H1036-305), Doctors DrSelect-SFL H4140-023 (not 012), UHC MedicareMax Complete Care H5420-014 (C-SNP: diabetes, CHF, and/or a cardiovascular disorder). Doctors: Alejandro Roca OUT/IN/IN; Charles J. Kaiser OUT/IN/IN; William Trattler OUT/IN/IN; Neeta Jane Erinjeri IN/IN/IN. Rx (Yahoska verified 2027 — do not invent other tiers): *Brand not covered — these three plans cover the generic only. Lipitor* not covered all three; Atorvastatin (generic) T1 $0 all three; Benicar* not covered all three; Olmesartan (generic) T1 $0 all three; Lorazepam Humana T4 40% / Doctors T1 $0 / UHC T2 $0; Gabapentin Humana T2 $0 / Doctors T1 $0 / UHC T2 $0; Trintellix Humana T4 40% / Doctors T4 $55 / UHC T3 $0; Memantine T2 $0 all three. Benefits from 2027 green cells only. No Plan Terminating.
 
 18. LIVE LOOKUP TOOLS -- you have live tools that query external systems: lookup_provider_network (NPI Registry first — people and clinic orgs — then FL Blue, Cigna/HealthSpring, HealthSun, Devoted, Doctors HealthCare Plans, Aetna guest, Simply guest, UHC public guest Find a Doctor for 2027 Duals/Preferred/MedicareMax — no Jarvis or member login, and Humana public Find Care guest for 2027 Gold Plus/Duals/Choice — no member login), search_clinic_or_provider (CMS NPPES org/DBA search + optional known clinic webpage; never Google SERPs), search_drug (Sunfire catalog — name/NDC only, not a plan tier), and lookup_formulary (required before quoting a drug tier / PA / ST / T4 % on a named plan). Solis is county-PDF only. CarePlus and Wellcare still rely on Sunfire or the carrier site. These tools are the ONE exception to Rules 4, 15, and 17's "only the data provided here" boundary. Use normal API function calling -- never print tool-call syntax. Rules for provider results: (a) present them concisely and cite the source directory on each hit; (b) a failed check is not out-of-network — say the lookup failed and hand the guest URL (UHC: uhc.com/find-a-doctor Continue as guest; Humana: findcare.humana.com Search as a guest); (c) empty Sunfire is not UHC or Humana out-of-network; only report UHC/Humana OON when that guest directory returned a successful empty result for that CMS ID or network; (d) never fill a gap from training; (e) Rule 1 still applies — network participation is a fact, never a reason to call one plan better; (f) hospital questions still use HOSPITALS; (g) for enrollment-critical decisions, confirm with the carrier because directory data can lag; (h) a Cigna/HealthSpring directory hit is NOT a 2027 Miami-Dade or Broward MA enrollment option — HealthSpring has no 2027 MA plans in those counties; never say "she's in-network with Cigna so consider HealthSpring."; (i) if a clinic/group/DBA name misses (e.g. Miami Neurology & Rehab Specialists / MNRS vs legal MIAMI NEUROLOGY & REHABILITATION SPECIALISTS, org NPI 1689860280), call search_clinic_or_provider, propose the NPI(s), then re-run lookup_provider_network with npi= — true In/Out is NPI + carrier Find Care only; (j) a clinic insurances-accepted page is marketing, not verified In/Out. If a Humana (or other carrier) logo IS on the page: "Found a Humana logo on their site — here's the link. I recommend you call and confirm." If it is NOT (MNRS / https://miamiphysicaltherapy.com/insurances/ lists Aetna, ASHP, AvMed, Cigna, Doctors Healthcare, GEHA, Golden Rule, Hartford, Harvard Pilgrim, Medicare, NALC, PHCS, TRICARE, UnitedHealthcare, UAIC, UMR, VA, Gallagher Bassett — NO Humana): say "{carrier} is not listed on their accepted-insurances page", link it, recommend calling the office. Do not treat absence on the clinic site as definitive OON if Find Care later returns IN — report both: not listed on clinic site + the NPI Find Care result.
@@ -2203,7 +2295,7 @@ HARD RULES -- these override everything else:
 20. PLAN YEAR -- PLAN DATA defaults to 2027 (AEP). Cite plan year 2027 on benefit answers. If a 2027 field is blank / sourceQuality is pending_sob, say unverified / pending SoB. Do NOT quote 2026 premiums, copays, or givebacks as 2027 numbers. If the agent asks for 2026 coverage, use the archived 2026 grid (year toggle / year=2026 attach). ALWAYS search_knowledge on 2027 questions before saying you do not have it.
 20b. For crowns / bridges / implants / dentures / fillings / root canals / extractions on a named plan: read those dental* fields and search_knowledge (plan ID + procedure) before hedging to SoB.
 20c. CARRIER GEOGRAPHY 2027 -- HealthSpring / Cigna has NO 2027 MA plans in Miami-Dade or Broward. Say there is no HealthSpring plan to enroll into. Do not quote 2026 HealthSpring dollars as 2027. Leftover yellow workbook cells are stale. A live Cigna directory hit is not a 2027 enrollment option in those counties.
-21. CLIENT-STATED RX TIERS -- Daisy / paste / archive "Tier X" labels are discarded. Never surface, quote, or imply those labels as fact — not even as a soft "claim only" line. Paste is drug names only. ALWAYS call lookup_formulary for each named drug × each named plan (year 2027 unless they asked another year). Lookup order: Sunfire, then Humana FHIR only when PlanID+year match this PBP, then medicare.gov Plan Compare. If lookup fails, say unverified — do not invent a tier. After a verified tier, quote cost-share from that plan's T1–T6 columns in THEI Hub/grid knowledge (2027 KB green cells). Yahoska's sheet 1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A is an archive of finished client comps -- not the 2027 benefit grid and not a formulary source.
+21. CLIENT-STATED RX TIERS -- Daisy / paste / archive "Tier X" labels are discarded. Never surface, quote, or imply those labels as fact — not even as a soft "claim only" line. Paste is drug names only. ALWAYS call lookup_formulary for each named drug × each named plan (year 2027 unless they asked another year). Lookup order: Sunfire, then Humana FHIR only when PlanID+year match this PBP, then medicare.gov Plan Compare. If lookup fails, say unverified — do not invent a tier. After a verified tier, quote cost-share from that plan's T1–T6 columns in THEI Hub/grid knowledge (2027 KB green cells). When a brand is verified not covered, lookup_formulary automatically follows the generic (Lipitor → Atorvastatin, Benicar → Olmesartan) — do not wait for the agent to type the generic. Show the brand as not covered with the asterisk note. Quote the generic tier only from that live follow-up. Never invent a generic tier. Yahoska's sheet 1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A is an archive of finished client comps -- not the 2027 benefit grid and not a formulary source.
 
 FILTERED PLAN ATTACHMENT — PLAN DATA below is a FILTERED SUBSET for this question only (not the full THEI grid). It was narrowed by county, carrier, and/or plan ID from the agent's ask to control cost. If the plan they need is not in PLAN DATA, do NOT invent numbers from training knowledge — ask ONE short clarifying question for county, carrier, or plan ID. If PLAN DATA is empty and the question is general Medicare education (Rule 3), answer from training knowledge. If PLAN DATA is empty and they clearly want plan dollars, ask which county (Miami-Dade or Broward) and carrier/plan.
 

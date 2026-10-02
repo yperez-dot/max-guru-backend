@@ -933,6 +933,45 @@ function emptyPlanResult(planId, year, reason) {
   };
 }
 
+/** Known brand → generic names only. Never attach a tier here. */
+const BRAND_TO_GENERIC = {
+  lipitor: 'Atorvastatin',
+  benicar: 'Olmesartan',
+  crestor: 'Rosuvastatin',
+  zocor: 'Simvastatin',
+  pravachol: 'Pravastatin',
+  nexium: 'Esomeprazole',
+  prilosec: 'Omeprazole',
+  protonix: 'Pantoprazole',
+  plavix: 'Clopidogrel',
+  norvasc: 'Amlodipine',
+  cozaar: 'Losartan',
+  diovan: 'Valsartan',
+};
+
+function brandKey(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function knownGenericFor(drugName) {
+  const key = brandKey(drugName);
+  if (!key) return null;
+  if (BRAND_TO_GENERIC[key]) return BRAND_TO_GENERIC[key];
+  const stripped = key.replace(/generic$/, '');
+  return BRAND_TO_GENERIC[stripped] || null;
+}
+
+function brandVerifiedNotCovered(lookups) {
+  return (lookups || []).some((row) => row && row.verified && row.coverage === 'not_covered');
+}
+
+function starBrandName(name) {
+  const s = String(name || '').replace(/\*+$/, '').trim();
+  return s ? `${s}*` : name;
+}
+
 /**
  * Look up one drug against one or more plans.
  * claimedTier is accepted for API compatibility and discarded immediately.
@@ -946,6 +985,7 @@ async function lookupFormulary(
     year = PLAN_YEAR,
     claimedTier = null,
     plans = [],
+    skipGenericFollowup = false,
   } = {},
   fetchImpl = fetch
 ) {
@@ -1056,7 +1096,7 @@ async function lookupFormulary(
     }
   }
 
-  return {
+  const result = {
     drugName: resolvedName,
     ndc: resolvedNdc,
     year: y,
@@ -1067,7 +1107,27 @@ async function lookupFormulary(
     lookups,
     byPlanId,
     verifiedAny: lookups.some((l) => l.verified),
+    suggestedGeneric: null,
+    genericFollowup: null,
   };
+
+  const genericName = knownGenericFor(drugName) || knownGenericFor(resolvedName);
+  if (!skipGenericFollowup && genericName && brandVerifiedNotCovered(lookups)) {
+    const generic = await lookupFormulary(
+      {
+        drugName: genericName,
+        planIds: uniqueIds,
+        year: y,
+        plans,
+        skipGenericFollowup: true,
+      },
+      fetchImpl
+    );
+    result.suggestedGeneric = genericName;
+    result.genericFollowup = generic;
+  }
+
+  return result;
 }
 
 function flagLine(label, value) {
@@ -1134,16 +1194,50 @@ function formatFormularyText(result) {
     }
     lines.push(formatPlanLookupLine(result.drugName, row));
   }
+
+  if (result.suggestedGeneric) {
+    lines.push('');
+    lines.push(
+      `Suggested generic for ${starBrandName(result.drugName)}: ${result.suggestedGeneric}. Do not wait for the agent to type the generic. Show the brand as not covered with the asterisk note. Quote a generic tier only from the live follow-up — never invent a tier.`
+    );
+    if (result.genericFollowup) {
+      lines.push(formatFormularyText(result.genericFollowup));
+    } else {
+      lines.push(
+        `${result.suggestedGeneric}: UNVERIFIED (no live generic follow-up). Do not invent a tier.`
+      );
+    }
+  }
   return lines.join('\n');
 }
 
 function toExportDrug(result) {
   if (!result) return null;
+  const generic = knownGenericFor(result.drugName);
+  const notCovered = brandVerifiedNotCovered(result.lookups);
   return {
-    name: result.drugName,
+    name: generic && notCovered ? starBrandName(result.drugName) : result.drugName,
     ndc: result.ndc || '',
     byPlanId: result.byPlanId,
+    brandNotCovered: Boolean(generic && notCovered),
+    suggestedGeneric: result.suggestedGeneric || null,
   };
+}
+
+function toExportDrugs(result) {
+  if (!result) return [];
+  const brand = toExportDrug(result);
+  const out = brand ? [brand] : [];
+  if (result.suggestedGeneric) {
+    const g = result.genericFollowup;
+    out.push({
+      name: `${result.suggestedGeneric} (generic)`,
+      ndc: (g && g.ndc) || '',
+      genericOf: String(result.drugName || '').replace(/\*+$/, ''),
+      byPlanId: (g && g.byPlanId) || {},
+    });
+  }
+  return out;
 }
 
 module.exports = {
@@ -1184,5 +1278,8 @@ module.exports = {
   formatFormularyText,
   formatPlanLookupLine,
   toExportDrug,
+  toExportDrugs,
+  knownGenericFor,
+  BRAND_TO_GENERIC,
   hasSunfireCreds,
 };

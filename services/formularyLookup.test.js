@@ -20,6 +20,8 @@ const {
   lookupFormulary,
   formatFormularyText,
   toExportDrug,
+  toExportDrugs,
+  knownGenericFor,
   medicareGovFetch,
 } = require('./formularyLookup');
 const { resetDoctorsFormularyCache, DOCTORS_2027_FORMULARY_PDF } = require('./doctorsFormularyPdf');
@@ -521,5 +523,154 @@ describe('medicare.gov POST transport without a preinstalled curl', () => {
       if (prevPy == null) delete process.env.MEDICARE_GOV_PYTHON;
       else process.env.MEDICARE_GOV_PYTHON = prevPy;
     }
+  });
+});
+
+describe('known brand → generic name map (no tiers)', () => {
+  it('maps Lipitor and Benicar and does not invent a tier', () => {
+    assert.equal(knownGenericFor('Lipitor'), 'Atorvastatin');
+    assert.equal(knownGenericFor('Lipitor*'), 'Atorvastatin');
+    assert.equal(knownGenericFor('Benicar'), 'Olmesartan');
+    assert.equal(knownGenericFor('Trintellix'), null);
+    assert.equal(knownGenericFor('Benicar HCT'), null);
+  });
+});
+
+function brandNotCoveredFetch(url) {
+  const u = String(url);
+  if (u.includes('/v2/drug/search/lipitor/-1')) {
+    return jsonRes({ drugs: [{ id: 11, name: 'Lipitor', ndc: '00710155' }] });
+  }
+  if (u.includes('/v2/drug/search/atorvastatin/-1')) {
+    return jsonRes({ drugs: [{ id: 22, name: 'Atorvastatin', ndc: '00030001' }] });
+  }
+  if (u.includes('/v2/drug/search/benicar/-1')) {
+    return jsonRes({ drugs: [{ id: 33, name: 'Benicar', ndc: '655970101' }] });
+  }
+  if (u.includes('/v2/drug/search/olmesartan/-1')) {
+    return jsonRes({ drugs: [{ id: 44, name: 'Olmesartan', ndc: '00040001' }] });
+  }
+  if (
+    /\/v2\/drug\/(11|33)(\/|$)/.test(u) ||
+    u.includes('/v2/drug/search/lipitor/') ||
+    u.includes('/v2/drug/search/benicar/')
+  ) {
+    return jsonRes({ covered: false, coverage: 'not_covered' });
+  }
+  if (
+    /\/v2\/drug\/(22|44)(\/|$)/.test(u) ||
+    u.includes('/v2/drug/search/atorvastatin/') ||
+    u.includes('/v2/drug/search/olmesartan/')
+  ) {
+    return jsonRes({ tier: 1, priorAuth: false, stepTherapy: false });
+  }
+  if (u.includes('fhir.humana.com')) return jsonRes({ resourceType: 'Bundle', entry: [] });
+  return jsonRes({ message: 'nope' }, 404);
+}
+
+describe('lookupFormulary auto-follows generic when brand is not covered', () => {
+  it('looks up Atorvastatin after Lipitor is verified not covered and uses the live generic tier', async () => {
+    process.env.SUNFIRE_JWT = 'test-jwt';
+    const result = await lookupFormulary(
+      { drugName: 'Lipitor', planIds: ['H1036-054C', 'H1036-305'], year: 2027, claimedTier: 4 },
+      brandNotCoveredFetch
+    );
+    delete process.env.SUNFIRE_JWT;
+
+    assert.equal(result.suggestedGeneric, 'Atorvastatin');
+    assert.equal(result.byPlanId['H1036-054C'].coverage, 'not_covered');
+    assert.equal(result.byPlanId['H1036-054C'].tier, null);
+    assert.equal(result.genericFollowup.drugName, 'Atorvastatin');
+    assert.equal(result.genericFollowup.byPlanId['H1036-054C'].verified, true);
+    assert.equal(result.genericFollowup.byPlanId['H1036-054C'].tier, 1);
+    assert.equal(result.genericFollowup.byPlanId['H1036-054C'].costShare, '$0');
+    assert.equal(result.genericFollowup.suggestedGeneric, null);
+
+    const text = formatFormularyText(result);
+    assert.match(text, /not covered/i);
+    assert.match(text, /Suggested generic for Lipitor\*: Atorvastatin/);
+    assert.match(text, /do not wait for the agent to type the generic/i);
+    assert.match(text, /never invent a tier/i);
+    assert.match(text, /verified Tier 1/);
+    assert.doesNotMatch(text, /claim only/i);
+    assert.doesNotMatch(text, /Daisy/i);
+
+    const exported = toExportDrugs(result);
+    assert.equal(exported[0].name, 'Lipitor*');
+    assert.equal(exported[0].brandNotCovered, true);
+    assert.equal(exported[1].name, 'Atorvastatin (generic)');
+    assert.equal(exported[1].genericOf, 'Lipitor');
+    assert.equal(exported[1].byPlanId['H1036-054C'].tier, 1);
+    assert.equal(toExportDrug(result).claimedTier, undefined);
+  });
+
+  it('suggests Olmesartan after Benicar is not covered and leaves Unverified if the generic lookup fails', async () => {
+    process.env.SUNFIRE_JWT = 'test-jwt';
+    const fetchImpl = async (url) => {
+      const u = String(url);
+      if (u.includes('/v2/drug/search/olmesartan')) return jsonRes({ drugs: [] }, 503);
+      if (u.includes('/v2/drug/44/') || u.includes('/v2/drug/search/olmesartan/')) {
+        return jsonRes({ message: 'nope' }, 404);
+      }
+      return brandNotCoveredFetch(url);
+    };
+    const result = await lookupFormulary(
+      { drugName: 'Benicar', planIds: ['H1036-054C'], year: 2027, claimedTier: 3 },
+      fetchImpl
+    );
+    delete process.env.SUNFIRE_JWT;
+
+    assert.equal(result.suggestedGeneric, 'Olmesartan');
+    assert.equal(result.byPlanId['H1036-054C'].coverage, 'not_covered');
+    assert.equal(result.genericFollowup.verifiedAny, false);
+    assert.equal(result.genericFollowup.byPlanId['H1036-054C'].tier, null);
+    const drugs = toExportDrugs(result);
+    assert.equal(drugs[0].name, 'Benicar*');
+    assert.equal(drugs[1].name, 'Olmesartan (generic)');
+    assert.equal(drugs[1].byPlanId['H1036-054C'].verified, false);
+    assert.equal(drugs[1].byPlanId['H1036-054C'].tier, null);
+    const text = formatFormularyText(result);
+    assert.match(text, /UNVERIFIED/);
+    assert.doesNotMatch(text, /verified Tier [1-6].*Olmesartan|Olmesartan.*verified Tier [1-6]/);
+  });
+
+  it('does not recurse when skipGenericFollowup is set', async () => {
+    process.env.SUNFIRE_JWT = 'test-jwt';
+    const result = await lookupFormulary(
+      {
+        drugName: 'Lipitor',
+        planIds: ['H1036-054C'],
+        year: 2027,
+        skipGenericFollowup: true,
+      },
+      brandNotCoveredFetch
+    );
+    delete process.env.SUNFIRE_JWT;
+    assert.equal(result.suggestedGeneric, null);
+    assert.equal(result.genericFollowup, null);
+    assert.equal(result.byPlanId['H1036-054C'].coverage, 'not_covered');
+  });
+
+  it('does not invent a generic for a brand that is not in the name map', async () => {
+    process.env.SUNFIRE_JWT = 'test-jwt';
+    const fetchImpl = async (url) => {
+      const u = String(url);
+      if (u.includes('/v2/drug/search/trintellix/-1')) {
+        return jsonRes({ drugs: [{ id: 99, name: 'Trintellix', ndc: '64764072011' }] });
+      }
+      if (u.includes('/v2/drug/99/') || u.includes('/v2/drug/search/trintellix/')) {
+        return jsonRes({ covered: false, coverage: 'not_covered' });
+      }
+      if (u.includes('fhir.humana.com')) return jsonRes({ resourceType: 'Bundle', entry: [] });
+      return jsonRes({ message: 'nope' }, 404);
+    };
+    const result = await lookupFormulary(
+      { drugName: 'Trintellix', planIds: ['H1036-054C'], year: 2027 },
+      fetchImpl
+    );
+    delete process.env.SUNFIRE_JWT;
+    assert.equal(result.suggestedGeneric, null);
+    assert.equal(result.genericFollowup, null);
+    assert.equal(toExportDrugs(result).length, 1);
   });
 });

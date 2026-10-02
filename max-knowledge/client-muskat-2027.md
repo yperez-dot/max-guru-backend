@@ -30,6 +30,8 @@ Always include this Doctors section on the Muskat export. Wire statuses into the
 
 Header note: `*Brand not covered — these three plans cover the generic only.`
 
+Max must **automatically** pull Lipitor → Atorvastatin and Benicar → Olmesartan. Do not wait for Yahoska to type the generic. Locked cells below are Yahoska-verified 2027 facts. For any other client, generic tiers come from live `lookup_formulary` only — never invent a tier.
+
 | Drug | H1036-054C | H4140-023 | H5420-014 |
 |------|------------|-----------|-----------|
 | Lipitor* | Not covered | Not covered | Not covered |
