@@ -4,3 +4,4 @@ node_modules/
 __pycache__/
 *.pyc
 data/max-usage.json
+data/max-workups.json

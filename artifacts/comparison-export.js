@@ -64,6 +64,8 @@
   const HIGHLIGHT_KEYS = { hearing: true, otc: true };
   const NETWORK_IN = "In network";
   const NETWORK_OUT = "Out of network";
+  const NETWORK_NOT_CONFIRMED = "Not confirmed";
+  const NETWORK_NEED_MORE = "Need more info";
 
   const CLIENT_NAME_BLOCK = /^(miami|dade|broward|florida|medicare|humana|united|uhc|careplus|devoted|wellcare|aetna|simply|solis|healthsun|healthspring|doctors?|client|export|excel|compare|comparison|plan|dual|complete|preferred|summary|benefits|thei|max|pdf|sheet)$/i;
 
@@ -183,6 +185,15 @@
         if (looksLikePersonName(candidate)) found = candidate;
       }
     }
+    // Labeled household / last name (e.g. Client: Muskat) — only when explicitly labeled.
+    const labeled = /\b(?:client(?:\s+name)?|household)\s*[:=]\s*([A-Za-z][A-Za-z'.-]{1,40}(?:\s+[A-Za-z][A-Za-z'.-]{1,40}){0,3})/gi;
+    let m;
+    while ((m = labeled.exec(text))) {
+      const candidate = m[1].replace(/\s+/g, " ").trim();
+      if (looksLikePersonName(candidate) || /^[A-Za-z][A-Za-z'.-]{1,40}$/.test(candidate)) {
+        found = candidate;
+      }
+    }
     return found;
   }
 
@@ -209,8 +220,18 @@
     if (raw === false) return NETWORK_OUT;
     const s = String(raw || "").trim();
     if (!s) return "";
-    if (/^(in[-\s]?network|inn|in|true|yes|✅)$/i.test(s) || /\bin[-\s]?network\b/i.test(s)) return NETWORK_IN;
-    if (/^(out(?:\s+of)?[-\s]?network|oon|out|false|no|❌)$/i.test(s) || /\bout(?:\s+of)?[-\s]?network\b/i.test(s)) return NETWORK_OUT;
+    if (/need\s*more\s*info/i.test(s)) return NETWORK_NEED_MORE;
+    if (/not\s*confirmed/i.test(s)) return NETWORK_NOT_CONFIRMED;
+    if (/^(in[-\s]?network|inn|in|true|yes|✅)$/i.test(s) || /^IN$/i.test(s) || /\bin[-\s]?network\b/i.test(s)) {
+      return NETWORK_IN;
+    }
+    if (
+      /^(out(?:\s+of)?[-\s]?network|oon|out|false|no|❌)$/i.test(s) ||
+      /^OUT$/i.test(s) ||
+      /\bout(?:\s+of)?[-\s]?network\b/i.test(s)
+    ) {
+      return NETWORK_OUT;
+    }
     return "";
   }
 
@@ -956,7 +977,7 @@
             return String(content || "");
           };
     return (messages || [])
-      .filter((m) => m && m.role !== "offer")
+      .filter((m) => m && m.role !== "offer" && m.role !== "workup")
       .map((m) => toText(m.content))
       .filter(Boolean)
       .join("\n");
@@ -967,6 +988,8 @@
     HIGHLIGHT_KEYS,
     NETWORK_IN,
     NETWORK_OUT,
+    NETWORK_NOT_CONFIRMED,
+    NETWORK_NEED_MORE,
     formatBenefitValue,
     formatPlanMarketingName,
     formatPlanColumnHeader,

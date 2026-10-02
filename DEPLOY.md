@@ -33,3 +33,9 @@ The Netlify UI still expects Anthropic-style JSON:
 Akamai 403s Node/undici and Node `https` POSTs to `/api/v1/data/plan-compare/drugs/cost`. The lookup uses `curl`, then Python 3 `urllib` (stdlib). Do not switch that path back to `fetch`.
 
 Railway runtime must have **one** of those binaries. `railpack.json` (and `nixpacks.toml` if the service is still on Nixpacks) install `curl` and `python3` in the deploy image. A missing `curl` used to surface as `medicare_gov_http_0`.
+
+## Client workups (desktop ↔ phone)
+
+Structured workups are stored on Railway (`GET/PUT/DELETE /workups`), keyed by the unlock email. They are **not** browser-only.
+
+Set `MAX_WORKUPS_FILE=/data/max-workups.json` on the same mounted volume as `MAX_USAGE_FILE` so saves survive restarts and sync across devices. Cap is `MAX_WORKUPS_PER_OWNER` (default 50) per agent.

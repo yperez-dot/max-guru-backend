@@ -64,3 +64,7 @@ Max is meant for Yahoska / Katy / Carolina — not the full agent roster.
 5. Optional: in https://console.x.ai set a monthly spend limit / alerts
 
 Chat is also rate-limited (~40 requests / hour / session by default via `MAX_CHAT_RATE_MAX`).
+
+## Client workups
+
+The sidebar lists **Client workups** after unlock (Save / Update, Open, Delete). They live on Railway under that agent's unlock email, so desktop and phone share the same list. Opening a workup starts a fresh chat with one compact fact card — it does not replay the old thread into `/chat`. Excel/PDF export still uses the structured comparison payload.
