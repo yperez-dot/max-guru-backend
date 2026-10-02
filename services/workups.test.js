@@ -152,6 +152,7 @@ describe('compact resume context', () => {
         clientName: 'Muskat',
         doctors: muskatPayload().doctors,
         drugs: muskatPayload().drugs,
+        skipMuskatLock: true,
       }
     );
     const workup = workupsUi.buildWorkupFromExport(payload, {

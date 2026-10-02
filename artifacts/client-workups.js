@@ -140,7 +140,7 @@
           if (bucket && plan) byPlanId[displayPlanId(plan)] = bucket;
         });
       }
-      if (Object.keys(byPlanId).length) out.push({ name: name, byPlanId: byPlanId });
+      out.push({ name: name, byPlanId: byPlanId });
     });
     return out;
   }

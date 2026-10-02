@@ -113,10 +113,27 @@ describe('thread extractors', () => {
     assert.deepEqual(byName['Dr. Bonny Castro'], ['In network', 'In network']);
   });
 
-  it('omits doctors when names exist but network status is unknown', () => {
+  it('includes named doctors as Not confirmed when network status is unknown', () => {
     const plans = [{ planId: 'H1045-012' }, { planId: 'H1045-061' }];
     const docs = exp.extractDoctors('Client is Arias Lazo. She sees Dr. Adam Wanner and Dr. Anila Veerani.', plans);
-    assert.deepEqual(docs, []);
+    assert.equal(docs.length, 2);
+    assert.deepEqual(docs.find((d) => d.name === 'Dr. Adam Wanner').statuses, [
+      exp.NETWORK_NOT_CONFIRMED,
+      exp.NETWORK_NOT_CONFIRMED,
+    ]);
+  });
+
+  it('does not invent Plan Terminating unless she says a plan is ending', () => {
+    assert.equal(exp.hasExplicitTerminatingLanguage('Compare H1036-054C and H4140-023 for Muskat'), false);
+    assert.equal(exp.extractTerminatingPlan('Compare H1036-054C and H4140-023 for Michael Muskat in 33176'), '');
+    const plans = [{ planId: 'H1036-054C' }, { planId: 'H4140-023' }];
+    const payload = exp.buildExportPayload(plans, 'Compare these for Carol Wong in Miami-Dade.', {
+      terminatingPlan: 'should not leak from extras',
+      skipMuskatLock: true,
+    });
+    assert.equal(payload.terminatingPlan, '');
+    const model = exp.buildComparisonModel(payload);
+    assert.equal(model.aoa.some((row) => row[0] === 'Plan Terminating'), false);
   });
 
   it('does not invent a client name', () => {
@@ -300,6 +317,9 @@ describe('HTML UI wiring', () => {
     assert.match(html, /20c\. CARRIER GEOGRAPHY 2027/);
     assert.match(html, /MAX_ATTACH_IMAGES/);
     assert.match(html, /collectComparisonExport/);
+    assert.match(html, /doctorsFromToolResults/);
+    assert.match(html, /17c\. MUSKAT 2027 LOCKED COMP/);
+    assert.match(html, /Do NOT add a Plan Terminating row unless/);
     assert.match(html, /MaxClientWorkups/);
     assert.match(html, /\/workups/);
     assert.match(html, /Save workup/);
@@ -335,5 +355,144 @@ describe('HTML UI wiring', () => {
   it('keeps chat compare rule against markdown tables', () => {
     const html = fs.readFileSync(HTML_PATH, 'utf8');
     assert.match(html, /9\. NO MARKDOWN TABLES/);
+  });
+});
+
+describe('export doctors section + no carrier-as-drug', () => {
+  it('keeps a Doctors section from extras / provider-lookup even without thread In/Out prose', () => {
+    const plans = [
+      { planId: 'H1036-054C', planName: 'Humana Gold Plus', carrier: 'Humana' },
+      { planId: 'H4140-023', planName: 'Doctors DrSelect-SFL', carrier: 'Doctors' },
+      { planId: 'H5420-014', planName: 'MedicareMax Complete Care', carrier: 'UHC' },
+    ];
+    const payload = exp.buildExportPayload(plans, 'Check these providers for Carol Wong.', {
+      skipMuskatLock: true,
+      doctors: [{ name: 'Dr. Alejandro Roca', statuses: ['Out of network', 'In network', 'In network'] }],
+      providerLookups: [
+        {
+          doctorName: 'Neeta Jane Erinjeri',
+          networks: [
+            { carrier: 'Humana', inNetwork: true, plans: ['Humana Gold Plus (H1036-054C)'] },
+            { carrier: 'Doctors HealthCare Plans', inNetwork: true },
+            { carrier: 'UnitedHealthcare', inNetwork: true, plans: ['MedicareMax Complete Care (H5420-014)'] },
+          ],
+        },
+      ],
+    });
+    const model = exp.buildComparisonModel(payload);
+    assert.equal(model.aoa.some((row) => row[0] === 'Doctors'), true);
+    const roca = model.aoa.find((row) => row[0] === 'Dr. Alejandro Roca');
+    assert.deepEqual(roca.slice(1), ['Out of network', 'In network', 'In network']);
+    const neeta = model.aoa.find((row) => /Erinjeri/i.test(row[0]));
+    assert.ok(neeta);
+    assert.deepEqual(neeta.slice(1), ['In network', 'In network', 'In network']);
+    assert.ok(model.aoa.findIndex((row) => row[0] === 'Doctors') < model.aoa.findIndex((row) => row[0] === 'Premium'));
+  });
+
+  it('never treats carrier names as medication rows', () => {
+    const plans = [
+      { planId: 'H1036-054C', carrier: 'Humana', planName: 'Gold Plus' },
+      { planId: 'H4140-023', carrier: 'Doctors', planName: 'DrSelect-SFL' },
+      { planId: 'H5420-014', carrier: 'UHC', planName: 'MedicareMax Complete Care' },
+    ];
+    const thread =
+      'Compare Doctors, UHC, Humana for Carol Wong. Meds: Doctors T1, UHC T2, Humana Gold Plus T3, Lipitor T4.';
+    assert.equal(exp.isCarrierAsDrugName('Doctors'), true);
+    assert.equal(exp.isCarrierAsDrugName('UHC'), true);
+    assert.equal(exp.isCarrierAsDrugName('Humana'), true);
+    assert.equal(exp.looksLikeDrugName('Doctors'), false);
+    assert.equal(exp.looksLikeDrugName('Lipitor'), true);
+    const claimed = exp.extractClaimedMeds(thread).map((d) => d.name.toLowerCase());
+    assert.equal(claimed.includes('doctors'), false);
+    assert.equal(claimed.includes('uhc'), false);
+    assert.equal(claimed.includes('humana'), false);
+    const payload = exp.buildExportPayload(plans, thread, { skipMuskatLock: true });
+    const drugNames = payload.drugs.map((d) => d.name.toLowerCase());
+    assert.equal(drugNames.includes('doctors'), false);
+    assert.equal(drugNames.includes('uhc'), false);
+    assert.equal(drugNames.includes('humana'), false);
+    const model = exp.buildComparisonModel(payload);
+    assert.equal(model.aoa.some((row) => /^doctors$/i.test(row[0])), false);
+    assert.equal(model.aoa.some((row) => /^uhc$/i.test(row[0])), false);
+    assert.equal(model.aoa.some((row) => /^humana$/i.test(row[0])), false);
+  });
+});
+
+describe('Muskat 2027 locked export', () => {
+  it('locks Michael Muskat columns, doctors, verified Rx, and 2027 green-cell highlights', () => {
+    const plans = loadPlans();
+    const payload = exp.buildExportPayload(
+      [
+        planById(plans, 'H1036-305', 'Miami-Dade'),
+        planById(plans, 'H4140-012', 'Miami-Dade') || planById(plans, 'H4140-023', 'Miami-Dade'),
+        planById(plans, 'H5420-014', 'Miami-Dade'),
+      ].filter(Boolean),
+      'Excel for Michael Muskat ZIP 33176. Compare Humana, Doctors, and UHC MedicareMax Complete Care.',
+      { catalog: plans }
+    );
+    assert.equal(payload.clientName, 'Michael Muskat');
+    assert.equal(payload.terminatingPlan, '');
+    assert.deepEqual(
+      payload.plans.map((p) => exp.displayContractPbp(p)),
+      ['H1036-054C', 'H4140-023', 'H5420-014']
+    );
+    assert.equal(payload.plans[0].year, 2027);
+    assert.equal(payload.plans[0].premium, '$0');
+    assert.equal(payload.plans[0].partBGiveback, '$9.30');
+    assert.equal(payload.plans[0].moop, '$500');
+    assert.equal(payload.plans[1].planId, 'H4140-023');
+    assert.equal(payload.plans[1].otc.includes('143'), true);
+    assert.equal(payload.plans[2].partBGiveback, '$61');
+    assert.match(String(payload.plans[2].otc), /not covered/i);
+
+    const model = exp.buildComparisonModel(payload);
+    const labels = model.aoa.map((row) => row[0]);
+    assert.equal(labels[0], 'Michael Muskat');
+    assert.equal(labels.includes('Plan Terminating'), false);
+    assert.ok(labels.indexOf('Doctors') < labels.indexOf('Premium'));
+    assert.ok(labels.indexOf('Premium') < labels.indexOf('Medications'));
+    assert.ok(labels.includes(exp.GENERIC_ONLY_NOTE));
+
+    const roca = model.aoa.find((row) => row[0] === 'Dr. Alejandro Roca');
+    assert.deepEqual(roca.slice(1), ['Out of network', 'In network', 'In network']);
+    const kaiser = model.aoa.find((row) => row[0] === 'Dr. Charles J. Kaiser');
+    assert.deepEqual(kaiser.slice(1), ['Out of network', 'In network', 'In network']);
+    const trattler = model.aoa.find((row) => row[0] === 'Dr. William Trattler');
+    assert.deepEqual(trattler.slice(1), ['Out of network', 'In network', 'In network']);
+    const neeta = model.aoa.find((row) => row[0] === 'Dr. Neeta Jane Erinjeri');
+    assert.deepEqual(neeta.slice(1), ['In network', 'In network', 'In network']);
+
+    const lipitor = model.aoa.find((row) => row[0] === 'Lipitor*');
+    assert.deepEqual(lipitor.slice(1), ['Not covered', 'Not covered', 'Not covered']);
+    const atv = model.aoa.find((row) => row[0] === 'Atorvastatin (generic)');
+    assert.ok(atv.slice(1).every((c) => /Tier 1/.test(c) && /\$0/.test(c)));
+    const benicar = model.aoa.find((row) => row[0] === 'Benicar*');
+    assert.deepEqual(benicar.slice(1), ['Not covered', 'Not covered', 'Not covered']);
+    const olm = model.aoa.find((row) => row[0] === 'Olmesartan (generic)');
+    assert.ok(olm.slice(1).every((c) => /Tier 1/.test(c) && /\$0/.test(c)));
+    const lor = model.aoa.find((row) => row[0] === 'Lorazepam');
+    assert.match(lor[1], /Tier 4/);
+    assert.match(lor[1], /40%/);
+    assert.match(lor[2], /Tier 1/);
+    assert.match(lor[3], /Tier 2/);
+    const gab = model.aoa.find((row) => row[0] === 'Gabapentin');
+    assert.match(gab[1], /Tier 2/);
+    assert.match(gab[2], /Tier 1/);
+    assert.match(gab[3], /Tier 2/);
+    const trin = model.aoa.find((row) => row[0] === 'Trintellix');
+    assert.match(trin[1], /Tier 4/);
+    assert.match(trin[1], /40%/);
+    assert.match(trin[2], /Tier 4/);
+    assert.match(trin[2], /\$55/);
+    assert.match(trin[3], /Tier 3/);
+    const mem = model.aoa.find((row) => row[0] === 'Memantine');
+    assert.ok(mem.slice(1).every((c) => /Tier 2/.test(c) && /\$0/.test(c)));
+
+    const prem = model.aoa.find((row) => row[0] === 'Premium');
+    assert.equal(prem[1], '$0');
+    const give = model.aoa.find((row) => row[0] === 'Part B Rebate');
+    assert.equal(give[1], '$9.30');
+    assert.equal(give[2], 'No');
+    assert.equal(give[3], '$61');
   });
 });

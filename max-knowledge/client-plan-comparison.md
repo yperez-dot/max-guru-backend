@@ -41,9 +41,9 @@ Use `search_knowledge` with queries like “client plan comparison”, “Arias 
 The live UI **Export Excel** and **Export PDF** buttons build this layout from grid plan objects plus thread facts (client name, terminating plan, doctor in/out). Chat replies stay short bullets — do not paste a markdown table.
 
 1. **Title:** client full name (ask if missing; never invent; never “Client”).
-2. **Plan Terminating** (optional): e.g. `UHC MedicareMax Dual : Partial`.
+2. **Plan Terminating** only if the agent explicitly says a current plan is ending. Not part of the standard template (Arias had one because that client’s plan was terminating).
 3. **Plan columns:** full marketing name, contract-PBP on the next line (`H1045-012`). Not `Carrier — Plan (id) county`.
-4. **Doctors** first: one row per doctor, `In network` or `Out of network` per plan. Call `lookup_provider_network`. If doctors unknown, omit the block.
+4. **Doctors** first whenever providers were checked or named: `In network` / `Out of network` / `Not confirmed` / `Need more info` per plan. Call `lookup_provider_network` and wire results into the export payload so the section is not skipped.
 5. **Benefit rows** in this order, sourced cells only (gaps = `Not listed` / `N/A` / `SOB pending` / `EOC pending`): Premium; Part B Rebate; Referrals Needed?; MSP Levels; Max Out of Pocket; Inpatient Hospital; Outpatient Hospital; PCP; Specialist; ER; Urgent Care; Advanced Imaging (MRI, CT, PET); Hearing Services; Dental; Deep Cleaning; Dentures; Fillings; Root Canals; Extractions; Crowns; Bridges; Implants; Vision Allowance; Ambulance; Transportation; Companionship; Custodial Care; RX Deductible; Tier 1–6; OTC; Grocery Card; Acupuncture; Fitness; Summary of Benefits; Evidence of Coverage.
 6. SOB/EOC: clickable hyperlink when the URL is on the plan; otherwise pending.
 
@@ -110,6 +110,6 @@ Objective rows only (adapt to sourced data), for example:
 2. Drs/Rx from conversation, paste, or THEI sheet tab for that client (URL above) — ask agent to pull if Max has no live access
 3. Plan columns: carrier + name + plan ID (2–4) + ZIP/county
 4. Benefit rows from SOB / Plan Compare / grid only
-5. Doctor rows: In network / Out of network per plan via `lookup_provider_network` (omit Doctors if unknown)
+5. Doctor rows: In network / Out of network / Not confirmed / Need more info per plan via `lookup_provider_network` (always include the section when providers were checked or named)
 6. Rx rows: verified tier + T1–T6 cost-share via `lookup_formulary` only (Unverified if lookup fails)
 7. No ranking language + short disclaimer

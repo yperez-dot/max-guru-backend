@@ -87,7 +87,6 @@ function slimDoctors(doctors, plans) {
         if (bucket && planIds[i]) byPlanId[planIds[i]] = bucket;
       });
     }
-    if (!Object.keys(byPlanId).length) continue;
     out.push({ name, byPlanId });
     if (out.length >= MAX_DOCTORS) break;
   }
