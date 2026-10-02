@@ -1,6 +1,6 @@
 # Provider lookup — live vs manual (2026–2027)
 
-Source: live API probes 2026-09-02 and UHC guest Find a Doctor 2026-10-02. For broker use when an agent asks if a doctor is in-network.
+Source: live API probes 2026-09-02, UHC guest Find a Doctor 2026-10-02, and Humana Find Care guest 2026-10-02. For broker use when an agent asks if a doctor is in-network.
 
 Max runs the CMS NPI Registry first. A failed or empty carrier check is not proof the provider is out of network **unless that carrier’s live directory returned a successful empty result for that plan**. Network participation is a fact, never a ranking signal.
 
@@ -55,11 +55,21 @@ Guest Find Care: https://findcare.simplyhealthcareplans.com/?brand=SHC and shop 
 - THEI Duals: **H1045-012** Preferred Dual Complete FL-QV4, **H1045-061** FL-QV5, **H1045-063** FL-Y6 (Miami-Dade / Broward).
 - Successful empty search for that CMS ID = out of network for **that plan**.
 - Session / GraphQL failure = failed check. Hand the guest URL. Do not say out of network.
-- Empty or expired Sunfire is **not** UHC out of network. Sunfire is secondary (Humana / Wellcare / CarePlus).
+- Empty or expired Sunfire is **not** UHC or Humana out of network. Sunfire is secondary (Wellcare / CarePlus; Humana only if Find Care fails).
+
+## Humana (H1036, H7617) — AEP 2027
+
+**Public Find Care guest only.** No MyHumana / member login.
+
+- Guest SPA: https://findcare.humana.com (Search as a guest). `www.humana.com/finder` redirects here.
+- Max loads the public APIM subscription from `/session/v1/config`, mints a guest token, lists 2027 `future` Medicare networks for the ZIP, and searches by NPI (`POST /apim-gateway/api/v1/providersearch/npi/` — trailing slash required).
+- THEI 2027 mapping is by **network**, not PBP: FL Medicare HMO27 (Gold Plus HMO/C-SNP/Giveback), HIDE HMO27 (Dual Select), FIDE HMO27 (Dual Integrated, Miami-Dade), Medicare PPO27 (HumanaChoice).
+- Successful empty search for that network = out of network for **the THEI CMS IDs on that network**.
+- Config / token / nginx failure = failed check. Hand the guest URL. Do not say out of network.
+- Empty or expired Sunfire is **not** Humana out of network.
 
 ## Still Sunfire / carrier site
 
-- **Humana:** public FHIR is WAF 403; no stable unauthenticated API is wired.
 - **CarePlus, Wellcare:** no stable unauthenticated public provider API is wired.
 
 Use THEI Sunfire when its session is available; otherwise the carrier's public directory. Do not invent an affiliation.
