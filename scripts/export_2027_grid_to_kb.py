@@ -256,6 +256,12 @@ def parse_grid(xlsx: Path) -> tuple[list[dict], dict]:
             if not pid:
                 continue
             carrier = carrier_of(header_s)
+            # HealthSpring/Cigna: no 2027 MA in Miami-Dade or Broward (CMS CY2027).
+            # Leftover yellow/workbook cells are stale — do not export as 2027 plans.
+            if county in ("Miami-Dade", "Broward") and (
+                carrier == "HealthSpring" or (pid and str(pid).upper().startswith("H5410-"))
+            ):
+                continue
             name = clean_plan_name(header_s, pid)
 
             fields_green: list[tuple[str, str]] = []
@@ -421,7 +427,6 @@ def render_overview(plans: list[dict], meta: dict, pulled: str, stats: dict) -> 
 
     waiting = [
         "Florida Blue",
-        "HealthSpring / Cigna",
         "HealthSun",
         "Simply",
         "Solis",
@@ -448,6 +453,17 @@ def render_overview(plans: list[dict], meta: dict, pulled: str, stats: dict) -> 
         n = by_carrier.get(carrier, 0)
         key = fname.replace(".md", "")
         lines.append(f"| {carrier} | {n} | `carriers/{key}` |")
+    lines.append("")
+    lines.append("## Not offered in Miami-Dade / Broward 2027")
+    lines.append("")
+    lines.append(
+        "**HealthSpring / Cigna** has **no** 2027 Medicare Advantage plans in Miami-Dade or Broward "
+        "(CMS CY2027; THEI Plan Comparison Grid columns removed). "
+        "Do not quote 2026 HealthSpring dollars as 2027 benefits. "
+        "A live Cigna/HealthSpring directory hit is not a 2027 enrollment option in those counties. "
+        "Leftover yellow/workbook cells that mention HealthSpring or Cigna for Dade/Broward 2027 are stale — ignore them. "
+        "Cite `carriers/healthspring-plans-florida-2027`."
+    )
     lines.append("")
     lines.append("## Still waiting on the official October 1 SoB")
     lines.append("")

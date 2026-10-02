@@ -2,6 +2,8 @@
 Source: 2026 THEI Plan Comparison Grid
 Last updated: 2026-07-16
 
+**2027 South Florida:** HealthSpring has **no** 2027 MA plans in Miami-Dade or Broward. These 2026 dollars are current-year only — do not quote them as 2027 benefits for those counties. See `carriers/healthspring-plans-florida-2027`.
+
 ## HealthSpring Preferred (H5410-060) — DADE HMO
 **County:** DADE
 **Type:** HMO

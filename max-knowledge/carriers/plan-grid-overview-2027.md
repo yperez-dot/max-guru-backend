@@ -19,11 +19,14 @@ Live `#plan-data` stays the **2026** grid. These files are how chat answers 2027
 | Doctors | 9 | `carriers/doctors-plans-florida-2027` |
 | HealthSun | 12 | `carriers/healthsun-plans-florida-2027` |
 
+## Not offered in Miami-Dade / Broward 2027
+
+**HealthSpring / Cigna** has **no** 2027 Medicare Advantage plans in Miami-Dade or Broward (CMS CY2027; THEI Plan Comparison Grid columns removed). Do not quote 2026 HealthSpring dollars as 2027 benefits. A live Cigna/HealthSpring directory hit is not a 2027 enrollment option in those counties. Leftover yellow/workbook cells that mention HealthSpring or Cigna for Dade/Broward 2027 are stale — ignore them. Cite `carriers/healthspring-plans-florida-2027`.
+
 ## Still waiting on the official October 1 SoB
 
 These carriers are on the 2027 workbook but every benefit cell is still yellow. Do **not** quote their 2026 leftover numbers as 2027. Say Max does not have that 2027 figure yet.
 
-- HealthSpring / Cigna
 - Simply
 
 ## New 2027 plans on the grid

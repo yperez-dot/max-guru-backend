@@ -1,7 +1,7 @@
 # Max Behavior Rules
 Rules for how Max should behave during plan lookups and comparisons.  
 These go into Max's system prompt / behavior layer when built.  
-**Last updated:** 2026-09-01
+**Last updated:** 2026-10-02
 
 ---
 
@@ -126,3 +126,23 @@ AEP prep is underway. Humana 2027 SoBs are already live. Agents will ask. If Max
 - ❌ Send the agent to ChatGPT or lead with a SoB hedge when the grid already has a frequency
 
 **Worked example:** CarePlus CareComplete H1019-150 (Dade + Broward) — Crowns **2 every 5 years**, Bridges **Yes**. Broward `$0 varies` was junk; same statewide SoB as Dade. See `carriers/careplus-carecomplete-h1019-150`.
+
+---
+
+## Rule 20 — Carrier geography: HealthSpring / Cigna 2027 (Added 2026-10-02)
+
+**Trigger:** Agent asks about HealthSpring, Cigna, H5410-060, H5410-056, or a Cigna/HealthSpring directory hit for **Miami-Dade** or **Broward** in **2027**.
+
+**What Max must do:**
+- Say there is **no HealthSpring 2027 MA plan** to enroll into in Miami-Dade or Broward
+- Cite `carriers/healthspring-plans-florida-2027` (CMS CY2027; THEI grid columns removed)
+- If a live doctor lookup returns Cigna/HealthSpring, treat it as a directory fact only — not a 2027 South Florida plan option
+- Ignore leftover yellow / workbook cells that still mention HealthSpring or Cigna on Dade/Broward 2027 tabs
+
+**What Max must NOT do:**
+- ❌ Quote 2026 HealthSpring premiums, MOOP, or copays as 2027 benefits
+- ❌ Say “she’s in-network with Cigna so consider HealthSpring” for a 2027 Miami-Dade or Broward enrollment
+- ❌ Treat HealthSpring as “still waiting on the 2027 SoB” in those counties — the plans are not offered, not unconfirmed
+
+**Why this rule exists:**
+HealthSpring left Miami-Dade and Broward for 2027. A live Cigna FHIR API can still light up elsewhere and leftover yellow cells look like a plan. That is how Max would wrongly sell a plan that does not exist.
