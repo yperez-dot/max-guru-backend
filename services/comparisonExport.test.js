@@ -343,6 +343,8 @@ describe('HTML UI wiring', () => {
     assert.match(html, /\\d\{2,4\}\[A-Z\]\?/);
     assert.match(html, /keepCurrentComparisonPlans/);
     assert.match(html, /dedupeComparisonPlans/);
+    assert.match(html, /uniquePlansByContractPbp/);
+    assert.match(html, /compactContractPbp/);
     assert.match(html, /Medications immediately under Doctors/);
     assert.match(html, /Omit the MSP Levels row unless at least one compared plan is a D-SNP/);
     assert.match(html, /lookup_sob_benefit/);
@@ -912,6 +914,57 @@ FORMULARY_LOOKUP year=2027 drug=Memantine plan=H5420-001 verified_tier=2 cost_sh
     assert.match(mem[3], /Tier 2/);
   });
 
+  it('collapses an 8-column live payload to one column per contract-PBP and keeps doctors + Rx', () => {
+    const plans = loadPlans();
+    const humana = planById(plans, 'H1036-054C', 'Miami-Dade');
+    const doctorsDade = planById(plans, 'H4140-023', 'Miami-Dade');
+    const doctorsBroward = planById(plans, 'H4140-023', 'Broward') || Object.assign({}, doctorsDade, { county: 'Broward' });
+    const uhc = planById(plans, 'H5420-001', 'Miami-Dade');
+    const eight = [
+      humana,
+      Object.assign({}, humana, { id: 'H1036-054C-000-2027', planId: 'H1036-054C-000-2027' }),
+      doctorsDade,
+      doctorsBroward,
+      Object.assign({}, doctorsDade, { planId: 'H4140-023-000', id: 'H4140-023-000' }),
+      uhc,
+      Object.assign({}, uhc, { planId: 'H5420-001/0028', id: 'H5420-001/0028' }),
+      Object.assign({}, uhc, { planId: 'H5420-001-000-2027', id: 'H5420-001-000-2027' }),
+    ].filter(Boolean);
+    assert.equal(eight.length, 8);
+    assert.equal(exp.compactContractPbp('H5420-001/0028'), 'H5420-001');
+    assert.equal(exp.compactContractPbp('H4140-023-000-2027'), 'H4140-023');
+    assert.equal(exp.compactContractPbp('H1036-054C-000-2027'), 'H1036-054C');
+    const thread = `
+Excel for Michael Muskat ZIP 33176.
+Compare Humana Gold Plus H1036-054C, Doctors DrSelect-SFL H4140-023, stay-put UHC MedicareMax FL-0028 H5420-001.
+Doctors: Dr. Alejandro Roca, Dr. Jason Margolesky, Miami Neurology & Rehab.
+FORMULARY_LOOKUP year=2027 drug=Trintellix plan=H5420-001 verified_tier=3 cost_share=$25 coverage=covered source=sunfire
+FORMULARY_LOOKUP year=2027 drug=Lorazepam plan=H1036-054C verified_tier=4 cost_share=40% coverage=covered source=sunfire
+`;
+    const payload = exp.buildExportPayload(eight, thread, {
+      catalog: plans,
+      drugs: exp.muskatLockedDrugs(),
+      doctors: exp.muskatLockedDoctors(),
+    });
+    assert.deepEqual(
+      payload.plans.map((p) => exp.displayContractPbp(p)),
+      ['H1036-054C', 'H4140-023', 'H5420-001']
+    );
+    const offer = { role: 'offer', content: 'export', plans: eight, doctors: payload.doctors, drugs: payload.drugs, clientName: 'Michael Muskat', threadText: thread };
+    const model = exp.buildComparisonModel(offer);
+    const ids = model.payload.plans.map((p) => exp.displayContractPbp(p));
+    assert.deepEqual(ids, ['H1036-054C', 'H4140-023', 'H5420-001']);
+    const labels = model.aoa.map((row) => row[0]);
+    assert.ok(labels.indexOf('Doctors') < labels.indexOf('Medications'));
+    assert.ok(labels.some((l) => /Roca/i.test(l)));
+    assert.ok(labels.includes('Lipitor*'));
+    assert.ok(labels.includes('Atorvastatin (generic)'));
+    const trin = model.aoa.find((row) => row[0] === 'Trintellix');
+    assert.match(trin[3], /Tier 3/);
+    assert.match(trin[3], /\$25/);
+    assert.equal(trin.slice(1).every((c) => c !== 'Unverified'), true);
+  });
+
   it('dedupes legal-name and short-name doctor rows and keeps Margolesky + Miami Neurology', () => {
     const plans = [
       { planId: 'H1036-054C', planName: 'Humana Gold Plus' },
@@ -956,5 +1009,121 @@ FORMULARY_LOOKUP year=2027 drug=Memantine plan=H5420-001 verified_tier=2 cost_sh
     const labels = model.aoa.map((row) => row[0]);
     assert.equal(labels.filter((l) => /margolesky/i.test(l)).length, 1);
     assert.equal(labels.filter((l) => /neurology/i.test(l)).length, 1);
+  });
+});
+
+describe('One column per distinct contract-PBP (follow-up hardening)', () => {
+  const ids = (list) => list.map((p) => exp.displayContractPbp(p));
+  const clone = (p, o) => Object.assign({}, p, o);
+  function trio() {
+    const plans = loadPlans();
+    return {
+      plans,
+      h: planById(plans, 'H1036-054C', 'Miami-Dade'),
+      d: planById(plans, 'H4140-023', 'Miami-Dade'),
+      u: planById(plans, 'H5420-001', 'Miami-Dade'),
+      u14: planById(plans, 'H5420-014', 'Miami-Dade'),
+      giveback: planById(plans, 'H1036-305', 'Miami-Dade'),
+    };
+  }
+
+  it('keeps H5420-001 and H5420-014 as two columns when both are in the comparison', () => {
+    const { h, d, u, u14 } = trio();
+    assert.ok(h && d && u && u14);
+    const model = exp.buildComparisonModel({ plans: [u14, d, u, h], clientName: 'Test Client' });
+    assert.deepEqual(ids(model.payload.plans), ['H1036-054C', 'H4140-023', 'H5420-001', 'H5420-014']);
+    assert.deepEqual(ids(exp.dedupeComparisonPlans([h, d, u, u14])), ['H1036-054C', 'H4140-023', 'H5420-001', 'H5420-014']);
+  });
+
+  it('does not cap distinct plans (4+ columns) and only drops a second copy of the same ID', () => {
+    const { h, d, u, giveback } = trio();
+    assert.ok(giveback);
+    const five = [h, clone(h), d, clone(d, { county: 'Broward' }), u, clone(u, { planId: 'H5420-001/0028', id: 'H5420-001/0028' }), giveback];
+    assert.deepEqual(ids(exp.uniquePlansByContractPbp(five)), ['H1036-054C', 'H4140-023', 'H5420-001', 'H1036-305']);
+  });
+
+  it('keeps THEI compound IDs intact (no mangling) while still collapsing real copies', () => {
+    assert.equal(exp.displayContractPbp({ planId: 'H5471-077-00' }), 'H5471-077-00');
+    assert.equal(exp.displayContractPbp({ planId: 'H5420-003 FL-0029' }), 'H5420-003FL-0029');
+    assert.notEqual(exp.displayContractPbp({ planId: 'H5420-003 FL-0029' }), 'H5420-003F');
+    assert.equal(exp.displayContractPbp({ planId: 'H1036-054C-000-2027' }), 'H1036-054C');
+    assert.equal(exp.compactContractPbp('H5471-077-00'), 'H5471-077-00');
+    assert.notEqual(exp.compactContractPbp('H5471-077-00'), exp.compactContractPbp('H5471-077'));
+    assert.equal(exp.compactContractPbp('H5420-001/0028'), 'H5420-001');
+    assert.equal(exp.compactContractPbp('H4140-023-000'), 'H4140-023');
+    assert.equal(exp.compactContractPbp('H1036-054'), 'H1036-054C');
+    const a = { planId: 'H5471-077-00', planName: 'A' };
+    const b = { planId: 'H5420-003 FL-0029', planName: 'B' };
+    assert.equal(exp.uniquePlansByContractPbp([a, clone(a), b]).length, 2);
+  });
+
+  it('realigns positional doctor statuses when stacked plan copies collapse', () => {
+    const { h, d, u } = trio();
+    const eight = [h, clone(h), d, clone(d, { county: 'Broward' }), clone(d), u, clone(u, { planId: 'H5420-001/0028', id: 'H5420-001/0028' }), clone(u)];
+    // Truth by contract-PBP: Humana OUT, Doctors IN, UHC IN (copies repeat their column's status)
+    const statuses = [
+      'Out of network', 'Out of network',
+      'In network', 'In network', 'In network',
+      'In network', 'In network', 'In network',
+    ];
+    const model = exp.buildComparisonModel({ plans: eight, clientName: 'Test Client', doctors: [{ name: 'Dr. Test', statuses }] });
+    assert.deepEqual(ids(model.payload.plans), ['H1036-054C', 'H4140-023', 'H5420-001']);
+    const row = model.aoa.find((r) => r[0] === 'Dr. Test');
+    assert.deepEqual(row.slice(1), ['Out of network', 'In network', 'In network']);
+  });
+
+  it('prefers a real In/Out over a Not confirmed copy when folding duplicate columns', () => {
+    const { h, d, u } = trio();
+    const stacked = [h, d, clone(d), u];
+    const statuses = ['In network', 'Not confirmed', 'Out of network', 'In network'];
+    const model = exp.buildComparisonModel({ plans: stacked, clientName: 'Test Client', doctors: [{ name: 'Dr. Fold', statuses }] });
+    const row = model.aoa.find((r) => r[0] === 'Dr. Fold');
+    assert.deepEqual(row.slice(1), ['In network', 'Out of network', 'In network']);
+  });
+
+  it('keepCurrentComparisonPlans: a cited 001 replaces a stale remembered 014', () => {
+    const { h, d, u, u14 } = trio();
+    assert.deepEqual(ids(exp.keepCurrentComparisonPlans([h, d, u], [h, d, u14])), ['H1036-054C', 'H4140-023', 'H5420-001']);
+    assert.deepEqual(ids(exp.keepCurrentComparisonPlans([d, u], [h, d, u14])), ['H1036-054C', 'H4140-023', 'H5420-001']);
+  });
+
+  it('keepCurrentComparisonPlans: 001 and 014 both cited now stay as two columns', () => {
+    const { h, d, u, u14 } = trio();
+    assert.deepEqual(ids(exp.keepCurrentComparisonPlans([u, u14], [h, d, u14])), ['H1036-054C', 'H4140-023', 'H5420-001', 'H5420-014']);
+  });
+
+  it('a 014 formulary lookup never fills a separate 001 column', () => {
+    const { u, u14 } = trio();
+    const live = { verified: true, tier: 3, costShare: '$0', coverage: 'covered', source: 'sunfire' };
+    const rows = exp.normalizeDrugs([{ name: 'Trintellix', byPlanId: { 'H5420-014': live } }], [u, u14]);
+    assert.equal(rows[0].byPlanId['H5420-014'].verified, true);
+    assert.equal(rows[0].byPlanId['H5420-001'].verified, false);
+    // ...but with only a 001 column, the old alias fallback still maps it there.
+    const only001 = exp.normalizeDrugs([{ name: 'Trintellix', byPlanId: { 'H5420-014': live } }], [u]);
+    assert.equal(only001[0].byPlanId['H5420-001'].verified, true);
+  });
+
+  it('Muskat stay-put export from a stacked 8-column offer keeps Doctors, Rx, and no Plan Terminating', () => {
+    const { plans, h, d, u } = trio();
+    const eight = [h, clone(h), d, clone(d, { county: 'Broward' }), clone(d), u, clone(u, { planId: 'H5420-001/0028', id: 'H5420-001/0028' }), clone(u)];
+    const thread = `
+Excel for Michael Muskat ZIP 33176.
+Compare Humana Gold Plus H1036-054C, Doctors DrSelect-SFL H4140-023, stay-put UHC MedicareMax FL-0028 H5420-001.
+FORMULARY_LOOKUP year=2027 drug=Trintellix plan=H5420-001 verified_tier=3 cost_share=$25 coverage=covered source=sunfire
+`;
+    const payload = exp.buildExportPayload(eight, thread, { catalog: plans, rememberedPlans: eight });
+    const model = exp.buildComparisonModel(payload);
+    assert.deepEqual(ids(model.payload.plans), ['H1036-054C', 'H4140-023', 'H5420-001']);
+    const labels = model.aoa.map((r) => r[0]);
+    assert.equal(labels.includes('Plan Terminating'), false);
+    assert.ok(labels.indexOf('Doctors') < labels.indexOf('Medications'));
+    assert.ok(labels.indexOf('Medications') < labels.indexOf('Premium'));
+    const lip = model.aoa.find((r) => r[0] === 'Lipitor*');
+    assert.deepEqual(lip.slice(1), ['Not covered', 'Not covered', 'Not covered']);
+    const atv = model.aoa.find((r) => r[0] === 'Atorvastatin (generic)');
+    assert.ok(atv.slice(1).every((c) => /Tier 1/.test(c) && /\$0/.test(c)));
+    const trin = model.aoa.find((r) => r[0] === 'Trintellix');
+    assert.match(trin[3], /Tier 3/);
+    assert.match(trin[3], /\$25/);
   });
 });
