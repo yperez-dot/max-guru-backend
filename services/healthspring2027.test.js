@@ -18,7 +18,7 @@ describe('HealthSpring 2027 South Florida — no MA in Miami-Dade / Broward', ()
     assert.match(doc, /Broward/);
     assert.match(doc, /HealthSpring/);
     assert.match(doc, /Cigna/);
-    assert.match(doc, /do not quote/i);
+    assert.match(doc, /not\*\* quote 2026 HealthSpring|Do not quote 2026 HealthSpring/i);
     assert.match(doc, /in-network with Cigna so consider HealthSpring/i);
     assert.match(doc, /stale/i);
   });
@@ -66,8 +66,10 @@ describe('HealthSpring 2027 South Florida — no MA in Miami-Dade / Broward', ()
     assert.match(exportPy, /carrier == "HealthSpring"/);
     assert.match(exportPy, /H5410-/);
     assert.match(exportPy, /Not offered in Miami-Dade \/ Broward 2027/);
+    const waitingList = exportPy.match(/waiting = \[\s*\n([\s\S]*?)\n    \]/);
+    assert.ok(waitingList, 'expected export waiting = [ ... ] list');
     assert.equal(
-      /waiting = \[[\s\S]*HealthSpring \/ Cigna/.test(exportPy),
+      /HealthSpring/.test(waitingList[1]),
       false,
       'export waiting list must not re-add HealthSpring as waiting on SoB'
     );
