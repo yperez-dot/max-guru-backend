@@ -253,6 +253,8 @@ Meds from Daisy: Lorazepam T2, Trintellix T4, Atorvastatin Tier 1.
     const payload = exp.buildExportPayload(plans, daisy, {});
     const model = exp.buildComparisonModel(payload);
     assert.ok(model.aoa.some((row) => row[0] === 'Medications'));
+    const daisyLabels = model.aoa.map((row) => row[0]);
+    assert.ok(daisyLabels.indexOf('Medications') < daisyLabels.indexOf('Premium'));
     const trin = model.aoa.find((row) => row[0] === 'Trintellix');
     assert.ok(trin);
     assert.deepEqual(trin.slice(1), ['Unverified', 'Unverified']);
@@ -322,6 +324,7 @@ describe('HTML UI wiring', () => {
     assert.match(html, /Lipitor → Atorvastatin/);
     assert.match(html, /do not wait for the agent to type the generic/);
     assert.match(html, /17c\. MUSKAT 2027 LOCKED COMP/);
+    assert.match(html, /Medications immediately under Doctors/);
     assert.match(html, /Do NOT add a Plan Terminating row unless/);
     assert.match(html, /MaxClientWorkups/);
     assert.match(html, /\/workups/);
@@ -579,8 +582,10 @@ describe('Muskat 2027 locked export', () => {
     const labels = model.aoa.map((row) => row[0]);
     assert.equal(labels[0], 'Michael Muskat');
     assert.equal(labels.includes('Plan Terminating'), false);
-    assert.ok(labels.indexOf('Doctors') < labels.indexOf('Premium'));
-    assert.ok(labels.indexOf('Premium') < labels.indexOf('Medications'));
+    assert.ok(labels.indexOf('Doctors') < labels.indexOf('Medications'));
+    assert.ok(labels.indexOf('Medications') < labels.indexOf('Premium'));
+    assert.ok(labels.indexOf('Memantine') < labels.indexOf('Premium'));
+    assert.ok(labels.indexOf('Fitness') < labels.indexOf('Summary of Benefits'));
     assert.ok(labels.includes(exp.GENERIC_ONLY_NOTE));
 
     const roca = model.aoa.find((row) => row[0] === 'Dr. Alejandro Roca');

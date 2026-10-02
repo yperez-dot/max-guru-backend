@@ -51,7 +51,7 @@ npx netlify deploy --prod --dir=/tmp/max-index --site=<site-id>
 Plan IDs like `H5420-001/0028` fuzzy-match grid IDs (`H5420-001/-0028`).
 Asking for “excel” or “pdf” re-offers Export from the **latest** comparison only.
 
-The file matches Yahoska’s Arias Lazo sheet: client name title (when known), Plan Terminating only when she says a current plan is ending, marketing name + contract-PBP headers, Doctors first (In/Out / Not confirmed / Need more info when providers were checked or named), 2027 green-cell benefits, then Medications. SOB/EOC are hyperlinks when the plan has a URL, otherwise `SOB pending` / `EOC pending`. The HTML inlines the export script, so publishing `max-demo-FINAL-v7.html` as `index.html` is still a one-file deploy.
+The file matches Yahoska’s sheet: client name title (when known), Plan Terminating only when she says a current plan is ending, marketing name + contract-PBP headers, Doctors first (In/Out / Not confirmed / Need more info when providers were checked or named), Medications immediately under Doctors (brand* + generic), then 2027 green-cell benefits, then SOB/EOC. SOB/EOC are hyperlinks when the plan has a URL, otherwise `SOB pending` / `EOC pending`. The HTML inlines the export script, so publishing `max-demo-FINAL-v7.html` as `index.html` is still a one-file deploy.
 
 ## Invite-only access (cost control)
 
