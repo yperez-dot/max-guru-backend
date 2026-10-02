@@ -67,6 +67,21 @@
   const NETWORK_NOT_CONFIRMED = "Not confirmed";
   const NETWORK_NEED_MORE = "Need more info";
   const GENERIC_ONLY_NOTE = "*Brand not covered — these three plans cover the generic only.";
+  // Names only — never invent a generic tier from this map.
+  const BRAND_TO_GENERIC = {
+    lipitor: "Atorvastatin",
+    benicar: "Olmesartan",
+    crestor: "Rosuvastatin",
+    zocor: "Simvastatin",
+    pravachol: "Pravastatin",
+    nexium: "Esomeprazole",
+    prilosec: "Omeprazole",
+    protonix: "Pantoprazole",
+    plavix: "Clopidogrel",
+    norvasc: "Amlodipine",
+    cozaar: "Losartan",
+    diovan: "Valsartan",
+  };
   const MUSKAT_PLAN_IDS = ["H1036-054C", "H4140-023", "H5420-014"];
   const DOCTORS_PBP_2027 = { "H4140-001": "H4140-022", "H4140-012": "H4140-023" };
   const CARRIER_AS_DRUG = /^(doctors?|uhc|united|unitedhealthcare|humana|careplus|care\s*plus|devoted|wellcare|well\s*care|aetna|simply|solis|healthsun|health\s*sun|healthspring|health\s*spring|medicaremax|medicare\s*max|preferred|cigna|anthem|elevance|floridablue|florida\s*blue|goldkidney|gold\s*kidney|gold\s*plus|drselect|drmax)$/i;
@@ -387,6 +402,73 @@
       .trim();
   }
 
+  function drugNameKey(name) {
+    return String(name || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "");
+  }
+
+  function knownGenericFor(drugName) {
+    const key = drugNameKey(drugName);
+    if (!key) return null;
+    if (BRAND_TO_GENERIC[key]) return BRAND_TO_GENERIC[key];
+    const stripped = key.replace(/generic$/, "");
+    return BRAND_TO_GENERIC[stripped] || null;
+  }
+
+  function brandHasNotCovered(drug) {
+    if (!drug) return false;
+    if (drug.brandNotCovered) return true;
+    const map = drug.byPlanId || {};
+    return Object.keys(map).some((id) => {
+      const row = map[id];
+      return row && row.verified && row.coverage === "not_covered";
+    });
+  }
+
+  function isGenericRowFor(drug, brandName, genericName) {
+    if (!drug) return false;
+    const k = drugNameKey(drug.name);
+    const gKey = drugNameKey(genericName);
+    const bKey = drugNameKey(String(brandName || "").replace(/\*+$/, ""));
+    return (
+      k === gKey ||
+      k === gKey + "generic" ||
+      (drug.genericOf && drugNameKey(drug.genericOf) === bKey)
+    );
+  }
+
+  function applyKnownGenericSuggestions(drugs, plans) {
+    if (!Array.isArray(drugs) || !drugs.length) return drugs || [];
+    const out = [];
+    drugs.forEach((d) => {
+      const generic = knownGenericFor(d && d.name);
+      if (generic && brandHasNotCovered(d)) {
+        d.brandNotCovered = true;
+        if (!/\*$/.test(String(d.name || ""))) {
+          d.name = String(d.name).replace(/\*+$/, "") + "*";
+        }
+      }
+      out.push(d);
+      if (!generic || !brandHasNotCovered(d)) return;
+      const existing = drugs.find((x) => x !== d && isGenericRowFor(x, d.name, generic)) ||
+        out.find((x) => x !== d && isGenericRowFor(x, d.name, generic));
+      if (existing) {
+        existing.genericOf = existing.genericOf || String(d.name || "").replace(/\*+$/, "");
+        if (!/\(generic\)/i.test(existing.name || "")) {
+          existing.name = generic + " (generic)";
+        }
+        return;
+      }
+      out.push({
+        name: generic + " (generic)",
+        genericOf: String(d.name || "").replace(/\*+$/, ""),
+        byPlanId: emptyPlanDrugStatuses(plans),
+      });
+    });
+    return out;
+  }
+
   function parseFormularyLookupLine(line) {
     if (!/FORMULARY_LOOKUP/i.test(line || "")) return null;
     const get = (key) => {
@@ -498,7 +580,7 @@
       if (!row) return;
       mergeDrugPlanStatus(row.byPlanId, hit.planId, hit, plans);
     });
-    return [...byName.values()];
+    return applyKnownGenericSuggestions([...byName.values()], plans);
   }
 
   function normalizeDrugs(drugs, plans) {
@@ -531,7 +613,7 @@
         d.lookups.forEach((hit) => mergeDrugPlanStatus(row.byPlanId, hit.planId, hit, plans));
       }
     });
-    return [...byName.values()];
+    return applyKnownGenericSuggestions([...byName.values()], plans);
   }
 
   function formatDrugCell(status, plan) {
@@ -854,7 +936,7 @@
     );
     const fromExtras = normalizeDrugs(extra.drugs, resolvedPlans);
     const fromThread = extractDrugs(text, resolvedPlans);
-    const drugs = fromExtras.length ? fromExtras : fromThread;
+    let drugs = fromExtras.length ? fromExtras : fromThread;
     if (fromExtras.length && fromThread.length) {
       fromThread.forEach((t) => {
         const hit = drugs.find((d) => d.name.toLowerCase() === t.name.toLowerCase());
@@ -866,6 +948,7 @@
         }
       });
     }
+    drugs = applyKnownGenericSuggestions(drugs, resolvedPlans);
     const payload = {
       plans: resolvedPlans,
       clientName: clientName || "",
@@ -876,6 +959,9 @@
       county: extra.county || "",
       threadText: text,
     };
+    if (drugs.some((d) => d.brandNotCovered || /\*$/.test(d.name || "") || d.genericOf)) {
+      payload.genericOnlyNote = GENERIC_ONLY_NOTE;
+    }
     if (isMuskatContext(text, extra) && !extra.skipMuskatLock) {
       applyMuskatLockedFacts(payload, catalog.length ? catalog : resolvedPlans);
     }
@@ -1306,6 +1392,9 @@
     NETWORK_NOT_CONFIRMED,
     NETWORK_NEED_MORE,
     GENERIC_ONLY_NOTE,
+    BRAND_TO_GENERIC,
+    knownGenericFor,
+    applyKnownGenericSuggestions,
     MUSKAT_PLAN_IDS,
     isCarrierAsDrugName,
     looksLikeDrugName,

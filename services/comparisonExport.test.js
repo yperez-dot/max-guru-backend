@@ -318,6 +318,9 @@ describe('HTML UI wiring', () => {
     assert.match(html, /MAX_ATTACH_IMAGES/);
     assert.match(html, /collectComparisonExport/);
     assert.match(html, /doctorsFromToolResults/);
+    assert.match(html, /drugsFromToolResults/);
+    assert.match(html, /Lipitor → Atorvastatin/);
+    assert.match(html, /do not wait for the agent to type the generic/);
     assert.match(html, /17c\. MUSKAT 2027 LOCKED COMP/);
     assert.match(html, /Do NOT add a Plan Terminating row unless/);
     assert.match(html, /MaxClientWorkups/);
@@ -415,6 +418,133 @@ describe('export doctors section + no carrier-as-drug', () => {
     assert.equal(model.aoa.some((row) => /^doctors$/i.test(row[0])), false);
     assert.equal(model.aoa.some((row) => /^uhc$/i.test(row[0])), false);
     assert.equal(model.aoa.some((row) => /^humana$/i.test(row[0])), false);
+  });
+});
+
+describe('auto-suggest generic when brand is not covered', () => {
+  const plans = [
+    { planId: 'H1036-054C', planName: 'Humana Gold Plus', carrier: 'Humana', tier1: 0, county: 'Miami-Dade' },
+    { planId: 'H4140-023', planName: 'Doctors DrSelect-SFL', carrier: 'Doctors', tier1: 0, county: 'Miami-Dade' },
+    { planId: 'H5420-014', planName: 'MedicareMax Complete Care', carrier: 'UHC', tier1: 0, county: 'Miami-Dade' },
+  ];
+  const nc = {
+    verified: true,
+    coverage: 'not_covered',
+    tier: null,
+    costShare: null,
+    source: 'sunfire',
+  };
+
+  it('maps Lipitor and Benicar names only', () => {
+    assert.equal(exp.knownGenericFor('Lipitor'), 'Atorvastatin');
+    assert.equal(exp.knownGenericFor('Benicar*'), 'Olmesartan');
+    assert.equal(exp.knownGenericFor('Trintellix'), null);
+  });
+
+  it('adds Brand* + generic Unverified from live not_covered without inventing a tier', () => {
+    const payload = exp.buildExportPayload(
+      plans,
+      'Compare H1036-054C, H4140-023, H5420-014 for Carol Wong. Meds: Lipitor T4.',
+      {
+        skipMuskatLock: true,
+        drugs: [
+          {
+            name: 'Lipitor',
+            byPlanId: {
+              'H1036-054C': nc,
+              'H4140-023': nc,
+              'H5420-014': nc,
+            },
+          },
+        ],
+      }
+    );
+    const names = payload.drugs.map((d) => d.name);
+    assert.ok(names.includes('Lipitor*'));
+    assert.ok(names.includes('Atorvastatin (generic)'));
+    const lip = payload.drugs.find((d) => d.name === 'Lipitor*');
+    assert.equal(lip.brandNotCovered, true);
+    const atv = payload.drugs.find((d) => d.name === 'Atorvastatin (generic)');
+    assert.equal(atv.genericOf, 'Lipitor');
+    assert.equal(atv.byPlanId['H1036-054C'].verified, false);
+    assert.equal(atv.byPlanId['H1036-054C'].tier, null);
+    const model = exp.buildComparisonModel(payload);
+    assert.ok(model.aoa.some((row) => row[0] === exp.GENERIC_ONLY_NOTE));
+    const lipRow = model.aoa.find((row) => row[0] === 'Lipitor*');
+    assert.deepEqual(lipRow.slice(1), ['Not covered', 'Not covered', 'Not covered']);
+    const atvRow = model.aoa.find((row) => row[0] === 'Atorvastatin (generic)');
+    assert.deepEqual(atvRow.slice(1), ['Unverified', 'Unverified', 'Unverified']);
+    assert.equal(atvRow.includes('Tier 1'), false);
+  });
+
+  it('keeps a live generic tier from lookup extras and never copies Daisy', () => {
+    const payload = exp.buildExportPayload(
+      plans,
+      'Carol Wong meds: Lipitor T4, Benicar T3.',
+      {
+        skipMuskatLock: true,
+        drugs: [
+          {
+            name: 'Lipitor*',
+            brandNotCovered: true,
+            byPlanId: { 'H1036-054C': nc, 'H4140-023': nc, 'H5420-014': nc },
+          },
+          {
+            name: 'Atorvastatin (generic)',
+            genericOf: 'Lipitor',
+            byPlanId: {
+              'H1036-054C': { verified: true, tier: 1, coverage: 'covered', costShare: '$0', source: 'sunfire' },
+              'H4140-023': { verified: true, tier: 1, coverage: 'covered', costShare: '$0', source: 'sunfire' },
+              'H5420-014': { verified: true, tier: 2, coverage: 'covered', costShare: '$0', source: 'sunfire' },
+            },
+          },
+        ],
+      }
+    );
+    const atv = payload.drugs.filter((d) => /atorvastatin/i.test(d.name));
+    assert.equal(atv.length, 1);
+    const model = exp.buildComparisonModel(payload);
+    const atvRow = model.aoa.find((row) => row[0] === 'Atorvastatin (generic)');
+    assert.match(atvRow[1], /Tier 1/);
+    assert.match(atvRow[1], /\$0/);
+    assert.match(atvRow[3], /Tier 2/);
+    assert.equal(atvRow[1].includes('Tier 4'), false);
+  });
+
+  it('does not mark a Daisy-only brand as not covered or invent a generic tier', () => {
+    const payload = exp.buildExportPayload(
+      plans,
+      'Compare H1036-054C and H4140-023 for Carol Wong. Meds: Lipitor T4, Lorazepam T2.',
+      { skipMuskatLock: true }
+    );
+    const lip = payload.drugs.find((d) => /lipitor/i.test(d.name));
+    assert.ok(lip);
+    assert.equal(/\*$/.test(lip.name), false);
+    assert.equal(lip.brandNotCovered, undefined);
+    assert.equal(
+      payload.drugs.some((d) => /atorvastatin/i.test(d.name)),
+      false
+    );
+    const model = exp.buildComparisonModel(payload);
+    const lipRow = model.aoa.find((row) => /Lipitor/i.test(row[0]));
+    assert.deepEqual(lipRow.slice(1), ['Unverified', 'Unverified', 'Unverified']);
+  });
+
+  it('pulls the generic from FORMULARY_LOOKUP not_covered lines in the thread', () => {
+    const thread = `
+Compare H1036-054C and H4140-023 for Carol Wong.
+FORMULARY_LOOKUP year=2027 drug=Lipitor plan=H1036-054C verified_tier=none coverage=not_covered source=sunfire
+FORMULARY_LOOKUP year=2027 drug=Lipitor plan=H4140-023 verified_tier=none coverage=not_covered source=sunfire
+FORMULARY_LOOKUP year=2027 drug=Atorvastatin plan=H1036-054C verified_tier=1 cost_share=$0 source=sunfire
+FORMULARY_LOOKUP year=2027 drug=Atorvastatin plan=H4140-023 verified_tier=1 cost_share=$0 source=sunfire
+`;
+    const payload = exp.buildExportPayload(plans.slice(0, 2), thread, { skipMuskatLock: true });
+    const model = exp.buildComparisonModel(payload);
+    const lip = model.aoa.find((row) => row[0] === 'Lipitor*');
+    assert.deepEqual(lip.slice(1), ['Not covered', 'Not covered']);
+    const atv = model.aoa.find((row) => row[0] === 'Atorvastatin (generic)');
+    assert.match(atv[1], /Tier 1/);
+    assert.match(atv[2], /Tier 1/);
   });
 });
 

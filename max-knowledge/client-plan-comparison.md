@@ -92,6 +92,7 @@ Objective rows only (adapt to sourced data), for example:
 - Each row: **drug name** with **verified formulary tier + T1–T6 cost-share** under each plan.
 - Call `lookup_formulary` for **each drug × each named plan** (year 2027 unless asked otherwise). `search_drug` is catalog/NDC only — it does **not** verify a tier. Chain: Sunfire → Humana FHIR → medicare.gov → Doctors 2027 formulary PDF for H4140 (001→022, 012→023).
 - A pasted “Tier X” (Daisy, client claim, last year, or a finished-comp archive) is **discarded**. Keep drug names only. Never copy, quote, or imply that label.
+- When a **brand is verified not covered**, automatically pull / suggest the generic (Lipitor → Atorvastatin, Benicar → Olmesartan). Do **not** wait for the agent to type the generic. Show the brand as `Brand*` + the asterisk note. Generic tier comes from that live follow-up only — never invent a tier. If the generic lookup fails, the generic row is **Unverified**.
 - If lookup fails: cell is **Unverified**. Do not fall back to Daisy’s number.
 - After a verified tier, cost-share comes from THEI 2027 Hub/grid T1–T6 columns — not from the paste.
 - Yahoska’s finished-comp archive (`1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A`) is **not** a formulary or 2027 benefit-grid source. The in-progress client Drs/Rx sheet remains `17yvEEoToayROnm6jR0sIfk9IbxJwVYWVhiqOJzsiCBc`.
@@ -111,5 +112,5 @@ Objective rows only (adapt to sourced data), for example:
 3. Plan columns: carrier + name + plan ID (2–4) + ZIP/county
 4. Benefit rows from SOB / Plan Compare / grid only
 5. Doctor rows: In network / Out of network / Not confirmed / Need more info per plan via `lookup_provider_network` (always include the section when providers were checked or named)
-6. Rx rows: verified tier + T1–T6 cost-share via `lookup_formulary` only (Unverified if lookup fails)
+6. Rx rows: verified tier + T1–T6 cost-share via `lookup_formulary` only (Unverified if lookup fails). Brand not covered → auto-suggest generic; never invent a generic tier.
 7. No ranking language + short disclaimer
