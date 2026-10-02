@@ -310,6 +310,184 @@
     return doctors;
   }
 
+  const DRUG_NAME_BLOCK = /^(the|and|for|with|from|plan|gold|plus|giveback|premium|deductible|hospital|client|miami|dade|broward|humana|tier|medicare|complete|dual|select|choice|preferred|summary|benefits|thei|max|otc|grocery|vision|dental|doctor|network)$/i;
+
+  function looksLikeDrugName(name) {
+    const s = String(name || "").replace(/\s+/g, " ").trim();
+    if (s.length < 3 || s.length > 48) return false;
+    if (/\d{5,}/.test(s)) return false;
+    const parts = s.split(/\s+/);
+    if (parts.length > 4) return false;
+    if (parts.some((p) => DRUG_NAME_BLOCK.test(p))) return false;
+    return /[A-Za-z]{3,}/.test(s);
+  }
+
+  function normalizeDrugName(raw) {
+    return String(raw || "")
+      .replace(/\s+/g, " ")
+      .replace(/[.,;:]+$/, "")
+      .trim();
+  }
+
+  function parseFormularyLookupLine(line) {
+    if (!/FORMULARY_LOOKUP/i.test(line || "")) return null;
+    const get = (key) => {
+      const m = String(line).match(new RegExp("(?:^|\\s)" + key + "=([^\\s]+)", "i"));
+      return m ? m[1] : "";
+    };
+    const drug = normalizeDrugName((get("drug") || "").replace(/_/g, " "));
+    const planId = get("plan");
+    if (!drug || !planId) return null;
+    const verifiedNo = /verified=no/i.test(line);
+    const tier = parseInt(get("verified_tier"), 10);
+    const coverage = get("coverage");
+    return {
+      name: drug,
+      planId,
+      verified: !verifiedNo && ((tier >= 1 && tier <= 6) || coverage === "not_covered"),
+      tier: tier >= 1 && tier <= 6 ? tier : null,
+      coverage: coverage || (tier ? "covered" : null),
+      costShare: (get("cost_share") || "").replace(/_/g, " ") || null,
+      pa: get("pa") === "yes" ? true : get("pa") === "no" ? false : null,
+      st: get("st") === "yes" ? true : get("st") === "no" ? false : null,
+      source: get("source") || null,
+      year: parseInt(get("year"), 10) || null,
+    };
+  }
+
+  function extractClaimedMeds(text) {
+    const meds = [];
+    const seen = new Set();
+    const re =
+      /\b([A-Za-z][A-Za-z0-9'\/.+-]{2,}(?:\s+(?:\d+(?:\.\d+)?\s*(?:mg|mcg)|[A-Za-z][A-Za-z0-9'\/.+-]{2,})){0,3})\s+[\(:]?\s*(?:T(?:ier)?\s*)([1-6])\b/gi;
+    let m;
+    while ((m = re.exec(text || ""))) {
+      const name = normalizeDrugName(m[1]);
+      if (!looksLikeDrugName(name)) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      meds.push({ name, claimedTier: Number(m[2]) });
+    }
+    return meds;
+  }
+
+  function extractVerifiedLookups(text) {
+    const rows = [];
+    String(text || "")
+      .split(/\n/)
+      .forEach((line) => {
+        const parsed = parseFormularyLookupLine(line);
+        if (parsed) rows.push(parsed);
+      });
+    return rows;
+  }
+
+  function emptyPlanDrugStatuses(plans) {
+    const byPlanId = {};
+    (plans || []).forEach((p) => {
+      const id = displayContractPbp(p) || String(p.planId || p.id || "");
+      byPlanId[id] = { verified: false, tier: null, costShare: null };
+    });
+    return byPlanId;
+  }
+
+  function mergeDrugPlanStatus(target, planId, incoming, plans) {
+    if (!incoming) return;
+    const match = (plans || []).find((p) => {
+      const id = String(p.planId || p.id || "");
+      const disp = displayContractPbp(p);
+      return (
+        String(planId || "").replace(/\s+/g, "").toUpperCase() === id.replace(/\s+/g, "").toUpperCase() ||
+        String(planId || "").replace(/\s+/g, "").toUpperCase() === String(disp || "").replace(/\s+/g, "").toUpperCase() ||
+        String(planId || "").toUpperCase().indexOf(String(disp || "").toUpperCase()) >= 0
+      );
+    });
+    const key = match ? displayContractPbp(match) || String(match.planId || match.id || "") : planId;
+    if (!key) return;
+    const prev = target[key] || { verified: false, tier: null };
+    if (incoming.verified && !prev.verified) {
+      target[key] = {
+        verified: true,
+        tier: incoming.tier || null,
+        coverage: incoming.coverage || null,
+        costShare: incoming.costShare || null,
+        pa: incoming.pa,
+        st: incoming.st,
+        source: incoming.source || null,
+      };
+    } else if (!target[key]) {
+      target[key] = { verified: false, tier: null, costShare: incoming.costShare || null };
+    }
+  }
+
+  function extractDrugs(text, plans) {
+    const byName = new Map();
+    const add = (name) => {
+      const n = normalizeDrugName(name);
+      if (!looksLikeDrugName(n)) return null;
+      const key = n.toLowerCase();
+      if (!byName.has(key)) {
+        byName.set(key, { name: n, claimedTier: null, byPlanId: emptyPlanDrugStatuses(plans) });
+      }
+      return byName.get(key);
+    };
+    extractClaimedMeds(text).forEach((med) => {
+      const row = add(med.name);
+      if (row && med.claimedTier) row.claimedTier = med.claimedTier;
+    });
+    extractVerifiedLookups(text).forEach((hit) => {
+      const row = add(hit.name);
+      if (!row) return;
+      mergeDrugPlanStatus(row.byPlanId, hit.planId, hit, plans);
+    });
+    return [...byName.values()];
+  }
+
+  function normalizeDrugs(drugs, plans) {
+    if (!Array.isArray(drugs) || !drugs.length || !plans || !plans.length) return [];
+    const byName = new Map();
+    const add = (name) => {
+      const n = normalizeDrugName(name);
+      if (!n) return null;
+      const key = n.toLowerCase();
+      if (!byName.has(key)) {
+        byName.set(key, { name: n, claimedTier: null, byPlanId: emptyPlanDrugStatuses(plans) });
+      }
+      return byName.get(key);
+    };
+    drugs.forEach((d) => {
+      if (!d || typeof d === "string") {
+        if (typeof d === "string") add(d);
+        return;
+      }
+      const row = add(d.name || d.drug || d.drugName);
+      if (!row) return;
+      if (d.claimedTier && !row.claimedTier) row.claimedTier = d.claimedTier;
+      const map = d.byPlanId || d.statusByPlanId || {};
+      Object.keys(map).forEach((planId) => {
+        const incoming = map[planId] || {};
+        mergeDrugPlanStatus(row.byPlanId, planId, incoming, plans);
+      });
+      if (Array.isArray(d.lookups)) {
+        d.lookups.forEach((hit) => mergeDrugPlanStatus(row.byPlanId, hit.planId, hit, plans));
+      }
+    });
+    return [...byName.values()];
+  }
+
+  function formatDrugCell(status, plan) {
+    if (!status || !status.verified) return "Unverified";
+    if (status.coverage === "not_covered") return "Not covered";
+    if (!status.tier) return "Unverified";
+    const cost =
+      status.costShare ||
+      formatBenefitValue(plan && plan["tier" + status.tier], "tier" + status.tier);
+    const flags = [status.pa ? "PA" : "", status.st ? "ST" : ""].filter(Boolean).join("/");
+    const costBit = cost && cost !== "Not listed" ? " · " + cost : "";
+    return "Tier " + status.tier + costBit + (flags ? " · " + flags : "");
+  }
+
   function normalizeDoctors(doctors, plans) {
     if (!Array.isArray(doctors) || !doctors.length || !plans || !plans.length) return [];
     const out = [];
@@ -357,12 +535,27 @@
     const doctors = normalizeDoctors(extra.doctors, plans).length
       ? normalizeDoctors(extra.doctors, plans)
       : extractDoctors(text, plans);
+    const fromExtras = normalizeDrugs(extra.drugs, plans);
+    const fromThread = extractDrugs(text, plans);
+    const drugs = fromExtras.length ? fromExtras : fromThread;
+    if (fromExtras.length && fromThread.length) {
+      fromThread.forEach((t) => {
+        const hit = drugs.find((d) => d.name.toLowerCase() === t.name.toLowerCase());
+        if (!hit) drugs.push(t);
+        else {
+          Object.keys(t.byPlanId || {}).forEach((id) => {
+            mergeDrugPlanStatus(hit.byPlanId, id, t.byPlanId[id], plans);
+          });
+          if (t.claimedTier && !hit.claimedTier) hit.claimedTier = t.claimedTier;
+        }
+      });
+    }
     return {
       plans: plans || [],
       clientName: clientName || "",
       terminatingPlan: terminatingPlan || "",
       doctors,
-      drugs: extra.drugs || [],
+      drugs,
     };
   }
 
@@ -386,6 +579,12 @@
     const payload = normalizeExportPayload(plansOrPayload, meta);
     const plans = payload.plans || [];
     const doctors = normalizeDoctors(payload.doctors, plans);
+    const drugs = normalizeDrugs(payload.drugs, plans).length
+      ? normalizeDrugs(payload.drugs, plans)
+      : extractDrugs(
+          typeof payload.threadText === "string" ? payload.threadText : "",
+          plans
+        );
     const headers = ["", ...plans.map(formatPlanColumnHeader)];
     const aoa = [];
     const merges = [];
@@ -468,6 +667,39 @@
         });
         push(values, rowKinds, rowStyles);
       });
+    }
+
+    if (drugs.length) {
+      const r = push(["Medications", ...plans.map(() => "")], ["section", ...plans.map(() => "section")]);
+      styles[r + ",0"] = makeStyle({
+        font: { bold: true, sz: 12 },
+        fill: { patternType: "solid", fgColor: { rgb: SECTION_FILL } },
+      });
+      for (let c = 1; c < colCount; c++) {
+        styles[r + "," + c] = makeStyle({ fill: { patternType: "solid", fgColor: { rgb: SECTION_FILL } } });
+      }
+      drugs.forEach((drug) => {
+        const statuses = plans.map((p) => {
+          const id = displayContractPbp(p);
+          const rawId = String(p.planId || p.id || "");
+          return (drug.byPlanId && (drug.byPlanId[id] || drug.byPlanId[rawId])) || { verified: false };
+        });
+        const cells = statuses.map((s, i) => formatDrugCell(s, plans[i]));
+        const values = [drug.name, ...cells];
+        const rowKinds = ["label", ...cells.map((c) => (c === "Unverified" ? "pending" : "text"))];
+        const rowStyles = [makeStyle({ font: { bold: true } })];
+        cells.forEach((c) => {
+          rowStyles.push(
+            c === "Unverified"
+              ? makeStyle({ font: { color: { rgb: RED } } })
+              : makeStyle({ alignment: { wrapText: true, vertical: "top" } })
+          );
+        });
+        push(values, rowKinds, rowStyles);
+      });
+    }
+
+    if (doctors.length || drugs.length) {
       pushPlanHeaders();
     }
 
@@ -533,6 +765,7 @@
       styles,
       headers,
       doctors,
+      drugs,
       filenameXlsx: comparisonExportFilename(payload, "xlsx"),
       filenamePdf: comparisonExportFilename(payload, "pdf"),
       cols: [{ wch: 28 }, ...plans.map(() => ({ wch: 36 }))],
@@ -746,6 +979,12 @@
     extractTerminatingPlan,
     extractDoctors,
     normalizeDoctors,
+    extractDrugs,
+    extractClaimedMeds,
+    extractVerifiedLookups,
+    parseFormularyLookupLine,
+    normalizeDrugs,
+    formatDrugCell,
     normalizeNetworkStatus,
     normalizeExportPayload,
     buildExportPayload,
