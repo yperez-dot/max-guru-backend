@@ -8,6 +8,13 @@
  *     and never the Family Medicine MD 4.6 miles away in 33125. Search
  *     statewide, then rank by ZIP / middle name / MD|DO credential.
  *   - Trailing "MD" and "Dr. … at Salus Health" must not become the last name.
+ *
+ * Clinic / group names (2026-10-02, Miami Neurology & Rehab Specialists):
+ *   - NPI-1 last-name search treats "Specialists" as a person and misses the
+ *     org. Use NPI-2 organization_name with a trailing wildcard
+ *     (`MIAMI NEUROLOGY*`) — CMS does not substring-match without `*`.
+ *   - DBA MNRS is not in NPPES other_names. Aliases come from the clinic site
+ *     or the agent, not from inventing a marketing name.
  */
 
 const NPI_REGISTRY_BASE = 'https://npiregistry.cms.hhs.gov/api/';
@@ -16,6 +23,21 @@ const CMS_PAGE_LIMIT = 20;
 const DEFAULT_RETURN_LIMIT = 5;
 
 const CREDENTIAL_RE = /^(MD|DO|NP|PA|RN|APRN|DDS|DMD|DPM|OD|DC|PharmD|PhD|ARNP|FNP|DNP)$/i;
+
+const ORG_HINT_RE = /\b(clinic|clinics|group|groups|specialists?|rehab|rehabilitation|therap(?:y|ies)|physical|neurology|neuro|associates?|centers?|centres?|institute|hospital|hospitals|medical|health|physicians?|practice|practices|llc|inc|pllc|dba|corp|corporation|services)\b|&/i;
+
+const ORG_STOP = new Set(['and', 'of', 'the', 'at', 'for', 'a', 'an', 'llc', 'inc', 'pllc', 'dba', 'pa', '&']);
+
+const ORG_ABBREV = {
+  rehab: 'rehabilitation',
+  spec: 'specialists',
+  specialist: 'specialists',
+  specialists: 'specialists',
+  assoc: 'associates',
+  associates: 'associates',
+  ctr: 'center',
+  neuro: 'neurology',
+};
 
 async function fetchJSON(url) {
   const ctrl = new AbortController();
@@ -65,10 +87,165 @@ function parseName(fullName) {
   };
 }
 
+function allLocationAddresses(result) {
+  const addrs = [...(result?.addresses || []), ...(result?.practiceLocations || [])];
+  const locs = addrs.filter((a) => a.address_purpose === 'LOCATION' || (!a.address_purpose && a.address_1));
+  return locs.length ? locs : addrs;
+}
+
 function locationZip(result) {
-  const addrs = result?.addresses || [];
-  const loc = addrs.find((a) => a.address_purpose === 'LOCATION') || addrs[0] || {};
+  const loc = allLocationAddresses(result)[0] || {};
   return String(loc.postal_code || '').slice(0, 5);
+}
+
+function looksLikeOrganization(name) {
+  const s = String(name || '').trim();
+  if (!s) return false;
+  if (/^\d{10}$/.test(s)) return false;
+  if (/\b(MD|DO|NP|ARNP|APRN)\b/i.test(s) && !ORG_HINT_RE.test(s)) return false;
+  if (/^[A-Za-z][A-Za-z'.-]+,\s+[A-Za-z]/.test(s) && !ORG_HINT_RE.test(s)) return false;
+  if (ORG_HINT_RE.test(s)) return true;
+  const words = s.split(/\s+/).filter(Boolean);
+  return words.length >= 4;
+}
+
+function orgQueryVariants(name) {
+  const raw = String(name || '').trim();
+  if (!raw) return [];
+  const cleaned = raw.replace(/[.,/]/g, ' ').replace(/\s+/g, ' ').trim();
+  const tokens = cleaned.split(' ').filter((t) => t && !ORG_STOP.has(t.toLowerCase()));
+  const expanded = tokens.map((t) => ORG_ABBREV[t.toLowerCase()] || t);
+  const variants = new Set();
+  const add = (s) => {
+    const v = String(s || '').replace(/\s+/g, ' ').trim().toUpperCase();
+    if (v.length < 3) return;
+    variants.add(v.endsWith('*') ? v : `${v}*`);
+  };
+  add(cleaned);
+  add(expanded.join(' '));
+  if (expanded.length >= 2) add(expanded.slice(0, 2).join(' '));
+  if (expanded.length >= 3) add(expanded.slice(0, 3).join(' '));
+  if (tokens.length >= 2) add(tokens.slice(0, 2).join(' '));
+  return [...variants];
+}
+
+function displayName(result) {
+  const b = result?.basic || {};
+  if (b.organization_name) {
+    const dba = (result.other_names || [])
+      .map((o) => o.organization_name || o.code)
+      .filter(Boolean);
+    return dba.length ? `${b.organization_name} (DBA ${dba.join(', ')})` : b.organization_name;
+  }
+  return [b.first_name, b.middle_name, b.last_name, b.credential].filter(Boolean).join(' ');
+}
+
+function formatAddressLine(addr) {
+  if (!addr) return '';
+  return [
+    addr.address_1,
+    addr.address_2,
+    addr.city,
+    addr.state,
+    String(addr.postal_code || '').slice(0, 5),
+  ].filter(Boolean).join(', ');
+}
+
+function formatClinicRecord(result) {
+  const locations = allLocationAddresses(result);
+  const phones = [...new Set(locations.map((a) => a.telephone_number).filter(Boolean))];
+  const aliases = (result.other_names || [])
+    .map((o) => o.organization_name || o.code)
+    .filter(Boolean);
+  const spec = (result.taxonomies || []).find((t) => t.primary)?.desc
+    || (result.taxonomies || [])[0]?.desc
+    || null;
+  return {
+    npi: result.number,
+    enumerationType: result.enumeration_type || (result.basic?.organization_name ? 'NPI-2' : 'NPI-1'),
+    officialName: displayName(result),
+    organizationName: result.basic?.organization_name || null,
+    aliases,
+    specialty: spec,
+    addresses: locations.map((a) => ({
+      line: formatAddressLine(a),
+      city: a.city || null,
+      state: a.state || null,
+      zip: String(a.postal_code || '').slice(0, 5) || null,
+      phone: a.telephone_number || null,
+    })),
+    phones,
+    status: result.basic?.status || null,
+  };
+}
+
+function orgTokenSet(name) {
+  return new Set(
+    String(name || '')
+      .toUpperCase()
+      .replace(/[.,/&]/g, ' ')
+      .split(/\s+/)
+      .map((t) => ORG_ABBREV[t.toLowerCase()] ? ORG_ABBREV[t.toLowerCase()].toUpperCase() : t)
+      .filter((t) => t && !ORG_STOP.has(t.toLowerCase()))
+  );
+}
+
+function rankOrgScore(result, { zip, city, organizationName } = {}) {
+  let s = rankScore(result, { zip });
+  const qz = String(zip || '').slice(0, 5);
+  if (qz) {
+    for (const addr of allLocationAddresses(result)) {
+      const z = String(addr.postal_code || '').slice(0, 5);
+      if (z === qz) s += 100;
+      else if (z.slice(0, 3) === qz.slice(0, 3)) s += 20;
+    }
+  }
+  const qc = String(city || '').trim().toUpperCase();
+  if (qc) {
+    for (const addr of allLocationAddresses(result)) {
+      if (String(addr.city || '').toUpperCase() === qc) s += 40;
+    }
+  }
+  const qTokens = orgTokenSet(organizationName);
+  const nameTokens = orgTokenSet(result?.basic?.organization_name);
+  if (qTokens.size && nameTokens.size) {
+    let overlap = 0;
+    for (const t of qTokens) {
+      if (nameTokens.has(t)) overlap += 1;
+    }
+    s += overlap * 25;
+  }
+  return s;
+}
+
+function rankOrgResults(results, query) {
+  return [...results].sort((a, b) => rankOrgScore(b, query) - rankOrgScore(a, query));
+}
+
+async function lookupByOrganizationName({
+  organizationName,
+  state = 'FL',
+  zip,
+  city,
+  limit = DEFAULT_RETURN_LIMIT,
+} = {}) {
+  const variants = orgQueryVariants(organizationName);
+  if (!variants.length) return [];
+  const byNumber = new Map();
+  for (const q of variants.slice(0, 4)) {
+    const p = new URLSearchParams({
+      version: '2.1',
+      enumeration_type: 'NPI-2',
+      organization_name: q,
+      limit: String(CMS_PAGE_LIMIT),
+    });
+    if (state) p.set('state', state);
+    const data = await fetchJSON(`${NPI_REGISTRY_BASE}?${p}`);
+    for (const rec of data?.results || []) {
+      if (rec?.number && !byNumber.has(rec.number)) byNumber.set(rec.number, rec);
+    }
+  }
+  return rankOrgResults([...byNumber.values()], { zip, city, organizationName }).slice(0, limit);
 }
 
 function rankScore(result, { zip, firstName, middleName } = {}) {
@@ -123,8 +300,9 @@ async function lookupByName({ firstName, lastName, middleName, state = 'FL', zip
 }
 
 /**
- * Resolve CMS NPI-1 records from a pasted NPI and/or a doctor name.
- * ZIP ranks matches; it does not filter them out.
+ * Resolve CMS NPI-1 and NPI-2 records from a pasted NPI and/or a name.
+ * ZIP ranks matches; it does not filter them out. Clinic/group names try
+ * organization search first (or as a fallback when the individual search misses).
  */
 async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limit = DEFAULT_RETURN_LIMIT } = {}) {
   const number = extractNpi(npi) || extractNpi(doctorName);
@@ -132,6 +310,13 @@ async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limi
     const byNumber = await lookupByNumber(number);
     if (byNumber.length) return byNumber;
   }
+
+  const orgFirst = looksLikeOrganization(doctorName);
+  if (orgFirst) {
+    const org = await lookupByOrganizationName({ organizationName: doctorName, zip, state, limit });
+    if (org.length) return org;
+  }
+
   const parsed = parseName(doctorName);
   let results = await lookupByName({ ...parsed, zip, state, limit });
   if (results.length) return results;
@@ -150,6 +335,11 @@ async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limi
   if (parsed.lastName && parsed.firstName) {
     results = await lookupByName({ lastName: parsed.lastName, zip, state, limit });
   }
+  if (results.length) return results;
+
+  if (!orgFirst && doctorName) {
+    return lookupByOrganizationName({ organizationName: doctorName, zip, state, limit });
+  }
   return results;
 }
 
@@ -158,9 +348,17 @@ module.exports = {
   extractNpi,
   parseName,
   locationZip,
+  allLocationAddresses,
   rankScore,
   rankResults,
   lookupByNumber,
   lookupByName,
+  lookupByOrganizationName,
+  looksLikeOrganization,
+  orgQueryVariants,
+  displayName,
+  formatClinicRecord,
+  rankOrgScore,
+  rankOrgResults,
   resolveNpiRecords,
 };

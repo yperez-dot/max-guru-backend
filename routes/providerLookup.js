@@ -31,7 +31,7 @@ const { querySimplyFindcare, CARRIER_LABEL: SIMPLY_PLAN_LABEL } = require('../se
 const { queryUhcGuest, CARRIER_LABEL: UHC_PLAN_LABEL, PLAN_YEAR: UHC_PLAN_YEAR } = require('../services/uhcGuestSearch');
 const { queryHumanaFindcare, CARRIER_LABEL: HUMANA_PLAN_LABEL, PLAN_YEAR: HUMANA_PLAN_YEAR, isHumanaLabel } = require('../services/humanaFindcare');
 const { solisLookupNote } = require('../services/solisDirectory');
-const { parseName, extractNpi, resolveNpiRecords } = require('../services/npiRegistry');
+const { parseName, extractNpi, resolveNpiRecords, displayName } = require('../services/npiRegistry');
 const router = Router();
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -173,6 +173,8 @@ function getSpecialty(result) {
 
 /** Build a full display name from an NPI result record. */
 function getDisplayName(result) {
+  const named = displayName(result);
+  if (named) return named;
   const b = result.basic || {};
   return [b.first_name, b.middle_name, b.last_name, b.credential]
     .filter(Boolean)
@@ -328,7 +330,7 @@ router.post('/', async (req, res) => {
       providers: [],
       meta: {
         query:     { doctorName, zip, state },
-        message:   `No NPI-1 providers found matching "${doctorName}" in ${state}`,
+        message:   `No NPI-1/NPI-2 providers found matching "${doctorName}" in ${state}`,
         timestamp: new Date().toISOString(),
       },
     });
