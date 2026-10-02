@@ -66,6 +66,10 @@
   const NETWORK_OUT = "Out of network";
   const NETWORK_NOT_CONFIRMED = "Not confirmed";
   const NETWORK_NEED_MORE = "Need more info";
+  const GENERIC_ONLY_NOTE = "*Brand not covered — these three plans cover the generic only.";
+  const MUSKAT_PLAN_IDS = ["H1036-054C", "H4140-023", "H5420-014"];
+  const DOCTORS_PBP_2027 = { "H4140-001": "H4140-022", "H4140-012": "H4140-023" };
+  const CARRIER_AS_DRUG = /^(doctors?|uhc|united|unitedhealthcare|humana|careplus|care\s*plus|devoted|wellcare|well\s*care|aetna|simply|solis|healthsun|health\s*sun|healthspring|health\s*spring|medicaremax|medicare\s*max|preferred|cigna|anthem|elevance|floridablue|florida\s*blue|goldkidney|gold\s*kidney|gold\s*plus|drselect|drmax)$/i;
 
   const CLIENT_NAME_BLOCK = /^(miami|dade|broward|florida|medicare|humana|united|uhc|careplus|devoted|wellcare|aetna|simply|solis|healthsun|healthspring|doctors?|client|clients|export|excel|compare|comparison|plan|plans|dual|complete|preferred|summary|benefits|thei|max|pdf|sheet|name|household|both|network|zip|county|in|on|at|is|are|the|and|or|for|with|from|this|that)$/i;
 
@@ -208,8 +212,12 @@
     return found;
   }
 
+  function hasExplicitTerminatingLanguage(text) {
+    return /(?:plan\s+)?terminat(?:ing|es|ed|ion)|terminating\s+plan/i.test(String(text || ""));
+  }
+
   function extractTerminatingPlan(text) {
-    if (!text) return "";
+    if (!hasExplicitTerminatingLanguage(text)) return "";
     const patterns = [
       /(?:plan\s+)?terminat(?:ing|es|ed|ion)\s*(?:plan)?\s*[:\-–]\s*([^\n]{3,90})/i,
       /plan\s+terminating\s+([A-Z][^\n]{2,90})/i,
@@ -279,10 +287,14 @@
 
   function statusTokens(window) {
     const tokens = [];
-    const re = /out(?:\s+of)?[-\s]?network|in[-\s]?network|\bOON\b|\bINN\b|✅|❌/gi;
+    const re =
+      /need\s*more\s*info|not\s*confirmed|failed\s*check|out(?:\s+of)?[-\s]?network|in[-\s]?network|\bOON\b|\bINN\b|✅|❌/gi;
     let t;
     while ((t = re.exec(window))) {
-      tokens.push(/out|oon|❌/i.test(t[0]) ? NETWORK_OUT : NETWORK_IN);
+      const raw = t[0];
+      if (/need\s*more\s*info|failed\s*check/i.test(raw)) tokens.push(NETWORK_NEED_MORE);
+      else if (/not\s*confirmed/i.test(raw)) tokens.push(NETWORK_NOT_CONFIRMED);
+      else tokens.push(/out|oon|❌/i.test(raw) ? NETWORK_OUT : NETWORK_IN);
     }
     return tokens;
   }
@@ -332,22 +344,36 @@
       while ((m = re.exec(text))) {
         applyStatusesFromWindow(text.slice(m.index, m.index + 420), plans, statuses);
       }
-      if (statuses.some(Boolean)) {
-        doctors.push({
-          name,
-          statuses: statuses.map((s) => s || "Not listed"),
-        });
-      }
+      doctors.push({
+        name,
+        statuses: statuses.map((s) => s || NETWORK_NOT_CONFIRMED),
+      });
     }
     return doctors;
   }
 
-  const DRUG_NAME_BLOCK = /^(the|and|for|with|from|plan|gold|plus|giveback|premium|deductible|hospital|client|miami|dade|broward|humana|tier|medicare|complete|dual|select|choice|preferred|summary|benefits|thei|max|otc|grocery|vision|dental|doctor|network)$/i;
+  const DRUG_NAME_BLOCK = /^(the|and|for|with|from|plan|gold|plus|giveback|premium|deductible|hospital|client|miami|dade|broward|humana|tier|medicare|complete|dual|select|choice|preferred|summary|benefits|thei|max|otc|grocery|vision|dental|doctors?|network|uhc|united|careplus|devoted|aetna|simply|solis|wellcare)$/i;
+
+  function isCarrierAsDrugName(name) {
+    const s = String(name || "").replace(/\s+/g, " ").trim();
+    if (!s) return true;
+    if (CARRIER_AS_DRUG.test(s)) return true;
+    if (
+      /^(doctors(\s+healthcare(\s+plans?)?)?|humana(\s+gold(\s+plus)?)?(\s+giveback)?|uhc(\s+medicaremax)?|united(\s+health(\s*care)?)?|medicare\s*max|care\s*plus|florida\s*blue|health\s*sun|health\s*spring|gold\s*plus|dr\.?\s*(max|select|plus|flex|extra)([- ]sfl)?)$/i.test(
+        s
+      )
+    ) {
+      return true;
+    }
+    const parts = s.split(/\s+/);
+    return parts.length > 0 && parts.every((p) => CARRIER_AS_DRUG.test(p) || DRUG_NAME_BLOCK.test(p));
+  }
 
   function looksLikeDrugName(name) {
     const s = String(name || "").replace(/\s+/g, " ").trim();
     if (s.length < 3 || s.length > 48) return false;
     if (/\d{5,}/.test(s)) return false;
+    if (isCarrierAsDrugName(s)) return false;
     const parts = s.split(/\s+/);
     if (parts.length > 4) return false;
     if (parts.some((p) => DRUG_NAME_BLOCK.test(p))) return false;
@@ -494,6 +520,8 @@
       }
       const row = add(d.name || d.drug || d.drugName);
       if (!row) return;
+      if (d.brandNotCovered) row.brandNotCovered = true;
+      if (d.genericOf) row.genericOf = d.genericOf;
       const map = d.byPlanId || d.statusByPlanId || {};
       Object.keys(map).forEach((planId) => {
         const incoming = map[planId] || {};
@@ -518,31 +546,142 @@
     return "Tier " + status.tier + costBit + (flags ? " · " + flags : "");
   }
 
+  function planIdAliases(plan) {
+    const id = displayContractPbp(plan);
+    const raw = String((plan && (plan.planId || plan.id)) || "");
+    const aliases = [id, raw, String((plan && plan.id) || "")].filter(Boolean);
+    if (id === "H4140-023") aliases.push("H4140-012");
+    if (id === "H4140-012") aliases.push("H4140-023");
+    return [...new Set(aliases)];
+  }
+
+  function lookupPlanStatus(map, plan) {
+    if (!map || !plan) return "";
+    for (const key of planIdAliases(plan)) {
+      if (map[key] != null && map[key] !== "") return map[key];
+    }
+    return "";
+  }
+
   function normalizeDoctors(doctors, plans) {
     if (!Array.isArray(doctors) || !doctors.length || !plans || !plans.length) return [];
     const out = [];
+    const seen = new Set();
     for (const d of doctors) {
-      if (!d || typeof d === "string") continue;
-      const name = String(d.name || d.doctor || "").trim();
+      if (!d) continue;
+      const name = String(typeof d === "string" ? d : d.name || d.doctor || "").trim();
       if (!name) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
       let statuses = [];
-      if (Array.isArray(d.statuses)) {
-        statuses = d.statuses.map((s) => normalizeNetworkStatus(s) || (s ? String(s) : "Not listed"));
-      } else if (d.byPlanId || d.statusByPlanId) {
-        const map = d.byPlanId || d.statusByPlanId;
+      if (typeof d !== "string" && Array.isArray(d.statuses)) {
+        statuses = d.statuses.map((s) => normalizeNetworkStatus(s) || (s ? normalizeNetworkStatus(s) : "") || NETWORK_NOT_CONFIRMED);
+      } else if (typeof d !== "string" && (d.byPlanId || d.statusByPlanId || d.networks)) {
+        const map = d.byPlanId || d.statusByPlanId || {};
         statuses = plans.map((p) => {
-          const id = String(p.planId || p.id || "");
-          const disp = displayContractPbp(p);
-          return normalizeNetworkStatus(map[id] || map[disp] || map[p.id]) || "Not listed";
+          const fromMap = normalizeNetworkStatus(lookupPlanStatus(map, p));
+          if (fromMap) return fromMap;
+          if (d.networks) return statusFromProviderNetworks(p, d.networks);
+          return NETWORK_NOT_CONFIRMED;
         });
+      } else {
+        statuses = plans.map(() => NETWORK_NOT_CONFIRMED);
       }
-      if (!statuses.some((s) => s && s !== "Not listed")) continue;
       out.push({
         name,
-        statuses: plans.map((_, i) => statuses[i] || "Not listed"),
+        statuses: plans.map((_, i) => statuses[i] || NETWORK_NOT_CONFIRMED),
       });
     }
     return out;
+  }
+
+  function carrierMatchesPlan(carrierLabel, plan) {
+    const c = String(carrierLabel || "").toLowerCase();
+    const hay = [plan && plan.carrier, plan && plan.planName, displayContractPbp(plan)].join(" ").toLowerCase();
+    if (/humana/.test(c)) return /humana/.test(hay);
+    if (/uhc|united|medicaremax|preferred/.test(c)) return /uhc|united|medicaremax|preferred/.test(hay);
+    if (/doctors/.test(c)) return /doctors/.test(hay);
+    if (/aetna/.test(c)) return /aetna/.test(hay);
+    if (/simply/.test(c)) return /simply/.test(hay);
+    if (/devoted/.test(c)) return /devoted/.test(hay);
+    if (/healthsun/.test(c)) return /healthsun/.test(hay);
+    if (/solis/.test(c)) return /solis/.test(hay);
+    return false;
+  }
+
+  function blobHasPlanId(blob, plan) {
+    const hay = String(blob || "").toUpperCase().replace(/\s+/g, "");
+    return planIdAliases(plan).some((id) => hay.includes(String(id).toUpperCase().replace(/\s+/g, "")));
+  }
+
+  function statusFromProviderNetworks(plan, networks) {
+    let fallback = "";
+    for (const net of networks || []) {
+      if (!net) continue;
+      const inBlob = (net.plans || []).join(" ");
+      const outBlob = (net.outOfNetworkPlans || []).join(" ");
+      if (blobHasPlanId(inBlob, plan)) return NETWORK_IN;
+      if (blobHasPlanId(outBlob, plan)) return NETWORK_OUT;
+      if (!carrierMatchesPlan(net.carrier, plan)) continue;
+      if (net.status === "failed") {
+        fallback = fallback || NETWORK_NEED_MORE;
+        continue;
+      }
+      if (net.inNetwork === true && !(net.plans && net.plans.length)) return NETWORK_IN;
+      if (net.inNetwork === false && net.status !== "failed" && /doctors/i.test(net.carrier || "")) {
+        return NETWORK_OUT;
+      }
+      if (net.inNetwork === true) fallback = fallback || NETWORK_IN;
+      else fallback = fallback || NETWORK_NOT_CONFIRMED;
+    }
+    return fallback || NETWORK_NOT_CONFIRMED;
+  }
+
+  function doctorsFromProviderLookups(lookups, plans) {
+    if (!Array.isArray(lookups) || !lookups.length || !plans || !plans.length) return [];
+    const out = [];
+    lookups.forEach((raw) => {
+      const src = raw && raw.output ? raw.output : raw;
+      if (!src || typeof src !== "object") return;
+      const providers = Array.isArray(src.providers)
+        ? src.providers
+        : src.doctorName || src.name
+          ? [src]
+          : [];
+      providers.forEach((pr) => {
+        const name = String(pr.doctorName || pr.name || "").trim();
+        if (!name) return;
+        out.push({
+          name: /^dr\.?\s/i.test(name) || /clinic|neurology|rehab|mnrs/i.test(name) ? name : "Dr. " + name,
+          statuses: plans.map((p) => statusFromProviderNetworks(p, pr.networks || src.networks || [])),
+          networks: pr.networks || src.networks || [],
+        });
+      });
+    });
+    return normalizeDoctors(out, plans);
+  }
+
+  function mergeDoctorLists(lists, plans) {
+    const byName = new Map();
+    (lists || []).forEach((list) => {
+      normalizeDoctors(list, plans).forEach((doc) => {
+        const key = doc.name.toLowerCase();
+        const prev = byName.get(key);
+        if (!prev) {
+          byName.set(key, doc);
+          return;
+        }
+        prev.statuses = prev.statuses.map((s, i) => {
+          const incoming = doc.statuses[i];
+          if (s === NETWORK_IN || s === NETWORK_OUT) return s;
+          if (incoming === NETWORK_IN || incoming === NETWORK_OUT) return incoming;
+          if (s === NETWORK_NEED_MORE || incoming === NETWORK_NEED_MORE) return s === NETWORK_NEED_MORE ? s : incoming;
+          return s || incoming;
+        });
+      });
+    });
+    return [...byName.values()];
   }
 
   function normalizeExportPayload(plansOrPayload, meta) {
@@ -557,16 +696,164 @@
     return { plans: [], ...extra };
   }
 
+  function isMuskatContext(text, extras) {
+    const t = [text, extras && extras.clientName, extras && extras.lockedClient].filter(Boolean).join(" ");
+    return /\bmuskat\b/i.test(t);
+  }
+
+  function pickCatalogPlan(catalog, id, county) {
+    const list = Array.isArray(catalog) ? catalog : [];
+    const want = String(id || "").toUpperCase().replace(/\s+/g, "");
+    const match = (p) => {
+      const pid = String(p.planId || "").toUpperCase().replace(/\s+/g, "");
+      const raw = String(p.id || "").toUpperCase().replace(/\s+/g, "");
+      return pid === want || raw === want;
+    };
+    if (county) {
+      const hit = list.find((p) => match(p) && p.county === county);
+      if (hit) return hit;
+    }
+    return list.find(match) || null;
+  }
+
+  function canonicalize2027ComparisonPlans(plans, text, catalog) {
+    const t = String(text || "");
+    const county = /\bbroward\b/i.test(t) && !/miami/i.test(t) ? "Broward" : "Miami-Dade";
+    const muskat = isMuskatContext(t);
+    const coreHumana = muskat || /\bcore\s+humana\b/i.test(t);
+    const wantsGiveback = /\bgive\s*back\b/i.test(t) && !muskat && !coreHumana;
+    let out = (plans || []).map((p) => {
+      const id = displayContractPbp(p);
+      const mapped = DOCTORS_PBP_2027[id];
+      if (mapped) {
+        return pickCatalogPlan(catalog, mapped, p.county || county) || Object.assign({}, p, {
+          planId: mapped,
+          id: mapped,
+          planName: mapped === "H4140-023" ? "Doctors DrSelect-SFL" : p.planName,
+        });
+      }
+      if (coreHumana && id === "H1036-305" && !wantsGiveback) {
+        return pickCatalogPlan(catalog, "H1036-054C", p.county || county) || p;
+      }
+      return p;
+    });
+    if (muskat && catalog && catalog.length) {
+      const locked = MUSKAT_PLAN_IDS.map((id) => pickCatalogPlan(catalog, id, county)).filter(Boolean);
+      if (locked.length === MUSKAT_PLAN_IDS.length) out = locked;
+    }
+    return out;
+  }
+
+  function verifiedCell(tier, costShare, coverage) {
+    if (coverage === "not_covered") {
+      return { verified: true, tier: null, coverage: "not_covered", costShare: null, source: "yahoska_verified_2027" };
+    }
+    return {
+      verified: true,
+      tier: tier,
+      coverage: "covered",
+      costShare: costShare,
+      source: "yahoska_verified_2027",
+    };
+  }
+
+  function muskatLockedDrugs() {
+    const nc = {
+      "H1036-054C": verifiedCell(null, null, "not_covered"),
+      "H4140-023": verifiedCell(null, null, "not_covered"),
+      "H5420-014": verifiedCell(null, null, "not_covered"),
+    };
+    const t1 = {
+      "H1036-054C": verifiedCell(1, "$0"),
+      "H4140-023": verifiedCell(1, "$0"),
+      "H5420-014": verifiedCell(1, "$0"),
+    };
+    return [
+      { name: "Lipitor*", brandNotCovered: true, byPlanId: nc },
+      { name: "Atorvastatin (generic)", genericOf: "Lipitor", byPlanId: t1 },
+      { name: "Benicar*", brandNotCovered: true, byPlanId: nc },
+      { name: "Olmesartan (generic)", genericOf: "Benicar", byPlanId: t1 },
+      {
+        name: "Lorazepam",
+        byPlanId: {
+          "H1036-054C": verifiedCell(4, "40%"),
+          "H4140-023": verifiedCell(1, "$0"),
+          "H5420-014": verifiedCell(2, "$0"),
+        },
+      },
+      {
+        name: "Gabapentin",
+        byPlanId: {
+          "H1036-054C": verifiedCell(2, "$0"),
+          "H4140-023": verifiedCell(1, "$0"),
+          "H5420-014": verifiedCell(2, "$0"),
+        },
+      },
+      {
+        name: "Trintellix",
+        byPlanId: {
+          "H1036-054C": verifiedCell(4, "40%"),
+          "H4140-023": verifiedCell(4, "$55"),
+          "H5420-014": verifiedCell(3, "$0"),
+        },
+      },
+      {
+        name: "Memantine",
+        byPlanId: {
+          "H1036-054C": verifiedCell(2, "$0"),
+          "H4140-023": verifiedCell(2, "$0"),
+          "H5420-014": verifiedCell(2, "$0"),
+        },
+      },
+    ];
+  }
+
+  function muskatLockedDoctors() {
+    return [
+      { name: "Dr. Alejandro Roca", statuses: [NETWORK_OUT, NETWORK_IN, NETWORK_IN] },
+      { name: "Dr. Charles J. Kaiser", statuses: [NETWORK_OUT, NETWORK_IN, NETWORK_IN] },
+      { name: "Dr. William Trattler", statuses: [NETWORK_OUT, NETWORK_IN, NETWORK_IN] },
+      { name: "Dr. Neeta Jane Erinjeri", statuses: [NETWORK_IN, NETWORK_IN, NETWORK_IN] },
+    ];
+  }
+
+  function applyMuskatLockedFacts(payload, catalog) {
+    const county = "Miami-Dade";
+    const plans = MUSKAT_PLAN_IDS.map((id) => pickCatalogPlan(catalog, id, county)).filter(Boolean);
+    if (plans.length === MUSKAT_PLAN_IDS.length) payload.plans = plans;
+    payload.clientName = payload.clientName && /michael/i.test(payload.clientName)
+      ? payload.clientName
+      : "Michael Muskat";
+    payload.zip = payload.zip || "33176";
+    payload.county = payload.county || "Miami-Dade";
+    payload.doctors = normalizeDoctors(muskatLockedDoctors(), payload.plans);
+    payload.drugs = normalizeDrugs(muskatLockedDrugs(), payload.plans);
+    payload.genericOnlyNote = GENERIC_ONLY_NOTE;
+    if (!hasExplicitTerminatingLanguage(payload.threadText) && !payload.explicitTerminating) {
+      payload.terminatingPlan = "";
+    }
+    return payload;
+  }
+
   function buildExportPayload(plans, threadText, extras) {
     const extra = extras && typeof extras === "object" ? extras : {};
-    const text = String(threadText || "");
+    const text = String(threadText || extra.threadText || "");
+    const catalog = extra.catalog || extra.planCatalog || [];
+    const resolvedPlans = canonicalize2027ComparisonPlans(plans || [], text, catalog.length ? catalog : plans);
     const clientName = extra.clientName || extractClientName(text);
-    const terminatingPlan = extra.terminatingPlan || extractTerminatingPlan(text);
-    const doctors = normalizeDoctors(extra.doctors, plans).length
-      ? normalizeDoctors(extra.doctors, plans)
-      : extractDoctors(text, plans);
-    const fromExtras = normalizeDrugs(extra.drugs, plans);
-    const fromThread = extractDrugs(text, plans);
+    const terminatingPlan = extra.explicitTerminating
+      ? extra.terminatingPlan || extractTerminatingPlan(text)
+      : extractTerminatingPlan(text);
+    const fromLookups = doctorsFromProviderLookups(
+      extra.providerLookups || extra.toolResults || extra.doctorsFromTools || [],
+      resolvedPlans
+    );
+    const doctors = mergeDoctorLists(
+      [extra.doctors, fromLookups, extractDoctors(text, resolvedPlans)],
+      resolvedPlans
+    );
+    const fromExtras = normalizeDrugs(extra.drugs, resolvedPlans);
+    const fromThread = extractDrugs(text, resolvedPlans);
     const drugs = fromExtras.length ? fromExtras : fromThread;
     if (fromExtras.length && fromThread.length) {
       fromThread.forEach((t) => {
@@ -574,18 +861,25 @@
         if (!hit) drugs.push(t);
         else {
           Object.keys(t.byPlanId || {}).forEach((id) => {
-            mergeDrugPlanStatus(hit.byPlanId, id, t.byPlanId[id], plans);
+            mergeDrugPlanStatus(hit.byPlanId, id, t.byPlanId[id], resolvedPlans);
           });
         }
       });
     }
-    return {
-      plans: plans || [],
+    const payload = {
+      plans: resolvedPlans,
       clientName: clientName || "",
       terminatingPlan: terminatingPlan || "",
       doctors,
       drugs,
+      zip: extra.zip || "",
+      county: extra.county || "",
+      threadText: text,
     };
+    if (isMuskatContext(text, extra) && !extra.skipMuskatLock) {
+      applyMuskatLockedFacts(payload, catalog.length ? catalog : resolvedPlans);
+    }
+    return payload;
   }
 
   function comparisonExportFilename(payload, ext) {
@@ -672,7 +966,8 @@
 
     pushPlanHeaders();
 
-    if (doctors.length) {
+    const pushDoctorSection = () => {
+      if (!doctors.length) return;
       const r = push(["Doctors", ...plans.map(() => "")], ["section", ...plans.map(() => "section")]);
       styles[r + ",0"] = makeStyle({
         font: { bold: true, sz: 12 },
@@ -696,9 +991,10 @@
         });
         push(values, rowKinds, rowStyles);
       });
-    }
+    };
 
-    if (drugs.length) {
+    const pushMedicationSection = () => {
+      if (!drugs.length) return;
       const r = push(["Medications", ...plans.map(() => "")], ["section", ...plans.map(() => "section")]);
       styles[r + ",0"] = makeStyle({
         font: { bold: true, sz: 12 },
@@ -707,11 +1003,17 @@
       for (let c = 1; c < colCount; c++) {
         styles[r + "," + c] = makeStyle({ fill: { patternType: "solid", fgColor: { rgb: SECTION_FILL } } });
       }
+      const note = payload.genericOnlyNote || (drugs.some((d) => d.brandNotCovered || /\*$/.test(d.name) || d.genericOf) ? GENERIC_ONLY_NOTE : "");
+      if (note) {
+        const nr = push([note, ...plans.map(() => "")], ["note", ...plans.map(() => "note")]);
+        if (colCount > 1) merges.push({ s: { r: nr, c: 0 }, e: { r: nr, c: colCount - 1 } });
+        styles[nr + ",0"] = makeStyle({ font: { italic: true, sz: 9 } });
+      }
       drugs.forEach((drug) => {
         const statuses = plans.map((p) => {
           const id = displayContractPbp(p);
           const rawId = String(p.planId || p.id || "");
-          return (drug.byPlanId && (drug.byPlanId[id] || drug.byPlanId[rawId])) || { verified: false };
+          return (drug.byPlanId && (drug.byPlanId[id] || drug.byPlanId[rawId] || lookupPlanStatus(drug.byPlanId, p))) || { verified: false };
         });
         const cells = statuses.map((s, i) => formatDrugCell(s, plans[i]));
         const values = [drug.name, ...cells];
@@ -726,11 +1028,10 @@
         });
         push(values, rowKinds, rowStyles);
       });
-    }
+    };
 
-    if (doctors.length || drugs.length) {
-      pushPlanHeaders();
-    }
+    pushDoctorSection();
+    if (doctors.length) pushPlanHeaders();
 
     FIELD_ROWS.forEach(([label, key]) => {
       const values = [label, ...plans.map((p) => formatBenefitValue(p[key], key))];
@@ -749,6 +1050,8 @@
       });
       push(values, rowKinds, rowStyles);
     });
+
+    pushMedicationSection();
 
     const sobRow = ["Summary of Benefits"];
     const sobKinds = ["label"];
@@ -795,6 +1098,7 @@
       headers,
       doctors,
       drugs,
+      genericOnlyNote: payload.genericOnlyNote || "",
       filenameXlsx: comparisonExportFilename(payload, "xlsx"),
       filenamePdf: comparisonExportFilename(payload, "pdf"),
       cols: [{ wch: 28 }, ...plans.map(() => ({ wch: 36 }))],
@@ -1001,6 +1305,18 @@
     NETWORK_OUT,
     NETWORK_NOT_CONFIRMED,
     NETWORK_NEED_MORE,
+    GENERIC_ONLY_NOTE,
+    MUSKAT_PLAN_IDS,
+    isCarrierAsDrugName,
+    looksLikeDrugName,
+    hasExplicitTerminatingLanguage,
+    isMuskatContext,
+    canonicalize2027ComparisonPlans,
+    doctorsFromProviderLookups,
+    mergeDoctorLists,
+    applyMuskatLockedFacts,
+    muskatLockedDoctors,
+    muskatLockedDrugs,
     formatBenefitValue,
     formatPlanMarketingName,
     formatPlanColumnHeader,
