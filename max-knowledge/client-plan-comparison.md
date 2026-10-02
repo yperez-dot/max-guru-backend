@@ -2,13 +2,13 @@
 
 Workflow for Max when an agent needs a **client-sendable** Medicare Advantage comparison.
 
-**Preferred look (Yahoska):** Match **Katy’s ChatGPT comparison PDF** design — titled “YYYY Medicare Advantage Plan Comparison”, subhead with **client full name | ZIP – County, Florida | Prepared Month YYYY**, clean multi-column benefit table, short objective footnotes and SOB citation. **No** ranking blurbs (“closest”, “highest giveback”, “best for”).
+**Preferred export look (Yahoska):** Match the **Arias Lazo** Excel/PDF — client name as the title, optional Plan Terminating row, plan columns as full marketing name + contract-PBP on its own line, **Doctors** (`In network` / `Out of network`) before benefits, then the fixed benefit row order, SOB/EOC as links or pending. **No** ranking blurbs (“closest”, “highest giveback”, “best for”).
 
-**Data workflow:** Still mirror Yahoska’s **THEI client Google Sheet** (one tab per client) for which plans, doctors (True/False), and Rx to include.
+**Data workflow:** Still mirror Yahoska’s **THEI client Google Sheet** (one tab per client) for which plans, doctors, and Rx to include.
 
-**Last updated:** 2026-09-15
+**Last updated:** 2026-10-02
 
-Use `search_knowledge` with queries like “client plan comparison”, “Katy PDF”, “client-facing sheet”, “THEI client sheet”, “Carol.Wong”, or “comparison PDF” to retrieve this doc.
+Use `search_knowledge` with queries like “client plan comparison”, “Arias Lazo”, “Yahoska sheet”, “client-facing sheet”, “THEI client sheet”, “Carol.Wong”, or “comparison PDF” to retrieve this doc.
 
 ---
 
@@ -36,16 +36,18 @@ Use `search_knowledge` with queries like “client plan comparison”, “Katy P
 
 ---
 
-## Preferred PDF / client-facing presentation (Katy design)
+## Preferred Excel / PDF export (Yahoska / Arias Lazo)
 
-When producing text or a table the agent will send to the client, format like this:
+The live UI **Export Excel** and **Export PDF** buttons build this layout from grid plan objects plus thread facts (client name, terminating plan, doctor in/out). Chat replies stay short bullets — do not paste a markdown table.
 
-1. **Title:** `{Plan Year} Medicare Advantage Plan Comparison`
-2. **Subhead:** `{Client Full Name} | ZIP {zip} – {County}, Florida | Prepared {Month Year}`
-3. **Benefit table:** plans as columns (carrier, marketing name, plan ID / type); benefits as rows (premium, Part B giveback, deductible, MOOP, PCP, specialist, urgent care, ER, inpatient, Part D deductible/tiers, dental, OTC, etc. — only sourced cells).
-4. **Doctors section** (from THEI sheet / tools): table of doctor (+ specialty) × plan with True/False or In / Out.
-5. **Rx section** (from THEI sheet / tools): drug × plan with known copay/cost; mark unknowns.
-6. **Footer:** Verify providers, formulary, and current SOB/EOC before enrollment. Sources: list SOBs / Plan Compare / grid. **TPMO:** objective only — no “closest / highest / best” marketing blurbs.
+1. **Title:** client full name (ask if missing; never invent; never “Client”).
+2. **Plan Terminating** (optional): e.g. `UHC MedicareMax Dual : Partial`.
+3. **Plan columns:** full marketing name, contract-PBP on the next line (`H1045-012`). Not `Carrier — Plan (id) county`.
+4. **Doctors** first: one row per doctor, `In network` or `Out of network` per plan. Call `lookup_provider_network`. If doctors unknown, omit the block.
+5. **Benefit rows** in this order, sourced cells only (gaps = `Not listed` / `N/A` / `SOB pending` / `EOC pending`): Premium; Part B Rebate; Referrals Needed?; MSP Levels; Max Out of Pocket; Inpatient Hospital; Outpatient Hospital; PCP; Specialist; ER; Urgent Care; Advanced Imaging (MRI, CT, PET); Hearing Services; Dental; Deep Cleaning; Dentures; Fillings; Root Canals; Extractions; Crowns; Bridges; Implants; Vision Allowance; Ambulance; Transportation; Companionship; Custodial Care; RX Deductible; Tier 1–6; OTC; Grocery Card; Acupuncture; Fitness; Summary of Benefits; Evidence of Coverage.
+6. SOB/EOC: clickable hyperlink when the URL is on the plan; otherwise pending.
+
+Filename includes the client name when known.
 
 ## Output layout (must mirror the sheet)
 
@@ -57,7 +59,7 @@ When producing text or a table the agent will send to the client, format like th
 
 ### 2. Plan columns
 
-- Shortlist **2–4** plans as columns: **carrier + plan name + plan ID**.
+- Shortlist **2–4** plans as columns: **marketing name + contract-PBP** (CMS ID on its own line).
 - Include **ZIP / county** in the header area.
 - **Out-of-area:** call `discover_similar_plans` + medicare.gov **Plan Compare** (+ SOB). Say when THEI grid does not cover the county.
 - **Miami-Dade / Broward:** THEI **PLAN DATA / grid** when relevant; still cite SOB / Plan Compare as needed.
@@ -80,7 +82,7 @@ Objective rows only (adapt to sourced data), for example:
 
 ### 4. Doctor rows
 
-- Each row: **doctor name (+ specialty)** with **True/False** or **Yes/No** under each plan column (in-network?).
+- Each row: **doctor name (+ specialty)** with **In network / Out of network** under each plan column.
 - Call `lookup_provider_network` for **each** known doctor with the **client ZIP**.
 - If doctors unknown: ask agent to pull from the THEI sheet for that client, or: *“Do they have doctors or meds on our sheet / that we should check?”*
 - Never invent doctors.
@@ -105,6 +107,6 @@ Objective rows only (adapt to sourced data), for example:
 2. Drs/Rx from conversation, paste, or THEI sheet tab for that client (URL above) — ask agent to pull if Max has no live access
 3. Plan columns: carrier + name + plan ID (2–4) + ZIP/county
 4. Benefit rows from SOB / Plan Compare / grid only
-5. Doctor rows: True/False per plan via `lookup_provider_network`
+5. Doctor rows: In network / Out of network per plan via `lookup_provider_network` (omit Doctors if unknown)
 6. Rx rows: cost/copay when known via `search_drug` + formulary caveats
 7. No ranking language + short disclaimer
