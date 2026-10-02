@@ -211,6 +211,8 @@ Invite-only: `MAX_ACCESS_PASSWORD` on Railway (Yahoska / Katy / Carolina).
 
 Structured comparison state (client, ZIP/county, plans, doctor IN/OUT buckets, **verified** Rx only, needs) is stored on **Railway**, keyed by the unlock email. Save on desktop, Open on phone — not browser localStorage.
 
+**Client name on save (2026-10-02):** Save / Update / silent auto-save parse the thread via `extractClientName` when the export payload has no name (or a newer labeled name appears). Accepts `Client: Muskat`, `Client name: Muskat`, `Client's name is Muskat`, `Clients name is Muskat`, `Client name is Felix Muskat`, and labeled household last name. Keep a saved non-empty `clientName` unless a newer labeled name is in the thread. Sidebar list uses that name (not `Unnamed — H4140-001 / …`). Excel/PDF title uses the same field.
+
 - API: `GET/PUT/DELETE /workups` (same `MAX_API_KEY` + access token as chat)
 - File: `data/max-workups.json` or `MAX_WORKUPS_FILE=/data/max-workups.json` on the same Railway volume as usage
 - Cap: 50 workups per agent
