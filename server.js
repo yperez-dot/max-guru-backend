@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { passThroughChat, DEFAULT_MODEL, providerConfig } = require('./services/grok');
 const { BudgetGuard } = require('./services/budgetGuard');
+const { ImageValidationError, normalizeMessages } = require('./services/chatImages');
 const { requireApiKey } = require('./middleware/auth');
 const { accessEnabled, requireAccessToken, unlockHandler } = require('./middleware/access');
 const { createRateLimiter } = require('./middleware/rateLimit');
@@ -41,7 +42,7 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json({ limit: '3mb' }));
+app.use(express.json({ limit: process.env.MAX_JSON_BODY_LIMIT || '30mb' }));
 
 app.get('/health', (req, res) => {
   const cfg = providerConfig();
@@ -107,13 +108,25 @@ ADDITIONAL RUNTIME RULES (server-enforced):
 `;
 
 // POST /chat { messages: [{role, content}], system?: string }
+// content may be a string or multimodal parts (text + PNG/JPEG/WebP data URLs).
+// Images are validated in-memory and forwarded to Grok/OpenAI vision; they are not persisted.
 // Netlify (thei-max-guru.netlify.app) always sends system = buildSystemPrompt() (~280KB plan grid).
 // Auth (MAX_API_KEY) is the trust boundary — do not reject client system prompts or the live UI breaks.
 // LLM: xAI Grok (OpenAI-compatible). Response shape stays Anthropic-like for the Netlify UI.
 app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, res) => {
-  const { messages, system } = req.body;
-  if (!Array.isArray(messages) || !messages.length) {
+  const { system } = req.body;
+  if (!Array.isArray(req.body.messages) || !req.body.messages.length) {
     return res.status(400).json({ error: 'messages array required' });
+  }
+
+  let messages;
+  try {
+    messages = normalizeMessages(req.body.messages, { validate: true });
+  } catch (err) {
+    if (err instanceof ImageValidationError || err.code === 'invalid_image') {
+      return res.status(err.status || 400).json({ error: err.message, code: err.code });
+    }
+    return res.status(err.status || 400).json({ error: err.message || 'messages array required' });
   }
 
   const budgetCheck = budgetGuard.checkBeforeTurn(messages);
@@ -209,6 +222,15 @@ app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, 
 
 // 404
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
+
+app.use((err, req, res, next) => {
+  if (err && (err.type === 'entity.too.large' || err.status === 413)) {
+    return res.status(413).json({
+      error: 'That request is too large. Attach PNG, JPEG, or WebP images under 4MB each.',
+    });
+  }
+  return next(err);
+});
 
 // Preload knowledge on startup, then keep SEPs fresh from the live Hub tracker
 loadKnowledge();
