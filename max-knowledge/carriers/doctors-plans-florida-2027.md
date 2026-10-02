@@ -5,6 +5,8 @@ Pulled: 2026-10-01 13:17 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H4140-001, H4140-004, H4140-012, H4140-013, H4140-020
 
+**2027 PBP remap** (official [plan changes](https://www.doctorshcp.com/2027-plan-changes/)): DrMax `H4140-001` and DrSelect `H4140-012` end **2026-12-31**. Successors are DrMax-Dade **`H4140-022`** and DrSelect-SFL **`H4140-023`**. DrExtraCare `H4140-004` → `H4140-024`. `lookup_formulary` accepts both old and new IDs. Tiers come from the public [2027 formulary PDF](https://www.doctorshcp.com/wp-content/uploads/2027_FORMULARY.pdf) (`doctors_formulary_pdf`), not Daisy. T1–T6 dollars below stay keyed to the 001/012/004 grid columns until those headers are updated.
+
 Yellow leftover 2026 cells are **not** in this file. If a benefit is missing here, Max does not have a confirmed 2027 figure yet.
 
 ## Doctors DrExtraCare (H4140-004) — Broward C-SNP — NEW 2027

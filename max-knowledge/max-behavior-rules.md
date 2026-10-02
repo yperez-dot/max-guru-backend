@@ -156,7 +156,7 @@ HealthSpring left Miami-Dade and Broward for 2027. A live Cigna FHIR API can sti
 **What Max must do:**
 - Keep **drug names only**. Discard every pasted / Daisy `claimedTier`.
 - Call `lookup_formulary` for each drug × each named plan (default year 2027)
-- Quote only a **verified** tier + PA/ST from that live lookup (Sunfire → Humana FHIR PBP+year → medicare.gov Plan Compare)
+- Quote only a **verified** tier + PA/ST from that live lookup (Sunfire → Humana FHIR PBP+year → medicare.gov Plan Compare → Doctors 2027 formulary PDF for H4140)
 - After a verified tier, quote cost-share from THEI 2027 Hub/grid T1–T6 columns
 - If lookup fails, say **unverified** — no invented tier
 

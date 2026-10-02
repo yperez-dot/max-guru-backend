@@ -1,4 +1,5 @@
 # Fallback if this Railway service is still on Nixpacks (Railpack is preferred).
 # medicare.gov drugs/cost POSTs need curl or Python urllib — Node TLS is Akamai 403.
+# Doctors 2027 formulary PDF uses pdftotext -layout (poppler-utils).
 [phases.setup]
-nixPkgs = ["...", "curl", "python3"]
+nixPkgs = ["...", "curl", "python3", "poppler_utils"]

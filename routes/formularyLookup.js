@@ -2,7 +2,8 @@
  * GET /formulary-lookup?name=trintellix&planId=H1036-054C&year=2027
  * Optional: planIds=H1036-054C,H1036-305  ndc=
  *
- * Live formulary tier (Sunfire → Humana FHIR PBP+year → medicare.gov).
+ * Live formulary tier (Sunfire → Humana FHIR PBP+year → medicare.gov →
+ * carrier consumer; Doctors 2027 formulary PDF for H4140).
  * claimedTier query params are discarded and never returned.
  */
 const { Router } = require('express');
