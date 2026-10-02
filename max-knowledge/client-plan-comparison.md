@@ -6,7 +6,7 @@ Workflow for Max when an agent needs a **client-sendable** Medicare Advantage co
 
 **Data workflow:** Still mirror Yahoska’s **THEI client Google Sheet** (one tab per client) for which plans, doctors, and Rx to include.
 
-**Last updated:** 2026-10-02
+**Last updated:** 2026-10-02 (Medications immediately under Doctors, before Premium)
 
 Use `search_knowledge` with queries like “client plan comparison”, “Arias Lazo”, “Yahoska sheet”, “client-facing sheet”, “THEI client sheet”, “Carol.Wong”, or “comparison PDF” to retrieve this doc.
 
@@ -44,8 +44,9 @@ The live UI **Export Excel** and **Export PDF** buttons build this layout from g
 2. **Plan Terminating** only if the agent explicitly says a current plan is ending. Not part of the standard template (Arias had one because that client’s plan was terminating).
 3. **Plan columns:** full marketing name, contract-PBP on the next line (`H1045-012`). Not `Carrier — Plan (id) county`.
 4. **Doctors** first whenever providers were checked or named: `In network` / `Out of network` / `Not confirmed` / `Need more info` per plan. Call `lookup_provider_network` and wire results into the export payload so the section is not skipped.
-5. **Benefit rows** in this order, sourced cells only (gaps = `Not listed` / `N/A` / `SOB pending` / `EOC pending`): Premium; Part B Rebate; Referrals Needed?; MSP Levels; Max Out of Pocket; Inpatient Hospital; Outpatient Hospital; PCP; Specialist; ER; Urgent Care; Advanced Imaging (MRI, CT, PET); Hearing Services; Dental; Deep Cleaning; Dentures; Fillings; Root Canals; Extractions; Crowns; Bridges; Implants; Vision Allowance; Ambulance; Transportation; Companionship; Custodial Care; RX Deductible; Tier 1–6; OTC; Grocery Card; Acupuncture; Fitness; Summary of Benefits; Evidence of Coverage.
-6. SOB/EOC: clickable hyperlink when the URL is on the plan; otherwise pending.
+5. **Medications immediately under Doctors**, before Premium. Brand* not covered + generic (live formulary tier only). Skip the section when there are no drugs.
+6. **Benefit rows** in this order, sourced cells only (gaps = `Not listed` / `N/A` / `SOB pending` / `EOC pending`): Premium; Part B Rebate; Referrals Needed?; MSP Levels; Max Out of Pocket; Inpatient Hospital; Outpatient Hospital; PCP; Specialist; ER; Urgent Care; Advanced Imaging (MRI, CT, PET); Hearing Services; Dental; Deep Cleaning; Dentures; Fillings; Root Canals; Extractions; Crowns; Bridges; Implants; Vision Allowance; Ambulance; Transportation; Companionship; Custodial Care; RX Deductible; Tier 1–6; OTC; Grocery Card; Acupuncture; Fitness; Summary of Benefits; Evidence of Coverage.
+7. SOB/EOC: clickable hyperlink when the URL is on the plan; otherwise pending.
 
 Filename includes the client name when known.
 
@@ -110,7 +111,7 @@ Objective rows only (adapt to sourced data), for example:
 1. Full name known (or asked) — never invent / never “Client”
 2. Drs/Rx from conversation, paste, or THEI sheet tab for that client (URL above) — ask agent to pull if Max has no live access
 3. Plan columns: carrier + name + plan ID (2–4) + ZIP/county
-4. Benefit rows from SOB / Plan Compare / grid only
-5. Doctor rows: In network / Out of network / Not confirmed / Need more info per plan via `lookup_provider_network` (always include the section when providers were checked or named)
-6. Rx rows: verified tier + T1–T6 cost-share via `lookup_formulary` only (Unverified if lookup fails). Brand not covered → auto-suggest generic; never invent a generic tier.
+4. Doctor rows: In network / Out of network / Not confirmed / Need more info per plan via `lookup_provider_network` (always include the section when providers were checked or named)
+5. Rx rows immediately under Doctors: verified tier + T1–T6 cost-share via `lookup_formulary` only (Unverified if lookup fails). Brand not covered → auto-suggest generic; never invent a generic tier.
+6. Benefit rows from SOB / Plan Compare / grid only (after Medications)
 7. No ranking language + short disclaimer

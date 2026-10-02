@@ -1117,7 +1117,8 @@
     };
 
     pushDoctorSection();
-    if (doctors.length) pushPlanHeaders();
+    pushMedicationSection();
+    if (doctors.length || drugs.length) pushPlanHeaders();
 
     FIELD_ROWS.forEach(([label, key]) => {
       const values = [label, ...plans.map((p) => formatBenefitValue(p[key], key))];
@@ -1136,8 +1137,6 @@
       });
       push(values, rowKinds, rowStyles);
     });
-
-    pushMedicationSection();
 
     const sobRow = ["Summary of Benefits"];
     const sobKinds = ["label"];

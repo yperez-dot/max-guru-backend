@@ -3,7 +3,7 @@
 Source: Yahoska / THEI — locked Excel/PDF content for **Michael Muskat**, ZIP **33176**, plan year **2027**.  
 Pulled: 2026-10-02
 
-Not a ranking. Facts only. Export layout is Arias Lazo: client title → plan headers → **Doctors first** → 2027 green-cell benefits → Medications. **No Plan Terminating** (that row is only when she says a current plan is ending).
+Not a ranking. Facts only. Export layout (Yahoska 2026-10-02): client title → plan headers → **Doctors first** → **Medications** (brand* not covered + generic) → 2027 green-cell benefits → SOB/EOC. **No Plan Terminating** (that row is only when she says a current plan is ending).
 
 ## Plan columns (do not substitute)
 
