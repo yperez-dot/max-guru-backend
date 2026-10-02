@@ -41,7 +41,7 @@ Use `search_knowledge` with queries like “client plan comparison”, “Arias 
 The live UI **Export Excel** and **Export PDF** buttons build this layout from grid plan objects plus thread facts (client name, terminating plan, doctor in/out). Chat replies stay short bullets — do not paste a markdown table.
 
 1. **Title:** client full name (ask if missing; never invent; never “Client”).
-2. **Plan Terminating** only if the agent explicitly says a current plan is ending. Not part of the standard template (Arias had one because that client’s plan was terminating).
+2. **Plan Terminating** only if the agent explicitly says a current plan is ending. Not part of the standard template (Arias had one because that client’s plan was terminating). Never invent it from “no MSP row” or “do not add a Plan Terminating row.” Export the **current** thread comparison — never overwrite with an earlier Muskat H5420-014 snapshot when she later cites stay-put **H5420-001**.
 3. **Plan columns:** full marketing name, contract-PBP on the next line (`H1045-012`). Not `Carrier — Plan (id) county`.
 4. **Doctors** first whenever providers were checked or named: `In network` / `Out of network` / `Not confirmed` / `Need more info` per plan. Call `lookup_provider_network` and wire results into the export payload so the section is not skipped.
 5. **Medications immediately under Doctors**, before Premium. Brand* not covered + generic (live formulary tier only). Skip the section when there are no drugs.

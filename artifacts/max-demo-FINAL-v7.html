@@ -304,15 +304,28 @@
     return found;
   }
 
+  function looksLikeTerminatingPlanName(value) {
+    const v = String(value || "").replace(/\s+/g, " ").trim();
+    if (v.length < 3 || v.length > 80) return false;
+    if (/^(row|rows|unless|never|do not|don't)\b/i.test(v)) return false;
+    if (/\b(msp(\s+levels?)?|not dual|no msp|unless she|do not|don't|never become)\b/i.test(v)) return false;
+    if (/\bis\s+hmo\b/i.test(v)) return false;
+    return /[A-Za-z]/.test(v);
+  }
+
   function hasExplicitTerminatingLanguage(text) {
-    return /(?:plan\s+)?terminat(?:ing|es|ed|ion)|terminating\s+plan/i.test(String(text || ""));
+    const t = String(text || "");
+    if (/\bcurrent\s+plan\s+(?:is\s+)?(?:terminat|ending)\b/i.test(t)) return true;
+    if (/\b(?:her|his|their)\s+(?:current\s+)?plan\s+is\s+(?:terminat|ending)\b/i.test(t)) return true;
+    if (/(?:^|[^\w])plan\s+terminating\s*[:\-–]\s*\S/i.test(t)) return true;
+    if (/\bterminating\s+plan\s*(?:is\s*)?[:\-–]\s*\S/i.test(t)) return true;
+    return false;
   }
 
   function extractTerminatingPlan(text) {
     if (!hasExplicitTerminatingLanguage(text)) return "";
     const patterns = [
       /(?:plan\s+)?terminat(?:ing|es|ed|ion)\s*(?:plan)?\s*[:\-–]\s*([^\n]{3,90})/i,
-      /plan\s+terminating\s+([A-Z][^\n]{2,90})/i,
       /terminating\s+plan\s+(?:is\s+)?([A-Z][^\n]{2,90})/i,
     ];
     for (const re of patterns) {
@@ -321,7 +334,7 @@
       let value = String(m[1] || "").replace(/\s+/g, " ").trim();
       value = value.replace(/\s*[.]$/, "");
       value = value.replace(/\s+(and|for|in|on|with|who|which)\s+$/i, "").trim();
-      if (value.length >= 3 && /[A-Za-z]/.test(value)) return value;
+      if (looksLikeTerminatingPlanName(value)) return value;
     }
     return "";
   }
@@ -360,11 +373,23 @@
       seen.add(key);
       names.push(/^dr\.?\s/i.test(name) ? name.replace(/^dr\.?\s+/i, "Dr. ") : "Dr. " + name);
     };
+    const addClinic = (raw) => {
+      let name = String(raw || "").replace(/\s+/g, " ").trim();
+      name = name.replace(/[.,;:]+$/, "");
+      if (!name || name.split(/\s+/).length < 2) return;
+      const key = name.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      names.push(name);
+    };
     const drRe = /\b(?:Dr\.?|Doctor)\s+([A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){1,3})/g;
     const mdRe = /\b([A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){1,2}),?\s+M\.?D\.?\b/g;
+    const clinicRe =
+      /\b(Miami Neurology(?:\s*(?:&|and)\s+Rehab(?:ilitation)?)?(?:\s*(?:&|and)?\s*Specialists)?|MNRS(?:\s+Physical\s+Therapy)?)\b/gi;
     let m;
     while ((m = drRe.exec(text))) add(m[1]);
     while ((m = mdRe.exec(text))) add(m[1]);
+    while ((m = clinicRe.exec(text))) addClinic(m[1]);
     return names;
   }
 
@@ -896,11 +921,24 @@
       }
       return p;
     });
-    if (muskat && catalog && catalog.length) {
-      const locked = MUSKAT_PLAN_IDS.map((id) => pickCatalogPlan(catalog, id, county)).filter(Boolean);
-      if (locked.length === MUSKAT_PLAN_IDS.length) out = locked;
-    }
     return out;
+  }
+
+  function currentPlansMatchMuskatLock(plans) {
+    const have = (plans || []).map((p) => String(displayContractPbp(p) || "").toUpperCase());
+    if (have.length !== MUSKAT_PLAN_IDS.length) return false;
+    return MUSKAT_PLAN_IDS.every((id) => have.includes(id));
+  }
+
+  function sameExportPlanSet(a, b) {
+    const ids = (list) =>
+      (list || [])
+        .map((p) => String(displayContractPbp(p) || p.planId || p.id || "").toUpperCase().replace(/\s+/g, "").split("/")[0])
+        .filter(Boolean)
+        .sort()
+        .join("|");
+    const left = ids(a);
+    return Boolean(left) && left === ids(b);
   }
 
   function verifiedCell(tier, costShare, coverage) {
@@ -977,16 +1015,27 @@
   }
 
   function applyMuskatLockedFacts(payload, catalog) {
-    const county = "Miami-Dade";
-    const plans = MUSKAT_PLAN_IDS.map((id) => pickCatalogPlan(catalog, id, county)).filter(Boolean);
-    if (plans.length === MUSKAT_PLAN_IDS.length) payload.plans = plans;
-    payload.clientName = payload.clientName && /michael/i.test(payload.clientName)
+    if (!currentPlansMatchMuskatLock(payload.plans)) {
+      return payload;
+    }
+    payload.clientName = payload.clientName && /muskat/i.test(payload.clientName)
       ? payload.clientName
       : "Michael Muskat";
     payload.zip = payload.zip || "33176";
     payload.county = payload.county || "Miami-Dade";
-    payload.doctors = normalizeDoctors(muskatLockedDoctors(), payload.plans);
-    payload.drugs = normalizeDrugs(muskatLockedDrugs(), payload.plans);
+    payload.doctors = mergeDoctorLists([muskatLockedDoctors(), payload.doctors], payload.plans);
+    const live = normalizeDrugs(payload.drugs, payload.plans);
+    const lockedDrugs = normalizeDrugs(muskatLockedDrugs(), payload.plans);
+    if (!live.length) {
+      payload.drugs = lockedDrugs;
+    } else {
+      lockedDrugs.forEach((d) => {
+        if (!live.some((x) => String(x.name || "").toLowerCase() === String(d.name || "").toLowerCase())) {
+          live.push(d);
+        }
+      });
+      payload.drugs = live;
+    }
     payload.genericOnlyNote = GENERIC_ONLY_NOTE;
     if (!hasExplicitTerminatingLanguage(payload.threadText) && !payload.explicitTerminating) {
       payload.terminatingPlan = "";
@@ -1497,6 +1546,8 @@
     looksLikeDrugName,
     hasExplicitTerminatingLanguage,
     isMuskatContext,
+    currentPlansMatchMuskatLock,
+    sameExportPlanSet,
     canonicalize2027ComparisonPlans,
     doctorsFromProviderLookups,
     mergeDoctorLists,
@@ -2371,8 +2422,8 @@ HARD RULES -- these override everything else:
 
 
 
-17b. CLIENT COMPARISON EXPORT -- this chat UI CAN export a side-by-side Excel or PDF when you cite two or more plan IDs (Export Excel / Export PDF buttons). NEVER say you cannot generate or export Excel, PDF, spreadsheets, or files. When an agent asks for Excel / PDF / export / side-by-side: briefly restate the plan names with their exact plan IDs from PLAN DATA (one line each), then tell them to click the button under your message. If the thread already has a client name or doctor in-network / out-of-network / not confirmed / need more info results from lookup_provider_network, mention those facts in the same reply so the export can pick them up -- never invent a client name, doctors, or network status. Do NOT add a Plan Terminating row unless the agent explicitly says a current plan is terminating. Export layout is the Yahoska / Arias Lazo sheet: client name as title, plan columns as full marketing name plus contract-PBP on its own line, Doctors section FIRST (In network / Out of network / Not confirmed / Need more info — always include when providers were checked or named), then Medications immediately under Doctors (brand* not covered + generic), then the fixed 2027 green-cell benefit row order plus SOB-only extras (Hearing Aids, SNF days 1–20 / 21–100, Hospital-grade bed / DME) when lookup_sob_benefit found them, then SOB/EOC as links or pending. Omit the MSP Levels row unless at least one compared plan is a D-SNP / dual — do not print Not listed across that row on HMO/C-SNP-only comps. When a asked benefit is not on the grid, call lookup_sob_benefit — never say it is not on the grid and omit it. Never treat carrier names (Doctors, UHC, Humana) as medication rows. When a brand is verified not covered, automatically pull the generic (Lipitor → Atorvastatin, Benicar → Olmesartan) — do not wait for the agent to type the generic. Show brand* as not covered with the asterisk note; generic tier from live lookup_formulary only — never invent a tier. Do not invent file downloads yourself and do not send them to build a sheet manually.
-17c. MUSKAT 2027 LOCKED COMP -- for Michael Muskat / Muskat (ZIP 33176): columns are Humana Gold Plus H1036-054C (core, NOT Giveback H1036-305), Doctors DrSelect-SFL H4140-023 (not 012), UHC MedicareMax Complete Care H5420-014 (C-SNP: diabetes, CHF, and/or a cardiovascular disorder). Doctors: Alejandro Roca OUT/IN/IN; Charles J. Kaiser OUT/IN/IN; William Trattler OUT/IN/IN; Neeta Jane Erinjeri IN/IN/IN. Rx (Yahoska verified 2027 — do not invent other tiers): *Brand not covered — these three plans cover the generic only. Lipitor* not covered all three; Atorvastatin (generic) T1 $0 all three; Benicar* not covered all three; Olmesartan (generic) T1 $0 all three; Lorazepam Humana T4 40% / Doctors T1 $0 / UHC T2 $0; Gabapentin Humana T2 $0 / Doctors T1 $0 / UHC T2 $0; Trintellix Humana T4 40% / Doctors T4 $55 / UHC T3 $0; Memantine T2 $0 all three. Medications sit immediately under Doctors, before Premium. Benefits from 2027 green cells only. No Plan Terminating.
+17b. CLIENT COMPARISON EXPORT -- this chat UI CAN export a side-by-side Excel or PDF when you cite two or more plan IDs (Export Excel / Export PDF buttons). NEVER say you cannot generate or export Excel, PDF, spreadsheets, or files. When an agent asks for Excel / PDF / export / side-by-side: briefly restate the plan names with their exact plan IDs from PLAN DATA (one line each), then tell them to click the button under your message. If the thread already has a client name or doctor in-network / out-of-network / not confirmed / need more info results from lookup_provider_network, mention those facts in the same reply so the export can pick them up -- never invent a client name, doctors, or network status. Do NOT add a Plan Terminating row unless the agent explicitly says a current plan is terminating. Export layout is the Yahoska / Arias Lazo sheet: client name as title, plan columns as full marketing name plus contract-PBP on its own line, Doctors section FIRST (In network / Out of network / Not confirmed / Need more info — always include when providers were checked or named), then Medications immediately under Doctors (brand* not covered + generic), then the fixed 2027 green-cell benefit row order plus SOB-only extras (Hearing Aids, SNF days 1–20 / 21–100, Hospital-grade bed / DME) when lookup_sob_benefit found them, then SOB/EOC as links or pending. Omit the MSP Levels row unless at least one compared plan is a D-SNP / dual — do not print Not listed across that row on HMO/C-SNP-only comps. When a asked benefit is not on the grid, call lookup_sob_benefit — never say it is not on the grid and omit it. Never treat carrier names (Doctors, UHC, Humana) as medication rows. When a brand is verified not covered, automatically pull the generic (Lipitor → Atorvastatin, Benicar → Olmesartan) — do not wait for the agent to type the generic. Show brand* as not covered with the asterisk note; generic tier from live lookup_formulary only — never invent a tier. Export the CURRENT thread comparison — never overwrite with an earlier Muskat snapshot. Do not invent file downloads yourself and do not send them to build a sheet manually.
+17c. MUSKAT 2027 -- Excel/PDF must use the CURRENT comparison in this thread (plans, doctors, meds, 2027 green cells), never a hardcoded earlier snapshot. The 014 lock (Humana Gold Plus H1036-054C, Doctors DrSelect-SFL H4140-023, UHC MedicareMax Complete Care H5420-014) applies ONLY when those three IDs are the current columns. If she later cites stay-put MedicareMax FL-0028 H5420-001 (or any other PBP), export THAT plan's green cells — giveback $50 / OTC $25 per quarter / inpatient $95 days 1-4 / specialist $15 / UC $25 / MOOP $3900 — not the 014 sheet. Include every named doctor and clinic from this thread (Roca, Kaiser, Trattler, Erinjeri, Jason Margolesky, Miami Neurology & Rehab). Quote live lookup_formulary for this PBP (Trintellix on H5420-001 is T3 $25 when verified). Never invent a Plan Terminating row from "no MSP row" or "do not add Plan Terminating" prose. No Plan Terminating unless she explicitly says a current plan is ending.
 
 18. LIVE LOOKUP TOOLS -- you have live tools that query external systems: lookup_provider_network (NPI Registry first — people and clinic orgs — then FL Blue, Cigna/HealthSpring, HealthSun, Devoted, Doctors HealthCare Plans, Aetna guest, Simply guest, UHC public guest Find a Doctor for 2027 Duals/Preferred/MedicareMax — no Jarvis or member login, and Humana public Find Care guest for 2027 Gold Plus/Duals/Choice — no member login), search_clinic_or_provider (CMS NPPES org/DBA search + optional known clinic webpage; never Google SERPs), search_drug (Sunfire catalog — name/NDC only, not a plan tier), lookup_formulary (required before quoting a drug tier / PA / ST / T4 % on a named plan), and lookup_sob_benefit (required when an asked benefit is not on the 2027 grid — hearing aids copay, SNF days 1–20 / 21–100, hospital-grade bed / DME; quote only extracted SOB text, never invent dollars). Solis is county-PDF only. CarePlus and Wellcare still rely on Sunfire or the carrier site. These tools are the ONE exception to Rules 4, 15, and 17's "only the data provided here" boundary. Use normal API function calling -- never print tool-call syntax. Rules for provider results: (a) present them concisely and cite the source directory on each hit; (b) a failed check is not out-of-network — say the lookup failed and hand the guest URL (UHC: uhc.com/find-a-doctor Continue as guest; Humana: findcare.humana.com Search as a guest); (c) empty Sunfire is not UHC or Humana out-of-network; only report UHC/Humana OON when that guest directory returned a successful empty result for that CMS ID or network; (d) never fill a gap from training; (e) Rule 1 still applies — network participation is a fact, never a reason to call one plan better; (f) hospital questions still use HOSPITALS; (g) for enrollment-critical decisions, confirm with the carrier because directory data can lag; (h) a Cigna/HealthSpring directory hit is NOT a 2027 Miami-Dade or Broward MA enrollment option — HealthSpring has no 2027 MA plans in those counties; never say "she's in-network with Cigna so consider HealthSpring."; (i) if a clinic/group/DBA name misses (e.g. Miami Neurology & Rehab Specialists / MNRS vs legal MIAMI NEUROLOGY & REHABILITATION SPECIALISTS, org NPI 1689860280), call search_clinic_or_provider, propose the NPI(s), then re-run lookup_provider_network with npi= — true In/Out is NPI + carrier Find Care only; (j) a clinic insurances-accepted page is marketing, not verified In/Out. If a Humana (or other carrier) logo IS on the page: "Found a Humana logo on their site — here's the link. I recommend you call and confirm." If it is NOT (MNRS / https://miamiphysicaltherapy.com/insurances/ lists Aetna, ASHP, AvMed, Cigna, Doctors Healthcare, GEHA, Golden Rule, Hartford, Harvard Pilgrim, Medicare, NALC, PHCS, TRICARE, UnitedHealthcare, UAIC, UMR, VA, Gallagher Bassett — NO Humana): say "{carrier} is not listed on their accepted-insurances page", link it, recommend calling the office. Do not treat absence on the clinic site as definitive OON if Find Care later returns IN — report both: not listed on clinic site + the NPI Find Care result.
 
@@ -3098,28 +3149,32 @@ function App() {
     messagesRef.current = newHistory;
     setMessages(newHistory);
     try {
-      // If agent asks for Excel/PDF, reuse the latest remembered comparison.
+      // If agent asks for Excel/PDF, use the CURRENT comparison in the latest Max reply.
       if (wantsExcelExport(userMessageText(apiContent))) {
         const lastOffer = [...newHistory].reverse().find((m) => m.role === "offer" && m.plans?.length >= 2);
         const remembered = lastComparisonExportRef.current;
-        let fromThread = lastOffer?.plans || (remembered && remembered.plans) || (Array.isArray(remembered) ? remembered : []) || [];
-        if (fromThread.length < 2) {
-          const assistantMsgs = newHistory.filter((m) => m.role === "assistant");
-          for (let i = assistantMsgs.length - 1; i >= 0; i--) {
-            const found = findComparisonPlans(assistantMsgs[i].content || "");
-            if (found.length >= 2) {
-              fromThread = found;
-              break;
-            }
+        let fromThread = [];
+        const assistantMsgs = newHistory.filter((m) => m.role === "assistant");
+        for (let i = assistantMsgs.length - 1; i >= 0; i--) {
+          const found = findComparisonPlans(assistantMsgs[i].content || "");
+          if (found.length >= 2) {
+            fromThread = found;
+            break;
           }
+        }
+        if (fromThread.length < 2) {
+          fromThread = lastOffer?.plans || (remembered && remembered.plans) || (Array.isArray(remembered) ? remembered : []) || [];
         }
         if (fromThread.length >= 2) {
           fromThread = fromThread.slice(0, 4);
+          const sameSet = window.MaxComparisonExport.sameExportPlanSet;
+          const rememberedFits = remembered && typeof sameSet === "function" && sameSet(remembered.plans, fromThread);
+          const offerFits = lastOffer && typeof sameSet === "function" && sameSet(lastOffer.plans, fromThread);
           const payload = collectComparisonExport(newHistory, fromThread, {
-            drugs: (remembered && remembered.drugs) || lastOffer?.drugs || [],
-            doctors: (remembered && remembered.doctors) || lastOffer?.doctors || [],
+            drugs: rememberedFits ? (remembered.drugs || []) : offerFits ? (lastOffer.drugs || []) : [],
+            doctors: rememberedFits ? (remembered.doctors || []) : offerFits ? (lastOffer.doctors || []) : [],
             clientName: (remembered && remembered.clientName) || lastOffer?.clientName || "",
-            sobBenefits: (remembered && remembered.sobBenefits) || lastOffer?.sobBenefits || {},
+            sobBenefits: rememberedFits ? (remembered.sobBenefits || {}) : offerFits ? (lastOffer.sobBenefits || {}) : {},
           });
           lastComparisonExportRef.current = payload;
           scheduleAutoSave(payload);
@@ -3157,14 +3212,17 @@ function App() {
       const found = findComparisonPlans(reply);
       let nextMsgs;
       if (found.length >= 2) {
+        const remembered = lastComparisonExportRef.current;
+        const sameSet = window.MaxComparisonExport.sameExportPlanSet;
+        const rememberedFits = remembered && typeof sameSet === "function" && sameSet(remembered.plans, found);
         const payload = collectComparisonExport([...newHistory, assistantMsg], found.slice(0, 4), {
           drugs: [
-            ...((lastComparisonExportRef.current && lastComparisonExportRef.current.drugs) || []),
+            ...(rememberedFits ? (remembered.drugs || []) : []),
             ...drugsFromToolResults(result.toolResults),
           ],
-          doctors: (lastComparisonExportRef.current && lastComparisonExportRef.current.doctors) || [],
+          doctors: rememberedFits ? (remembered.doctors || []) : [],
           toolResults: result.toolResults || [],
-          sobBenefits: (lastComparisonExportRef.current && lastComparisonExportRef.current.sobBenefits) || {},
+          sobBenefits: rememberedFits ? (remembered.sobBenefits || {}) : {},
         });
         lastComparisonExportRef.current = payload;
         scheduleAutoSave(payload);

@@ -280,15 +280,28 @@
     return found;
   }
 
+  function looksLikeTerminatingPlanName(value) {
+    const v = String(value || "").replace(/\s+/g, " ").trim();
+    if (v.length < 3 || v.length > 80) return false;
+    if (/^(row|rows|unless|never|do not|don't)\b/i.test(v)) return false;
+    if (/\b(msp(\s+levels?)?|not dual|no msp|unless she|do not|don't|never become)\b/i.test(v)) return false;
+    if (/\bis\s+hmo\b/i.test(v)) return false;
+    return /[A-Za-z]/.test(v);
+  }
+
   function hasExplicitTerminatingLanguage(text) {
-    return /(?:plan\s+)?terminat(?:ing|es|ed|ion)|terminating\s+plan/i.test(String(text || ""));
+    const t = String(text || "");
+    if (/\bcurrent\s+plan\s+(?:is\s+)?(?:terminat|ending)\b/i.test(t)) return true;
+    if (/\b(?:her|his|their)\s+(?:current\s+)?plan\s+is\s+(?:terminat|ending)\b/i.test(t)) return true;
+    if (/(?:^|[^\w])plan\s+terminating\s*[:\-–]\s*\S/i.test(t)) return true;
+    if (/\bterminating\s+plan\s*(?:is\s*)?[:\-–]\s*\S/i.test(t)) return true;
+    return false;
   }
 
   function extractTerminatingPlan(text) {
     if (!hasExplicitTerminatingLanguage(text)) return "";
     const patterns = [
       /(?:plan\s+)?terminat(?:ing|es|ed|ion)\s*(?:plan)?\s*[:\-–]\s*([^\n]{3,90})/i,
-      /plan\s+terminating\s+([A-Z][^\n]{2,90})/i,
       /terminating\s+plan\s+(?:is\s+)?([A-Z][^\n]{2,90})/i,
     ];
     for (const re of patterns) {
@@ -297,7 +310,7 @@
       let value = String(m[1] || "").replace(/\s+/g, " ").trim();
       value = value.replace(/\s*[.]$/, "");
       value = value.replace(/\s+(and|for|in|on|with|who|which)\s+$/i, "").trim();
-      if (value.length >= 3 && /[A-Za-z]/.test(value)) return value;
+      if (looksLikeTerminatingPlanName(value)) return value;
     }
     return "";
   }
@@ -336,11 +349,23 @@
       seen.add(key);
       names.push(/^dr\.?\s/i.test(name) ? name.replace(/^dr\.?\s+/i, "Dr. ") : "Dr. " + name);
     };
+    const addClinic = (raw) => {
+      let name = String(raw || "").replace(/\s+/g, " ").trim();
+      name = name.replace(/[.,;:]+$/, "");
+      if (!name || name.split(/\s+/).length < 2) return;
+      const key = name.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      names.push(name);
+    };
     const drRe = /\b(?:Dr\.?|Doctor)\s+([A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){1,3})/g;
     const mdRe = /\b([A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){1,2}),?\s+M\.?D\.?\b/g;
+    const clinicRe =
+      /\b(Miami Neurology(?:\s*(?:&|and)\s+Rehab(?:ilitation)?)?(?:\s*(?:&|and)?\s*Specialists)?|MNRS(?:\s+Physical\s+Therapy)?)\b/gi;
     let m;
     while ((m = drRe.exec(text))) add(m[1]);
     while ((m = mdRe.exec(text))) add(m[1]);
+    while ((m = clinicRe.exec(text))) addClinic(m[1]);
     return names;
   }
 
@@ -872,11 +897,24 @@
       }
       return p;
     });
-    if (muskat && catalog && catalog.length) {
-      const locked = MUSKAT_PLAN_IDS.map((id) => pickCatalogPlan(catalog, id, county)).filter(Boolean);
-      if (locked.length === MUSKAT_PLAN_IDS.length) out = locked;
-    }
     return out;
+  }
+
+  function currentPlansMatchMuskatLock(plans) {
+    const have = (plans || []).map((p) => String(displayContractPbp(p) || "").toUpperCase());
+    if (have.length !== MUSKAT_PLAN_IDS.length) return false;
+    return MUSKAT_PLAN_IDS.every((id) => have.includes(id));
+  }
+
+  function sameExportPlanSet(a, b) {
+    const ids = (list) =>
+      (list || [])
+        .map((p) => String(displayContractPbp(p) || p.planId || p.id || "").toUpperCase().replace(/\s+/g, "").split("/")[0])
+        .filter(Boolean)
+        .sort()
+        .join("|");
+    const left = ids(a);
+    return Boolean(left) && left === ids(b);
   }
 
   function verifiedCell(tier, costShare, coverage) {
@@ -953,16 +991,27 @@
   }
 
   function applyMuskatLockedFacts(payload, catalog) {
-    const county = "Miami-Dade";
-    const plans = MUSKAT_PLAN_IDS.map((id) => pickCatalogPlan(catalog, id, county)).filter(Boolean);
-    if (plans.length === MUSKAT_PLAN_IDS.length) payload.plans = plans;
-    payload.clientName = payload.clientName && /michael/i.test(payload.clientName)
+    if (!currentPlansMatchMuskatLock(payload.plans)) {
+      return payload;
+    }
+    payload.clientName = payload.clientName && /muskat/i.test(payload.clientName)
       ? payload.clientName
       : "Michael Muskat";
     payload.zip = payload.zip || "33176";
     payload.county = payload.county || "Miami-Dade";
-    payload.doctors = normalizeDoctors(muskatLockedDoctors(), payload.plans);
-    payload.drugs = normalizeDrugs(muskatLockedDrugs(), payload.plans);
+    payload.doctors = mergeDoctorLists([muskatLockedDoctors(), payload.doctors], payload.plans);
+    const live = normalizeDrugs(payload.drugs, payload.plans);
+    const lockedDrugs = normalizeDrugs(muskatLockedDrugs(), payload.plans);
+    if (!live.length) {
+      payload.drugs = lockedDrugs;
+    } else {
+      lockedDrugs.forEach((d) => {
+        if (!live.some((x) => String(x.name || "").toLowerCase() === String(d.name || "").toLowerCase())) {
+          live.push(d);
+        }
+      });
+      payload.drugs = live;
+    }
     payload.genericOnlyNote = GENERIC_ONLY_NOTE;
     if (!hasExplicitTerminatingLanguage(payload.threadText) && !payload.explicitTerminating) {
       payload.terminatingPlan = "";
@@ -1473,6 +1522,8 @@
     looksLikeDrugName,
     hasExplicitTerminatingLanguage,
     isMuskatContext,
+    currentPlansMatchMuskatLock,
+    sameExportPlanSet,
     canonicalize2027ComparisonPlans,
     doctorsFromProviderLookups,
     mergeDoctorLists,
