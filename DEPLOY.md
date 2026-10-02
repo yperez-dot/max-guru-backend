@@ -34,6 +34,8 @@ Akamai 403s Node/undici and Node `https` POSTs to `/api/v1/data/plan-compare/dru
 
 Railway runtime must have **one** of those binaries. `railpack.json` (and `nixpacks.toml` if the service is still on Nixpacks) install `curl` and `python3` in the deploy image. A missing `curl` used to surface as `medicare_gov_http_0`.
 
+Doctors 2027 consumer fallback fetches `2027_FORMULARY.pdf` the same way (curl / Python — Node 404s the WordPress file) and extracts text with `pdftotext -layout`. Railpack/Nixpacks also install `poppler-utils`.
+
 ## Client workups (desktop ↔ phone)
 
 Structured workups are stored on Railway (`GET/PUT/DELETE /workups`), keyed by the unlock email. They are **not** browser-only.

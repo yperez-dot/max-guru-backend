@@ -33,7 +33,9 @@ Use these links when an agent needs to check if a provider is in-network or if a
 - **Provider Lookup (live search):** https://providersearch.doctorshcp.com
   - _Max queries this by NPI (PCP + specialist). Not on THEI Sunfire. API does not return a CMS plan ID — a hit means the NPI is in the Doctors directory._
 - **Provider Lookup (SoB / directory landing):** https://www.doctorshcp.com/2026Providers/
-- **Drug/Formulary Lookup:** https://www.doctorshcp.com/2026druglist/
+- **Drug/Formulary Lookup (2027 PDF — Max uses this):** https://www.doctorshcp.com/wp-content/uploads/2027_FORMULARY.pdf
+  - _Landing: https://www.doctorshcp.com/2027druglist/. Shared H4140 list (tier + PA/ST/QL). 2027 PBP remap: H4140-001→022, H4140-012→023, H4140-004→024. Do not use the member portal or the page search widget._
+- **Drug/Formulary Lookup (2026 archive):** https://www.doctorshcp.com/2026druglist/
 
 ---
 

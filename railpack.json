@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.railpack.com",
   "deploy": {
-    "aptPackages": ["...", "curl", "python3"]
+    "aptPackages": ["...", "curl", "python3", "poppler-utils"]
   }
 }

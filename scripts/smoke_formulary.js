@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Live smoke: Trintellix + Atorvastatin × H1036-054C / H1036-305 (2027).
+ * Live smoke: Trintellix + Atorvastatin × H1036-054C / H1036-305 (2027),
+ * plus Doctors H4140-022 / H4140-001 when --doctors is passed.
  * claimedTier is discarded. Lookup is the only source.
  */
 const { lookupFormulary, formatFormularyText, hasSunfireCreds } = require('../services/formularyLookup');
@@ -8,8 +9,11 @@ const { loadKnowledge } = require('../knowledge/loader');
 
 loadKnowledge({ force: true });
 
+const wantDoctors = process.argv.includes('--doctors');
 const DRUGS = ['Trintellix', 'Atorvastatin'];
-const PLANS = ['H1036-054C', 'H1036-305'];
+const PLANS = wantDoctors
+  ? ['H4140-022', 'H4140-001', 'H4140-012', 'H4140-023']
+  : ['H1036-054C', 'H1036-305'];
 
 (async () => {
   console.log('Sunfire JWT:', hasSunfireCreds() ? 'present' : 'missing');

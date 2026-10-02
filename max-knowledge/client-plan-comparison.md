@@ -90,7 +90,7 @@ Objective rows only (adapt to sourced data), for example:
 ### 5. Rx / Medications rows
 
 - Each row: **drug name** with **verified formulary tier + T1–T6 cost-share** under each plan.
-- Call `lookup_formulary` for **each drug × each named plan** (year 2027 unless asked otherwise). `search_drug` is catalog/NDC only — it does **not** verify a tier.
+- Call `lookup_formulary` for **each drug × each named plan** (year 2027 unless asked otherwise). `search_drug` is catalog/NDC only — it does **not** verify a tier. Chain: Sunfire → Humana FHIR → medicare.gov → Doctors 2027 formulary PDF for H4140 (001→022, 012→023).
 - A pasted “Tier X” (Daisy, client claim, last year, or a finished-comp archive) is **discarded**. Keep drug names only. Never copy, quote, or imply that label.
 - If lookup fails: cell is **Unverified**. Do not fall back to Daisy’s number.
 - After a verified tier, cost-share comes from THEI 2027 Hub/grid T1–T6 columns — not from the paste.

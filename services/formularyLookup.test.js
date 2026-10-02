@@ -22,6 +22,7 @@ const {
   toExportDrug,
   medicareGovFetch,
 } = require('./formularyLookup');
+const { resetDoctorsFormularyCache, DOCTORS_2027_FORMULARY_PDF } = require('./doctorsFormularyPdf');
 
 loadKnowledge({ force: true });
 
@@ -98,6 +99,13 @@ describe('2027 THEI grid cost-share after a verified tier', () => {
   it('formats 2026 plan-data copays only when asked for 2026', () => {
     assert.equal(costShareFromPlanObject({ tier4: 0.4 }, 4).value, '40%');
     assert.equal(costShareFromPlanObject({ tier1: 0 }, 1).value, '$0');
+  });
+
+  it('reads Doctors T1–T6 from the 2027 KB for both old and remapped PBPs', () => {
+    assert.equal(costShareFromKnowledge('H4140-001', 2027, 4).value, '55');
+    assert.equal(costShareFromKnowledge('H4140-022', 2027, 4).value, '55');
+    assert.equal(costShareFromKnowledge('H4140-012', 2027, 4).value, '55');
+    assert.equal(costShareFromKnowledge('H4140-023', 2027, 4).value, '55');
   });
 });
 
@@ -350,6 +358,108 @@ function listenEchoServer() {
     });
   });
 }
+
+const DOCTORS_LAYOUT = `
+Drug Name/Nombre del Medicamento                  Tier/Nivel de
+                                                     Medicamento
+TRINTELLIX ORAL TABLET 10 MG, 20 MG,                         4        ST; QL (30 per 30 days)
+5 MG
+ELIQUIS ORAL TABLET 5 MG                                     3        QL (74 per 30 days)
+`;
+
+function doctorsFetch(url, options = {}) {
+  const u = String(url);
+  if (u.includes('2027_FORMULARY.pdf') || u === DOCTORS_2027_FORMULARY_PDF) {
+    return {
+      ok: true,
+      status: 200,
+      text: async () => DOCTORS_LAYOUT,
+    };
+  }
+  if (u.includes('fhir.humana.com')) return jsonRes({ resourceType: 'Bundle', entry: [] }, 403);
+  if (u.includes('/drugs/autocomplete')) {
+    return jsonRes({ drugs: [{ rxcui: '1790881', name: 'Trintellix' }] });
+  }
+  if (u.includes('/related.json')) {
+    return jsonRes({
+      relatedGroup: {
+        conceptGroup: [
+          {
+            tty: 'SBD',
+            conceptProperties: [{ rxcui: '1790886', name: 'vortioxetine 10 MG Oral Tablet [Trintellix]' }],
+          },
+        ],
+      },
+    });
+  }
+  if (u.includes('/ndcs.json')) {
+    return jsonRes({ ndcGroup: { ndcList: { ndc: ['64764073030'] } } });
+  }
+  if (u.includes('/drugs/cost')) {
+    return jsonRes({ plans: [], message: 'Plan not found' }, 200);
+  }
+  return jsonRes({ message: 'nope' }, 404);
+}
+
+describe('Doctors consumer formulary after medicare.gov misses 2027 H4140', () => {
+  it('verifies Trintellix from the PDF for H4140-001/022 and H4140-012/023', async () => {
+    resetDoctorsFormularyCache();
+    const prev = process.env.SUNFIRE_JWT;
+    delete process.env.SUNFIRE_JWT;
+    const result = await lookupFormulary(
+      {
+        drugName: 'Trintellix',
+        planIds: ['H4140-001', 'H4140-022', 'H4140-012', 'H4140-023'],
+        year: 2027,
+        claimedTier: 4,
+      },
+      doctorsFetch
+    );
+    if (prev == null) delete process.env.SUNFIRE_JWT;
+    else process.env.SUNFIRE_JWT = prev;
+
+    assert.equal(result.claimedTier, null);
+    assert.equal(result.verifiedAny, true);
+    for (const id of ['H4140-001', 'H4140-022', 'H4140-012', 'H4140-023']) {
+      const row = result.byPlanId[id];
+      assert.equal(row.verified, true, id);
+      assert.equal(row.tier, 4, id);
+      assert.equal(row.st, true, id);
+      assert.equal(row.source, 'doctors_formulary_pdf', id);
+      assert.equal(row.costShare, '55', id);
+    }
+    assert.equal(result.byPlanId['H4140-001'].formularyPlanId, 'H4140-022');
+    assert.equal(result.byPlanId['H4140-012'].formularyPlanId, 'H4140-023');
+    const text = formatFormularyText(result);
+    assert.match(text, /source doctors_formulary_pdf/);
+    assert.doesNotMatch(text, /Daisy/i);
+    assert.doesNotMatch(text, /claim only/i);
+  });
+
+  it('does not run the Doctors module for a non-Doctors plan', async () => {
+    resetDoctorsFormularyCache();
+    const prev = process.env.SUNFIRE_JWT;
+    delete process.env.SUNFIRE_JWT;
+    const urls = [];
+    const fetchImpl = async (url, options) => {
+      urls.push(String(url));
+      return doctorsFetch(url, options);
+    };
+    const result = await lookupFormulary(
+      { drugName: 'Trintellix', planIds: ['H1036-054C'], year: 2027, claimedTier: 4 },
+      fetchImpl
+    );
+    if (prev == null) delete process.env.SUNFIRE_JWT;
+    else process.env.SUNFIRE_JWT = prev;
+
+    assert.equal(result.byPlanId['H1036-054C'].verified, false);
+    assert.equal(result.byPlanId['H1036-054C'].tier, null);
+    assert.equal(
+      urls.some((u) => /doctorshcp\.com|2027_FORMULARY/i.test(u)),
+      false
+    );
+  });
+});
 
 describe('medicare.gov POST transport without a preinstalled curl', () => {
   it('POSTs via curl when the binary is present', async () => {

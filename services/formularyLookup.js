@@ -9,6 +9,9 @@
  *   2. Humana public FHIR MedicationKnowledge for Humana CMS IDs (H1036 / H7617)
  *      only when the PlanID extension matches this contract-PBP AND year
  *   3. Medicare.gov Plan Compare (autocomplete → RxNorm NDC → drugs/cost)
+ *   4. Carrier consumer documents when the plan is not on Sunfire / missing
+ *      on medicare.gov — Doctors 2027 formulary PDF first (H4140). See
+ *      services/consumerFormulary.js. Never invent a tier.
  *
  * Cost-share after a verified tier comes from THEI Hub/grid knowledge
  * (2027 green cells in max-knowledge/carriers/*-plans-florida-2027.md),
@@ -19,6 +22,8 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { getKnowledgeByKey } = require('../knowledge/loader');
+const { lookupConsumerFormulary } = require('./consumerFormulary');
+const { doctorsPbpAliases, isDoctorsCms } = require('./doctorsFormularyPdf');
 
 const SUNFIRE_BASE = 'https://www.sunfirematrix.com';
 const HUMANA_FHIR = 'https://fhir.humana.com/api/MedicationKnowledge';
@@ -864,20 +869,28 @@ async function lookupMedicareGov({ drugName, ndc, planId, year }, fetchImpl = me
   return { verified: false, reason: lastError || 'medicare_gov_no_tier', source: 'medicare_gov' };
 }
 
+function costSharePlanCandidates(planId, year) {
+  const parsed = parseCmsId(planId);
+  if (!parsed) return [];
+  const out = [parsed.full, parsed.base];
+  if (Number(year) === 2027 && isDoctorsCms(planId)) {
+    for (const alias of doctorsPbpAliases(parsed.base, year)) out.push(alias);
+  }
+  return [...new Set(out.map((id) => String(id).toUpperCase()))];
+}
+
 function costShareFromKnowledge(planId, year, tier) {
   if (!tier || Number(year) !== 2027) return null;
   const parsed = parseCmsId(planId);
   if (!parsed) return null;
+  const candidates = costSharePlanCandidates(planId, year);
   for (const key of KB_2027_KEYS) {
     const doc = getKnowledgeByKey(key);
     if (!doc) continue;
     const sections = doc.split(/^## /m);
     const hits = sections.filter((s) => {
       const upper = s.toUpperCase();
-      return (
-        (upper.includes(parsed.full) || upper.includes(parsed.base)) &&
-        /\|\s*Tier\s*1\s*\|/i.test(s)
-      );
+      return candidates.some((id) => upper.includes(id)) && /\|\s*Tier\s*1\s*\|/i.test(s);
     });
     const re = new RegExp(`\\|\\s*Tier\\s*${tier}\\s*\\|\\s*([^|]+)\\|`, 'i');
     for (const hit of hits) {
@@ -1000,6 +1013,17 @@ async function lookupFormulary(
       else if (mpf.reason) reasons.push(mpf.reason);
     }
 
+    if (!hit || !hit.verified) {
+      const consumer = await lookupConsumerFormulary(
+        { drugName: resolvedName, ndc: resolvedNdc, planId: id, year: y },
+        fetchImpl
+      );
+      if (consumer.verified) hit = consumer;
+      else if (consumer.reason && consumer.reason !== 'not_doctors' && consumer.reason !== 'no_consumer_source') {
+        reasons.push(consumer.reason);
+      }
+    }
+
     const displayId = displayPlanId(id);
     if (hit && hit.verified) {
       const share =
@@ -1018,6 +1042,7 @@ async function lookupFormulary(
         costShareSource: share ? share.source : null,
         source: hit.source,
         reason: null,
+        formularyPlanId: hit.formularyPlanId || null,
       };
       byPlanId[displayId] = row;
       lookups.push(row);
@@ -1150,6 +1175,8 @@ module.exports = {
   lookupSunfireCoverage,
   lookupHumanaFhir,
   lookupMedicareGov,
+  lookupConsumerFormulary,
+  costSharePlanCandidates,
   medicareGovFetch,
   curlFetch,
   pythonUrllibFetch,
