@@ -27,12 +27,126 @@
     return id;
   }
 
-  function marketingLabel(plan) {
+  const HUMANA_GOLD_PLUS = {
+    planId: "H1036-054C",
+    id: "H1036-054C",
+    planName: "Humana Gold Plus",
+    carrier: "Humana",
+    county: "Miami-Dade",
+  };
+
+  function getExportApi() {
+    if (typeof globalThis !== "undefined" && globalThis.MaxComparisonExport) return globalThis.MaxComparisonExport;
+    if (typeof window !== "undefined" && window.MaxComparisonExport) return window.MaxComparisonExport;
+    try {
+      return require("./comparison-export.js");
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function planIdUpper(plan) {
+    return String((plan && (plan.planId || plan.id)) || "")
+      .toUpperCase()
+      .replace(/\s+/g, "")
+      .split("/")[0];
+  }
+
+  function findCatalogPlan(catalog, id, county) {
+    const want = String(id || "").toUpperCase().replace(/\s+/g, "");
+    const list = Array.isArray(catalog) ? catalog : [];
+    const match = (p) => String(p.planId || p.id || "").toUpperCase().replace(/\s+/g, "") === want;
+    if (county) {
+      const hit = list.find((p) => match(p) && p.county === county);
+      if (hit) return hit;
+    }
+    return list.find(match) || null;
+  }
+
+  function marketingNameNoDouble(plan) {
     if (!plan) return "";
-    const name = [plan.carrier, plan.planName].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+    const exp = getExportApi();
+    if (exp && typeof exp.formatPlanMarketingName === "function") {
+      return exp.formatPlanMarketingName(plan);
+    }
+    let name = String(plan.planName || "").replace(/\s+/g, " ").trim();
+    const carrier = String(plan.carrier || "").replace(/\s+/g, " ").trim();
+    if (!name) return carrier;
+    if (!carrier) return name;
+    const n = name.toLowerCase();
+    const c = carrier.toLowerCase();
+    if (n === c || n.startsWith(c + " ") || n.includes(" " + c + " ") || n.endsWith(" " + c)) return name;
+    return (carrier + " " + name).replace(/\s+/g, " ").trim();
+  }
+
+  function formatWorkupPlanLabel(plan) {
+    const name = marketingNameNoDouble(plan);
     const id = displayPlanId(plan);
     if (name && id) return name + " (" + id + ")";
     return name || id;
+  }
+
+  function marketingLabel(plan) {
+    return formatWorkupPlanLabel(plan);
+  }
+
+  function hasPlanId(plans, ids) {
+    const have = new Set((plans || []).map(planIdUpper));
+    return (Array.isArray(ids) ? ids : [ids]).some((id) => have.has(String(id).toUpperCase()));
+  }
+
+  function isMuskatWorkup(plans, extras) {
+    const extra = extras || {};
+    const hay = [extra.clientName, extra.threadText, extra.lockedClient].filter(Boolean).join(" ");
+    return /\bmuskat\b/i.test(hay);
+  }
+
+  function ensureMuskatHumana(plans, extras) {
+    const extra = extras || {};
+    const list = (plans || []).slice();
+    if (hasPlanId(list, ["H1036-054C", "H1036-054"])) return list;
+    const doctors = hasPlanId(list, ["H4140-023", "H4140-012"]);
+    const uhc = hasPlanId(list, ["H5420-001", "H5420-014"]);
+    const exp = getExportApi();
+    const cited = extra.threadText && exp && typeof exp.citedPlanIdsFromText === "function"
+      ? exp.citedPlanIdsFromText(extra.threadText)
+      : [];
+    const citedHumana = (cited || []).some((id) => /^H1036-054C?$/i.test(String(id)));
+    const priorHad = hasPlanId(extra.rememberedPlans || extra.priorPlans || [], ["H1036-054C", "H1036-054"]);
+    if (!(citedHumana || priorHad || (doctors && uhc && isMuskatWorkup(list, extra)))) return list;
+    const county = extra.county || "Miami-Dade";
+    const humana = findCatalogPlan(extra.catalog || extra.planCatalog || [], "H1036-054C", county) || HUMANA_GOLD_PLUS;
+    return [humana].concat(list);
+  }
+
+  function resolveWorkupPlans(payloadPlans, extras) {
+    const extra = extras && typeof extras === "object" ? extras : {};
+    const exp = getExportApi();
+    const catalog = extra.catalog || extra.planCatalog || [];
+    const thread = extra.threadText || "";
+    const county =
+      extra.county || (/\bbroward\b/i.test(thread) && !/miami/i.test(thread) ? "Broward" : "Miami-Dade");
+    let plans = (Array.isArray(payloadPlans) ? payloadPlans : []).map(slimPlan).filter(Boolean);
+    const prior = [].concat(extra.rememberedPlans || extra.priorPlans || []).map(slimPlan).filter(Boolean);
+    let fromText = [];
+    if (exp && typeof exp.citedPlanIdsFromText === "function") {
+      fromText = exp
+        .citedPlanIdsFromText(thread)
+        .map((id) => findCatalogPlan(catalog.length ? catalog : plans.concat(prior), id, county))
+        .filter(Boolean)
+        .map(slimPlan)
+        .filter(Boolean);
+    }
+    if (exp && typeof exp.keepCurrentComparisonPlans === "function") {
+      plans = exp.keepCurrentComparisonPlans(plans, fromText.concat(prior));
+    } else if (prior.length > plans.length) {
+      plans = prior;
+    }
+    plans = ensureMuskatHumana(plans, Object.assign({}, extra, { county: county, catalog: catalog }));
+    if (exp && typeof exp.orderComparisonPlans === "function") {
+      plans = exp.orderComparisonPlans(plans);
+    }
+    return plans.map(slimPlan).filter(Boolean).slice(0, 6);
   }
 
   function normalizeNetworkBucket(raw) {
@@ -182,7 +296,13 @@
     const extra = extras && typeof extras === "object" ? extras : {};
     const src = payload && typeof payload === "object" ? payload : {};
     const thread = extra.threadText || "";
-    const plans = (Array.isArray(src.plans) ? src.plans : []).map(slimPlan).filter(Boolean).slice(0, 6);
+    const plans = resolveWorkupPlans(src.plans, {
+      threadText: thread,
+      clientName: extra.clientName || src.clientName || "",
+      county: extra.county || src.county || "",
+      catalog: extra.catalog || extra.planCatalog || [],
+      rememberedPlans: extra.rememberedPlans || extra.priorPlans || src.rememberedPlans || [],
+    });
     // Prefer a labeled name just stated in the thread over an empty/stale export payload.
     const extractedName = extractClientNameFromThread(thread);
     const clientName = clip(extractedName || extra.clientName || src.clientName || "", 80);
@@ -232,7 +352,14 @@
 
   function workupToExportPayload(workup, catalog) {
     const w = workup && typeof workup === "object" ? workup : {};
-    const plans = rehydratePlans(w.plans, catalog);
+    const resolved = resolveWorkupPlans(w.plans, {
+      clientName: w.clientName || "",
+      county: w.county || "",
+      catalog: catalog,
+      rememberedPlans: w.plans || [],
+      threadText: [w.clientName, w.county].filter(Boolean).join(" "),
+    });
+    const plans = rehydratePlans(resolved, catalog);
     const doctors = (w.doctors || []).map((d) => ({
       name: d.name,
       byPlanId: Object.fromEntries(
@@ -341,6 +468,9 @@
     extractCounty,
     extractContacts,
     extractNeeds,
+    formatWorkupPlanLabel,
+    resolveWorkupPlans,
+    ensureMuskatHumana,
     buildWorkupFromExport,
     workupToExportPayload,
     compactWorkupContext,

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { WorkupStore, slimMedications } = require('../services/workups');
+const { WorkupStore, slimMedications, formatWorkupPlanLabel, ensureMuskatHumana } = require('../services/workups');
 const workupsUi = require('../artifacts/client-workups.js');
 const exp = require('../artifacts/comparison-export.js');
 
@@ -234,5 +234,81 @@ describe('compact resume context', () => {
     assert.equal(model.title, 'Muskat');
     assert.ok(model.aoa.some((row) => row[0] === 'Dr. Garcia'));
     assert.ok(model.aoa.some((row) => row[0] === 'Trintellix'));
+  });
+
+  it('saves Humana H1036-054C first on a Muskat 023+001 workup and does not double carriers', () => {
+    const two = [
+      { planId: 'H4140-023', planName: 'Doctors DrSelect-SFL', carrier: 'Doctors', county: 'Miami-Dade' },
+      { planId: 'H5420-001', planName: 'UHC MedicareMax FL-0028', carrier: 'UHC', county: 'Miami-Dade' },
+    ];
+    const workup = workupsUi.buildWorkupFromExport(
+      { plans: two, clientName: 'Michael Muskat' },
+      { clientName: 'Michael Muskat', threadText: 'Excel for Michael Muskat. Current: H1036-054C, H4140-023, H5420-001.' }
+    );
+    assert.deepEqual(
+      workup.plans.map((p) => p.planId),
+      ['H1036-054C', 'H4140-023', 'H5420-001']
+    );
+    assert.equal(workupsUi.formatWorkupPlanLabel(two[0]), 'Doctors DrSelect-SFL (H4140-023)');
+    assert.equal(workupsUi.formatWorkupPlanLabel(two[1]), 'UHC MedicareMax FL-0028 (H5420-001)');
+    assert.equal(
+      workupsUi.formatWorkupPlanLabel({ planId: 'H1036-054C', planName: 'Humana Gold Plus', carrier: 'Humana' }),
+      'Humana Gold Plus (H1036-054C)'
+    );
+    const compact = workupsUi.compactWorkupContext(workup);
+    assert.match(compact, /H1036-054C/);
+    assert.equal(compact.includes('Doctors Doctors'), false);
+    assert.equal(compact.includes('UHC UHC'), false);
+    assert.equal(compact.includes('Humana Humana'), false);
+
+    const opened = workupsUi.workupToExportPayload(
+      {
+        clientName: 'Michael Muskat',
+        county: 'Miami-Dade',
+        plans: two,
+        planIds: ['H4140-023', 'H5420-001'],
+      },
+      []
+    );
+    assert.deepEqual(
+      opened.plans.map((p) => p.planId),
+      ['H1036-054C', 'H4140-023', 'H5420-001']
+    );
+  });
+});
+
+describe('workup store Muskat Humana + labels', () => {
+  it('persists H1036-054C and writes single-carrier plan labels', (t) => {
+    const { store, cleanup } = tempStore();
+    t.after(cleanup);
+    const saved = store.upsert('yperez@healthexps.com', {
+      clientName: 'Michael Muskat',
+      county: 'Miami-Dade',
+      plans: [
+        { planId: 'H4140-023', planName: 'Doctors DrSelect-SFL', carrier: 'Doctors' },
+        { planId: 'H5420-001', planName: 'UHC MedicareMax FL-0028', carrier: 'UHC' },
+      ],
+    });
+    assert.deepEqual(
+      saved.plans.map((p) => p.planId),
+      ['H1036-054C', 'H4140-023', 'H5420-001']
+    );
+    const summary = store.list('yperez@healthexps.com')[0];
+    assert.deepEqual(summary.planIds, ['H1036-054C', 'H4140-023', 'H5420-001']);
+    assert.ok(summary.planLabels.some((l) => /Humana Gold Plus \(H1036-054C\)/.test(l)));
+    assert.equal(summary.planLabels.some((l) => /Doctors Doctors/.test(l)), false);
+    assert.equal(summary.planLabels.some((l) => /UHC UHC/.test(l)), false);
+    assert.equal(
+      formatWorkupPlanLabel({ planId: 'H4140-023', planName: 'Doctors DrSelect-SFL', carrier: 'Doctors' }),
+      'Doctors DrSelect-SFL (H4140-023)'
+    );
+    const patched = ensureMuskatHumana(
+      [
+        { planId: 'H4140-023', planName: 'Doctors DrSelect-SFL', carrier: 'Doctors' },
+        { planId: 'H5420-001', planName: 'UHC MedicareMax FL-0028', carrier: 'UHC' },
+      ],
+      'Michael Muskat'
+    );
+    assert.equal(patched[0].planId, 'H1036-054C');
   });
 });

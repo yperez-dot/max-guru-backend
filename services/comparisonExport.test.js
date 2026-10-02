@@ -354,6 +354,8 @@ describe('HTML UI wiring', () => {
     assert.match(html, /messagesForApi/);
     assert.match(html, /LOADED CLIENT WORKUP/);
     assert.match(html, /loaded-workup-card/);
+    assert.match(html, /formatWorkupPlanLabel/);
+    assert.match(html, /resolveWorkupPlans/);
     assert.match(html, /same list on phone and desktop/);
     assert.match(html, /extractClientName\(threadText\)/);
     assert.match(html, /clientName: extractedName \|\| \(payload && payload.clientName\)/);
