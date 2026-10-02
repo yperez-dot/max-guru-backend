@@ -67,7 +67,7 @@
   const NETWORK_NOT_CONFIRMED = "Not confirmed";
   const NETWORK_NEED_MORE = "Need more info";
 
-  const CLIENT_NAME_BLOCK = /^(miami|dade|broward|florida|medicare|humana|united|uhc|careplus|devoted|wellcare|aetna|simply|solis|healthsun|healthspring|doctors?|client|export|excel|compare|comparison|plan|dual|complete|preferred|summary|benefits|thei|max|pdf|sheet)$/i;
+  const CLIENT_NAME_BLOCK = /^(miami|dade|broward|florida|medicare|humana|united|uhc|careplus|devoted|wellcare|aetna|simply|solis|healthsun|healthspring|doctors?|client|clients|export|excel|compare|comparison|plan|plans|dual|complete|preferred|summary|benefits|thei|max|pdf|sheet|name|household|both|network|zip|county|in|on|at|is|are|the|and|or|for|with|from|this|that)$/i;
 
   function escapeRe(s) {
     return String(s || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -168,6 +168,18 @@
     });
   }
 
+  function looksLikeLabeledClientName(name) {
+    const cleaned = String(name || "").replace(/[.,;:!?]+$/, "").replace(/\s+/g, " ").trim();
+    if (!cleaned || /\d/.test(cleaned)) return "";
+    const parts = cleaned.split(/\s+/);
+    if (!parts.length || parts.length > 4) return "";
+    if (parts.some((p) => CLIENT_NAME_BLOCK.test(p))) return "";
+    if (parts.length === 1) {
+      return /^[A-Za-z][A-Za-z'.-]{1,40}$/.test(parts[0]) && parts[0].length >= 2 ? cleaned : "";
+    }
+    return looksLikePersonName(cleaned) ? cleaned : "";
+  }
+
   function extractClientName(text) {
     if (!text) return "";
     // Do not use the /i flag: it makes [A-Z] match lowercase and grabs "for both plans".
@@ -185,14 +197,13 @@
         if (looksLikePersonName(candidate)) found = candidate;
       }
     }
-    // Labeled household / last name (e.g. Client: Muskat) — only when explicitly labeled.
-    const labeled = /\b(?:client(?:\s+name)?|household)\s*[:=]\s*([A-Za-z][A-Za-z'.-]{1,40}(?:\s+[A-Za-z][A-Za-z'.-]{1,40}){0,3})/gi;
+    // Labeled household / last name — colon or "is", including Client's / Clients.
+    // e.g. Client: Muskat · Client name is Muskat · Clients name is Muskat · Household: Muskat
+    const labeled = /\b(?:client(?:'s|s)?(?:[ \t]+name)?|household(?:[ \t]+name)?)\s*(?:[:=]|is)\s*([A-Za-z][A-Za-z'.-]{1,40}(?:[ \t]+[A-Za-z][A-Za-z'.-]{1,40}){0,3})/gi;
     let m;
     while ((m = labeled.exec(text))) {
-      const candidate = m[1].replace(/\s+/g, " ").trim();
-      if (looksLikePersonName(candidate) || /^[A-Za-z][A-Za-z'.-]{1,40}$/.test(candidate)) {
-        found = candidate;
-      }
+      const candidate = looksLikeLabeledClientName(m[1]);
+      if (candidate) found = candidate;
     }
     return found;
   }

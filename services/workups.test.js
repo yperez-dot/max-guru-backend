@@ -185,6 +185,37 @@ describe('compact resume context', () => {
     assert.equal(workupsUi.messagesForApi(prior, null).length, 2);
   });
 
+  it('parses a labeled client name from the thread when the export payload is unnamed', () => {
+    const payload = {
+      plans: [
+        { planId: 'H4140-001', planName: 'Doctors MedicareMax', carrier: 'Doctors', county: 'Miami-Dade' },
+        { planId: 'H1036-305', planName: 'Gold Plus', carrier: 'Humana', county: 'Miami-Dade' },
+      ],
+      clientName: '',
+    };
+    const unnamed = workupsUi.buildWorkupFromExport(payload, { threadText: 'Compare H4140-001 and H1036-305 in Miami-Dade' });
+    assert.equal(unnamed.clientName, '');
+    assert.equal(workupsUi.workupListLabel(unnamed), 'Unnamed — H4140-001 / H1036-305');
+
+    const fromThread = workupsUi.buildWorkupFromExport(payload, {
+      threadText: 'Clients name is Muskat\nCan u check his drs on United?',
+    });
+    assert.equal(fromThread.clientName, 'Muskat');
+    assert.equal(workupsUi.workupListLabel(fromThread), 'Muskat');
+
+    const keepSaved = workupsUi.buildWorkupFromExport(
+      { plans: payload.plans, clientName: 'Muskat' },
+      { threadText: 'Can u check his drs on United?' }
+    );
+    assert.equal(keepSaved.clientName, 'Muskat');
+
+    const newerLabel = workupsUi.buildWorkupFromExport(
+      { plans: payload.plans, clientName: 'Muskat' },
+      { threadText: 'Client name is Felix Muskat' }
+    );
+    assert.equal(newerLabel.clientName, 'Felix Muskat');
+  });
+
   it('rehydrates export payload so Excel still has plan columns', () => {
     const catalog = [
       { planId: 'H1036-054C', planName: 'Gold Plus', carrier: 'Humana', county: 'Miami-Dade', premium: 0, specialistCopay: 20 },

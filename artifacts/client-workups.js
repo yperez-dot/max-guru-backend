@@ -96,6 +96,15 @@
       .slice(0, 8);
   }
 
+  function extractClientNameFromThread(thread) {
+    const exp =
+      (typeof globalThis !== "undefined" && globalThis.MaxComparisonExport) ||
+      (typeof window !== "undefined" && window.MaxComparisonExport) ||
+      null;
+    if (!exp || typeof exp.extractClientName !== "function") return "";
+    return clip(exp.extractClientName(thread), 80);
+  }
+
   function slimPlan(plan) {
     if (!plan || typeof plan !== "object") return null;
     const planId = clip(plan.planId || plan.id || "", 40);
@@ -174,7 +183,9 @@
     const src = payload && typeof payload === "object" ? payload : {};
     const thread = extra.threadText || "";
     const plans = (Array.isArray(src.plans) ? src.plans : []).map(slimPlan).filter(Boolean).slice(0, 6);
-    const clientName = clip(extra.clientName || src.clientName || "", 80);
+    // Prefer a labeled name just stated in the thread over an empty/stale export payload.
+    const extractedName = extractClientNameFromThread(thread);
+    const clientName = clip(extractedName || extra.clientName || src.clientName || "", 80);
     const zip = clip(extra.zip || src.zip || extractZip(thread), 10);
     const county = clip(extra.county || src.county || extractCounty(thread) || (plans[0] && plans[0].county) || "", 40);
     const contacts = clip(extra.contacts || src.contacts || extractContacts(thread), 200);

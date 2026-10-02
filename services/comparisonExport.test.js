@@ -122,7 +122,23 @@ describe('thread extractors', () => {
   it('does not invent a client name', () => {
     assert.equal(exp.extractClientName('Compare H1045-012 and H1045-061 in Miami-Dade'), '');
     assert.equal(exp.extractClientName('export this as excel'), '');
+    assert.equal(exp.extractClientName('The client is in Miami-Dade'), '');
     assert.equal(exp.extractClientName('Client: Muskat'), 'Muskat');
+  });
+
+  it('accepts Yahoska labeled last-name and possessive phrasings', () => {
+    assert.equal(exp.extractClientName('Client: Muskat'), 'Muskat');
+    assert.equal(exp.extractClientName('Client name: Muskat'), 'Muskat');
+    assert.equal(exp.extractClientName("Client's name is Muskat"), 'Muskat');
+    assert.equal(exp.extractClientName('Clients name is Muskat'), 'Muskat');
+    assert.equal(exp.extractClientName('Client name is Muskat'), 'Muskat');
+    assert.equal(exp.extractClientName('Client name is Felix Muskat'), 'Felix Muskat');
+    assert.equal(exp.extractClientName('Household: Muskat'), 'Muskat');
+    assert.equal(exp.extractClientName('Household name is Muskat'), 'Muskat');
+    assert.equal(
+      exp.extractClientName('Clients name is Muskat\nCan u check his drs on United?'),
+      'Muskat'
+    );
   });
 });
 
@@ -288,7 +304,11 @@ describe('HTML UI wiring', () => {
     assert.match(html, /LOADED CLIENT WORKUP/);
     assert.match(html, /loaded-workup-card/);
     assert.match(html, /same list on phone and desktop/);
-    assert.match(html, /clientName: payload.clientName/);
+    assert.match(html, /extractClientName\(threadText\)/);
+    assert.match(html, /clientName: extractedName \|\| \(payload && payload.clientName\)/);
+    assert.match(html, /max-workup-row/);
+    assert.match(html, /max-chat-header/);
+    assert.match(html, /@media \(max-width: 640px\)/);
     assert.match(html, /lookup_formulary/);
     assert.match(html, /CLIENT-STATED RX TIERS/);
     assert.match(html, /1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A/);
