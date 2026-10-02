@@ -141,6 +141,17 @@ describe('lookupDoctorsFormulary', () => {
     assert.equal(b.formularyPlanId, 'H4140-022');
   });
 
+  it('does not treat a 200 HTML captcha as a verified formulary', async () => {
+    const fetchImpl = async () => textRes('<!DOCTYPE html><html><body>Just a moment</body></html>');
+    const hit = await lookupDoctorsFormulary(
+      { drugName: 'Trintellix', planId: 'H4140-022', year: 2027 },
+      fetchImpl
+    );
+    assert.equal(hit.verified, false);
+    assert.ok(hit.reason);
+    assert.notEqual(hit.tier, 4);
+  });
+
   it('skips non-Doctors plans without fetching', async () => {
     let calls = 0;
     const fetchImpl = async () => {

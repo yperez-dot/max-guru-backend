@@ -198,7 +198,10 @@ function spawnOnce(bin, args, { stdin = null, timeoutMs = 22_000 } = {}) {
 }
 
 function tmpPath(suffix) {
-  return path.join(os.tmpdir(), `max-doctors-formulary-${process.pid}-${Date.now()}${suffix}`);
+  return path.join(
+    os.tmpdir(),
+    `max-doctors-formulary-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}${suffix}`
+  );
 }
 
 function isPdfMagic(buf) {
@@ -321,21 +324,32 @@ async function fetchDoctorsFormularyBytes(url, fetchImpl) {
     return fetchImplBytes(url, fetchImpl);
   }
 
-  const dest = tmpPath('.pdf');
-  try {
-    const curl = await curlFetchPdfFile(url, dest);
-    if (curl.ok) return curl;
-    const py = await pythonFetchPdfFile(url, dest);
-    if (py.ok || (py.status >= 200 && py.status < 300 && py.buf.length)) return py;
-    if (curl.status > 0) return curl;
-    return py.status > 0 ? py : { ok: false, status: 0, buf: Buffer.alloc(0), error: 'doctors_formulary_transport_unavailable' };
-  } finally {
+  let last = { ok: false, status: 0, buf: Buffer.alloc(0), error: 'doctors_formulary_transport_unavailable' };
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    const dest = tmpPath('.pdf');
     try {
-      fs.unlinkSync(dest);
-    } catch (_) {
-      /* ignore */
+      const curl = await curlFetchPdfFile(url, dest);
+      if (curl.ok) return curl;
+      const py = await pythonFetchPdfFile(url, dest);
+      if (py.ok) return py;
+      last = curl.status > 0 ? curl : py;
+      if (isPdfMagic(last.buf) || looksLikeFormularyText(last.buf.toString('utf8'))) {
+        last.ok = true;
+        return last;
+      }
+      if (last.status >= 200 && last.status < 300 && last.buf.length && !isPdfMagic(last.buf)) {
+        last.error = 'doctors_formulary_html_captcha';
+      }
+    } finally {
+      try {
+        fs.unlinkSync(dest);
+      } catch (_) {
+        /* ignore */
+      }
     }
+    await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
   }
+  return last;
 }
 
 async function extractWithPdftotext(pdfPath) {
@@ -561,7 +575,9 @@ async function loadDoctorsFormularyIndex(fetchImpl, year = PLAN_YEAR) {
       return {
         ok: false,
         rows: [],
-        error: fetched.error || `doctors_formulary_http_${fetched.status}`,
+        error:
+          fetched.error ||
+          (fetched.status ? `doctors_formulary_http_${fetched.status}` : 'doctors_formulary_http_0'),
         year: Number(year),
       };
     }
