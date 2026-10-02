@@ -79,7 +79,7 @@ async function fetchJson(url, options = {}, fetchImpl = fetch, timeoutMs = FETCH
     } catch (_) {
       json = null;
     }
-    return { ok: res.ok, status: res.status, json, text };
+    return { ok: res.ok, status: res.status, json, text, error: res.error };
   } catch (err) {
     const label = err.name === 'AbortError' ? 'Timeout' : err.message;
     return { ok: false, status: 0, json: null, text: '', error: label };
@@ -487,53 +487,140 @@ function medicareGovHeaders() {
 }
 
 /**
- * Akamai 403s Node/undici POSTs to drugs/cost. curl (and Python urllib) succeed.
- * Tests inject fetchImpl and never hit this path.
+ * Akamai 403s Node/undici and Node https POSTs to drugs/cost.
+ * curl and Python urllib (stdlib) succeed. Railway Node images often lack
+ * curl, and a missing binary used to resolve as status 0 → medicare_gov_http_0.
+ * Try curl, then python3 urllib. Do not fall back to Node TLS.
+ * Tests inject fetchImpl and never hit this path unless they call it directly.
  */
-function curlFetch(url, options = {}) {
+const PYTHON_URLLIB = `
+import json, sys, urllib.error, urllib.request
+req = json.load(sys.stdin)
+headers = {str(k): str(v) for k, v in (req.get("headers") or {}).items() if v is not None}
+data = req.get("body")
+body = data.encode("utf-8") if data else None
+r = urllib.request.Request(req["url"], data=body, headers=headers, method=req.get("method") or "GET")
+try:
+    with urllib.request.urlopen(r, timeout=float(req.get("timeout") or 20)) as resp:
+        print(json.dumps({"status": int(resp.status), "text": resp.read().decode("utf-8", "replace")}))
+except urllib.error.HTTPError as e:
+    print(json.dumps({"status": int(e.code), "text": e.read().decode("utf-8", "replace")}))
+except Exception as e:
+    print(json.dumps({"status": 0, "text": "", "error": str(e)}))
+`;
+
+function fetchLike(status, text, error) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    error: error || undefined,
+    text: async () => text,
+  };
+}
+
+function spawnOnce(bin, args, { stdin = null, timeoutMs = 22_000 } = {}) {
   return new Promise((resolve) => {
-    const method = String(options.method || 'GET').toUpperCase();
-    const headers = options.headers || {};
-    const args = ['-sS', '-X', method, '--max-time', '20', '-w', '\n__HTTPSTATUS__:%{http_code}'];
-    Object.entries(headers).forEach(([key, value]) => {
-      if (value != null) args.push('-H', `${key}: ${value}`);
-    });
-    if (options.body) args.push('--data-binary', String(options.body));
-    args.push(String(url));
-    const child = spawn('curl', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(bin, args, { stdio: ['pipe', 'pipe', 'pipe'] });
     let out = '';
-    child.stdout.on('data', (chunk) => {
-      out += chunk;
-    });
+    let settled = false;
+    const done = (result) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+    if (child.stdout) {
+      child.stdout.on('data', (chunk) => {
+        out += chunk;
+      });
+    }
     const timer = setTimeout(() => {
       try {
         child.kill('SIGKILL');
       } catch (_) {
         /* ignore */
       }
-    }, 22_000);
-    child.on('error', () => {
+    }, timeoutMs);
+    child.on('error', (err) => {
       clearTimeout(timer);
-      resolve({ ok: false, status: 0, text: async () => '' });
+      const missing = err && (err.code === 'ENOENT' || /ENOENT/.test(err.message || ''));
+      done({ ok: false, status: 0, text: '', error: missing ? `${bin}_missing` : err.message });
     });
     child.on('close', () => {
       clearTimeout(timer);
-      const match = out.match(/\n__HTTPSTATUS__:(\d+)\s*$/);
-      const status = match ? Number(match[1]) : 0;
-      const text = match ? out.slice(0, match.index) : out;
-      resolve({
-        ok: status >= 200 && status < 300,
-        status,
-        text: async () => text,
-      });
+      done({ ok: true, status: 0, text: out, error: null });
     });
+    try {
+      if (stdin != null) child.stdin.write(stdin);
+      child.stdin.end();
+    } catch (_) {
+      /* ignore — ENOENT already handled on error */
+    }
   });
+}
+
+function curlBin() {
+  return process.env.MEDICARE_GOV_CURL || 'curl';
+}
+
+function pythonBins() {
+  if (process.env.MEDICARE_GOV_PYTHON) return [process.env.MEDICARE_GOV_PYTHON];
+  return ['python3', 'python'];
+}
+
+async function curlFetch(url, options = {}) {
+  const method = String(options.method || 'GET').toUpperCase();
+  const headers = options.headers || {};
+  const args = ['-sS', '-X', method, '--max-time', '20', '-w', '\n__HTTPSTATUS__:%{http_code}'];
+  Object.entries(headers).forEach(([key, value]) => {
+    if (value != null) args.push('-H', `${key}: ${value}`);
+  });
+  if (options.body) args.push('--data-binary', String(options.body));
+  args.push(String(url));
+  const spawned = await spawnOnce(curlBin(), args);
+  if (spawned.error) return fetchLike(0, '', spawned.error);
+  const match = spawned.text.match(/\n__HTTPSTATUS__:(\d+)\s*$/);
+  const status = match ? Number(match[1]) : 0;
+  const text = match ? spawned.text.slice(0, match.index) : spawned.text;
+  return fetchLike(status, text, status ? undefined : 'curl_no_status');
+}
+
+async function pythonUrllibFetch(url, options = {}) {
+  const payload = JSON.stringify({
+    url: String(url),
+    method: String(options.method || 'GET').toUpperCase(),
+    headers: options.headers || {},
+    body: options.body != null ? String(options.body) : '',
+    timeout: 20,
+  });
+  let last = fetchLike(0, '', 'python_missing');
+  for (const bin of pythonBins()) {
+    const spawned = await spawnOnce(bin, ['-c', PYTHON_URLLIB], { stdin: payload });
+    if (spawned.error) {
+      last = fetchLike(0, '', spawned.error);
+      continue;
+    }
+    try {
+      const parsed = JSON.parse(String(spawned.text || '').trim() || '{}');
+      const status = Number(parsed.status) || 0;
+      last = fetchLike(status, parsed.text || '', parsed.error);
+      if (status > 0 || last.ok) return last;
+      if (parsed.error && !/_missing$/.test(String(parsed.error))) return last;
+    } catch (err) {
+      last = fetchLike(0, '', err.message || 'python_bad_output');
+    }
+  }
+  return last;
 }
 
 async function medicareGovFetch(url, options = {}) {
   const method = String(options.method || 'GET').toUpperCase();
-  if (method === 'POST') return curlFetch(url, options);
-  return fetch(url, options);
+  if (method !== 'POST') return fetch(url, options);
+  const curl = await curlFetch(url, options);
+  if (curl.ok) return curl;
+  const py = await pythonUrllibFetch(url, options);
+  if (py.ok || py.status > 0) return py;
+  if (curl.status > 0) return curl;
+  return fetchLike(0, '', 'medicare_gov_transport_unavailable');
 }
 
 function cmsContractParts(planId) {
@@ -1064,6 +1151,8 @@ module.exports = {
   lookupHumanaFhir,
   lookupMedicareGov,
   medicareGovFetch,
+  curlFetch,
+  pythonUrllibFetch,
   searchSunfireCatalog,
   formatFormularyText,
   formatPlanLookupLine,
