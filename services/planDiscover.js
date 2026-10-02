@@ -247,7 +247,7 @@ async function querySunfirePlans({ zip, countyFips, year, planType }) {
     };
   }
 
-  const y = Number(year) || 2026;
+  const y = Number(year) || 2027;
   const bodyBase = {
     county: countyFips,
     year: y,
@@ -350,8 +350,8 @@ async function discoverPlansForArea({ zip, county, year, planType, referenceSumm
       zip: z || null,
       county: county || null,
       countyFips: null,
-      year: Number(year) || 2026,
-      planCompareUrl: buildPlanCompareUrl(year || 2026),
+      year: Number(year) || 2027,
+      planCompareUrl: buildPlanCompareUrl(year || 2027),
       source: null,
       plans: [],
       note: 'zip must be a 5-digit US ZIP. Enter that ZIP on medicare.gov Plan Compare.',
@@ -360,7 +360,7 @@ async function discoverPlansForArea({ zip, county, year, planType, referenceSumm
     };
   }
 
-  const y = Number(year) || 2026;
+  const y = Number(year) || 2027;
   const planCompareUrl = buildPlanCompareUrl(y);
   const { fips, countyLabel } = resolveCountyFips({ zip: z, county });
 

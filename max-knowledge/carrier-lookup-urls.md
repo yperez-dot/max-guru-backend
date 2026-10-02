@@ -1,5 +1,5 @@
-# Carrier Provider & Drug Lookup URLs — 2026
-Last updated: 2026-09-02
+# Carrier Provider & Drug Lookup URLs — 2026–2027
+Last updated: 2026-10-02
 Use these links when an agent needs to check if a provider is in-network or if a drug is covered.
 
 > **Note:** Some tools require the member to log in for plan-specific results. Guest/public searches show general network info. Always confirm with the carrier for plan-specific network status.
@@ -96,16 +96,18 @@ Use these links when an agent needs to check if a provider is in-network or if a
 
 ## UHC MedicareMax / Medica (H5420)
 _(Administered by Preferred Care Network / PCN Health)_
-- **Provider Lookup:** https://www.pcnhealth.com/en/provider-facility
-  - _Covers Medical, Behavioral Health, Pharmacy, Optometry, and Dental directories for all UHC MedicareMax plans._
+- **Provider Lookup (Max):** same UHC guest Find a Doctor as Preferred / AARP — https://findcare.guest.uhc.com/guest-plan-selection/browse (2027, no login).
+- **Provider Lookup (PCN PDFs):** https://www.pcnhealth.com/en/provider-facility
+  - _Medical, Behavioral Health, Pharmacy, Optometry, and Dental directories for MedicareMax plans._
 - **Drug/Formulary Lookup:** https://www.pcnhealth.com/en/members/pharmacy-rx
   - _Formulary (Drug List) PDFs downloadable by plan (FL-0028, Complete Care FL-30, Dual Complete D-SNP)._
 
 ---
 
 ## UHC Preferred Care / AARP (H1045, H1889)
-- **Provider Lookup:** https://www.uhc.com/find-a-doctor
-  - _Public guest search available; members log in at https://www.myaarpmedicare.com for plan-specific network results._
+- **Provider Lookup (guest — Max uses this):** https://www.uhc.com/find-a-doctor → Continue as guest → Medicare, or https://findcare.guest.uhc.com/guest-plan-selection/browse
+  - _No member login. No Jarvis. Max queries the same 2027 guest directory by NPI for THEI Duals (H1045-012 / 061 / 063) and other individual UHC plans in the county. Failed check ≠ out of network._
+- **Member portal (do not use for Max):** https://www.myaarpmedicare.com
 - **Drug/Formulary Lookup:** https://www.myaarpmedicare.com
   - _Member portal for drug list, formulary search, and cost estimates. Per 2026 ANOC, review the Provider Directory and formulary at myAARPMedicare.com._
   - _Formulary ID: 00026002 (AARP MA plans). Call 1-866-627-7806 (TTY 711) for assistance._

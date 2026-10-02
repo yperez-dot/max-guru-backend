@@ -15,7 +15,9 @@
  * THEI Sunfire does not return Doctors / Solis / HealthSun provider matches.
  * HealthSun is FHIR (Aaneel). Solis has no live API — county PDFs only.
  *
- * Humana fhir.humana.com is WAF 403 from this host. UHC / Wellcare /
+ * UHC Medicare is the public guest Find a Doctor SPA
+ * (findcare.guest.uhc.com) — no Jarvis / member login.
+ * Humana fhir.humana.com is WAF 403 from this host. Wellcare /
  * CarePlus still need Sunfire or a developer-portal key.
  */
 
@@ -25,6 +27,7 @@ const path   = require('path');
 const { queryDoctorsHcp, PLAN_LABEL: DOCTORS_PLAN_LABEL } = require('../services/doctorsHcp');
 const { queryAetnaPublic, CARRIER_LABEL: AETNA_PLAN_LABEL } = require('../services/aetnaPublicSearch');
 const { querySimplyFindcare, CARRIER_LABEL: SIMPLY_PLAN_LABEL } = require('../services/simplyFindcare');
+const { queryUhcGuest, CARRIER_LABEL: UHC_PLAN_LABEL, PLAN_YEAR: UHC_PLAN_YEAR } = require('../services/uhcGuestSearch');
 const { solisLookupNote } = require('../services/solisDirectory');
 const { parseName, extractNpi, resolveNpiRecords } = require('../services/npiRegistry');
 const router = Router();
@@ -353,14 +356,16 @@ router.post('/', async (req, res) => {
 
     const npiLastName = npiResult.basic?.last_name || lastName;
 
-    // Run FHIR + Doctors + Aetna guest + Simply guest + Sunfire in parallel
-    const [fhirResults, sunfirePlans, doctorsResult, aetnaResult, simplyResult] = await Promise.all([
+    // Run FHIR + Doctors + Aetna + Simply + UHC guest + Sunfire in parallel
+    const [fhirResults, sunfireResult, doctorsResult, aetnaResult, simplyResult, uhcResult] = await Promise.all([
       Promise.all(CARRIERS.map(carrier => queryCarrier(carrier, npi))),
       querySunfire(npi, zip, county),
       queryDoctorsHcp(npi),
       queryAetnaPublic(npi, { zip, state, lastName: npiLastName }),
       querySimplyFindcare(npi, { zip, lastName: npiLastName }),
+      queryUhcGuest(npi, { zip, state, year: UHC_PLAN_YEAR }),
     ]);
+    const sunfirePlans = sunfireResult.plans || [];
 
     const inNetworkFor       = [];
     const carriersWithErrors = [];
@@ -406,6 +411,20 @@ router.post('/', async (req, res) => {
       }
     }
 
+    if (uhcResult.error && !uhcResult.checks?.length) {
+      carriersWithErrors.push(UHC_PLAN_LABEL);
+    } else if (uhcResult.inNetwork) {
+      for (const plan of uhcResult.plans) {
+        if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
+      }
+    }
+    if (uhcResult.failedPlans?.length) {
+      carriersWithErrors.push(`${UHC_PLAN_LABEL} (partial)`);
+    }
+    if (sunfireResult.status === 'failed') {
+      carriersWithErrors.push('Sunfire (secondary)');
+    }
+
     providers.push({
       name:      getDisplayName(npiResult),
       npi,
@@ -417,13 +436,18 @@ router.post('/', async (req, res) => {
       doctorsMatches: doctorsResult.inNetwork ? doctorsResult.matches : undefined,
       aetnaMatches: aetnaResult.inNetwork ? aetnaResult.matches : undefined,
       simplyMatches: simplyResult.inNetwork ? simplyResult.matches : undefined,
+      uhcMatches: uhcResult.matches?.length ? uhcResult.matches : undefined,
+      uhcChecks: uhcResult.checks?.length ? uhcResult.checks : undefined,
+      uhcOutOfNetwork: uhcResult.outOfNetworkPlans?.length ? uhcResult.outOfNetworkPlans : undefined,
+      sunfireStatus: sunfireResult.status,
       carriersChecked:    [
         ...CARRIERS.map(c => c.name),
         DOCTORS_PLAN_LABEL,
         AETNA_PLAN_LABEL,
         SIMPLY_PLAN_LABEL,
+        `${UHC_PLAN_LABEL} guest Find a Doctor ${UHC_PLAN_YEAR}`,
         'Solis (PDF directory only)',
-        'Sunfire (UHC, Humana, WellCare, CarePlus + contracted FL MA)',
+        'Sunfire (Humana, WellCare, CarePlus + contracted FL MA; secondary for UHC)',
       ],
       carriersWithErrors: carriersWithErrors.length ? carriersWithErrors : undefined,
     });
@@ -434,10 +458,11 @@ router.post('/', async (req, res) => {
     meta: {
       query:           { doctorName, zip, state },
       npiResultCount:  npiResults.length,
-      carriersQueried: [...CARRIERS.map(c => c.name), DOCTORS_PLAN_LABEL, AETNA_PLAN_LABEL, SIMPLY_PLAN_LABEL, 'Sunfire'],
+      carriersQueried: [...CARRIERS.map(c => c.name), DOCTORS_PLAN_LABEL, AETNA_PLAN_LABEL, SIMPLY_PLAN_LABEL, UHC_PLAN_LABEL, 'Sunfire'],
       sunfirePlanMapSize: Object.keys(SUNFIRE_PLAN_MAP).length,
+      planYear: UHC_PLAN_YEAR,
       solis: solisLookupNote(zip),
-      note: 'HealthSun via FHIR (not THEI Sunfire). Doctors via ProviderSearch. Aetna via guest find-care (no member login). Simply via Find Care guest search-box. Solis is county PDF only — see meta.solis. Sunfire: UHC, Humana, WellCare, CarePlus + other contracted FL MA.',
+      note: 'UHC via public guest Find a Doctor (no Jarvis / member login) for AEP 2027. Empty Sunfire is not UHC out-of-network. HealthSun via FHIR. Doctors via ProviderSearch. Aetna / Simply via guest find-care. Solis is county PDF only. Sunfire is secondary (Humana, WellCare, CarePlus). Failed check ≠ out of network.',
       timestamp: new Date().toISOString(),
     },
   });
@@ -447,16 +472,17 @@ router.post('/', async (req, res) => {
 
 /**
  * Query Sunfire /v2/provider/list for a given NPI.
- * Returns array of plan name strings the doctor is in-network for.
- * Requires SUNFIRE_JWT and SUNFIRE_SFP env vars (auto-refreshed weekly via cron).
+ * Secondary signal only (Humana / Wellcare / CarePlus; UHC uses guest Find a Doctor).
+ * Empty or failed Sunfire is never UHC out-of-network.
+ * Requires SUNFIRE_JWT and SUNFIRE_SFP on Railway.
  */
-async function querySunfire(npi, zip, county = '12086') {
+async function querySunfire(npi, zip, county = '12086', year = Number(UHC_PLAN_YEAR)) {
   const jwt = process.env.SUNFIRE_JWT;
   const sfp = process.env.SUNFIRE_SFP;
 
   if (!jwt || !sfp) {
     console.warn('[sunfire] Missing SUNFIRE_JWT or SUNFIRE_SFP — skipping Sunfire lookup');
-    return [];
+    return { plans: [], error: 'missing_credentials', status: 'failed', year };
   }
 
   const body = {
@@ -472,7 +498,7 @@ async function querySunfire(npi, zip, county = '12086') {
       primaryDoctor: true,
     }],
     restrictedProviderCarrierId: '',
-    year: 2026,
+    year,
     zip,
   };
 
@@ -493,7 +519,7 @@ async function querySunfire(npi, zip, county = '12086') {
 
     if (!res.ok) {
       console.warn(`[sunfire] provider/list HTTP ${res.status}`);
-      return [];
+      return { plans: [], error: `http_${res.status}`, status: 'failed', year };
     }
 
     const data  = await res.json();
@@ -518,12 +544,12 @@ async function querySunfire(npi, zip, county = '12086') {
       }
     }
 
-    console.log(`[sunfire] NPI ${npi}: ${inNetwork.length} in-network plans`);
-    return inNetwork;
+    console.log(`[sunfire] NPI ${npi} year ${year}: ${inNetwork.length} in-network plans`);
+    return { plans: inNetwork, error: null, status: 'ok', year };
   } catch (err) {
     const label = err.name === 'AbortError' ? 'Timeout' : err.message;
     console.warn(`[sunfire] provider/list error: ${label}`);
-    return [];
+    return { plans: [], error: label, status: 'failed', year };
   } finally {
     clearTimeout(timer);
   }

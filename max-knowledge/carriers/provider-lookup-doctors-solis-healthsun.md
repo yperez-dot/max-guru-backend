@@ -1,6 +1,8 @@
-# Provider lookup — Doctors, Solis, HealthSun (2026)
+# Provider lookup — live vs manual (2026–2027)
 
-Source: live API probe 2026-09-02. For broker use when an agent asks if a doctor is in-network for **Doctors HealthCare Plans (H4140)**, **Solis (H0982)**, or **HealthSun (H5431)**.
+Source: live API probes 2026-09-02 and UHC guest Find a Doctor 2026-10-02. For broker use when an agent asks if a doctor is in-network.
+
+Max runs the CMS NPI Registry first. A failed or empty carrier check is not proof the provider is out of network **unless that carrier’s live directory returned a successful empty result for that plan**. Network participation is a fact, never a ranking signal.
 
 **These three are not on THEI’s Sunfire provider search.** Do not treat a Sunfire miss as “not in Doctors / Solis / HealthSun.”
 
@@ -43,3 +45,21 @@ Guest search at https://www.aetna.com/medicare/find-provider.html (Continue as g
 ## Simply Healthcare (H5471)
 
 Guest Find Care: https://findcare.simplyhealthcareplans.com/?brand=SHC and shop https://shop.simplyhealthcareplans.com/medicare/standalonetools/find-doctor?brand=SIMPLY. No member login. Max uses Find Care guest JWT (`meta-brandcd: SHC`) and search-box by last name, then matches NPI. If search-box times out, say so and hand the agent the guest URL — do not invent Simply in- or out-of-network.
+
+## UHC / Preferred / MedicareMax / AARP (H1045, H5420, H1889, R0759) — AEP 2027
+
+**Public guest Find a Doctor only.** No Jarvis. No member login.
+
+- Guest SPA: https://findcare.guest.uhc.com/guest-plan-selection/browse (Medicare deeplink). Landing page: https://www.uhc.com/find-a-doctor (Continue as guest).
+- Max mints a guest session and searches 2027 plan definitions by NPI.
+- THEI Duals: **H1045-012** Preferred Dual Complete FL-QV4, **H1045-061** FL-QV5, **H1045-063** FL-Y6 (Miami-Dade / Broward).
+- Successful empty search for that CMS ID = out of network for **that plan**.
+- Session / GraphQL failure = failed check. Hand the guest URL. Do not say out of network.
+- Empty or expired Sunfire is **not** UHC out of network. Sunfire is secondary (Humana / Wellcare / CarePlus).
+
+## Still Sunfire / carrier site
+
+- **Humana:** public FHIR is WAF 403; no stable unauthenticated API is wired.
+- **CarePlus, Wellcare:** no stable unauthenticated public provider API is wired.
+
+Use THEI Sunfire when its session is available; otherwise the carrier's public directory. Do not invent an affiliation.
