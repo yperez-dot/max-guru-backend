@@ -468,12 +468,13 @@ HARD RULES -- these override everything else:
 
 17b. EXCEL EXPORT -- this chat UI CAN export a side-by-side Excel comparison when you cite two or more plan IDs (it shows an "Export" button). NEVER say you cannot generate or export Excel, spreadsheets, or files. When an agent asks for Excel / export / side-by-side spreadsheet: briefly restate the plan names with their exact plan IDs from PLAN DATA (one line each), then tell them to click the Export button that appears under your message. Do not invent file downloads yourself and do not send them to build a sheet manually.
 
-18. LIVE LOOKUP TOOLS -- you have two real, working tools that query live external systems: lookup_provider_network (searches the NPI Registry for a doctor by name, then checks live carrier directories -- currently FL Blue, Cigna/HealthSpring, HealthSun, and Devoted -- for that doctor's plan network affiliations) and search_drug (searches the Sunfire drug catalog). These tools are the ONE exception to Rules 4, 15, and 17's "only the data provided here" boundary: for questions about a specific DOCTOR's network status or a specific DRUG, use the appropriate tool rather than answering "not in the data." Use them via the normal tool-calling mechanism -- never write out tool-call syntax, JSON, or tags as text in your reply; just call the tool and wait for the result. Rules for the results: (a) present them concisely per Rule 7 and cite the source as a live lookup (e.g. "per the NPI registry + FL Blue's live directory"); (b) the carrier coverage is only the four listed -- if the agent asks about a carrier the lookup doesn't cover, say plainly that the live check only covers those four and suggest the carrier's own directory, don't extrapolate; (c) if a lookup errors or returns nothing, say the lookup didn't return results and suggest verifying in the carrier directory -- never fill the gap from training knowledge (Rule 17 still governs the answer itself); (d) Rule 1 still applies -- network participation is a fact, never a reason to call one plan better; (e) for HOSPITAL network questions, still use the HOSPITALS data per Rule 15 -- the lookup tool is for individual providers/doctors; (f) live directory data can lag reality, so for enrollment-critical decisions add a one-line suggestion to confirm with the carrier.
+18. LIVE LOOKUP TOOLS -- you have two real, working tools that query live external systems: lookup_provider_network (searches the NPI Registry for a doctor by name, then checks live carrier directories -- currently FL Blue, Cigna/HealthSpring, HealthSun, and Devoted -- for that doctor's plan network affiliations) and search_drug (searches the Sunfire drug catalog). These tools are the ONE exception to Rules 4, 15, and 17's "only the data provided here" boundary: for questions about a specific DOCTOR's network status or a specific DRUG, use the appropriate tool rather than answering "not in the data." Use them via the normal tool-calling mechanism -- never write out tool-call syntax, JSON, or tags as text in your reply; just call the tool and wait for the result. Rules for the results: (a) present them concisely per Rule 7 and cite the source as a live lookup (e.g. "per the NPI registry + FL Blue's live directory"); (b) the carrier coverage is only the four listed -- if the agent asks about a carrier the lookup doesn't cover, say plainly that the live check only covers those four and suggest the carrier's own directory, don't extrapolate; (c) if a lookup errors or returns nothing, say the lookup didn't return results and suggest verifying in the carrier directory -- never fill the gap from training knowledge (Rule 17 still governs the answer itself); (d) Rule 1 still applies -- network participation is a fact, never a reason to call one plan better; (e) for HOSPITAL network questions, still use the HOSPITALS data per Rule 15 -- the lookup tool is for individual providers/doctors; (f) live directory data can lag reality, so for enrollment-critical decisions add a one-line suggestion to confirm with the carrier; (g) a Cigna/HealthSpring directory hit is NOT a 2027 Miami-Dade or Broward MA enrollment option -- HealthSpring has no 2027 MA plans in those counties; never say "she's in-network with Cigna so consider HealthSpring."
 
 19. AGENT MEDICARE HUB KNOWLEDGE (bot version of the Hub) -- you also have search_knowledge and get_knowledge_doc tools backed by THEI's Agent Medicare Hub content imported under keys like hub/compliance, hub/sep-tracker, hub/seps-by-state/FL, hub/medicare-basics, hub/medicaid-lis, hub/certs, hub/certs-compliance, hub/getting-started, hub/hra-guide, hub/non-comm-plans, hub/carrier-contact-guide, hub/retention-toolkit, hub/aep-2027-training, hub/ma-pdp-certs, hub/medicare-supplements, hub/agentsync-guide, hub/nextere-guide, hub/client-forms, hub/lead-gen-library, hub/sales-library, hub/contracting-blackout, hub/agent-benefits, and related hub/* docs. For questions about SEPs / disaster SEPs, compliance, SOA rules, AHIP/MA-PDP certs, contracting, blackout dates, Medicaid/LIS, HRA, retention, lead-gen, sales scripts/libraries, supplements, or "what's on the Hub" topics: ALWAYS call search_knowledge (or get_knowledge_doc for a known key) BEFORE answering. Prefer hub/seps-by-state/FL for Florida SEP questions. Cite the hub document key as your source. 2026 plan benefit dollars and plan IDs still come from PLAN DATA (Rule 2) -- Hub docs cover ops/compliance/SEP/certs, not a replacement for the 2026 grid. If the Hub doc is thin or outdated-feeling, say what you found and note they can confirm on Agent Medicare Hub.
 
-20. PLAN YEAR 2027 -- agents may ask for 2027 / PY2027 / AEP 2027 at any time. If you have the fact in the knowledge base (medicare-reference, hub/aep-2027-training, hub/compliance, hub/contracting-blackout, plan-year-2027, carriers/2027-ma-blackout-dates, or any *2027* plan notes), ANSWER IT and say it is 2027. ALWAYS search_knowledge on 2027 questions before saying you do not have it. If you do not have that 2027 fact, say so plainly. Do NOT refuse because PLAN DATA is 2026. Do NOT quote 2026 premiums, copays, or givebacks as 2027 numbers. Humana 2027 SoBs are live; other carriers' 2027 plan dollars may not be on file yet.
+20. PLAN YEAR 2027 -- agents may ask for 2027 / PY2027 / AEP 2027 at any time. If you have the fact in the knowledge base (medicare-reference, hub/aep-2027-training, hub/compliance, hub/contracting-blackout, plan-year-2027, carriers/2027-ma-blackout-dates, carriers/healthspring-plans-florida-2027, or any *2027* plan notes), ANSWER IT and say it is 2027. ALWAYS search_knowledge on 2027 questions before saying you do not have it. If you do not have that 2027 fact, say so plainly. Do NOT refuse because PLAN DATA is 2026. Do NOT quote 2026 premiums, copays, or givebacks as 2027 numbers. Humana 2027 SoBs are live; other carriers' 2027 plan dollars may not be on file yet.
 20b. For crowns / bridges / implants / dentures / fillings / root canals / extractions on a named plan: read those dental* fields and search_knowledge (plan ID + procedure) before hedging to SoB.
+20c. CARRIER GEOGRAPHY 2027 -- HealthSpring / Cigna has NO 2027 MA plans in Miami-Dade or Broward. Say there is no HealthSpring plan to enroll into. Do not quote 2026 HealthSpring dollars as 2027. Leftover yellow workbook cells are stale. A live Cigna directory hit is not a 2027 enrollment option in those counties.
 
 FILTERED PLAN ATTACHMENT — PLAN DATA below is a FILTERED SUBSET for this question only (not the full THEI grid). It was narrowed by county, carrier, and/or plan ID from the agent's ask to control cost. If the plan they need is not in PLAN DATA, do NOT invent numbers from training knowledge — ask ONE short clarifying question for county, carrier, or plan ID. If PLAN DATA is empty and the question is general Medicare education (Rule 3), answer from training knowledge. If PLAN DATA is empty and they clearly want plan dollars, ask which county (Miami-Dade or Broward) and carrier/plan.
 
@@ -534,7 +535,14 @@ async function unlockMax(email, password) {
   return data;
 }
 
+const UI_QA = typeof location !== "undefined" ? new URLSearchParams(location.search) : new URLSearchParams();
+const MOCK_DELAY_MS = Number(UI_QA.get("mockDelay") || 0);
+
 async function askGuru(conversationHistory) {
+  if (MOCK_DELAY_MS > 0) {
+    await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
+    return { text: "QA mock reply.", banners: [] };
+  }
   const selection = selectPlansForAsk(conversationHistory);
   if (selection.needClarify) {
     return { text: selection.clarifyMessage, banners: [] };
@@ -688,6 +696,11 @@ function App() {
   const [gateLoading, setGateLoading] = useState(false);
 
   useEffect(() => {
+    if (UI_QA.get("skipGate") === "1") {
+      setAccessGateOn(false);
+      setUnlocked(true);
+      return;
+    }
     let cancelled = false;
     fetch(API_BASE + "/health")
       .then((r) => r.json())
@@ -706,6 +719,7 @@ function App() {
   const [pendingImages, setPendingImages] = useState([]);
   const [attachError, setAttachError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [queued, setQueued] = useState(null);
   const [error, setError] = useState(null);
   const [sidebarWidth, setSidebarWidth] = useState(248);
   const [isDragging, setIsDragging] = useState(false);
@@ -718,6 +732,23 @@ function App() {
   // Remembers the most recent exportable comparison even after the offer chip is dismissed
   // or later non-comparison replies push it out of the recent-message window.
   const lastComparisonPlansRef = useRef([]);
+  const messagesRef = useRef([]);
+  const loadingRef = useRef(false);
+  const queuedRef = useRef(null);
+  const chatGenRef = useRef(0);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  const storeQueued = (item) => {
+    queuedRef.current = item;
+    setQueued(item);
+  };
+  const clearQueued = () => {
+    queuedRef.current = null;
+    setQueued(null);
+  };
 
   const MIN_SIDEBAR = 72;
   const MAX_SIDEBAR = 400;
@@ -768,7 +799,10 @@ function App() {
   const nowLabel = () => new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
   const startNewChat = () => {
+    chatGenRef.current += 1;
+    clearQueued();
     setMessages([]);
+    messagesRef.current = [];
     setBanners([]);
     setError(null);
     setInput("");
@@ -814,9 +848,12 @@ function App() {
   };
 
   const lockMax = () => {
+    chatGenRef.current += 1;
     setAccessToken("");
     setUnlocked(false);
     setMessages([]);
+    messagesRef.current = [];
+    clearQueued();
     setError(null);
     setPendingImages([]);
     setAttachError(null);
@@ -871,11 +908,19 @@ function App() {
     addPendingFiles(files);
   };
 
-  const send = async (text) => {
-    const content = (text || input).trim();
-    const images = pendingImages;
-    if ((!content && !images.length) || loading) return;
+  const clearComposer = () => {
+    setInput("");
+    setPendingImages([]);
+    setAttachError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const sendNow = async (content, images) => {
+    const gen = chatGenRef.current;
     if (isMobile) setSidebarOpen(false);
+    loadingRef.current = true;
+    setLoading(true);
+    setError(null);
     const apiContent = images.length
       ? [
           { type: "text", text: content || "What's in this screenshot?" },
@@ -883,21 +928,15 @@ function App() {
         ]
       : content;
     const userMsg = { role: "user", content: apiContent, time: nowLabel() };
-    const newHistory = [...messages, userMsg];
+    const newHistory = [...messagesRef.current, userMsg];
+    messagesRef.current = newHistory;
     setMessages(newHistory);
-    setInput("");
-    setPendingImages([]);
-    setAttachError(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    setLoading(true);
-    setError(null);
     try {
       // If agent asks for Excel, reuse the latest remembered comparison.
       if (wantsExcelExport(userMessageText(apiContent))) {
         const lastOffer = [...newHistory].reverse().find((m) => m.role === "offer" && m.plans?.length >= 2);
         let fromThread = lastOffer?.plans || lastComparisonPlansRef.current || [];
         if (fromThread.length < 2) {
-          // Walk assistant history newest→oldest until we find a real comparison.
           const assistantMsgs = newHistory.filter((m) => m.role === "assistant");
           for (let i = assistantMsgs.length - 1; i >= 0; i--) {
             const found = findComparisonPlans(assistantMsgs[i].content || "");
@@ -916,16 +955,19 @@ function App() {
             content: `Got it — here's the side-by-side Excel export for ${labels}. Click Export below.`,
             time: nowLabel(),
           };
-          setMessages((prev) => [
-            ...prev.filter((m) => m.role !== "offer"),
+          const nextMsgs = [
+            ...newHistory.filter((m) => m.role !== "offer"),
             assistantMsg,
             { role: "offer", content: "export", plans: fromThread, time: nowLabel() },
-          ]);
+          ];
+          messagesRef.current = nextMsgs;
+          setMessages(nextMsgs);
           return;
         }
       }
 
       const result = await askGuru(newHistory.filter(m => m.role !== 'offer').map((m) => ({ role: m.role, content: m.content })));
+      if (gen !== chatGenRef.current) return;
       const reply = result.text;
       if (result.banners.length) {
         setBanners((current) => {
@@ -936,13 +978,17 @@ function App() {
       }
       const assistantMsg = { role: "assistant", content: reply, time: nowLabel() };
       const found = findComparisonPlans(reply);
+      let nextMsgs;
       if (found.length >= 2) {
         lastComparisonPlansRef.current = found.slice(0, 4);
-        setMessages((prev) => [...prev.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: found.slice(0, 4), time: nowLabel() }]);
+        nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: found.slice(0, 4), time: nowLabel() }];
       } else {
-        setMessages((prev) => [...prev.filter(m => m.role !== 'offer'), assistantMsg]);
+        nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg];
       }
+      messagesRef.current = nextMsgs;
+      setMessages(nextMsgs);
     } catch (err) {
+      if (gen !== chatGenRef.current) return;
       if (err && err.code === "access_required") {
         setUnlocked(false);
         setGateError("Session expired — sign in with your email and password again.");
@@ -954,8 +1000,34 @@ function App() {
       }
       setError("Couldn't reach Max. Check your connection and try again — if this keeps happening, Railway may be redeploying.");
     } finally {
+      if (gen !== chatGenRef.current) {
+        loadingRef.current = false;
+        setLoading(false);
+        return;
+      }
+      const next = queuedRef.current;
+      if (next) {
+        clearQueued();
+        await sendNow(next.text, next.images || []);
+        return;
+      }
+      loadingRef.current = false;
       setLoading(false);
     }
+  };
+
+  const send = (text) => {
+    const fromComposer = text == null;
+    const content = (fromComposer ? input : String(text)).trim();
+    const images = fromComposer ? pendingImages : [];
+    if (!content && !images.length) return;
+    if (loadingRef.current) {
+      storeQueued({ text: content, images: [...images] });
+      if (fromComposer) clearComposer();
+      return;
+    }
+    if (fromComposer) clearComposer();
+    void sendNow(content, images);
   };
 
   if (accessGateOn && !unlocked) {
@@ -1092,10 +1164,9 @@ function App() {
               <button
                 key={q.label}
                 onClick={() => send(q.prompt)}
-                disabled={loading}
                 style={{
                   display: "block", width: "100%", textAlign: "left", marginBottom: 8,
-                  padding: "11px 12px", borderRadius: 12, cursor: loading ? "default" : "pointer",
+                  padding: "11px 12px", borderRadius: 12, cursor: "pointer",
                   border: "1px solid var(--line)", background: "var(--chip)",
                   fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 500, color: "var(--ink)",
                 }}
@@ -1302,6 +1373,33 @@ function App() {
             {attachError && (
               <div style={{ fontSize: 12.5, color: "#9B1C3C", marginBottom: 8 }}>{attachError}</div>
             )}
+            {queued && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span
+                  data-testid="queued-chip"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 8, maxWidth: "100%",
+                    padding: "5px 10px", borderRadius: 999,
+                    background: "rgba(69,32,104,0.08)", border: "1px solid var(--line)",
+                    color: "var(--plum)", fontWeight: 600, fontSize: 12.5,
+                  }}
+                >
+                  Queued
+                  <span style={{ fontWeight: 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 280 }}>
+                    {queued.text || (queued.images?.length ? `${queued.images.length} image${queued.images.length > 1 ? "s" : ""}` : "next message")}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={clearQueued}
+                  aria-label="Cancel queued message"
+                  style={{
+                    width: 22, height: 22, borderRadius: "50%", border: "1px solid var(--line)",
+                    background: "#fff", color: "var(--plum)", cursor: "pointer", fontSize: 13, lineHeight: "20px", padding: 0,
+                  }}
+                >×</button>
+              </div>
+            )}
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <input
                 ref={fileInputRef}
@@ -1314,12 +1412,11 @@ function App() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={loading}
                 aria-label="Attach screenshot"
                 title="Attach PNG, JPEG, or WebP"
                 style={{
                   width: 46, height: 46, borderRadius: 14, border: "1px solid var(--line)",
-                  background: "rgba(255,255,255,0.9)", color: "var(--plum)", cursor: loading ? "default" : "pointer",
+                  background: "rgba(255,255,255,0.9)", color: "var(--plum)", cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                 }}
               >
@@ -1333,8 +1430,7 @@ function App() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && send()}
                 onPaste={onComposerPaste}
-                placeholder="Ask Max, or paste a screenshot…"
-                disabled={loading}
+                placeholder={loading ? "Type the next question — it will queue…" : "Ask Max, or paste a screenshot…"}
                 style={{
                   flex: 1, padding: "13px 18px", borderRadius: 14,
                   border: "1px solid var(--line)", background: "rgba(255,255,255,0.9)",
@@ -1343,12 +1439,12 @@ function App() {
               />
               <button
                 onClick={() => send()}
-                disabled={loading || (!input.trim() && !pendingImages.length)}
+                disabled={!input.trim() && !pendingImages.length}
                 aria-label="Send"
                 style={{
                   width: 46, height: 46, borderRadius: 14, border: "none",
-                  background: loading || (!input.trim() && !pendingImages.length) ? "rgba(69,32,104,0.25)" : "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)",
-                  color: "white", fontSize: 18, cursor: loading || (!input.trim() && !pendingImages.length) ? "default" : "pointer", flexShrink: 0,
+                  background: (!input.trim() && !pendingImages.length) ? "rgba(69,32,104,0.25)" : "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)",
+                  color: "white", fontSize: 18, cursor: (!input.trim() && !pendingImages.length) ? "default" : "pointer", flexShrink: 0,
                 }}
               >
                 &#8593;

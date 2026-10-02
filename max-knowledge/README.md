@@ -33,7 +33,7 @@ Live Max only searches files under `max-knowledge/`. Root `MAX.md` is for Cursor
 
 Do **not** put 2027 plan dollars only in `#plan-data` (that JSON is still the 2026 grid). Write confirmed 2027 numbers into a `*2027*.md` file so chat can cite them.
 
-The live 2027 working workbook is https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit (green = confirmed, yellow = leftover 2026). Refresh confirmed cells with `python3 scripts/export_2027_grid_to_kb.py`. Index: `carriers/plan-grid-overview-2027`.
+The live 2027 working workbook is https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit (green = confirmed, yellow = leftover 2026). Refresh confirmed cells with `python3 scripts/export_2027_grid_to_kb.py`. Index: `carriers/plan-grid-overview-2027`. **HealthSpring / Cigna is not a 2027 Miami-Dade or Broward MA option** — leftover yellow cells are stale; cite `carriers/healthspring-plans-florida-2027`.
 
 Dental procedure sub-rows (Crowns, Bridges, Implants, …) are kept on export when the cell has a clear frequency, even if still yellow. Vague `$0 varies` is not exported; the clearer sibling county for the same CMS ID is used. CarePlus CareComplete H1019-150: `carriers/careplus-carecomplete-h1019-150`.
 

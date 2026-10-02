@@ -28,7 +28,7 @@ Health: `GET /health` (API key required for data routes).
 
 ## Image attach
 
-Paste a screenshot into the composer or use the paperclip. Max accepts **PNG / JPEG / WebP** up to **4MB each** (up to 4 per message), shows thumbnails before send, and can send text + images in one turn. `/chat` forwards those data URLs to Grok vision (or OpenAI if `LLM_PROVIDER=openai`). Images stay in memory for that request only — they are not written to disk. They do count toward the daily spend estimate.
+Paste a screenshot into the composer or use the paperclip. Max accepts **PNG / JPEG / WebP** up to **4MB each** (up to 4 per message), shows thumbnails before send, and can send text + images in one turn. `/chat` forwards those data URLs to Grok vision (or OpenAI if `LLM_PROVIDER=openai`). Images stay in memory for that request only — they are not written to disk. They do count toward the daily spend estimate. While a reply is in flight the composer stays enabled: Send queues the next question (and any new images) and auto-sends it when Max finishes — it does not cancel the current turn.
 
 ## Daily cost guard
 

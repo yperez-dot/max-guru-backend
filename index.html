@@ -48,6 +48,10 @@ body{font-family:Arial,Helvetica,sans-serif;background:#F0EEE9;color:#241C2E;hei
 .send-btn:disabled{opacity:.5;cursor:default;}
 .attach-btn{flex:none;width:44px;height:44px;border-radius:50%;border:1.5px solid #E7E4ED;background:#fff;color:#452068;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .attach-btn:disabled{opacity:.5;cursor:default;}
+.queued-chip{display:flex;align-items:center;gap:8px;width:100%;max-width:700px;margin:0 auto 8px;font:600 12px/1.4 Arial,sans-serif;color:#452068;}
+.queued-chip span{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:5px 10px;border-radius:999px;background:#F1E9F8;border:1px solid #E7E4ED;}
+.queued-chip em{font-style:normal;font-weight:500;color:#241C2E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px;}
+.queued-chip button{width:22px;height:22px;border-radius:50%;border:1.5px solid #E7E4ED;background:#fff;color:#452068;cursor:pointer;}
 .thumbs{display:flex;flex-wrap:wrap;gap:8px;width:100%;max-width:700px;margin:0 auto 8px;}
 .thumb{position:relative;width:56px;height:56px;}
 .thumb img{width:56px;height:56px;object-fit:cover;border-radius:10px;border:1px solid #E7E4ED;}
@@ -136,6 +140,10 @@ body{font-family:Arial,Helvetica,sans-serif;background:#F0EEE9;color:#241C2E;hei
   <div style="width:100%;max-width:700px;display:flex;flex-direction:column;">
     <div class="thumbs" id="thumbs"></div>
     <div class="attach-error" id="attach-error" hidden></div>
+    <div class="queued-chip" id="queued-chip" hidden>
+      <span>Queued <em id="queued-text"></em></span>
+      <button type="button" id="queued-cancel" aria-label="Cancel queued message">×</button>
+    </div>
     <div class="input-wrap">
       <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp" multiple hidden>
       <button class="attach-btn" id="attach-btn" type="button" title="Attach PNG, JPEG, or WebP" aria-label="Attach screenshot">
@@ -162,6 +170,20 @@ const thumbsEl = document.getElementById('thumbs');
 const attachErrorEl = document.getElementById('attach-error');
 const conversation = [];
 const pendingImages = [];
+let inFlight = false;
+let queued = null;
+
+function renderQueued() {
+  const chip = document.getElementById('queued-chip');
+  const label = document.getElementById('queued-text');
+  if (!queued) {
+    chip.hidden = true;
+    label.textContent = '';
+    return;
+  }
+  chip.hidden = false;
+  label.textContent = queued.text || (queued.images.length ? `${queued.images.length} image${queued.images.length > 1 ? 's' : ''}` : 'next message');
+}
 
 // Load knowledge count
 fetch(API + '/knowledge', { headers: { 'x-max-api-key': '57d57dc06acaeb03b1c209bd28d8aded4982b6b011b761ab9e3af6dbc2777d43' } }).then(r => r.json()).then(d => {
@@ -274,19 +296,8 @@ function suggest(btn) {
   send();
 }
 
-async function send() {
-  const text = input.value.trim();
-  const images = pendingImages.splice(0, pendingImages.length);
-  if ((!text && !images.length) || sendBtn.disabled) {
-    pendingImages.push(...images);
-    return;
-  }
-  input.value = '';
-  renderThumbs();
-  showAttachError('');
-  sendBtn.disabled = true;
-
-  // Remove suggestion chips
+async function sendNow(text, images) {
+  inFlight = true;
   document.querySelectorAll('.suggestions').forEach(s => s.remove());
 
   const content = images.length
@@ -319,9 +330,34 @@ async function send() {
     typing.remove();
     addMsg('assistant', "Connection issue — make sure the backend is running and try again.");
   } finally {
-    sendBtn.disabled = false;
+    const next = queued;
+    queued = null;
+    renderQueued();
+    if (next) {
+      await sendNow(next.text, next.images);
+      return;
+    }
+    inFlight = false;
     input.focus();
   }
+}
+
+function send() {
+  const text = input.value.trim();
+  const images = pendingImages.splice(0, pendingImages.length);
+  if (!text && !images.length) {
+    pendingImages.push(...images);
+    return;
+  }
+  input.value = '';
+  renderThumbs();
+  showAttachError('');
+  if (inFlight) {
+    queued = { text, images };
+    renderQueued();
+    return;
+  }
+  void sendNow(text, images);
 }
 
 attachBtn.addEventListener('click', () => fileInput.click());
@@ -333,6 +369,10 @@ input.addEventListener('paste', (e) => {
   addPendingFiles(files);
 });
 input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+document.getElementById('queued-cancel').addEventListener('click', () => {
+  queued = null;
+  renderQueued();
+});
 </script>
 </body>
 </html>

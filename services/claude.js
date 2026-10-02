@@ -95,6 +95,7 @@ HARD RULES -- these override everything else:
 16. INFORMAL PLAN REFERENCES -- agents often describe a plan by role or shorthand instead of its exact name: "the core [carrier] plan," "the cheap one," "the Medicaid plan," "the one with dental," "their basic HMO." None of these are literal plan names -- treat them as a description to filter on, not a string to search for. "Core" or "basic" or "standard" means the carrier's most stripped-down offering in that county/type (usually the lowest premium/MOOP, no "Plus/Premium/Complete/Platinum" in the name). "The Medicaid plan" usually means a D-SNP. "Cheap" means lowest premium and/or MOOP among that carrier's options. Before concluding a plan doesn't exist or isn't in the data, always fall back to filtering by carrier + county + type (per Rule 8) and picking the best match -- do not report "not found" just because no plan is literally named what the agent said. If more than one plan could reasonably fit the description, name the ones that qualify and ask which one they mean rather than guessing or reporting nothing.
 17. NEVER FILL A DATA GAP FROM TRAINING KNOWLEDGE -- if a plan, carrier, or benefit genuinely isn't in PLAN DATA, CARRIER_CHRONIC_CONDITIONS, HOSPITALS, or the knowledge base after actually checking (not just a literal name-match miss -- see Rule 16 first), say plainly that it's not in the current data. Do NOT reach into general Medicare/carrier knowledge from training to fill the gap -- not a carrier name, not a plan detail, not a benefit amount, nothing. This matters even when the guess feels safe or obvious: a wrong carrier attribution stated confidently is worse than an honest "I don't have that." The one exception is Rule 3 (general Medicare education unrelated to a specific plan/carrier in the data) -- that's fine to answer from training knowledge as always. But anything that looks like it's answering about a specific plan ID, carrier, or benefit must come from the data provided here, or be flagged as not found.
 18. PLAN YEAR 2027 -- agents may ask for 2027 anytime. If the KB/Hub has the fact, answer it and cite 2027. Do not refuse because PLAN DATA is 2026. Do not quote 2026 plan dollars as 2027.
+19. CARRIER GEOGRAPHY 2027 -- HealthSpring / Cigna has NO 2027 MA plans in Miami-Dade or Broward (CMS CY2027; THEI grid columns removed). If an agent asks about HealthSpring, Cigna, H5410-060, or H5410-056 for those counties in 2027, say there is no HealthSpring plan to enroll into. Do not quote 2026 HealthSpring dollars as 2027. A live Cigna/HealthSpring directory hit is a directory fact only -- never say "she's in-network with Cigna so consider HealthSpring" for a 2027 Miami-Dade or Broward enrollment. Leftover yellow/workbook cells mentioning HealthSpring/Cigna for Dade/Broward 2027 are stale. Search_knowledge carriers/healthspring-plans-florida-2027.
 
 KNOWLEDGE BASE ACCESS:
 You have access to THEI's knowledge base via search_knowledge and get_knowledge_doc tools.
@@ -104,7 +105,7 @@ It includes:
 - Agent Medicare Hub pack under hub/* (compliance, SEPs by state, certs, Medicaid/LIS, contracting, retention, HRA, carrier contacts, AEP training, libraries, etc.)
 
 For Hub topics (SEP, compliance, SOA, certs, contracting, Medicaid/LIS, retention, "what's on the Hub"): ALWAYS search_knowledge first. Prefer hub/seps-by-state/FL for Florida SEPs.
-For 2027 / PY2027 / AEP 2027 questions: ALWAYS search_knowledge first (medicare-reference, hub/aep-2027-training, hub/compliance, hub/contracting-blackout, plan-year-2027, carriers/2027-ma-blackout-dates, any *2027* plan notes). Answer if you have it; do not refuse because PLAN DATA is 2026.
+For 2027 / PY2027 / AEP 2027 questions: ALWAYS search_knowledge first (medicare-reference, hub/aep-2027-training, hub/compliance, hub/contracting-blackout, plan-year-2027, carriers/2027-ma-blackout-dates, carriers/healthspring-plans-florida-2027, any *2027* plan notes). Answer if you have it; do not refuse because PLAN DATA is 2026. For HealthSpring/Cigna + Miami-Dade/Broward 2027, the answer is "no plan to enroll into" -- not "I don't have 2027 dollars yet."
 For 2026 plan benefit dollars / plan IDs, prefer the live PLAN DATA supplied in the chat system prompt when present; use the KB to supplement ops/compliance context.
 For crowns / bridges / implants / dentures / fillings / root canals / extractions on a named plan: read those dental* fields and search_knowledge (plan ID + procedure) before hedging to SoB.
 
@@ -156,7 +157,7 @@ const TOOLS = [
   },
   {
     name: 'lookup_provider_network',
-    description: 'Look up which Medicare Advantage plans a doctor is in-network for in Florida. Use when an agent asks what plans a doctor accepts, or if a specific doctor is in-network for a plan. Queries FHIR (FL Blue, Cigna, HealthSun, Devoted), Doctors HealthCare Plans ProviderSearch, Aetna guest find-care, Simply Find Care guest search, and Sunfire for contracted carriers. THEI Sunfire does not cover Doctors, Solis, or HealthSun — HealthSun is FHIR, Doctors is ProviderSearch, Solis is a county PDF (the tool returns that link; do not invent a Solis in-network result). Aetna and Simply guest searches do not need a member login.',
+    description: 'Look up which Medicare Advantage plans a doctor is in-network for in Florida. Use when an agent asks what plans a doctor accepts, or if a specific doctor is in-network for a plan. Queries FHIR (FL Blue, Cigna, HealthSun, Devoted), Doctors HealthCare Plans ProviderSearch, Aetna guest find-care, Simply Find Care guest search, and Sunfire for contracted carriers. THEI Sunfire does not cover Doctors, Solis, or HealthSun — HealthSun is FHIR, Doctors is ProviderSearch, Solis is a county PDF (the tool returns that link; do not invent a Solis in-network result). Aetna and Simply guest searches do not need a member login. A Cigna/HealthSpring FHIR hit is a directory fact only — HealthSpring has no 2027 MA plans in Miami-Dade or Broward; do not treat a Cigna in-network result as a 2027 HealthSpring enrollment option in those counties.',
     input_schema: {
       type: 'object',
       properties: {
@@ -363,6 +364,7 @@ async function processTool(toolName, toolInput) {
         out += `${formatSolisNote(zip)}\n`;
         out += '\n';
       }
+      out += 'Note: Cigna/HealthSpring directory hits are not a 2027 Miami-Dade or Broward MA enrollment option. HealthSpring has no 2027 MA plans in those counties.\n';
       // Build structured output for frontend (v11 toolResults schema)
       const firstProvider = providerResults[0];
       const structured = firstProvider ? {
