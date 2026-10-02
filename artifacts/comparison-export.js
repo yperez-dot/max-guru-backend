@@ -62,6 +62,24 @@
   ];
 
   const HIGHLIGHT_KEYS = { hearing: true, otc: true };
+
+  function isDualOrDsnpPlan(plan) {
+    if (!plan) return false;
+    const dual = plan.dualLevel || {};
+    if (dual.full || dual.partial) return true;
+    const type = String(plan.type || "")
+      .replace(/\s+/g, "")
+      .toUpperCase();
+    if (type === "DSNP" || type === "D-SNP" || type === "DUAL" || type.indexOf("DSNP") >= 0) {
+      return true;
+    }
+    const blob = [plan.type, plan.planName, plan.carrier].join(" ");
+    return /\bD[\s-]?SNP\b|\bDSNP\b|\bdual\b/i.test(blob);
+  }
+
+  function comparisonIncludesDual(plans) {
+    return (plans || []).some(isDualOrDsnpPlan);
+  }
   const NETWORK_IN = "In network";
   const NETWORK_OUT = "Out of network";
   const NETWORK_NOT_CONFIRMED = "Not confirmed";
@@ -1121,6 +1139,7 @@
     if (doctors.length || drugs.length) pushPlanHeaders();
 
     FIELD_ROWS.forEach(([label, key]) => {
+      if (key === "mspLevels" && !comparisonIncludesDual(plans)) return;
       const values = [label, ...plans.map((p) => formatBenefitValue(p[key], key))];
       const highlight = HIGHLIGHT_KEYS[key];
       const rowKinds = ["label", ...plans.map(() => (highlight ? "highlight" : "text"))];
@@ -1386,6 +1405,8 @@
   return {
     FIELD_ROWS,
     HIGHLIGHT_KEYS,
+    isDualOrDsnpPlan,
+    comparisonIncludesDual,
     NETWORK_IN,
     NETWORK_OUT,
     NETWORK_NOT_CONFIRMED,
