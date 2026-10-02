@@ -42,7 +42,8 @@ function createWorkupsRouter(store) {
     delete body.conversation;
     if (req.params && req.params.id) body.id = req.params.id;
     const planCount = Array.isArray(body.plans) ? body.plans.length : 0;
-    if (!String(body.clientName || '').trim() && planCount < 2) {
+    const hasId = Boolean(body.id);
+    if (!String(body.clientName || '').trim() && planCount < 2 && !hasId) {
       return res.status(400).json({ error: 'Need a client name or 2+ plans to save a workup' });
     }
     try {

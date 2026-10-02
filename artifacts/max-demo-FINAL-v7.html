@@ -211,7 +211,9 @@
     const patterns = [
       new RegExp("\\b[Cc]lient(?:\\s+[Nn]ame)?\\s*[:=]\\s*" + name, "g"),
       new RegExp("\\b[Cc]lient(?:\\s+[Nn]ame)?\\s+is\\s+" + name, "g"),
-      new RegExp("\\bfor\\s+" + name + "(?:\\s+in\\b|\\s*[,.]|\\s*$)", "g"),
+      new RegExp("\\b(?:[Ll]ocked\\s+)?for\\s+" + name + "(?:\\s+(?:in|on|at|ZIP|zip)\\b|\\s*[,.]|\\s*$)", "g"),
+      new RegExp("\\b[Cc]lient\\s+" + name, "g"),
+      new RegExp(name + "\\s*,?\\s*(?:ZIP|zip)\\s*\\d{5}", "g"),
     ];
     let found = "";
     for (const re of patterns) {
@@ -997,6 +999,16 @@
     return wantsComparisonExport(text);
   }
 
+  function mentionsExportCue(text) {
+    const t = String(text || "");
+    return (
+      /\bexport\s+(excel|pdf)\b/i.test(t) ||
+      /\b(export excel|export pdf)\b/i.test(t) ||
+      /click(?:\s+\w+){0,10}\s+(?:export|excel|pdf)\b/i.test(t) ||
+      /under this message/i.test(t)
+    );
+  }
+
   function conversationPlainText(messages, userMessageTextFn) {
     const toText =
       typeof userMessageTextFn === "function"
@@ -1049,6 +1061,7 @@
     exportComparisonToPdf,
     wantsComparisonExport,
     wantsExcelExport,
+    mentionsExportCue,
     conversationPlainText,
     formatSobCell,
     formatEocCell,
@@ -1442,6 +1455,17 @@
   .max-scroll::-webkit-scrollbar { width: 8px; }
   .max-scroll::-webkit-scrollbar-thumb { background: rgba(69,32,104,0.22); border-radius: 8px; }
   .max-workup-label { overflow-wrap: anywhere; word-break: break-word; }
+  .max-workup-title-row { display: flex; align-items: flex-start; gap: 6px; }
+  .max-workup-name-btn { flex: 1; background: none; border: none; padding: 0; text-align: left; cursor: text; font: inherit; color: inherit; }
+  .max-workup-name-edit {
+    width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--plum);
+    font-family: var(--font); font-size: 13px; font-weight: 600; color: var(--ink); background: #fff;
+  }
+  .max-workup-pencil {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line);
+    background: rgba(255,255,255,0.85); color: var(--plum); cursor: pointer; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
   .max-error-banner { overflow-wrap: anywhere; word-break: break-word; }
   .max-export-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .max-export-scroll table { min-width: 520px; }
@@ -1464,6 +1488,7 @@
     .max-tap { min-height: 44px; min-width: 44px; }
     .max-workup-actions { flex-wrap: wrap; }
     .max-workup-actions .max-tap { flex: 1 1 42%; }
+    .max-workup-pencil { min-height: 44px; min-width: 44px; }
     .max-composer-row input { min-width: 0; font-size: 16px !important; }
     .max-error-banner { max-width: 100%; }
     .max-export-scroll { overscroll-behavior-x: contain; }
@@ -1547,7 +1572,7 @@ function findComparisonPlans(text) {
   const hasDade = /miami-?dade/i.test(text);
   const countyHint = hasBroward && !hasDade ? "Broward" : (hasDade && !hasBroward ? "Miami-Dade" : null);
   // Capture compound IDs like H5420-001/0028 as well as H5420-001
-  const idRegex = /\b[HR]\d{3,4}[\s-]?\d{2,4}(?:\s*\/\s*-?\d{2,4})?\b/g;
+  const idRegex = /\b[HR]\d{3,4}[\s-]?\d{2,4}[A-Z]?(?:\s*\/\s*-?\d{2,4})?\b/g;
   const rawMatches = [...new Set((text.match(idRegex) || []).map((s) => s.replace(/\s+/g, "")))];
   const found = [];
   const seen = new Set();
@@ -1570,6 +1595,10 @@ function findComparisonPlans(text) {
 
 function wantsExcelExport(text) {
   return window.MaxComparisonExport.wantsComparisonExport(text);
+}
+
+function mentionsExportCue(text) {
+  return window.MaxComparisonExport.mentionsExportCue(text);
 }
 
 function exportComparisonToExcel(payload, meta) {
@@ -1859,7 +1888,7 @@ HARD RULES -- these override everything else:
 
 
 
-17b. CLIENT COMPARISON EXPORT -- this chat UI CAN export a side-by-side Excel or PDF when you cite two or more plan IDs (Export Excel / Export PDF buttons). NEVER say you cannot generate or export Excel, PDF, spreadsheets, or files. When an agent asks for Excel / PDF / export / side-by-side: briefly restate the plan names with their exact plan IDs from PLAN DATA (one line each), then tell them to click the button under your message. If the thread already has a client name, a terminating plan, or doctor in-network / out-of-network results from lookup_provider_network, mention those facts in the same reply so the export can pick them up -- never invent a client name, doctors, or network status. Export layout is the Yahoska client sheet: client name as title, optional Plan Terminating row, plan columns as full marketing name plus contract-PBP on its own line, Doctors section (In network / Out of network), then Medications (verified formulary tier + T1–T6 cost-share only — never a pasted Daisy tier), then the fixed benefit row order, SOB/EOC as links or pending. Do not invent file downloads yourself and do not send them to build a sheet manually.
+17b. CLIENT COMPARISON EXPORT -- this chat UI shows Export Excel / Export PDF chips under your message when a comparison is ready (2+ plan IDs you just cited from PLAN DATA, or a loaded/saved workup already has 2+ locked plans). NEVER say you cannot generate or export Excel, PDF, spreadsheets, or files. When those chips will show and an agent asks for Excel / PDF / export / side-by-side: briefly restate the plan names with their exact plan IDs from PLAN DATA (one line each), then tell them to click Export Excel or Export PDF under your message. If you did NOT cite 2+ PLAN DATA IDs and no workup is locked, do NOT mention Export Excel / Export PDF -- the chips will not appear. If the thread already has a client name, a terminating plan, or doctor in-network / out-of-network results from lookup_provider_network, mention those facts in the same reply so the export can pick them up -- never invent a client name, doctors, or network status. Export layout is the Yahoska client sheet: client name as title, optional Plan Terminating row, plan columns as full marketing name plus contract-PBP on its own line, Doctors section (In network / Out of network), then Medications (verified formulary tier + T1–T6 cost-share only — never a pasted Daisy tier), then the fixed benefit row order, SOB/EOC as links or pending. Do not invent file downloads yourself and do not send them to build a sheet manually.
 
 18. LIVE LOOKUP TOOLS -- you have live tools that query external systems: lookup_provider_network (NPI Registry first — people and clinic orgs — then FL Blue, Cigna/HealthSpring, HealthSun, Devoted, Doctors HealthCare Plans, Aetna guest, Simply guest, UHC public guest Find a Doctor for 2027 Duals/Preferred/MedicareMax — no Jarvis or member login, and Humana public Find Care guest for 2027 Gold Plus/Duals/Choice — no member login), search_clinic_or_provider (CMS NPPES org/DBA search + optional known clinic webpage; never Google SERPs), search_drug (Sunfire catalog — name/NDC only, not a plan tier), and lookup_formulary (required before quoting a drug tier / PA / ST / T4 % on a named plan). Solis is county-PDF only. CarePlus and Wellcare still rely on Sunfire or the carrier site. These tools are the ONE exception to Rules 4, 15, and 17's "only the data provided here" boundary. Use normal API function calling -- never print tool-call syntax. Rules for provider results: (a) present them concisely and cite the source directory on each hit; (b) a failed check is not out-of-network — say the lookup failed and hand the guest URL (UHC: uhc.com/find-a-doctor Continue as guest; Humana: findcare.humana.com Search as a guest); (c) empty Sunfire is not UHC or Humana out-of-network; only report UHC/Humana OON when that guest directory returned a successful empty result for that CMS ID or network; (d) never fill a gap from training; (e) Rule 1 still applies — network participation is a fact, never a reason to call one plan better; (f) hospital questions still use HOSPITALS; (g) for enrollment-critical decisions, confirm with the carrier because directory data can lag; (h) a Cigna/HealthSpring directory hit is NOT a 2027 Miami-Dade or Broward MA enrollment option — HealthSpring has no 2027 MA plans in those counties; never say "she's in-network with Cigna so consider HealthSpring."; (i) if a clinic/group/DBA name misses (e.g. Miami Neurology & Rehab Specialists / MNRS vs legal MIAMI NEUROLOGY & REHABILITATION SPECIALISTS, org NPI 1689860280), call search_clinic_or_provider, propose the NPI(s), then re-run lookup_provider_network with npi= — true In/Out is NPI + carrier Find Care only; (j) a clinic insurances-accepted page is marketing, not verified In/Out. If a Humana (or other carrier) logo IS on the page: "Found a Humana logo on their site — here's the link. I recommend you call and confirm." If it is NOT (MNRS / https://miamiphysicaltherapy.com/insurances/ lists Aetna, ASHP, AvMed, Cigna, Doctors Healthcare, GEHA, Golden Rule, Hartford, Harvard Pilgrim, Medicare, NALC, PHCS, TRICARE, UnitedHealthcare, UAIC, UMR, VA, Gallagher Bassett — NO Humana): say "{carrier} is not listed on their accepted-insurances page", link it, recommend calling the office. Do not treat absence on the clinic site as definitive OON if Find Care later returns IN — report both: not listed on clinic site + the NPI Find Care result.
 
@@ -2118,9 +2147,6 @@ const SUGGESTIONS = [
 
 const QUICK_ASKS = [
   { label: "Florida SEPs active now", prompt: "What Florida disaster SEPs are active right now? Summarize counties and end dates from the Hub SEP tracker." },
-  { label: "SOA rule change 2027", prompt: "What changed with the SOA 48-hour waiting period for 2027 / Oct 1 2026? Cite the Hub compliance guidance." },
-  { label: "Miami-Dade givebacks", prompt: "Which Miami-Dade plans have a Part B giveback?" },
-  { label: "DrMax vs MedicareMax", prompt: "Compare Doctors DrMax H4140-022 and UHC MedicareMax H5420-001 in Miami-Dade — premium, MOOP, PCP, specialist, Tier 1-5, OTC." },
 ];
 
 function App() {
@@ -2173,9 +2199,14 @@ function App() {
   const [workupNotice, setWorkupNotice] = useState(null);
   const [currentWorkupId, setCurrentWorkupId] = useState(null);
   const [savingWorkup, setSavingWorkup] = useState(false);
+  const [renamingWorkupId, setRenamingWorkupId] = useState(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const [renamingBusy, setRenamingBusy] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const renameInputRef = useRef(null);
+  const skipRenameBlurRef = useRef(false);
   // Remembers the most recent exportable comparison even after the offer chip is dismissed
   // or later non-comparison replies push it out of the recent-message window.
   const lastComparisonExportRef = useRef(null);
@@ -2299,7 +2330,10 @@ function App() {
   }, [unlocked]);
 
   const buildWorkupBody = (payload) => {
-    const threadText = window.MaxComparisonExport.conversationPlainText(messagesRef.current, userMessageText);
+    const priorName = loadedWorkupRef.current && loadedWorkupRef.current.clientName
+      ? "Client: " + loadedWorkupRef.current.clientName
+      : "";
+    const threadText = [priorName, window.MaxComparisonExport.conversationPlainText(messagesRef.current, userMessageText)].filter(Boolean).join("\n");
     const extractedName = window.MaxComparisonExport.extractClientName(threadText);
     const extras = {
       id: currentWorkupIdRef.current || undefined,
@@ -2355,9 +2389,12 @@ function App() {
       if (workup.clientName) {
         const remembered = lastComparisonExportRef.current || src || {};
         lastComparisonExportRef.current = { ...remembered, clientName: workup.clientName };
-        setMessages((prev) => prev.map((m) => (
-          m && m.role === "offer" ? { ...m, clientName: m.clientName || workup.clientName } : m
-        )));
+        setMessages((prev) => prev.map((m) => {
+          if (!m) return m;
+          if (m.role === "offer") return { ...m, clientName: m.clientName || workup.clientName };
+          if (m.exportPayload) return { ...m, exportPayload: { ...m.exportPayload, clientName: m.exportPayload.clientName || workup.clientName } };
+          return m;
+        }));
       }
       setWorkups((current) => {
         const summary = {
@@ -2462,6 +2499,124 @@ function App() {
       }
       setWorkupNotice(err.message || "Could not delete workup.");
     }
+  };
+
+  const startRenameWorkup = (w) => {
+    skipRenameBlurRef.current = false;
+    setRenamingWorkupId(w.id);
+    setRenameDraft(w.clientName || "");
+    setTimeout(() => renameInputRef.current && renameInputRef.current.focus(), 30);
+  };
+
+  const cancelRenameWorkup = () => {
+    skipRenameBlurRef.current = true;
+    setRenamingWorkupId(null);
+    setRenameDraft("");
+  };
+
+  const applyRenamedWorkup = (workup) => {
+    if (currentWorkupIdRef.current === workup.id) {
+      loadedWorkupRef.current = workup;
+      const remembered = lastComparisonExportRef.current || {};
+      lastComparisonExportRef.current = { ...remembered, clientName: workup.clientName || "" };
+      setMessages((prev) => prev.map((m) => {
+        if (!m) return m;
+        if (m.role === "offer") return { ...m, clientName: workup.clientName || m.clientName };
+        if (m.exportPayload) return { ...m, exportPayload: { ...m.exportPayload, clientName: workup.clientName || m.exportPayload.clientName } };
+        if (m.role === "workup" && m.workup) return { ...m, workup: { ...m.workup, clientName: workup.clientName } };
+        return m;
+      }));
+    }
+    setWorkups((current) => (current || []).map((w) => (
+      w.id === workup.id ? { ...w, clientName: workup.clientName, updatedAt: workup.updatedAt } : w
+    )));
+  };
+
+  const commitRenameWorkup = async (id, rawName) => {
+    const name = String(rawName || "").replace(/\s+/g, " ").trim().slice(0, 80);
+    if (!id) return;
+    if (!name) {
+      setWorkupNotice("Type a client name, then press Enter.");
+      return;
+    }
+    setRenamingBusy(true);
+    try {
+      const data = await workupsRequest("PUT", "/" + id, { id: id, clientName: name });
+      applyRenamedWorkup(data.workup);
+      setRenamingWorkupId(null);
+      setRenameDraft("");
+      setWorkupNotice("Named — " + data.workup.clientName);
+    } catch (err) {
+      if (err && err.code === "access_required") {
+        setUnlocked(false);
+        return;
+      }
+      setWorkupNotice(err.message || "Could not rename workup.");
+    } finally {
+      setRenamingBusy(false);
+    }
+  };
+
+  const resolveExportPayload = (history, reply, toolResults) => {
+    const remembered = lastComparisonExportRef.current;
+    const workup = loadedWorkupRef.current;
+    const found = findComparisonPlans(reply || "");
+    let plans = found.length >= 2 ? found.slice(0, 4) : null;
+    if ((!plans || plans.length < 2) && remembered && remembered.plans && remembered.plans.length >= 2) {
+      plans = remembered.plans;
+    }
+    if (plans && plans.length >= 2) {
+      return collectComparisonExport(history, plans, {
+        drugs: [
+          ...((remembered && remembered.drugs) || []),
+          ...drugsFromToolResults(toolResults),
+        ],
+        clientName: (remembered && remembered.clientName) || (workup && workup.clientName) || "",
+        doctors: (remembered && remembered.doctors) || [],
+        terminatingPlan: (remembered && remembered.terminatingPlan) || (workup && workup.terminatingPlan) || "",
+      });
+    }
+    if (workup && workup.plans && workup.plans.length >= 2) {
+      const fromWorkup = window.MaxClientWorkups.workupToExportPayload(workup, PLANS);
+      return collectComparisonExport(history, fromWorkup.plans, {
+        drugs: [
+          ...(fromWorkup.drugs || []),
+          ...drugsFromToolResults(toolResults),
+        ],
+        clientName: fromWorkup.clientName,
+        doctors: fromWorkup.doctors,
+        terminatingPlan: fromWorkup.terminatingPlan,
+      });
+    }
+    return null;
+  };
+
+  const withExportChips = (history, assistantMsg, toolResults) => {
+    const withoutOffers = history.filter((m) => m.role !== "offer");
+    const payload = resolveExportPayload([...withoutOffers, assistantMsg], assistantMsg.content, toolResults);
+    if (!payload || !payload.plans || payload.plans.length < 2) {
+      return [...withoutOffers, assistantMsg];
+    }
+    lastComparisonExportRef.current = payload;
+    scheduleAutoSave(payload);
+    const stamped = { ...assistantMsg, exportPayload: payload };
+    return [...withoutOffers, stamped];
+  };
+
+  const renderExportChips = (payload) => {
+    if (!payload || !payload.plans || payload.plans.length < 2) return null;
+    return (
+      <div data-testid="export-chips" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+        <button type="button" onClick={() => exportComparisonToExcel(payload)}
+          style={{ padding: "8px 14px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)", color: "white", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
+          Export Excel
+        </button>
+        <button type="button" onClick={() => exportComparisonToPdf(payload)}
+          style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
+          Export PDF
+        </button>
+      </div>
+    );
   };
 
   const startNewChat = () => {
@@ -2612,12 +2767,9 @@ function App() {
             role: "assistant",
             content: `Got it — here's the side-by-side export for ${labels}. Click Excel or PDF below.`,
             time: nowLabel(),
+            exportPayload: payload,
           };
-          const nextMsgs = [
-            ...newHistory.filter((m) => m.role !== "offer"),
-            assistantMsg,
-            { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, time: nowLabel() },
-          ];
+          const nextMsgs = withExportChips(newHistory, assistantMsg, []);
           messagesRef.current = nextMsgs;
           setMessages(nextMsgs);
           return;
@@ -2638,21 +2790,7 @@ function App() {
         });
       }
       const assistantMsg = { role: "assistant", content: reply, time: nowLabel() };
-      const found = findComparisonPlans(reply);
-      let nextMsgs;
-      if (found.length >= 2) {
-        const payload = collectComparisonExport([...newHistory, assistantMsg], found.slice(0, 4), {
-          drugs: [
-            ...((lastComparisonExportRef.current && lastComparisonExportRef.current.drugs) || []),
-            ...drugsFromToolResults(result.toolResults),
-          ],
-        });
-        lastComparisonExportRef.current = payload;
-        scheduleAutoSave(payload);
-        nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, time: nowLabel() }];
-      } else {
-        nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg];
-      }
+      const nextMsgs = withExportChips(newHistory, assistantMsg, result.toolResults);
       messagesRef.current = nextMsgs;
       setMessages(nextMsgs);
     } catch (err) {
@@ -2892,13 +3030,62 @@ function App() {
             {workups.map((w) => {
               const label = window.MaxClientWorkups.workupListLabel(w);
               const active = currentWorkupId === w.id;
+              const unnamed = !w.clientName;
+              const editing = renamingWorkupId === w.id;
               return (
                 <div key={w.id} data-testid="workup-row" className="max-workup-row" style={{
                   marginBottom: 8, padding: "10px 10px 8px", borderRadius: 12,
                   border: active ? "1px solid var(--plum)" : "1px solid var(--line)",
                   background: active ? "rgba(69,32,104,0.06)" : "rgba(255,255,255,0.7)",
                 }}>
-                  <div className="max-workup-label" style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", lineHeight: 1.3 }}>{label}</div>
+                  <div className="max-workup-title-row">
+                    {editing ? (
+                      <input
+                        ref={renameInputRef}
+                        data-testid="workup-rename-input"
+                        className="max-workup-name-edit"
+                        value={renameDraft}
+                        disabled={renamingBusy}
+                        placeholder="Client name"
+                        aria-label="Client name"
+                        onChange={(e) => setRenameDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { e.preventDefault(); void commitRenameWorkup(w.id, renameDraft); }
+                          if (e.key === "Escape") { e.preventDefault(); cancelRenameWorkup(); }
+                        }}
+                        onBlur={() => {
+                          if (skipRenameBlurRef.current) { skipRenameBlurRef.current = false; return; }
+                          if (!renamingBusy) void commitRenameWorkup(w.id, renameDraft);
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className="max-workup-name-btn max-workup-label"
+                          data-testid="workup-rename-title"
+                          title={unnamed ? "Tap to name this client" : "Rename client"}
+                          onClick={() => startRenameWorkup(w)}
+                          style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", lineHeight: 1.3 }}
+                        >
+                          {label}
+                          {unnamed && <span style={{ fontWeight: 500, color: "var(--plum)" }}> · tap to name</span>}
+                        </button>
+                        <button
+                          type="button"
+                          className="max-workup-pencil max-tap"
+                          data-testid="workup-rename"
+                          aria-label="Rename client"
+                          title="Rename client"
+                          onClick={() => startRenameWorkup(w)}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 16.5V20h3.5L19 8.5 15.5 5 4 16.5z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                  </div>
                   <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3 }}>
                     {window.MaxClientWorkups.formatUpdatedAt(w.updatedAt)}
                     {w.county ? " · " + w.county : ""}
@@ -2980,14 +3167,6 @@ function App() {
           </button>
         </header>
 
-        <div style={{
-          flex: "none", textAlign: "center", padding: "8px 16px",
-          fontSize: 11.5, fontWeight: 500, color: "var(--plum)",
-          background: "rgba(255,16,144,0.06)", borderBottom: "1px solid rgba(255,16,144,0.12)",
-        }}>
-          Internal agents only · cites the THEI grid · never ranks plans
-        </div>
-
         {/* Messages */}
         <div className="max-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 14px" : "24px 22px", display: "flex", flexDirection: "column", gap: 4 }}>
           {banners.length > 0 && (
@@ -3065,20 +3244,11 @@ function App() {
               <div style={{ maxWidth: "72%", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
                 <div className="max-export-scroll" style={{ padding: "12px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(255,255,255,0.88)", color: "var(--ink)", fontSize: 14.5, lineHeight: 1.5, border: "1px solid var(--line)", maxWidth: "100%" }}>
                   <div style={{ marginBottom: 10 }}>Want this comparison as Excel or PDF?</div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button onClick={() => { exportComparisonToExcel(m); setMessages(prev => prev.filter((_,j) => j !== i)); }}
-                      style={{ padding: "8px 14px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)", color: "white", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
-                      Export Excel
-                    </button>
-                    <button onClick={() => { exportComparisonToPdf(m); setMessages(prev => prev.filter((_,j) => j !== i)); }}
-                      style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
-                      Export PDF
-                    </button>
-                    <button onClick={() => setMessages(prev => prev.filter((_,j) => j !== i))}
-                      style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
-                      Dismiss
-                    </button>
-                  </div>
+                  {renderExportChips(m)}
+                  <button type="button" onClick={() => setMessages(prev => prev.filter((_,j) => j !== i))}
+                    style={{ marginTop: 8, padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
+                    Dismiss
+                  </button>
                 </div>
                 <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{m.time}</div>
               </div>
@@ -3109,6 +3279,7 @@ function App() {
                       {userMessageText(m.content)}
                     </>
                   )}
+                  {m.role === "assistant" && m.exportPayload && renderExportChips(m.exportPayload)}
                 </div>
                 <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{m.time}</div>
               </div>

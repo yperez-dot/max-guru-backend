@@ -214,6 +214,26 @@ describe('compact resume context', () => {
       { threadText: 'Client name is Felix Muskat' }
     );
     assert.equal(newerLabel.clientName, 'Felix Muskat');
+
+    const fromSpokenName = workupsUi.buildWorkupFromExport(payload, {
+      threadText: 'Locked for Michael Muskat, ZIP 33176. Check Drs on Humana.',
+    });
+    assert.equal(fromSpokenName.clientName, 'Michael Muskat');
+    assert.equal(workupsUi.workupListLabel(fromSpokenName), 'Michael Muskat');
+  });
+
+  it('renames an existing workup without wiping plans', (t) => {
+    const { store, cleanup } = tempStore();
+    t.after(cleanup);
+    const saved = store.upsert('yperez@healthexps.com', { ...muskatPayload(), clientName: '' });
+    assert.equal(saved.clientName, '');
+    const renamed = store.upsert('yperez@healthexps.com', { id: saved.id, clientName: 'Michael Muskat' });
+    assert.equal(renamed.id, saved.id);
+    assert.equal(renamed.clientName, 'Michael Muskat');
+    assert.equal(renamed.plans.length, 2);
+    assert.equal(renamed.plans[0].planId, 'H1036-054C');
+    assert.equal(renamed.zip, '33176');
+    assert.equal(store.list('yperez@healthexps.com')[0].clientName, 'Michael Muskat');
   });
 
   it('rehydrates export payload so Excel still has plan columns', () => {

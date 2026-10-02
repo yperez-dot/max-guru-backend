@@ -246,18 +246,34 @@ class WorkupStore {
       err.code = 'access_required';
       throw err;
     }
-    const body = normalizeWorkupInput(input);
-    if (!body.clientName && body.plans.length < 2) {
-      const err = new Error('Need a client name or 2+ plans to save a workup');
-      err.status = 400;
-      throw err;
-    }
+    let body = normalizeWorkupInput(input);
     const nowIso = this.now().toISOString();
     let list = this.ownerList(owner).slice();
     let existing = null;
     if (body.id) existing = list.find((w) => w.id === body.id) || null;
     if (!existing && !body.id && body.clientName) {
       existing = list.find((w) => String(w.clientName || '').toLowerCase() === body.clientName.toLowerCase()) || null;
+    }
+    if (existing) {
+      const plans = body.plans.length ? body.plans : existing.plans || [];
+      body = {
+        ...body,
+        clientName: body.clientName || existing.clientName || '',
+        zip: body.zip || existing.zip || '',
+        county: body.county || existing.county || '',
+        contacts: body.contacts || existing.contacts || '',
+        plans,
+        planIds: plans.map((p) => p.planId),
+        doctors: body.doctors.length ? body.doctors : existing.doctors || [],
+        medications: body.medications.length ? body.medications : existing.medications || [],
+        needs: body.needs.length ? body.needs : existing.needs || [],
+        terminatingPlan: body.terminatingPlan || existing.terminatingPlan || '',
+      };
+    }
+    if (!body.clientName && body.plans.length < 2) {
+      const err = new Error('Need a client name or 2+ plans to save a workup');
+      err.status = 400;
+      throw err;
     }
     const id = (existing && existing.id) || body.id || newId();
     const workup = {

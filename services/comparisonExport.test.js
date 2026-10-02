@@ -139,6 +139,17 @@ describe('thread extractors', () => {
       exp.extractClientName('Clients name is Muskat\nCan u check his drs on United?'),
       'Muskat'
     );
+    assert.equal(exp.extractClientName('Locked for Michael Muskat, ZIP 33176.'), 'Michael Muskat');
+    assert.equal(exp.extractClientName('Need Drs for Michael Muskat on Humana Gold Plus'), 'Michael Muskat');
+    assert.equal(exp.extractClientName('Michael Muskat ZIP 33176 Miami-Dade'), 'Michael Muskat');
+    assert.equal(exp.extractClientName('client Michael Muskat — keep PCP'), 'Michael Muskat');
+    assert.equal(exp.extractClientName('Compare H4140-022 and H1036-305 in Miami-Dade'), '');
+  });
+
+  it('detects Max export-cue wording', () => {
+    assert.equal(exp.mentionsExportCue('Click Export Excel or Export PDF under this message.'), true);
+    assert.equal(exp.mentionsExportCue('Click Excel or PDF below.'), true);
+    assert.equal(exp.mentionsExportCue('Humana Gold Plus premium is $0.'), false);
   });
 });
 
@@ -311,6 +322,17 @@ describe('HTML UI wiring', () => {
     assert.match(html, /extractClientName\(threadText\)/);
     assert.match(html, /clientName: extractedName \|\| \(payload && payload.clientName\)/);
     assert.match(html, /max-workup-row/);
+    assert.match(html, /workup-rename/);
+    assert.match(html, /tap to name/);
+    assert.match(html, /withExportChips/);
+    assert.match(html, /exportPayload/);
+    assert.match(html, /export-chips/);
+    assert.match(html, /Florida SEPs active now/);
+    assert.equal(html.includes('SOA rule change 2027'), false);
+    assert.equal(html.includes('Miami-Dade givebacks'), false);
+    assert.equal(html.includes('DrMax vs MedicareMax'), false);
+    assert.equal(html.includes('Internal agents only · cites the THEI grid · never ranks plans'), false);
+    assert.match(html, /do NOT mention Export Excel/);
     assert.match(html, /max-chat-header/);
     assert.match(html, /@media \(max-width: 640px\)/);
     assert.match(html, /lookup_formulary/);

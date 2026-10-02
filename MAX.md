@@ -219,7 +219,13 @@ Invite-only: `MAX_ACCESS_PASSWORD` on Railway (Yahoska / Katy / Carolina).
 
 Structured comparison state (client, ZIP/county, plans, doctor IN/OUT buckets, **verified** Rx only, needs) is stored on **Railway**, keyed by the unlock email. Save on desktop, Open on phone — not browser localStorage.
 
-**Client name on save (2026-10-02):** Save / Update / silent auto-save parse the thread via `extractClientName` when the export payload has no name (or a newer labeled name appears). Accepts `Client: Muskat`, `Client name: Muskat`, `Client's name is Muskat`, `Clients name is Muskat`, `Client name is Felix Muskat`, and labeled household last name. Keep a saved non-empty `clientName` unless a newer labeled name is in the thread. Sidebar list uses that name (not `Unnamed — H4140-001 / …`). Excel/PDF title uses the same field.
+**Client name on save (2026-10-02):** Save / Update / silent auto-save parse the thread via `extractClientName` when the export payload has no name (or a newer labeled name appears). Accepts `Client: Muskat`, `Client name: Muskat`, `Client's name is Muskat`, `Clients name is Muskat`, `Client name is Felix Muskat`, labeled household last name, `Locked for Michael Muskat`, `for Michael Muskat on Humana`, and `Michael Muskat ZIP 33176`. Keep a saved non-empty `clientName` unless a newer labeled name is in the thread. Sidebar list uses that name (not `Unnamed — H4140-001 / …`). Excel/PDF title uses the same field.
+
+**Sidebar rename (2026-10-02):** Unnamed workup cards show “tap to name” plus a pencil. Tap the title or pencil to type the client name — no chat `Client:` phrase required. Chat `Client:` rename still works. PUT `/workups/:id` with only `{ clientName }` merges into the saved plans/doctors/Rx.
+
+**Quick asks:** sidebar keeps only **Florida SEPs active now**. SOA / givebacks / DrMax chips were removed.
+
+**Export chips:** when a comparison is ready (2+ locked plans from this reply, the remembered export, or a loaded workup) the UI stamps `exportPayload` on that assistant bubble and renders **Export Excel** / **Export PDF** under the message. Max must not tell agents to click those chips unless they will actually show. Header tagline “Internal agents only · cites the THEI grid · never ranks plans” is gone.
 
 - API: `GET/PUT/DELETE /workups` (same `MAX_API_KEY` + access token as chat)
 - File: `data/max-workups.json` or `MAX_WORKUPS_FILE=/data/max-workups.json` on the same Railway volume as usage

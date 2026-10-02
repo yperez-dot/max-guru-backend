@@ -187,7 +187,9 @@
     const patterns = [
       new RegExp("\\b[Cc]lient(?:\\s+[Nn]ame)?\\s*[:=]\\s*" + name, "g"),
       new RegExp("\\b[Cc]lient(?:\\s+[Nn]ame)?\\s+is\\s+" + name, "g"),
-      new RegExp("\\bfor\\s+" + name + "(?:\\s+in\\b|\\s*[,.]|\\s*$)", "g"),
+      new RegExp("\\b(?:[Ll]ocked\\s+)?for\\s+" + name + "(?:\\s+(?:in|on|at|ZIP|zip)\\b|\\s*[,.]|\\s*$)", "g"),
+      new RegExp("\\b[Cc]lient\\s+" + name, "g"),
+      new RegExp(name + "\\s*,?\\s*(?:ZIP|zip)\\s*\\d{5}", "g"),
     ];
     let found = "";
     for (const re of patterns) {
@@ -973,6 +975,16 @@
     return wantsComparisonExport(text);
   }
 
+  function mentionsExportCue(text) {
+    const t = String(text || "");
+    return (
+      /\bexport\s+(excel|pdf)\b/i.test(t) ||
+      /\b(export excel|export pdf)\b/i.test(t) ||
+      /click(?:\s+\w+){0,10}\s+(?:export|excel|pdf)\b/i.test(t) ||
+      /under this message/i.test(t)
+    );
+  }
+
   function conversationPlainText(messages, userMessageTextFn) {
     const toText =
       typeof userMessageTextFn === "function"
@@ -1025,6 +1037,7 @@
     exportComparisonToPdf,
     wantsComparisonExport,
     wantsExcelExport,
+    mentionsExportCue,
     conversationPlainText,
     formatSobCell,
     formatEocCell,
