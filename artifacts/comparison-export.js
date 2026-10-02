@@ -367,7 +367,7 @@
       const key = name.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
-      meds.push({ name, claimedTier: Number(m[2]) });
+      meds.push({ name });
     }
     return meds;
   }
@@ -428,13 +428,12 @@
       if (!looksLikeDrugName(n)) return null;
       const key = n.toLowerCase();
       if (!byName.has(key)) {
-        byName.set(key, { name: n, claimedTier: null, byPlanId: emptyPlanDrugStatuses(plans) });
+        byName.set(key, { name: n, byPlanId: emptyPlanDrugStatuses(plans) });
       }
       return byName.get(key);
     };
     extractClaimedMeds(text).forEach((med) => {
-      const row = add(med.name);
-      if (row && med.claimedTier) row.claimedTier = med.claimedTier;
+      add(med.name);
     });
     extractVerifiedLookups(text).forEach((hit) => {
       const row = add(hit.name);
@@ -452,7 +451,7 @@
       if (!n) return null;
       const key = n.toLowerCase();
       if (!byName.has(key)) {
-        byName.set(key, { name: n, claimedTier: null, byPlanId: emptyPlanDrugStatuses(plans) });
+        byName.set(key, { name: n, byPlanId: emptyPlanDrugStatuses(plans) });
       }
       return byName.get(key);
     };
@@ -463,7 +462,6 @@
       }
       const row = add(d.name || d.drug || d.drugName);
       if (!row) return;
-      if (d.claimedTier && !row.claimedTier) row.claimedTier = d.claimedTier;
       const map = d.byPlanId || d.statusByPlanId || {};
       Object.keys(map).forEach((planId) => {
         const incoming = map[planId] || {};
@@ -546,7 +544,6 @@
           Object.keys(t.byPlanId || {}).forEach((id) => {
             mergeDrugPlanStatus(hit.byPlanId, id, t.byPlanId[id], plans);
           });
-          if (t.claimedTier && !hit.claimedTier) hit.claimedTier = t.claimedTier;
         }
       });
     }

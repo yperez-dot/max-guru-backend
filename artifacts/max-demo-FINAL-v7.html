@@ -391,7 +391,7 @@
       const key = name.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
-      meds.push({ name, claimedTier: Number(m[2]) });
+      meds.push({ name });
     }
     return meds;
   }
@@ -452,13 +452,12 @@
       if (!looksLikeDrugName(n)) return null;
       const key = n.toLowerCase();
       if (!byName.has(key)) {
-        byName.set(key, { name: n, claimedTier: null, byPlanId: emptyPlanDrugStatuses(plans) });
+        byName.set(key, { name: n, byPlanId: emptyPlanDrugStatuses(plans) });
       }
       return byName.get(key);
     };
     extractClaimedMeds(text).forEach((med) => {
-      const row = add(med.name);
-      if (row && med.claimedTier) row.claimedTier = med.claimedTier;
+      add(med.name);
     });
     extractVerifiedLookups(text).forEach((hit) => {
       const row = add(hit.name);
@@ -476,7 +475,7 @@
       if (!n) return null;
       const key = n.toLowerCase();
       if (!byName.has(key)) {
-        byName.set(key, { name: n, claimedTier: null, byPlanId: emptyPlanDrugStatuses(plans) });
+        byName.set(key, { name: n, byPlanId: emptyPlanDrugStatuses(plans) });
       }
       return byName.get(key);
     };
@@ -487,7 +486,6 @@
       }
       const row = add(d.name || d.drug || d.drugName);
       if (!row) return;
-      if (d.claimedTier && !row.claimedTier) row.claimedTier = d.claimedTier;
       const map = d.byPlanId || d.statusByPlanId || {};
       Object.keys(map).forEach((planId) => {
         const incoming = map[planId] || {};
@@ -570,7 +568,6 @@
           Object.keys(t.byPlanId || {}).forEach((id) => {
             mergeDrugPlanStatus(hit.byPlanId, id, t.byPlanId[id], plans);
           });
-          if (t.claimedTier && !hit.claimedTier) hit.claimedTier = t.claimedTier;
         }
       });
     }
@@ -1434,7 +1431,7 @@ HARD RULES -- these override everything else:
 20. PLAN YEAR 2027 -- agents may ask for 2027 / PY2027 / AEP 2027 at any time. If you have the fact in the knowledge base (medicare-reference, hub/aep-2027-training, hub/compliance, hub/contracting-blackout, plan-year-2027, carriers/2027-ma-blackout-dates, carriers/healthspring-plans-florida-2027, or any *2027* plan notes), ANSWER IT and say it is 2027. ALWAYS search_knowledge on 2027 questions before saying you do not have it. If you do not have that 2027 fact, say so plainly. Do NOT refuse because PLAN DATA is 2026. Do NOT quote 2026 premiums, copays, or givebacks as 2027 numbers. Humana 2027 SoBs are live; other carriers' 2027 plan dollars may not be on file yet.
 20b. For crowns / bridges / implants / dentures / fillings / root canals / extractions on a named plan: read those dental* fields and search_knowledge (plan ID + procedure) before hedging to SoB.
 20c. CARRIER GEOGRAPHY 2027 -- HealthSpring / Cigna has NO 2027 MA plans in Miami-Dade or Broward. Say there is no HealthSpring plan to enroll into. Do not quote 2026 HealthSpring dollars as 2027. Leftover yellow workbook cells are stale. A live Cigna directory hit is not a 2027 enrollment option in those counties.
-21. CLIENT-STATED RX TIERS -- if a user pastes meds with "Tier X" (Daisy sheet, client claim, last year's screenshot, or a finished client-comp archive), that is a CLAIM only. NEVER quote it as the plan's formulary tier. ALWAYS call lookup_formulary for each named drug × each named plan (year 2027 unless they asked another year) before quoting a tier, PA/ST, or T4 % cost. If lookup fails, say unverified -- do not copy the claimed tier as fact. After a verified tier, quote cost-share from that plan's T1–T6 columns in THEI Hub/grid knowledge (2027 KB green cells), not from the client's paste. Yahoska's sheet 1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A is an archive of finished client comps -- not the 2027 benefit grid and not a formulary source.
+21. CLIENT-STATED RX TIERS -- Daisy / paste / archive "Tier X" labels are discarded. Never surface, quote, or imply those labels as fact — not even as a soft "claim only" line. Paste is drug names only. ALWAYS call lookup_formulary for each named drug × each named plan (year 2027 unless they asked another year). Lookup order: Sunfire, then Humana FHIR only when PlanID+year match this PBP, then medicare.gov Plan Compare. If lookup fails, say unverified — do not invent a tier. After a verified tier, quote cost-share from that plan's T1–T6 columns in THEI Hub/grid knowledge (2027 KB green cells). Yahoska's sheet 1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A is an archive of finished client comps -- not the 2027 benefit grid and not a formulary source.
 
 FILTERED PLAN ATTACHMENT — PLAN DATA below is a FILTERED SUBSET for this question only (not the full THEI grid). It was narrowed by county, carrier, and/or plan ID from the agent's ask to control cost. If the plan they need is not in PLAN DATA, do NOT invent numbers from training knowledge — ask ONE short clarifying question for county, carrier, or plan ID. If PLAN DATA is empty and the question is general Medicare education (Rule 3), answer from training knowledge. If PLAN DATA is empty and they clearly want plan dollars, ask which county (Miami-Dade or Broward) and carrier/plan.
 

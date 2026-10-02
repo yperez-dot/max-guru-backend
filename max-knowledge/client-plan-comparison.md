@@ -91,7 +91,7 @@ Objective rows only (adapt to sourced data), for example:
 
 - Each row: **drug name** with **verified formulary tier + T1–T6 cost-share** under each plan.
 - Call `lookup_formulary` for **each drug × each named plan** (year 2027 unless asked otherwise). `search_drug` is catalog/NDC only — it does **not** verify a tier.
-- A pasted “Tier X” (Daisy, client claim, last year, or a finished-comp archive) is a **claim only**. Never copy it into the sheet as the plan’s tier.
+- A pasted “Tier X” (Daisy, client claim, last year, or a finished-comp archive) is **discarded**. Keep drug names only. Never copy, quote, or imply that label.
 - If lookup fails: cell is **Unverified**. Do not fall back to Daisy’s number.
 - After a verified tier, cost-share comes from THEI 2027 Hub/grid T1–T6 columns — not from the paste.
 - Yahoska’s finished-comp archive (`1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A`) is **not** a formulary or 2027 benefit-grid source. The in-progress client Drs/Rx sheet remains `17yvEEoToayROnm6jR0sIfk9IbxJwVYWVhiqOJzsiCBc`.

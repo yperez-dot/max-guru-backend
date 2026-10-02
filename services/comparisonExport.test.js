@@ -206,11 +206,12 @@ Compare H1036-054C and H1036-305 for Pablo Miriam in Miami-Dade.
 Meds from Daisy: Lorazepam T2, Trintellix T4, Atorvastatin Tier 1.
 `;
 
-  it('extracts claimed med names but does not treat pasted tiers as verified', () => {
+  it('extracts drug names only and discards pasted Daisy tiers', () => {
     const claimed = exp.extractClaimedMeds(daisy);
     const names = claimed.map((d) => d.name);
     assert.ok(names.includes('Lorazepam'));
     assert.ok(names.includes('Trintellix'));
+    assert.equal(claimed.every((d) => d.claimedTier == null), true);
     const payload = exp.buildExportPayload(plans, daisy, {});
     const model = exp.buildComparisonModel(payload);
     assert.ok(model.aoa.some((row) => row[0] === 'Medications'));
@@ -220,6 +221,8 @@ Meds from Daisy: Lorazepam T2, Trintellix T4, Atorvastatin Tier 1.
     assert.equal(trin.includes('Tier 4'), false);
     const lor = model.aoa.find((row) => row[0] === 'Lorazepam');
     assert.deepEqual(lor.slice(1), ['Unverified', 'Unverified']);
+    const payloadDrug = payload.drugs.find((d) => d.name === 'Trintellix');
+    assert.equal(payloadDrug.claimedTier, undefined);
   });
 
   it('uses FORMULARY_LOOKUP verified tiers + plan T1–T6 cost-share', () => {
@@ -240,7 +243,7 @@ FORMULARY_LOOKUP year=2027 drug=Atorvastatin plan=H1036-054C verified=no reason=
     assert.deepEqual(atp.slice(1), ['Unverified', 'Unverified']);
   });
 
-  it('prefers structured extras.drugs over a claimed Daisy tier', () => {
+  it('uses structured extras.drugs lookup tiers and drops claimedTier', () => {
     const payload = exp.buildExportPayload(plans, daisy, {
       drugs: [
         {
@@ -254,8 +257,8 @@ FORMULARY_LOOKUP year=2027 drug=Atorvastatin plan=H1036-054C verified=no reason=
       ],
     });
     const trin = payload.drugs.find((d) => d.name === 'Trintellix');
+    assert.equal(trin.claimedTier, undefined);
     assert.equal(trin.byPlanId['H1036-054C'].tier, 5);
-    assert.equal(trin.byPlanId['H1036-054C'].tier === 4, false);
     const model = exp.buildComparisonModel(payload);
     const row = model.aoa.find((r) => r[0] === 'Trintellix');
     assert.match(row[1], /Tier 5/);

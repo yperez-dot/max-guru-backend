@@ -11,6 +11,9 @@ const {
   pickCatalogMatch,
   humanaPlanYearMatch,
   isHumanaCms,
+  cmsContractParts,
+  rankNdcs,
+  extractMedicareGovCost,
   costShareFromKnowledge,
   costShareFromPlanObject,
   lookupFormulary,
@@ -104,8 +107,8 @@ function jsonRes(body, status = 200) {
   };
 }
 
-describe('lookupFormulary never treats a claimed Daisy tier as verified', () => {
-  it('keeps Daisy T4 as a claim when every live source fails', async () => {
+describe('lookupFormulary discards Daisy claimedTier completely', () => {
+  it('never surfaces a pasted tier when every live source fails', async () => {
     const prev = process.env.SUNFIRE_JWT;
     delete process.env.SUNFIRE_JWT;
     const fetchImpl = async () => jsonRes({ resourceType: 'Bundle', entry: [] }, 503);
@@ -121,20 +124,23 @@ describe('lookupFormulary never treats a claimed Daisy tier as verified', () => 
     if (prev == null) delete process.env.SUNFIRE_JWT;
     else process.env.SUNFIRE_JWT = prev;
 
-    assert.equal(result.claimedTier, 4);
-    assert.equal(result.claimedTierIgnored, true);
+    assert.equal(result.claimedTier, null);
+    assert.equal(result.claimedTierDiscarded, true);
     assert.equal(result.verifiedAny, false);
     assert.equal(result.byPlanId['H1036-054C'].verified, false);
     assert.equal(result.byPlanId['H1036-054C'].tier, null);
     const text = formatFormularyText(result);
-    assert.match(text, /claim only/i);
     assert.match(text, /UNVERIFIED/);
-    assert.doesNotMatch(text, /verified Tier 4/);
+    assert.doesNotMatch(text, /claim only/i);
+    assert.doesNotMatch(text, /Client-stated/i);
+    assert.doesNotMatch(text, /Daisy/i);
+    assert.doesNotMatch(text, /Tier 4/);
     const exported = toExportDrug(result);
+    assert.equal(exported.claimedTier, undefined);
     assert.equal(exported.byPlanId['H1036-054C'].verified, false);
   });
 
-  it('uses a live Sunfire tier + 2027 grid cost-share, not the claimed tier', async () => {
+  it('uses a live Sunfire tier + 2027 grid cost-share; claimedTier is gone', async () => {
     process.env.SUNFIRE_JWT = 'test-jwt';
     const fetchImpl = async (url) => {
       const u = String(url);
@@ -161,10 +167,10 @@ describe('lookupFormulary never treats a claimed Daisy tier as verified', () => 
     );
     delete process.env.SUNFIRE_JWT;
 
-    assert.equal(result.claimedTierIgnored, true);
+    assert.equal(result.claimedTier, null);
+    assert.equal(result.claimedTierDiscarded, true);
     assert.equal(result.byPlanId['H1036-054C'].verified, true);
     assert.equal(result.byPlanId['H1036-054C'].tier, 5);
-    assert.equal(result.byPlanId['H1036-054C'].tier === 4, false);
     assert.equal(result.byPlanId['H1036-054C'].costShare, '33%');
     assert.equal(result.byPlanId['H1036-054C'].pa, true);
     assert.equal(result.byPlanId['H1036-305'].tier, 3);
@@ -172,7 +178,9 @@ describe('lookupFormulary never treats a claimed Daisy tier as verified', () => 
     const text = formatFormularyText(result);
     assert.match(text, /verified Tier 5/);
     assert.match(text, /FORMULARY_LOOKUP.*verified_tier=5/);
-    assert.match(text, /claim only/);
+    assert.doesNotMatch(text, /claim only/i);
+    assert.doesNotMatch(text, /Client-stated/i);
+    assert.doesNotMatch(text, /Daisy/i);
   });
 
   it('accepts a Humana FHIR hit only when PlanID is this PBP + year', async () => {
@@ -222,5 +230,102 @@ describe('lookupFormulary never treats a claimed Daisy tier as verified', () => 
     assert.equal(result.byPlanId['H1036-054C'].costShare, '$0');
     assert.equal(result.byPlanId['H1036-305'].verified, false);
     assert.equal(result.byPlanId['H1036-305'].tier, null);
+  });
+});
+
+describe('Medicare.gov Plan Compare source 3', () => {
+  it('parses contract-PBP and ranks 30-count NDCs', () => {
+    assert.deepEqual(cmsContractParts('H1036-054C'), {
+      contractId: 'H1036',
+      planId: '054',
+      segmentId: '0',
+    });
+    assert.equal(rankNdcs(['64764073090', '64764073030', '64764073007'])[0], '64764073030');
+  });
+
+  it('reads a drugs/cost tier only for the matching contract-PBP + year', () => {
+    const payload = {
+      plans: [
+        {
+          plan: { contract_id: 'H1036', plan_id: '054', segment_id: '0', contract_year: '2027' },
+          restrictions: [],
+          costs: [{ drug_costs: [{ ndc: '64764073030', covered: true, coverage_reason: 'COVERED', tier: 4 }] }],
+        },
+      ],
+    };
+    const hit = extractMedicareGovCost(payload, 'H1036-054C', 2027);
+    assert.equal(hit.tier, 4);
+    assert.equal(extractMedicareGovCost(payload, 'H1036-305', 2027).miss, 'plan_mismatch');
+    assert.equal(extractMedicareGovCost(payload, 'H1036-054C', 2026).miss, 'plan_mismatch');
+  });
+
+  it('verifies via medicare.gov when Sunfire and FHIR fail, and still discards claimedTier', async () => {
+    const prev = process.env.SUNFIRE_JWT;
+    delete process.env.SUNFIRE_JWT;
+    const fetchImpl = async (url, options = {}) => {
+      const u = String(url);
+      if (u.includes('fhir.humana.com')) return jsonRes({ resourceType: 'Bundle', entry: [] }, 403);
+      if (u.includes('/drugs/autocomplete')) {
+        return jsonRes({ drugs: [{ rxcui: '1790881', name: 'Trintellix' }] });
+      }
+      if (u.includes('/related.json')) {
+        return jsonRes({
+          relatedGroup: {
+            conceptGroup: [
+              {
+                tty: 'SBD',
+                conceptProperties: [{ rxcui: '1790886', name: 'vortioxetine 10 MG Oral Tablet [Trintellix]' }],
+              },
+            ],
+          },
+        });
+      }
+      if (u.includes('/ndcs.json')) {
+        return jsonRes({ ndcGroup: { ndcList: { ndc: ['64764073030'] } } });
+      }
+      if (u.includes('/drugs/cost')) {
+        const body = options.body ? JSON.parse(options.body) : {};
+        const plan = (body.plans || [])[0] || {};
+        return jsonRes({
+          plans: [
+            {
+              plan: {
+                contract_id: plan.contract_id || 'H1036',
+                plan_id: plan.plan_id || '054',
+                segment_id: '0',
+                contract_year: '2027',
+              },
+              restrictions: [],
+              costs: [
+                {
+                  drug_costs: [
+                    { ndc: '64764073030', covered: true, coverage_reason: 'COVERED', tier: plan.plan_id === '305' ? 4 : 4 },
+                  ],
+                },
+              ],
+            },
+          ],
+        });
+      }
+      return jsonRes({ message: 'nope' }, 404);
+    };
+    const result = await lookupFormulary(
+      { drugName: 'Trintellix', planIds: ['H1036-054C', 'H1036-305'], year: 2027, claimedTier: 4 },
+      fetchImpl
+    );
+    if (prev == null) delete process.env.SUNFIRE_JWT;
+    else process.env.SUNFIRE_JWT = prev;
+
+    assert.equal(result.claimedTier, null);
+    assert.equal(result.byPlanId['H1036-054C'].verified, true);
+    assert.equal(result.byPlanId['H1036-054C'].tier, 4);
+    assert.equal(result.byPlanId['H1036-054C'].source, 'medicare_gov');
+    assert.equal(result.byPlanId['H1036-054C'].costShare, '40%');
+    assert.equal(result.byPlanId['H1036-305'].tier, 4);
+    assert.equal(result.byPlanId['H1036-305'].costShare, '50%');
+    const text = formatFormularyText(result);
+    assert.match(text, /source medicare_gov/);
+    assert.doesNotMatch(text, /claim only/i);
+    assert.doesNotMatch(text, /Daisy/i);
   });
 });

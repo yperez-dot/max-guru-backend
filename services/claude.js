@@ -112,7 +112,7 @@ HARD RULES -- these override everything else:
 17. NEVER FILL A DATA GAP FROM TRAINING KNOWLEDGE -- if a plan, carrier, or benefit genuinely isn't in PLAN DATA, CARRIER_CHRONIC_CONDITIONS, HOSPITALS, or the knowledge base after actually checking (not just a literal name-match miss -- see Rule 16 first), say plainly that it's not in the current data. Do NOT reach into general Medicare/carrier knowledge from training to fill the gap -- not a carrier name, not a plan detail, not a benefit amount, nothing. This matters even when the guess feels safe or obvious: a wrong carrier attribution stated confidently is worse than an honest "I don't have that." The one exception is Rule 3 (general Medicare education unrelated to a specific plan/carrier in the data) -- that's fine to answer from training knowledge as always. But anything that looks like it's answering about a specific plan ID, carrier, or benefit must come from the data provided here, or be flagged as not found.
 18. PLAN YEAR 2027 -- agents may ask for 2027 anytime. If the KB/Hub has the fact, answer it and cite 2027. Do not refuse because PLAN DATA is 2026. Do not quote 2026 plan dollars as 2027.
 19. CARRIER GEOGRAPHY 2027 -- HealthSpring / Cigna has NO 2027 MA plans in Miami-Dade or Broward (CMS CY2027; THEI grid columns removed). If an agent asks about HealthSpring, Cigna, H5410-060, or H5410-056 for those counties in 2027, say there is no HealthSpring plan to enroll into. Do not quote 2026 HealthSpring dollars as 2027. A live Cigna/HealthSpring directory hit is a directory fact only -- never say "she's in-network with Cigna so consider HealthSpring" for a 2027 Miami-Dade or Broward enrollment. Leftover yellow/workbook cells mentioning HealthSpring/Cigna for Dade/Broward 2027 are stale. Search_knowledge carriers/healthspring-plans-florida-2027.
-20. CLIENT-STATED RX TIERS -- if a user pastes meds with "Tier X" (Daisy sheet, client claim, last year's screenshot, or a finished client-comp archive), that is a CLAIM only. NEVER quote it as the plan's formulary tier. ALWAYS call lookup_formulary for each named drug × each named plan (year 2027 unless they asked another year) before quoting a tier, PA/ST, or T4 % cost. If lookup fails, say unverified -- do not copy the claimed tier as fact. After a verified tier, quote cost-share from that plan's T1–T6 columns in THEI Hub/grid knowledge (2027 KB green cells), not from the client's paste. Yahoska's sheet 1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A is an archive of finished client comps -- not the 2027 benefit grid and not a formulary source.
+20. CLIENT-STATED RX TIERS -- Daisy / paste / archive "Tier X" labels are discarded. Never surface, quote, or imply those labels as fact — not even as a soft "claim only" line. Paste is drug names only. ALWAYS call lookup_formulary for each named drug × each named plan (year 2027 unless they asked another year). Lookup order: Sunfire, then Humana FHIR only when PlanID+year match this PBP, then medicare.gov Plan Compare. Quote only a verified lookup tier + PA/ST. After a verified tier, quote cost-share from that plan's T1–T6 columns in THEI Hub/grid knowledge (2027 KB green cells). If lookup fails, say unverified — do not invent a tier. Yahoska's sheet 1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A is an archive of finished client comps -- not the 2027 benefit grid and not a formulary source.
 
 KNOWLEDGE BASE ACCESS:
 You have access to THEI's knowledge base via search_knowledge and get_knowledge_doc tools.
@@ -209,7 +209,7 @@ const TOOLS = [
   },
   {
     name: 'discover_similar_plans',
-    description: 'Shortlist Medicare Advantage plan candidates (carrier + plan name + plan ID when available) for a Florida ZIP/county outside or beyond THEI grid coverage (Miami-Dade/Broward). Uses Sunfire when credentials are set, and always returns a medicare.gov Plan Compare starter URL. Use when the agent asks for similar plans in another county (e.g. Alachua, Orange, Hillsborough, Palm Beach) or an out-of-area ZIP, including building a client-facing comparison sheet. For client-facing comparisons: mirror Yahoska Arias Lazo export layout (client name title; optional Plan Terminating; plan columns marketing name + contract-PBP; Doctors In network/Out of network via lookup_provider_network; Rx via lookup_formulary — never treat a pasted "Tier X" as verified). Ask for full name first (never invent / never "Client"). Working client sheet id 17yvEEoToayROnm6jR0sIfk9IbxJwVYWVhiqOJzsiCBc (in-progress Drs/Rx). Finished-comp archive 1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A is not a formulary or 2027 benefit-grid source. Does NOT invent benefit dollars. Does NOT rank or recommend a best plan (TPMO). Pass referenceSummary of the client\'s current benefits for LLM-side matching against returned candidates only.',
+    description: 'Shortlist Medicare Advantage plan candidates (carrier + plan name + plan ID when available) for a Florida ZIP/county outside or beyond THEI grid coverage (Miami-Dade/Broward). Uses Sunfire when credentials are set, and always returns a medicare.gov Plan Compare starter URL. Use when the agent asks for similar plans in another county (e.g. Alachua, Orange, Hillsborough, Palm Beach) or an out-of-area ZIP, including building a client-facing comparison sheet. For client-facing comparisons: mirror Yahoska Arias Lazo export layout (client name title; optional Plan Terminating; plan columns marketing name + contract-PBP; Doctors In network/Out of network via lookup_provider_network; Rx via lookup_formulary — Daisy / paste "Tier X" discarded). Ask for full name first (never invent / never "Client"). Working client sheet id 17yvEEoToayROnm6jR0sIfk9IbxJwVYWVhiqOJzsiCBc (in-progress Drs/Rx). Finished-comp archive 1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A is not a formulary or 2027 benefit-grid source. Does NOT invent benefit dollars. Does NOT rank or recommend a best plan (TPMO). Pass referenceSummary of the client\'s current benefits for LLM-side matching against returned candidates only.',
     input_schema: {
       type: 'object',
       properties: {
@@ -224,7 +224,7 @@ const TOOLS = [
   },
   {
     name: 'search_drug',
-    description: 'Sunfire drug catalog only (name / NDC / drug id). Does NOT return a plan formulary tier. A pasted "Tier X" is the client\'s claim — never treat it as verified. For tier / PA / ST / coverage on a named plan, call lookup_formulary (or pass planId/planIds here).',
+    description: 'Sunfire drug catalog only (name / NDC / drug id). Does NOT return a plan formulary tier. Daisy / paste "Tier X" is discarded. For tier / PA / ST / coverage on a named plan, call lookup_formulary (or pass planId/planIds here).',
     input_schema: {
       type: 'object',
       properties: {
@@ -233,14 +233,14 @@ const TOOLS = [
         planId: { type: 'string', description: 'Optional CMS contract-PBP. If set, also runs lookup_formulary for that plan.' },
         planIds: { type: 'array', items: { type: 'string' }, description: 'Optional list of CMS IDs to formulary-check in the same call' },
         year: { type: 'number', description: 'Plan year. Default 2027.' },
-        claimedTier: { type: 'number', description: 'Client-stated tier from Daisy/paste. Recorded as a claim only — never used as the verified tier.' }
+        claimedTier: { type: 'number', description: 'Discarded. Daisy / paste tier labels are never stored or quoted.' }
       },
       required: ['name']
     }
   },
   {
     name: 'lookup_formulary',
-    description: 'REQUIRED before quoting a drug tier, PA/ST, or T4 % cost. Looks up each drug × plan contract-PBP for the plan year (default 2027) from a live source (Sunfire formulary when SUNFIRE_JWT works; Humana public FHIR MedicationKnowledge for Humana CMS IDs). Then attaches T1–T6 cost-share from THEI 2027 Hub/grid knowledge — not from the client paste. A user-stated "Tier X" is a claim only. If lookup fails, return unverified — do not copy Daisy\'s tier as fact. Call once per drug (pass all named planIds).',
+    description: 'REQUIRED before quoting a drug tier, PA/ST, or T4 % cost. Looks up each drug × plan contract-PBP for the plan year (default 2027): Sunfire when SUNFIRE_JWT works, then Humana FHIR only if PlanID+year match this PBP, then medicare.gov Plan Compare. Attaches T1–T6 cost-share from THEI 2027 Hub/grid knowledge. Daisy / paste "Tier X" is discarded — never quote or imply it. If lookup fails, return unverified. Call once per drug (pass all named planIds).',
     input_schema: {
       type: 'object',
       properties: {
@@ -249,7 +249,7 @@ const TOOLS = [
         planId: { type: 'string', description: 'CMS contract-PBP, e.g. "H1036-054C"' },
         planIds: { type: 'array', items: { type: 'string' }, description: 'Multiple CMS IDs, e.g. ["H1036-054C","H1036-305"]' },
         year: { type: 'number', description: 'Plan year, default 2027' },
-        claimedTier: { type: 'number', description: 'Client-stated tier. Ignored for verification.' }
+        claimedTier: { type: 'number', description: 'Discarded. Never quoted or used.' }
       },
       required: ['drugName']
     }
@@ -565,7 +565,6 @@ async function processTool(toolName, toolInput) {
           drugName,
           ndc: toolInput.ndc,
           year: toolInput.year || 2027,
-          claimedTier: toolInput.claimedTier,
         });
         const catalog = (result.catalog || []).slice(0, 10);
         if (!catalog.length) {
@@ -575,7 +574,7 @@ async function processTool(toolName, toolInput) {
         return (
           `Found ${catalog.length} catalog match(es) for "${drugName}" (name/NDC only — tiers NOT verified):\n` +
           catalog.map((d) => `- ${d.name}${d.ndc ? ` (NDC: ${d.ndc})` : ''}`).join('\n') +
-          `\nA pasted "Tier X" is a client claim. Call lookup_formulary with drugName + planIds before quoting a tier or T4 %.`
+          `\nCatalog only — call lookup_formulary with drugName + planIds before quoting a tier.`
         );
       }
       const result = await lookupFormulary({
@@ -584,11 +583,10 @@ async function processTool(toolName, toolInput) {
         planId: toolInput.planId,
         planIds: toolInput.planIds,
         year: toolInput.year || 2027,
-        claimedTier: toolInput.claimedTier,
       });
       return { text: formatFormularyText(result), structured: { ...result, drug: toExportDrug(result) } };
     } catch (e) {
-      return `Formulary lookup error: ${e.message}. Treat any client-stated tier as unverified.`;
+      return `Formulary lookup error: ${e.message}. Do not quote a tier.`;
     }
   }
   return 'Unknown tool.';

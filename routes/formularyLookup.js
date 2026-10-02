@@ -1,8 +1,9 @@
 /**
  * GET /formulary-lookup?name=trintellix&planId=H1036-054C&year=2027
- * Optional: planIds=H1036-054C,H1036-305  ndc=  claimedTier=
+ * Optional: planIds=H1036-054C,H1036-305  ndc=
  *
- * Live formulary tier (Sunfire / Humana FHIR). Client-stated claimedTier is ignored.
+ * Live formulary tier (Sunfire → Humana FHIR PBP+year → medicare.gov).
+ * claimedTier query params are discarded and never returned.
  */
 const { Router } = require('express');
 const { lookupFormulary, formatFormularyText, toExportDrug } = require('../services/formularyLookup');
@@ -25,12 +26,11 @@ router.get('/', async (req, res) => {
       ndc: req.query.ndc,
       planIds,
       year: req.query.year ? Number(req.query.year) : 2027,
-      claimedTier: req.query.claimedTier,
     });
     res.json({
       query: name,
       year: result.year,
-      claimedTierIgnored: result.claimedTier,
+      claimedTierDiscarded: true,
       text: formatFormularyText(result),
       drug: toExportDrug(result),
       lookups: result.lookups,

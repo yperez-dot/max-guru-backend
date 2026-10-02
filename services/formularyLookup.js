@@ -1,12 +1,14 @@
 /**
  * Plan-year formulary lookup (drug × contract-PBP).
  *
- * Client-stated "Tier X" (Daisy sheet, archive comps, last year's screenshot)
- * is a claim only. This module never copies claimedTier into a verified result.
+ * Daisy / paste / archive "Tier X" labels are discarded on entry. This module
+ * never copies, quotes, or returns claimedTier. Lookup is the only source.
  *
  * Sources, in order:
  *   1. Sunfire /v2/drug/* when SUNFIRE_JWT is set (catalog + plan-scoped probes)
  *   2. Humana public FHIR MedicationKnowledge for Humana CMS IDs (H1036 / H7617)
+ *      only when the PlanID extension matches this contract-PBP AND year
+ *   3. Medicare.gov Plan Compare (autocomplete → RxNorm NDC → drugs/cost)
  *
  * Cost-share after a verified tier comes from THEI Hub/grid knowledge
  * (2027 green cells in max-knowledge/carriers/*-plans-florida-2027.md),
@@ -19,6 +21,9 @@ const { getKnowledgeByKey } = require('../knowledge/loader');
 
 const SUNFIRE_BASE = 'https://www.sunfirematrix.com';
 const HUMANA_FHIR = 'https://fhir.humana.com/api/MedicationKnowledge';
+const MEDICARE_GOV_BASE = 'https://www.medicare.gov/api/v1/data/plan-compare';
+const RXNORM_BASE = 'https://rxnav.nlm.nih.gov/REST';
+const MPF_FE_VER = '2.69.0';
 const PLAN_YEAR = 2027;
 const FETCH_TIMEOUT_MS = 12_000;
 const PUBLIC_HUMANA_DRUG_LIST = 'https://www.humana.com/pharmacy/medicare-drug-list';
@@ -468,6 +473,258 @@ async function lookupHumanaFhir({ drugName, ndc, planId, year }, fetchImpl = fet
   return { verified: false, reason: lastError || 'humana_fhir_empty' };
 }
 
+function medicareGovHeaders() {
+  return {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    Origin: 'https://www.medicare.gov',
+    Referer: 'https://www.medicare.gov/plan-compare/',
+    'fe-ver': MPF_FE_VER,
+    'User-Agent': 'Mozilla/5.0 (compatible; Max-Medicare-Guru/1.0)',
+  };
+}
+
+function cmsContractParts(planId) {
+  const parsed = parseCmsId(planId);
+  if (!parsed) return null;
+  const [contractId, pbp] = parsed.base.split('-');
+  return { contractId, planId: pbp, segmentId: '0' };
+}
+
+function relatedRxnormConcepts(payload) {
+  const groups = payload?.relatedGroup?.conceptGroup || [];
+  const out = [];
+  for (const group of groups) {
+    for (const c of group.conceptProperties || []) {
+      out.push({
+        rxcui: String(c.rxcui || ''),
+        name: c.name || '',
+        tty: group.tty || c.tty || '',
+      });
+    }
+  }
+  return out.filter((c) => c.rxcui);
+}
+
+function scoreRelatedConcept(concept, query) {
+  const name = String(concept.name || '').toLowerCase();
+  const q = String(query || '').toLowerCase().trim();
+  let score = 0;
+  if (/oral tablet/.test(name)) score += 20;
+  if (/oral/.test(name)) score += 5;
+  if (/(amlodipine|ezetimibe|caduet|vytorin)/.test(name) && !/(amlodipine|ezetimibe)/.test(q)) {
+    score -= 40;
+  }
+  if (q && name.includes(q)) score += 10;
+  if (q && new RegExp(`${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\d+ mg oral tablet`).test(name)) {
+    score += 25;
+  }
+  if (concept.tty === 'SCD' && /generic|statin|pril|sartan|olol/.test(q)) score += 5;
+  if (concept.tty === 'SBD' && /trintellix|lipitor|eliquis|jardiance|ozempic/.test(q)) score += 8;
+  return score;
+}
+
+function rankNdcs(ndcs) {
+  return [...ndcs].sort((a, b) => {
+    const score = (n) => {
+      const s = String(n);
+      if (/30$/.test(s)) return 3;
+      if (/90$/.test(s)) return 2;
+      if (/07$/.test(s)) return 1;
+      return 0;
+    };
+    return score(b) - score(a);
+  });
+}
+
+function normalizeNdc(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.length === 10) return `0${digits}`;
+  if (digits.length === 11) return digits;
+  return digits || null;
+}
+
+async function autocompleteMedicareGov(name, fetchImpl = fetch) {
+  if (!name) return { drugs: [], error: 'medicare_gov_no_name', status: 0 };
+  const res = await fetchJson(
+    `${MEDICARE_GOV_BASE}/drugs/autocomplete?name=${encodeURIComponent(String(name).trim())}`,
+    { headers: medicareGovHeaders() },
+    fetchImpl
+  );
+  if (!res.ok) {
+    return { drugs: [], error: res.error || `medicare_gov_autocomplete_http_${res.status}`, status: res.status };
+  }
+  const list = res.json?.drugs || [];
+  return { drugs: Array.isArray(list) ? list : [], error: null, status: res.status };
+}
+
+async function ndcsForRxcui(rxcui, fetchImpl = fetch) {
+  if (!rxcui) return [];
+  const res = await fetchJson(
+    `${RXNORM_BASE}/rxcui/${encodeURIComponent(rxcui)}/ndcs.json`,
+    { headers: { Accept: 'application/json' } },
+    fetchImpl
+  );
+  const list = res.json?.ndcGroup?.ndcList?.ndc || [];
+  return Array.isArray(list) ? list.map((n) => normalizeNdc(n)).filter(Boolean) : [];
+}
+
+async function resolveMedicareGovNdcs({ drugName, ndc }, fetchImpl = fetch) {
+  const out = [];
+  const seen = new Set();
+  const push = (value) => {
+    const n = normalizeNdc(value);
+    if (!n || seen.has(n)) return;
+    seen.add(n);
+    out.push(n);
+  };
+  if (ndc) push(ndc);
+
+  const auto = await autocompleteMedicareGov(drugName || '', fetchImpl);
+  const match = pickCatalogMatch(
+    (auto.drugs || []).map((d) => ({ name: d.name, rxcui: d.rxcui, id: d.rxcui })),
+    drugName
+  );
+  const rxcui = match?.rxcui || auto.drugs?.[0]?.rxcui || null;
+  const resolvedName = match?.name || auto.drugs?.[0]?.name || drugName;
+
+  if (rxcui) {
+    const rel = await fetchJson(
+      `${RXNORM_BASE}/rxcui/${encodeURIComponent(rxcui)}/related.json?tty=SCD+SBD`,
+      { headers: { Accept: 'application/json' } },
+      fetchImpl
+    );
+    const concepts = relatedRxnormConcepts(rel.json)
+      .map((c) => ({ ...c, score: scoreRelatedConcept(c, drugName || resolvedName) }))
+      .sort((a, b) => b.score - a.score);
+    const toTry = [{ rxcui: String(rxcui), name: resolvedName, score: 0 }, ...concepts].slice(0, 8);
+    for (const concept of toTry) {
+      const ndcs = rankNdcs(await ndcsForRxcui(concept.rxcui, fetchImpl)).slice(0, 3);
+      ndcs.forEach(push);
+      if (out.length >= 8) break;
+    }
+  }
+
+  return {
+    ndcs: out.slice(0, 8),
+    rxcui: rxcui ? String(rxcui) : null,
+    name: resolvedName || drugName,
+    error: out.length ? null : auto.error || 'medicare_gov_no_ndc',
+  };
+}
+
+function extractMedicareGovCost(payload, planId, year) {
+  const parts = cmsContractParts(planId);
+  if (!parts) return { miss: 'bad_plan_id' };
+  const y = String(year);
+  const plans = payload?.plans || [];
+  const row = plans.find((p) => {
+    const pl = p.plan || p;
+    return (
+      String(pl.contract_id || '').toUpperCase() === parts.contractId &&
+      String(pl.plan_id || '') === parts.planId &&
+      String(pl.contract_year || '') === y
+    );
+  });
+  if (!row) return { miss: 'plan_mismatch' };
+  const blob = JSON.stringify(row.restrictions || []);
+  const pa = /prior\s*auth/i.test(blob) ? true : null;
+  const st = /step\s*ther/i.test(blob) ? true : null;
+  const ql = /quantity/i.test(blob) ? true : null;
+  for (const cost of row.costs || []) {
+    for (const dc of cost.drug_costs || []) {
+      const reason = String(dc.coverage_reason || '').toUpperCase();
+      const tier = parseTierNumber(dc.tier);
+      if (dc.covered === false || reason === 'NOT_COVERED' || reason === 'NON_FORMULARY') {
+        return { coverage: 'not_covered', tier: null, pa, st, ql, ndc: dc.ndc || null };
+      }
+      if (tier) {
+        return { coverage: 'covered', tier, pa, st, ql, ndc: dc.ndc || null };
+      }
+    }
+  }
+  return { miss: 'empty_costs' };
+}
+
+async function lookupMedicareGov({ drugName, ndc, planId, year }, fetchImpl = fetch) {
+  const y = Number(year) || PLAN_YEAR;
+  const parts = cmsContractParts(planId);
+  if (!parts) return { verified: false, reason: 'medicare_gov_bad_plan_id', source: 'medicare_gov' };
+
+  const resolved = await resolveMedicareGovNdcs({ drugName, ndc }, fetchImpl);
+  if (!resolved.ndcs.length) {
+    return {
+      verified: false,
+      reason: resolved.error || 'medicare_gov_no_ndc',
+      source: 'medicare_gov',
+    };
+  }
+
+  let lastError = null;
+  for (const useNdc of resolved.ndcs.slice(0, 5)) {
+    const res = await fetchJson(
+      `${MEDICARE_GOV_BASE}/drugs/cost`,
+      {
+        method: 'POST',
+        headers: medicareGovHeaders(),
+        body: JSON.stringify({
+          npis: [],
+          prescriptions: [{ ndc: useNdc, quantity: '30', frequency: 'FREQUENCY_30_DAYS' }],
+          lis: 'LIS_NO_HELP',
+          full_year: false,
+          retailOnly: false,
+          plans: [
+            {
+              contract_id: parts.contractId,
+              plan_id: parts.planId,
+              segment_id: parts.segmentId,
+              contract_year: String(y),
+            },
+          ],
+        }),
+      },
+      fetchImpl,
+      15_000
+    );
+    if (!res.ok || !res.json) {
+      lastError = res.error || `medicare_gov_http_${res.status}`;
+      continue;
+    }
+    const hit = extractMedicareGovCost(res.json, planId, y);
+    if (hit.coverage === 'not_covered') {
+      return {
+        verified: true,
+        coverage: 'not_covered',
+        tier: null,
+        pa: hit.pa,
+        st: hit.st,
+        ql: hit.ql,
+        source: 'medicare_gov',
+        ndc: hit.ndc || useNdc,
+        rxcui: resolved.rxcui,
+        drugName: resolved.name || drugName,
+      };
+    }
+    if (hit.tier) {
+      return {
+        verified: true,
+        coverage: 'covered',
+        tier: hit.tier,
+        pa: hit.pa,
+        st: hit.st,
+        ql: hit.ql,
+        source: 'medicare_gov',
+        ndc: hit.ndc || useNdc,
+        rxcui: resolved.rxcui,
+        drugName: resolved.name || drugName,
+      };
+    }
+    lastError = hit.miss ? `medicare_gov_${hit.miss}` : 'medicare_gov_no_tier';
+  }
+
+  return { verified: false, reason: lastError || 'medicare_gov_no_tier', source: 'medicare_gov' };
+}
+
 function costShareFromKnowledge(planId, year, tier) {
   if (!tier || Number(year) !== 2027) return null;
   const parsed = parseCmsId(planId);
@@ -526,7 +783,7 @@ function emptyPlanResult(planId, year, reason) {
 
 /**
  * Look up one drug against one or more plans.
- * claimedTier is recorded and discarded for verification.
+ * claimedTier is accepted for API compatibility and discarded immediately.
  */
 async function lookupFormulary(
   {
@@ -541,7 +798,7 @@ async function lookupFormulary(
   fetchImpl = fetch
 ) {
   const y = Number(year) || PLAN_YEAR;
-  const claimed = parseTierNumber(claimedTier);
+  void claimedTier;
   const ids = [...(planId ? [planId] : []), ...(Array.isArray(planIds) ? planIds : [])]
     .map((id) => String(id || '').trim())
     .filter(Boolean);
@@ -563,8 +820,8 @@ async function lookupFormulary(
       drugName: resolvedName,
       ndc: resolvedNdc,
       year: y,
-      claimedTier: claimed,
-      claimedTierIgnored: true,
+      claimedTier: null,
+      claimedTierDiscarded: true,
       catalog: catalog.drugs.slice(0, 10),
       catalogError: catalog.error,
       lookups: [],
@@ -576,12 +833,14 @@ async function lookupFormulary(
   for (const id of uniqueIds) {
     const planObj = (plans || []).find((p) => cmsIdsMatch(p.planId || p.id, id));
     let hit = null;
+    const reasons = [];
 
     const sunfire = await lookupSunfireCoverage(
       { drug: match || { name: resolvedName, ndc: resolvedNdc }, planId: id, year: y },
       fetchImpl
     );
     if (sunfire.verified) hit = sunfire;
+    else if (sunfire.reason && sunfire.reason !== 'sunfire_creds_missing') reasons.push(sunfire.reason);
 
     if (!hit || !hit.verified) {
       const fhir = await lookupHumanaFhir(
@@ -589,7 +848,16 @@ async function lookupFormulary(
         fetchImpl
       );
       if (fhir.verified) hit = fhir;
-      else if (!hit) hit = fhir;
+      else if (fhir.reason && fhir.reason !== 'not_humana') reasons.push(fhir.reason);
+    }
+
+    if (!hit || !hit.verified) {
+      const mpf = await lookupMedicareGov(
+        { drugName: resolvedName, ndc: resolvedNdc, planId: id, year: y },
+        fetchImpl
+      );
+      if (mpf.verified) hit = mpf;
+      else if (mpf.reason) reasons.push(mpf.reason);
     }
 
     const displayId = displayPlanId(id);
@@ -610,14 +878,12 @@ async function lookupFormulary(
         costShareSource: share ? share.source : null,
         source: hit.source,
         reason: null,
-        claimedTierIgnored: claimed,
       };
       byPlanId[displayId] = row;
       lookups.push(row);
     } else {
       const row = {
-        ...emptyPlanResult(id, y, (hit && hit.reason) || catalog.error || 'unverified'),
-        claimedTierIgnored: claimed,
+        ...emptyPlanResult(id, y, reasons.join('|') || (hit && hit.reason) || catalog.error || 'unverified'),
         note: hit && hit.note ? hit.note : undefined,
       };
       byPlanId[displayId] = row;
@@ -629,8 +895,8 @@ async function lookupFormulary(
     drugName: resolvedName,
     ndc: resolvedNdc,
     year: y,
-    claimedTier: claimed,
-    claimedTierIgnored: true,
+    claimedTier: null,
+    claimedTierDiscarded: true,
     catalog: catalog.drugs.slice(0, 10),
     catalogError: catalog.error,
     lookups,
@@ -667,11 +933,6 @@ function formatFormularyText(result) {
   if (!result) return 'Formulary lookup failed.';
   const lines = [];
   lines.push(`${result.drugName}${result.ndc ? ` (NDC ${result.ndc})` : ''} — plan year ${result.year}`);
-  if (result.claimedTier) {
-    lines.push(
-      `Client-stated Tier ${result.claimedTier} is a claim only and was NOT used as the verified tier.`
-    );
-  }
   if (!result.lookups.length) {
     lines.push('No plan IDs were passed. Catalog only — tiers are unverified until lookup_formulary is called with a contract-PBP.');
     if (result.catalog && result.catalog.length) {
@@ -701,11 +962,9 @@ function formatFormularyText(result) {
         `${row.planId}: verified Tier ${row.tier} · ${cost}${flags ? ` · ${flags}` : ''} · source ${row.source}`
       );
     } else if (row.verified && row.coverage === 'not_covered') {
-      lines.push(`${row.planId}: verified not covered (${row.source}). Do not quote a client-stated tier.`);
+      lines.push(`${row.planId}: verified not covered (${row.source}).`);
     } else {
-      lines.push(
-        `${row.planId}: UNVERIFIED${row.reason ? ` (${row.reason})` : ''}. Do not copy a client-stated / Daisy tier as fact.`
-      );
+      lines.push(`${row.planId}: UNVERIFIED${row.reason ? ` (${row.reason})` : ''}.`);
       if (row.note) lines.push(`  ${row.note}`);
     }
     lines.push(formatPlanLookupLine(result.drugName, row));
@@ -718,7 +977,6 @@ function toExportDrug(result) {
   return {
     name: result.drugName,
     ndc: result.ndc || '',
-    claimedTier: result.claimedTier,
     byPlanId: result.byPlanId,
   };
 }
@@ -727,6 +985,8 @@ module.exports = {
   PLAN_YEAR,
   SUNFIRE_BASE,
   HUMANA_FHIR,
+  MEDICARE_GOV_BASE,
+  RXNORM_BASE,
   PUBLIC_HUMANA_DRUG_LIST,
   KB_2027_KEYS,
   parseCmsId,
@@ -740,11 +1000,16 @@ module.exports = {
   pickCatalogMatch,
   humanaPlanYearMatch,
   isHumanaCms,
+  cmsContractParts,
+  scoreRelatedConcept,
+  rankNdcs,
+  extractMedicareGovCost,
   costShareFromKnowledge,
   costShareFromPlanObject,
   lookupFormulary,
   lookupSunfireCoverage,
   lookupHumanaFhir,
+  lookupMedicareGov,
   searchSunfireCatalog,
   formatFormularyText,
   formatPlanLookupLine,
