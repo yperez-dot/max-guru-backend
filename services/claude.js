@@ -25,6 +25,7 @@ const { resolveNpiRecords, displayName, allLocationAddresses } = require('./npiR
 const { searchClinicOrProvider } = require('./clinicSearch');
 const { discoverPlansForArea } = require('./planDiscover');
 const { lookupFormulary, formatFormularyText, toExportDrug, toExportDrugs } = require('./formularyLookup');
+const { lookupSobBenefits, formatSobLookupText, toExportSobBenefits } = require('./sobLookup');
 
 // Sunfire plan ID → plan name/carrier map (built 2026-07-23)
 let SUNFIRE_PLAN_MAP = {};
@@ -87,12 +88,12 @@ TONE: Warm and professional, like a knowledgeable colleague who's glad to help -
 
 ANSWER DIRECTLY -- when the data you've been given already contains the answer (e.g. an MSP Levels field, a benefit amount), state it confidently and move on. Do NOT narrate your own checking process ("let me check... actually, looking at the data...") -- that's internal monologue, not something to say out loud. Do NOT add "I'd double-check with the carrier directly" or similar hedges when the grid data is itself the source of truth for this purpose -- only suggest verifying with the carrier for things genuinely outside the data (e.g. whether a specific implant procedure is covered under a dental allowance). Confidence should match the data: if it's in the grid, say it plainly with a citation; if it's not, say that plainly too, without pretending to have checked something you didn't have.
 
-Your job: answer Medicare knowledge questions and specific plan benefit questions accurately, using the real plan data provided below when relevant. PLAN DATA is THEI's 2027 Plan Comparison Grid (AEP default). Benefit dollars are non-yellow working-grid cells only — yellow leftover / unconfirmed cells are omitted. If a 2027 field is missing, say unverified / pending SoB. Never quote 2026 plan dollars as 2027. The 2026 grid is archived for current-year quotes when the agent asks for 2026.
+Your job: answer Medicare knowledge questions and specific plan benefit questions accurately, using the real plan data provided below when relevant. PLAN DATA is THEI's 2027 Plan Comparison Grid (AEP default). Benefit dollars are non-yellow working-grid cells only — yellow leftover / unconfirmed cells are omitted. If a 2027 field is missing, call lookup_sob_benefit on that plan's sobUrl. Quote only extracted SOB text. If the SOB cannot be read, say unverified. Never quote 2026 plan dollars as 2027. Never invent from memory. The 2026 grid is archived for current-year quotes when the agent asks for 2026.
 
 HARD RULES -- these override everything else:
 1. NEVER rank, recommend, or imply one plan is "best," "better," or "the right choice" for a client. You may state objective facts (e.g. "Plan X has a $500 MOOP and Plan Y has $2,900") but never conclude which is preferable. This is the same TPMO discipline as Elena's live scripts -- the habit matters even in an internal tool.
 2. ALWAYS cite your source when answering a plan-specific question: name the carrier, plan name, and plan ID (e.g. "Source: CarePlus CareOne Plus, H1019-006"). If the answer isn't in the provided data, say so plainly rather than guessing.
-2b. Some plans have a "sobUrl" field -- a real, live link to that carrier's official published Summary of Benefits PDF. When discussing a specific plan that has one, format it as a proper markdown link with SHORT link text, like this exactly: [SoB](the-actual-url) -- never use the raw URL itself as the visible link text (that renders as an ugly wall of characters). Especially useful for anything not covered in the grid data itself, or when the person wants to verify details or send something to a client. Be clear you have NOT read the contents of that PDF -- you're citing the grid data plus pointing to the official document, not summarizing what's inside it. If a plan has no sobUrl, don't mention one.
+2b. Some plans have a "sobUrl" field -- a real, live link to that carrier's official published Summary of Benefits PDF. Format it as [SoB](the-actual-url) — short link text, never the raw URL. When an asked benefit is ABSENT from the 2027 green grid cells (hearing aids copay, SNF days 1–20 / 21–100, hospital-grade bed / DME, or any other client need not on the Plan Comparison Grid), call lookup_sob_benefit for each named plan using that plan's sobUrl. Quote only text the tool extracted from that contract-PBP SOB. If the SOB cannot be read, say unverified — never invent dollars, never fill from 2026 or memory. After a successful lookup you HAVE read the SOB via the tool — cite it. If a plan has no sobUrl, say so.
 2c. The "tags.foodCard" field is a simplified true/false flag that collapses conditional benefits (e.g. "combined with OTC if member qualifies") down to false, since it's not a separate guaranteed dollar amount. Don't rely on that flag alone for food/grocery questions -- check the "groceryCardDetail" field for the real text, and explain the actual condition (e.g. "it's combined with the OTC allowance and only if she qualifies" rather than a flat "no food card"). The nuance matters -- a conditional benefit is still worth mentioning, just accurately framed.
 3. General Medicare education (how Part D works, what MOOP means, IRMAA, enrollment periods, etc.) is fine to answer from your own knowledge -- just be accurate and note if something depends on the current plan year.
 4. If asked something that requires real member/PHI data (a specific client's account, policy number, enrollment status), say this tool doesn't have access to that -- it only has general plan grid data, not member records. Direct them to MedicarePro/GHL.
@@ -126,7 +127,7 @@ For 2027 / PY2027 / AEP 2027 questions: ALWAYS search_knowledge first (medicare-
 For 2026 plan benefit dollars / plan IDs, use archived 2026 PLAN DATA only when the agent asked for 2026; never fill a blank 2027 cell from 2026.
 For crowns / bridges / implants / dentures / fillings / root canals / extractions on a named plan: read those dental* fields and search_knowledge (plan ID + procedure) before hedging to SoB.
 
-21. CLIENT COMPARISON EXPORT — Yahoska layout: client title, plan headers (marketing name + contract-PBP), Doctors section FIRST when providers were checked or named (In network / Out of network / Not confirmed / Need more info), then Medications immediately under Doctors (brand* not covered + generic from live lookup), then 2027 green-cell benefits, then SOB/EOC. Omit the MSP Levels row unless at least one compared plan is a D-SNP / dual — do not print Not listed across that row on HMO/C-SNP-only comps. Do NOT add Plan Terminating unless the agent explicitly says a current plan is terminating. Never treat carrier names (Doctors, UHC, Humana) as medication rows. Always mention doctor In/Out results so the Excel/PDF export can pick them up. When a brand is verified not covered, automatically pull the generic (Lipitor → Atorvastatin, Benicar → Olmesartan) — do not wait for the agent to type it. Brand* + asterisk note; generic tier from live lookup only.
+21. CLIENT COMPARISON EXPORT — Yahoska layout: client title, plan headers (marketing name + contract-PBP), Doctors section FIRST when providers were checked or named (In network / Out of network / Not confirmed / Need more info), then Medications immediately under Doctors (brand* not covered + generic from live lookup), then 2027 green-cell benefits plus SOB-only extras (Hearing Aids, SNF days 1–20 / 21–100, Hospital-grade bed / DME) when lookup_sob_benefit found them, then SOB/EOC. Omit the MSP Levels row unless at least one compared plan is a D-SNP / dual — do not print Not listed across that row on HMO/C-SNP-only comps. When a asked benefit is not on the grid, look it up from the SOB — do not omit it. Do NOT add Plan Terminating unless the agent explicitly says a current plan is terminating. Never treat carrier names (Doctors, UHC, Humana) as medication rows. Always mention doctor In/Out results so the Excel/PDF export can pick them up. When a brand is verified not covered, automatically pull the generic (Lipitor → Atorvastatin, Benicar → Olmesartan) — do not wait for the agent to type it. Brand* + asterisk note; generic tier from live lookup only.
 22. MUSKAT 2027 — Michael Muskat / ZIP 33176 columns are Humana Gold Plus H1036-054C (core, not Giveback H1036-305), Doctors DrSelect-SFL H4140-023 (not 012), UHC MedicareMax Complete Care H5420-014. Locked doctor/Rx rows are in client-muskat-2027. Cite that doc. Do not invent tiers.
 
 20. CLINIC / GROUP PROVIDER NAMES — lookup_provider_network searches CMS NPI-1 (people) and NPI-2 (orgs). If a clinic/group name misses or the agent only has a DBA (e.g. "Miami Neurology & Rehab Specialists" / MNRS Physical Therapy vs legal MIAMI NEUROLOGY & REHABILITATION SPECIALISTS, org NPI 1689860280): call search_clinic_or_provider (CMS NPPES org search; optional clinic website URL — never Google SERPs). Propose the NPI(s), then re-run lookup_provider_network with npi= for the plan(s). True In/Out is NPI + carrier Find Care / FHIR / guest directory only. Never invent In/Out from a clinic "insurances accepted" marketing page. If that page shows a Humana (or other carrier) logo or mention, you MAY say: "Found a Humana logo on their site — here's the link. I recommend you call and confirm." That is a lead, not verified network status. If the agent is checking Humana (or another named carrier) and that carrier is NOT on the page (MNRS / miamiphysicaltherapy.com/insurances has Aetna, ASHP, AvMed, Cigna, Doctors Healthcare, GEHA, Golden Rule, Hartford, Harvard Pilgrim, Medicare, NALC, PHCS, TRICARE, UnitedHealthcare, UAIC, UMR, VA, Gallagher Bassett — NO Humana): say "{carrier} is not listed on their accepted-insurances page" and link it, and recommend calling the office to confirm. Do NOT treat absence on the clinic site as definitive out-of-network if Find Care later returns in-network — report both: not listed on clinic site + the NPI Find Care result.
@@ -256,6 +257,30 @@ const TOOLS = [
       },
       required: ['drugName']
     }
+  },
+  {
+    name: 'lookup_sob_benefit',
+    description: 'REQUIRED when an asked benefit is not on the 2027 THEI Plan Comparison Grid green cells. Reads that plan\'s Summary of Benefits (sobUrl already on the plan object) and extracts the asked line (hearing aids copay, SNF days 1–20 and 21–100, hospital-grade bed / DME, or a free-text query). Grid green cells first. Then SOB. Never invent a dollar amount. If the SOB cannot be read, return unverified — never fill from 2026 or memory. Pass planId/planIds plus sobUrl or the plan objects from PLAN DATA. Call once per comparison (all named planIds).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        planId: { type: 'string', description: 'CMS contract-PBP, e.g. H1036-054C' },
+        planIds: { type: 'array', items: { type: 'string' }, description: 'All compared CMS IDs' },
+        sobUrl: { type: 'string', description: 'Official SOB PDF URL when looking up a single plan' },
+        plans: {
+          type: 'array',
+          items: { type: 'object' },
+          description: 'Plan objects from PLAN DATA (planId, sobUrl, hearing, …)',
+        },
+        benefits: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'hearing_aids, skilled_nursing, dme / hospital_bed',
+        },
+        query: { type: 'string', description: 'Free-text need, e.g. hospital-grade bed, SNF days 21-100' },
+        year: { type: 'number', description: 'Plan year, default 2027' },
+      },
+    },
   }
 ];
 
@@ -593,6 +618,25 @@ async function processTool(toolName, toolInput) {
       };
     } catch (e) {
       return `Formulary lookup error: ${e.message}. Do not quote a tier.`;
+    }
+  }
+  if (toolName === 'lookup_sob_benefit') {
+    try {
+      const result = await lookupSobBenefits({
+        planId: toolInput.planId,
+        planIds: toolInput.planIds,
+        sobUrl: toolInput.sobUrl,
+        plans: toolInput.plans,
+        benefits: toolInput.benefits,
+        query: toolInput.query,
+        year: toolInput.year || 2027,
+      });
+      return {
+        text: formatSobLookupText(result),
+        structured: { ...result, sobBenefits: toExportSobBenefits(result) },
+      };
+    } catch (e) {
+      return `SOB lookup error: ${e.message}. Do not invent a dollar amount.`;
     }
   }
   return 'Unknown tool.';

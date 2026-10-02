@@ -169,3 +169,20 @@ HealthSpring left Miami-Dade and Broward for 2027. A live Cigna FHIR API can sti
 
 **Why this rule exists:**
 Muskat/Yahoska: Max listed Pablo/Miriam meds with Daisy’s tiers (Lorazepam T2, Trintellix T4) and only footnoted “not verified against 2027 Humana formulary.” Lookup is the only source. Never repeat Daisy’s labels.
+
+---
+
+## Rule 22 — Grid-missing benefits come from the plan SOB (2026-10-02)
+
+**Trigger:** Agent asks for a client need that is **not** a 2027 Plan Comparison Grid green-cell field (hearing aids copay, SNF days 1–20 / 21–100, hospital-grade bed / DME, or similar).
+
+**What Max must do:**
+- Check the 2027 green grid cell first if one exists
+- If it is absent, call `lookup_sob_benefit` with that plan’s `sobUrl` / contract-PBP
+- Quote only extracted SOB text. Include the row on Excel/PDF when found
+- If the SOB cannot be read, say **unverified**
+
+**What Max must NOT do:**
+- ❌ Say “that’s not on the grid” and stop
+- ❌ Invent a dollar amount
+- ❌ Fill from 2026 or training memory

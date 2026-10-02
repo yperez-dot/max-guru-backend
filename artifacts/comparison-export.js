@@ -62,6 +62,14 @@
   ];
 
   const HIGHLIGHT_KEYS = { hearing: true, otc: true };
+  const SOB_EXTRA_AFTER = {
+    inpatientHospital: [
+      ["Skilled Nursing Facility (days 1–20)", "snfDays1to20"],
+      ["Skilled Nursing Facility (days 21–100)", "snfDays21to100"],
+    ],
+    hearing: [["Hearing Aids", "hearingAids"]],
+    advancedImaging: [["Hospital-grade bed / DME", "dmeHospitalBed"]],
+  };
 
   function isDualOrDsnpPlan(plan) {
     if (!plan) return false;
@@ -168,6 +176,33 @@
     if (/^sob\s*pending$/i.test(t)) return "SOB pending";
     if (/^eoc\s*pending$/i.test(t)) return "EOC pending";
     return t;
+  }
+
+  function sobFieldValue(plan, sobBenefits, key) {
+    const id = displayContractPbp(plan) || String((plan && (plan.planId || plan.id)) || "");
+    const map = sobBenefits && typeof sobBenefits === "object" ? sobBenefits : {};
+    const aliases = [id, plan && plan.planId, plan && plan.id].filter(Boolean);
+    let hit = null;
+    aliases.forEach((alias) => {
+      if (hit) return;
+      const row = map[alias] || map[String(alias).toUpperCase()];
+      if (row && row[key]) hit = row[key];
+    });
+    if (hit && typeof hit === "object") return hit.value || null;
+    if (typeof hit === "string") return hit;
+    if (plan && plan[key]) return usableSobCell(plan[key]);
+    return null;
+  }
+
+  function usableSobCell(raw) {
+    if (raw == null) return null;
+    const s = String(raw).replace(/\s+/g, " ").trim();
+    if (!s || /^(not listed|n\/a|unverified|pending)$/i.test(s)) return null;
+    return s;
+  }
+
+  function anySobField(plans, sobBenefits, key) {
+    return (plans || []).some((p) => Boolean(sobFieldValue(p, sobBenefits, key)));
   }
 
   function formatBenefitValue(v, key) {
@@ -976,6 +1011,7 @@
       zip: extra.zip || "",
       county: extra.county || "",
       threadText: text,
+      sobBenefits: extra.sobBenefits || extra.sobExtras || {},
     };
     if (drugs.some((d) => d.brandNotCovered || /\*$/.test(d.name || "") || d.genericOf)) {
       payload.genericOnlyNote = GENERIC_ONLY_NOTE;
@@ -1138,23 +1174,37 @@
     pushMedicationSection();
     if (doctors.length || drugs.length) pushPlanHeaders();
 
-    FIELD_ROWS.forEach(([label, key]) => {
-      if (key === "mspLevels" && !comparisonIncludesDual(plans)) return;
-      const values = [label, ...plans.map((p) => formatBenefitValue(p[key], key))];
-      const highlight = HIGHLIGHT_KEYS[key];
-      const rowKinds = ["label", ...plans.map(() => (highlight ? "highlight" : "text"))];
+    const sobBenefits = payload.sobBenefits || {};
+    const pushBenefitRow = (label, values, highlight) => {
+      const rowKinds = ["label", ...values.slice(1).map((c) => (c === "Unverified" ? "pending" : highlight ? "highlight" : "text"))];
       const rowStyles = [makeStyle({ font: { bold: true } })];
-      plans.forEach(() => {
+      values.slice(1).forEach((c) => {
         rowStyles.push(
-          highlight
-            ? makeStyle({
-                fill: { patternType: "solid", fgColor: { rgb: YELLOW } },
-                alignment: { wrapText: true, vertical: "top" },
-              })
-            : makeStyle({ alignment: { wrapText: true, vertical: "top" } })
+          c === "Unverified"
+            ? makeStyle({ font: { color: { rgb: RED } } })
+            : highlight
+              ? makeStyle({
+                  fill: { patternType: "solid", fgColor: { rgb: YELLOW } },
+                  alignment: { wrapText: true, vertical: "top" },
+                })
+              : makeStyle({ alignment: { wrapText: true, vertical: "top" } })
         );
       });
       push(values, rowKinds, rowStyles);
+    };
+
+    FIELD_ROWS.forEach(([label, key]) => {
+      if (key === "mspLevels" && !comparisonIncludesDual(plans)) return;
+      const values = [label, ...plans.map((p) => formatBenefitValue(p[key], key))];
+      pushBenefitRow(label, values, HIGHLIGHT_KEYS[key]);
+      (SOB_EXTRA_AFTER[key] || []).forEach(([extraLabel, extraKey]) => {
+        if (!anySobField(plans, sobBenefits, extraKey)) return;
+        const extraValues = [
+          extraLabel,
+          ...plans.map((p) => sobFieldValue(p, sobBenefits, extraKey) || "Unverified"),
+        ];
+        pushBenefitRow(extraLabel, extraValues, false);
+      });
     });
 
     const sobRow = ["Summary of Benefits"];
@@ -1405,6 +1455,9 @@
   return {
     FIELD_ROWS,
     HIGHLIGHT_KEYS,
+    SOB_EXTRA_AFTER,
+    sobFieldValue,
+    anySobField,
     isDualOrDsnpPlan,
     comparisonIncludesDual,
     NETWORK_IN,

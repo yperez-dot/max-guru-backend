@@ -329,6 +329,8 @@ describe('HTML UI wiring', () => {
     assert.match(html, /17c\. MUSKAT 2027 LOCKED COMP/);
     assert.match(html, /Medications immediately under Doctors/);
     assert.match(html, /Omit the MSP Levels row unless at least one compared plan is a D-SNP/);
+    assert.match(html, /lookup_sob_benefit/);
+    assert.match(html, /sobFromToolResults/);
     assert.match(html, /Do NOT add a Plan Terminating row unless/);
     assert.match(html, /MaxClientWorkups/);
     assert.match(html, /\/workups/);
@@ -425,6 +427,57 @@ describe('export doctors section + no carrier-as-drug', () => {
     assert.equal(model.aoa.some((row) => /^doctors$/i.test(row[0])), false);
     assert.equal(model.aoa.some((row) => /^uhc$/i.test(row[0])), false);
     assert.equal(model.aoa.some((row) => /^humana$/i.test(row[0])), false);
+  });
+});
+
+describe('SOB-only extra benefit rows', () => {
+  it('omits SNF / hearing-aids / DME rows when the SOB did not find them', () => {
+    const plans = [
+      { planId: 'H1036-054C', planName: 'Humana Gold Plus', inpatientHospital: '$0', hearing: '$0 exam' },
+      { planId: 'H4140-023', planName: 'DrSelect-SFL', inpatientHospital: '$0', hearing: '$1,350' },
+    ];
+    const model = exp.buildComparisonModel({
+      plans,
+      clientName: 'Pablo Miriam',
+      skipMuskatLock: true,
+    });
+    const labels = model.aoa.map((row) => row[0]);
+    assert.equal(labels.includes('Skilled Nursing Facility (days 1–20)'), false);
+    assert.equal(labels.includes('Hearing Aids'), false);
+    assert.equal(labels.includes('Hospital-grade bed / DME'), false);
+  });
+
+  it('adds SNF, hearing aids, and DME rows only from live SOB/grid extras — no invented dollars', () => {
+    const plans = [
+      { planId: 'H1036-054C', planName: 'Humana Gold Plus', inpatientHospital: '$0', hearing: '$0 exam · $199 Level 1' },
+      { planId: 'H4140-023', planName: 'DrSelect-SFL', inpatientHospital: '$0', hearing: '$1,350 every 2 years' },
+    ];
+    const payload = exp.buildExportPayload(plans, 'Pablo and Miriam need SNF, hearing aids, and a hospital-grade bed.', {
+      skipMuskatLock: true,
+      sobBenefits: {
+        'H1036-054C': {
+          snfDays1to20: { value: 'Days 1-20: $0 copay', source: 'sob' },
+          snfDays21to100: { value: 'Days 21-100: $214 copay per day', source: 'sob' },
+          hearingAids: { value: '$199 Level 1 / $475 Level 2 per ear', source: 'sob' },
+          dmeHospitalBed: { value: 'Hospital bed 20% coinsurance', source: 'sob' },
+        },
+      },
+    });
+    const model = exp.buildComparisonModel(payload);
+    const labels = model.aoa.map((row) => row[0]);
+    assert.ok(labels.indexOf('Inpatient Hospital') < labels.indexOf('Skilled Nursing Facility (days 1–20)'));
+    assert.ok(labels.indexOf('Skilled Nursing Facility (days 21–100)') < labels.indexOf('Outpatient Hospital'));
+    assert.ok(labels.indexOf('Hearing Services') < labels.indexOf('Hearing Aids'));
+    const snf1 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 1–20)');
+    assert.equal(snf1[1], 'Days 1-20: $0 copay');
+    assert.equal(snf1[2], 'Unverified');
+    const snf2 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 21–100)');
+    assert.match(snf2[1], /\$214/);
+    const aids = model.aoa.find((row) => row[0] === 'Hearing Aids');
+    assert.match(aids[1], /\$199/);
+    const dme = model.aoa.find((row) => row[0] === 'Hospital-grade bed / DME');
+    assert.match(dme[1], /20%/);
+    assert.equal(dme.includes('$999'), false);
   });
 });
 
