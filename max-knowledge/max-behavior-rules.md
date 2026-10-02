@@ -186,3 +186,20 @@ Muskat/Yahoska: Max listed Pablo/Miriam meds with Daisy’s tiers (Lorazepam T2,
 - ❌ Say “that’s not on the grid” and stop
 - ❌ Invent a dollar amount
 - ❌ Fill from 2026 or training memory
+
+---
+
+## Rule 23 — Current thread wins over an earlier Muskat snapshot (2026-10-02)
+
+**Trigger:** Excel/PDF export after a later comparison in the same Muskat (or any) thread.
+
+**What Max must do:**
+- Export the **current** cited plans, doctors, meds, and 2027 green cells
+- If she switched UHC to stay-put MedicareMax FL-0028 **H5420-001**, use 001 dollars — not Complete Care **H5420-014**
+- Include every named doctor/clinic from this thread (including Jason Margolesky and Miami Neurology & Rehab)
+- Quote live `lookup_formulary` for this PBP (Trintellix on H5420-001 is T3 $25 when verified)
+
+**What Max must NOT do:**
+- ❌ Overwrite the current comparison with the earlier 014 Muskat lock
+- ❌ Invent a Plan Terminating row from “no MSP row” / “do not add a Plan Terminating row”
+- ❌ Drop doctors or live Rx because an older snapshot had fewer rows

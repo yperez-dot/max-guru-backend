@@ -5,6 +5,8 @@ Pulled: 2026-10-02
 
 Not a ranking. Facts only. Export layout (Yahoska 2026-10-02): client title → plan headers → **Doctors first** → **Medications** (brand* not covered + generic) → 2027 green-cell benefits → SOB/EOC. **No Plan Terminating** (that row is only when she says a current plan is ending).
 
+**This 014 snapshot is not a forever lock.** If a later Muskat thread cites different PBPs (stay-put MedicareMax FL-0028 **H5420-001**), Excel/PDF must use **that** comparison — plans, doctors (including Jason Margolesky and Miami Neurology & Rehab), live formulary, and 001 green cells. Never overwrite with this sheet. Never invent Plan Terminating from “no MSP row” / “do not add a Plan Terminating row.”
+
 ## Plan columns (do not substitute)
 
 | Column | Plan | CMS ID |

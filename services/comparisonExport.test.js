@@ -126,10 +126,20 @@ describe('thread extractors', () => {
   it('does not invent Plan Terminating unless she says a plan is ending', () => {
     assert.equal(exp.hasExplicitTerminatingLanguage('Compare H1036-054C and H4140-023 for Muskat'), false);
     assert.equal(exp.extractTerminatingPlan('Compare H1036-054C and H4140-023 for Michael Muskat in 33176'), '');
+    const junk =
+      'Do not add a Plan Terminating row. H5420-001 is HMO, not dual — no MSP row';
+    assert.equal(exp.hasExplicitTerminatingLanguage(junk), false);
+    assert.equal(exp.extractTerminatingPlan(junk), '');
+    assert.equal(
+      exp.extractTerminatingPlan(
+        'no Plan Terminating row. H5420-001 is HMO, not dual — no MSP row'
+      ),
+      ''
+    );
     const plans = [{ planId: 'H1036-054C' }, { planId: 'H4140-023' }];
-    const payload = exp.buildExportPayload(plans, 'Compare these for Carol Wong in Miami-Dade.', {
+    const payload = exp.buildExportPayload(plans, junk, {
       terminatingPlan: 'should not leak from extras',
-      skipMuskatLock: true,
+      clientName: 'Michael Muskat',
     });
     assert.equal(payload.terminatingPlan, '');
     const model = exp.buildComparisonModel(payload);
@@ -326,7 +336,10 @@ describe('HTML UI wiring', () => {
     assert.match(html, /drugsFromToolResults/);
     assert.match(html, /Lipitor → Atorvastatin/);
     assert.match(html, /do not wait for the agent to type the generic/);
-    assert.match(html, /17c\. MUSKAT 2027 LOCKED COMP/);
+    assert.match(html, /17c\. MUSKAT 2027/);
+    assert.match(html, /CURRENT comparison in this thread/);
+    assert.match(html, /sameExportPlanSet/);
+    assert.match(html, /H5420-001/);
     assert.match(html, /Medications immediately under Doctors/);
     assert.match(html, /Omit the MSP Levels row unless at least one compared plan is a D-SNP/);
     assert.match(html, /lookup_sob_benefit/);
@@ -748,5 +761,69 @@ describe('Muskat 2027 locked export', () => {
     assert.equal(give[1], '$9.30');
     assert.equal(give[2], 'No');
     assert.equal(give[3], '$61');
+  });
+
+  it('uses the current Muskat thread (H5420-001 stay-put), not the old 014 snapshot', () => {
+    const plans = loadPlans();
+    const trio = [
+      planById(plans, 'H1036-054C', 'Miami-Dade'),
+      planById(plans, 'H4140-023', 'Miami-Dade'),
+      planById(plans, 'H5420-001', 'Miami-Dade'),
+    ].filter(Boolean);
+    assert.equal(trio.length, 3);
+    const thread = `
+Excel for Michael Muskat ZIP 33176.
+Compare Humana Gold Plus H1036-054C, Doctors DrSelect-SFL H4140-023, and stay-put UHC MedicareMax FL-0028 H5420-001.
+H5420-001 is HMO, not dual — no MSP row.
+Do not add a Plan Terminating row.
+Doctors: Dr. Alejandro Roca, Dr. Charles J. Kaiser, Dr. William Trattler, Dr. Neeta Jane Erinjeri,
+Dr. Jason Margolesky, Miami Neurology & Rehab.
+FORMULARY_LOOKUP year=2027 drug=Trintellix plan=H5420-001 verified_tier=3 cost_share=$25 coverage=covered source=sunfire
+`;
+    const payload = exp.buildExportPayload(trio, thread, {
+      catalog: plans,
+      doctors: exp.muskatLockedDoctors(),
+      drugs: exp.muskatLockedDrugs(),
+    });
+    assert.deepEqual(
+      payload.plans.map((p) => exp.displayContractPbp(p)),
+      ['H1036-054C', 'H4140-023', 'H5420-001']
+    );
+    assert.equal(payload.terminatingPlan, '');
+    assert.equal(exp.currentPlansMatchMuskatLock(payload.plans), false);
+    assert.equal(payload.plans[2].partBGiveback, '$50');
+    assert.equal(payload.plans[2].moop, '$3,900');
+    assert.match(String(payload.plans[2].inpatientHospital), /\$95/);
+    assert.equal(payload.plans[2].specialistCopay, '$15');
+    assert.equal(payload.plans[2].urgentCareCopay, '$25');
+    assert.match(String(payload.plans[2].otc), /\$25/);
+
+    const names = payload.doctors.map((d) => d.name);
+    assert.ok(names.some((n) => /Margolesky/i.test(n)));
+    assert.ok(names.some((n) => /Miami Neurology/i.test(n)));
+    assert.ok(names.some((n) => /Roca/i.test(n)));
+
+    const model = exp.buildComparisonModel(payload);
+    const labels = model.aoa.map((row) => row[0]);
+    assert.equal(labels.includes('Plan Terminating'), false);
+    assert.ok(labels.some((l) => /Margolesky/i.test(l)));
+    assert.ok(labels.some((l) => /Miami Neurology/i.test(l)));
+    const give = model.aoa.find((row) => row[0] === 'Part B Rebate');
+    assert.equal(give[3], '$50');
+    assert.notEqual(give[3], '$61');
+    const moop = model.aoa.find((row) => row[0] === 'Max Out of Pocket');
+    assert.equal(moop[3], '$3,900');
+    const inp = model.aoa.find((row) => row[0] === 'Inpatient Hospital');
+    assert.match(inp[3], /\$95/);
+    const spec = model.aoa.find((row) => row[0] === 'Specialist');
+    assert.equal(spec[3], '$15');
+    const uc = model.aoa.find((row) => row[0] === 'Urgent Care');
+    assert.equal(uc[3], '$25');
+    const otc = model.aoa.find((row) => row[0] === 'OTC');
+    assert.match(otc[3], /\$25/);
+    const trin = model.aoa.find((row) => row[0] === 'Trintellix');
+    assert.match(trin[3], /Tier 3/);
+    assert.match(trin[3], /\$25/);
+    assert.equal(/\$0/.test(trin[3]), false);
   });
 });
