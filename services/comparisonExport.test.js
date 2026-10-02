@@ -340,6 +340,8 @@ describe('HTML UI wiring', () => {
     assert.match(html, /CURRENT comparison in this thread/);
     assert.match(html, /sameExportPlanSet/);
     assert.match(html, /H5420-001/);
+    assert.match(html, /\\d\{2,4\}\[A-Z\]\?/);
+    assert.match(html, /keepCurrentComparisonPlans/);
     assert.match(html, /Medications immediately under Doctors/);
     assert.match(html, /Omit the MSP Levels row unless at least one compared plan is a D-SNP/);
     assert.match(html, /lookup_sob_benefit/);
@@ -825,5 +827,83 @@ FORMULARY_LOOKUP year=2027 drug=Trintellix plan=H5420-001 verified_tier=3 cost_s
     assert.match(trin[3], /Tier 3/);
     assert.match(trin[3], /\$25/);
     assert.equal(/\$0/.test(trin[3]), false);
+  });
+
+  it('keeps Humana H1036-054C first when the latest cite is only 023 + 001', () => {
+    const plans = loadPlans();
+    const humana = planById(plans, 'H1036-054C', 'Miami-Dade');
+    const doctors = planById(plans, 'H4140-023', 'Miami-Dade');
+    const uhc = planById(plans, 'H5420-001', 'Miami-Dade');
+    assert.ok(humana && doctors && uhc);
+    const ids = exp.citedPlanIdsFromText(
+      'Michael Muskat: Humana Gold Plus H1036-054C, Doctors DrSelect-SFL H4140-023, stay-put UHC MedicareMax FL-0028 H5420-001'
+    );
+    assert.ok(ids.includes('H1036-054C'));
+    const kept = exp.keepCurrentComparisonPlans([doctors, uhc], [humana, doctors, uhc]);
+    assert.deepEqual(
+      kept.map((p) => exp.displayContractPbp(p)),
+      ['H1036-054C', 'H4140-023', 'H5420-001']
+    );
+    const thread = `
+Excel for Michael Muskat.
+Current comparison: Humana Gold Plus H1036-054C, Doctors DrSelect-SFL H4140-023, UHC MedicareMax FL-0028 H5420-001.
+Latest reply only restated H4140-023 and H5420-001.
+Doctors: Dr. Alejandro Roca, Dr. Jason Margolesky, Miami Neurology & Rehab.
+MARGOLESKY, JASON is in network on H4140-023 and H5420-001.
+`;
+    const payload = exp.buildExportPayload([doctors, uhc], thread, { catalog: plans });
+    assert.deepEqual(
+      payload.plans.map((p) => exp.displayContractPbp(p)),
+      ['H1036-054C', 'H4140-023', 'H5420-001']
+    );
+    const model = exp.buildComparisonModel(payload);
+    const header = model.aoa[1] || model.aoa.find((row) => /H1036-054C/.test(row.join(' ')));
+    assert.ok(header && header.some((c) => /H1036-054C/.test(String(c))));
+  });
+
+  it('dedupes legal-name and short-name doctor rows and keeps Margolesky + Miami Neurology', () => {
+    const plans = [
+      { planId: 'H1036-054C', planName: 'Humana Gold Plus' },
+      { planId: 'H4140-023', planName: 'DrSelect-SFL' },
+      { planId: 'H5420-001', planName: 'MedicareMax FL-0028' },
+    ];
+    const merged = exp.mergeDoctorLists(
+      [
+        [
+          { name: 'MARGOLESKY, JASON', statuses: ['Not confirmed', 'In network', 'In network'] },
+          {
+            name: 'MIAMI NEUROLOGY & REHABILITATION SPECIALISTS',
+            statuses: ['Not confirmed', 'In network', 'In network'],
+          },
+        ],
+        [
+          { name: 'Dr. Jason Margolesky', statuses: ['Not confirmed', 'Not confirmed', 'Not confirmed'] },
+          { name: 'Miami Neurology & Rehab', statuses: ['Not confirmed', 'Not confirmed', 'Not confirmed'] },
+          { name: 'Dr. Alejandro Roca', statuses: ['Out of network', 'In network', 'In network'] },
+        ],
+      ],
+      plans
+    );
+    const keys = merged.map((d) => exp.doctorIdentityKey(d.name));
+    assert.equal(keys.filter((k) => k === 'person:margolesky:j').length, 1);
+    assert.equal(keys.filter((k) => k === 'clinic:miami-neurology-rehab').length, 1);
+    const jason = merged.find((d) => /margolesky/i.test(d.name));
+    assert.ok(jason);
+    assert.deepEqual(jason.statuses, ['Not confirmed', 'In network', 'In network']);
+    assert.match(jason.name, /Jason Margolesky/i);
+    const clinic = merged.find((d) => /neurology/i.test(d.name));
+    assert.ok(clinic);
+    assert.deepEqual(clinic.statuses, ['Not confirmed', 'In network', 'In network']);
+    assert.equal(merged.filter((d) => /margolesky/i.test(d.name)).length, 1);
+    assert.equal(merged.filter((d) => /neurology/i.test(d.name)).length, 1);
+    const model = exp.buildComparisonModel({
+      plans,
+      clientName: 'Michael Muskat',
+      doctors: merged,
+      skipMuskatLock: true,
+    });
+    const labels = model.aoa.map((row) => row[0]);
+    assert.equal(labels.filter((l) => /margolesky/i.test(l)).length, 1);
+    assert.equal(labels.filter((l) => /neurology/i.test(l)).length, 1);
   });
 });
