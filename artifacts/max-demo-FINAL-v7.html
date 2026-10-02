@@ -88,6 +88,8 @@
   const HIGHLIGHT_KEYS = { hearing: true, otc: true };
   const NETWORK_IN = "In network";
   const NETWORK_OUT = "Out of network";
+  const NETWORK_NOT_CONFIRMED = "Not confirmed";
+  const NETWORK_NEED_MORE = "Need more info";
 
   const CLIENT_NAME_BLOCK = /^(miami|dade|broward|florida|medicare|humana|united|uhc|careplus|devoted|wellcare|aetna|simply|solis|healthsun|healthspring|doctors?|client|export|excel|compare|comparison|plan|dual|complete|preferred|summary|benefits|thei|max|pdf|sheet)$/i;
 
@@ -207,6 +209,15 @@
         if (looksLikePersonName(candidate)) found = candidate;
       }
     }
+    // Labeled household / last name (e.g. Client: Muskat) — only when explicitly labeled.
+    const labeled = /\b(?:client(?:\s+name)?|household)\s*[:=]\s*([A-Za-z][A-Za-z'.-]{1,40}(?:\s+[A-Za-z][A-Za-z'.-]{1,40}){0,3})/gi;
+    let m;
+    while ((m = labeled.exec(text))) {
+      const candidate = m[1].replace(/\s+/g, " ").trim();
+      if (looksLikePersonName(candidate) || /^[A-Za-z][A-Za-z'.-]{1,40}$/.test(candidate)) {
+        found = candidate;
+      }
+    }
     return found;
   }
 
@@ -233,8 +244,18 @@
     if (raw === false) return NETWORK_OUT;
     const s = String(raw || "").trim();
     if (!s) return "";
-    if (/^(in[-\s]?network|inn|in|true|yes|✅)$/i.test(s) || /\bin[-\s]?network\b/i.test(s)) return NETWORK_IN;
-    if (/^(out(?:\s+of)?[-\s]?network|oon|out|false|no|❌)$/i.test(s) || /\bout(?:\s+of)?[-\s]?network\b/i.test(s)) return NETWORK_OUT;
+    if (/need\s*more\s*info/i.test(s)) return NETWORK_NEED_MORE;
+    if (/not\s*confirmed/i.test(s)) return NETWORK_NOT_CONFIRMED;
+    if (/^(in[-\s]?network|inn|in|true|yes|✅)$/i.test(s) || /^IN$/i.test(s) || /\bin[-\s]?network\b/i.test(s)) {
+      return NETWORK_IN;
+    }
+    if (
+      /^(out(?:\s+of)?[-\s]?network|oon|out|false|no|❌)$/i.test(s) ||
+      /^OUT$/i.test(s) ||
+      /\bout(?:\s+of)?[-\s]?network\b/i.test(s)
+    ) {
+      return NETWORK_OUT;
+    }
     return "";
   }
 
@@ -980,7 +1001,7 @@
             return String(content || "");
           };
     return (messages || [])
-      .filter((m) => m && m.role !== "offer")
+      .filter((m) => m && m.role !== "offer" && m.role !== "workup")
       .map((m) => toText(m.content))
       .filter(Boolean)
       .join("\n");
@@ -991,6 +1012,8 @@
     HIGHLIGHT_KEYS,
     NETWORK_IN,
     NETWORK_OUT,
+    NETWORK_NOT_CONFIRMED,
+    NETWORK_NEED_MORE,
     formatBenefitValue,
     formatPlanMarketingName,
     formatPlanColumnHeader,
@@ -1022,6 +1045,352 @@
 });
 </script>
 <!-- MAX_COMPARISON_EXPORT_END -->
+<!-- MAX_CLIENT_WORKUPS_BEGIN -->
+<script>
+/**
+ * Structured client workups (Yahoska / Muskat-style comps).
+ * Browser (window.MaxClientWorkups) + Node tests.
+ * Never stores or resumes a full chat transcript.
+ */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root && typeof root === "object") root.MaxClientWorkups = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  "use strict";
+
+  const WORKUP_CONTEXT_PREFIX = "LOADED CLIENT WORKUP";
+  const NETWORK_IN = "IN";
+  const NETWORK_OUT = "OUT";
+  const NETWORK_NOT_CONFIRMED = "NOT CONFIRMED";
+  const NETWORK_NEED_MORE = "NEED MORE INFO";
+
+  function clip(value, max) {
+    const s = String(value == null ? "" : value).replace(/\s+/g, " ").trim();
+    return s.slice(0, max);
+  }
+
+  function displayPlanId(plan) {
+    let id = String((plan && (plan.planId || plan.id)) || "").replace(/\s+/g, "");
+    id = id.replace(/-000$/i, "").replace(/\/000$/i, "");
+    return id;
+  }
+
+  function marketingLabel(plan) {
+    if (!plan) return "";
+    const name = [plan.carrier, plan.planName].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+    const id = displayPlanId(plan);
+    if (name && id) return name + " (" + id + ")";
+    return name || id;
+  }
+
+  function normalizeNetworkBucket(raw) {
+    if (raw === true) return NETWORK_IN;
+    if (raw === false) return NETWORK_OUT;
+    const s = String(raw || "").trim();
+    if (!s) return "";
+    const upper = s.toUpperCase();
+    if (upper === NETWORK_IN || upper === NETWORK_OUT || upper === NETWORK_NOT_CONFIRMED || upper === NETWORK_NEED_MORE) {
+      return upper;
+    }
+    if (/need\s*more\s*info/i.test(s)) return NETWORK_NEED_MORE;
+    if (/not\s*confirmed/i.test(s)) return NETWORK_NOT_CONFIRMED;
+    if (/^(in[-\s]?network|inn|in|true|yes)$/i.test(s) || /\bin[-\s]?network\b/i.test(s)) return NETWORK_IN;
+    if (/^(out(?:\s+of)?[-\s]?network|oon|out|false|no)$/i.test(s) || /\bout(?:\s+of)?[-\s]?network\b/i.test(s)) {
+      return NETWORK_OUT;
+    }
+    return "";
+  }
+
+  function bucketToExportStatus(bucket) {
+    if (bucket === NETWORK_IN) return "In network";
+    if (bucket === NETWORK_OUT) return "Out of network";
+    if (bucket === NETWORK_NOT_CONFIRMED) return "Not confirmed";
+    if (bucket === NETWORK_NEED_MORE) return "Need more info";
+    return "";
+  }
+
+  function extractZip(text) {
+    const t = String(text || "");
+    const fl = t.match(/\b(3[0-4]\d{3})(?:-\d{4})?\b/);
+    if (fl) return fl[1];
+    const any = t.match(/\b(\d{5})(?:-\d{4})?\b/);
+    return any ? any[1] : "";
+  }
+
+  function extractCounty(text) {
+    const t = String(text || "");
+    if (/\bmiami[- ]?dade\b|\bdade\b/i.test(t)) return "Miami-Dade";
+    if (/\bbroward\b/i.test(t)) return "Broward";
+    if (/\bpalm\s*beach\b/i.test(t)) return "Palm Beach";
+    return "";
+  }
+
+  function extractContacts(text) {
+    const t = String(text || "");
+    const labeled = t.match(/\bcontacts?\s*[:=]\s*([^\n]{3,200})/i);
+    if (labeled) return clip(labeled[1], 200);
+    const phone = t.match(/\b(\d{3}[-.\s]\d{3}[-.\s]\d{4})\b/);
+    return phone ? phone[1] : "";
+  }
+
+  function extractNeeds(text) {
+    const t = String(text || "");
+    const labeled = t.match(/\b(?:needs?|looking for|priorities)\s*[:=]\s*([^\n]{3,300})/i);
+    if (!labeled) return [];
+    return labeled[1]
+      .split(/[;,•]/)
+      .map((s) => clip(s, 120))
+      .filter(Boolean)
+      .slice(0, 8);
+  }
+
+  function slimPlan(plan) {
+    if (!plan || typeof plan !== "object") return null;
+    const planId = clip(plan.planId || plan.id || "", 40);
+    if (!planId) return null;
+    return {
+      planId: planId,
+      id: clip(plan.id || plan.planId || "", 40),
+      planName: clip(plan.planName || "", 120),
+      carrier: clip(plan.carrier || "", 80),
+      county: clip(plan.county || "", 40),
+    };
+  }
+
+  function doctorsFromExport(payload) {
+    const plans = (payload && payload.plans) || [];
+    const doctors = (payload && payload.doctors) || [];
+    const out = [];
+    doctors.forEach((d) => {
+      if (!d || typeof d !== "object") return;
+      const name = clip(d.name || "", 80);
+      if (!name) return;
+      const byPlanId = {};
+      if (d.byPlanId && typeof d.byPlanId === "object") {
+        Object.keys(d.byPlanId).forEach((id) => {
+          const bucket = normalizeNetworkBucket(d.byPlanId[id]);
+          if (bucket) byPlanId[id] = bucket;
+        });
+      }
+      if (Array.isArray(d.statuses)) {
+        d.statuses.forEach((status, i) => {
+          const plan = plans[i];
+          const bucket = normalizeNetworkBucket(status);
+          if (bucket && plan) byPlanId[displayPlanId(plan)] = bucket;
+        });
+      }
+      if (Object.keys(byPlanId).length) out.push({ name: name, byPlanId: byPlanId });
+    });
+    return out;
+  }
+
+  function medicationsFromExport(payload) {
+    const drugs = (payload && payload.drugs) || [];
+    const out = [];
+    drugs.forEach((d) => {
+      if (!d || typeof d !== "object") return;
+      if (d.claimedTier != null) {
+        /* discarded forever — never copy Daisy / client-stated tiers */
+      }
+      const name = clip(d.name || d.drug || "", 48);
+      if (!name) return;
+      const map = d.byPlanId || {};
+      const byPlanId = {};
+      Object.keys(map).forEach((id) => {
+        const incoming = map[id] || {};
+        if (!incoming.verified) return;
+        const tier = Number(incoming.tier);
+        const coverage = incoming.coverage === "not_covered" ? "not_covered" : incoming.coverage || null;
+        if (!(tier >= 1 && tier <= 6) && coverage !== "not_covered") return;
+        byPlanId[id] = {
+          verified: true,
+          tier: tier >= 1 && tier <= 6 ? tier : null,
+          coverage: coverage,
+          costShare: incoming.costShare ? clip(incoming.costShare, 40) : null,
+          pa: incoming.pa === true ? true : incoming.pa === false ? false : null,
+          st: incoming.st === true ? true : incoming.st === false ? false : null,
+          source: incoming.source ? clip(incoming.source, 40) : null,
+        };
+      });
+      if (Object.keys(byPlanId).length) out.push({ name: name, byPlanId: byPlanId });
+    });
+    return out;
+  }
+
+  function buildWorkupFromExport(payload, extras) {
+    const extra = extras && typeof extras === "object" ? extras : {};
+    const src = payload && typeof payload === "object" ? payload : {};
+    const thread = extra.threadText || "";
+    const plans = (Array.isArray(src.plans) ? src.plans : []).map(slimPlan).filter(Boolean).slice(0, 6);
+    const clientName = clip(extra.clientName || src.clientName || "", 80);
+    const zip = clip(extra.zip || src.zip || extractZip(thread), 10);
+    const county = clip(extra.county || src.county || extractCounty(thread) || (plans[0] && plans[0].county) || "", 40);
+    const contacts = clip(extra.contacts || src.contacts || extractContacts(thread), 200);
+    const needs = Array.isArray(extra.needs) && extra.needs.length ? extra.needs.map((n) => clip(n, 120)).filter(Boolean).slice(0, 8) : extractNeeds(thread);
+    const terminatingPlan = clip(extra.terminatingPlan || src.terminatingPlan || "", 90);
+    return {
+      id: extra.id || src.id || "",
+      clientName: clientName,
+      zip: zip,
+      county: county,
+      contacts: contacts,
+      plans: plans,
+      planIds: plans.map((p) => p.planId),
+      doctors: doctorsFromExport(src),
+      medications: medicationsFromExport(src),
+      needs: needs,
+      terminatingPlan: terminatingPlan,
+    };
+  }
+
+  function planIdKey(value) {
+    return String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  }
+
+  function planMatches(catalogPlan, slim) {
+    const want = planIdKey(slim.planId || slim.id);
+    if (!want) return false;
+    const pid = planIdKey(catalogPlan.planId);
+    const id = planIdKey(catalogPlan.id);
+    const hit = (pid && (pid === want || pid.indexOf(want) >= 0 || want.indexOf(pid) >= 0)) || (id && (id === want || id.indexOf(want) >= 0 || want.indexOf(id) >= 0));
+    if (!hit) return false;
+    if (slim.county && catalogPlan.county && slim.county !== catalogPlan.county) return false;
+    return true;
+  }
+
+  function rehydratePlans(workupPlans, catalog) {
+    const slims = Array.isArray(workupPlans) ? workupPlans : [];
+    const list = Array.isArray(catalog) ? catalog : [];
+    return slims.map((slim) => {
+      const match = list.find((p) => planMatches(p, slim));
+      return match || slim;
+    });
+  }
+
+  function workupToExportPayload(workup, catalog) {
+    const w = workup && typeof workup === "object" ? workup : {};
+    const plans = rehydratePlans(w.plans, catalog);
+    const doctors = (w.doctors || []).map((d) => ({
+      name: d.name,
+      byPlanId: Object.fromEntries(
+        Object.entries(d.byPlanId || {}).map(([id, bucket]) => [id, bucketToExportStatus(bucket)])
+      ),
+    }));
+    const drugs = (w.medications || []).map((m) => ({
+      name: m.name,
+      byPlanId: m.byPlanId || {},
+    }));
+    return {
+      plans: plans,
+      clientName: w.clientName || "",
+      terminatingPlan: w.terminatingPlan || "",
+      doctors: doctors,
+      drugs: drugs,
+    };
+  }
+
+  function compactWorkupContext(workup) {
+    const w = workup && typeof workup === "object" ? workup : {};
+    const lines = [
+      WORKUP_CONTEXT_PREFIX + " (structured facts only — not a prior chat transcript). Continue this comparison. Do not ask to re-paste Daisy. Discard any client-stated Rx tiers. Call lookup_formulary for any unverified drug × named plan.",
+    ];
+    if (w.clientName) lines.push("Client: " + w.clientName);
+    const place = [w.zip, w.county].filter(Boolean).join(" / ");
+    if (place) lines.push("ZIP/county: " + place);
+    if (w.contacts) lines.push("Contacts: " + w.contacts);
+    const plans = w.plans || [];
+    if (plans.length) {
+      lines.push("Plans:");
+      plans.forEach((p) => lines.push("- " + marketingLabel(p)));
+    }
+    const doctors = w.doctors || [];
+    if (doctors.length) {
+      lines.push("Doctors:");
+      doctors.forEach((d) => {
+        const bits = Object.keys(d.byPlanId || {}).map((id) => id + " " + d.byPlanId[id]);
+        lines.push("- " + d.name + (bits.length ? ": " + bits.join("; ") : ""));
+      });
+    }
+    const meds = w.medications || [];
+    if (meds.length) {
+      lines.push("Medications (verified formulary only):");
+      meds.forEach((m) => {
+        const bits = Object.keys(m.byPlanId || {}).map((id) => {
+          const st = m.byPlanId[id] || {};
+          if (st.coverage === "not_covered") return id + " Not covered";
+          const cost = st.costShare ? " · " + st.costShare : "";
+          return id + " Tier " + (st.tier || "?") + cost;
+        });
+        lines.push("- " + m.name + (bits.length ? ": " + bits.join("; ") : ""));
+      });
+    }
+    const needs = w.needs || [];
+    if (needs.length) {
+      lines.push("Needs:");
+      needs.forEach((n) => lines.push("- " + n));
+    }
+    if (w.terminatingPlan) lines.push("Plan Terminating: " + w.terminatingPlan);
+    return lines.join("\n");
+  }
+
+  function isWorkupContextMessage(content) {
+    const text = typeof content === "string" ? content : "";
+    return text.indexOf(WORKUP_CONTEXT_PREFIX) === 0;
+  }
+
+  function messagesForApi(history, loadedWorkup) {
+    const chat = (history || [])
+      .filter((m) => m && (m.role === "user" || m.role === "assistant"))
+      .map((m) => ({ role: m.role, content: m.content }));
+    if (!loadedWorkup) return chat;
+    const compact = compactWorkupContext(loadedWorkup);
+    if (!compact) return chat;
+    if (chat[0] && chat[0].role === "user" && isWorkupContextMessage(chat[0].content)) return chat;
+    return [{ role: "user", content: compact }].concat(chat);
+  }
+
+  function workupListLabel(workup) {
+    if (workup && workup.clientName) return workup.clientName;
+    const ids = ((workup && workup.planIds) || []).slice(0, 2).join(" / ");
+    return ids ? "Unnamed — " + ids : "Unnamed workup";
+  }
+
+  function formatUpdatedAt(iso) {
+    if (!iso) return "";
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "";
+      return d.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    } catch (_) {
+      return "";
+    }
+  }
+
+  return {
+    WORKUP_CONTEXT_PREFIX,
+    NETWORK_IN,
+    NETWORK_OUT,
+    NETWORK_NOT_CONFIRMED,
+    NETWORK_NEED_MORE,
+    normalizeNetworkBucket,
+    bucketToExportStatus,
+    extractZip,
+    extractCounty,
+    extractContacts,
+    extractNeeds,
+    buildWorkupFromExport,
+    workupToExportPayload,
+    compactWorkupContext,
+    isWorkupContextMessage,
+    messagesForApi,
+    workupListLabel,
+    formatUpdatedAt,
+    rehydratePlans,
+  };
+});
+</script>
+<!-- MAX_CLIENT_WORKUPS_END -->
 <style>
   :root {
     --ink: #1A1224;
@@ -1463,20 +1832,62 @@ const UNLOCK_URL = API_BASE + "/auth/unlock";
 // Set window.MAX_API_KEY via Netlify snippet / deploy inject (do not hardcode).
 const MAX_API_KEY = (typeof window !== "undefined" && window.MAX_API_KEY) || "";
 const ACCESS_TOKEN_KEY = "max_access_token";
+const ACCESS_EMAIL_KEY = "max_access_email";
+const WORKUPS_URL = API_BASE + "/workups";
 
 function getAccessToken() {
   try { return sessionStorage.getItem(ACCESS_TOKEN_KEY) || ""; } catch (_) { return ""; }
 }
+function getAccessEmail() {
+  try { return sessionStorage.getItem(ACCESS_EMAIL_KEY) || ""; } catch (_) { return ""; }
+}
+function setAccessEmail(email) {
+  try {
+    if (email) sessionStorage.setItem(ACCESS_EMAIL_KEY, email);
+    else sessionStorage.removeItem(ACCESS_EMAIL_KEY);
+  } catch (_) {}
+}
 function setAccessToken(token) {
   try {
     if (token) sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
-    else sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    else {
+      sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+      sessionStorage.removeItem(ACCESS_EMAIL_KEY);
+    }
   } catch (_) {}
 }
 
-async function unlockMax(email, password) {
+function maxAuthHeaders() {
   const headers = { "Content-Type": "application/json" };
   if (MAX_API_KEY) headers["x-max-api-key"] = MAX_API_KEY;
+  const access = getAccessToken();
+  if (access) headers["x-max-access-token"] = access;
+  return headers;
+}
+
+async function workupsRequest(method, path, body) {
+  const response = await fetch(WORKUPS_URL + (path || ""), {
+    method,
+    headers: maxAuthHeaders(),
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (response.status === 401 && data.code === "access_required") {
+    setAccessToken("");
+    const err = new Error("access_required");
+    err.code = "access_required";
+    throw err;
+  }
+  if (!response.ok) {
+    const err = new Error(data.error || "Workup request failed");
+    err.status = response.status;
+    throw err;
+  }
+  return data;
+}
+
+async function unlockMax(email, password) {
+  const headers = maxAuthHeaders();
   const response = await fetch(UNLOCK_URL, {
     method: "POST",
     headers,
@@ -1489,6 +1900,8 @@ async function unlockMax(email, password) {
     throw err;
   }
   if (data.token) setAccessToken(data.token);
+  if (data.email) setAccessEmail(data.email);
+  else if (email) setAccessEmail(email);
   return data;
 }
 
@@ -1508,10 +1921,7 @@ async function askGuru(conversationHistory) {
     system: buildSystemPrompt(selection.plans),
     messages: conversationHistory,
   };
-  const headers = { "Content-Type": "application/json" };
-  if (MAX_API_KEY) headers["x-max-api-key"] = MAX_API_KEY;
-  const access = getAccessToken();
-  if (access) headers["x-max-access-token"] = access;
+  const headers = maxAuthHeaders();
   const response = await fetch(PROXY_URL, {
     method: "POST",
     headers,
@@ -1684,12 +2094,21 @@ function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [workups, setWorkups] = useState([]);
+  const [workupsLoading, setWorkupsLoading] = useState(false);
+  const [workupNotice, setWorkupNotice] = useState(null);
+  const [currentWorkupId, setCurrentWorkupId] = useState(null);
+  const [savingWorkup, setSavingWorkup] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
   // Remembers the most recent exportable comparison even after the offer chip is dismissed
   // or later non-comparison replies push it out of the recent-message window.
   const lastComparisonExportRef = useRef(null);
+  const loadedWorkupRef = useRef(null);
+  const currentWorkupIdRef = useRef(null);
+  const lastSavedSigRef = useRef("");
+  const autoSaveTimerRef = useRef(null);
   const messagesRef = useRef([]);
   const loadingRef = useRef(false);
   const queuedRef = useRef(null);
@@ -1756,18 +2175,213 @@ function App() {
 
   const nowLabel = () => new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
-  const startNewChat = () => {
+  const resetChatSession = (opts) => {
+    const keepWorkup = opts && opts.keepWorkup;
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
     chatGenRef.current += 1;
     clearQueued();
+    if (!keepWorkup) {
+      loadedWorkupRef.current = null;
+      currentWorkupIdRef.current = null;
+      setCurrentWorkupId(null);
+      lastComparisonExportRef.current = null;
+      lastSavedSigRef.current = "";
+    }
     setMessages([]);
     messagesRef.current = [];
-    lastComparisonExportRef.current = null;
     setBanners([]);
     setError(null);
     setInput("");
     setPendingImages([]);
     setAttachError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const loadWorkups = async () => {
+    if (!getAccessToken() && accessGateOn) return;
+    setWorkupsLoading(true);
+    try {
+      const data = await workupsRequest("GET", "");
+      setWorkups(Array.isArray(data.workups) ? data.workups : []);
+      setWorkupNotice(null);
+    } catch (err) {
+      if (err && err.code === "access_required") {
+        setUnlocked(false);
+        setGateError("Session expired — sign in with your email and password again.");
+        return;
+      }
+      setWorkupNotice(err.message || "Could not load saved workups.");
+    } finally {
+      setWorkupsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!unlocked) return;
+    void loadWorkups();
+  }, [unlocked]);
+
+  const buildWorkupBody = (payload) => {
+    const extras = {
+      id: currentWorkupIdRef.current || undefined,
+      threadText: window.MaxComparisonExport.conversationPlainText(messagesRef.current, userMessageText),
+      clientName: payload && payload.clientName,
+      terminatingPlan: payload && payload.terminatingPlan,
+    };
+    const built = window.MaxClientWorkups.buildWorkupFromExport(payload, extras);
+    const prev = loadedWorkupRef.current;
+    if (prev) {
+      if (!built.clientName) built.clientName = prev.clientName || "";
+      if (!built.zip) built.zip = prev.zip || "";
+      if (!built.county) built.county = prev.county || "";
+      if (!built.contacts) built.contacts = prev.contacts || "";
+      if (!built.terminatingPlan) built.terminatingPlan = prev.terminatingPlan || "";
+      if (!built.needs.length && Array.isArray(prev.needs)) built.needs = prev.needs;
+      if (!built.doctors.length && Array.isArray(prev.doctors)) built.doctors = prev.doctors;
+      if (!built.medications.length && Array.isArray(prev.medications)) built.medications = prev.medications;
+    }
+    return built;
+  };
+
+  const saveWorkup = async (payload, opts) => {
+    const silent = opts && opts.silent;
+    const src = payload || lastComparisonExportRef.current;
+    if (!src || !Array.isArray(src.plans) || src.plans.length < 2) {
+      if (!silent) setWorkupNotice("Compare 2+ plans first, then save.");
+      return null;
+    }
+    const body = buildWorkupBody(src);
+    const sig = JSON.stringify({
+      id: body.id || "",
+      clientName: body.clientName,
+      zip: body.zip,
+      county: body.county,
+      contacts: body.contacts,
+      planIds: body.planIds,
+      doctors: body.doctors,
+      medications: body.medications,
+      needs: body.needs,
+      terminatingPlan: body.terminatingPlan,
+    });
+    if (silent && sig === lastSavedSigRef.current) return loadedWorkupRef.current;
+    if (!silent) setSavingWorkup(true);
+    try {
+      const data = await workupsRequest("PUT", body.id ? "/" + body.id : "", body);
+      const workup = data.workup;
+      loadedWorkupRef.current = workup;
+      currentWorkupIdRef.current = workup.id;
+      setCurrentWorkupId(workup.id);
+      lastSavedSigRef.current = sig;
+      setWorkups((current) => {
+        const summary = {
+          id: workup.id,
+          clientName: workup.clientName,
+          zip: workup.zip,
+          county: workup.county,
+          planIds: workup.planIds,
+          planLabels: (workup.plans || []).map((p) => `${p.carrier || ""} ${p.planName || ""}`.trim() + ` (${p.planId})`),
+          updatedAt: workup.updatedAt,
+        };
+        const rest = (current || []).filter((w) => w.id !== workup.id);
+        return [summary, ...rest];
+      });
+      if (!silent) setWorkupNotice("Saved — same list on phone and desktop.");
+      return workup;
+    } catch (err) {
+      if (err && err.code === "access_required") {
+        setUnlocked(false);
+        setGateError("Session expired — sign in with your email and password again.");
+        return null;
+      }
+      if (!silent) setWorkupNotice(err.message || "Could not save workup.");
+      return null;
+    } finally {
+      if (!silent) setSavingWorkup(false);
+    }
+  };
+
+  const scheduleAutoSave = (payload) => {
+    if (!payload || !payload.plans || payload.plans.length < 2) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => { void saveWorkup(payload, { silent: true }); }, 700);
+  };
+
+  const openWorkup = async (id) => {
+    try {
+      const data = await workupsRequest("GET", "/" + id);
+      const workup = data.workup;
+      const payload = window.MaxClientWorkups.workupToExportPayload(workup, PLANS);
+      resetChatSession({ keepWorkup: true });
+      loadedWorkupRef.current = workup;
+      currentWorkupIdRef.current = workup.id;
+      setCurrentWorkupId(workup.id);
+      lastComparisonExportRef.current = payload;
+      lastSavedSigRef.current = JSON.stringify({
+        id: workup.id,
+        clientName: workup.clientName,
+        zip: workup.zip,
+        county: workup.county,
+        contacts: workup.contacts,
+        planIds: workup.planIds,
+        doctors: workup.doctors,
+        medications: workup.medications,
+        needs: workup.needs,
+        terminatingPlan: workup.terminatingPlan,
+      });
+      const card = { role: "workup", workup, time: nowLabel() };
+      const next = [card];
+      if (payload.plans && payload.plans.length >= 2) {
+        next.push({
+          role: "offer",
+          content: "export",
+          plans: payload.plans,
+          clientName: payload.clientName,
+          terminatingPlan: payload.terminatingPlan,
+          doctors: payload.doctors,
+          drugs: payload.drugs,
+          time: nowLabel(),
+        });
+      }
+      messagesRef.current = next;
+      setMessages(next);
+      setWorkupNotice(null);
+      if (isMobile) setSidebarOpen(false);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    } catch (err) {
+      if (err && err.code === "access_required") {
+        setUnlocked(false);
+        setGateError("Session expired — sign in with your email and password again.");
+        return;
+      }
+      setWorkupNotice(err.message || "Could not open workup.");
+    }
+  };
+
+  const deleteWorkup = async (id, clientLabel) => {
+    const label = clientLabel || "this workup";
+    if (!window.confirm("Delete saved workup for " + label + "?")) return;
+    try {
+      await workupsRequest("DELETE", "/" + id);
+      setWorkups((current) => (current || []).filter((w) => w.id !== id));
+      if (currentWorkupIdRef.current === id) {
+        loadedWorkupRef.current = null;
+        currentWorkupIdRef.current = null;
+        setCurrentWorkupId(null);
+      }
+    } catch (err) {
+      if (err && err.code === "access_required") {
+        setUnlocked(false);
+        return;
+      }
+      setWorkupNotice(err.message || "Could not delete workup.");
+    }
+  };
+
+  const startNewChat = () => {
+    resetChatSession();
     if (isMobile) setSidebarOpen(false);
     setTimeout(() => inputRef.current?.focus(), 50);
   };
@@ -1807,15 +2421,11 @@ function App() {
   };
 
   const lockMax = () => {
-    chatGenRef.current += 1;
+    resetChatSession();
     setAccessToken("");
     setUnlocked(false);
-    setMessages([]);
-    messagesRef.current = [];
-    clearQueued();
-    setError(null);
-    setPendingImages([]);
-    setAttachError(null);
+    setWorkups([]);
+    setWorkupNotice(null);
   };
 
   const addPendingFiles = async (fileList) => {
@@ -1912,6 +2522,7 @@ function App() {
             drugs: (remembered && remembered.drugs) || [],
           });
           lastComparisonExportRef.current = payload;
+          scheduleAutoSave(payload);
           const labels = fromThread.map((p) => `${p.carrier} ${p.planName} (${p.planId})`).join(" vs ");
           const assistantMsg = {
             role: "assistant",
@@ -1929,7 +2540,10 @@ function App() {
         }
       }
 
-      const result = await askGuru(newHistory.filter(m => m.role !== 'offer').map((m) => ({ role: m.role, content: m.content })));
+      const result = await askGuru(window.MaxClientWorkups.messagesForApi(
+        newHistory.filter((m) => m.role === "user" || m.role === "assistant").map((m) => ({ role: m.role, content: m.content })),
+        loadedWorkupRef.current
+      ));
       if (gen !== chatGenRef.current) return;
       const reply = result.text;
       if (result.banners.length) {
@@ -1944,9 +2558,13 @@ function App() {
       let nextMsgs;
       if (found.length >= 2) {
         const payload = collectComparisonExport([...newHistory, assistantMsg], found.slice(0, 4), {
-          drugs: drugsFromToolResults(result.toolResults),
+          drugs: [
+            ...((lastComparisonExportRef.current && lastComparisonExportRef.current.drugs) || []),
+            ...drugsFromToolResults(result.toolResults),
+          ],
         });
         lastComparisonExportRef.current = payload;
+        scheduleAutoSave(payload);
         nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, time: nowLabel() }];
       } else {
         nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg];
@@ -2116,6 +2734,19 @@ function App() {
               >
                 New chat
               </button>
+              <button
+                onClick={() => void saveWorkup(lastComparisonExportRef.current)}
+                disabled={savingWorkup}
+                data-testid="save-workup"
+                style={{
+                  width: "100%", padding: "9px 14px", borderRadius: 12,
+                  border: "1px solid var(--line)", background: "rgba(255,255,255,0.85)",
+                  color: "var(--plum)", fontWeight: 600, fontSize: 13, cursor: savingWorkup ? "default" : "pointer",
+                  fontFamily: "var(--font)",
+                }}
+              >
+                {savingWorkup ? "Saving…" : (currentWorkupId ? "Update workup" : "Save workup")}
+              </button>
             </>
           )}
           {collapsed && (
@@ -2140,6 +2771,49 @@ function App() {
                 {q.label}
               </button>
             ))}
+
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", letterSpacing: "0.06em", textTransform: "uppercase", margin: "18px 4px 6px" }}>Client workups</div>
+            <div style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.4, margin: "0 4px 10px" }}>
+              Synced to your Max login — same list on phone and desktop. Structured facts only (not the old chat).
+            </div>
+            {workupNotice && (
+              <div style={{ fontSize: 11.5, color: "var(--plum)", background: "rgba(245,243,255,.9)", border: "1px solid var(--line)", borderRadius: 10, padding: "8px 10px", marginBottom: 8 }}>{workupNotice}</div>
+            )}
+            {workupsLoading && <div style={{ fontSize: 12, color: "var(--muted)", padding: "6px 4px" }}>Loading…</div>}
+            {!workupsLoading && workups.length === 0 && (
+              <div style={{ fontSize: 12, color: "var(--muted)", padding: "6px 4px" }}>No saved workups yet.</div>
+            )}
+            {workups.map((w) => {
+              const label = window.MaxClientWorkups.workupListLabel(w);
+              const active = currentWorkupId === w.id;
+              return (
+                <div key={w.id} data-testid="workup-row" style={{
+                  marginBottom: 8, padding: "10px 10px 8px", borderRadius: 12,
+                  border: active ? "1px solid var(--plum)" : "1px solid var(--line)",
+                  background: active ? "rgba(69,32,104,0.06)" : "rgba(255,255,255,0.7)",
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", lineHeight: 1.3 }}>{label}</div>
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3 }}>
+                    {window.MaxClientWorkups.formatUpdatedAt(w.updatedAt)}
+                    {w.county ? " · " + w.county : ""}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                    <button
+                      onClick={() => void openWorkup(w.id)}
+                      style={{ flex: 1, padding: "6px 8px", borderRadius: 8, border: "none", background: "var(--plum)", color: "#fff", fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}
+                    >
+                      Open
+                    </button>
+                    <button
+                      onClick={() => void deleteWorkup(w.id, label)}
+                      style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", color: "var(--muted)", fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
 
           </div>
         )}
@@ -2184,6 +2858,14 @@ function App() {
               New chat
             </button>
           )}
+          <button
+            onClick={() => void saveWorkup(lastComparisonExportRef.current)}
+            disabled={savingWorkup}
+            title="Save structured workup to your Max login"
+            style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: savingWorkup ? "default" : "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 600, color: "var(--plum)" }}
+          >
+            {currentWorkupId ? "Update" : "Save"}
+          </button>
           <button onClick={lockMax} title="Lock Max" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 600, color: "var(--muted)" }}>
             Lock
           </button>
@@ -2250,7 +2932,25 @@ function App() {
               </div>
             </div>
           )}
-          {messages.map((m, i) => m.role === 'offer' ? (
+          {messages.map((m, i) => m.role === "workup" ? (
+            <div key={i} className="max-fade" data-testid="loaded-workup-card" style={{ display: "flex", justifyContent: "flex-start", gap: 8, marginBottom: 10 }}>
+              <Avatar size={30} />
+              <div style={{ maxWidth: "78%", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                <div style={{ padding: "12px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(245,243,255,0.95)", color: "var(--ink)", fontSize: 14, lineHeight: 1.45, border: "1px solid var(--line)" }}>
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Loaded workup{m.workup && m.workup.clientName ? " — " + m.workup.clientName : ""}</div>
+                  <div style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 8 }}>Continuing from structured facts only — not the old chat. Export still works below.</div>
+                  {m.workup && m.workup.plans && m.workup.plans.length > 0 && (
+                    <div style={{ fontSize: 13 }}>
+                      {(m.workup.plans || []).map((p) => (
+                        <div key={p.planId}>{(p.carrier ? p.carrier + " " : "") + (p.planName || "")} ({p.planId})</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{m.time}</div>
+              </div>
+            </div>
+          ) : m.role === 'offer' ? (
             <div key={i} className="max-fade" style={{ display: "flex", justifyContent: "flex-start", gap: 8, marginBottom: 10 }}>
               <Avatar size={30} />
               <div style={{ maxWidth: "72%", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>

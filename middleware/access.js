@@ -32,35 +32,43 @@ function issueAccessToken(email) {
   return `${payload}.${sig}`;
 }
 
-function verifyAccessToken(token) {
-  if (!token || typeof token !== 'string' || !token.includes('.')) return false;
+function decodeAccessToken(token) {
+  if (!token || typeof token !== 'string' || !token.includes('.')) return null;
   const [payload, sig] = token.split('.');
-  if (!payload || !sig) return false;
+  if (!payload || !sig) return null;
   const expected = crypto.createHmac('sha256', signingSecret()).update(payload).digest('base64url');
   const a = Buffer.from(sig);
   const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
   try {
     const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    if (!data.exp || Date.now() > Number(data.exp)) return false;
+    if (!data.exp || Date.now() > Number(data.exp)) return null;
+    const email = String(data.email || '').trim().toLowerCase();
     const emails = allowedEmails();
-    if (emails.length && data.email && !emails.includes(String(data.email).toLowerCase())) {
-      return false;
-    }
-    return true;
+    if (emails.length && email && !emails.includes(email)) return null;
+    return { email, exp: Number(data.exp), v: data.v };
   } catch (_) {
-    return false;
+    return null;
   }
 }
 
+function verifyAccessToken(token) {
+  return Boolean(decodeAccessToken(token));
+}
+
 function requireAccessToken(req, res, next) {
-  if (!accessEnabled()) return next();
+  if (!accessEnabled()) {
+    req.accessEmail = 'ungated';
+    return next();
+  }
   const token =
     req.headers['x-max-access-token'] ||
     (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-  if (!verifyAccessToken(token)) {
+  const parsed = decodeAccessToken(token);
+  if (!parsed || !parsed.email) {
     return res.status(401).json({ error: 'Access locked', code: 'access_required' });
   }
+  req.accessEmail = parsed.email;
   next();
 }
 
@@ -107,5 +115,6 @@ module.exports = {
   unlockHandler,
   issueAccessToken,
   verifyAccessToken,
+  decodeAccessToken,
   allowedEmails,
 };

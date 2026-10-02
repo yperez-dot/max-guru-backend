@@ -12,6 +12,7 @@ const { startSepRefreshScheduler, refreshSepTracker, getStatus: getSepRefreshSta
 const drugLookupRouter = require('./routes/drugLookup');
 const formularyLookupRouter = require('./routes/formularyLookup');
 const providerLookupRouter = require('./routes/providerLookup');
+const workupsRouter = require('./routes/workups');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -86,6 +87,7 @@ app.post('/admin/refresh-seps', requireApiKey, requireAccessToken, async (req, r
 app.use('/drug-search', requireApiKey, requireAccessToken, drugLookupRouter);
 app.use('/formulary-lookup', requireApiKey, requireAccessToken, formularyLookupRouter);
 app.use('/provider-lookup', requireApiKey, requireAccessToken, providerLookupRouter);
+app.use('/workups', requireApiKey, requireAccessToken, workupsRouter);
 
 const MAX_CLIENT_SYSTEM_CHARS = Number(process.env.MAX_CLIENT_SYSTEM_CHARS || 400000);
 const TOOL_USE_APPENDIX = `

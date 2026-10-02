@@ -122,6 +122,7 @@ describe('thread extractors', () => {
   it('does not invent a client name', () => {
     assert.equal(exp.extractClientName('Compare H1045-012 and H1045-061 in Miami-Dade'), '');
     assert.equal(exp.extractClientName('export this as excel'), '');
+    assert.equal(exp.extractClientName('Client: Muskat'), 'Muskat');
   });
 });
 
@@ -279,6 +280,14 @@ describe('HTML UI wiring', () => {
     assert.match(html, /20c\. CARRIER GEOGRAPHY 2027/);
     assert.match(html, /MAX_ATTACH_IMAGES/);
     assert.match(html, /collectComparisonExport/);
+    assert.match(html, /MaxClientWorkups/);
+    assert.match(html, /\/workups/);
+    assert.match(html, /Save workup/);
+    assert.match(html, /Client workups/);
+    assert.match(html, /messagesForApi/);
+    assert.match(html, /LOADED CLIENT WORKUP/);
+    assert.match(html, /loaded-workup-card/);
+    assert.match(html, /same list on phone and desktop/);
     assert.match(html, /clientName: payload.clientName/);
     assert.match(html, /lookup_formulary/);
     assert.match(html, /CLIENT-STATED RX TIERS/);

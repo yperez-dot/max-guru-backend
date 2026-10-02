@@ -45,9 +45,11 @@ and asks for an explicit phrase such as `OK go over`, `override budget`, or `con
 That unlock lasts only for the current New York day.
 
 Usage is stored in `data/max-usage.json` by default. For restart-safe Railway persistence, mount a
-volume and set `MAX_USAGE_FILE=/data/max-usage.json`. `GET /usage` requires both the Max API key and,
-when enabled, the invite-only access token; it reports today's spend, budget, percentage, and
-override state.
+volume and set `MAX_USAGE_FILE=/data/max-usage.json`. **Client workups** (Save / Open / Delete in
+the sidebar) use the same volume: set `MAX_WORKUPS_FILE=/data/max-workups.json`. Each unlock email
+(Yahoska / Carolina / Katy) has their own list — save on desktop, open on phone. `GET /usage`
+requires both the Max API key and, when enabled, the invite-only access token; it reports today's
+spend, budget, percentage, and override state.
 
 Built-in price estimates cover the current default models (`grok-4.6` and `gpt-4.1`), including
 cached input and Grok's 200K+ context tier. If the configured model changes, set
