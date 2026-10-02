@@ -1,62 +1,75 @@
 # 2027 THEI plan grid — what Max can cite
 Source: THEI 2027 Plan Benefit Grid working copy ([Google Sheet](https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit))
-Pulled: 2026-10-01 13:17 UTC
-Sheet stamp: 2995 green / 2772 yellow benefit cells across plan tabs.
+Pulled: 2026-10-02 21:16 UTC
+Sheet stamp: 4788 confirmed (non-yellow) / 640 yellow benefit cells across plan tabs.
 
-Color key on the sheet: **light green** = 2027 number from an official SoB, highlight, or sneak-peek slide (official SoB wins). **Yellow** = still the 2026 number. Max only cites green.
+Color key on the sheet: **yellow** = leftover / unconfirmed (never cited as 2027 dollars). After the Oct 2026 restyle, confirmed working 2027 numbers are typically **white/uncolored** (classic light-green fills were cleared; green still counts if it returns). Max only cites non-yellow cells.
 
-Live `#plan-data` stays the **2026** grid. These files are how chat answers 2027.
+Live `#plan-data` **defaults to 2027** (same confirmed-cell rule). 2026 is archived (`#plan-data-2026` / `artifacts/plan-data-2026.json`) for current-year quotes when the agent asks or toggles the year.
 
-## Confirmed 2027 plan dollars (green)
+## Confirmed 2027 plan dollars (non-yellow)
 
 | Carrier | Plans with confirmed 2027 cells | KB doc |
 |---------|----------------------------------|--------|
 | Humana | 19 | `carriers/humana-plans-florida-2027` |
-| Devoted | 18 | `carriers/devoted-plans-florida-2027` |
-| UHC | 18 | `carriers/uhc-plans-florida-2027` |
+| Devoted | 20 | `carriers/devoted-plans-florida-2027` |
+| UHC | 14 | `carriers/uhc-plans-florida-2027` |
 | CarePlus | 17 | `carriers/careplus-plans-florida-2027` |
 | Aetna | 10 | `carriers/aetna-plans-florida-2027` |
 | Doctors | 9 | `carriers/doctors-plans-florida-2027` |
 | HealthSun | 12 | `carriers/healthsun-plans-florida-2027` |
+| Florida Blue | 5 | `carriers/florida-blue-plans-florida-2027` |
+| Simply | 2 | `carriers/simply-plans-florida-2027` |
+| Solis | 8 | `carriers/solis-plans-florida-2027` |
+| Wellcare | 5 | `carriers/wellcare-plans-florida-2027` |
+| Gold Kidney | 5 | `carriers/gold-kidney-plans-florida-2027` |
 
 ## Not offered in Miami-Dade / Broward 2027
 
 **HealthSpring / Cigna** has **no** 2027 Medicare Advantage plans in Miami-Dade or Broward (CMS CY2027; THEI Plan Comparison Grid columns removed). Do not quote 2026 HealthSpring dollars as 2027 benefits. A live Cigna/HealthSpring directory hit is not a 2027 enrollment option in those counties. Leftover yellow/workbook cells that mention HealthSpring or Cigna for Dade/Broward 2027 are stale — ignore them. Cite `carriers/healthspring-plans-florida-2027`.
 
-## Still waiting on the official October 1 SoB
+## Still waiting / yellow leftover (do not quote as 2027)
 
-These carriers are on the 2027 workbook but every benefit cell is still yellow. Do **not** quote their 2026 leftover numbers as 2027. Say Max does not have that 2027 figure yet.
+No carrier is *entirely* yellow after the Oct 2026 restyle, but leftover yellow cells remain on some columns. Blank / `pending_sob` / omitted fields must be reported as unverified — never filled from 2026.
 
-- Simply
+Highest leftover yellow counts on live `#plan-data` (pulled 2026-10-02):
+
+- **Gold Kidney** H1526-002 — medical dollars (MOOP / premium / specialist) still yellow; omitted
+- **Solis** H0982-034 — nearly all cells yellow (`sourceQuality: pending_sob`)
+- **Doctors** H4140-024 (new ExtraCare) and **Wellcare** H1032-196 — large yellow leftover
+- **HealthSun** H5431-001 — large yellow leftover
+- **UHC**, **Aetna**, **Simply**, some **Devoted** / **Humana** columns still have a few yellow cells (often OTC / extras)
+
+**HealthSpring / Cigna** is not a 2027 Miami-Dade or Broward MA option — omitted from live `#plan-data`.
 
 ## New 2027 plans on the grid
 
-- CarePlus CareFree Giveback (`H1019-065`) — Broward Giveback
+- CarePlus CareFree Giveback (`H1019-065`) — Broward HMO
 - CarePlus CareBreeze (`H1019-154`) — Broward C-SNP
 - CarePlus CareBreeze (`H1019-154`) — Miami-Dade C-SNP
-- Devoted GIVEBACK EXTRAS (`H1290-110`) — Miami-Dade Giveback
+- Wellcare Dual Align Unity (HMO D-SNP) (`H1032-250`) — Broward D-SNP
+- Wellcare Dual Align Unity (HMO D-SNP) (`H1032-250`) — Miami-Dade D-SNP
+- Devoted C-SNP ENHANCED (`H1290-073`) — Broward C-SNP
+- Devoted GIVEBACK EXTRAS (`H1290-110`) — Miami-Dade HMO
+- Devoted GIVEBACK EXTRAS (`H1290-117`) — Broward HMO
 - Aetna Medicare Partial Dual Select (`H1609-103`) — Broward D-SNP
 - Aetna Medicare Partial Dual Select (`H1609-103`) — Miami-Dade D-SNP
-- Doctors DrExtraCare (`H4140-004`) — Broward C-SNP
 - Doctors DrPartialDual-SFL (HMO D-SNP) (`H4140-020`) — Broward D-SNP
 - Doctors DrPartialDual-SFL (HMO D-SNP) (`H4140-020`) — Miami-Dade D-SNP
+- Doctors DrExtraCare (`H4140-024`) — Broward C-SNP
+- Simply Complete Platinum (HMO D-SNP) (`H5471-125`) — Broward D-SNP
+- Simply Complete Platinum (HMO D-SNP) (`H5471-125`) — Miami-Dade D-SNP
 - Humana Choice Giveback (`H7617-145`) — Broward PPO
 - Humana Choice Giveback (`H7617-145`) — Miami-Dade PPO
-
-## Closed to new enroll 2027
-
-- UHC Dual Complete Choice PPO (`H1889-002`) — Broward
-- UHC Dual Complete Choice PPO (`H1889-002`) — Miami-Dade
-- UHC Dual Complete FL-Y4 PPO (`H1889-026`) — Broward
 
 ## Marked non-commissionable on the 2027 grid (new sales)
 
 - FL Blue BlueMedicare (`H1035-017`)
-- FL Blue Classic NON-COMMISIONABLE (`H1035-019`)
+- FL Blue Classic (`H1035-019`)
+- FL Blue Premier HMO (`H1035-025`)
 - AARP UHC Regional PPO FL-0031 (`R0759-001`)
-- Humana Choice (`H7617-107`)
-- Humana Choice Giveback (`H7617-110`)
-- FL Blue Blue Medicare Select NON-COMMISIONABLE (`H5434-002`)
+- FL Blue Blue Medicare Value (`H5434-026`)
+- FL Blue Blue Medicare Select (`H5434-002`)
 
 ## Hospital / network notes already confirmed for 2027
 
@@ -95,5 +108,6 @@ These carriers are on the 2027 workbook but every benefit cell is still yellow. 
 
 ```bash
 curl -sL -o /tmp/thei-2027-grid.xlsx 'https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/export?format=xlsx'
-python3 scripts/export_2027_grid_to_kb.py
+python3 scripts/sync_thei_grid_to_max.py --year 2027   # live #plan-data + 2026 archive
+python3 scripts/export_2027_grid_to_kb.py              # max-knowledge markdown
 ```

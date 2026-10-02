@@ -1,6 +1,6 @@
 # Plan year 2027 — what Max can answer
 
-Agents may ask for **2027** anytime. If Max has the fact, he answers it and cites 2027. If he does not, he says so. He does **not** refuse because the live plan grid is still 2026, and he does **not** recycle 2026 dollars as 2027.
+Agents may ask for **2027** anytime. Live `#plan-data` **defaults to 2027** (AEP). If Max has the fact, he answers it and cites 2027. If a 2027 field is blank, he says unverified / pending SoB. He does **not** recycle 2026 dollars as 2027.
 
 ## Already on file (answer these)
 
@@ -22,16 +22,15 @@ Agents may ask for **2027** anytime. If Max has the fact, he answers it and cite
 
 ## Plan dollars
 
-Live `#plan-data` is the **2026** THEI grid (151 plans). That is current-year coverage, not a 2027 gag.
+Live `#plan-data` is the **2027** THEI grid (AEP default). 2026 is archived as `#plan-data-2026`.
 
-Working 2027 workbook (another desk is still filling it; official leftover SoBs due **Oct 1, 2026**):  
+Working 2027 workbook:  
 https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
 
-- **Green cells are on file** for Humana (19), Devoted (18), UHC (18), CarePlus (17), HealthSun (12), Aetna (10), and Doctors (9) — cite those 2027 numbers from the carrier `*2027*` docs. Yellow leftover 2026 cells were **not** imported.
+- **Non-yellow cells** (white/uncolored after the Oct 2026 restyle; classic green still counts) are on file in `#plan-data` and the carrier `*2027*` docs. Yellow leftover cells were **not** imported as 2027 dollars.
 - **HealthSpring / Cigna is not a 2027 Miami-Dade or Broward MA option.** No plans to enroll into in those counties (CMS CY2027; grid columns removed). Do not quote 2026 HealthSpring dollars as 2027. A live Cigna directory hit ≠ consider HealthSpring. Leftover yellow workbook cells are stale. Cite `carriers/healthspring-plans-florida-2027`.
-- **Still no 2027 dollars** for Florida Blue, Simply, Solis, Wellcare, Gold Kidney. Say “I don’t have that 2027 figure yet.”
-- **Public SoBs:** Devoted CORE H1290-037 is live on assets.devoted.com (`…H1290-037-001-ENG.pdf`). Humana CDN + CarePlus 2027PDFs remain live. **UHC** alphadog `27` URLs are still placeholders (“PDF coming soon”). Doctors public SOB URLs hit reCAPTCHA/empty shells — use green cells only. Prefer green cells until real public PDFs publish.
-- Refresh: `scripts/export_2027_grid_to_kb.py` (green cells only). Do not write this sheet into live `#plan-data`.
+- **Yellow-heavy leftovers** (notably Gold Kidney medical dollars) stay pending SoB. If a field is blank on a 2027 plan, say unverified — do not fill from 2026.
+- Refresh: `scripts/sync_thei_grid_to_max.py --year 2027` and `scripts/export_2027_grid_to_kb.py` (non-yellow cells only).
 
 ## How to cite
 

@@ -116,8 +116,16 @@ def merge_dental_row(fields: list[tuple[str, str]], lab: str, val: str) -> bool:
 
 
 def apply_curated_dental(plan_id: str, county: str, fields: list[tuple[str, str]]) -> list[str]:
+    """Overlay only fills junk/blank cells. A clear 2027 value (Crowns=No) wins."""
     notes: list[str] = []
     for lab, val in CURATED_DENTAL_PROCEDURES.get((plan_id, county), []):
+        have = None
+        for existing, cur in fields:
+            if norm_label(existing) == norm_label(lab):
+                have = cur
+                break
+        if is_clear_dental_value(have):
+            continue
         if merge_dental_row(fields, lab, val):
             notes.append(f"{lab}: THEI grid overlay ({val})")
     return notes
@@ -204,6 +212,7 @@ def apply_sibling_dental_on_plan_objects(plans: list[dict]) -> int:
 
 
 def apply_curated_on_plan_objects(plans: list[dict]) -> int:
+    """Fill junk/blank dental cells only. Never overwrite a clear 2027 value (e.g. Crowns=No)."""
     label_to_key = {
         "crowns": "dentalCrowns",
         "bridges": "dentalBridges",
@@ -215,6 +224,8 @@ def apply_curated_on_plan_objects(plans: list[dict]) -> int:
         for lab, val in CURATED_DENTAL_PROCEDURES.get((pid, county), []):
             key = label_to_key.get(norm_label(lab))
             if not key:
+                continue
+            if is_clear_dental_value(p.get(key)):
                 continue
             if collapse_val(p.get(key)) != val:
                 p[key] = val

@@ -18,4 +18,4 @@ HealthSpring’s 2027 first-look featured Florida plans (North / Central / Tampa
 
 ## 2026 (current year only)
 
-2026 Miami-Dade / Broward HealthSpring dollars stay in `carriers/healthspring-plans-florida-2026` and live `#plan-data`. Use those only when the agent is asking about **2026** coverage.
+2026 Miami-Dade / Broward HealthSpring dollars stay in `carriers/healthspring-plans-florida-2026` and archived `#plan-data-2026`. Use those only when the agent is asking about **2026** coverage. They are not in live 2027 `#plan-data`.

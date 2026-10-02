@@ -63,9 +63,11 @@ describe('HealthSpring 2027 South Florida — no MA in Miami-Dade / Broward', ()
     assert.match(html, /she's in-network with Cigna so consider HealthSpring/);
 
     const exportPy = fs.readFileSync(EXPORT_PATH, 'utf8');
-    assert.match(exportPy, /carrier == "HealthSpring"/);
-    assert.match(exportPy, /H5410-/);
+    assert.match(exportPy, /is_healthspring_dade_broward/);
     assert.match(exportPy, /Not offered in Miami-Dade \/ Broward 2027/);
+    const commonPy = fs.readFileSync(path.join(__dirname, '../scripts/thei_grid_common.py'), 'utf8');
+    assert.match(commonPy, /HealthSpring/);
+    assert.match(commonPy, /H5410-/);
     const waitingList = exportPy.match(/waiting = \[\s*\n([\s\S]*?)\n    \]/);
     assert.ok(waitingList, 'expected export waiting = [ ... ] list');
     assert.equal(

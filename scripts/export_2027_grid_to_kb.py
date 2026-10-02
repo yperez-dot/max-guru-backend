@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""Export confirmed (green) 2027 THEI grid cells into max-knowledge markdown.
+"""Export confirmed 2027 THEI grid cells into max-knowledge markdown.
 
-Yellow cells are leftover 2026 numbers — they are never written as 2027 *medical*
-dollar facts (premium, MOOP, copays).
+Yellow cells are leftover / unconfirmed — they are never written as 2027
+*medical* dollar facts (premium, MOOP, copays).
+
+After the Oct 2026 restyle the working sheet cleared classic light-green
+fills. Confirmed / working 2027 dollars are typically white/uncolored.
+Classic green still counts. Use `is_confirmed_2027_cell` (not-yellow).
 
 Dental *procedure* sub-rows (Crowns, Bridges, Implants, Dentures, Fillings,
 Root Canals, Extractions, Deep Cleaning) are kept when the cell has a clear
-frequency/Yes-No. Those rows are often still yellow on CarePlus even when the
-Dental summary line is green, and dropping them made Max hedge to SoB on
-questions like "are crowns covered on H1019-150". Vague junk ("$0 varies")
-is not exported; the clearer sibling-county cell for the same CMS ID is used
-instead. Re-run after each sheet refresh. Does not touch live #plan-data.
+frequency/Yes-No even if still yellow. Vague junk ("$0 varies") is not
+exported. Re-run after each sheet refresh.
+
+Live `#plan-data` is synced separately via `sync_thei_grid_to_max.py --year 2027`
+(same confirmed-cell rule).
 """
 
 from __future__ import annotations
@@ -25,7 +29,6 @@ from pathlib import Path
 
 import openpyxl
 
-SHEET_ID = "1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 XLSX_PATH = Path("/tmp/thei-2027-grid.xlsx")
 KB_DIR = REPO_ROOT / "max-knowledge" / "carriers"
@@ -40,19 +43,16 @@ from dental_procedure_rows import (  # noqa: E402
     is_dental_procedure_label,
     merge_dental_row,
 )
-
-SHEETS = [
-    ("DADE- HMO", "Miami-Dade", "HMO"),
-    ("BWD- HMO", "Broward", "HMO"),
-    ("DADE-CSNP", "Miami-Dade", "C-SNP"),
-    ("BWD-CSNP", "Broward", "C-SNP"),
-    ("Dade- DSNP", "Miami-Dade", "D-SNP"),
-    ("BWD-DSNP", "Broward", "D-SNP"),
-    ("DADE- Giveback", "Miami-Dade", "Giveback"),
-    ("BWD-Giveback", "Broward", "Giveback"),
-    ("DADE-PPO", "Miami-Dade", "PPO"),
-    ("BWD-PPO", "Broward", "PPO"),
-]
+from thei_grid_common import (  # noqa: E402
+    SHEET_ID_2027 as SHEET_ID,
+    carrier_of,
+    extract_plan_id,
+    is_confirmed_2027_cell,
+    is_green,
+    is_healthspring_dade_broward,
+    is_yellow,
+    resolve_2027_sheets,
+)
 
 CARRIER_FILES = {
     "Humana": "humana-plans-florida-2027.md",
@@ -62,114 +62,12 @@ CARRIER_FILES = {
     "Aetna": "aetna-plans-florida-2027.md",
     "Doctors": "doctors-plans-florida-2027.md",
     "HealthSun": "healthsun-plans-florida-2027.md",
+    "Florida Blue": "florida-blue-plans-florida-2027.md",
+    "Simply": "simply-plans-florida-2027.md",
+    "Solis": "solis-plans-florida-2027.md",
+    "Wellcare": "wellcare-plans-florida-2027.md",
+    "Gold Kidney": "gold-kidney-plans-florida-2027.md",
 }
-
-CARRIER_ALIASES = [
-    ("UHC", "UHC"),
-    ("United", "UHC"),
-    ("Preferred", "UHC"),
-    ("AARP", "UHC"),
-    ("MedicareMax", "UHC"),
-    ("CarePlus", "CarePlus"),
-    ("CareOne", "CarePlus"),
-    ("CareNeeds", "CarePlus"),
-    ("CareFree", "CarePlus"),
-    ("CareBreeze", "CarePlus"),
-    ("CareComplete", "CarePlus"),
-    ("CareAccess", "CarePlus"),
-    ("Devoted", "Devoted"),
-    ("Aetna", "Aetna"),
-    ("Humana", "Humana"),
-    ("Simply", "Simply"),
-    ("HealthSun", "HealthSun"),
-    ("Wellcare", "Wellcare"),
-    ("WellCare", "Wellcare"),
-    ("Doctors", "Doctors"),
-    ("Doctor", "Doctors"),
-    ("Florida Blue", "Florida Blue"),
-    ("FL Blue", "Florida Blue"),
-    ("HealthSpring", "HealthSpring"),
-    ("Cigna", "HealthSpring"),
-    ("Solis", "Solis"),
-    ("Gold Kidney", "Gold Kidney"),
-]
-
-
-def fill_rgb(cell) -> str | None:
-    fill = cell.fill
-    if not fill or fill.fill_type is None:
-        return None
-    fg = fill.fgColor
-    if fg is None or fg.type != "rgb" or not fg.rgb:
-        return None
-    return str(fg.rgb).upper()
-
-
-def is_green(cell) -> bool:
-    rgb = fill_rgb(cell)
-    return bool(
-        rgb
-        and (
-            rgb.endswith("E8F5E9")
-            or rgb.endswith("C8E6C9")
-            or rgb.endswith("C6EFCE")  # Excel light green used on working grid
-            or rgb.endswith("D9EAD3")
-        )
-    )
-
-
-def is_yellow(cell) -> bool:
-    rgb = fill_rgb(cell)
-    return bool(
-        rgb
-        and (
-            rgb.endswith("FFF2CC")
-            or rgb.endswith("FFFF00")
-            or rgb.endswith("FFEB3B")
-        )
-    )
-
-
-def extract_plan_id(header: object) -> str | None:
-    if not header:
-        return None
-    s = str(header).replace("‑", "-").replace("–", "-")
-    m = re.search(r"\b([HR]\d{3,4})\s*\|\s*(\d{2,4})\b", s, re.I)
-    if m:
-        return f"{m.group(1).upper()}-{m.group(2)}"
-    m = re.search(
-        r"\b([HR]\d{3,4})\s*-\s*(\d{2,4}[A-Z]?)(?:\s*(?:FL-?)(\d{2,4})|\s*-\s*(\d{1,4})|\s*/\s*-?\s*(\d{2,4}))?",
-        s,
-        re.I,
-    )
-    if not m:
-        m = re.search(
-            r"\b([HR]\d{3})\s*-\s*(\d{2,4}[A-Z]?)(?:\s*-\s*(\d{1,4}))?",
-            s,
-            re.I,
-        )
-        if not m:
-            return None
-        base = f"{m.group(1).upper()}-{m.group(2)}"
-        if m.lastindex and m.lastindex >= 3 and m.group(3):
-            return f"{base}-{m.group(3)}"
-        return base
-    base = f"{m.group(1).upper()}-{m.group(2)}"
-    if m.group(3):
-        return f"{base}-FL-{m.group(3)}"
-    if m.group(4):
-        return f"{base}-{m.group(4)}"
-    if m.group(5):
-        return f"{base}/{m.group(5)}"
-    return base
-
-
-def carrier_of(header: str) -> str:
-    for key, nice in CARRIER_ALIASES:
-        if re.search(rf"\b{re.escape(key)}\b", header, re.I) or header.startswith(key):
-            return nice
-    return header.split()[0] if header.split() else "Unknown"
-
 
 def clean_plan_name(header: str, pid: str | None) -> str:
     s = header.replace("‑", "-").replace("–", "-")
@@ -229,7 +127,7 @@ def parse_grid(xlsx: Path) -> tuple[list[dict], dict]:
                 notes.append(str(v).strip())
 
     plans: list[dict] = []
-    for sheet, county, ptype in SHEETS:
+    for sheet, county, ptype in resolve_2027_sheets(wb):
         ws = wb[sheet]
         labels: list[tuple[int, str]] = []
         sob_row = None
@@ -258,9 +156,7 @@ def parse_grid(xlsx: Path) -> tuple[list[dict], dict]:
             carrier = carrier_of(header_s)
             # HealthSpring/Cigna: no 2027 MA in Miami-Dade or Broward (CMS CY2027).
             # Leftover yellow/workbook cells are stale — do not export as 2027 plans.
-            if county in ("Miami-Dade", "Broward") and (
-                carrier == "HealthSpring" or (pid and str(pid).upper().startswith("H5410-"))
-            ):
+            if is_healthspring_dade_broward(carrier, pid, county):
                 continue
             name = clean_plan_name(header_s, pid)
 
@@ -274,9 +170,9 @@ def parse_grid(xlsx: Path) -> tuple[list[dict], dict]:
                 if not val:
                     # PPO IN/OUT: if this is an IN column, also check the next OUT col
                     continue
-                if is_green(cell):
+                if is_confirmed_2027_cell(cell):
                     fields_green.append((lab, val))
-                elif is_dental_procedure_label(lab) and is_clear_dental_value(val):
+                elif is_yellow(cell) and is_dental_procedure_label(lab) and is_clear_dental_value(val):
                     # Yellow leftover, but a real frequency / Yes-No — keep for chat
                     merge_dental_row(fields_dental_working, lab, val)
                     fields_yellow += 1
@@ -291,7 +187,7 @@ def parse_grid(xlsx: Path) -> tuple[list[dict], dict]:
                 for r, lab in labels:
                     cell = ws.cell(r, c + 1)
                     val = fmt_val(cell.value)
-                    if val and is_green(cell):
+                    if val and is_confirmed_2027_cell(cell):
                         out_fields.append((lab, val))
                     elif val and is_yellow(cell):
                         fields_yellow += 1
@@ -427,7 +323,6 @@ def render_overview(plans: list[dict], meta: dict, pulled: str, stats: dict) -> 
 
     waiting = [
         "Florida Blue",
-        "HealthSun",
         "Simply",
         "Solis",
         "Wellcare",
@@ -438,13 +333,13 @@ def render_overview(plans: list[dict], meta: dict, pulled: str, stats: dict) -> 
         "# 2027 THEI plan grid — what Max can cite",
         f"Source: THEI 2027 Plan Benefit Grid working copy ([Google Sheet](https://docs.google.com/spreadsheets/d/{SHEET_ID}/edit))",
         f"Pulled: {pulled}",
-        f"Sheet stamp: {stats.get('green_cells')} green / {stats.get('yellow_cells')} yellow benefit cells across plan tabs.",
+        f"Sheet stamp: {stats.get('confirmed_cells')} confirmed (non-yellow) / {stats.get('yellow_cells')} yellow benefit cells across plan tabs.",
         "",
-        "Color key on the sheet: **light green** = 2027 number from an official SoB, highlight, or sneak-peek slide (official SoB wins). **Yellow** = still the 2026 number. Max only cites green.",
+        "Color key on the sheet: **yellow** = leftover / unconfirmed (never cited as 2027 dollars). After the Oct 2026 restyle, confirmed working 2027 numbers are typically **white/uncolored** (classic light-green fills were cleared; green still counts if it returns). Max only cites non-yellow cells.",
         "",
-        "Live `#plan-data` stays the **2026** grid. These files are how chat answers 2027.",
+        "Live `#plan-data` **defaults to 2027** (same confirmed-cell rule). 2026 is archived (`#plan-data-2026` / `artifacts/plan-data-2026.json`) for current-year quotes when the agent asks or toggles the year.",
         "",
-        "## Confirmed 2027 plan dollars (green)",
+        "## Confirmed 2027 plan dollars (non-yellow)",
         "",
         "| Carrier | Plans with confirmed 2027 cells | KB doc |",
         "|---------|----------------------------------|--------|",
@@ -538,18 +433,20 @@ def render_overview(plans: list[dict], meta: dict, pulled: str, stats: dict) -> 
 
 def count_fills(xlsx: Path) -> dict:
     wb = openpyxl.load_workbook(xlsx, data_only=False)
-    green = yellow = 0
-    for sheet, _, _ in SHEETS:
+    green = yellow = confirmed = 0
+    for sheet, _, _ in resolve_2027_sheets(wb):
         ws = wb[sheet]
         for row in ws.iter_rows(min_row=2, max_row=min(ws.max_row or 0, 80), min_col=2):
             for cell in row:
                 if cell.value is None or str(cell.value).strip() == "":
                     continue
+                if is_confirmed_2027_cell(cell):
+                    confirmed += 1
                 if is_green(cell):
                     green += 1
                 elif is_yellow(cell):
                     yellow += 1
-    return {"green_cells": green, "yellow_cells": yellow}
+    return {"green_cells": green, "yellow_cells": yellow, "confirmed_cells": confirmed}
 
 
 def main() -> int:
@@ -592,6 +489,7 @@ def main() -> int:
         "confirmedPlans": len(plans),
         "byCarrier": {k: len(v) for k, v in by_carrier.items()},
         "greenCells": stats["green_cells"],
+        "confirmedCells": stats.get("confirmed_cells", stats["green_cells"]),
         "yellowCells": stats["yellow_cells"],
         "planIds": sorted({p["id"] for p in plans}),
         "new2027": [p["id"] for p in plans if "NEW 2027" in p["flags"]],
