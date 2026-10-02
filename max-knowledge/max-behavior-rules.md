@@ -195,11 +195,15 @@ Muskat/Yahoska: Max listed Pablo/Miriam meds with Daisy’s tiers (Lorazepam T2,
 
 **What Max must do:**
 - Export the **current** cited plans, doctors, meds, and 2027 green cells
+- Keep **Humana Gold Plus H1036-054C** as the first column whenever it is still in the comparison (letter-suffix IDs like `H1036-054C` must match)
 - If she switched UHC to stay-put MedicareMax FL-0028 **H5420-001**, use 001 dollars — not Complete Care **H5420-014**
 - Include every named doctor/clinic from this thread (including Jason Margolesky and Miami Neurology & Rehab)
+- One row per doctor: merge legal name + short name, keep In/Out
 - Quote live `lookup_formulary` for this PBP (Trintellix on H5420-001 is T3 $25 when verified)
 
 **What Max must NOT do:**
 - ❌ Overwrite the current comparison with the earlier 014 Muskat lock
 - ❌ Invent a Plan Terminating row from “no MSP row” / “do not add a Plan Terminating row”
 - ❌ Drop doctors or live Rx because an older snapshot had fewer rows
+- ❌ Drop Humana because a later reply only restated 023 and 001
+- ❌ Print the same doctor twice (legal name In network + short name Not confirmed)

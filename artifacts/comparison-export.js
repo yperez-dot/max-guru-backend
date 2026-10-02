@@ -109,6 +109,8 @@
     diovan: "Valsartan",
   };
   const MUSKAT_PLAN_IDS = ["H1036-054C", "H4140-023", "H5420-014"];
+  const CMS_PLAN_ID_RE = /\b[HR]\d{3,4}[\s-]?\d{2,4}[A-Z]?(?:\s*\/\s*-?\d{2,4})?\b/gi;
+  const PREFERRED_COLUMN_IDS = ["H1036-054C", "H4140-023", "H5420-001", "H5420-014"];
   const DOCTORS_PBP_2027 = { "H4140-001": "H4140-022", "H4140-012": "H4140-023" };
   const CARRIER_AS_DRUG = /^(doctors?|uhc|united|unitedhealthcare|humana|careplus|care\s*plus|devoted|wellcare|well\s*care|aetna|simply|solis|healthsun|health\s*sun|healthspring|health\s*spring|medicaremax|medicare\s*max|preferred|cigna|anthem|elevance|floridablue|florida\s*blue|goldkidney|gold\s*kidney|gold\s*plus|drselect|drmax)$/i;
 
@@ -344,16 +346,17 @@
       if (!name || /^(Max|Select|Plus|Flex|Extra|Complete)$/i.test(name)) return;
       const parts = name.split(/\s+/);
       if (parts.length < 2) return;
-      const key = name.toLowerCase();
+      const display = /^dr\.?\s/i.test(name) ? name.replace(/^dr\.?\s+/i, "Dr. ") : "Dr. " + name;
+      const key = doctorIdentityKey(display) || display.toLowerCase();
       if (seen.has(key)) return;
       seen.add(key);
-      names.push(/^dr\.?\s/i.test(name) ? name.replace(/^dr\.?\s+/i, "Dr. ") : "Dr. " + name);
+      names.push(display);
     };
     const addClinic = (raw) => {
       let name = String(raw || "").replace(/\s+/g, " ").trim();
       name = name.replace(/[.,;:]+$/, "");
       if (!name || name.split(/\s+/).length < 2) return;
-      const key = name.toLowerCase();
+      const key = doctorIdentityKey(name) || name.toLowerCase();
       if (seen.has(key)) return;
       seen.add(key);
       names.push(name);
@@ -822,26 +825,74 @@
     return normalizeDoctors(out, plans);
   }
 
+  function personNameParts(name) {
+    let s = String(name || "")
+      .replace(/^(dr\.?|doctor)\s+/i, "")
+      .replace(/,?\s*(m\.?d\.?|d\.?o\.?|ph\.?d\.?)\.?$/i, "")
+      .replace(/\bnpi[:\s]*\d+/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!s) return { first: "", last: "" };
+    if (s.includes(",")) {
+      const bits = s.split(",");
+      const last = (bits[0] || "").toLowerCase().replace(/[^a-z]/g, "");
+      const first = (bits[1] || "").trim().split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, "");
+      return { first, last };
+    }
+    const parts = s.split(/\s+/).filter(Boolean);
+    const last = (parts[parts.length - 1] || "").toLowerCase().replace(/[^a-z]/g, "");
+    const first = (parts[0] || "").toLowerCase().replace(/[^a-z]/g, "");
+    return { first, last };
+  }
+
+  function doctorIdentityKey(name) {
+    const raw = String(name || "");
+    const clinic = raw.toLowerCase();
+    if (/miami\s+neurology|neurology.*rehab|mnrs/.test(clinic)) return "clinic:miami-neurology-rehab";
+    const { first, last } = personNameParts(raw);
+    if (!last || last.length < 3) return "";
+    return "person:" + last + (first ? ":" + first[0] : "");
+  }
+
+  function preferredDoctorName(a, b) {
+    const score = (n) => {
+      const s = String(n || "");
+      let pts = 0;
+      if (/^Dr\.\s+[A-Z][a-z]+\s+[A-Z][a-z]+/.test(s)) pts += 6;
+      if (/^Dr\.\s+[A-Z][a-z]/.test(s)) pts += 3;
+      if (/[a-z]/.test(s)) pts += 2;
+      if (/,/.test(s) && !/[a-z]/.test(s)) pts -= 4;
+      if (/neurology|rehab/i.test(s) && s.length < 48) pts += 2;
+      if (s.length > 48) pts -= 2;
+      return pts;
+    };
+    return score(a) >= score(b) ? a : b;
+  }
+
+  function mergeStatusPair(prev, incoming) {
+    if (prev === NETWORK_IN || prev === NETWORK_OUT) return prev;
+    if (incoming === NETWORK_IN || incoming === NETWORK_OUT) return incoming;
+    if (prev === NETWORK_NEED_MORE || incoming === NETWORK_NEED_MORE) {
+      return prev === NETWORK_NEED_MORE ? prev : incoming;
+    }
+    return prev || incoming;
+  }
+
   function mergeDoctorLists(lists, plans) {
-    const byName = new Map();
+    const byKey = new Map();
     (lists || []).forEach((list) => {
       normalizeDoctors(list, plans).forEach((doc) => {
-        const key = doc.name.toLowerCase();
-        const prev = byName.get(key);
+        const key = doctorIdentityKey(doc.name) || doc.name.toLowerCase();
+        const prev = byKey.get(key);
         if (!prev) {
-          byName.set(key, doc);
+          byKey.set(key, doc);
           return;
         }
-        prev.statuses = prev.statuses.map((s, i) => {
-          const incoming = doc.statuses[i];
-          if (s === NETWORK_IN || s === NETWORK_OUT) return s;
-          if (incoming === NETWORK_IN || incoming === NETWORK_OUT) return incoming;
-          if (s === NETWORK_NEED_MORE || incoming === NETWORK_NEED_MORE) return s === NETWORK_NEED_MORE ? s : incoming;
-          return s || incoming;
-        });
+        prev.name = preferredDoctorName(prev.name, doc.name);
+        prev.statuses = prev.statuses.map((s, i) => mergeStatusPair(s, doc.statuses[i]));
       });
     });
-    return [...byName.values()];
+    return [...byKey.values()];
   }
 
   function normalizeExportPayload(plansOrPayload, meta) {
@@ -915,6 +966,66 @@
         .join("|");
     const left = ids(a);
     return Boolean(left) && left === ids(b);
+  }
+
+  function planColumnId(plan) {
+    return String(displayContractPbp(plan) || (plan && (plan.planId || plan.id)) || "")
+      .toUpperCase()
+      .replace(/\s+/g, "")
+      .split("/")[0];
+  }
+
+  function planColumnSlot(id) {
+    const s = String(id || "").toUpperCase();
+    if (s === "H5420-001" || s === "H5420-014") return "H5420-UHC";
+    if (s === "H4140-023" || s === "H4140-012") return "H4140-DOCTORS";
+    if (s === "H1036-054C" || s === "H1036-054") return "H1036-HUMANA";
+    return s;
+  }
+
+  function citedPlanIdsFromText(text) {
+    const re = new RegExp(CMS_PLAN_ID_RE.source, "gi");
+    return [...new Set((String(text || "").match(re) || []).map((s) => s.replace(/\s+/g, "").toUpperCase()))];
+  }
+
+  function orderComparisonPlans(plans) {
+    const list = (plans || []).slice();
+    const rank = (p) => {
+      const id = planColumnId(p);
+      const i = PREFERRED_COLUMN_IDS.indexOf(id);
+      return i === -1 ? 100 : i;
+    };
+    list.sort((a, b) => rank(a) - rank(b));
+    return list;
+  }
+
+  function keepCurrentComparisonPlans(latest, prior) {
+    const current = (latest || []).slice();
+    const remembered = (prior || []).slice();
+    if (!remembered.length) return orderComparisonPlans(current);
+    if (!current.length) return orderComparisonPlans(remembered);
+    const currentSlots = new Set(current.map((p) => planColumnSlot(planColumnId(p))));
+    const priorSlots = new Set(remembered.map((p) => planColumnSlot(planColumnId(p))));
+    const currentIsSubset = [...currentSlots].every((s) => priorSlots.has(s));
+    if (currentIsSubset && remembered.length > current.length) {
+      const merged = remembered.map((p) => {
+        const slot = planColumnSlot(planColumnId(p));
+        return current.find((c) => planColumnSlot(planColumnId(c)) === slot) || p;
+      });
+      return orderComparisonPlans(merged);
+    }
+    const overlap = [...currentSlots].filter((s) => priorSlots.has(s)).length;
+    if (overlap >= 1 && (currentIsSubset || overlap >= 2)) {
+      const merged = remembered.slice();
+      current.forEach((c) => {
+        const slot = planColumnSlot(planColumnId(c));
+        const idx = merged.findIndex((p) => planColumnSlot(planColumnId(p)) === slot);
+        if (idx >= 0) merged[idx] = c;
+        else merged.push(c);
+      });
+      return orderComparisonPlans(merged);
+    }
+    return orderComparisonPlans(current);
   }
 
   function verifiedCell(tier, costShare, coverage) {
@@ -1023,7 +1134,20 @@
     const extra = extras && typeof extras === "object" ? extras : {};
     const text = String(threadText || extra.threadText || "");
     const catalog = extra.catalog || extra.planCatalog || [];
-    const resolvedPlans = canonicalize2027ComparisonPlans(plans || [], text, catalog.length ? catalog : plans);
+    const county = /\bbroward\b/i.test(text) && !/miami/i.test(text) ? "Broward" : "Miami-Dade";
+    const fromText = citedPlanIdsFromText(text)
+      .map((id) => pickCatalogPlan(catalog.length ? catalog : plans, id, county) || pickCatalogPlan(catalog.length ? catalog : plans, id))
+      .filter(Boolean);
+    const resolvedPlans = orderComparisonPlans(
+      keepCurrentComparisonPlans(
+        canonicalize2027ComparisonPlans(plans || [], text, catalog.length ? catalog : plans),
+        canonicalize2027ComparisonPlans(
+          [].concat(fromText, extra.rememberedPlans || extra.priorPlans || []),
+          text,
+          catalog.length ? catalog : plans
+        )
+      )
+    );
     const clientName = extra.clientName || extractClientName(text);
     const terminatingPlan = extra.explicitTerminating
       ? extra.terminatingPlan || extractTerminatingPlan(text)
@@ -1518,6 +1642,12 @@
     knownGenericFor,
     applyKnownGenericSuggestions,
     MUSKAT_PLAN_IDS,
+    CMS_PLAN_ID_RE,
+    citedPlanIdsFromText,
+    orderComparisonPlans,
+    keepCurrentComparisonPlans,
+    doctorIdentityKey,
+    preferredDoctorName,
     isCarrierAsDrugName,
     looksLikeDrugName,
     hasExplicitTerminatingLanguage,
