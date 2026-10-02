@@ -126,16 +126,25 @@
       .replace(/[\\/?%*:|"<>]/g, "-");
   }
 
+  // Dedupe KEY only (never shown to the client). Collapses the known copy shapes of one
+  // contract-PBP: H1036-054C-000-2027, H4140-023-000, H5420-001/0028. Anything else keeps its
+  // THEI form (H5471-077-00, H5420-003 FL-0029) so distinct IDs never merge and never get mangled.
+  const CONTRACT_PBP_COPY_RE = /^([HR]\d{3,4}-\d{2,4}[A-Z]?)(?:-000(?:-20\d{2})?|-20\d{2}|\/\d{2,4})?$/;
+  // Same plan, two spellings in the catalog / threads.
+  const CONTRACT_PBP_SAME_PLAN = { "H1036-054": "H1036-054C", "H4140-012": "H4140-023" };
+
   function compactContractPbp(raw) {
     const s = String(raw || "").toUpperCase().replace(/\s+/g, "");
     if (!s) return "";
-    const m = s.match(/([HR]\d{3,4})[\-\|]?(\d{2,4}[A-Z]?)/);
-    if (!m) return s.split("/")[0].replace(/-000$/i, "");
-    return m[1] + "-" + m[2];
+    const m = s.match(CONTRACT_PBP_COPY_RE);
+    const key = m ? m[1] : s.split("/")[0].replace(/-000$/i, "");
+    return CONTRACT_PBP_SAME_PLAN[key] || key;
   }
 
   function displayContractPbp(plan) {
-    return compactContractPbp(plan && (plan.planId || plan.id));
+    let id = String((plan && (plan.planId || plan.id)) || "").replace(/\s+/g, "");
+    id = id.replace(/-000-20\d{2}$/i, "").replace(/-000$/i, "").replace(/\/000$/i, "");
+    return id;
   }
 
   function formatPlanMarketingName(plan) {
@@ -622,11 +631,17 @@
   function mergeDrugPlanStatus(target, planId, incoming, plans) {
     if (!incoming) return;
     const want = String(planId || "").replace(/\s+/g, "").toUpperCase().split("/")[0];
-    const match = (plans || []).find((p) => {
-      const aliases = planIdAliases(p).map((id) => String(id || "").replace(/\s+/g, "").toUpperCase().split("/")[0]);
-      if (aliases.includes(want)) return true;
-      return planColumnSlot(want) === planColumnSlot(planColumnId(p)) && planColumnSlot(want) !== want;
-    });
+    // Exact contract-PBP column wins. Only fall back to alias/slot matching when the looked-up
+    // ID is not itself a column (e.g. a 014 lookup must never fill a separate 001 column).
+    const wantKey = compactContractPbp(planId);
+    const exact = (plans || []).find((p) => planColumnId(p) === wantKey);
+    const match =
+      exact ||
+      (plans || []).find((p) => {
+        const aliases = planIdAliases(p).map((id) => String(id || "").replace(/\s+/g, "").toUpperCase().split("/")[0]);
+        if (aliases.includes(want)) return true;
+        return planColumnSlot(want) === planColumnSlot(planColumnId(p)) && planColumnSlot(want) !== want;
+      });
     const key = match ? displayContractPbp(match) || String(match.planId || match.id || "") : planId;
     if (!key) return;
     const prev = target[key] || { verified: false, tier: null };
@@ -904,6 +919,27 @@
     return [...byKey.values()];
   }
 
+  // Doctor `statuses` arrays are positional (one per plan column). When copies of the same
+  // contract-PBP collapse, fold each group's statuses into the surviving column so In/Out
+  // stays on the right plan instead of shifting left.
+  function realignDoctorStatuses(doctors, originalPlans, keptPlans) {
+    if (!Array.isArray(doctors) || !doctors.length) return doctors;
+    const orig = originalPlans || [];
+    const kept = keptPlans || [];
+    if (orig.length === kept.length) return doctors;
+    const groupIdx = kept.map((k) => {
+      const key = planColumnId(k);
+      return orig.map((p, i) => (planColumnId(p) === key ? i : -1)).filter((i) => i >= 0);
+    });
+    return doctors.map((d) => {
+      if (!d || typeof d === "string" || !Array.isArray(d.statuses) || d.statuses.length !== orig.length) return d;
+      const statuses = groupIdx.map((idxs) =>
+        idxs.reduce((acc, i) => mergeStatusPair(acc, normalizeNetworkStatus(d.statuses[i]) || d.statuses[i]), "") || NETWORK_NOT_CONFIRMED
+      );
+      return Object.assign({}, d, { statuses });
+    });
+  }
+
   function normalizeExportPayload(plansOrPayload, meta) {
     const extra = meta && typeof meta === "object" ? meta : {};
     const uniq = (list) => uniquePlansByContractPbp(list);
@@ -912,7 +948,13 @@
     }
     if (plansOrPayload && typeof plansOrPayload === "object") {
       const plans = Array.isArray(plansOrPayload.plans) ? plansOrPayload.plans : [];
-      return { ...plansOrPayload, plans: uniq(plans), ...extra };
+      const kept = uniq(plans);
+      return {
+        ...plansOrPayload,
+        plans: kept,
+        doctors: realignDoctorStatuses(plansOrPayload.doctors, plans, kept),
+        ...extra,
+      };
     }
     return { plans: [], ...extra };
   }
@@ -1042,27 +1084,21 @@
     return a || b;
   }
 
+  // One column per distinct contract-PBP. Only a second copy of the SAME ID is dropped;
+  // different plans (even same carrier family, e.g. H5420-001 vs H5420-014) all stay.
   function uniquePlansByContractPbp(plans) {
     const byPbp = new Map();
     (plans || []).forEach((p) => {
-      const id = compactContractPbp(p && (p.planId || p.id));
+      const id = planColumnId(p);
       if (!id) return;
       const prev = byPbp.get(id);
       byPbp.set(id, prev ? preferPlanForSlot(prev, p) : p);
     });
-    return dedupeComparisonPlans([...byPbp.values()]);
+    return orderComparisonPlans([...byPbp.values()]);
   }
 
   function dedupeComparisonPlans(plans) {
-    const bySlot = new Map();
-    (plans || []).forEach((p) => {
-      const id = planColumnId(p);
-      const slot = planColumnSlot(id) || id;
-      if (!slot) return;
-      const prev = bySlot.get(slot);
-      bySlot.set(slot, prev ? preferPlanForSlot(prev, p) : p);
-    });
-    return orderComparisonPlans([...bySlot.values()]);
+    return uniquePlansByContractPbp(plans);
   }
 
   function orderComparisonPlans(plans) {
@@ -1077,32 +1113,38 @@
   }
 
   function keepCurrentComparisonPlans(latest, prior) {
-    const current = (latest || []).slice();
-    const remembered = (prior || []).slice();
-    if (!remembered.length) return uniquePlansByContractPbp(current);
-    if (!current.length) return uniquePlansByContractPbp(remembered);
-    const currentSlots = new Set(current.map((p) => planColumnSlot(planColumnId(p))));
-    const priorSlots = new Set(remembered.map((p) => planColumnSlot(planColumnId(p))));
+    const current = uniquePlansByContractPbp(latest);
+    const remembered = uniquePlansByContractPbp(prior);
+    if (!remembered.length) return current;
+    if (!current.length) return remembered;
+    const slotOf = (p) => planColumnSlot(planColumnId(p));
+    const currentSlots = new Set(current.map(slotOf));
+    const priorSlots = new Set(remembered.map(slotOf));
     const currentIsSubset = [...currentSlots].every((s) => priorSlots.has(s));
-    if (currentIsSubset && remembered.length > current.length) {
-      const merged = remembered.map((p) => {
-        const slot = planColumnSlot(planColumnId(p));
-        return current.find((c) => planColumnSlot(planColumnId(c)) === slot) || p;
-      });
-      return uniquePlansByContractPbp(merged);
-    }
     const overlap = [...currentSlots].filter((s) => priorSlots.has(s)).length;
-    if (overlap >= 1 && (currentIsSubset || overlap >= 2)) {
-      const merged = remembered.slice();
-      current.forEach((c) => {
-        const slot = planColumnSlot(planColumnId(c));
-        const idx = merged.findIndex((p) => planColumnSlot(planColumnId(p)) === slot);
-        if (idx >= 0) merged[idx] = preferPlanForSlot(merged[idx], c);
-        else merged.push(c);
-      });
-      return uniquePlansByContractPbp(merged);
-    }
-    return uniquePlansByContractPbp(current);
+    const useMemory =
+      (currentIsSubset && remembered.length > current.length) ||
+      (overlap >= 1 && (currentIsSubset || overlap >= 2));
+    if (!useMemory) return current;
+    // Carry remembered columns forward, except one superseded by a DIFFERENT plan of the same
+    // family that the current thread cites (stale 014 -> stay-put 001). A remembered plan the
+    // current thread also cites is kept (current copy preferred), so 001 + 014 together survive.
+    const currentById = new Map(current.map((c) => [planColumnId(c), c]));
+    const merged = [];
+    remembered.forEach((p) => {
+      const same = currentById.get(planColumnId(p));
+      if (same) {
+        merged.push(preferPlanForSlot(p, same));
+        return;
+      }
+      if (currentSlots.has(slotOf(p))) return;
+      merged.push(p);
+    });
+    const have = new Set(merged.map(planColumnId));
+    current.forEach((c) => {
+      if (!have.has(planColumnId(c))) merged.push(c);
+    });
+    return uniquePlansByContractPbp(merged);
   }
 
   function verifiedCell(tier, costShare, coverage) {
