@@ -17,8 +17,9 @@
  *
  * UHC Medicare is the public guest Find a Doctor SPA
  * (findcare.guest.uhc.com) — no Jarvis / member login.
- * Humana fhir.humana.com is WAF 403 from this host. Wellcare /
- * CarePlus still need Sunfire or a developer-portal key.
+ * Humana Medicare is the public Find Care guest SPA
+ * (findcare.humana.com) — no member login. fhir.humana.com is WAF 403.
+ * Wellcare / CarePlus still need Sunfire or a developer-portal key.
  */
 
 const { Router } = require('express');
@@ -28,6 +29,7 @@ const { queryDoctorsHcp, PLAN_LABEL: DOCTORS_PLAN_LABEL } = require('../services
 const { queryAetnaPublic, CARRIER_LABEL: AETNA_PLAN_LABEL } = require('../services/aetnaPublicSearch');
 const { querySimplyFindcare, CARRIER_LABEL: SIMPLY_PLAN_LABEL } = require('../services/simplyFindcare');
 const { queryUhcGuest, CARRIER_LABEL: UHC_PLAN_LABEL, PLAN_YEAR: UHC_PLAN_YEAR } = require('../services/uhcGuestSearch');
+const { queryHumanaFindcare, CARRIER_LABEL: HUMANA_PLAN_LABEL, PLAN_YEAR: HUMANA_PLAN_YEAR, isHumanaLabel } = require('../services/humanaFindcare');
 const { solisLookupNote } = require('../services/solisDirectory');
 const { parseName, extractNpi, resolveNpiRecords } = require('../services/npiRegistry');
 const router = Router();
@@ -356,16 +358,18 @@ router.post('/', async (req, res) => {
 
     const npiLastName = npiResult.basic?.last_name || lastName;
 
-    // Run FHIR + Doctors + Aetna + Simply + UHC guest + Sunfire in parallel
-    const [fhirResults, sunfireResult, doctorsResult, aetnaResult, simplyResult, uhcResult] = await Promise.all([
+    // Run FHIR + Doctors + Aetna + Simply + UHC guest + Humana guest + Sunfire in parallel
+    const [fhirResults, sunfireResult, doctorsResult, aetnaResult, simplyResult, uhcResult, humanaResult] = await Promise.all([
       Promise.all(CARRIERS.map(carrier => queryCarrier(carrier, npi))),
       querySunfire(npi, zip, county),
       queryDoctorsHcp(npi),
       queryAetnaPublic(npi, { zip, state, lastName: npiLastName }),
       querySimplyFindcare(npi, { zip, lastName: npiLastName }),
       queryUhcGuest(npi, { zip, state, year: UHC_PLAN_YEAR }),
+      queryHumanaFindcare(npi, { zip, year: HUMANA_PLAN_YEAR }),
     ]);
-    const sunfirePlans = sunfireResult.plans || [];
+    const humanaGuestOk = Boolean(humanaResult.checks?.some((c) => c.status === 'in_network' || c.status === 'out_of_network'));
+    const sunfirePlans = (sunfireResult.plans || []).filter((plan) => !(humanaGuestOk && isHumanaLabel(plan)));
 
     const inNetworkFor       = [];
     const carriersWithErrors = [];
@@ -421,6 +425,16 @@ router.post('/', async (req, res) => {
     if (uhcResult.failedPlans?.length) {
       carriersWithErrors.push(`${UHC_PLAN_LABEL} (partial)`);
     }
+    if (humanaResult.error && !humanaResult.checks?.length) {
+      carriersWithErrors.push(HUMANA_PLAN_LABEL);
+    } else if (humanaResult.inNetwork) {
+      for (const plan of humanaResult.plans) {
+        if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
+      }
+    }
+    if (humanaResult.failedPlans?.length) {
+      carriersWithErrors.push(`${HUMANA_PLAN_LABEL} (partial)`);
+    }
     if (sunfireResult.status === 'failed') {
       carriersWithErrors.push('Sunfire (secondary)');
     }
@@ -439,6 +453,9 @@ router.post('/', async (req, res) => {
       uhcMatches: uhcResult.matches?.length ? uhcResult.matches : undefined,
       uhcChecks: uhcResult.checks?.length ? uhcResult.checks : undefined,
       uhcOutOfNetwork: uhcResult.outOfNetworkPlans?.length ? uhcResult.outOfNetworkPlans : undefined,
+      humanaMatches: humanaResult.matches?.length ? humanaResult.matches : undefined,
+      humanaChecks: humanaResult.checks?.length ? humanaResult.checks : undefined,
+      humanaOutOfNetwork: humanaResult.outOfNetworkPlans?.length ? humanaResult.outOfNetworkPlans : undefined,
       sunfireStatus: sunfireResult.status,
       carriersChecked:    [
         ...CARRIERS.map(c => c.name),
@@ -446,8 +463,9 @@ router.post('/', async (req, res) => {
         AETNA_PLAN_LABEL,
         SIMPLY_PLAN_LABEL,
         `${UHC_PLAN_LABEL} guest Find a Doctor ${UHC_PLAN_YEAR}`,
+        `${HUMANA_PLAN_LABEL} Find Care guest ${HUMANA_PLAN_YEAR}`,
         'Solis (PDF directory only)',
-        'Sunfire (Humana, WellCare, CarePlus + contracted FL MA; secondary for UHC)',
+        'Sunfire (WellCare, CarePlus + contracted FL MA; secondary for UHC / Humana)',
       ],
       carriersWithErrors: carriersWithErrors.length ? carriersWithErrors : undefined,
     });
@@ -458,11 +476,11 @@ router.post('/', async (req, res) => {
     meta: {
       query:           { doctorName, zip, state },
       npiResultCount:  npiResults.length,
-      carriersQueried: [...CARRIERS.map(c => c.name), DOCTORS_PLAN_LABEL, AETNA_PLAN_LABEL, SIMPLY_PLAN_LABEL, UHC_PLAN_LABEL, 'Sunfire'],
+      carriersQueried: [...CARRIERS.map(c => c.name), DOCTORS_PLAN_LABEL, AETNA_PLAN_LABEL, SIMPLY_PLAN_LABEL, UHC_PLAN_LABEL, HUMANA_PLAN_LABEL, 'Sunfire'],
       sunfirePlanMapSize: Object.keys(SUNFIRE_PLAN_MAP).length,
       planYear: UHC_PLAN_YEAR,
       solis: solisLookupNote(zip),
-      note: 'UHC via public guest Find a Doctor (no Jarvis / member login) for AEP 2027. Empty Sunfire is not UHC out-of-network. HealthSun via FHIR. Doctors via ProviderSearch. Aetna / Simply via guest find-care. Solis is county PDF only. Sunfire is secondary (Humana, WellCare, CarePlus). Failed check ≠ out of network.',
+      note: 'UHC via public guest Find a Doctor (no Jarvis / member login) for AEP 2027. Humana via public Find Care guest (no member login) for AEP 2027. Empty Sunfire is not UHC or Humana out-of-network. HealthSun via FHIR. Doctors via ProviderSearch. Aetna / Simply via guest find-care. Solis is county PDF only. Sunfire is secondary (WellCare, CarePlus; Humana only if Find Care fails). Failed check ≠ out of network.',
       timestamp: new Date().toISOString(),
     },
   });
@@ -472,8 +490,8 @@ router.post('/', async (req, res) => {
 
 /**
  * Query Sunfire /v2/provider/list for a given NPI.
- * Secondary signal only (Humana / Wellcare / CarePlus; UHC uses guest Find a Doctor).
- * Empty or failed Sunfire is never UHC out-of-network.
+ * Secondary signal only (Wellcare / CarePlus; UHC and Humana use public guest directories).
+ * Empty or failed Sunfire is never UHC or Humana out-of-network.
  * Requires SUNFIRE_JWT and SUNFIRE_SFP on Railway.
  */
 async function querySunfire(npi, zip, county = '12086', year = Number(UHC_PLAN_YEAR)) {

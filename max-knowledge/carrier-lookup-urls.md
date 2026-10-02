@@ -69,9 +69,9 @@ Use these links when an agent needs to check if a provider is in-network or if a
 
 ---
 
-## Humana (H1036, H7284)
-- **Provider Lookup:** https://findcare.humana.com
-  - _Real-time in-network provider search; enter ZIP and plan type. Also available via MyHumana app._
+## Humana (H1036, H7617)
+- **Provider Lookup (guest — Max uses this):** https://findcare.humana.com
+  - _Search as a guest. No member login. Max queries 2027 Medicare networks by NPI (FL Medicare HMO27 / HIDE / FIDE / PPO27) and maps THEI CMS IDs onto that network. Failed check ≠ out of network._
 - **Drug/Formulary Lookup:** https://www.humana.com/medicaredruglist
   - _Official Humana Medicare drug list portal; cited in 2026 Summary of Benefits documents._
 

@@ -14,6 +14,12 @@ const {
   PLAN_YEAR: UHC_PLAN_YEAR,
   formatUhcAgentNote,
 } = require('./uhcGuestSearch');
+const {
+  queryHumanaFindcare,
+  CARRIER_LABEL: HUMANA_PLAN_LABEL,
+  isHumanaLabel,
+  formatHumanaAgentNote,
+} = require('./humanaFindcare');
 const { formatSolisNote } = require('./solisDirectory');
 const { resolveNpiRecords } = require('./npiRegistry');
 const { discoverPlansForArea } = require('./planDiscover');
@@ -163,7 +169,7 @@ const TOOLS = [
   },
   {
     name: 'lookup_provider_network',
-    description: 'Look up which Medicare Advantage plans a doctor is in-network for in Florida. Use when an agent asks what plans a doctor accepts, or if a specific doctor is in-network for a plan. Live: FHIR (FL Blue, Cigna, HealthSun, Devoted), Doctors ProviderSearch, Aetna guest find-care, Simply Find Care guest, and UHC public guest Find a Doctor (2027 Duals / Preferred / MedicareMax — no Jarvis or member login). Solis is county PDF only. Sunfire is secondary for Humana / Wellcare / CarePlus only — empty Sunfire is not UHC out-of-network. A failed check is never out-of-network. Do not invent network status. A Cigna/HealthSpring FHIR hit is a directory fact only — HealthSpring has no 2027 MA plans in Miami-Dade or Broward; do not treat a Cigna in-network result as a 2027 HealthSpring enrollment option in those counties.',
+    description: 'Look up which Medicare Advantage plans a doctor is in-network for in Florida. Use when an agent asks what plans a doctor accepts, or if a specific doctor is in-network for a plan. Live: FHIR (FL Blue, Cigna, HealthSun, Devoted), Doctors ProviderSearch, Aetna guest find-care, Simply Find Care guest, UHC public guest Find a Doctor (2027 Duals / Preferred / MedicareMax — no Jarvis or member login), and Humana public Find Care guest (2027 Gold Plus / Duals / Choice — no member login). Solis is county PDF only. Sunfire is secondary for Wellcare / CarePlus, and for Humana only if Find Care fails — empty Sunfire is not UHC or Humana out-of-network. A failed check is never out-of-network. Do not invent network status. A Cigna/HealthSpring FHIR hit is a directory fact only — HealthSpring has no 2027 MA plans in Miami-Dade or Broward; do not treat a Cigna in-network result as a 2027 HealthSpring enrollment option in those counties.',
     input_schema: {
       type: 'object',
       properties: {
@@ -171,8 +177,8 @@ const TOOLS = [
         npi: { type: 'string', description: '10-digit NPI when the agent has it. Prefer this over name search — name search can hit a different Garcia.' },
         zip: { type: 'string', description: 'Florida ZIP code — optional, ranks nearby matches but does not hide doctors a few miles away' },
         state: { type: 'string', description: 'State code, defaults to FL', default: 'FL' },
-        year: { type: 'number', description: 'Plan year for UHC guest / Sunfire lookups. Default 2027 for AEP.' },
-        planId: { type: 'string', description: 'Optional CMS plan ID to restrict the UHC guest check, e.g. "H1045-012" or "H1045-061".' }
+        year: { type: 'number', description: 'Plan year for UHC/Humana guest / Sunfire lookups. Default 2027 for AEP.' },
+        planId: { type: 'string', description: 'Optional CMS plan ID to restrict the UHC or Humana guest check, e.g. "H1045-012" or "H1036-054".' }
       },
       required: ['doctorName']
     }
@@ -224,7 +230,7 @@ async function processTool(toolName, toolInput) {
       const doctorName = toolInput.doctorName || '';
       const zip = toolInput.zip || '33136';
       const planYear = toolInput.year || Number(UHC_PLAN_YEAR);
-      const uhcPlanIds = toolInput.planId ? [String(toolInput.planId)] : [];
+      const guestPlanIds = toolInput.planId ? [String(toolInput.planId)] : [];
       const results = await resolveNpiRecords({
         doctorName,
         zip,
@@ -261,11 +267,12 @@ async function processTool(toolName, toolInput) {
             }
           } catch(e) { /* skip carrier */ }
         });
-        const [doctorsResult, aetnaResult, simplyResult, uhcResult] = await Promise.all([
+        const [doctorsResult, aetnaResult, simplyResult, uhcResult, humanaResult] = await Promise.all([
           queryDoctorsHcp(npi),
           queryAetnaPublic(npi, { zip, lastName: p.basic?.last_name || '' }),
           querySimplyFindcare(npi, { zip, lastName: p.basic?.last_name || '' }),
-          queryUhcGuest(npi, { zip, year: planYear, planIds: uhcPlanIds }),
+          queryUhcGuest(npi, { zip, year: planYear, planIds: guestPlanIds }),
+          queryHumanaFindcare(npi, { zip, year: planYear, planIds: guestPlanIds }),
           Promise.all(fhirLookups),
         ]);
         if (doctorsResult.inNetwork && !inNetworkFor.includes(DOCTORS_PLAN_LABEL)) {
@@ -292,15 +299,22 @@ async function processTool(toolName, toolInput) {
             if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
           }
         }
+        if (!humanaResult.error && humanaResult.inNetwork) {
+          for (const plan of humanaResult.plans) {
+            if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
+          }
+        }
         const lookupErrors = [];
         if (doctorsResult.error) lookupErrors.push('Doctors HealthCare Plans');
         if (aetnaResult.error) lookupErrors.push('Aetna guest search');
         if (simplyResult.error) lookupErrors.push('Simply Find Care');
         if (uhcResult.error) lookupErrors.push('UHC guest Find a Doctor');
+        if (humanaResult.error) lookupErrors.push('Humana Find Care');
         const checkedGuest = ['FL Blue', 'Cigna', 'HealthSun', 'Devoted', 'Doctors'];
         if (!aetnaResult.error) checkedGuest.push('Aetna guest search');
         if (!simplyResult.error) checkedGuest.push('Simply Find Care');
         checkedGuest.push('UHC guest Find a Doctor');
+        checkedGuest.push('Humana Find Care');
         providerResults.push({
           name: pName,
           npi,
@@ -310,13 +324,17 @@ async function processTool(toolName, toolInput) {
           lookupErrors,
           checkedGuest,
           uhcResult,
+          humanaResult,
         });
       }
       if (!providerResults.length) return `Found NPIs but no network data available.`;
-      // Step 3: Sunfire /v2/provider/list for UHC, Humana, WellCare, CarePlus, etc.
+      // Step 3: Sunfire /v2/provider/list for WellCare, CarePlus, etc. (Humana only if Find Care failed)
       const SUNFIRE_BASE = 'https://www.sunfirematrix.com';
       const SUNFIRE_JWT = process.env.SUNFIRE_JWT || '';
       const SUNFIRE_SFP = process.env.SUNFIRE_SFP || '';
+      const humanaGuestOk = providerResults.some((pr) => (
+        pr.humanaResult?.checks?.some((c) => c.status === 'in_network' || c.status === 'out_of_network')
+      ));
       const sunfireInNetwork = []; // resolved plan name strings
       if (SUNFIRE_JWT && SUNFIRE_SFP && providerResults.length > 0) {
         try {
@@ -357,6 +375,7 @@ async function processTool(toolName, toolInput) {
               } else {
                 label = `Plan ID ${id}`;
               }
+              if (humanaGuestOk && isHumanaLabel(label)) continue;
               if (!sunfireInNetwork.includes(label)) sunfireInNetwork.push(label);
             }
           }
@@ -369,15 +388,16 @@ async function processTool(toolName, toolInput) {
         out += `Specialty: ${pr.specialty}\n`;
         out += `Address: ${pr.address}\n`;
         const allNetworks = [...pr.inNetworkFor];
-        const missList = (pr.checkedGuest || ['FL Blue', 'Cigna', 'HealthSun', 'Devoted', 'Doctors', 'Aetna guest search', 'Simply Find Care', 'UHC guest Find a Doctor']).join(', ');
-        out += allNetworks.length ? `In-network for: ${allNetworks.join(', ')}\n` : `Not found in ${missList} (a miss on FHIR/Doctors/Aetna/Simply is not a UHC answer).\n`;
+        const missList = (pr.checkedGuest || ['FL Blue', 'Cigna', 'HealthSun', 'Devoted', 'Doctors', 'Aetna guest search', 'Simply Find Care', 'UHC guest Find a Doctor', 'Humana Find Care']).join(', ');
+        out += allNetworks.length ? `In-network for: ${allNetworks.join(', ')}\n` : `Not found in ${missList} (a miss on FHIR/Doctors/Aetna/Simply is not a UHC or Humana answer).\n`;
         if (pr.uhcResult) out += `${formatUhcAgentNote(pr.uhcResult)}\n`;
+        if (pr.humanaResult) out += `${formatHumanaAgentNote(pr.humanaResult)}\n`;
         if (sunfireInNetwork.length > 0) {
           out += `Sunfire also listed (${sunfireInNetwork.length}; secondary, year ${planYear}):\n${sunfireInNetwork.map(p => `  - ${p}`).join('\n')}\n`;
         } else {
           out += SUNFIRE_SFP
-            ? `Sunfire did not confirm additional plans for ${planYear}. Empty Sunfire is not UHC out-of-network.\n`
-            : `Sunfire session unavailable (secondary only). UHC uses public guest Find a Doctor. Humana / Wellcare / CarePlus still need Sunfire or the carrier site.\n`;
+            ? `Sunfire did not confirm additional plans for ${planYear}. Empty Sunfire is not UHC or Humana out-of-network.\n`
+            : `Sunfire session unavailable (secondary only). UHC uses public guest Find a Doctor. Humana uses public Find Care. Wellcare / CarePlus still need Sunfire or the carrier site.\n`;
         }
         if (pr.lookupErrors?.length) {
           out += `Could not complete: ${pr.lookupErrors.join(', ')} — that is not the same as out-of-network. Hand the agent the guest URL.\n`;
@@ -417,6 +437,16 @@ async function processTool(toolName, toolInput) {
             plans: firstProvider.uhcResult?.plans || [],
             outOfNetworkPlans: firstProvider.uhcResult?.outOfNetworkPlans || [],
             year: firstProvider.uhcResult?.year || UHC_PLAN_YEAR,
+          },
+          {
+            carrier: HUMANA_PLAN_LABEL,
+            inNetwork: Boolean(firstProvider.humanaResult?.inNetwork),
+            status: firstProvider.humanaResult?.error
+              ? 'failed'
+              : (firstProvider.humanaResult?.inNetwork ? 'in_network' : 'checked'),
+            plans: firstProvider.humanaResult?.plans || [],
+            outOfNetworkPlans: firstProvider.humanaResult?.outOfNetworkPlans || [],
+            year: firstProvider.humanaResult?.year || UHC_PLAN_YEAR,
           }
         ]
       } : { doctorName, networks: [] };
