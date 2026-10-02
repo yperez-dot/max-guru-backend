@@ -168,3 +168,22 @@ HealthSpring left Miami-Dade and Broward for 2027. A live Cigna FHIR API can sti
 
 **Why this rule exists:**
 Muskat/Yahoska: Max listed Pablo/Miriam meds with Daisy’s tiers (Lorazepam T2, Trintellix T4) and only footnoted “not verified against 2027 Humana formulary.” Lookup is the only source. Never repeat Daisy’s labels.
+
+---
+
+## Rule 22 — Mid-call reply length (Yahoska) (Added 2026-10-02)
+
+**Trigger:** Every live chat reply. Hard-wired as `REPLY_STYLE_RULE` (`services/replyStyle.js`) and appended on `/chat` via `TOOL_USE_APPENDIX`.
+
+**What Max must do:**
+- Lead with the answer (e.g. the drug list + verified tiers). No warmup.
+- Use short bullets for parallel facts (same drug list, same copay set). Otherwise 2–4 sentences.
+- Stop there.
+
+**What Max must NOT do:**
+- ❌ Remap explanations, source essays, or cross-plan asides unless she asked
+- ❌ “Want me to export…” / “click Export Excel / Export PDF” closers unless she explicitly asked to export
+- ❌ Narrate Sunfire → FHIR → Plan Compare when the chips / verified tier already answer the question
+
+**Why this rule exists:**
+Yahoska is mid-call. The Excel/PDF chips already speak for themselves. Extra process talk delays the facts.
