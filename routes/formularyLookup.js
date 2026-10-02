@@ -7,7 +7,7 @@
  * claimedTier query params are discarded and never returned.
  */
 const { Router } = require('express');
-const { lookupFormulary, formatFormularyText, toExportDrug } = require('../services/formularyLookup');
+const { lookupFormulary, formatFormularyText, toExportDrug, toExportDrugs } = require('../services/formularyLookup');
 
 const router = Router();
 
@@ -34,6 +34,7 @@ router.get('/', async (req, res) => {
       claimedTierDiscarded: true,
       text: formatFormularyText(result),
       drug: toExportDrug(result),
+      drugs: toExportDrugs(result),
       lookups: result.lookups,
       catalog: result.catalog,
     });

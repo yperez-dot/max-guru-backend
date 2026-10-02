@@ -159,6 +159,7 @@ HealthSpring left Miami-Dade and Broward for 2027. A live Cigna FHIR API can sti
 - Quote only a **verified** tier + PA/ST from that live lookup (Sunfire → Humana FHIR PBP+year → medicare.gov Plan Compare → Doctors 2027 formulary PDF for H4140)
 - After a verified tier, quote cost-share from THEI 2027 Hub/grid T1–T6 columns
 - If lookup fails, say **unverified** — no invented tier
+- When a brand is verified not covered, automatically follow the known generic (Lipitor → Atorvastatin, Benicar → Olmesartan). Do not wait for the agent to type the generic. Show brand* as not covered with the asterisk note. Generic tier from that live follow-up only — never invent a generic tier.
 
 **What Max must NOT do:**
 - ❌ Surface, quote, or imply Daisy’s Tier labels as fact
