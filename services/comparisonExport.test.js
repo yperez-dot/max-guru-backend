@@ -186,6 +186,9 @@ describe('Arias-like sheet model from live plan-data', () => {
     assert.ok(labels.indexOf('Part B Rebate') < labels.indexOf('Referrals Needed?'));
     assert.equal(labels.includes('Chronic Conditions'), false);
     assert.equal(labels.includes('Other'), false);
+    assert.equal(labels.includes('MSP Levels'), true, 'D-SNP comparison keeps MSP Levels');
+    const msp = model.aoa.find((row) => row[0] === 'MSP Levels');
+    assert.ok(msp.slice(1).some((c) => c && c !== 'Not listed'));
 
     const wanner = model.aoa.find((row) => row[0] === 'Dr. Adam Wanner');
     assert.deepEqual(wanner.slice(1), ['Out of network', 'Out of network']);
@@ -325,6 +328,7 @@ describe('HTML UI wiring', () => {
     assert.match(html, /do not wait for the agent to type the generic/);
     assert.match(html, /17c\. MUSKAT 2027 LOCKED COMP/);
     assert.match(html, /Medications immediately under Doctors/);
+    assert.match(html, /Omit the MSP Levels row unless at least one compared plan is a D-SNP/);
     assert.match(html, /Do NOT add a Plan Terminating row unless/);
     assert.match(html, /MaxClientWorkups/);
     assert.match(html, /\/workups/);
@@ -551,6 +555,67 @@ FORMULARY_LOOKUP year=2027 drug=Atorvastatin plan=H4140-023 verified_tier=1 cost
   });
 });
 
+describe('MSP Levels only on dual / D-SNP comparisons', () => {
+  it('detects D-SNP and Dual names, not C-SNP or HMO', () => {
+    assert.equal(exp.isDualOrDsnpPlan({ type: 'D-SNP', planName: 'Preferred Dual Complete' }), true);
+    assert.equal(exp.isDualOrDsnpPlan({ type: 'DSNP' }), true);
+    assert.equal(exp.isDualOrDsnpPlan({ type: 'HMO', planName: 'UHC Preferred Dual Complete FL-QV4' }), true);
+    assert.equal(exp.isDualOrDsnpPlan({ type: 'HMO', dualLevel: { full: true, partial: false } }), true);
+    assert.equal(exp.isDualOrDsnpPlan({ type: 'C-SNP', planName: 'MedicareMax Complete Care FL-30' }), false);
+    assert.equal(exp.isDualOrDsnpPlan({ type: 'HMO', planName: 'Humana Gold Plus' }), false);
+    assert.equal(
+      exp.comparisonIncludesDual([
+        { type: 'HMO', planName: 'Gold Plus' },
+        { type: 'C-SNP', planName: 'Complete Care' },
+      ]),
+      false
+    );
+    assert.equal(
+      exp.comparisonIncludesDual([
+        { type: 'HMO', planName: 'Gold Plus' },
+        { type: 'D-SNP', planName: 'Dual Complete' },
+      ]),
+      true
+    );
+  });
+
+  it('omits the MSP Levels row when every compared plan is non-dual', () => {
+    const plans = loadPlans();
+    const trio = [
+      planById(plans, 'H1036-054C', 'Miami-Dade'),
+      planById(plans, 'H4140-023', 'Miami-Dade'),
+      planById(plans, 'H5420-014', 'Miami-Dade'),
+    ].filter(Boolean);
+    assert.equal(trio.length, 3);
+    const model = exp.buildComparisonModel({
+      plans: trio,
+      clientName: 'Carol Wong',
+      skipMuskatLock: true,
+    });
+    const labels = model.aoa.map((row) => row[0]);
+    assert.equal(labels.includes('MSP Levels'), false);
+    assert.equal(labels.includes('Premium'), true);
+    assert.equal(labels.includes('Referrals Needed?'), true);
+    assert.equal(labels.includes('Max Out of Pocket'), true);
+    assert.ok(labels.indexOf('Referrals Needed?') < labels.indexOf('Max Out of Pocket'));
+  });
+
+  it('keeps MSP Levels when at least one compared plan is a D-SNP', () => {
+    const plans = loadPlans();
+    const dual = planById(plans, 'H1045-012', 'Miami-Dade');
+    const hmo = planById(plans, 'H1036-054C', 'Miami-Dade');
+    assert.ok(dual && hmo);
+    const model = exp.buildComparisonModel({
+      plans: [hmo, dual],
+      clientName: 'Carol Wong',
+    });
+    const msp = model.aoa.find((row) => row[0] === 'MSP Levels');
+    assert.ok(msp);
+    assert.equal(msp[1], 'Not listed');
+    assert.notEqual(msp[2], 'Not listed');
+  });
+});
+
 describe('Muskat 2027 locked export', () => {
   it('locks Michael Muskat columns, doctors, verified Rx, and 2027 green-cell highlights', () => {
     const plans = loadPlans();
@@ -587,6 +652,7 @@ describe('Muskat 2027 locked export', () => {
     assert.ok(labels.indexOf('Memantine') < labels.indexOf('Premium'));
     assert.ok(labels.indexOf('Fitness') < labels.indexOf('Summary of Benefits'));
     assert.ok(labels.includes(exp.GENERIC_ONLY_NOTE));
+    assert.equal(labels.includes('MSP Levels'), false, 'non-dual Muskat comp omits MSP Levels');
 
     const roca = model.aoa.find((row) => row[0] === 'Dr. Alejandro Roca');
     assert.deepEqual(roca.slice(1), ['Out of network', 'In network', 'In network']);

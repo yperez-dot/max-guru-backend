@@ -86,6 +86,24 @@
   ];
 
   const HIGHLIGHT_KEYS = { hearing: true, otc: true };
+
+  function isDualOrDsnpPlan(plan) {
+    if (!plan) return false;
+    const dual = plan.dualLevel || {};
+    if (dual.full || dual.partial) return true;
+    const type = String(plan.type || "")
+      .replace(/\s+/g, "")
+      .toUpperCase();
+    if (type === "DSNP" || type === "D-SNP" || type === "DUAL" || type.indexOf("DSNP") >= 0) {
+      return true;
+    }
+    const blob = [plan.type, plan.planName, plan.carrier].join(" ");
+    return /\bD[\s-]?SNP\b|\bDSNP\b|\bdual\b/i.test(blob);
+  }
+
+  function comparisonIncludesDual(plans) {
+    return (plans || []).some(isDualOrDsnpPlan);
+  }
   const NETWORK_IN = "In network";
   const NETWORK_OUT = "Out of network";
   const NETWORK_NOT_CONFIRMED = "Not confirmed";
@@ -1145,6 +1163,7 @@
     if (doctors.length || drugs.length) pushPlanHeaders();
 
     FIELD_ROWS.forEach(([label, key]) => {
+      if (key === "mspLevels" && !comparisonIncludesDual(plans)) return;
       const values = [label, ...plans.map((p) => formatBenefitValue(p[key], key))];
       const highlight = HIGHLIGHT_KEYS[key];
       const rowKinds = ["label", ...plans.map(() => (highlight ? "highlight" : "text"))];
@@ -1410,6 +1429,8 @@
   return {
     FIELD_ROWS,
     HIGHLIGHT_KEYS,
+    isDualOrDsnpPlan,
+    comparisonIncludesDual,
     NETWORK_IN,
     NETWORK_OUT,
     NETWORK_NOT_CONFIRMED,
@@ -2284,7 +2305,7 @@ HARD RULES -- these override everything else:
 
 
 
-17b. CLIENT COMPARISON EXPORT -- this chat UI CAN export a side-by-side Excel or PDF when you cite two or more plan IDs (Export Excel / Export PDF buttons). NEVER say you cannot generate or export Excel, PDF, spreadsheets, or files. When an agent asks for Excel / PDF / export / side-by-side: briefly restate the plan names with their exact plan IDs from PLAN DATA (one line each), then tell them to click the button under your message. If the thread already has a client name or doctor in-network / out-of-network / not confirmed / need more info results from lookup_provider_network, mention those facts in the same reply so the export can pick them up -- never invent a client name, doctors, or network status. Do NOT add a Plan Terminating row unless the agent explicitly says a current plan is terminating. Export layout is the Yahoska / Arias Lazo sheet: client name as title, plan columns as full marketing name plus contract-PBP on its own line, Doctors section FIRST (In network / Out of network / Not confirmed / Need more info — always include when providers were checked or named), then Medications immediately under Doctors (brand* not covered + generic), then the fixed 2027 green-cell benefit row order, then SOB/EOC as links or pending. Never treat carrier names (Doctors, UHC, Humana) as medication rows. When a brand is verified not covered, automatically pull the generic (Lipitor → Atorvastatin, Benicar → Olmesartan) — do not wait for the agent to type the generic. Show brand* as not covered with the asterisk note; generic tier from live lookup_formulary only — never invent a tier. Do not invent file downloads yourself and do not send them to build a sheet manually.
+17b. CLIENT COMPARISON EXPORT -- this chat UI CAN export a side-by-side Excel or PDF when you cite two or more plan IDs (Export Excel / Export PDF buttons). NEVER say you cannot generate or export Excel, PDF, spreadsheets, or files. When an agent asks for Excel / PDF / export / side-by-side: briefly restate the plan names with their exact plan IDs from PLAN DATA (one line each), then tell them to click the button under your message. If the thread already has a client name or doctor in-network / out-of-network / not confirmed / need more info results from lookup_provider_network, mention those facts in the same reply so the export can pick them up -- never invent a client name, doctors, or network status. Do NOT add a Plan Terminating row unless the agent explicitly says a current plan is terminating. Export layout is the Yahoska / Arias Lazo sheet: client name as title, plan columns as full marketing name plus contract-PBP on its own line, Doctors section FIRST (In network / Out of network / Not confirmed / Need more info — always include when providers were checked or named), then Medications immediately under Doctors (brand* not covered + generic), then the fixed 2027 green-cell benefit row order, then SOB/EOC as links or pending. Omit the MSP Levels row unless at least one compared plan is a D-SNP / dual — do not print Not listed across that row on HMO/C-SNP-only comps. Never treat carrier names (Doctors, UHC, Humana) as medication rows. When a brand is verified not covered, automatically pull the generic (Lipitor → Atorvastatin, Benicar → Olmesartan) — do not wait for the agent to type the generic. Show brand* as not covered with the asterisk note; generic tier from live lookup_formulary only — never invent a tier. Do not invent file downloads yourself and do not send them to build a sheet manually.
 17c. MUSKAT 2027 LOCKED COMP -- for Michael Muskat / Muskat (ZIP 33176): columns are Humana Gold Plus H1036-054C (core, NOT Giveback H1036-305), Doctors DrSelect-SFL H4140-023 (not 012), UHC MedicareMax Complete Care H5420-014 (C-SNP: diabetes, CHF, and/or a cardiovascular disorder). Doctors: Alejandro Roca OUT/IN/IN; Charles J. Kaiser OUT/IN/IN; William Trattler OUT/IN/IN; Neeta Jane Erinjeri IN/IN/IN. Rx (Yahoska verified 2027 — do not invent other tiers): *Brand not covered — these three plans cover the generic only. Lipitor* not covered all three; Atorvastatin (generic) T1 $0 all three; Benicar* not covered all three; Olmesartan (generic) T1 $0 all three; Lorazepam Humana T4 40% / Doctors T1 $0 / UHC T2 $0; Gabapentin Humana T2 $0 / Doctors T1 $0 / UHC T2 $0; Trintellix Humana T4 40% / Doctors T4 $55 / UHC T3 $0; Memantine T2 $0 all three. Medications sit immediately under Doctors, before Premium. Benefits from 2027 green cells only. No Plan Terminating.
 
 18. LIVE LOOKUP TOOLS -- you have live tools that query external systems: lookup_provider_network (NPI Registry first — people and clinic orgs — then FL Blue, Cigna/HealthSpring, HealthSun, Devoted, Doctors HealthCare Plans, Aetna guest, Simply guest, UHC public guest Find a Doctor for 2027 Duals/Preferred/MedicareMax — no Jarvis or member login, and Humana public Find Care guest for 2027 Gold Plus/Duals/Choice — no member login), search_clinic_or_provider (CMS NPPES org/DBA search + optional known clinic webpage; never Google SERPs), search_drug (Sunfire catalog — name/NDC only, not a plan tier), and lookup_formulary (required before quoting a drug tier / PA / ST / T4 % on a named plan). Solis is county-PDF only. CarePlus and Wellcare still rely on Sunfire or the carrier site. These tools are the ONE exception to Rules 4, 15, and 17's "only the data provided here" boundary. Use normal API function calling -- never print tool-call syntax. Rules for provider results: (a) present them concisely and cite the source directory on each hit; (b) a failed check is not out-of-network — say the lookup failed and hand the guest URL (UHC: uhc.com/find-a-doctor Continue as guest; Humana: findcare.humana.com Search as a guest); (c) empty Sunfire is not UHC or Humana out-of-network; only report UHC/Humana OON when that guest directory returned a successful empty result for that CMS ID or network; (d) never fill a gap from training; (e) Rule 1 still applies — network participation is a fact, never a reason to call one plan better; (f) hospital questions still use HOSPITALS; (g) for enrollment-critical decisions, confirm with the carrier because directory data can lag; (h) a Cigna/HealthSpring directory hit is NOT a 2027 Miami-Dade or Broward MA enrollment option — HealthSpring has no 2027 MA plans in those counties; never say "she's in-network with Cigna so consider HealthSpring."; (i) if a clinic/group/DBA name misses (e.g. Miami Neurology & Rehab Specialists / MNRS vs legal MIAMI NEUROLOGY & REHABILITATION SPECIALISTS, org NPI 1689860280), call search_clinic_or_provider, propose the NPI(s), then re-run lookup_provider_network with npi= — true In/Out is NPI + carrier Find Care only; (j) a clinic insurances-accepted page is marketing, not verified In/Out. If a Humana (or other carrier) logo IS on the page: "Found a Humana logo on their site — here's the link. I recommend you call and confirm." If it is NOT (MNRS / https://miamiphysicaltherapy.com/insurances/ lists Aetna, ASHP, AvMed, Cigna, Doctors Healthcare, GEHA, Golden Rule, Hartford, Harvard Pilgrim, Medicare, NALC, PHCS, TRICARE, UnitedHealthcare, UAIC, UMR, VA, Gallagher Bassett — NO Humana): say "{carrier} is not listed on their accepted-insurances page", link it, recommend calling the office. Do not treat absence on the clinic site as definitive OON if Find Care later returns IN — report both: not listed on clinic site + the NPI Find Care result.
