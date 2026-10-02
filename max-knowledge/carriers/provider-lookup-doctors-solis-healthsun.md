@@ -38,6 +38,10 @@ When an agent asks about Solis + a doctor, say Max cannot search Solis live and 
 
 If the agent pastes a 10-digit NPI, Max looks that number up first. Name + ZIP is not enough: CMS ZIP is a hard filter (33166 hits a different Lazaro Garcia NP and misses Family Medicine MD `1598792707` at 33125 / Salus Health). Devoted’s public directory (PCP ID `LX358W-AA`) matches FHIR when queried by NPI; `_include=PractitionerRole:network` 400s on Devoted and must not be treated as “not in network.”
 
+## Clinic / group names (NPI-2)
+
+Person last-name search misses clinics (e.g. Miami Neurology & Rehab Specialists). Use `search_clinic_or_provider` (NPPES org wildcard + optional known site). MNRS / MIAMI NEUROLOGY & REHABILITATION SPECIALISTS is org NPI `1689860280`. Details: `carriers/clinic-nppes-search`. Never invent In/Out from a clinic insurances-accepted page.
+
 ## Aetna (H1609)
 
 Guest search at https://www.aetna.com/medicare/find-provider.html (Continue as guest). No member login. Max uses the public SPA token + `ahpublic_taxonomy` / `ahpublic_search` / provider healthplans. A directory hit is not the same as Medicare Advantage in-network for that ZIP.

@@ -21,7 +21,8 @@ const {
   formatHumanaAgentNote,
 } = require('./humanaFindcare');
 const { formatSolisNote } = require('./solisDirectory');
-const { resolveNpiRecords } = require('./npiRegistry');
+const { resolveNpiRecords, displayName, allLocationAddresses } = require('./npiRegistry');
+const { searchClinicOrProvider } = require('./clinicSearch');
 const { discoverPlansForArea } = require('./planDiscover');
 
 // Sunfire plan ID → plan name/carrier map (built 2026-07-23)
@@ -41,6 +42,8 @@ const ALLOWED_DOMAINS = [
   'www.medicare.gov',
   'cms.gov',
   'www.cms.gov',
+  'cms.hhs.gov',
+  'npiregistry.cms.hhs.gov',
   'ssa.gov',
   'www.ssa.gov',
   'agentmedicarehub.com',
@@ -121,6 +124,8 @@ For 2027 / PY2027 / AEP 2027 questions: ALWAYS search_knowledge first (medicare-
 For 2026 plan benefit dollars / plan IDs, prefer the live PLAN DATA supplied in the chat system prompt when present; use the KB to supplement ops/compliance context.
 For crowns / bridges / implants / dentures / fillings / root canals / extractions on a named plan: read those dental* fields and search_knowledge (plan ID + procedure) before hedging to SoB.
 
+20. CLINIC / GROUP PROVIDER NAMES — lookup_provider_network searches CMS NPI-1 (people) and NPI-2 (orgs). If a clinic/group name misses or the agent only has a DBA (e.g. "Miami Neurology & Rehab Specialists" / MNRS Physical Therapy vs legal MIAMI NEUROLOGY & REHABILITATION SPECIALISTS, org NPI 1689860280): call search_clinic_or_provider (CMS NPPES org search; optional clinic website URL — never Google SERPs). Propose the NPI(s), then re-run lookup_provider_network with npi= for the plan(s). True In/Out is NPI + carrier Find Care / FHIR / guest directory only. Never invent In/Out from a clinic "insurances accepted" marketing page. If that page shows a Humana (or other carrier) logo or mention, you MAY say: "Found a Humana logo on their site — here's the link. I recommend you call and confirm." That is a lead, not verified network status. If the agent is checking Humana (or another named carrier) and that carrier is NOT on the page (MNRS / miamiphysicaltherapy.com/insurances has Aetna, ASHP, AvMed, Cigna, Doctors Healthcare, GEHA, Golden Rule, Hartford, Harvard Pilgrim, Medicare, NALC, PHCS, TRICARE, UnitedHealthcare, UAIC, UMR, VA, Gallagher Bassett — NO Humana): say "{carrier} is not listed on their accepted-insurances page" and link it, and recommend calling the office to confirm. Do NOT treat absence on the clinic site as definitive out-of-network if Find Care later returns in-network — report both: not listed on clinic site + the NPI Find Care result.
+
 ALWAYS search the KB before answering Hub/ops questions. Search by SEP code, county, topic, or document key.`;
 
 // Tool definitions for function-calling
@@ -141,7 +146,7 @@ const TOOLS = [
   },
   {
     name: 'fetch_web_page',
-    description: 'Fetch live content from approved websites: healthexps.com, medicare.gov, cms.gov, ssa.gov, agentmedicarehub.com. Use for current plan info, CMS rules, SSA info, or anything that may have changed recently.',
+    description: 'Fetch live content from approved websites: healthexps.com, medicare.gov, cms.gov, cms.hhs.gov (NPPES), ssa.gov, agentmedicarehub.com. Clinic insurances pages belong on search_clinic_or_provider (not Google SERPs) and are never verified In/Out.',
     input_schema: {
       type: 'object',
       properties: {
@@ -169,18 +174,35 @@ const TOOLS = [
   },
   {
     name: 'lookup_provider_network',
-    description: 'Look up which Medicare Advantage plans a doctor is in-network for in Florida. Use when an agent asks what plans a doctor accepts, or if a specific doctor is in-network for a plan. Live: FHIR (FL Blue, Cigna, HealthSun, Devoted), Doctors ProviderSearch, Aetna guest find-care, Simply Find Care guest, UHC public guest Find a Doctor (2027 Duals / Preferred / MedicareMax — no Jarvis or member login), and Humana public Find Care guest (2027 Gold Plus / Duals / Choice — no member login). Solis is county PDF only. Sunfire is secondary for Wellcare / CarePlus, and for Humana only if Find Care fails — empty Sunfire is not UHC or Humana out-of-network. A failed check is never out-of-network. Do not invent network status. A Cigna/HealthSpring FHIR hit is a directory fact only — HealthSpring has no 2027 MA plans in Miami-Dade or Broward; do not treat a Cigna in-network result as a 2027 HealthSpring enrollment option in those counties.',
+    description: 'Look up which Medicare Advantage plans a doctor or clinic NPI is in-network for in Florida. Prefer npi= when known (org NPI-2 or individual NPI-1). If a clinic/group name misses, call search_clinic_or_provider first, then re-run this tool with the NPI. Live: FHIR (FL Blue, Cigna, HealthSun, Devoted), Doctors ProviderSearch, Aetna guest find-care, Simply Find Care guest, UHC public guest Find a Doctor (2027 Duals / Preferred / MedicareMax — no Jarvis or member login), and Humana public Find Care guest (2027 Gold Plus / Duals / Choice — no member login). Solis is county PDF only. Sunfire is secondary for Wellcare / CarePlus, and for Humana only if Find Care fails — empty Sunfire is not UHC or Humana out-of-network. A failed check is never out-of-network. Do not invent network status from a clinic insurances-accepted webpage. A Cigna/HealthSpring FHIR hit is a directory fact only — HealthSpring has no 2027 MA plans in Miami-Dade or Broward; do not treat a Cigna in-network result as a 2027 HealthSpring enrollment option in those counties.',
     input_schema: {
       type: 'object',
       properties: {
-        doctorName: { type: 'string', description: 'Doctor full name, e.g. "Lazaro Miguel Garcia, MD". If the agent pasted a 10-digit NPI in the name, that is used first.' },
-        npi: { type: 'string', description: '10-digit NPI when the agent has it. Prefer this over name search — name search can hit a different Garcia.' },
+        doctorName: { type: 'string', description: 'Doctor or clinic name, e.g. "Lazaro Miguel Garcia, MD" or "Miami Neurology & Rehab Specialists". If the agent pasted a 10-digit NPI in the name, that is used first.' },
+        npi: { type: 'string', description: '10-digit NPI when the agent has it (individual or organization). Prefer this over name search — name search can hit a different Garcia or miss a DBA.' },
         zip: { type: 'string', description: 'Florida ZIP code — optional, ranks nearby matches but does not hide doctors a few miles away' },
         state: { type: 'string', description: 'State code, defaults to FL', default: 'FL' },
         year: { type: 'number', description: 'Plan year for UHC/Humana guest / Sunfire lookups. Default 2027 for AEP.' },
         planId: { type: 'string', description: 'Optional CMS plan ID to restrict the UHC or Humana guest check, e.g. "H1045-012" or "H1036-054".' }
       },
       required: ['doctorName']
+    }
+  },
+  {
+    name: 'search_clinic_or_provider',
+    description: 'Resolve a clinic/group/DBA name via CMS NPPES (NPI-2 organization search) to official name, NPI(s), addresses, phones, aliases. Optional fetch of a known clinic website/insurances page the agent already has (or the confirmed MNRS page). Never scrape Google/Bing SERPs. Use when lookup_provider_network misses a clinic name (e.g. Miami Neurology & Rehab Specialists → MNRS / NPI 1689860280). Then re-run lookup_provider_network with npi=. A clinic insurances-accepted page is marketing, not verified In/Out. If a askedCarrier logo IS on the page: say "Found a {carrier} logo on their site — here\'s the link. I recommend you call and confirm." If it is NOT (MNRS has no Humana): say "{carrier} is not listed on their accepted-insurances page" + link + recommend calling the office. Absence on the clinic site is not definitive OON if Find Care later returns IN — report both: not listed on clinic site + NPI Find Care result.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Clinic, group, or DBA name, e.g. "Miami Neurology & Rehab Specialists" or "MNRS Physical Therapy".' },
+        npi: { type: 'string', description: 'Optional 10-digit NPI if already known.' },
+        zip: { type: 'string', description: 'Optional ZIP to rank nearby locations (not a hard CMS filter).' },
+        city: { type: 'string', description: 'Optional city, e.g. Miami or South Miami.' },
+        state: { type: 'string', description: 'State code, defaults to FL', default: 'FL' },
+        siteUrl: { type: 'string', description: 'Optional clinic page URL to fetch for aliases/NPI/insurance logos, e.g. https://miamiphysicaltherapy.com/insurances/ — not a Google search URL.' },
+        askedCarrier: { type: 'string', description: 'Carrier the agent is checking (e.g. Humana, UHC). Used to say whether that logo is on the insurances page. Not a network determination.' }
+      },
+      required: ['name']
     }
   },
   {
@@ -225,6 +247,21 @@ async function processTool(toolName, toolInput) {
     const doc = getKnowledgeByKey(toolInput.key);
     return doc || `Document "${toolInput.key}" not found.`;
   }
+  if (toolName === 'search_clinic_or_provider') {
+    try {
+      const npiHint = toolInput.npi ? String(toolInput.npi) : '';
+      return await searchClinicOrProvider({
+        name: [toolInput.name || toolInput.clinicName || '', npiHint].filter(Boolean).join(' '),
+        state: toolInput.state || 'FL',
+        zip: toolInput.zip,
+        city: toolInput.city,
+        siteUrl: toolInput.siteUrl || toolInput.url,
+        askedCarrier: toolInput.askedCarrier || toolInput.carrier,
+      });
+    } catch (e) {
+      return `Clinic search error: ${e.message}`;
+    }
+  }
   if (toolName === 'lookup_provider_network') {
     try {
       const doctorName = toolInput.doctorName || '';
@@ -238,7 +275,9 @@ async function processTool(toolName, toolInput) {
         npi: toolInput.npi,
         limit: 5,
       });
-      if (!results.length) return `No providers found matching "${doctorName}" in Florida. Try a different spelling or paste the 10-digit NPI.`;
+      if (!results.length) {
+        return `No providers found matching "${doctorName}" in Florida (NPI-1 person or NPI-2 clinic). If this is a clinic/group/DBA, call search_clinic_or_provider, then re-run lookup_provider_network with the NPI. Do not invent In/Out from a clinic insurances-accepted webpage.`;
+      }
       // Step 2: FHIR + Doctors directory for each NPI
       const CARRIERS = [
         { name: 'Florida Blue', key: 'flblue', base: 'https://apigw.bcbsfl.com/interop/interop-developer-portal/emr/api/v1/fhir' },
@@ -249,9 +288,13 @@ async function processTool(toolName, toolInput) {
       const providerResults = [];
       for (const p of results.slice(0, 5)) {
         const npi = p.number;
-        const pName = [p.basic?.first_name, p.basic?.middle_name, p.basic?.last_name].filter(Boolean).join(' ');
+        const pName = displayName(p) || [p.basic?.first_name, p.basic?.middle_name, p.basic?.last_name].filter(Boolean).join(' ');
         const spec = (p.taxonomies || []).find(t => t.primary)?.desc || 'Unknown';
-        const addr = (p.addresses || []).find(a => a.address_purpose === 'LOCATION') || {};
+        const locs = allLocationAddresses(p);
+        const addr = locs[0] || {};
+        const address = locs.length
+          ? locs.map((a) => `${a.address_1 || ''}, ${a.city || ''}, FL ${String(a.postal_code || '').slice(0, 5)}`.trim()).join(' | ')
+          : `${addr.address_1 || ''}, ${addr.city || ''}, FL ${addr.postal_code || ''}`.trim();
         const inNetworkFor = [];
         const fhirLookups = CARRIERS.map(async (carrier) => {
           try {
@@ -269,8 +312,8 @@ async function processTool(toolName, toolInput) {
         });
         const [doctorsResult, aetnaResult, simplyResult, uhcResult, humanaResult] = await Promise.all([
           queryDoctorsHcp(npi),
-          queryAetnaPublic(npi, { zip, lastName: p.basic?.last_name || '' }),
-          querySimplyFindcare(npi, { zip, lastName: p.basic?.last_name || '' }),
+          queryAetnaPublic(npi, { zip, lastName: p.basic?.last_name || p.basic?.organization_name || '' }),
+          querySimplyFindcare(npi, { zip, lastName: p.basic?.last_name || p.basic?.organization_name || '' }),
           queryUhcGuest(npi, { zip, year: planYear, planIds: guestPlanIds }),
           queryHumanaFindcare(npi, { zip, year: planYear, planIds: guestPlanIds }),
           Promise.all(fhirLookups),
@@ -319,7 +362,7 @@ async function processTool(toolName, toolInput) {
           name: pName,
           npi,
           specialty: spec,
-          address: `${addr.address_1 || ''}, ${addr.city || ''}, FL ${addr.postal_code || ''}`.trim(),
+          address,
           inNetworkFor,
           lookupErrors,
           checkedGuest,
