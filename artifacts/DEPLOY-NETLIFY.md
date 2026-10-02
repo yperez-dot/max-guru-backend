@@ -46,10 +46,12 @@ mkdir -p /tmp/max-index
 npx netlify deploy --prod --dir=/tmp/max-index --site=<site-id>
 ```
 
-## Excel export fix
+## Excel / PDF export
 
 Plan IDs like `H5420-001/0028` fuzzy-match grid IDs (`H5420-001/-0028`).
-Asking for “excel” re-offers Export from the **latest** comparison only.
+Asking for “excel” or “pdf” re-offers Export from the **latest** comparison only.
+
+The file matches Yahoska’s Arias Lazo sheet: client name title (when known), optional Plan Terminating, marketing name + contract-PBP headers, Doctors In/Out when known, then the fixed benefit rows. SOB/EOC are hyperlinks when the plan has a URL, otherwise `SOB pending` / `EOC pending`. The HTML inlines the export script, so publishing `max-demo-FINAL-v7.html` as `index.html` is still a one-file deploy.
 
 ## Invite-only access (cost control)
 
