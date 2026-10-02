@@ -17,6 +17,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 const { getKnowledgeByKey } = require('../knowledge/loader');
 
 const SUNFIRE_BASE = 'https://www.sunfirematrix.com';
@@ -412,7 +413,7 @@ async function lookupHumanaFhir({ drugName, ndc, planId, year }, fetchImpl = fet
 
   let lastError = null;
   for (const url of queries) {
-    const res = await fetchJson(url, { headers }, fetchImpl, 15_000);
+    const res = await fetchJson(url, { headers }, fetchImpl, 8_000);
     if (!res.ok) {
       lastError = res.error || `humana_fhir_http_${res.status}`;
       continue;
@@ -480,8 +481,59 @@ function medicareGovHeaders() {
     Origin: 'https://www.medicare.gov',
     Referer: 'https://www.medicare.gov/plan-compare/',
     'fe-ver': MPF_FE_VER,
-    'User-Agent': 'Mozilla/5.0 (compatible; Max-Medicare-Guru/1.0)',
+    'User-Agent':
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   };
+}
+
+/**
+ * Akamai 403s Node/undici POSTs to drugs/cost. curl (and Python urllib) succeed.
+ * Tests inject fetchImpl and never hit this path.
+ */
+function curlFetch(url, options = {}) {
+  return new Promise((resolve) => {
+    const method = String(options.method || 'GET').toUpperCase();
+    const headers = options.headers || {};
+    const args = ['-sS', '-X', method, '--max-time', '20', '-w', '\n__HTTPSTATUS__:%{http_code}'];
+    Object.entries(headers).forEach(([key, value]) => {
+      if (value != null) args.push('-H', `${key}: ${value}`);
+    });
+    if (options.body) args.push('--data-binary', String(options.body));
+    args.push(String(url));
+    const child = spawn('curl', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '';
+    child.stdout.on('data', (chunk) => {
+      out += chunk;
+    });
+    const timer = setTimeout(() => {
+      try {
+        child.kill('SIGKILL');
+      } catch (_) {
+        /* ignore */
+      }
+    }, 22_000);
+    child.on('error', () => {
+      clearTimeout(timer);
+      resolve({ ok: false, status: 0, text: async () => '' });
+    });
+    child.on('close', () => {
+      clearTimeout(timer);
+      const match = out.match(/\n__HTTPSTATUS__:(\d+)\s*$/);
+      const status = match ? Number(match[1]) : 0;
+      const text = match ? out.slice(0, match.index) : out;
+      resolve({
+        ok: status >= 200 && status < 300,
+        status,
+        text: async () => text,
+      });
+    });
+  });
+}
+
+async function medicareGovFetch(url, options = {}) {
+  const method = String(options.method || 'GET').toUpperCase();
+  if (method === 'POST') return curlFetch(url, options);
+  return fetch(url, options);
 }
 
 function cmsContractParts(planId) {
@@ -646,7 +698,7 @@ function extractMedicareGovCost(payload, planId, year) {
   return { miss: 'empty_costs' };
 }
 
-async function lookupMedicareGov({ drugName, ndc, planId, year }, fetchImpl = fetch) {
+async function lookupMedicareGov({ drugName, ndc, planId, year }, fetchImpl = medicareGovFetch) {
   const y = Number(year) || PLAN_YEAR;
   const parts = cmsContractParts(planId);
   if (!parts) return { verified: false, reason: 'medicare_gov_bad_plan_id', source: 'medicare_gov' };
@@ -852,9 +904,10 @@ async function lookupFormulary(
     }
 
     if (!hit || !hit.verified) {
+      const medicareFetch = fetchImpl === fetch ? medicareGovFetch : fetchImpl;
       const mpf = await lookupMedicareGov(
         { drugName: resolvedName, ndc: resolvedNdc, planId: id, year: y },
-        fetchImpl
+        medicareFetch
       );
       if (mpf.verified) hit = mpf;
       else if (mpf.reason) reasons.push(mpf.reason);
@@ -1010,6 +1063,7 @@ module.exports = {
   lookupSunfireCoverage,
   lookupHumanaFhir,
   lookupMedicareGov,
+  medicareGovFetch,
   searchSunfireCatalog,
   formatFormularyText,
   formatPlanLookupLine,
