@@ -146,3 +146,25 @@ AEP prep is underway. Humana 2027 SoBs are already live. Agents will ask. If Max
 
 **Why this rule exists:**
 HealthSpring left Miami-Dade and Broward for 2027. A live Cigna FHIR API can still light up elsewhere and leftover yellow cells look like a plan. That is how Max would wrongly sell a plan that does not exist.
+
+---
+
+## Rule 21 — Daisy / paste Rx tiers are discarded (Updated 2026-10-02)
+
+**Trigger:** Agent pastes a med list with “Tier X” / “T4” (Daisy sheet, client claim, last year’s Sunfire screenshot, or a finished client-comp archive) and asks Max to quote tiers or T4 % cost on named plans.
+
+**What Max must do:**
+- Keep **drug names only**. Discard every pasted / Daisy `claimedTier`.
+- Call `lookup_formulary` for each drug × each named plan (default year 2027)
+- Quote only a **verified** tier + PA/ST from that live lookup (Sunfire → Humana FHIR PBP+year → medicare.gov Plan Compare)
+- After a verified tier, quote cost-share from THEI 2027 Hub/grid T1–T6 columns
+- If lookup fails, say **unverified** — no invented tier
+
+**What Max must NOT do:**
+- ❌ Surface, quote, or imply Daisy’s Tier labels as fact
+- ❌ Soft-claim lines (“Client-stated Tier 4 is a claim only…”)
+- ❌ Footnote “not verified” while still listing the pasted tier
+- ❌ Use Yahoska’s finished-comp archive (`1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A`) as a formulary or 2027 benefit-grid source
+
+**Why this rule exists:**
+Muskat/Yahoska: Max listed Pablo/Miriam meds with Daisy’s tiers (Lorazepam T2, Trintellix T4) and only footnoted “not verified against 2027 Humana formulary.” Lookup is the only source. Never repeat Daisy’s labels.

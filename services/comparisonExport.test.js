@@ -196,6 +196,77 @@ describe('Arias-like sheet model from live plan-data', () => {
   });
 });
 
+describe('Rx / Medications rows never copy Daisy tiers', () => {
+  const plans = [
+    { planId: 'H1036-054C', planName: 'Humana Gold Plus', tier4: 0.4, tier2: 0, tier5: 0.33 },
+    { planId: 'H1036-305', planName: 'Humana Gold Plus Giveback', tier4: 0.5, tier2: 0, tier3: 0.09 },
+  ];
+  const daisy = `
+Compare H1036-054C and H1036-305 for Pablo Miriam in Miami-Dade.
+Meds from Daisy: Lorazepam T2, Trintellix T4, Atorvastatin Tier 1.
+`;
+
+  it('extracts drug names only and discards pasted Daisy tiers', () => {
+    const claimed = exp.extractClaimedMeds(daisy);
+    const names = claimed.map((d) => d.name);
+    assert.ok(names.includes('Lorazepam'));
+    assert.ok(names.includes('Trintellix'));
+    assert.equal(claimed.every((d) => d.claimedTier == null), true);
+    const payload = exp.buildExportPayload(plans, daisy, {});
+    const model = exp.buildComparisonModel(payload);
+    assert.ok(model.aoa.some((row) => row[0] === 'Medications'));
+    const trin = model.aoa.find((row) => row[0] === 'Trintellix');
+    assert.ok(trin);
+    assert.deepEqual(trin.slice(1), ['Unverified', 'Unverified']);
+    assert.equal(trin.includes('Tier 4'), false);
+    const lor = model.aoa.find((row) => row[0] === 'Lorazepam');
+    assert.deepEqual(lor.slice(1), ['Unverified', 'Unverified']);
+    const payloadDrug = payload.drugs.find((d) => d.name === 'Trintellix');
+    assert.equal(payloadDrug.claimedTier, undefined);
+  });
+
+  it('uses FORMULARY_LOOKUP verified tiers + plan T1–T6 cost-share', () => {
+    const thread =
+      daisy +
+      `
+FORMULARY_LOOKUP year=2027 drug=Trintellix plan=H1036-054C verified_tier=5 cost_share=33% pa=yes st=no source=sunfire
+FORMULARY_LOOKUP year=2027 drug=Trintellix plan=H1036-305 verified_tier=3 cost_share=9% source=sunfire
+FORMULARY_LOOKUP year=2027 drug=Atorvastatin plan=H1036-054C verified=no reason=unverified
+`;
+    const payload = exp.buildExportPayload(plans, thread, {});
+    const model = exp.buildComparisonModel(payload);
+    const trin = model.aoa.find((row) => row[0] === 'Trintellix');
+    assert.match(trin[1], /Tier 5/);
+    assert.match(trin[1], /33%/);
+    assert.match(trin[2], /Tier 3/);
+    const atp = model.aoa.find((row) => row[0] === 'Atorvastatin');
+    assert.deepEqual(atp.slice(1), ['Unverified', 'Unverified']);
+  });
+
+  it('uses structured extras.drugs lookup tiers and drops claimedTier', () => {
+    const payload = exp.buildExportPayload(plans, daisy, {
+      drugs: [
+        {
+          name: 'Trintellix',
+          claimedTier: 4,
+          byPlanId: {
+            'H1036-054C': { verified: true, tier: 5, costShare: '33%', pa: true },
+            'H1036-305': { verified: false },
+          },
+        },
+      ],
+    });
+    const trin = payload.drugs.find((d) => d.name === 'Trintellix');
+    assert.equal(trin.claimedTier, undefined);
+    assert.equal(trin.byPlanId['H1036-054C'].tier, 5);
+    const model = exp.buildComparisonModel(payload);
+    const row = model.aoa.find((r) => r[0] === 'Trintellix');
+    assert.match(row[1], /Tier 5/);
+    assert.equal(row[2], 'Unverified');
+    assert.equal(row[1].includes('Tier 4'), false);
+  });
+});
+
 describe('HTML UI wiring', () => {
   it('inlines the comparison export and offers Excel + PDF', () => {
     const html = fs.readFileSync(HTML_PATH, 'utf8');
@@ -209,6 +280,17 @@ describe('HTML UI wiring', () => {
     assert.match(html, /MAX_ATTACH_IMAGES/);
     assert.match(html, /collectComparisonExport/);
     assert.match(html, /clientName: payload.clientName/);
+    assert.match(html, /lookup_formulary/);
+    assert.match(html, /CLIENT-STATED RX TIERS/);
+    assert.match(html, /1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A/);
+    assert.match(html, /archive of finished client comps/);
+    assert.match(html, /not the 2027 benefit grid/);
+  });
+
+  it('keeps the 2027 grid export pointed at the working workbook, not Yahoska archive', () => {
+    const py = fs.readFileSync(path.join(__dirname, '../scripts/export_2027_grid_to_kb.py'), 'utf8');
+    assert.match(py, /SHEET_ID = "1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N"/);
+    assert.equal(py.includes('1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A'), false);
   });
 
   it('keeps chat compare rule against markdown tables', () => {

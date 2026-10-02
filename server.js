@@ -10,6 +10,7 @@ const { createRateLimiter } = require('./middleware/rateLimit');
 const { loadKnowledge, getKnowledgeSummary } = require('./knowledge/loader');
 const { startSepRefreshScheduler, refreshSepTracker, getStatus: getSepRefreshStatus } = require('./services/sepRefresh');
 const drugLookupRouter = require('./routes/drugLookup');
+const formularyLookupRouter = require('./routes/formularyLookup');
 const providerLookupRouter = require('./routes/providerLookup');
 
 const app = express();
@@ -83,6 +84,7 @@ app.post('/admin/refresh-seps', requireApiKey, requireAccessToken, async (req, r
 
 // POST /provider-lookup { doctorName, zip, state? }
 app.use('/drug-search', requireApiKey, requireAccessToken, drugLookupRouter);
+app.use('/formulary-lookup', requireApiKey, requireAccessToken, formularyLookupRouter);
 app.use('/provider-lookup', requireApiKey, requireAccessToken, providerLookupRouter);
 
 const MAX_CLIENT_SYSTEM_CHARS = Number(process.env.MAX_CLIENT_SYSTEM_CHARS || 400000);
@@ -93,7 +95,8 @@ ADDITIONAL RUNTIME RULES (server-enforced):
 - For questions about whether a doctor/provider is in-network, call lookup_provider_network before answering. If a clinic/group/DBA name misses, call search_clinic_or_provider (CMS NPPES org search + optional known clinic page — never Google SERPs), propose the NPI(s), then re-run lookup_provider_network with npi=.
 - Clinic "insurances accepted" pages are marketing, not verified In/Out. If a Humana (or other carrier) logo IS on the page: "Found a Humana logo on their site — here's the link. I recommend you call and confirm." If it is NOT (MNRS Physical Therapy / https://miamiphysicaltherapy.com/insurances/ lists Aetna, ASHP, AvMed, Cigna, Doctors Healthcare, GEHA, Golden Rule, Hartford, Harvard Pilgrim, Medicare, NALC, PHCS, TRICARE, UnitedHealthcare, UAIC, UMR, VA, Gallagher Bassett — NO Humana): "{carrier} is not listed on their accepted-insurances page" + link + recommend calling the office. Absence on the clinic site is not definitive OON if Find Care later returns IN — report both: not listed on clinic site + the NPI Find Care result. True In/Out is NPI + carrier Find Care / FHIR / guest directory only.
 - Provider results are facts, never a ranking signal. UHC uses the public guest Find a Doctor (2027) — no Jarvis/member login. Humana uses public Find Care guest (2027) — no member login. A failed check or empty Sunfire is not out-of-network. Only report UHC/Humana OON when that guest directory returned a successful empty result for that plan/network.
-- For medication name / NDC lookups, call search_drug before answering.
+- For medication name / NDC lookups, call search_drug (catalog only). search_drug does NOT verify a plan tier.
+- CLIENT-STATED RX TIERS: Daisy / paste / archive "Tier X" labels are discarded. Never surface, quote, or imply them — not even as a soft claim. Paste is drug names only. Call lookup_formulary for each drug × each named plan (year 2027 unless asked otherwise). Lookup order: Sunfire, Humana FHIR (PBP+year match only), medicare.gov Plan Compare. If lookup fails, say unverified. After a verified tier, quote T1–T6 cost-share from THEI Hub/grid 2027 knowledge. Sheet 1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A is Yahoska's finished-comp archive — not the 2027 benefit grid and not a formulary source.
 - For SEP / disaster SEP, compliance, SOA, certs, contracting, Medicaid/LIS, Hub ops topics: call search_knowledge (or get_knowledge_doc) before answering. Prefer hub/seps-by-state/FL for Florida SEP questions.
 - Excel/PDF export: this UI can export a side-by-side .xlsx or PDF when you cite two or more plan IDs. NEVER say you cannot generate or export Excel/PDF/spreadsheets. When asked for Excel or PDF, restate the plan names with exact plan IDs and tell the agent to click Export Excel or Export PDF under your message. If the thread has a client name, terminating plan, or doctor in/out results, mention those facts (never invent them). Export layout is the Yahoska sheet: client name title, optional Plan Terminating, marketing name + contract-PBP columns, Doctors In network/Out of network, then the fixed benefit rows, SOB/EOC links or pending.
 - For plan availability / similar plans outside Miami-Dade or Broward (or when the agent names another Florida county or ZIP such as Alachua, Orange, Hillsborough, Palm Beach): call discover_similar_plans BEFORE answering. List carrier + plan name + plan ID candidates and the medicare.gov Plan Compare link. Say the THEI benefit grid does not cover that county. Do NOT invent premiums, MOOP, or dental from memory. Do NOT rank or recommend a "best" plan (TPMO). Agent verifies in Sunfire / SOB / Plan Compare.
@@ -104,7 +107,7 @@ ADDITIONAL RUNTIME RULES (server-enforced):
   4) LAYOUT — Plan columns: full marketing name + contract-PBP (2–4 plans). Out-of-area: discover_similar_plans + Plan Compare; Dade/Broward may use THEI PLAN DATA/grid. Do NOT invent benefit dollars.
   5) LAYOUT — Benefit rows in this order when sourced: Premium; Part B Rebate; Referrals Needed?; MSP Levels; Max Out of Pocket; Inpatient Hospital; Outpatient Hospital; PCP; Specialist; ER; Urgent Care; Advanced Imaging (MRI, CT, PET); Hearing; Dental + procedure rows; Vision; Ambulance; Transportation; Companionship; Custodial Care; RX Deductible; Tiers 1–6; OTC; Grocery Card; Acupuncture; Fitness; Summary of Benefits; Evidence of Coverage.
   6) LAYOUT — Doctor rows: doctor name with In network / Out of network under each plan column. Call lookup_provider_network for each known doctor with client ZIP. If doctors unknown, omit the Doctors block.
-  7) LAYOUT — Rx rows: drug name with cost/copay under each plan when known (export later). Call search_drug; note what was verified vs what agent must confirm on formulary.
+  7) LAYOUT — Rx / Medications rows: drug name with verified lookup tier + T1–T6 cost-share under each plan. Call lookup_formulary for each drug × plan. Discard Daisy / paste tier labels. Export shows Unverified unless lookup_formulary verified a tier.
   8) If doctors/Rx unknown after name: ask "Do they have doctors or meds on our sheet / that we should check?"
   9) TPMO: No ranking ("best" / "closest" / "highest"). Objective tables only. Prefer search_knowledge for client-plan-comparison.
 `;

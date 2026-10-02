@@ -87,12 +87,15 @@ Objective rows only (adapt to sourced data), for example:
 - If doctors unknown: ask agent to pull from the THEI sheet for that client, or: *“Do they have doctors or meds on our sheet / that we should check?”*
 - Never invent doctors.
 
-### 5. Rx rows
+### 5. Rx / Medications rows
 
-- Each row: **drug name** with **cost/copay under each plan** when known.
-- Call `search_drug`; give formulary-oriented guidance.
-- Clearly note **what Max verified** vs **what the agent must confirm** on the plan formulary (tier, PA, QL, pharmacy).
-- If meds unknown: same ask as doctors / pull from sheet. Never invent meds.
+- Each row: **drug name** with **verified formulary tier + T1–T6 cost-share** under each plan.
+- Call `lookup_formulary` for **each drug × each named plan** (year 2027 unless asked otherwise). `search_drug` is catalog/NDC only — it does **not** verify a tier.
+- A pasted “Tier X” (Daisy, client claim, last year, or a finished-comp archive) is **discarded**. Keep drug names only. Never copy, quote, or imply that label.
+- If lookup fails: cell is **Unverified**. Do not fall back to Daisy’s number.
+- After a verified tier, cost-share comes from THEI 2027 Hub/grid T1–T6 columns — not from the paste.
+- Yahoska’s finished-comp archive (`1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A`) is **not** a formulary or 2027 benefit-grid source. The in-progress client Drs/Rx sheet remains `17yvEEoToayROnm6jR0sIfk9IbxJwVYWVhiqOJzsiCBc`.
+- If meds unknown: same ask as doctors / pull from the working client sheet. Never invent meds.
 
 ### 6. TPMO / disclaimer
 
@@ -108,5 +111,5 @@ Objective rows only (adapt to sourced data), for example:
 3. Plan columns: carrier + name + plan ID (2–4) + ZIP/county
 4. Benefit rows from SOB / Plan Compare / grid only
 5. Doctor rows: In network / Out of network per plan via `lookup_provider_network` (omit Doctors if unknown)
-6. Rx rows: cost/copay when known via `search_drug` + formulary caveats
+6. Rx rows: verified tier + T1–T6 cost-share via `lookup_formulary` only (Unverified if lookup fails)
 7. No ranking language + short disclaimer
