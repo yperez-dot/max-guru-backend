@@ -535,7 +535,14 @@ async function unlockMax(email, password) {
   return data;
 }
 
+const UI_QA = typeof location !== "undefined" ? new URLSearchParams(location.search) : new URLSearchParams();
+const MOCK_DELAY_MS = Number(UI_QA.get("mockDelay") || 0);
+
 async function askGuru(conversationHistory) {
+  if (MOCK_DELAY_MS > 0) {
+    await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
+    return { text: "QA mock reply.", banners: [] };
+  }
   const selection = selectPlansForAsk(conversationHistory);
   if (selection.needClarify) {
     return { text: selection.clarifyMessage, banners: [] };
@@ -689,6 +696,11 @@ function App() {
   const [gateLoading, setGateLoading] = useState(false);
 
   useEffect(() => {
+    if (UI_QA.get("skipGate") === "1") {
+      setAccessGateOn(false);
+      setUnlocked(true);
+      return;
+    }
     let cancelled = false;
     fetch(API_BASE + "/health")
       .then((r) => r.json())
@@ -707,6 +719,7 @@ function App() {
   const [pendingImages, setPendingImages] = useState([]);
   const [attachError, setAttachError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [queued, setQueued] = useState(null);
   const [error, setError] = useState(null);
   const [sidebarWidth, setSidebarWidth] = useState(248);
   const [isDragging, setIsDragging] = useState(false);
@@ -719,6 +732,23 @@ function App() {
   // Remembers the most recent exportable comparison even after the offer chip is dismissed
   // or later non-comparison replies push it out of the recent-message window.
   const lastComparisonPlansRef = useRef([]);
+  const messagesRef = useRef([]);
+  const loadingRef = useRef(false);
+  const queuedRef = useRef(null);
+  const chatGenRef = useRef(0);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  const storeQueued = (item) => {
+    queuedRef.current = item;
+    setQueued(item);
+  };
+  const clearQueued = () => {
+    queuedRef.current = null;
+    setQueued(null);
+  };
 
   const MIN_SIDEBAR = 72;
   const MAX_SIDEBAR = 400;
@@ -769,7 +799,10 @@ function App() {
   const nowLabel = () => new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
   const startNewChat = () => {
+    chatGenRef.current += 1;
+    clearQueued();
     setMessages([]);
+    messagesRef.current = [];
     setBanners([]);
     setError(null);
     setInput("");
@@ -815,9 +848,12 @@ function App() {
   };
 
   const lockMax = () => {
+    chatGenRef.current += 1;
     setAccessToken("");
     setUnlocked(false);
     setMessages([]);
+    messagesRef.current = [];
+    clearQueued();
     setError(null);
     setPendingImages([]);
     setAttachError(null);
@@ -872,11 +908,19 @@ function App() {
     addPendingFiles(files);
   };
 
-  const send = async (text) => {
-    const content = (text || input).trim();
-    const images = pendingImages;
-    if ((!content && !images.length) || loading) return;
+  const clearComposer = () => {
+    setInput("");
+    setPendingImages([]);
+    setAttachError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const sendNow = async (content, images) => {
+    const gen = chatGenRef.current;
     if (isMobile) setSidebarOpen(false);
+    loadingRef.current = true;
+    setLoading(true);
+    setError(null);
     const apiContent = images.length
       ? [
           { type: "text", text: content || "What's in this screenshot?" },
@@ -884,21 +928,15 @@ function App() {
         ]
       : content;
     const userMsg = { role: "user", content: apiContent, time: nowLabel() };
-    const newHistory = [...messages, userMsg];
+    const newHistory = [...messagesRef.current, userMsg];
+    messagesRef.current = newHistory;
     setMessages(newHistory);
-    setInput("");
-    setPendingImages([]);
-    setAttachError(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    setLoading(true);
-    setError(null);
     try {
       // If agent asks for Excel, reuse the latest remembered comparison.
       if (wantsExcelExport(userMessageText(apiContent))) {
         const lastOffer = [...newHistory].reverse().find((m) => m.role === "offer" && m.plans?.length >= 2);
         let fromThread = lastOffer?.plans || lastComparisonPlansRef.current || [];
         if (fromThread.length < 2) {
-          // Walk assistant history newest→oldest until we find a real comparison.
           const assistantMsgs = newHistory.filter((m) => m.role === "assistant");
           for (let i = assistantMsgs.length - 1; i >= 0; i--) {
             const found = findComparisonPlans(assistantMsgs[i].content || "");
@@ -917,16 +955,19 @@ function App() {
             content: `Got it — here's the side-by-side Excel export for ${labels}. Click Export below.`,
             time: nowLabel(),
           };
-          setMessages((prev) => [
-            ...prev.filter((m) => m.role !== "offer"),
+          const nextMsgs = [
+            ...newHistory.filter((m) => m.role !== "offer"),
             assistantMsg,
             { role: "offer", content: "export", plans: fromThread, time: nowLabel() },
-          ]);
+          ];
+          messagesRef.current = nextMsgs;
+          setMessages(nextMsgs);
           return;
         }
       }
 
       const result = await askGuru(newHistory.filter(m => m.role !== 'offer').map((m) => ({ role: m.role, content: m.content })));
+      if (gen !== chatGenRef.current) return;
       const reply = result.text;
       if (result.banners.length) {
         setBanners((current) => {
@@ -937,13 +978,17 @@ function App() {
       }
       const assistantMsg = { role: "assistant", content: reply, time: nowLabel() };
       const found = findComparisonPlans(reply);
+      let nextMsgs;
       if (found.length >= 2) {
         lastComparisonPlansRef.current = found.slice(0, 4);
-        setMessages((prev) => [...prev.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: found.slice(0, 4), time: nowLabel() }]);
+        nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: found.slice(0, 4), time: nowLabel() }];
       } else {
-        setMessages((prev) => [...prev.filter(m => m.role !== 'offer'), assistantMsg]);
+        nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg];
       }
+      messagesRef.current = nextMsgs;
+      setMessages(nextMsgs);
     } catch (err) {
+      if (gen !== chatGenRef.current) return;
       if (err && err.code === "access_required") {
         setUnlocked(false);
         setGateError("Session expired — sign in with your email and password again.");
@@ -955,8 +1000,34 @@ function App() {
       }
       setError("Couldn't reach Max. Check your connection and try again — if this keeps happening, Railway may be redeploying.");
     } finally {
+      if (gen !== chatGenRef.current) {
+        loadingRef.current = false;
+        setLoading(false);
+        return;
+      }
+      const next = queuedRef.current;
+      if (next) {
+        clearQueued();
+        await sendNow(next.text, next.images || []);
+        return;
+      }
+      loadingRef.current = false;
       setLoading(false);
     }
+  };
+
+  const send = (text) => {
+    const fromComposer = text == null;
+    const content = (fromComposer ? input : String(text)).trim();
+    const images = fromComposer ? pendingImages : [];
+    if (!content && !images.length) return;
+    if (loadingRef.current) {
+      storeQueued({ text: content, images: [...images] });
+      if (fromComposer) clearComposer();
+      return;
+    }
+    if (fromComposer) clearComposer();
+    void sendNow(content, images);
   };
 
   if (accessGateOn && !unlocked) {
@@ -1093,10 +1164,9 @@ function App() {
               <button
                 key={q.label}
                 onClick={() => send(q.prompt)}
-                disabled={loading}
                 style={{
                   display: "block", width: "100%", textAlign: "left", marginBottom: 8,
-                  padding: "11px 12px", borderRadius: 12, cursor: loading ? "default" : "pointer",
+                  padding: "11px 12px", borderRadius: 12, cursor: "pointer",
                   border: "1px solid var(--line)", background: "var(--chip)",
                   fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 500, color: "var(--ink)",
                 }}
@@ -1303,6 +1373,33 @@ function App() {
             {attachError && (
               <div style={{ fontSize: 12.5, color: "#9B1C3C", marginBottom: 8 }}>{attachError}</div>
             )}
+            {queued && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span
+                  data-testid="queued-chip"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 8, maxWidth: "100%",
+                    padding: "5px 10px", borderRadius: 999,
+                    background: "rgba(69,32,104,0.08)", border: "1px solid var(--line)",
+                    color: "var(--plum)", fontWeight: 600, fontSize: 12.5,
+                  }}
+                >
+                  Queued
+                  <span style={{ fontWeight: 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 280 }}>
+                    {queued.text || (queued.images?.length ? `${queued.images.length} image${queued.images.length > 1 ? "s" : ""}` : "next message")}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={clearQueued}
+                  aria-label="Cancel queued message"
+                  style={{
+                    width: 22, height: 22, borderRadius: "50%", border: "1px solid var(--line)",
+                    background: "#fff", color: "var(--plum)", cursor: "pointer", fontSize: 13, lineHeight: "20px", padding: 0,
+                  }}
+                >×</button>
+              </div>
+            )}
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <input
                 ref={fileInputRef}
@@ -1315,12 +1412,11 @@ function App() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={loading}
                 aria-label="Attach screenshot"
                 title="Attach PNG, JPEG, or WebP"
                 style={{
                   width: 46, height: 46, borderRadius: 14, border: "1px solid var(--line)",
-                  background: "rgba(255,255,255,0.9)", color: "var(--plum)", cursor: loading ? "default" : "pointer",
+                  background: "rgba(255,255,255,0.9)", color: "var(--plum)", cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                 }}
               >
@@ -1334,8 +1430,7 @@ function App() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && send()}
                 onPaste={onComposerPaste}
-                placeholder="Ask Max, or paste a screenshot…"
-                disabled={loading}
+                placeholder={loading ? "Type the next question — it will queue…" : "Ask Max, or paste a screenshot…"}
                 style={{
                   flex: 1, padding: "13px 18px", borderRadius: 14,
                   border: "1px solid var(--line)", background: "rgba(255,255,255,0.9)",
@@ -1344,12 +1439,12 @@ function App() {
               />
               <button
                 onClick={() => send()}
-                disabled={loading || (!input.trim() && !pendingImages.length)}
+                disabled={!input.trim() && !pendingImages.length}
                 aria-label="Send"
                 style={{
                   width: 46, height: 46, borderRadius: 14, border: "none",
-                  background: loading || (!input.trim() && !pendingImages.length) ? "rgba(69,32,104,0.25)" : "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)",
-                  color: "white", fontSize: 18, cursor: loading || (!input.trim() && !pendingImages.length) ? "default" : "pointer", flexShrink: 0,
+                  background: (!input.trim() && !pendingImages.length) ? "rgba(69,32,104,0.25)" : "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)",
+                  color: "white", fontSize: 18, cursor: (!input.trim() && !pendingImages.length) ? "default" : "pointer", flexShrink: 0,
                 }}
               >
                 &#8593;
