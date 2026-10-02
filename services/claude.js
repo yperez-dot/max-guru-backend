@@ -25,6 +25,7 @@ const { resolveNpiRecords, displayName, allLocationAddresses } = require('./npiR
 const { searchClinicOrProvider } = require('./clinicSearch');
 const { discoverPlansForArea } = require('./planDiscover');
 const { lookupFormulary, formatFormularyText, toExportDrug } = require('./formularyLookup');
+const { REPLY_STYLE_RULE } = require('./replyStyle');
 
 // Sunfire plan ID → plan name/carrier map (built 2026-07-23)
 let SUNFIRE_PLAN_MAP = {};
@@ -99,6 +100,7 @@ HARD RULES -- these override everything else:
 5. Keep answers concise and practical -- these are working agents on a call or between calls, not researchers.
 6. CONVERSATIONAL PACING -- if a question would match many plans (more than ~4-5), do NOT list them all in one message. Instead: state how many total match, then ask exactly ONE clarifying question to narrow it down -- never a numbered list of multiple questions at once. Wait for that answer before asking anything else or offering any data. Do NOT preview or hint at specific figures (dollar amounts, ranges, plan names) before the clarifying question is answered -- that undermines the point of narrowing first. Once narrowed, show the TOP 3 most competitive plans for what's been asked -- not 5, not 6 -- then ask if they want to see more or narrow further. Pick the 3 best on whatever the person said mattered most (e.g. highest dental allowance if dental was the priority). Only produce a longer list if the person explicitly asks to see everything. Talk like a helpful colleague working through one thing at a time, not a database dump or an interview with a long question list.
 7. KEEP IT SHORT -- default to 2-4 sentences, or a couple of short bullet points at most. This is a chat exchange with a colleague, not a report. Skip headers, skip bolding every plan name, skip a bulleted breakdown with 3+ sub-points per item -- just say the answer plainly, like you'd say it out loud. If someone genuinely needs the full detailed breakdown (rare), they'll ask for it explicitly -- default to brief, expand only on request.
+7b. ${REPLY_STYLE_RULE}
 8. FILTER EXHAUSTIVELY, NOT BY FAMILIAR NAMES -- when someone gives explicit criteria (a county, an MSP/dual level, a benefit like dental), check EVERY plan in the relevant county/type against ALL of the stated criteria before answering. Do not include a plan that fails one of the stated criteria and then walk it back mid-answer ("actually, skip this one") -- that means you didn't check first. Do not skip a plan that actually qualifies just because it wasn't the first one that came to mind -- go through the data, not your assumptions about which carriers are usually good options. Once you've checked, present ONLY the plans that actually qualify -- do not mention disqualified plans at all, not even as a "skip" note. Do the filtering silently; the person only needs to see the plans that made the cut, not your elimination process. If you're not confident you checked exhaustively, say so and offer to look more carefully, rather than presenting a partial list as complete.
 9. NO MARKDOWN TABLES -- the chat interface doesn't render them; they show up as raw pipes and dashes, which is worse than no formatting at all. For side-by-side comparisons, use the short bullet-per-plan format instead (plan name, then a few "label: value" bullets), the same style that's worked well before -- not a table.
 10. CONDITIONAL BENEFITS -- when a plan's grocery card, food allowance, or similar benefit says "if member qualifies," don't leave that vague. Check CARRIER_CHRONIC_CONDITIONS for that plan's carrier and explain what actually qualifies someone -- name a couple of relevant conditions if the person mentioned a client's health situation, and flag carrier-specific process requirements (e.g. "Humana needs two qualifying conditions plus a completed HRA on their Sunfire platform, not just one diagnosis"). If the person hasn't mentioned any health conditions for the client, ask before assuming, but don't just repeat "if they qualify" without explaining what qualifying actually means.
@@ -599,4 +601,4 @@ async function chat(messages) {
   return grokChat(messages, SYSTEM_PROMPT);
 }
 
-module.exports = { chat, TOOLS, processTool, SYSTEM_PROMPT };
+module.exports = { chat, TOOLS, processTool, SYSTEM_PROMPT, REPLY_STYLE_RULE };
