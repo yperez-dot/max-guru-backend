@@ -1,5 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
+const http = require('http');
 const { loadKnowledge } = require('../knowledge/loader');
 const {
   parseCmsId,
@@ -19,6 +20,7 @@ const {
   lookupFormulary,
   formatFormularyText,
   toExportDrug,
+  medicareGovFetch,
 } = require('./formularyLookup');
 
 loadKnowledge({ force: true });
@@ -327,5 +329,87 @@ describe('Medicare.gov Plan Compare source 3', () => {
     assert.match(text, /source medicare_gov/);
     assert.doesNotMatch(text, /claim only/i);
     assert.doesNotMatch(text, /Daisy/i);
+  });
+});
+
+function listenEchoServer() {
+  const server = http.createServer((req, res) => {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk;
+    });
+    req.on('end', () => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ method: req.method, url: req.url, body }));
+    });
+  });
+  return new Promise((resolve) => {
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address();
+      resolve({ server, url: `http://127.0.0.1:${port}/drugs/cost` });
+    });
+  });
+}
+
+describe('medicare.gov POST transport without a preinstalled curl', () => {
+  it('POSTs via curl when the binary is present', async () => {
+    const { server, url } = await listenEchoServer();
+    try {
+      const res = await medicareGovFetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hello: 'atorvastatin' }),
+      });
+      assert.equal(res.ok, true);
+      assert.equal(res.status, 200);
+      const payload = JSON.parse(await res.text());
+      assert.match(payload.body, /atorvastatin/);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  });
+
+  it('POSTs via python urllib when curl is missing', async () => {
+    const { server, url } = await listenEchoServer();
+    const prevCurl = process.env.MEDICARE_GOV_CURL;
+    process.env.MEDICARE_GOV_CURL = '/definitely/missing/curl-binary';
+    try {
+      const res = await medicareGovFetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hello: 'trintellix' }),
+      });
+      assert.equal(res.ok, true);
+      assert.equal(res.status, 200);
+      const payload = JSON.parse(await res.text());
+      assert.equal(payload.method, 'POST');
+      assert.match(payload.body, /trintellix/);
+    } finally {
+      if (prevCurl == null) delete process.env.MEDICARE_GOV_CURL;
+      else process.env.MEDICARE_GOV_CURL = prevCurl;
+      await new Promise((resolve) => server.close(resolve));
+    }
+  });
+
+  it('names a transport miss instead of silent http_0 when both binaries are gone', async () => {
+    const prevCurl = process.env.MEDICARE_GOV_CURL;
+    const prevPy = process.env.MEDICARE_GOV_PYTHON;
+    process.env.MEDICARE_GOV_CURL = '/definitely/missing/curl-binary';
+    process.env.MEDICARE_GOV_PYTHON = '/definitely/missing/python-binary';
+    try {
+      const res = await medicareGovFetch('http://127.0.0.1:9/drugs/cost', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      assert.equal(res.ok, false);
+      assert.equal(res.status, 0);
+      assert.equal(res.error, 'medicare_gov_transport_unavailable');
+    } finally {
+      if (prevCurl == null) delete process.env.MEDICARE_GOV_CURL;
+      else process.env.MEDICARE_GOV_CURL = prevCurl;
+      if (prevPy == null) delete process.env.MEDICARE_GOV_PYTHON;
+      else process.env.MEDICARE_GOV_PYTHON = prevPy;
+    }
   });
 });

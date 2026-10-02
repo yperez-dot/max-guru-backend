@@ -202,6 +202,7 @@ Chat replies stay short bullets (no markdown tables). The export button is what 
 ## Deploy (when plan-data or prompts change)
 
 - **Backend:** Railway, `yperez-dot/max-guru-backend`. Needs `XAI_API_KEY`, `MAX_API_KEY`. See `DEPLOY.md`.
+- **Formulary POSTs:** medicare.gov `drugs/cost` cannot use Node/undici (Akamai 403). Runtime tries `curl`, then Python `urllib`. Railpack/Nixpacks install `curl` + `python3` so a missing binary does not become `medicare_gov_http_0`.
 - **Frontend:** Netlify `thei-max-guru` → [max.healthexps.com](https://max.healthexps.com). Publish `artifacts/max-demo-FINAL-v7.html` as `index.html`. Inject `MAX_API_KEY` at publish time — never commit it. See `artifacts/DEPLOY-NETLIFY.md`.
 
 Invite-only: `MAX_ACCESS_PASSWORD` on Railway (Yahoska / Katy / Carolina).
