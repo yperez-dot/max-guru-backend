@@ -328,7 +328,10 @@ function sliceDoctorsColumn(text, planHint) {
 function extractMoneyAfter(blob, dayRe) {
   const m = String(blob || '').match(dayRe);
   if (!m) return null;
-  const tail = blob.slice(m.index, Math.min(blob.length, m.index + 160));
+  let tail = blob.slice(m.index, Math.min(blob.length, m.index + 160));
+  // Stop at the next "days N" label so one band can never take the next band's amount.
+  const next = tail.slice(m[0].length).search(/days?\s*\d+\s*(?:-|–|—|through|to)\s*\d+/i);
+  if (next >= 0) tail = tail.slice(0, m[0].length + next);
   const money = tail.match(
     /\$[\d,]+(?:\.\d{2})?(?:\s*(?:copay|coinsurance|per day|\/day))?|\d+\s*%(?:\s*coinsurance)?|no copay|\$0(?:\s*copay)?/i
   );
@@ -388,18 +391,29 @@ function parseSkilledNursing(text, planHint) {
     windows[0] ||
     blob;
   const dualDoctors = isDoctorsDualColumn(blob) || isDoctorsDualColumn(text);
-  const band1 = collectSnfBandAmounts(win, 1, 20);
-  const band21 = collectSnfBandAmounts(win, 21, 100);
+  // The "$X copay per day for days N" sentence shape was built for the Doctors booklet.
+  // On other carriers' PDFs it can match a different line, so only use it for Doctors.
+  const doctorsPlan = dualDoctors || /^H4140-/i.test(String(planHint || ''));
+  // Other carriers: use the same "$X copay per day for days N" shape only when it is
+  // unambiguous (exactly one amount for that band). Two different amounts = Unverified.
+  let ambiguous1 = false;
+  let ambiguous21 = false;
+  let band1 = collectSnfBandAmounts(win, 1, 20);
+  let band21 = collectSnfBandAmounts(win, 21, 100);
+  if (!doctorsPlan) {
+    if (band1.length > 1) { ambiguous1 = true; band1 = []; }
+    if (band21.length > 1) { ambiguous21 = true; band21 = []; }
+  }
   const picked1 = pickDualColumnAmount(band1, planHint, dualDoctors ? text : scoped);
   const picked21 = pickDualColumnAmount(band21, planHint, dualDoctors ? text : scoped);
   let days1to20 = picked1
     ? cleanSnippet(`Days 1-20: ${picked1}`, 80)
-    : extractMoneyAfter(win, /days?\s*1\s*(?:-|–|—|through|to)\s*20/i) ||
+    : ambiguous1 ? null : extractMoneyAfter(win, /days?\s*1\s*(?:-|–|—|through|to)\s*20/i) ||
       extractMoneyAfter(win, /\$[\d,]+(?:\.\d{2})?[^.]{0,40}days?\s*1\s*(?:-|–|through|to)\s*20/i) ||
       extractMoneyAfter(win, /days?\s*1\s*(?:-|–|—|through|to)\s*\$[\d,]+(?:\.\d{2})?\s*copay\s*20/i);
   let days21to100 = picked21
     ? cleanSnippet(`Days 21-100: ${picked21}`, 80)
-    : extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*100/i) ||
+    : ambiguous21 ? null : extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*100/i) ||
       extractMoneyAfter(win, /\$[\d,]+(?:\.\d{2})?[^.]{0,40}days?\s*21\s*(?:-|–|through|to)\s*100/i) ||
       extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*\$[\d,]+(?:\.\d{2})?\s*copay\s*100/i);
   return { days1to20, days21to100 };
@@ -427,7 +441,7 @@ function extractDrSelectDme(text) {
   if (!/0%\s*coinsurance/i.test(src) || !/20%\s*coinsurance/i.test(src)) return null;
   if (!/CPAP/i.test(src) || !/powered wheelchair/i.test(src)) return null;
   return cleanSnippet(
-    '0% coinsurance for covered items including CPAP and all other medical equipment; 20% coinsurance for powered wheelchairs, powered mattress systems, and other electric devices',
+    '0% (CPAP, most equipment) · 20% (powered wheelchairs, powered mattress systems, other electric devices)',
     240
   );
 }

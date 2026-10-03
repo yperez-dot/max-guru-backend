@@ -1052,13 +1052,24 @@
         const merged = mergeStatusPair(fromMap, fromNet);
         return merged || NETWORK_NOT_CONFIRMED;
       });
+      // Carrier directories rarely list clinics by name, so a clinic "miss" means
+      // "not found", not "out of network". Only people can be marked Out from a lookup.
+      const finalStatuses = looksLikeOrganization(name)
+        ? statuses.map((s) => (s === NETWORK_OUT ? NETWORK_NOT_CONFIRMED : s))
+        : statuses;
       out.push({
         name,
-        statuses,
-        byPlanId: mergeByPlanIdMaps(map, byPlanIdFromStatuses(statuses, plans)),
+        statuses: finalStatuses,
+        byPlanId: mergeByPlanIdMaps(map, byPlanIdFromStatuses(finalStatuses, plans)),
       });
     }
     return out;
+  }
+
+  function looksLikeOrganization(name) {
+    const n = String(name || "").trim();
+    if (!n || /^(dr|doctor)\b\.?\s/i.test(n)) return false;
+    return /\b(neurology|rehab(?:ilitation)?|clinic|center|centre|institute|associates|group|hospital|medical|health|imaging|laboratory|therapy|specialists)\b/i.test(n);
   }
 
   function carrierMatchesPlan(carrierLabel, plan) {

@@ -524,4 +524,25 @@ describe('SOB lookup only when the agent asked', () => {
     ];
     assert.equal(shouldAutoLookupComparisonSob(messages, []), true);
   });
+
+  it('non-Doctors carriers: a band never takes the next band\'s amount, and no Doctors-only pattern', () => {
+    const { parseSobBenefits } = require('./sobLookup');
+    const text = [
+      'Skilled Nursing Facility (SNF)',
+      'Days 1-20: $0 copay',
+      'Days 21-100: $203 copay per day',
+    ].join('\n');
+    const out = parseSobBenefits(text, [], 'H1036-054C');
+    assert.match(String(out.snfDays1to20), /\$0/);
+    assert.doesNotMatch(String(out.snfDays1to20), /203/);
+    assert.match(String(out.snfDays21to100), /\$203/);
+    // The Doctors "copay per day for days N" shape must not be read as a Humana answer.
+    const doctorsShape = 'Skilled Nursing Facility $0 copay per day for days 1-20 $60 copay per day for days 21-100';
+    const hum = parseSobBenefits(doctorsShape, [], 'H1036-054C');
+    assert.equal(hum.snfDays1to20, 'Days 1-20: $0');
+    assert.equal(hum.snfDays21to100, 'Days 21-100: $60');
+    // Two different amounts for one band is ambiguous: Unverified, never the first one.
+    const twoWays = 'Skilled Nursing Facility $0 copay per day for days 1-20 $50 copay per day for days 1-20';
+    assert.equal(parseSobBenefits(twoWays, [], 'H1036-054C').snfDays1to20, null);
+  });
 });

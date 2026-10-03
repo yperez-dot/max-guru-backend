@@ -1650,4 +1650,23 @@ Earlier: all four In network on UHC H5420-001.
       assert.deepEqual(mar.slice(1), ['Not confirmed', 'Not confirmed', 'Not confirmed']);
     });
   });
+
+  describe('clinic misses are Not confirmed, never Out of network', () => {
+    it('keeps people Out but turns a clinic miss into Not confirmed', () => {
+      const plans = loadPlans().filter((p) => p.county === 'Miami-Dade').slice(0, 2);
+      const ids = plans.map((p) => exp.displayContractPbp(p));
+      const out = Object.fromEntries(ids.map((id) => [id, 'Out of network']));
+      const payload = exp.buildExportPayload(plans, 'Carol Wong comparison', {
+        catalog: loadPlans(),
+        doctors: [
+          { name: 'Dr. Jason Margolesky', byPlanId: out },
+          { name: 'Miami Neurology & Rehab', byPlanId: out },
+        ],
+      });
+      const person = payload.doctors.find((d) => /margolesky/i.test(d.name));
+      const clinic = payload.doctors.find((d) => /miami neurology/i.test(d.name));
+      assert.ok(person.statuses.every((s) => s === 'Out of network'));
+      assert.ok(clinic.statuses.every((s) => s === 'Not confirmed'));
+    });
+  });
 });
