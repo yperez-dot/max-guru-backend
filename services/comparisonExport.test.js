@@ -375,6 +375,8 @@ describe('HTML UI wiring', () => {
     assert.match(html, /H5420-001/);
     assert.match(html, /\\d\{2,4\}\[A-Z\]\?/);
     assert.match(html, /keepCurrentComparisonPlans/);
+    assert.match(html, /lastUserComparisonAsk/);
+    assert.match(html, /Do not lock the export to this snapshot/);
     assert.match(html, /dedupeComparisonPlans/);
     assert.match(html, /uniquePlansByContractPbp/);
     assert.match(html, /compactContractPbp/);
@@ -1089,6 +1091,56 @@ MARGOLESKY, JASON is in network on H4140-023 and H5420-001.
     const model = exp.buildComparisonModel(payload);
     const header = model.aoa[1] || model.aoa.find((row) => /H1036-054C/.test(row.join(' ')));
     assert.ok(header && header.some((c) => /H1036-054C/.test(String(c))));
+  });
+
+  it('a new message after a saved workup updates Excel instead of locking the old sheet', () => {
+    const plans = loadPlans();
+    const saved = [
+      planById(plans, 'H1036-054C', 'Miami-Dade'),
+      planById(plans, 'H4140-023', 'Miami-Dade'),
+      planById(plans, 'H5420-001', 'Miami-Dade'),
+    ].filter(Boolean);
+    assert.equal(saved.length, 3);
+    const chemoAsk = 'Need chemotherapy on these plans.';
+    const chemo = exp.buildExportPayload(saved, chemoAsk, {
+      catalog: plans,
+      latestUserText: chemoAsk,
+      rememberedPlans: saved,
+      skipMuskatLock: true,
+    });
+    assert.deepEqual(
+      chemo.plans.map((p) => exp.displayContractPbp(p)),
+      ['H1036-054C', 'H4140-023', 'H5420-001']
+    );
+    assert.equal(chemo.askedExportSob, true);
+    const chemoModel = exp.buildComparisonModel(chemo);
+    assert.ok(chemoModel.aoa.some((row) => row[0] === 'Chemotherapy'));
+    assert.ok(chemoModel.aoa.some((row) => row[0] === 'Premium'));
+    assert.equal(chemoModel.aoa.some((row) => row[0] === 'Plan Terminating'), false);
+
+    const newCompare = 'Compare H4140-023 and H5420-001 only.';
+    const switched = exp.buildExportPayload(saved, newCompare, {
+      catalog: plans,
+      latestUserText: newCompare,
+      rememberedPlans: saved,
+      skipMuskatLock: true,
+    });
+    assert.deepEqual(
+      switched.plans.map((p) => exp.displayContractPbp(p)),
+      ['H4140-023', 'H5420-001']
+    );
+    assert.equal(switched.plans.some((p) => exp.displayContractPbp(p) === 'H1036-054C'), false);
+
+    const history = [
+      { role: 'workup', content: 'saved Muskat sheet' },
+      { role: 'offer', content: 'export', plans: saved },
+      { role: 'user', content: newCompare },
+      { role: 'user', content: 'Export Excel' },
+    ];
+    const lastAsk = exp.lastUserComparisonAsk(history);
+    assert.match(lastAsk, /H4140-023/);
+    assert.equal(exp.isExportOnlyAsk('Export Excel'), true);
+    assert.equal(exp.requestUpdatesComparison(chemoAsk), true);
   });
 
   it('collapses duplicate 023/001 columns and keeps verified Muskat Rx', () => {

@@ -1587,20 +1587,7 @@
     const extra = extras && typeof extras === "object" ? extras : {};
     const text = String(threadText || extra.threadText || "");
     const catalog = extra.catalog || extra.planCatalog || [];
-    const county = /\bbroward\b/i.test(text) && !/miami/i.test(text) ? "Broward" : "Miami-Dade";
-    const fromText = citedPlanIdsFromText(text)
-      .map((id) => pickCatalogPlan(catalog.length ? catalog : plans, id, county) || pickCatalogPlan(catalog.length ? catalog : plans, id))
-      .filter(Boolean);
-    const resolvedPlans = uniquePlansByContractPbp(
-      keepCurrentComparisonPlans(
-        canonicalize2027ComparisonPlans(plans || [], text, catalog.length ? catalog : plans),
-        canonicalize2027ComparisonPlans(
-          [].concat(fromText, extra.rememberedPlans || extra.priorPlans || []),
-          text,
-          catalog.length ? catalog : plans
-        )
-      )
-    );
+    const resolvedPlans = resolveExportPlans(plans, text, extra);
     const clientName = extra.clientName || extractClientName(text);
     const terminatingPlan = extra.explicitTerminating
       ? sanitizeTerminatingPlan(extra.terminatingPlan || extractTerminatingPlan(text), text)
@@ -2091,6 +2078,85 @@
     return out.length > max ? out.slice(out.length - max) : out;
   }
 
+  function messageContentToText(content) {
+    if (typeof content === "string") return content;
+    if (Array.isArray(content)) {
+      return content
+        .map((part) => (typeof part === "string" ? part : (part && part.text) || ""))
+        .filter(Boolean)
+        .join("\n");
+    }
+    return String(content || "");
+  }
+
+  function isExportOnlyAsk(text) {
+    const t = String(text || "");
+    if (!t || !wantsComparisonExport(t)) return false;
+    return citedPlanIdsFromText(t).length < 1 && !askedExportSobBenefits(t);
+  }
+
+  function requestUpdatesComparison(text) {
+    const t = String(text || "");
+    if (!t) return false;
+    if (citedPlanIdsFromText(t).length > 0) return true;
+    if (askedExportSobBenefits(t)) return true;
+    if (/\b(add|also|include|check|look\s*up|lookup|new)\b/i.test(t) && /\b(doctor|dr\.|clinic|drug|meds?|medication|rx|plan)\b/i.test(t)) {
+      return true;
+    }
+    return false;
+  }
+
+  function lastUserComparisonAsk(messages, userMessageTextFn) {
+    const toText = typeof userMessageTextFn === "function" ? userMessageTextFn : messageContentToText;
+    let lastUser = "";
+    for (let i = (messages || []).length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (!m || m.role !== "user") continue;
+      const t = toText(m.content);
+      if (!t) continue;
+      if (!lastUser) lastUser = t;
+      if (isExportOnlyAsk(t)) continue;
+      return t;
+    }
+    return lastUser;
+  }
+
+  function resolveExportPlans(plans, threadText, extra) {
+    const meta = extra && typeof extra === "object" ? extra : {};
+    const catalog = meta.catalog || meta.planCatalog || [];
+    const pool = catalog.length ? catalog : plans;
+    const text = String(threadText || "");
+    const latest = String(meta.latestUserText || "");
+    const county = /\bbroward\b/i.test(text + " " + latest) && !/miami/i.test(text + " " + latest) ? "Broward" : "Miami-Dade";
+    const pick = (id) => pickCatalogPlan(pool, id, county) || pickCatalogPlan(pool, id);
+    const latestIds = citedPlanIdsFromText(latest);
+    if (latestIds.length >= 2) {
+      return uniquePlansByContractPbp(
+        canonicalize2027ComparisonPlans(latestIds.map(pick).filter(Boolean), latest, pool)
+      );
+    }
+    const fromText = citedPlanIdsFromText(text).map(pick).filter(Boolean);
+    let resolved = uniquePlansByContractPbp(
+      keepCurrentComparisonPlans(
+        canonicalize2027ComparisonPlans(plans || [], text, pool),
+        canonicalize2027ComparisonPlans(
+          [].concat(fromText, meta.rememberedPlans || meta.priorPlans || []),
+          text,
+          pool
+        )
+      )
+    );
+    if (latestIds.length === 1) {
+      const added = pick(latestIds[0]);
+      if (added) {
+        resolved = uniquePlansByContractPbp(
+          canonicalize2027ComparisonPlans([].concat(resolved, added), latest || text, pool)
+        );
+      }
+    }
+    return resolved;
+  }
+
   function conversationPlainText(messages, userMessageTextFn) {
     const toText =
       typeof userMessageTextFn === "function"
@@ -2140,6 +2206,10 @@
     citedPlanIdsFromText,
     orderComparisonPlans,
     keepCurrentComparisonPlans,
+    resolveExportPlans,
+    lastUserComparisonAsk,
+    requestUpdatesComparison,
+    isExportOnlyAsk,
     dedupeComparisonPlans,
     uniquePlansByContractPbp,
     compactContractPbp,

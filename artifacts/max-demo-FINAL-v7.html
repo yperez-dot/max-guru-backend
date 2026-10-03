@@ -1611,20 +1611,7 @@
     const extra = extras && typeof extras === "object" ? extras : {};
     const text = String(threadText || extra.threadText || "");
     const catalog = extra.catalog || extra.planCatalog || [];
-    const county = /\bbroward\b/i.test(text) && !/miami/i.test(text) ? "Broward" : "Miami-Dade";
-    const fromText = citedPlanIdsFromText(text)
-      .map((id) => pickCatalogPlan(catalog.length ? catalog : plans, id, county) || pickCatalogPlan(catalog.length ? catalog : plans, id))
-      .filter(Boolean);
-    const resolvedPlans = uniquePlansByContractPbp(
-      keepCurrentComparisonPlans(
-        canonicalize2027ComparisonPlans(plans || [], text, catalog.length ? catalog : plans),
-        canonicalize2027ComparisonPlans(
-          [].concat(fromText, extra.rememberedPlans || extra.priorPlans || []),
-          text,
-          catalog.length ? catalog : plans
-        )
-      )
-    );
+    const resolvedPlans = resolveExportPlans(plans, text, extra);
     const clientName = extra.clientName || extractClientName(text);
     const terminatingPlan = extra.explicitTerminating
       ? sanitizeTerminatingPlan(extra.terminatingPlan || extractTerminatingPlan(text), text)
@@ -2115,6 +2102,85 @@
     return out.length > max ? out.slice(out.length - max) : out;
   }
 
+  function messageContentToText(content) {
+    if (typeof content === "string") return content;
+    if (Array.isArray(content)) {
+      return content
+        .map((part) => (typeof part === "string" ? part : (part && part.text) || ""))
+        .filter(Boolean)
+        .join("\n");
+    }
+    return String(content || "");
+  }
+
+  function isExportOnlyAsk(text) {
+    const t = String(text || "");
+    if (!t || !wantsComparisonExport(t)) return false;
+    return citedPlanIdsFromText(t).length < 1 && !askedExportSobBenefits(t);
+  }
+
+  function requestUpdatesComparison(text) {
+    const t = String(text || "");
+    if (!t) return false;
+    if (citedPlanIdsFromText(t).length > 0) return true;
+    if (askedExportSobBenefits(t)) return true;
+    if (/\b(add|also|include|check|look\s*up|lookup|new)\b/i.test(t) && /\b(doctor|dr\.|clinic|drug|meds?|medication|rx|plan)\b/i.test(t)) {
+      return true;
+    }
+    return false;
+  }
+
+  function lastUserComparisonAsk(messages, userMessageTextFn) {
+    const toText = typeof userMessageTextFn === "function" ? userMessageTextFn : messageContentToText;
+    let lastUser = "";
+    for (let i = (messages || []).length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (!m || m.role !== "user") continue;
+      const t = toText(m.content);
+      if (!t) continue;
+      if (!lastUser) lastUser = t;
+      if (isExportOnlyAsk(t)) continue;
+      return t;
+    }
+    return lastUser;
+  }
+
+  function resolveExportPlans(plans, threadText, extra) {
+    const meta = extra && typeof extra === "object" ? extra : {};
+    const catalog = meta.catalog || meta.planCatalog || [];
+    const pool = catalog.length ? catalog : plans;
+    const text = String(threadText || "");
+    const latest = String(meta.latestUserText || "");
+    const county = /\bbroward\b/i.test(text + " " + latest) && !/miami/i.test(text + " " + latest) ? "Broward" : "Miami-Dade";
+    const pick = (id) => pickCatalogPlan(pool, id, county) || pickCatalogPlan(pool, id);
+    const latestIds = citedPlanIdsFromText(latest);
+    if (latestIds.length >= 2) {
+      return uniquePlansByContractPbp(
+        canonicalize2027ComparisonPlans(latestIds.map(pick).filter(Boolean), latest, pool)
+      );
+    }
+    const fromText = citedPlanIdsFromText(text).map(pick).filter(Boolean);
+    let resolved = uniquePlansByContractPbp(
+      keepCurrentComparisonPlans(
+        canonicalize2027ComparisonPlans(plans || [], text, pool),
+        canonicalize2027ComparisonPlans(
+          [].concat(fromText, meta.rememberedPlans || meta.priorPlans || []),
+          text,
+          pool
+        )
+      )
+    );
+    if (latestIds.length === 1) {
+      const added = pick(latestIds[0]);
+      if (added) {
+        resolved = uniquePlansByContractPbp(
+          canonicalize2027ComparisonPlans([].concat(resolved, added), latest || text, pool)
+        );
+      }
+    }
+    return resolved;
+  }
+
   function conversationPlainText(messages, userMessageTextFn) {
     const toText =
       typeof userMessageTextFn === "function"
@@ -2164,6 +2230,10 @@
     citedPlanIdsFromText,
     orderComparisonPlans,
     keepCurrentComparisonPlans,
+    resolveExportPlans,
+    lastUserComparisonAsk,
+    requestUpdatesComparison,
+    isExportOnlyAsk,
     dedupeComparisonPlans,
     uniquePlansByContractPbp,
     compactContractPbp,
@@ -2511,7 +2581,7 @@
   function compactWorkupContext(workup) {
     const w = workup && typeof workup === "object" ? workup : {};
     const lines = [
-      WORKUP_CONTEXT_PREFIX + " (structured facts only — not a prior chat transcript). Continue this comparison. Do not ask to re-paste Daisy. Discard any client-stated Rx tiers. Call lookup_formulary for any unverified drug × named plan.",
+      WORKUP_CONTEXT_PREFIX + " (structured facts only — not a prior chat transcript). Resume these saved facts as a starting point. If the agent later asks for different plans, doctors, drugs, or a benefit that is not on the grid, follow that NEW request for chat and Excel/PDF. Do not lock the export to this snapshot. Do not ask to re-paste Daisy. Discard any client-stated Rx tiers. Call lookup_formulary for any unverified drug × named plan.",
     ];
     if (w.clientName) lines.push("Client: " + w.clientName);
     const place = [w.zip, w.county].filter(Boolean).join(" / ");
@@ -2821,9 +2891,15 @@ function sobFromToolResults(toolResults) {
 function collectComparisonExport(history, plans, extras) {
   const text = window.MaxComparisonExport.conversationPlainText(history, userMessageText);
   const extra = extras && typeof extras === "object" ? extras : {};
+  const latestUserText =
+    extra.latestUserText ||
+    (typeof window.MaxComparisonExport.lastUserComparisonAsk === "function"
+      ? window.MaxComparisonExport.lastUserComparisonAsk(history, userMessageText)
+      : "");
   return window.MaxComparisonExport.buildExportPayload(plans, text, {
     catalog: typeof PLANS !== "undefined" ? PLANS : extra.catalog,
     ...extra,
+    latestUserText,
     drugs: []
       .concat(extra.drugs || [])
       .concat(drugsFromToolResults(extra.toolResults || [])),
@@ -3143,7 +3219,7 @@ HARD RULES -- these override everything else:
 
 
 17b. CLIENT COMPARISON EXPORT -- this chat UI CAN export a side-by-side Excel or PDF when you cite two or more plan IDs (Export Excel / Export PDF buttons). NEVER say you cannot generate or export Excel, PDF, spreadsheets, or files. When an agent asks for Excel / PDF / export / side-by-side: briefly restate the plan names with their exact plan IDs from PLAN DATA (one line each), then tell them to click the button under your message. If the thread already has a client name or doctor in-network / out-of-network / not confirmed / need more info results from lookup_provider_network, mention those facts in the same reply so the export can pick them up -- never invent a client name, doctors, or network status. Do NOT add a Plan Terminating row unless the agent explicitly says a current plan is terminating. Export layout is the Yahoska / Arias Lazo sheet: client name as title, plan columns as full marketing name plus contract-PBP on its own line, Doctors section FIRST (In network / Out of network / Not confirmed / Need more info — always include when providers were checked or named), then Medications immediately under Doctors (brand* not covered + generic), then the fixed 2027 green-cell benefit row order plus an extra row ONLY for an off-grid benefit she asked for (Unverified if she asked and neither the SOB nor the EOC has a number — never a chopped PDF fragment), then SOB/EOC as links or pending. Omit the MSP Levels row unless at least one compared plan is a D-SNP / dual — do not print Not listed across that row on HMO/C-SNP-only comps. When she asks for SNF or hospital-grade bed / DME or any other benefit that is not on the grid, call lookup_sob_benefit (SOB first, then EOC if the SOB misses it) — do not add those rows when she did not ask. Never treat carrier names (Doctors, UHC, Humana) as medication rows. When a brand is verified not covered, automatically pull the generic (Lipitor → Atorvastatin, Benicar → Olmesartan) — do not wait for the agent to type the generic. Show brand* as not covered with the asterisk note; generic tier from live lookup_formulary only — never invent a tier. Export the CURRENT thread comparison — never overwrite with an earlier Muskat snapshot. Do not cap a 4-plan compare at 3. Do not invent file downloads yourself and do not send them to build a sheet manually.
-17c. MUSKAT 2027 -- Excel/PDF must use the CURRENT comparison in this thread (plans, doctors, meds, 2027 green cells), never a hardcoded earlier snapshot. Humana Gold Plus H1036-054C must be the first plan column whenever it is in the current comparison — do not drop it if a later reply only restates H4140-023 and H5420-001. One column per distinct contract-PBP — collapse county/catalog/thread/workup copies (never Humana×2 / Doctors×3 / UHC×3). Do not cap a 4-plan comparison at 3. Keep verified formulary tiers from this thread; do not blank them to Unverified. Keep Lipitor*/Atorvastatin and Benicar*/Olmesartan when those brands are not covered. The 014 lock applies ONLY when those three IDs are the current columns. Stay-put H5420-001 keeps 001 green cells. One row per doctor. Do not drop Jason Margolesky or Miami Neurology & Rehab. Never invent a Plan Terminating row from "no MSP row."
+17c. MUSKAT 2027 -- Excel/PDF must use the CURRENT comparison in this thread (plans, doctors, meds, 2027 green cells), never a hardcoded earlier snapshot or a previously saved workup sheet after she asked for something new. A loaded workup resumes saved facts; a later message updates plans, doctors, drugs, or an asked off-grid benefit. Humana Gold Plus H1036-054C must be the first plan column whenever it is in the current comparison — do not drop it if a later reply only restates H4140-023 and H5420-001. One column per distinct contract-PBP — collapse county/catalog/thread/workup copies (never Humana×2 / Doctors×3 / UHC×3). Do not cap a 4-plan comparison at 3. Keep verified formulary tiers from this thread; do not blank them to Unverified. Keep Lipitor*/Atorvastatin and Benicar*/Olmesartan when those brands are not covered. The 014 lock applies ONLY when those three IDs are the current columns. Stay-put H5420-001 keeps 001 green cells. One row per doctor. Do not drop Jason Margolesky or Miami Neurology & Rehab. Never invent a Plan Terminating row from "no MSP row."
 
 18. LIVE LOOKUP TOOLS -- you have live tools that query external systems: lookup_provider_network (NPI Registry first — people and clinic orgs — then FL Blue, Cigna/HealthSpring, HealthSun, Devoted, Doctors HealthCare Plans, Aetna guest, Simply guest, UHC public guest Find a Doctor for 2027 Duals/Preferred/MedicareMax — no Jarvis or member login, and Humana public Find Care guest for 2027 Gold Plus/Duals/Choice — no member login), search_clinic_or_provider (CMS NPPES org/DBA search + optional known clinic webpage; never Google SERPs), search_drug (Sunfire catalog — name/NDC only, not a plan tier), lookup_formulary (required before quoting a drug tier / PA / ST / T4 % on a named plan), and lookup_sob_benefit (required when the agent asks for ANY benefit that is not on the 2027 grid — SNF days 1–20 / 21–100, hospital-grade bed / DME, hearing aids, chemotherapy, or similar; read the SOB first, then the Evidence of Coverage if the SOB does not have it; do not call it on every comparison; do not auto-lookup benefits she did not ask for; quote only what the document says, never invent dollars). Solis is county-PDF only. CarePlus and Wellcare still rely on Sunfire or the carrier site. These tools are the ONE exception to Rules 4, 15, and 17's "only the data provided here" boundary. Use normal API function calling -- never print tool-call syntax. Rules for provider results: (a) present them concisely and cite the source directory on each hit; (b) a failed check is not out-of-network — say the lookup failed and hand the guest URL (UHC: uhc.com/find-a-doctor Continue as guest; Humana: findcare.humana.com Search as a guest); (c) empty Sunfire is not UHC or Humana out-of-network; only report UHC/Humana OON when that guest directory returned a successful empty result for that CMS ID or network; (d) never fill a gap from training; (e) Rule 1 still applies — network participation is a fact, never a reason to call one plan better; (f) hospital questions still use HOSPITALS; (g) for enrollment-critical decisions, confirm with the carrier because directory data can lag; (h) a Cigna/HealthSpring directory hit is NOT a 2027 Miami-Dade or Broward MA enrollment option — HealthSpring has no 2027 MA plans in those counties; never say "she's in-network with Cigna so consider HealthSpring."; (i) if a clinic/group/DBA name misses (e.g. Miami Neurology & Rehab Specialists / MNRS vs legal MIAMI NEUROLOGY & REHABILITATION SPECIALISTS, org NPI 1689860280), call search_clinic_or_provider, propose the NPI(s), then re-run lookup_provider_network with npi= — true In/Out is NPI + carrier Find Care only; (j) a clinic insurances-accepted page is marketing, not verified In/Out. If a Humana (or other carrier) logo IS on the page: "Found a Humana logo on their site — here's the link. I recommend you call and confirm." If it is NOT (MNRS / https://miamiphysicaltherapy.com/insurances/ lists Aetna, ASHP, AvMed, Cigna, Doctors Healthcare, GEHA, Golden Rule, Hartford, Harvard Pilgrim, Medicare, NALC, PHCS, TRICARE, UnitedHealthcare, UAIC, UMR, VA, Gallagher Bassett — NO Humana): say "{carrier} is not listed on their accepted-insurances page", link it, recommend calling the office. Do not treat absence on the clinic site as definitive OON if Find Care later returns IN — report both: not listed on clinic site + the NPI Find Care result.
 
@@ -3895,7 +3971,19 @@ function App() {
           const dedupe = window.MaxComparisonExport.uniquePlansByContractPbp || window.MaxComparisonExport.dedupeComparisonPlans;
           const fullText = window.MaxComparisonExport.conversationPlainText(newHistory, userMessageText);
           const fromFull = findComparisonPlans(fullText);
-          if (typeof keep === "function") {
+          const latestAsk =
+            typeof window.MaxComparisonExport.lastUserComparisonAsk === "function"
+              ? window.MaxComparisonExport.lastUserComparisonAsk(newHistory, userMessageText)
+              : userMessageText(apiContent);
+          const latestCited =
+            typeof window.MaxComparisonExport.citedPlanIdsFromText === "function"
+              ? window.MaxComparisonExport.citedPlanIdsFromText(latestAsk)
+              : [];
+          const followLatest = latestCited.length >= 2;
+          if (followLatest) {
+            const fromLatest = findComparisonPlans(latestAsk);
+            if (fromLatest.length >= 2) fromThread = fromLatest;
+          } else if (typeof keep === "function") {
             fromThread = keep(fromThread, fromFull);
             fromThread = keep(fromThread, remembered && remembered.plans);
             fromThread = keep(fromThread, lastOffer && lastOffer.plans);
@@ -3911,7 +3999,8 @@ function App() {
             clientName: (remembered && remembered.clientName) || lastOffer?.clientName || "",
             sobBenefits: rememberedFits ? (remembered.sobBenefits || {}) : offerFits ? (lastOffer.sobBenefits || {}) : {},
             toolResults: sessionToolResultsRef.current,
-            rememberedPlans: (remembered && remembered.plans) || (lastOffer && lastOffer.plans) || [],
+            latestUserText: latestAsk,
+            rememberedPlans: followLatest ? [] : ((remembered && remembered.plans) || (lastOffer && lastOffer.plans) || []),
           }));
           lastComparisonExportRef.current = payload;
           scheduleAutoSave(payload);
@@ -3956,7 +4045,19 @@ function App() {
         const dedupe = window.MaxComparisonExport.uniquePlansByContractPbp || window.MaxComparisonExport.dedupeComparisonPlans;
         const fullText = window.MaxComparisonExport.conversationPlainText([...newHistory, assistantMsg], userMessageText);
         let columns = found.slice();
-        if (typeof keep === "function") {
+        const latestAsk =
+          typeof window.MaxComparisonExport.lastUserComparisonAsk === "function"
+            ? window.MaxComparisonExport.lastUserComparisonAsk([...newHistory, assistantMsg], userMessageText)
+            : userMessageText(apiContent);
+        const latestCited =
+          typeof window.MaxComparisonExport.citedPlanIdsFromText === "function"
+            ? window.MaxComparisonExport.citedPlanIdsFromText(latestAsk)
+            : [];
+        const followLatest = latestCited.length >= 2;
+        if (followLatest) {
+          const fromLatest = findComparisonPlans(latestAsk);
+          if (fromLatest.length >= 2) columns = fromLatest;
+        } else if (typeof keep === "function") {
           columns = keep(columns, findComparisonPlans(fullText));
           columns = keep(columns, remembered && remembered.plans);
         }
@@ -3972,13 +4073,40 @@ function App() {
           doctors: rememberedFits ? (remembered.doctors || []) : [],
           toolResults: sessionToolResultsRef.current,
           sobBenefits: rememberedFits ? (remembered.sobBenefits || {}) : {},
-          rememberedPlans: (remembered && remembered.plans) || [],
+          latestUserText: latestAsk,
+          rememberedPlans: followLatest ? [] : ((remembered && remembered.plans) || []),
         }));
         lastComparisonExportRef.current = payload;
         scheduleAutoSave(payload);
         nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, sobBenefits: payload.sobBenefits, time: nowLabel() }];
       } else {
-        nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg];
+        const remembered = lastComparisonExportRef.current;
+        const lastOffer = [...newHistory].reverse().find((m) => m.role === "offer" && m.plans?.length >= 2);
+        const baseline = (remembered && remembered.plans) || (lastOffer && lastOffer.plans) || [];
+        const latestAsk =
+          typeof window.MaxComparisonExport.lastUserComparisonAsk === "function"
+            ? window.MaxComparisonExport.lastUserComparisonAsk([...newHistory, assistantMsg], userMessageText)
+            : userMessageText(apiContent);
+        const askedUpdate =
+          typeof window.MaxComparisonExport.requestUpdatesComparison === "function"
+            ? window.MaxComparisonExport.requestUpdatesComparison(latestAsk)
+            : false;
+        if (baseline.length >= 2 && askedUpdate) {
+          const payload = await hydrateExportSobBenefits(collectComparisonExport([...newHistory, assistantMsg], baseline, {
+            drugs: (remembered && remembered.drugs) || (lastOffer && lastOffer.drugs) || [],
+            doctors: (remembered && remembered.doctors) || (lastOffer && lastOffer.doctors) || [],
+            clientName: (remembered && remembered.clientName) || lastOffer?.clientName || "",
+            toolResults: sessionToolResultsRef.current,
+            sobBenefits: (remembered && remembered.sobBenefits) || (lastOffer && lastOffer.sobBenefits) || {},
+            latestUserText: latestAsk,
+            rememberedPlans: baseline,
+          }));
+          lastComparisonExportRef.current = payload;
+          scheduleAutoSave(payload);
+          nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, sobBenefits: payload.sobBenefits, time: nowLabel() }];
+        } else {
+          nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg];
+        }
       }
       messagesRef.current = nextMsgs;
       setMessages(nextMsgs);

@@ -67,4 +67,4 @@ Chat is also rate-limited (~40 requests / hour / session by default via `MAX_CHA
 
 ## Client workups
 
-The sidebar lists **Client workups** after unlock (Save / Update, Open, Delete). They live on Railway under that agent's unlock email, so desktop and phone share the same list. Opening a workup starts a fresh chat with one compact fact card — it does not replay the old thread into `/chat`. Excel/PDF export still uses the structured comparison payload.
+The sidebar lists **Client workups** after unlock (Save / Update, Open, Delete). They live on Railway under that agent's unlock email, so desktop and phone share the same list. Opening a workup starts a fresh chat with one compact fact card — it does not replay the old thread into `/chat`. Saved facts resume the comparison; a later message updates plans / doctors / drugs / asked off-grid extras, and the next Excel/PDF follows that current request instead of locking to the old sheet.
