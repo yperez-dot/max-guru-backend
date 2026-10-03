@@ -1,7 +1,7 @@
 # Max Behavior Rules
 Rules for how Max should behave during plan lookups and comparisons.  
 These go into Max's system prompt / behavior layer when built.  
-**Last updated:** 2026-10-02
+**Last updated:** 2026-10-03
 
 ---
 
@@ -174,19 +174,22 @@ Muskat/Yahoska: Max listed Pablo/Miriam meds with Daisy’s tiers (Lorazepam T2,
 
 ## Rule 22 — Grid-missing benefits come from the plan SOB, then EOC (2026-10-03)
 
-**Trigger:** Agent asks for a client need that is **not** a 2027 Plan Comparison Grid green-cell field. The THEI grid only has the most-requested benefits (hearing aids copay, SNF days 1–20 / 21–100, hospital-grade bed / DME, chemotherapy, home health, or any other asked off-grid need).
+**Trigger:** Agent asks for a client need that is **not** on the attached-year Plan Comparison Grid green-cell field. The THEI grid only has the most-requested benefits (hearing aids copay, SNF days 1–20 / 21–100, hospital-grade bed / DME, chemotherapy, home health, or any other asked off-grid need).
 
 **What Max must do:**
-- Check the 2027 green grid cell first if one exists
-- If it is absent, call `lookup_sob_benefit` with that plan’s `sobUrl` / contract-PBP
-- If the SOB does not have it, read the Evidence of Coverage (`eocUrl`)
+- Check the attached-year green grid cell first if one exists
+- If it is absent, call `lookup_sob_benefit` with that plan’s `sobUrl` / contract-PBP **for the asked year**
+- **2026-only ask** → that plan’s 2026 `#plan-data-2026` Summary of Benefits (and EOC only if a 2026 `eocUrl` is on file — never a 2027 EOC)
+- **Unspecified year, 2027, or both years in the ask** → 2027 `#plan-data` files
+- If the SOB does not have it, read that same year’s Evidence of Coverage (`eocUrl`)
 - Quote only what the document said. Include the extra Excel/PDF row only for the benefit she asked
 - If it is not in either document, say **unverified**
 
 **What Max must NOT do:**
 - ❌ Say “that’s not on the grid” and stop
 - ❌ Invent a dollar amount
-- ❌ Fill from 2026 or training memory
+- ❌ Quote a 2027 SOB or EOC as 2026 coverage (or the reverse)
+- ❌ Fill from the other year or training memory
 - ❌ Auto-lookup benefits she did not ask for
 - ❌ Add extra Excel/PDF rows she did not ask for
 - ❌ Change the grid benefit rows

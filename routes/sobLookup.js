@@ -28,7 +28,8 @@ router.get('/', async (req, res) => {
       eocUrl: req.query.eocUrl,
       benefits,
       query: req.query.query,
-      year: req.query.year ? Number(req.query.year) : 2027,
+      year: req.query.year ? Number(req.query.year) : undefined,
+      askText: req.query.ask || req.query.q || '',
     });
     res.json({
       year: result.year,

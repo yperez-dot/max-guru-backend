@@ -36,4 +36,5 @@ https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
 
 - 2027 rule / AEP / blackout → name the Hub or KB doc.
 - 2027 plan benefit → name carrier, plan, CMS ID, **plan year 2027**, and the SoB if you have the link.
-- If they did not specify a year and the question is a current-coverage quote, use the 2026 grid.
+- If they did not specify a year, or they said 2027, or both 2026 and 2027 appear, use the **2027** grid and 2027 SOB / EOC files.
+- If they said the case is **2026** and did not also say 2027, use archived `#plan-data-2026` dollars and that plan’s **2026** SOB / EOC URLs. Never open the 2027 PDF for a 2026-only ask.

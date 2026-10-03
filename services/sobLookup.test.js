@@ -14,6 +14,7 @@ const {
   uniquePlanIdsNeedingExportSob,
   citedPlanIdsFromText,
 } = require('./sobLookup');
+const { processTool } = require('./claude');
 
 const SAMPLE_SOB = `
 Summary of Benefits 2027 H1036-054C
@@ -132,6 +133,7 @@ describe('lookupSobBenefits grid then SOB', () => {
       }
     );
     assert.equal(fetchedUrl, wired.sobUrl);
+    assert.equal(result.year, 2027);
     assert.match(result.byPlanId['H1609-093'].fields.hearingAids.value, /\$199/);
     assert.equal(result.byPlanId['H1609-093'].fields.snfDays1to20, undefined);
   });
@@ -176,6 +178,127 @@ describe('lookupSobBenefits grid then SOB', () => {
     assert.equal(result.byPlanId['H1036-054C'].fields.dialysis.value, null);
     assert.equal(result.byPlanId['H1036-054C'].fields.dialysis.reason, 'not_in_sob_or_eoc');
     assert.match(formatSobLookupText(result), /UNVERIFIED/);
+  });
+
+  it('does not change the 2027 Doctors H4140-023 PDF mapping', () => {
+    const wired = findWiredPlan('H4140-023', 2027);
+    assert.ok(wired && wired.sobUrl);
+    assert.equal(
+      wired.sobUrl,
+      'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax_ENG.pdf'
+    );
+  });
+
+  it('a 2026-only ask hydrates that plan\'s 2026 sobUrl, not the 2027 file', async () => {
+    const wired26 = findWiredPlan('H1609-093', 2026);
+    const wired27 = findWiredPlan('H1609-093', 2027);
+    assert.ok(wired26 && wired26.sobUrl);
+    assert.ok(wired27 && wired27.sobUrl);
+    assert.notEqual(wired26.sobUrl, wired27.sobUrl);
+    assert.match(wired26.sobUrl, /2026|SB2026/i);
+    assert.match(wired27.sobUrl, /2027|SB2027/i);
+
+    let fetchedUrl = '';
+    const result = await lookupSobBenefits(
+      {
+        planId: 'H1609-093',
+        benefits: ['hearing_aids'],
+        askText: 'The case is 2026. What are hearing aids on H1609-093?',
+      },
+      async (url) => {
+        fetchedUrl = url;
+        return { text: async () => 'Hearing aids $50 copay per ear every 3 years (2026 SOB)' };
+      }
+    );
+    assert.equal(fetchedUrl, wired26.sobUrl);
+    assert.doesNotMatch(fetchedUrl, /2027|SB2027/i);
+    assert.equal(result.year, 2026);
+    assert.equal(result.byPlanId['H1609-093'].sobUrl, wired26.sobUrl);
+    assert.equal(result.byPlanId['H1609-093'].eocUrl, null);
+    assert.match(result.byPlanId['H1609-093'].fields.hearingAids.value, /\$50/);
+  });
+
+  it('does not fetch a 2027 SOB when the caller passes a 2027 URL on a 2026-only ask', async () => {
+    const wired26 = findWiredPlan('H1036-054C', 2026);
+    const wired27 = findWiredPlan('H1036-054C', 2027);
+    assert.ok(wired26 && wired26.sobUrl);
+    assert.ok(wired27 && wired27.eocUrl);
+    assert.match(wired27.eocUrl, /EOC27|2027/i);
+
+    let fetchedUrl = '';
+    const result = await lookupSobBenefits(
+      {
+        planId: 'H1036-054C',
+        sobUrl: wired27.sobUrl,
+        benefits: ['skilled_nursing'],
+        askText: '2026 case — SNF days 1-20 on Humana Gold Plus H1036-054C',
+      },
+      async (url) => {
+        fetchedUrl = url;
+        return { text: async () => 'Skilled nursing facility Days 1-20 $0 copay Days 21-100 $214 copay per day' };
+      }
+    );
+    assert.equal(fetchedUrl, wired26.sobUrl);
+    assert.equal(result.year, 2026);
+    assert.notEqual(result.byPlanId['H1036-054C'].eocUrl, wired27.eocUrl);
+  });
+
+  it('a 2026+2027 ask keeps the safer 2027 SOB file', async () => {
+    const wired27 = findWiredPlan('H1609-093', 2027);
+    let fetchedUrl = '';
+    const result = await lookupSobBenefits(
+      {
+        planId: 'H1609-093',
+        year: 2026,
+        benefits: ['hearing_aids'],
+        askText: 'Need both 2026 and 2027 hearing aids on H1609-093',
+      },
+      async (url) => {
+        fetchedUrl = url;
+        return { text: async () => SAMPLE_SOB };
+      }
+    );
+    assert.equal(fetchedUrl, wired27.sobUrl);
+    assert.equal(result.year, 2027);
+  });
+
+  it('processTool forwards a 2026-only conversation year when the model omits year', async () => {
+    const out = await processTool(
+      'lookup_sob_benefit',
+      { planId: 'H9999-000', benefits: ['skilled_nursing'] },
+      { messages: [{ role: 'user', content: 'This case is 2026. SNF on H9999-000?' }] }
+    );
+    assert.match(out.text, /year=2026/);
+    assert.match(out.text, /UNVERIFIED/);
+    assert.doesNotMatch(out.text, /\/2027\/|SB2027/i);
+  });
+
+  it('a 2026-only ask does not fetch or return a 2027 EOC when the SOB misses the benefit', async () => {
+    const wired26 = findWiredPlan('H1036-054C', 2026);
+    const wired27 = findWiredPlan('H1036-054C', 2027);
+    assert.ok(wired27 && wired27.eocUrl);
+    const fetched = [];
+    const result = await lookupSobBenefits(
+      {
+        planId: 'H1036-054C',
+        sobUrl: wired27.sobUrl,
+        eocUrl: wired27.eocUrl,
+        benefits: ['chemotherapy'],
+        askText: 'This case is 2026. What is chemo on H1036-054C?',
+        sobText: 'Hearing aids $199. Skilled nursing Days 1-20 $0.',
+      },
+      async (url) => {
+        fetched.push(url);
+        return { text: async () => 'Chemotherapy $999 from the 2027 EOC — must not be used' };
+      }
+    );
+    assert.equal(result.year, 2026);
+    assert.equal(result.byPlanId['H1036-054C'].sobUrl, wired26.sobUrl);
+    assert.equal(result.byPlanId['H1036-054C'].eocUrl, null);
+    assert.equal(result.byPlanId['H1036-054C'].eocRead, false);
+    assert.deepEqual(fetched, []);
+    assert.equal(result.byPlanId['H1036-054C'].fields.chemotherapy.value, null);
+    assert.doesNotMatch(formatSobLookupText(result), /EOC27|\$999|2027_SOB|\/2027\//i);
   });
 
   it('does not use a fetchImpl when sobText is provided (no live dollars)', async () => {

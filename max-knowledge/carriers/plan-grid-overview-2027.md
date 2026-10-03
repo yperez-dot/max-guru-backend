@@ -5,7 +5,7 @@ Sheet stamp: 4788 confirmed (non-yellow) / 640 yellow benefit cells across plan 
 
 Color key on the sheet: **yellow** = leftover / unconfirmed (never cited as 2027 dollars). After the Oct 2026 restyle, confirmed working 2027 numbers are typically **white/uncolored** (classic light-green fills were cleared; green still counts if it returns). Max only cites non-yellow cells.
 
-Live `#plan-data` **defaults to 2027** (same confirmed-cell rule). 2026 is archived (`#plan-data-2026` / `artifacts/plan-data-2026.json`) for current-year quotes when the agent asks or toggles the year.
+Live `#plan-data` **defaults to 2027** (same confirmed-cell rule). 2026 is archived (`#plan-data-2026` / `artifacts/plan-data-2026.json`) for current-year quotes when the agent asks or toggles the year. SOB / EOC lookups follow that year: 2026-only ask → 2026 URLs; unspecified / 2027 / both years → 2027 URLs.
 
 ## Confirmed 2027 plan dollars (non-yellow)
 

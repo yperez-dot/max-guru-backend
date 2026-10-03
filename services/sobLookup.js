@@ -1,18 +1,25 @@
 /**
  * Live Summary of Benefits / Evidence of Coverage fallback for benefits
- * that are not on the 2027 THEI comparison grid (green cells).
+ * that are not on the THEI comparison grid (green cells).
  *
- * Grid first. Then that plan's sobUrl PDF. Then eocUrl if the SOB does
- * not have the asked benefit. Never invent dollars. Never fill from 2026
- * or training memory. If it is not in either document, return unverified.
+ * Grid first. Then that plan's sobUrl PDF for the asked year. Then that
+ * same year's eocUrl if the SOB does not have the asked benefit.
+ * Explicit 2026-only asks use #plan-data-2026 URLs and must not open a
+ * 2027 EOC. Unspecified / 2027 / both years use 2027 #plan-data.
+ * Never invent dollars. Never quote the other year's document.
  */
 
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
+const {
+  DEFAULT_PLAN_YEAR,
+  resolveDocumentYear,
+  resolveDocumentUrl,
+} = require('./planYear');
 
-const PLAN_YEAR = 2027;
+const PLAN_YEAR = DEFAULT_PLAN_YEAR;
 const FETCH_TIMEOUT_MS = 40_000;
 const EXTRACT_TIMEOUT_MS = 45_000;
 const TEXT_CAP = 40_000;
@@ -72,23 +79,29 @@ except Exception as e:
 `;
 
 const textCache = new Map();
-let wiredPlansCache = null;
+const wiredPlansCache = { 2026: null, 2027: null };
 
-function loadWiredPlans() {
-  if (wiredPlansCache) return wiredPlansCache;
+function planDataScriptId(year) {
+  return Number(year) === 2026 ? 'plan-data-2026' : 'plan-data';
+}
+
+function loadWiredPlans(year) {
+  const y = Number(year) === 2026 ? 2026 : PLAN_YEAR;
+  if (wiredPlansCache[y]) return wiredPlansCache[y];
   try {
     const html = fs.readFileSync(
       path.join(__dirname, '../artifacts/max-demo-FINAL-v7.html'),
       'utf8'
     );
+    const id = planDataScriptId(y);
     const m = html.match(
-      /<script id="plan-data" type="application\/json">\s*([\s\S]*?)\s*<\/script>/
+      new RegExp(`<script id="${id}" type="application/json">\\s*([\\s\\S]*?)\\s*</script>`)
     );
-    wiredPlansCache = m ? JSON.parse(m[1]) : [];
+    wiredPlansCache[y] = m ? JSON.parse(m[1]) : [];
   } catch (_) {
-    wiredPlansCache = [];
+    wiredPlansCache[y] = [];
   }
-  return wiredPlansCache;
+  return wiredPlansCache[y];
 }
 
 function normalizePlanId(id) {
@@ -107,25 +120,29 @@ function idsMatch(a, b) {
   return soft(x) === soft(y);
 }
 
-function findWiredPlan(planId) {
+function findWiredPlan(planId, year) {
   const id = normalizePlanId(planId);
   if (!id) return null;
-  return loadWiredPlans().find((p) => idsMatch(p.planId || p.id, id)) || null;
+  const y = Number(year) === 2026 ? 2026 : PLAN_YEAR;
+  return loadWiredPlans(y).find((p) => idsMatch(p.planId || p.id, id)) || null;
 }
 
 function mergeWiredPlan(plan, year) {
-  const y = Number(year) || PLAN_YEAR;
-  if (y !== PLAN_YEAR) return plan;
+  const y = Number(year) === 2026 ? 2026 : PLAN_YEAR;
   const id = plan && (plan.planId || plan.id);
-  const wired = findWiredPlan(id);
-  if (!wired) return plan;
+  const wired = findWiredPlan(id, y);
+  const passedSob = String((plan && plan.sobUrl) || '').trim();
+  const passedEoc = String((plan && plan.eocUrl) || '').trim();
+  const wiredSob = String((wired && wired.sobUrl) || '').trim();
+  const wiredEoc = String((wired && wired.eocUrl) || '').trim();
+  const base = wired ? { ...wired, ...(plan || {}) } : { ...(plan || {}) };
   return {
-    ...wired,
-    ...plan,
-    planId: String(id || wired.planId || wired.id || '').trim(),
-    sobUrl: String((plan && plan.sobUrl) || wired.sobUrl || '').trim(),
-    eocUrl: String((plan && plan.eocUrl) || wired.eocUrl || '').trim(),
-    hearing: (plan && plan.hearing) || wired.hearing,
+    ...base,
+    planId: String(id || (wired && (wired.planId || wired.id)) || '').trim(),
+    year: y,
+    sobUrl: resolveDocumentUrl(passedSob, wiredSob, y),
+    eocUrl: resolveDocumentUrl(passedEoc, wiredEoc, y) || null,
+    hearing: (plan && plan.hearing) || (wired && wired.hearing) || null,
   };
 }
 
@@ -526,11 +543,12 @@ function pickRequested(parsed, wanted) {
   return row;
 }
 
-function gridFallback(plan, wanted) {
+function gridFallback(plan, wanted, year) {
   const out = {};
+  const y = Number(year) === 2026 ? 2026 : PLAN_YEAR;
   if (wanted.includes('hearingAids')) {
     const hearing = usableGridValue(plan && plan.hearing);
-    if (hearing && /aid/i.test(hearing)) out.hearingAids = { value: hearing, source: 'grid_2027' };
+    if (hearing && /aid/i.test(hearing)) out.hearingAids = { value: hearing, source: `grid_${y}` };
   }
   return out;
 }
@@ -548,7 +566,9 @@ async function lookupSobBenefits(
     plans = [],
     benefits = [],
     query = '',
-    year = PLAN_YEAR,
+    year,
+    askText = '',
+    systemText = '',
     sobText = '',
     sobTextByPlanId = {},
     eocText = '',
@@ -556,7 +576,7 @@ async function lookupSobBenefits(
   } = {},
   fetchImpl
 ) {
-  const y = Number(year) || PLAN_YEAR;
+  const y = resolveDocumentYear({ year, askText, systemText, plans });
   const wanted = normalizeBenefitList(benefits, query);
   const ids = [...(planId ? [planId] : []), ...(Array.isArray(planIds) ? planIds : [])]
     .map((id) => String(id || '').trim())
@@ -574,16 +594,18 @@ async function lookupSobBenefits(
       }, y));
     }
   });
-  if (!planList.length && sobUrl) planList.push({ planId: 'unknown', sobUrl, eocUrl });
+  if (!planList.length && sobUrl) {
+    planList.push(mergeWiredPlan({ planId: 'unknown', sobUrl, eocUrl }, y));
+  }
 
   const byPlanId = {};
   const lookups = [];
 
   for (const plan of planList) {
     const id = String(plan.planId || plan.id || '').trim() || 'unknown';
-    const url = String(plan.sobUrl || sobUrl || '').trim();
-    const planEocUrl = String(plan.eocUrl || eocUrl || '').trim();
-    const fromGrid = gridFallback(plan, wanted);
+    const url = String(plan.sobUrl || '').trim();
+    const planEocUrl = String(plan.eocUrl || '').trim();
+    const fromGrid = gridFallback(plan, wanted, y);
     const keys = requestedFieldKeys(wanted);
     const gridCoversAll = keys.length > 0 && keys.every((key) => fromGrid[key] && fromGrid[key].value);
     let parsed = {
@@ -680,7 +702,7 @@ function formatSobLookupText(result) {
   if (!result) return 'SOB lookup failed.';
   const lines = [`SOB_LOOKUP year=${result.year} benefits=${(result.benefits || []).join(',')}`];
   for (const row of result.lookups || []) {
-    lines.push(`${row.planId}: ${row.sobRead ? 'SOB read' : 'SOB unread'}${row.reason ? ` (${row.reason})` : ''}${row.sobUrl ? ` [SoB](${row.sobUrl})` : ''}`);
+    lines.push(`${row.planId}: ${row.sobRead ? 'SOB read' : 'SOB unread'}${row.reason ? ` (${row.reason})` : ''}${row.sobUrl ? ` [SoB](${row.sobUrl})` : ''}${row.eocUrl ? ` [EOC](${row.eocUrl})` : ''}`);
     Object.entries(row.fields || {}).forEach(([key, field]) => {
       if (field.verified && field.value) {
         lines.push(`  ${key}: ${field.value} (source ${field.source})`);
@@ -804,7 +826,8 @@ function shouldAutoLookupComparisonSob(messages, toolResults) {
 
 function resetSobCache() {
   textCache.clear();
-  wiredPlansCache = null;
+  wiredPlansCache[2026] = null;
+  wiredPlansCache[2027] = null;
 }
 
 module.exports = {
@@ -825,6 +848,8 @@ module.exports = {
   fetchSobText,
   driveDirectUrl,
   findWiredPlan,
+  loadWiredPlans,
+  mergeWiredPlan,
   resetSobCache,
   EXPORT_SOB_FIELD_KEYS,
   EXPORT_SOB_BENEFITS,
