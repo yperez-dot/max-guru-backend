@@ -1369,6 +1369,23 @@
     payload.zip = payload.zip || "33176";
     payload.county = payload.county || "Miami-Dade";
     payload.doctors = mergeDoctorLists([muskatLockedDoctors(), payload.doctors], payload.plans);
+    // Margolesky + Miami Neurology & Rehab always get a row. If no lookup result reached the
+    // export they show "Not confirmed" — never a guessed In/Out.
+    [
+      ["Dr. Jason Margolesky", /margolesky/i],
+      ["Miami Neurology & Rehab", /miami\s+neurology/i],
+    ].forEach(([label, re]) => {
+      if ((payload.doctors || []).some((d) => re.test(String(d.name || "")))) return;
+      const byPlanId = {};
+      payload.plans.forEach((p) => {
+        byPlanId[displayContractPbp(p)] = NETWORK_NOT_CONFIRMED;
+      });
+      payload.doctors.push({
+        name: label,
+        statuses: payload.plans.map(() => NETWORK_NOT_CONFIRMED),
+        byPlanId,
+      });
+    });
     const live = normalizeDrugs(payload.drugs, payload.plans);
     let lockedSrc = muskatLockedDrugs();
     if (uhcId === "H5420-001") {

@@ -1340,5 +1340,17 @@ Earlier: all four In network on UHC H5420-001.
       const hearing = row('Hearing Aids');
       assert.ok(!hearing || hearing[1] === 'Unverified' || !/scription/.test(hearing[1]));
     });
+
+    it('Muskat export always lists Margolesky and Miami Neurology (Not confirmed without a lookup)', () => {
+      const catalog = loadPlans();
+      const pick = (id) => catalog.find((p) => exp.displayContractPbp(p) === id);
+      const plans = ['H1036-054C', 'H4140-023', 'H5420-001'].map(pick).filter(Boolean);
+      assert.equal(plans.length, 3);
+      const model = exp.buildComparisonModel(exp.buildExportPayload(plans, 'Michael Muskat comparison', { catalog }));
+      const mar = model.aoa.find((r) => /margolesky/i.test(r[0] || ''));
+      const neu = model.aoa.find((r) => /miami neurology/i.test(r[0] || ''));
+      assert.ok(mar && neu);
+      assert.deepEqual(mar.slice(1), ['Not confirmed', 'Not confirmed', 'Not confirmed']);
+    });
   });
 });
