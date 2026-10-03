@@ -426,6 +426,13 @@ function parseSkilledNursing(text, planHint) {
     : ambiguous21 ? null : extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*100/i) ||
       extractMoneyAfter(win, /\$[\d,]+(?:\.\d{2})?[^.]{0,40}days?\s*21\s*(?:-|–|through|to)\s*100/i) ||
       extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*\$[\d,]+(?:\.\d{2})?\s*copay\s*100/i);
+  // Cross-check: when both layouts produce an answer for a band and the dollar amounts
+  // differ, we cannot tell which is right. Say nothing rather than guess.
+  const amt = (v) => (String(v || '').match(/\$[\d,]+(?:\.\d{2})?|\d+\s*%/) || [null])[0];
+  const alt1 = extractMoneyAfter(win, /days?\s*1\s*(?:-|–|—|through|to)\s*20/i);
+  const alt21 = extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*100/i);
+  if (picked1 && alt1 && amt(alt1) !== amt(days1to20)) days1to20 = null;
+  if (picked21 && alt21 && amt(alt21) !== amt(days21to100)) days21to100 = null;
   return { days1to20, days21to100 };
 }
 
@@ -771,6 +778,32 @@ function pickRequested(parsed, wanted) {
   return row;
 }
 
+// Human-verified values (with the printed page) win over any live PDF parse. A value only
+// gets in here after someone compared it to the carrier's own Summary of Benefits.
+const VERIFIED_CACHE = {};
+function loadVerifiedRegistry(year) {
+  const y = Number(year) === 2026 ? 2026 : PLAN_YEAR;
+  if (VERIFIED_CACHE[y] !== undefined) return VERIFIED_CACHE[y];
+  let data = {};
+  try {
+    const file = path.join(__dirname, '..', 'max-knowledge', `sob-verified-${y}.json`);
+    data = JSON.parse(fs.readFileSync(file, 'utf8')).plans || {};
+  } catch (_) {
+    data = {};
+  }
+  VERIFIED_CACHE[y] = data;
+  return data;
+}
+
+function verifiedFor(planId, key, year) {
+  const reg = loadVerifiedRegistry(year);
+  const id = String(planId || '').toUpperCase().replace(/\s+/g, '');
+  const row = reg[id];
+  const hit = row && row[key];
+  if (!hit || !hit.value) return null;
+  return { value: String(hit.value), source: 'verified_sob', page: hit.page || null, quote: hit.quote || null };
+}
+
 function gridFallback(plan, wanted, year) {
   const out = {};
   const y = Number(year) === 2026 ? 2026 : PLAN_YEAR;
@@ -835,6 +868,11 @@ async function lookupSobBenefits(
     const planEocUrl = String(plan.eocUrl || '').trim();
     const fromGrid = gridFallback(plan, wanted, y);
     const keys = requestedFieldKeys(wanted);
+    keys.forEach((key) => {
+      if (fromGrid[key]) return;
+      const v = verifiedFor(id, key, y);
+      if (v) fromGrid[key] = v;
+    });
     const gridCoversAll = keys.length > 0 && keys.every((key) => fromGrid[key] && fromGrid[key].value);
     let parsed = {
       hearingAids: null,

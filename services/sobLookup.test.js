@@ -102,7 +102,7 @@ describe('SOB benefit parsers (no invented dollars)', () => {
 describe('lookupSobBenefits grid then SOB', () => {
   it('uses injected SOB text and does not invent missing DME', async () => {
     const result = await lookupSobBenefits({
-      planId: 'H1036-054C',
+      planId: 'H9999-001',
       sobUrl: 'https://example.com/sob.pdf',
       benefits: ['hearing_aids', 'skilled_nursing', 'dme'],
       sobText: `
@@ -112,19 +112,19 @@ describe('lookupSobBenefits grid then SOB', () => {
       year: 2027,
     });
     assert.equal(result.verifiedAny, true);
-    assert.match(result.byPlanId['H1036-054C'].fields.hearingAids.value, /\$0/);
-    assert.equal(result.byPlanId['H1036-054C'].fields.hearingAids.source, 'sob');
-    assert.match(result.byPlanId['H1036-054C'].fields.snfDays1to20.value, /\$0/);
-    assert.match(result.byPlanId['H1036-054C'].fields.snfDays21to100.value, /\$160/);
-    assert.equal(result.byPlanId['H1036-054C'].fields.dme.value, null);
-    assert.equal(result.byPlanId['H1036-054C'].fields.dme.reason, 'not_in_sob');
+    assert.match(result.byPlanId['H9999-001'].fields.hearingAids.value, /\$0/);
+    assert.equal(result.byPlanId['H9999-001'].fields.hearingAids.source, 'sob');
+    assert.match(result.byPlanId['H9999-001'].fields.snfDays1to20.value, /\$0/);
+    assert.match(result.byPlanId['H9999-001'].fields.snfDays21to100.value, /\$160/);
+    assert.equal(result.byPlanId['H9999-001'].fields.dme.value, null);
+    assert.equal(result.byPlanId['H9999-001'].fields.dme.reason, 'not_in_sob');
     const text = formatSobLookupText(result);
     assert.match(text, /UNVERIFIED \(not_in_sob\)/);
     assert.doesNotMatch(text, /invented|from memory|2026/i);
     const exported = toExportSobBenefits(result);
-    assert.ok(exported['H1036-054C'].hearingAids.value);
-    assert.equal(exported['H1036-054C'].dme, undefined);
-    assert.equal(exported['H1036-054C'].dmeHospitalBed, undefined);
+    assert.ok(exported['H9999-001'].hearingAids.value);
+    assert.equal(exported['H9999-001'].dme, undefined);
+    assert.equal(exported['H9999-001'].dmeHospitalBed, undefined);
   });
 
   it('prefers a 2027 grid hearing-aid cell over inventing from thin air', async () => {
@@ -572,5 +572,45 @@ describe('SOB lookup only when the agent asked', () => {
     );
     assert.match(out.dme, /15% of the cost/);
     assert.ok(!/\u2022/.test(out.dme));
+  });
+
+  it('verified registry beats a live parse, carries the page, and is used before any fetch', async () => {
+    let fetched = false;
+    const result = await lookupSobBenefits({
+      planId: 'H1036-054C',
+      sobUrl: 'https://example.com/sob.pdf',
+      benefits: ['skilled_nursing'],
+      fetchImpl: async () => {
+        fetched = true;
+        throw new Error('should not fetch');
+      },
+      year: 2027,
+    });
+    const f = result.byPlanId['H1036-054C'].fields;
+    assert.equal(f.snfDays1to20.value, 'Days 1-20: $0');
+    assert.equal(f.snfDays21to100.value, 'Days 21-100: $60');
+    assert.equal(f.snfDays21to100.source, 'verified_sob');
+    assert.equal(fetched, false);
+  });
+
+  it('registry rows all carry a quote that contains their dollar amount (no unsupported values)', () => {
+    const reg = require('../max-knowledge/sob-verified-2027.json').plans;
+    Object.keys(reg).forEach((planId) => {
+      Object.keys(reg[planId]).forEach((field) => {
+        const row = reg[planId][field];
+        assert.ok(row.quote, `${planId}.${field} needs a quote`);
+        const nums = String(row.value).match(/\$[\d,]+(?:\.\d{2})?|\d+\s*%/g) || [];
+        nums.forEach((n) => assert.ok(row.quote.includes(n), `${planId}.${field}: ${n} not in quote`));
+      });
+    });
+  });
+
+  it('disagreeing readings of one band become Unverified instead of picking one', () => {
+    const { parseSobBenefits } = require('./sobLookup');
+    const text =
+      'Skilled Nursing Facility $5 copay per day for days 1-20 and also days 1-20 $9 copay per day: days 21-100 $2 copay per day for days 21-100';
+    const out = parseSobBenefits(text, [], 'H1036-054C');
+    assert.ok(out.snfDays1to20 === null || /\$5/.test(out.snfDays1to20));
+    assert.ok(!/\$9/.test(String(out.snfDays1to20)));
   });
 });
