@@ -170,6 +170,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H4140-023
+**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf)
+**SNF (DrSelect-SFL column on that SoB):** $0 copay per day days 1–20; $60 copay per day days 21–100. Not the Dr Max PDF.
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -399,6 +401,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H4140-023
+**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf)
+**SNF (DrSelect-SFL column on that SoB):** $0 copay per day days 1–20; $60 copay per day days 21–100. Not the Dr Max PDF.
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No

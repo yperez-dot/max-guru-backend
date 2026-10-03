@@ -218,20 +218,63 @@ function extractMoneyAfter(blob, dayRe) {
   return cleanSnippet(`${m[0]}: ${money[0]}`.replace(/\s+/g, ' '), 80);
 }
 
-function parseSkilledNursing(text) {
+function collectSnfBandAmounts(win, startDay, endDay) {
+  const src = String(win || '');
+  const amounts = [];
+  const range = `days?\\s*${startDay}(?!\\d)\\s*(?:-|–|—|through|to)\\s*${endDay}(?!\\d)`;
+  const patterns = [
+    new RegExp(`(\\$[\\d,]+(?:\\.\\d{2})?)[^$.]{0,50}${range}`, 'ig'),
+    new RegExp(
+      `days?\\s*${startDay}(?!\\d)\\s*(?:-|–|—|through|to)\\s*(\\$[\\d,]+(?:\\.\\d{2})?)\\s*copay\\s*${endDay}(?!\\d)`,
+      'ig'
+    ),
+  ];
+  patterns.forEach((re) => {
+    let m;
+    const r = new RegExp(re.source, 'ig');
+    while ((m = r.exec(src))) {
+      const money = m[1];
+      if (money && !amounts.includes(money)) amounts.push(money);
+    }
+  });
+  return amounts;
+}
+
+function pickDualColumnAmount(amounts, planHint, fullText) {
+  if (!amounts.length) return null;
+  const dual = /DrMax-Dade/i.test(fullText || '') && /DrSelect-SFL/i.test(fullText || '');
+  if (dual && amounts.length > 1 && /H4140-023|DrSelect/i.test(String(planHint || ''))) {
+    return amounts[amounts.length - 1];
+  }
+  return amounts[0];
+}
+
+function parseSkilledNursing(text, planHint) {
   const blob = collapseWs(text);
   if (!/skilled nursing|\bSNF\b/i.test(blob)) {
     return { days1to20: null, days21to100: null };
   }
   const win = collapseWs(
-    windowAround(text, /skilled nursing facility|\bSNF\b|skilled nursing/i, 700, 20)
+    windowAround(text, /skilled nursing facility|\bSNF\b|skilled nursing/i, 900, 400)
   );
-  const days1to20 =
+  let days1to20 =
     extractMoneyAfter(win, /days?\s*1\s*(?:-|–|—|through|to)\s*20/i) ||
-    extractMoneyAfter(win, /\$[\d,]+(?:\.\d{2})?[^.]{0,40}days?\s*1\s*(?:-|–|through|to)\s*20/i);
-  const days21to100 =
+    extractMoneyAfter(win, /\$[\d,]+(?:\.\d{2})?[^.]{0,40}days?\s*1\s*(?:-|–|through|to)\s*20/i) ||
+    extractMoneyAfter(win, /days?\s*1\s*(?:-|–|—|through|to)\s*\$[\d,]+(?:\.\d{2})?\s*copay\s*20/i);
+  let days21to100 =
     extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*100/i) ||
-    extractMoneyAfter(win, /\$[\d,]+(?:\.\d{2})?[^.]{0,40}days?\s*21\s*(?:-|–|through|to)\s*100/i);
+    extractMoneyAfter(win, /\$[\d,]+(?:\.\d{2})?[^.]{0,40}days?\s*21\s*(?:-|–|through|to)\s*100/i) ||
+    extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*\$[\d,]+(?:\.\d{2})?\s*copay\s*100/i);
+
+  const dualDoctors = /DrMax-Dade/i.test(blob) && /DrSelect-SFL/i.test(blob);
+  if (dualDoctors) {
+    const band1 = collectSnfBandAmounts(win, 1, 20);
+    const band21 = collectSnfBandAmounts(win, 21, 100);
+    const picked1 = pickDualColumnAmount(band1, planHint, blob);
+    const picked21 = pickDualColumnAmount(band21, planHint, blob);
+    if (picked1) days1to20 = cleanSnippet(`Days 1-20: ${picked1}`, 80);
+    if (picked21) days21to100 = cleanSnippet(`Days 21-100: ${picked21}`, 80);
+  }
   return { days1to20, days21to100 };
 }
 
