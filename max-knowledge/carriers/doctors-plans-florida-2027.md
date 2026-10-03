@@ -170,6 +170,9 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H4140-023
+**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf)
+**SNF (DrSelect-SFL right column — do not take the first/left dollar):** $0 copay per day days 1–20; $60 copay per day days 21–100. Left / Dr Max is $0 then $75. Pointing at the DrSelect PDF is not enough; off-grid lookup must slice the right column.
+**DME (page 17, DrSelect-SFL right column; both columns the same):** 0% coinsurance for covered items including CPAP and all other medical equipment; 20% coinsurance for powered wheelchairs, powered mattress systems, and other electric devices. A hospital-grade bed is not named — do not invent a hospital-bed dollar.
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -348,6 +351,9 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H4140-022
+**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax_ENG.pdf) — leave this URL even if the 2027 grid hyperlink on 022 currently points at the DrSelect PDF (cell label still says DrMax-Dade). That grid link is wrong; do not copy it.
+**SNF (DrMax-Dade left column):** $0 copay per day days 1–20; $75 copay per day days 21–100. Not the DrSelect $60.
+**DME (page 17, both columns the same):** 0% coinsurance for covered items including CPAP and all other medical equipment; 20% coinsurance for powered wheelchairs, powered mattress systems, and other electric devices. A hospital-grade bed is not named — do not invent a hospital-bed dollar.
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $17
@@ -399,6 +405,9 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H4140-023
+**SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf)
+**SNF (DrSelect-SFL right column — do not take the first/left dollar):** $0 copay per day days 1–20; $60 copay per day days 21–100. Left / Dr Max is $0 then $75. Pointing at the DrSelect PDF is not enough; off-grid lookup must slice the right column.
+**DME (page 17, DrSelect-SFL right column; both columns the same):** 0% coinsurance for covered items including CPAP and all other medical equipment; 20% coinsurance for powered wheelchairs, powered mattress systems, and other electric devices. A hospital-grade bed is not named — do not invent a hospital-bed dollar.
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No

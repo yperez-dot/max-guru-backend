@@ -202,6 +202,27 @@ Never invent a Plan Terminating row from "no MSP row."
   });
 });
 
+describe('H4140-023 DrSelect SoB URL on live plan-data', () => {
+  const DRSELECT = 'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf';
+  const DRMAX = 'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax_ENG.pdf';
+
+  it('exports Summary of Benefits as the 2027 DrSelect PDF, not Dr Max', () => {
+    const plans = loadPlans();
+    const dade = planById(plans, 'H4140-023', 'Miami-Dade');
+    const broward = planById(plans, 'H4140-023', 'Broward');
+    const max = planById(plans, 'H4140-022', 'Miami-Dade');
+    assert.equal(dade.sobUrl, DRSELECT);
+    assert.equal(broward.sobUrl, DRSELECT);
+    assert.equal(max.sobUrl, DRMAX);
+
+    const model = exp.buildComparisonModel({ plans: [dade] });
+    const sob = model.aoa.find((row) => row[0] === 'Summary of Benefits');
+    assert.equal(sob[1], 'Summary of Benefits');
+    assert.ok(model.hyperlinks.some((h) => h.url === DRSELECT));
+    assert.equal(model.hyperlinks.some((h) => h.url === DRMAX), false);
+  });
+});
+
 describe('Arias-like sheet model from live plan-data', () => {
   it('builds title, terminating, doctors, ordered benefits, SOB/EOC', () => {
     const plans = loadPlans();
@@ -1535,6 +1556,32 @@ Earlier: all four In network on UHC H5420-001.
       const capped = exp.mergeToolResults([], many, 4);
       assert.equal(capped.length, 4);
       assert.equal(capped[3].tool, 't9');
+    });
+
+    it('exports DrSelect DME without inventing a hospital-bed dollar', () => {
+      const doctors = planById(loadPlans(), 'H4140-023', 'Miami-Dade');
+      assert.equal(
+        doctors.sobUrl,
+        'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf'
+      );
+      const model = exp.buildComparisonModel({
+        plans: [doctors],
+        clientName: 'Carol Wong',
+        sobBenefits: {
+          'H4140-023': {
+            dme: {
+              value:
+                '0% coinsurance for covered items including CPAP and all other medical equipment; 20% coinsurance for powered wheelchairs, powered mattress systems, and other electric devices',
+              source: 'sob',
+            },
+          },
+        },
+      });
+      const row = (label) => model.aoa.find((r) => r[0] === label);
+      assert.match(row('DME')[1], /0%/);
+      assert.match(row('DME')[1], /20%/);
+      assert.doesNotMatch(row('DME')[1], /hospital/i);
+      assert.equal(row('Hospital-grade bed / DME'), undefined);
     });
 
     it('prints SNF and DME rows when sobBenefits carries values', () => {
