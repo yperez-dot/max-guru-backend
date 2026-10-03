@@ -21,7 +21,7 @@ const BENEFIT_KEYS = {
   hearing_aids: 'hearingAids',
   skilled_nursing: 'skilledNursing',
   snf: 'skilledNursing',
-  dme: 'dmeHospitalBed',
+  dme: 'dme',
   hospital_bed: 'dmeHospitalBed',
 };
 
@@ -165,7 +165,10 @@ function normalizeBenefitList(benefits, query) {
       mapped.push('hearingAids');
     }
     if (/snf|skilled_nursing/.test(key)) mapped.push('skilledNursing');
-    if (/\bdme\b|hospital_grade_bed|hospital_bed|durable_medical/.test(key)) {
+    if ((/\bdme\b|durable_medical/.test(key)) && !/hospital/.test(key)) {
+      mapped.push('dme');
+    }
+    if (/hospital_grade_bed|hospital_bed/.test(key)) {
       mapped.push('dmeHospitalBed');
     }
     if (/chemo|infusion_therapy/.test(key)) mapped.push('chemotherapy');
@@ -285,15 +288,58 @@ function parseHearingAids(text) {
   return cleanSnippet(sentence ? sentence[0] : win, 160);
 }
 
-function parseDmeHospitalBed(text) {
+function namesHospitalBed(text) {
+  return /hospital[-\s]?grade bed|hospital bed/i.test(text || '');
+}
+
+function extractDrSelectDme(text) {
   const win = collapseWs(
-    windowAround(text, /durable medical equipment|\bDME\b|hospital[-\s]?grade bed|hospital bed/i, 480, 10)
+    [
+      windowAround(text, /durable medical equipment|\bDME\b/i, 900, 700),
+      windowAround(text, /CPAP/i, 500, 240),
+    ].join('\n')
   );
+  const src = win || collapseWs(text);
+  if (!/0%\s*coinsurance/i.test(src) || !/20%\s*coinsurance/i.test(src)) return null;
+  if (!/CPAP/i.test(src) || !/powered wheelchair/i.test(src)) return null;
+  return cleanSnippet(
+    '0% coinsurance for covered items including CPAP and all other medical equipment; 20% coinsurance for powered wheelchairs, powered mattress systems, and other electric devices',
+    240
+  );
+}
+
+function parseDme(text, planHint) {
+  const blob = collapseWs(text);
+  const dual = /DrMax-Dade/i.test(blob) && /DrSelect-SFL/i.test(blob);
+  if (dual && /H4140-023/i.test(String(planHint || ''))) {
+    return extractDrSelectDme(text);
+  }
+  const win = collapseWs(windowAround(text, /durable medical equipment|\bDME\b/i, 480, 400));
   if (!win || !hasMoneyOrCoverage(win)) return null;
+  if (namesHospitalBed(win) && !/CPAP|powered wheelchair|all other medical equipment/i.test(win)) {
+    return null;
+  }
   const sentence = win.match(
-    /(?:durable medical equipment|\bDME\b|hospital[-\s]?grade bed|hospital bed)[^.]{0,160}(?:\$[\d,]+|\d+\s*%|covered|not covered|no copay)[^.]{0,80}/i
+    /(?:durable medical equipment|\bDME\b)[^.]{0,160}(?:\$[\d,]+|\d+\s*%|covered|not covered|no copay)[^.]{0,80}/i
   );
   return cleanSnippet(sentence ? sentence[0] : win, 160);
+}
+
+function parseHospitalBed(text) {
+  if (!namesHospitalBed(text)) return null;
+  const win = collapseWs(windowAround(text, /hospital[-\s]?grade bed|hospital bed/i, 480, 40));
+  if (!win || !hasMoneyOrCoverage(win)) return null;
+  const sentence = win.match(
+    /(?:hospital[-\s]?grade bed|hospital bed)[^.]{0,160}(?:\$[\d,]+|\d+\s*%|covered|not covered|no copay)[^.]{0,80}/i
+  );
+  return cleanSnippet(sentence ? sentence[0] : win, 160);
+}
+
+function parseDmeHospitalBed(text, planHint) {
+  const bed = parseHospitalBed(text);
+  if (bed) return bed;
+  if (/H4140-023/i.test(String(planHint || ''))) return null;
+  return parseDme(text, planHint);
 }
 
 function escapeRe(s) {
@@ -349,13 +395,14 @@ function parseGenericBenefit(text, phrases) {
   return null;
 }
 
-function parseSobBenefits(text, extraKeys) {
-  const snf = parseSkilledNursing(text);
+function parseSobBenefits(text, extraKeys, planHint) {
+  const snf = parseSkilledNursing(text, planHint);
   const out = {
     hearingAids: parseHearingAids(text),
     snfDays1to20: snf.days1to20,
     snfDays21to100: snf.days21to100,
-    dmeHospitalBed: parseDmeHospitalBed(text),
+    dme: parseDme(text, planHint),
+    dmeHospitalBed: parseHospitalBed(text),
   };
   (extraKeys || []).forEach((key) => {
     if (out[key] !== undefined) return;
@@ -555,7 +602,8 @@ function requestedFieldKeys(wanted) {
     else if (w === 'skilledNursing') {
       add('snfDays1to20');
       add('snfDays21to100');
-    } else if (w === 'dmeHospitalBed') add('dmeHospitalBed');
+    } else if (w === 'dme') add('dme');
+    else if (w === 'dmeHospitalBed') add('dmeHospitalBed');
     else add(w);
   });
   return keys;
@@ -633,6 +681,7 @@ async function lookupSobBenefits(
       hearingAids: null,
       snfDays1to20: null,
       snfDays21to100: null,
+      dme: null,
       dmeHospitalBed: null,
     };
     let sourceUrl = url || null;
@@ -641,14 +690,14 @@ async function lookupSobBenefits(
 
     const injected = sobTextByPlanId[id] || sobText;
     if (injected) {
-      parsed = parseSobBenefits(injected, keys);
+      parsed = parseSobBenefits(injected, keys, id);
       sobRead = true;
       sourceUrl = sourceUrl || 'injected';
     } else if (url && !gridCoversAll) {
       const fetched = await fetchSobText(url, fetchImpl);
       sourceUrl = fetched.sourceUrl || url;
       if (fetched.ok && fetched.text) {
-        parsed = parseSobBenefits(fetched.text, keys);
+        parsed = parseSobBenefits(fetched.text, keys, id);
         sobRead = true;
       } else {
         readError = fetched.error || 'sob_unreadable';
@@ -666,12 +715,12 @@ async function lookupSobBenefits(
     const callerPassedEoc = Boolean(eocUrl || eocText || eocTextByPlanId[id]);
     if (missing.length) {
       if (injectedEoc) {
-        fromEoc = pickRequested(parseSobBenefits(injectedEoc, missing), wanted);
+        fromEoc = pickRequested(parseSobBenefits(injectedEoc, missing, id), wanted);
         eocRead = true;
       } else if (planEocUrl && (!injected || callerPassedEoc)) {
         const fetched = await fetchSobText(planEocUrl, fetchImpl);
         if (fetched.ok && fetched.text) {
-          fromEoc = pickRequested(parseSobBenefits(fetched.text, missing), wanted);
+          fromEoc = pickRequested(parseSobBenefits(fetched.text, missing, id), wanted);
           eocRead = true;
         } else {
           eocError = fetched.error || 'eoc_unreadable';
@@ -860,6 +909,8 @@ module.exports = {
   parseGenericBenefit,
   parseHearingAids,
   parseSkilledNursing,
+  parseDme,
+  parseHospitalBed,
   parseDmeHospitalBed,
   lookupSobBenefits,
   askedOffGridFromText,

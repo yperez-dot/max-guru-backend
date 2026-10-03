@@ -83,13 +83,14 @@ describe('lookupSobBenefits grid then SOB', () => {
     assert.equal(result.byPlanId['H1036-054C'].fields.hearingAids.source, 'sob');
     assert.match(result.byPlanId['H1036-054C'].fields.snfDays1to20.value, /\$0/);
     assert.match(result.byPlanId['H1036-054C'].fields.snfDays21to100.value, /\$160/);
-    assert.equal(result.byPlanId['H1036-054C'].fields.dmeHospitalBed.value, null);
-    assert.equal(result.byPlanId['H1036-054C'].fields.dmeHospitalBed.reason, 'not_in_sob');
+    assert.equal(result.byPlanId['H1036-054C'].fields.dme.value, null);
+    assert.equal(result.byPlanId['H1036-054C'].fields.dme.reason, 'not_in_sob');
     const text = formatSobLookupText(result);
     assert.match(text, /UNVERIFIED \(not_in_sob\)/);
     assert.doesNotMatch(text, /invented|from memory|2026/i);
     const exported = toExportSobBenefits(result);
     assert.ok(exported['H1036-054C'].hearingAids.value);
+    assert.equal(exported['H1036-054C'].dme, undefined);
     assert.equal(exported['H1036-054C'].dmeHospitalBed, undefined);
   });
 
@@ -235,6 +236,41 @@ describe('lookupSobBenefits grid then SOB', () => {
       sobText,
     });
     assert.match(max.byPlanId['H4140-022'].fields.snfDays21to100.value, /\$75/);
+  });
+
+  it('reads DrSelect-SFL DME from the right column and does not invent a hospital-bed dollar', async () => {
+    const sobText = `
+      Benefits/Services DrMax-Dade (HMO) DrSelect-SFL (HMO)
+      0% coinsurance including but not limited to: 20% coinsurance including but not limited to:
+      for covered items, CPAP machines And all other medical equipment
+      for covered items, Powered wheelchairs Powered mattress systems And other electric devices
+      for covered items, 0% coinsurance including but not limited to:
+      for covered items, 20% coinsurance including but not limited to:
+      The list of preferred vendors and manufacturers for durable medical equipment (DME)
+      Durable Medical Equipment (DME)
+    `;
+    const dme = await lookupSobBenefits({
+      planId: 'H4140-023',
+      sobUrl: 'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf',
+      benefits: ['dme'],
+      sobText,
+    });
+    assert.match(dme.byPlanId['H4140-023'].fields.dme.value, /0%/);
+    assert.match(dme.byPlanId['H4140-023'].fields.dme.value, /20%/);
+    assert.match(dme.byPlanId['H4140-023'].fields.dme.value, /CPAP/i);
+    assert.match(dme.byPlanId['H4140-023'].fields.dme.value, /powered wheelchair/i);
+    assert.doesNotMatch(dme.byPlanId['H4140-023'].fields.dme.value, /hospital/i);
+    assert.equal(dme.byPlanId['H4140-023'].fields.dmeHospitalBed, undefined);
+
+    const bed = await lookupSobBenefits({
+      planId: 'H4140-023',
+      sobUrl: 'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf',
+      benefits: ['hospital_bed'],
+      sobText,
+    });
+    assert.equal(bed.byPlanId['H4140-023'].fields.dmeHospitalBed.value, null);
+    assert.equal(bed.byPlanId['H4140-023'].fields.dmeHospitalBed.reason, 'not_in_sob');
+    assert.doesNotMatch(formatSobLookupText(bed), /hospital bed \$|hospital-grade bed \$/i);
   });
 });
 
