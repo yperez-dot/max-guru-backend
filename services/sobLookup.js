@@ -644,12 +644,12 @@ function uniquePlanIdsNeedingExportSob(messages, toolResults) {
   return planIds.filter((id) => !covered.has(normalizePlanId(id)) && !covered.has(id));
 }
 
-// Comparison (2+ PBPs) always; a named SNF/DME ask also triggers even for one plan.
+// Only when the agent asked for SNF / hospital-grade bed / DME — never on every compare.
 function shouldAutoLookupComparisonSob(messages, toolResults) {
   const text = messagePlainText(messages);
+  if (!ASKED_EXPORT_SOB_RE.test(text)) return false;
   const planIds = citedPlanIdsFromText(text);
   if (!planIds.length) return false;
-  if (planIds.length < 2 && !ASKED_EXPORT_SOB_RE.test(text)) return false;
   return uniquePlanIdsNeedingExportSob(messages, toolResults).length > 0;
 }
 
@@ -677,6 +677,7 @@ module.exports = {
   resetSobCache,
   EXPORT_SOB_FIELD_KEYS,
   EXPORT_SOB_BENEFITS,
+  ASKED_EXPORT_SOB_RE,
   messagePlainText,
   citedPlanIdsFromText,
   planIdsCoveredBySobToolResults,

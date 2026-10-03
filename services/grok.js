@@ -180,9 +180,8 @@ async function passThroughChat({ system, messages, processToolFn }) {
           apiMessages.push({
             role: 'user',
             content:
-              'Required SOB lookup for this comparison (do this without the agent asking). ' +
-              'Quote SNF days 1–20, SNF days 21–100, and hospital-grade bed / DME from this extract only. ' +
-              'Unverified if no number. Never invent dollars. Never print chopped PDF fragments.\n' +
+              'Required SOB lookup because the agent asked for SNF days 1–20 / 21–100 and/or hospital-grade bed / DME. ' +
+              'Quote only this extract. Unverified if no number. Never invent dollars. Never print chopped PDF fragments.\n' +
               text,
           });
           continue;

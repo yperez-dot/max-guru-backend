@@ -153,8 +153,8 @@ describe('lookupSobBenefits grid then SOB', () => {
   });
 });
 
-describe('auto SOB lookup without the agent asking', () => {
-  it('triggers on a 2+ plan comparison even when SNF/DME were never mentioned', () => {
+describe('SOB lookup only when the agent asked', () => {
+  it('does not trigger on a 2+ plan comparison when SNF/DME were never mentioned', () => {
     const messages = [
       {
         role: 'user',
@@ -162,7 +162,7 @@ describe('auto SOB lookup without the agent asking', () => {
           'Compare H1036-054C, H4140-023, and H5420-001 for Mr. and Mrs. Muskat.',
       },
     ];
-    assert.equal(shouldAutoLookupComparisonSob(messages, []), true);
+    assert.equal(shouldAutoLookupComparisonSob(messages, []), false);
     assert.deepEqual(uniquePlanIdsNeedingExportSob(messages, []), [
       'H1036-054C',
       'H4140-023',
@@ -176,7 +176,7 @@ describe('auto SOB lookup without the agent asking', () => {
     assert.deepEqual(citedPlanIdsFromText('What is the premium on H1036-054C?'), ['H1036-054C']);
   });
 
-  it('triggers on a one-plan SNF ask and skips plans already looked up', () => {
+  it('triggers when she asks for SNF / DME and skips plans already looked up', () => {
     const messages = [{ role: 'user', content: 'What is SNF days 1-20 on H1036-054C?' }];
     assert.equal(shouldAutoLookupComparisonSob(messages, []), true);
     const already = [
@@ -191,13 +191,14 @@ describe('auto SOB lookup without the agent asking', () => {
         },
       },
     ];
-    const compare = [
+    const askedAgain = [
       {
         role: 'user',
-        content: 'Compare H1036-054C, H4140-023, and H5420-001.',
+        content:
+          'Compare H1036-054C, H4140-023, and H5420-001. Need SNF days 1-20 and a hospital-grade bed.',
       },
     ];
-    assert.equal(shouldAutoLookupComparisonSob(compare, already), false);
-    assert.deepEqual(uniquePlanIdsNeedingExportSob(compare, already), []);
+    assert.equal(shouldAutoLookupComparisonSob(askedAgain, already), false);
+    assert.deepEqual(uniquePlanIdsNeedingExportSob(askedAgain, already), []);
   });
 });

@@ -383,9 +383,10 @@ describe('HTML UI wiring', () => {
     assert.match(html, /lookup_sob_benefit/);
     assert.match(html, /sobFromToolResults/);
     assert.match(html, /fillExportSobBenefits/);
+    assert.match(html, /askedExportSobBenefits/);
     assert.match(html, /hydrateExportSobBenefits/);
     assert.match(html, /runComparisonExport/);
-    assert.match(html, /do not wait for the agent to ask/);
+    assert.match(html, /Do NOT look up SNF or hospital-grade bed/);
     assert.match(html, /Do NOT add a Plan Terminating row unless/);
     assert.match(html, /MaxClientWorkups/);
     assert.match(html, /\/workups/);
@@ -487,7 +488,7 @@ describe('export doctors section + no carrier-as-drug', () => {
 });
 
 describe('SOB-only extra benefit rows', () => {
-  it('still prints the three SOB rows when the chat never stored a lookup', () => {
+  it('omits SNF / DME rows when she did not ask for those benefits', () => {
     const plans = [
       { planId: 'H1036-054C', planName: 'Humana Gold Plus', inpatientHospital: '$0', hearing: '$0 exam' },
       { planId: 'H4140-023', planName: 'DrSelect-SFL', inpatientHospital: '$0', hearing: '$1,350' },
@@ -496,8 +497,30 @@ describe('SOB-only extra benefit rows', () => {
     const model = exp.buildComparisonModel({
       plans,
       clientName: 'Mr. and Mrs. Muskat',
+      threadText: 'Compare H1036-054C, H4140-023, and H5420-001 for Mr. and Mrs. Muskat.',
       skipMuskatLock: true,
     });
+    const labels = model.aoa.map((row) => row[0]);
+    assert.equal(labels.includes('Skilled Nursing Facility (days 1–20)'), false);
+    assert.equal(labels.includes('Skilled Nursing Facility (days 21–100)'), false);
+    assert.equal(labels.includes('Hospital-grade bed / DME'), false);
+    assert.equal(labels.includes('Hearing Aids'), false);
+    assert.equal(labels.includes('Plan Terminating'), false);
+  });
+
+  it('still prints the three SOB rows when she asked and the chat never stored a lookup', () => {
+    const plans = [
+      { planId: 'H1036-054C', planName: 'Humana Gold Plus', inpatientHospital: '$0', hearing: '$0 exam' },
+      { planId: 'H4140-023', planName: 'DrSelect-SFL', inpatientHospital: '$0', hearing: '$1,350' },
+      { planId: 'H5420-001', planName: 'MedicareMax FL-0028', inpatientHospital: '$0', hearing: '$0 exam' },
+    ];
+    const payload = exp.buildExportPayload(
+      plans,
+      'Mr. and Mrs. Muskat need SNF days 1-20, SNF days 21-100, and a hospital-grade bed.',
+      { skipMuskatLock: true }
+    );
+    assert.equal(payload.askedExportSob, true);
+    const model = exp.buildComparisonModel(payload);
     const labels = model.aoa.map((row) => row[0]);
     assert.ok(labels.includes('Skilled Nursing Facility (days 1–20)'));
     assert.ok(labels.includes('Skilled Nursing Facility (days 21–100)'));
@@ -527,7 +550,7 @@ describe('SOB-only extra benefit rows', () => {
     assert.equal(labels.includes('Hearing Aids'), false);
   });
 
-  it('fillExportSobBenefits looks up the three rows when chat stored nothing', async () => {
+  it('fillExportSobBenefits looks up the three rows when she asked and chat stored nothing', async () => {
     const plans = [
       {
         planId: 'H1036-054C',
@@ -549,22 +572,31 @@ describe('SOB-only extra benefit rows', () => {
       },
     ];
     let called = null;
-    const filled = await exp.fillExportSobBenefits(plans, {}, async (req) => {
-      called = req;
-      return {
-        sobBenefits: {
-          'H1036-054C': {
-            snfDays1to20: { value: 'Days 1-20: $0 copay', source: 'sob' },
-            snfDays21to100: { value: 'Days 21-100: $214 copay per day', source: 'sob' },
-            dmeHospitalBed: { value: 'Hospital bed 20% coinsurance', source: 'sob' },
-          },
-          'H4140-023': {},
-          'H5420-001': {
-            snfDays1to20: { value: 'Days 1-20: $0 copay', source: 'sob' },
-          },
-        },
-      };
+    const skipped = await exp.fillExportSobBenefits(plans, {}, async () => {
+      throw new Error('should not look up when she did not ask');
     });
+    assert.deepEqual(skipped, {});
+    const filled = await exp.fillExportSobBenefits(
+      plans,
+      {},
+      async (req) => {
+        called = req;
+        return {
+          sobBenefits: {
+            'H1036-054C': {
+              snfDays1to20: { value: 'Days 1-20: $0 copay', source: 'sob' },
+              snfDays21to100: { value: 'Days 21-100: $214 copay per day', source: 'sob' },
+              dmeHospitalBed: { value: 'Hospital bed 20% coinsurance', source: 'sob' },
+            },
+            'H4140-023': {},
+            'H5420-001': {
+              snfDays1to20: { value: 'Days 1-20: $0 copay', source: 'sob' },
+            },
+          },
+        };
+      },
+      { asked: true, threadText: 'Need SNF days 1-20 and a hospital-grade bed.' }
+    );
     assert.ok(called);
     assert.deepEqual(called.benefits, ['skilled_nursing', 'dme']);
     assert.deepEqual(called.planIds, ['H1036-054C', 'H4140-023', 'H5420-001']);

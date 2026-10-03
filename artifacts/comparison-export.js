@@ -64,14 +64,20 @@
   const HIGHLIGHT_KEYS = { hearing: true, otc: true };
   const SOB_EXTRA_AFTER = {
     inpatientHospital: [
-      ["Skilled Nursing Facility (days 1–20)", "snfDays1to20", { always: true }],
-      ["Skilled Nursing Facility (days 21–100)", "snfDays21to100", { always: true }],
+      ["Skilled Nursing Facility (days 1–20)", "snfDays1to20", { onAsk: true }],
+      ["Skilled Nursing Facility (days 21–100)", "snfDays21to100", { onAsk: true }],
     ],
     hearing: [["Hearing Aids", "hearingAids"]],
-    advancedImaging: [["Hospital-grade bed / DME", "dmeHospitalBed", { always: true }]],
+    advancedImaging: [["Hospital-grade bed / DME", "dmeHospitalBed", { onAsk: true }]],
   };
-  const ALWAYS_SOB_EXPORT_KEYS = ["snfDays1to20", "snfDays21to100", "dmeHospitalBed"];
+  const ASKED_SOB_EXPORT_KEYS = ["snfDays1to20", "snfDays21to100", "dmeHospitalBed"];
   const EXPORT_SOB_BENEFITS = ["skilled_nursing", "dme"];
+  const ASKED_EXPORT_SOB_RE =
+    /\b(snf|skilled nursing|hospital[-\s]?grade bed|hospital bed|\bdme\b|durable medical)\b/i;
+
+  function askedExportSobBenefits(text) {
+    return ASKED_EXPORT_SOB_RE.test(String(text || ""));
+  }
 
   function isDualOrDsnpPlan(plan) {
     if (!plan) return false;
@@ -248,14 +254,18 @@
 
   function plansNeedingExportSob(plans, sobBenefits) {
     return (plans || []).filter((p) =>
-      ALWAYS_SOB_EXPORT_KEYS.some((key) => !sobFieldValue(p, sobBenefits, key))
+      ASKED_SOB_EXPORT_KEYS.some((key) => !sobFieldValue(p, sobBenefits, key))
     );
   }
 
-  // Export looks these three rows up itself when chat never stored lookup_sob_benefit.
-  // lookupFn must return { sobBenefits } from each plan's sobUrl — never invent dollars.
-  async function fillExportSobBenefits(plans, sobBenefits, lookupFn) {
+  // When she asked for SNF / hospital-grade bed and chat never stored lookup_sob_benefit,
+  // export looks those rows up itself from each plan's sobUrl. Never invent dollars.
+  // If she did not ask, do not fetch and do not add the rows.
+  async function fillExportSobBenefits(plans, sobBenefits, lookupFn, meta) {
+    const asked =
+      meta && meta.asked != null ? Boolean(meta.asked) : askedExportSobBenefits(meta && meta.threadText);
     const merged = mergeSobBenefitMaps({}, sobBenefits);
+    if (!asked) return merged;
     const need = plansNeedingExportSob(plans, merged);
     if (!need.length || typeof lookupFn !== "function") return merged;
     const planIds = need
@@ -1491,6 +1501,7 @@
       county: extra.county || "",
       threadText: text,
       sobBenefits: extra.sobBenefits || extra.sobExtras || {},
+      askedExportSob: extra.askedExportSob === true || askedExportSobBenefits(text),
     };
     if (drugs.some((d) => d.brandNotCovered || /\*$/.test(d.name || "") || d.genericOf)) {
       payload.genericOnlyNote = GENERIC_ONLY_NOTE;
@@ -1654,6 +1665,7 @@
     if (doctors.length || drugs.length) pushPlanHeaders();
 
     const sobBenefits = payload.sobBenefits || {};
+    const askedSob = payload.askedExportSob === true || askedExportSobBenefits(payload.threadText);
     const pushBenefitRow = (label, values, highlight) => {
       const rowKinds = ["label", ...values.slice(1).map((c) => (c === "Unverified" ? "pending" : highlight ? "highlight" : "text"))];
       const rowStyles = [makeStyle({ font: { bold: true } })];
@@ -1679,8 +1691,8 @@
       (SOB_EXTRA_AFTER[key] || []).forEach((extra) => {
         const extraLabel = extra[0];
         const extraKey = extra[1];
-        const always = extra[2] && extra[2].always;
-        if (!always && !anySobField(plans, sobBenefits, extraKey)) return;
+        const onAsk = extra[2] && extra[2].onAsk;
+        if (!(onAsk && askedSob) && !anySobField(plans, sobBenefits, extraKey)) return;
         const extraValues = [
           extraLabel,
           ...plans.map((p) => sobFieldValue(p, sobBenefits, extraKey) || "Unverified"),
@@ -1950,8 +1962,9 @@
     FIELD_ROWS,
     HIGHLIGHT_KEYS,
     SOB_EXTRA_AFTER,
-    ALWAYS_SOB_EXPORT_KEYS,
+    ASKED_SOB_EXPORT_KEYS,
     EXPORT_SOB_BENEFITS,
+    askedExportSobBenefits,
     sobFieldValue,
     anySobField,
     mergeSobBenefitMaps,

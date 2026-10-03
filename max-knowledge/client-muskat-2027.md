@@ -3,7 +3,7 @@
 Source: Yahoska / THEI — locked Excel/PDF content for **Michael Muskat**, ZIP **33176**, plan year **2027**.  
 Pulled: 2026-10-02
 
-Not a ranking. Facts only. Export layout (Yahoska 2026-10-02): client title → plan headers → **Doctors first** → **Medications** (brand* not covered + generic) → 2027 green-cell benefits → **SNF days 1–20 / 21–100 and hospital-grade bed / DME from each plan SOB** (Unverified if the SOB has no number) → SOB/EOC. **No Plan Terminating** (that row is only when she says a current plan is ending). Max looks those three SOB lines up in chat without being asked; export still fills them if chat skipped the lookup.
+Not a ranking. Facts only. Export layout (Yahoska 2026-10-02): client title → plan headers → **Doctors first** → **Medications** (brand* not covered + generic) → 2027 green-cell benefits → SOB/EOC. Add **SNF days 1–20 / 21–100 and hospital-grade bed / DME** only when she asked for those benefits (from each plan SOB; Unverified if she asked and the SOB has no number). **No Plan Terminating** (that row is only when she says a current plan is ending). Do not look those SOB lines up on every comparison.
 
 **This 014 snapshot is not a forever lock.** If a later Muskat thread cites different PBPs (stay-put MedicareMax FL-0028 **H5420-001**), Excel/PDF must use **that** comparison — plans, doctors (including Jason Margolesky and Miami Neurology & Rehab), live formulary, and 001 green cells. Never overwrite with this sheet. Never invent Plan Terminating from “no MSP row” / “do not add a Plan Terminating row.” Do not print that MSP sentence on the sheet. Verified In network on UHC **H5420-001** stays In network — a later miss or failed guest session is not Not confirmed.
 
