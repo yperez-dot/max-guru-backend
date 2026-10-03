@@ -12,7 +12,7 @@ This is not Igor. Igor is a different THEI agent (`yperez-dot/igor-config` — P
 |-------|--------|
 | Chat API (Grok) | `server.js` → Railway |
 | Agent UI | `artifacts/max-demo-FINAL-v7.html` → Netlify (`max.healthexps.com`) |
-| Plan dollars + `sobUrl` | `#plan-data` inside that HTML (THEI **2027** grid, AEP default). 2026 archived as `#plan-data-2026`. |
+| Plan dollars + `sobUrl` / `eocUrl` | `#plan-data` inside that HTML (THEI **2027** grid, AEP default). 2026 archived as `#plan-data-2026`. SOB/EOC lookups use 2026 files only on a 2026-only ask; unspecified / 2027 / both years stay on 2027. |
 | Hub / SEP / compliance KB | `max-knowledge/` |
 | Grid → Max sync | `scripts/sync_thei_grid_to_max.py`, `scripts/sync_sob_urls_from_grid.py` |
 

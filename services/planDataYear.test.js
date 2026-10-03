@@ -77,8 +77,9 @@ describe('prompts say PLAN DATA is 2027', () => {
     const server = fs.readFileSync(SERVER_PATH, 'utf8');
     assert.match(claude, /PLAN DATA is THEI's 2027 Plan Comparison Grid/);
     assert.equal(claude.includes("PLAN DATA is THEI's 2026 Plan Comparison Grid"), false);
-    assert.match(html, /PLAN DATA is THEI's 2027 Plan Comparison Grid/);
-    assert.equal(html.includes("PLAN DATA is THEI's 2026 Plan Comparison Grid"), false);
+    assert.match(html, /PLAN DATA is THEI's \$\{attachedYear\} Plan Comparison Grid/);
+    assert.match(html, /ATTACHED_PLAN_YEAR=\$\{attachedYear\}/);
+    assert.match(html, /if \(has27\) return 2027/);
     assert.match(html, /AEP default 2027/);
     assert.match(server, /2027 AEP default/);
     assert.match(claude, /pending SoB/);

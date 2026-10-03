@@ -169,7 +169,7 @@ async function passThroughChat({ system, messages, processToolFn }) {
             planIds,
             benefits: asked.benefits.length ? asked.benefits.slice() : EXPORT_SOB_BENEFITS.slice(),
             query: asked.query || 'asked off-grid benefits',
-          });
+          }, { messages, system });
           const text = resolveToolResult(result);
           const structured =
             result && typeof result === 'object' && result.structured
@@ -209,7 +209,7 @@ async function passThroughChat({ system, messages, processToolFn }) {
         input = {};
       }
       console.log(`[Tool/${CONFIG.provider}] ${name}`);
-      const result = await runTool(name, input);
+      const result = await runTool(name, input, { messages, system });
       const text = resolveToolResult(result);
       const structured =
         result && typeof result === 'object' && result.structured
@@ -235,7 +235,7 @@ async function passThroughChat({ system, messages, processToolFn }) {
       toolInput = JSON.parse(toolMatch[2]);
     } catch (_) {}
     console.log(`[ReactiveToolCall/${CONFIG.provider}] ${toolName}`);
-    const toolResult = await runTool(toolName, toolInput);
+    const toolResult = await runTool(toolName, toolInput, { messages, system });
     const resolved = resolveToolResult(toolResult);
     const cleanText = text
       .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '')
