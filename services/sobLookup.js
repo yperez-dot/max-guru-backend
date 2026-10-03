@@ -209,7 +209,7 @@ function collapseWs(s) {
 }
 
 function cleanSnippet(raw, max = 180) {
-  const s = collapseWs(raw)
+  const s = collapseWs(String(raw || '').replace(/[•●▪]/g, '·'))
     .replace(/\s*\n\s*/g, ' · ')
     .replace(/\s{2,}/g, ' ')
     .replace(/^[·\s,;:]+|[·\s,;:]+$/g, '')
@@ -328,6 +328,16 @@ function sliceDoctorsColumn(text, planHint) {
 function extractMoneyAfter(blob, dayRe) {
   const m = String(blob || '').match(dayRe);
   if (!m) return null;
+  // "$0 copay per day: days 1-20" puts the money BEFORE the label. Taking the money after
+  // the label would grab the next band's amount (swapping $0 and $221), so give up instead.
+  const before = String(blob).slice(Math.max(0, m.index - 60), m.index);
+  const moneyBefore = before.match(/(\$[\d,]+(?:\.\d{2})?\s*(?:copay|coinsurance)?\s*(?:per\s+day|\/\s*day)\s*(?:for|:|-|–)?\s*)$/i);
+  if (moneyBefore) {
+    // Label-after layout ("Days 1-20 $0 copay per day  Days 21-100 ...") has a day label
+    // right before that money; it belongs to the previous band, so reading after is fine.
+    const lead = before.slice(0, before.length - moneyBefore[1].length);
+    if (!/days?\s*\d+\s*(?:-|–|—|through|to)\s*\d+\s*:?\s*$/i.test(lead)) return null;
+  }
   let tail = blob.slice(m.index, Math.min(blob.length, m.index + 160));
   // Stop at the next "days N" label so one band can never take the next band's amount.
   const next = tail.slice(m[0].length).search(/days?\s*\d+\s*(?:-|–|—|through|to)\s*\d+/i);
@@ -347,7 +357,7 @@ function collectSnfBandAmounts(win, startDay, endDay) {
   // steal the next range. Matches the Doctors 2027 booklet and collapsed dual text.
   const patterns = [
     new RegExp(
-      `(\\$[\\d,]+(?:\\.\\d{2})?)\\s+copay\\s+per\\s+day\\s+for\\s+${range}`,
+      `(\\$[\\d,]+(?:\\.\\d{2})?)\\s+copay\\s+per\\s+day(?:\\s+for|\\s*:|\\s*[-–])\\s*${range}`,
       'ig'
     ),
   ];

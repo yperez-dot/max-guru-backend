@@ -545,4 +545,32 @@ describe('SOB lookup only when the agent asked', () => {
     const twoWays = 'Skilled Nursing Facility $0 copay per day for days 1-20 $50 copay per day for days 1-20';
     assert.equal(parseSobBenefits(twoWays, [], 'H1036-054C').snfDays1to20, null);
   });
+
+  it('UHC-style "$0 copay per day: days 1-20" is not swapped with the next band', () => {
+    const { parseSobBenefits } = require('./sobLookup');
+    const text = 'Skilled Nursing Facility (SNF) $0 copay per day: days 1-20 $221 copay per day: days 21-100';
+    const out = parseSobBenefits(text, [], 'H5420-001');
+    assert.equal(out.snfDays1to20, 'Days 1-20: $0');
+    assert.equal(out.snfDays21to100, 'Days 21-100: $221');
+  });
+
+  it('Humana-style SNF and DME lines parse as printed', () => {
+    const { parseSobBenefits } = require('./sobLookup');
+    const text =
+      'Skilled Nursing Facility (SNF) This plan covers up to 100 days in a SNF $0 copay per day for days 1-20 $60 copay per day for days 21-100';
+    const out = parseSobBenefits(text, [], 'H1036-054C');
+    assert.equal(out.snfDays1to20, 'Days 1-20: $0');
+    assert.equal(out.snfDays21to100, 'Days 21-100: $60');
+  });
+
+  it('Humana DME line keeps its real text (bullet becomes a middle dot)', () => {
+    const { parseSobBenefits } = require('./sobLookup');
+    const out = parseSobBenefits(
+      'Durable medical equipment (DME) \u2022 DME provider: 15% of the cost',
+      [],
+      'H1036-054C'
+    );
+    assert.match(out.dme, /15% of the cost/);
+    assert.ok(!/\u2022/.test(out.dme));
+  });
 });

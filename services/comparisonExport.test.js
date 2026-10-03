@@ -1651,22 +1651,45 @@ Earlier: all four In network on UHC H5420-001.
     });
   });
 
-  describe('clinic misses are Not confirmed, never Out of network', () => {
-    it('keeps people Out but turns a clinic miss into Not confirmed', () => {
-      const plans = loadPlans().filter((p) => p.county === 'Miami-Dade').slice(0, 2);
-      const ids = plans.map((p) => exp.displayContractPbp(p));
-      const out = Object.fromEntries(ids.map((id) => [id, 'Out of network']));
+  describe('clinic lookup misses vs explicit Out of network', () => {
+    const doctorsPlans = () => loadPlans().filter((p) => /doctors/i.test(p.carrier || p.planName || '')).slice(0, 1);
+    const miss = (name) => ({
+      doctorName: name,
+      networks: [{ carrier: 'Doctors HealthCare Plans', inNetwork: false, status: 'ok' }],
+    });
+
+    it('a clinic the directory does not list is Not confirmed; a person miss is still Out', () => {
+      const plans = doctorsPlans();
+      assert.equal(plans.length, 1);
+      const docs = exp.doctorsFromProviderLookups(
+        [miss('Miami Neurology & Rehab'), miss('Jason Margolesky')],
+        plans
+      );
+      const clinic = docs.find((d) => /miami neurology/i.test(d.name));
+      const person = docs.find((d) => /margolesky/i.test(d.name));
+      assert.equal(clinic.statuses[0], 'Not confirmed');
+      assert.equal(person.statuses[0], 'Out of network');
+    });
+
+    it('a clinic the agent says is out of network stays Out of network', () => {
+      const plans = doctorsPlans();
+      const id = exp.displayContractPbp(plans[0]);
       const payload = exp.buildExportPayload(plans, 'Carol Wong comparison', {
         catalog: loadPlans(),
-        doctors: [
-          { name: 'Dr. Jason Margolesky', byPlanId: out },
-          { name: 'Miami Neurology & Rehab', byPlanId: out },
-        ],
+        doctors: [{ name: 'Miami Neurology & Rehab', byPlanId: { [id]: 'Out of network' } }],
       });
-      const person = payload.doctors.find((d) => /margolesky/i.test(d.name));
       const clinic = payload.doctors.find((d) => /miami neurology/i.test(d.name));
-      assert.ok(person.statuses.every((s) => s === 'Out of network'));
-      assert.ok(clinic.statuses.every((s) => s === 'Not confirmed'));
+      assert.equal(clinic.statuses[0], 'Out of network');
+    });
+
+    it('a clinic the carrier lists as out of network stays Out of network', () => {
+      const plans = doctorsPlans();
+      const id = exp.displayContractPbp(plans[0]);
+      const docs = exp.doctorsFromProviderLookups(
+        [{ doctorName: 'Miami Neurology & Rehab', networks: [{ carrier: 'Doctors HealthCare Plans', inNetwork: false, outOfNetworkPlans: [id] }] }],
+        plans
+      );
+      assert.equal(docs[0].statuses[0], 'Out of network');
     });
   });
 });

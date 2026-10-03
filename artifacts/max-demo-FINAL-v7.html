@@ -1072,19 +1072,17 @@
       const statuses = plans.map((p) => {
         const fromMap = normalizeNetworkStatus(lookupPlanStatus(map, p));
         if (fromMap === NETWORK_IN || fromMap === NETWORK_OUT) return fromMap;
-        const fromNet = typeof d !== "string" && d.networks ? statusFromProviderNetworks(p, d.networks) : "";
+        const fromNet =
+          typeof d !== "string" && d.networks
+            ? statusFromProviderNetworks(p, d.networks, { missIsUnknown: looksLikeOrganization(name) })
+            : "";
         const merged = mergeStatusPair(fromMap, fromNet);
         return merged || NETWORK_NOT_CONFIRMED;
       });
-      // Carrier directories rarely list clinics by name, so a clinic "miss" means
-      // "not found", not "out of network". Only people can be marked Out from a lookup.
-      const finalStatuses = looksLikeOrganization(name)
-        ? statuses.map((s) => (s === NETWORK_OUT ? NETWORK_NOT_CONFIRMED : s))
-        : statuses;
       out.push({
         name,
-        statuses: finalStatuses,
-        byPlanId: mergeByPlanIdMaps(map, byPlanIdFromStatuses(finalStatuses, plans)),
+        statuses,
+        byPlanId: mergeByPlanIdMaps(map, byPlanIdFromStatuses(statuses, plans)),
       });
     }
     return out;
@@ -1121,8 +1119,9 @@
     });
   }
 
-  function statusFromProviderNetworks(plan, networks) {
+  function statusFromProviderNetworks(plan, networks, opts) {
     let fallback = "";
+    const missIsUnknown = Boolean(opts && opts.missIsUnknown);
     for (const net of networks || []) {
       if (!net) continue;
       const inBlob = (net.plans || []).join(" ");
@@ -1136,7 +1135,9 @@
       }
       // Carrier-level hit only when this lookup did not name PBPs (Doctors HCP).
       if (net.inNetwork === true && !(net.plans && net.plans.length)) return NETWORK_IN;
-      if (net.inNetwork === false && net.status !== "failed" && /doctors/i.test(net.carrier || "")) {
+      // A clinic that a directory simply does not list is "not found", not Out. An explicit
+      // out-of-network plan list (outBlob above) or something the agent says still means Out.
+      if (net.inNetwork === false && net.status !== "failed" && /doctors/i.test(net.carrier || "") && !missIsUnknown) {
         return NETWORK_OUT;
       }
       if (net.inNetwork === true) fallback = fallback || NETWORK_IN;
@@ -1161,7 +1162,10 @@
         const name = String(pr.doctorName || pr.name || "").trim();
         if (!name) return;
         const networks = pr.networks || src.networks || [];
-        const statuses = plans.map((p) => statusFromProviderNetworks(p, networks) || NETWORK_NOT_CONFIRMED);
+        const missIsUnknown = looksLikeOrganization(name);
+        const statuses = plans.map(
+          (p) => statusFromProviderNetworks(p, networks, { missIsUnknown }) || NETWORK_NOT_CONFIRMED
+        );
         out.push({
           name: /^dr\.?\s/i.test(name) || /clinic|neurology|rehab|mnrs/i.test(name) ? name : "Dr. " + name,
           statuses,
