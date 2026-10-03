@@ -205,16 +205,27 @@
       const row = map[alias] || map[String(alias).toUpperCase()];
       if (row && row[key]) hit = row[key];
     });
-    if (hit && typeof hit === "object") return hit.value || null;
-    if (typeof hit === "string") return hit;
+    if (hit && typeof hit === "object") return usableSobCell(hit.value);
+    if (typeof hit === "string") return usableSobCell(hit);
     if (plan && plan[key]) return usableSobCell(plan[key]);
     return null;
+  }
+
+  // PDF text scraped mid-sentence ("scription hearing aid…", "cal DME (e.g., …", bullets,
+  // trailing ellipsis) must not print on a client sheet — show Unverified instead.
+  function looksLikePdfFragment(s) {
+    if (/[•]|\u2026$|\.\.\.$/.test(s)) return true;
+    if (/^[a-z]/.test(s) && !/^(no|yes|up to|not|covered|included|days?)\b/.test(s)) return true;
+    if (/\be\.g\.,|\(e\.g\./i.test(s)) return true;
+    if ((s.match(/ · /g) || []).length >= 3) return true;
+    return false;
   }
 
   function usableSobCell(raw) {
     if (raw == null) return null;
     const s = String(raw).replace(/\s+/g, " ").trim();
     if (!s || /^(not listed|n\/a|unverified|pending)$/i.test(s)) return null;
+    if (looksLikePdfFragment(s)) return null;
     return s;
   }
 
@@ -1328,12 +1339,27 @@
     if (!uhcId) {
       return payload;
     }
-    payload.clientName = payload.clientName && /muskat/i.test(payload.clientName)
-      ? payload.clientName
-      : "Michael Muskat";
+    payload.clientName = "Mr. and Mrs. Muskat";
     payload.zip = payload.zip || "33176";
     payload.county = payload.county || "Miami-Dade";
     payload.doctors = mergeDoctorLists([muskatLockedDoctors(), payload.doctors], payload.plans);
+    // Margolesky + Miami Neurology & Rehab always get a row. If no lookup result reached the
+    // export they show "Not confirmed" — never a guessed In/Out.
+    [
+      ["Dr. Jason Margolesky", /margolesky/i],
+      ["Miami Neurology & Rehab", /miami\s+neurology/i],
+    ].forEach(([label, re]) => {
+      if ((payload.doctors || []).some((d) => re.test(String(d.name || "")))) return;
+      const byPlanId = {};
+      payload.plans.forEach((p) => {
+        byPlanId[displayContractPbp(p)] = NETWORK_NOT_CONFIRMED;
+      });
+      payload.doctors.push({
+        name: label,
+        statuses: payload.plans.map(() => NETWORK_NOT_CONFIRMED),
+        byPlanId,
+      });
+    });
     const live = normalizeDrugs(payload.drugs, payload.plans);
     let lockedSrc = muskatLockedDrugs();
     if (uhcId === "H5420-001") {

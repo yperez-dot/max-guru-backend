@@ -733,7 +733,7 @@ describe('Muskat 2027 locked export', () => {
       'Excel for Michael Muskat ZIP 33176. Compare Humana, Doctors, and UHC MedicareMax Complete Care.',
       { catalog: plans }
     );
-    assert.equal(payload.clientName, 'Michael Muskat');
+    assert.equal(payload.clientName, 'Mr. and Mrs. Muskat');
     assert.equal(payload.terminatingPlan, '');
     assert.deepEqual(
       payload.plans.map((p) => exp.displayContractPbp(p)),
@@ -750,7 +750,7 @@ describe('Muskat 2027 locked export', () => {
 
     const model = exp.buildComparisonModel(payload);
     const labels = model.aoa.map((row) => row[0]);
-    assert.equal(labels[0], 'Michael Muskat');
+    assert.equal(labels[0], 'Mr. and Mrs. Muskat');
     assert.equal(labels.includes('Plan Terminating'), false);
     assert.ok(labels.indexOf('Doctors') < labels.indexOf('Medications'));
     assert.ok(labels.indexOf('Medications') < labels.indexOf('Premium'));
@@ -1315,6 +1315,42 @@ Earlier: all four In network on UHC H5420-001.
       assert.match(html, /sobBenefits: payload\.sobBenefits/);
       assert.match(html, /sobBenefits: m\.sobBenefits \|\| \{\}/);
       assert.match(html, /toolResults: sessionToolResultsRef\.current/);
+    });
+
+    it('drops scraped PDF fragments instead of printing them', () => {
+      const plans = loadPlans().filter((p) => p.county === 'Miami-Dade').slice(0, 2);
+      const id0 = exp.displayContractPbp(plans[0]);
+      const id1 = exp.displayContractPbp(plans[1]);
+      const model = exp.buildComparisonModel({
+        plans,
+        clientName: 'Carol Wong',
+        sobBenefits: {
+          [id0]: {
+            hearingAids: { value: 'scription hearing · aid up to 1 per ear per year. · • $475 copay…' },
+            dmeHospitalBed: { value: 'cal DME (e.g., $0 copay · equipment (DME) wheelchairs, ·…' },
+            snfDays1to20: { value: 'days 1-20: $60 copay' },
+          },
+          [id1]: { dmeHospitalBed: { value: '$0 copay' } },
+        },
+      });
+      const row = (label) => model.aoa.find((r) => r[0] === label);
+      assert.equal(row('Hospital-grade bed / DME')[1], 'Unverified');
+      assert.equal(row('Hospital-grade bed / DME')[2], '$0 copay');
+      assert.equal(row('Skilled Nursing Facility (days 1–20)')[1], 'days 1-20: $60 copay');
+      const hearing = row('Hearing Aids');
+      assert.ok(!hearing || hearing[1] === 'Unverified' || !/scription/.test(hearing[1]));
+    });
+
+    it('Muskat export always lists Margolesky and Miami Neurology (Not confirmed without a lookup)', () => {
+      const catalog = loadPlans();
+      const pick = (id) => catalog.find((p) => exp.displayContractPbp(p) === id);
+      const plans = ['H1036-054C', 'H4140-023', 'H5420-001'].map(pick).filter(Boolean);
+      assert.equal(plans.length, 3);
+      const model = exp.buildComparisonModel(exp.buildExportPayload(plans, 'Michael Muskat comparison', { catalog }));
+      const mar = model.aoa.find((r) => /margolesky/i.test(r[0] || ''));
+      const neu = model.aoa.find((r) => /miami neurology/i.test(r[0] || ''));
+      assert.ok(mar && neu);
+      assert.deepEqual(mar.slice(1), ['Not confirmed', 'Not confirmed', 'Not confirmed']);
     });
   });
 });
