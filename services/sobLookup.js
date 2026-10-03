@@ -620,11 +620,12 @@ async function lookupSobBenefits(
     let eocRead = false;
     let eocError = null;
     const injectedEoc = eocTextByPlanId[id] || eocText;
+    const callerPassedEoc = Boolean(eocUrl || eocText || eocTextByPlanId[id]);
     if (missing.length) {
       if (injectedEoc) {
         fromEoc = pickRequested(parseSobBenefits(injectedEoc, missing), wanted);
         eocRead = true;
-      } else if (planEocUrl) {
+      } else if (planEocUrl && (!injected || callerPassedEoc)) {
         const fetched = await fetchSobText(planEocUrl, fetchImpl);
         if (fetched.ok && fetched.text) {
           fromEoc = pickRequested(parseSobBenefits(fetched.text, missing), wanted);
