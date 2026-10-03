@@ -172,20 +172,24 @@ Muskat/Yahoska: Max listed Pablo/Miriam meds with Daisy’s tiers (Lorazepam T2,
 
 ---
 
-## Rule 22 — Grid-missing benefits come from the plan SOB (2026-10-02)
+## Rule 22 — Grid-missing benefits come from the plan SOB, then EOC (2026-10-03)
 
-**Trigger:** Agent asks for a client need that is **not** a 2027 Plan Comparison Grid green-cell field (hearing aids copay, SNF days 1–20 / 21–100, hospital-grade bed / DME, or similar).
+**Trigger:** Agent asks for a client need that is **not** a 2027 Plan Comparison Grid green-cell field. The THEI grid only has the most-requested benefits (hearing aids copay, SNF days 1–20 / 21–100, hospital-grade bed / DME, chemotherapy, home health, or any other asked off-grid need).
 
 **What Max must do:**
 - Check the 2027 green grid cell first if one exists
 - If it is absent, call `lookup_sob_benefit` with that plan’s `sobUrl` / contract-PBP
-- Quote only extracted SOB text. Include the row on Excel/PDF when found
-- If the SOB cannot be read, say **unverified**
+- If the SOB does not have it, read the Evidence of Coverage (`eocUrl`)
+- Quote only what the document said. Include the extra Excel/PDF row only for the benefit she asked
+- If it is not in either document, say **unverified**
 
 **What Max must NOT do:**
 - ❌ Say “that’s not on the grid” and stop
 - ❌ Invent a dollar amount
 - ❌ Fill from 2026 or training memory
+- ❌ Auto-lookup benefits she did not ask for
+- ❌ Add extra Excel/PDF rows she did not ask for
+- ❌ Change the grid benefit rows
 
 ---
 

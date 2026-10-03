@@ -70,6 +70,148 @@
     hearing: [["Hearing Aids", "hearingAids"]],
     advancedImaging: [["Hospital-grade bed / DME", "dmeHospitalBed"]],
   };
+  const PLACED_SOB_EXPORT_KEYS = {
+    snfDays1to20: true,
+    snfDays21to100: true,
+    dmeHospitalBed: true,
+    hearingAids: true,
+  };
+  const GRID_TOPIC_RE =
+    /\b(premium|part b(?:\s+(?:rebate|giveback|reduction))?|giveback|referrals?|msp levels?|moop|max out of pocket|out of pocket|inpatient hospital|outpatient hospital|pcp|primary care|specialist|emergency room|\ber\b|urgent care|advanced imaging|\bmri\b|\bct\b|\bpet\b|hearing services|hearing exam|dental|deep clean|denture|filling|root canal|extraction|crown|bridge|implant|vision|ambulance|transport(?:ation)?|companionship|custodial|rx deductible|tier\s*[1-6]|otc|grocery|food card|acupuncture|fitness|silver sneakers)\b/i;
+  const KNOWN_OFF_GRID = [
+    {
+      benefits: ["skilled_nursing"],
+      fieldKeys: ["snfDays1to20", "snfDays21to100"],
+      re: /\b(snf|skilled nursing)\b/i,
+      rows: [
+        ["Skilled Nursing Facility (days 1–20)", "snfDays1to20"],
+        ["Skilled Nursing Facility (days 21–100)", "snfDays21to100"],
+      ],
+    },
+    {
+      benefits: ["dme"],
+      fieldKeys: ["dmeHospitalBed"],
+      re: /\b(dme|hospital[-\s]?grade bed|hospital bed|durable medical)\b/i,
+      rows: [["Hospital-grade bed / DME", "dmeHospitalBed"]],
+    },
+    {
+      benefits: ["hearing_aids"],
+      fieldKeys: ["hearingAids"],
+      re: /\bhearing\s+aids?\b/i,
+      rows: [["Hearing Aids", "hearingAids"]],
+    },
+    {
+      benefits: ["chemotherapy"],
+      fieldKeys: ["chemotherapy"],
+      re: /\b(chemo(?:therapy)?|infusion therapy)\b/i,
+      rows: [["Chemotherapy", "chemotherapy"]],
+    },
+    {
+      benefits: ["home_health"],
+      fieldKeys: ["homeHealth"],
+      re: /\bhome health\b/i,
+      rows: [["Home Health", "homeHealth"]],
+    },
+    {
+      benefits: ["dialysis"],
+      fieldKeys: ["dialysis"],
+      re: /\bdialysis\b/i,
+      rows: [["Dialysis", "dialysis"]],
+    },
+    {
+      benefits: ["physical_therapy"],
+      fieldKeys: ["physicalTherapy"],
+      re: /\bphysical therapy\b/i,
+      rows: [["Physical Therapy", "physicalTherapy"]],
+    },
+    {
+      benefits: ["worldwide_emergency"],
+      fieldKeys: ["worldwideEmergency"],
+      re: /\b(worldwide emergency|foreign travel)\b/i,
+      rows: [["Worldwide Emergency", "worldwideEmergency"]],
+    },
+    {
+      benefits: ["post_discharge_meals"],
+      fieldKeys: ["postDischargeMeals"],
+      re: /\b(post[-\s]?discharge meals?|healthy meals?)\b/i,
+      rows: [["Post-discharge Meals", "postDischargeMeals"]],
+    },
+  ];
+
+  function slugBenefitKey(raw) {
+    return String(raw || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "")
+      .slice(0, 40);
+  }
+
+  function titleFromSlug(slug) {
+    return String(slug || "")
+      .split("_")
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  }
+
+  function askedOffGridBenefits(text) {
+    const src = String(text || "");
+    const benefits = [];
+    const fieldKeys = [];
+    const rows = [];
+    const seen = {};
+    const add = (item) => {
+      (item.benefits || []).forEach((b) => {
+        if (b && benefits.indexOf(b) < 0) benefits.push(b);
+      });
+      (item.fieldKeys || []).forEach((k) => {
+        if (k && fieldKeys.indexOf(k) < 0) fieldKeys.push(k);
+      });
+      (item.rows || []).forEach((r) => {
+        if (!r || !r[1] || seen[r[1]]) return;
+        seen[r[1]] = true;
+        rows.push(r);
+      });
+    };
+    KNOWN_OFF_GRID.forEach((item) => {
+      if (item.re.test(src)) add(item);
+    });
+    const genericRe =
+      /\b(?:need|needs|what's|whats|what is|does (?:it|this|the plan) cover|cover(?:age|ed)?(?: for)?|copay(?: for)?|cost (?:of|for)|how much (?:is|for))\s+([a-z][a-z0-9\s\-\/]{2,50})/gi;
+    let m;
+    while ((m = genericRe.exec(src))) {
+      const phrase = m[1].replace(/\s+/g, " ").trim().replace(/[?.!,;:]+$/, "");
+      if (!phrase || GRID_TOPIC_RE.test(phrase)) continue;
+      if (KNOWN_OFF_GRID.some((item) => item.re.test(phrase))) continue;
+      if (/^(the|a|an|this|that|her|his|their|plan|plans|benefit|benefits|for|on)$/i.test(phrase)) continue;
+      const key = slugBenefitKey(phrase);
+      if (!key || seen[key]) continue;
+      add({
+        benefits: [key],
+        fieldKeys: [key],
+        rows: [[titleFromSlug(key), key]],
+      });
+    }
+    return {
+      asked: fieldKeys.length > 0,
+      benefits,
+      fieldKeys,
+      rows,
+      query: rows.map((r) => r[0]).join(", "),
+    };
+  }
+
+  function askedExportSobBenefits(text) {
+    return askedOffGridBenefits(text).asked;
+  }
+
+  const ASKED_SOB_EXPORT_KEYS = ["snfDays1to20", "snfDays21to100", "dmeHospitalBed"];
+  const EXPORT_SOB_BENEFITS = ["skilled_nursing", "dme"];
+
+  function resolveAskedOffGrid(meta) {
+    if (meta && meta.askedInfo && typeof meta.askedInfo === "object") return meta.askedInfo;
+    return askedOffGridBenefits((meta && (meta.threadText || meta.text)) || "");
+  }
 
   function isDualOrDsnpPlan(plan) {
     if (!plan) return false;
@@ -231,6 +373,55 @@
 
   function anySobField(plans, sobBenefits, key) {
     return (plans || []).some((p) => Boolean(sobFieldValue(p, sobBenefits, key)));
+  }
+
+  function mergeSobBenefitMaps(base, incoming) {
+    const out = Object.assign({}, base && typeof base === "object" ? base : {});
+    if (!incoming || typeof incoming !== "object") return out;
+    Object.keys(incoming).forEach((id) => {
+      const row = incoming[id] && incoming[id].fields ? incoming[id].fields : incoming[id];
+      if (!row || typeof row !== "object") return;
+      out[id] = Object.assign({}, out[id] || {}, row);
+    });
+    return out;
+  }
+
+  function plansNeedingExportSob(plans, sobBenefits, fieldKeys) {
+    const keys = fieldKeys && fieldKeys.length ? fieldKeys : ASKED_SOB_EXPORT_KEYS;
+    return (plans || []).filter((p) => keys.some((key) => !sobFieldValue(p, sobBenefits, key)));
+  }
+
+  // When she asked for an off-grid benefit and chat never stored lookup_sob_benefit,
+  // export looks those rows up itself from each plan's sobUrl (then EOC). Never invent dollars.
+  // If she did not ask, do not fetch and do not add the rows. Grid rows stay as they are.
+  async function fillExportSobBenefits(plans, sobBenefits, lookupFn, meta) {
+    const askedInfo = resolveAskedOffGrid(meta);
+    const asked =
+      meta && meta.asked != null ? Boolean(meta.asked) : askedInfo.asked;
+    const merged = mergeSobBenefitMaps({}, sobBenefits);
+    if (!asked) return merged;
+    const fieldKeys = (meta && meta.fieldKeys) || askedInfo.fieldKeys;
+    const benefits = (meta && meta.benefits) || askedInfo.benefits;
+    const query = (meta && meta.query) || askedInfo.query;
+    const need = plansNeedingExportSob(plans, merged, fieldKeys);
+    if (!need.length || typeof lookupFn !== "function") return merged;
+    const planIds = need
+      .map((p) => displayContractPbp(p) || (p && (p.planId || p.id)) || "")
+      .map((id) => String(id).trim())
+      .filter(Boolean);
+    let incoming = {};
+    try {
+      const result = await lookupFn({
+        planIds,
+        plans: need,
+        benefits: benefits && benefits.length ? benefits.slice() : EXPORT_SOB_BENEFITS.slice(),
+        query: query || "asked off-grid benefits",
+      });
+      incoming = (result && (result.sobBenefits || result.byPlanId || result)) || {};
+    } catch (_) {
+      incoming = {};
+    }
+    return mergeSobBenefitMaps(merged, incoming);
   }
 
   // Doctors DrSelect etc. store dental procedure rows as bare COUNTS of covered services
@@ -1396,20 +1587,7 @@
     const extra = extras && typeof extras === "object" ? extras : {};
     const text = String(threadText || extra.threadText || "");
     const catalog = extra.catalog || extra.planCatalog || [];
-    const county = /\bbroward\b/i.test(text) && !/miami/i.test(text) ? "Broward" : "Miami-Dade";
-    const fromText = citedPlanIdsFromText(text)
-      .map((id) => pickCatalogPlan(catalog.length ? catalog : plans, id, county) || pickCatalogPlan(catalog.length ? catalog : plans, id))
-      .filter(Boolean);
-    const resolvedPlans = uniquePlansByContractPbp(
-      keepCurrentComparisonPlans(
-        canonicalize2027ComparisonPlans(plans || [], text, catalog.length ? catalog : plans),
-        canonicalize2027ComparisonPlans(
-          [].concat(fromText, extra.rememberedPlans || extra.priorPlans || []),
-          text,
-          catalog.length ? catalog : plans
-        )
-      )
-    );
+    const resolvedPlans = resolveExportPlans(plans, text, extra);
     const clientName = extra.clientName || extractClientName(text);
     const terminatingPlan = extra.explicitTerminating
       ? sanitizeTerminatingPlan(extra.terminatingPlan || extractTerminatingPlan(text), text)
@@ -1447,6 +1625,7 @@
       county: extra.county || "",
       threadText: text,
       sobBenefits: extra.sobBenefits || extra.sobExtras || {},
+      askedExportSob: extra.askedExportSob === true || askedExportSobBenefits(text),
     };
     if (drugs.some((d) => d.brandNotCovered || /\*$/.test(d.name || "") || d.genericOf)) {
       payload.genericOnlyNote = GENERIC_ONLY_NOTE;
@@ -1610,6 +1789,12 @@
     if (doctors.length || drugs.length) pushPlanHeaders();
 
     const sobBenefits = payload.sobBenefits || {};
+    const askedInfo = askedOffGridBenefits(payload.threadText);
+    const askedKeys = {};
+    askedInfo.fieldKeys.forEach((k) => {
+      askedKeys[k] = true;
+    });
+    const printedExtras = {};
     const pushBenefitRow = (label, values, highlight) => {
       const rowKinds = ["label", ...values.slice(1).map((c) => (c === "Unverified" ? "pending" : highlight ? "highlight" : "text"))];
       const rowStyles = [makeStyle({ font: { bold: true } })];
@@ -1632,14 +1817,29 @@
       if (key === "mspLevels" && !comparisonIncludesDual(plans)) return;
       const values = [label, ...plans.map((p) => formatBenefitValue(p[key], key))];
       pushBenefitRow(label, values, HIGHLIGHT_KEYS[key]);
-      (SOB_EXTRA_AFTER[key] || []).forEach(([extraLabel, extraKey]) => {
-        if (!anySobField(plans, sobBenefits, extraKey)) return;
+      (SOB_EXTRA_AFTER[key] || []).forEach((extra) => {
+        const extraLabel = extra[0];
+        const extraKey = extra[1];
+        if (!askedKeys[extraKey] && !anySobField(plans, sobBenefits, extraKey)) return;
+        printedExtras[extraKey] = true;
         const extraValues = [
           extraLabel,
           ...plans.map((p) => sobFieldValue(p, sobBenefits, extraKey) || "Unverified"),
         ];
         pushBenefitRow(extraLabel, extraValues, false);
       });
+    });
+
+    askedInfo.rows.forEach((extra) => {
+      const extraLabel = extra[0];
+      const extraKey = extra[1];
+      if (!extraKey || printedExtras[extraKey]) return;
+      printedExtras[extraKey] = true;
+      const extraValues = [
+        extraLabel,
+        ...plans.map((p) => sobFieldValue(p, sobBenefits, extraKey) || "Unverified"),
+      ];
+      pushBenefitRow(extraLabel, extraValues, false);
     });
 
     const sobRow = ["Summary of Benefits"];
@@ -1878,6 +2078,85 @@
     return out.length > max ? out.slice(out.length - max) : out;
   }
 
+  function messageContentToText(content) {
+    if (typeof content === "string") return content;
+    if (Array.isArray(content)) {
+      return content
+        .map((part) => (typeof part === "string" ? part : (part && part.text) || ""))
+        .filter(Boolean)
+        .join("\n");
+    }
+    return String(content || "");
+  }
+
+  function isExportOnlyAsk(text) {
+    const t = String(text || "");
+    if (!t || !wantsComparisonExport(t)) return false;
+    return citedPlanIdsFromText(t).length < 1 && !askedExportSobBenefits(t);
+  }
+
+  function requestUpdatesComparison(text) {
+    const t = String(text || "");
+    if (!t) return false;
+    if (citedPlanIdsFromText(t).length > 0) return true;
+    if (askedExportSobBenefits(t)) return true;
+    if (/\b(add|also|include|check|look\s*up|lookup|new)\b/i.test(t) && /\b(doctor|dr\.|clinic|drug|meds?|medication|rx|plan)\b/i.test(t)) {
+      return true;
+    }
+    return false;
+  }
+
+  function lastUserComparisonAsk(messages, userMessageTextFn) {
+    const toText = typeof userMessageTextFn === "function" ? userMessageTextFn : messageContentToText;
+    let lastUser = "";
+    for (let i = (messages || []).length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (!m || m.role !== "user") continue;
+      const t = toText(m.content);
+      if (!t) continue;
+      if (!lastUser) lastUser = t;
+      if (isExportOnlyAsk(t)) continue;
+      return t;
+    }
+    return lastUser;
+  }
+
+  function resolveExportPlans(plans, threadText, extra) {
+    const meta = extra && typeof extra === "object" ? extra : {};
+    const catalog = meta.catalog || meta.planCatalog || [];
+    const pool = catalog.length ? catalog : plans;
+    const text = String(threadText || "");
+    const latest = String(meta.latestUserText || "");
+    const county = /\bbroward\b/i.test(text + " " + latest) && !/miami/i.test(text + " " + latest) ? "Broward" : "Miami-Dade";
+    const pick = (id) => pickCatalogPlan(pool, id, county) || pickCatalogPlan(pool, id);
+    const latestIds = citedPlanIdsFromText(latest);
+    if (latestIds.length >= 2) {
+      return uniquePlansByContractPbp(
+        canonicalize2027ComparisonPlans(latestIds.map(pick).filter(Boolean), latest, pool)
+      );
+    }
+    const fromText = citedPlanIdsFromText(text).map(pick).filter(Boolean);
+    let resolved = uniquePlansByContractPbp(
+      keepCurrentComparisonPlans(
+        canonicalize2027ComparisonPlans(plans || [], text, pool),
+        canonicalize2027ComparisonPlans(
+          [].concat(fromText, meta.rememberedPlans || meta.priorPlans || []),
+          text,
+          pool
+        )
+      )
+    );
+    if (latestIds.length === 1) {
+      const added = pick(latestIds[0]);
+      if (added) {
+        resolved = uniquePlansByContractPbp(
+          canonicalize2027ComparisonPlans([].concat(resolved, added), latest || text, pool)
+        );
+      }
+    }
+    return resolved;
+  }
+
   function conversationPlainText(messages, userMessageTextFn) {
     const toText =
       typeof userMessageTextFn === "function"
@@ -1903,8 +2182,15 @@
     FIELD_ROWS,
     HIGHLIGHT_KEYS,
     SOB_EXTRA_AFTER,
+    ASKED_SOB_EXPORT_KEYS,
+    EXPORT_SOB_BENEFITS,
+    askedOffGridBenefits,
+    askedExportSobBenefits,
     sobFieldValue,
     anySobField,
+    mergeSobBenefitMaps,
+    plansNeedingExportSob,
+    fillExportSobBenefits,
     isDualOrDsnpPlan,
     comparisonIncludesDual,
     NETWORK_IN,
@@ -1920,6 +2206,10 @@
     citedPlanIdsFromText,
     orderComparisonPlans,
     keepCurrentComparisonPlans,
+    resolveExportPlans,
+    lastUserComparisonAsk,
+    requestUpdatesComparison,
+    isExportOnlyAsk,
     dedupeComparisonPlans,
     uniquePlansByContractPbp,
     compactContractPbp,

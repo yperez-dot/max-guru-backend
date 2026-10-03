@@ -1,10 +1,10 @@
 /**
- * Live Summary of Benefits fallback for benefits that are not on the
- * 2027 THEI comparison grid (green cells).
+ * Live Summary of Benefits / Evidence of Coverage fallback for benefits
+ * that are not on the 2027 THEI comparison grid (green cells).
  *
- * Grid first. Then that plan's sobUrl PDF. Never invent dollars.
- * Never fill from 2026 or training memory. If the SOB cannot be read,
- * return unverified.
+ * Grid first. Then that plan's sobUrl PDF. Then eocUrl if the SOB does
+ * not have the asked benefit. Never invent dollars. Never fill from 2026
+ * or training memory. If it is not in either document, return unverified.
  */
 
 const fs = require('fs');
@@ -124,6 +124,7 @@ function mergeWiredPlan(plan, year) {
     ...plan,
     planId: String(id || wired.planId || wired.id || '').trim(),
     sobUrl: String((plan && plan.sobUrl) || wired.sobUrl || '').trim(),
+    eocUrl: String((plan && plan.eocUrl) || wired.eocUrl || '').trim(),
     hearing: (plan && plan.hearing) || wired.hearing,
   };
 }
@@ -136,24 +137,49 @@ function usableGridValue(raw) {
   return s;
 }
 
+function toSnakeBenefit(raw) {
+  return String(raw || '')
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+
+function slugToFieldKey(slug) {
+  return String(slug || '').replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+}
+
 function normalizeBenefitList(benefits, query) {
-  const out = new Set();
+  const out = [];
+  const seen = new Set();
+  const addMapped = (key) => {
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(key);
+  };
   const add = (raw) => {
-    const key = String(raw || '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '_');
-    if (/hearing/.test(key)) out.add('hearingAids');
-    if (/snf|skilled|nursing/.test(key)) out.add('skilledNursing');
-    if (/dme|hospital|bed|durable/.test(key)) out.add('dmeHospitalBed');
+    const key = toSnakeBenefit(raw);
+    if (!key) return;
+    const mapped = [];
+    if (/hearing_aid/.test(key) || key === 'hearing_aids' || key === 'hearingaids') {
+      mapped.push('hearingAids');
+    }
+    if (/snf|skilled_nursing/.test(key)) mapped.push('skilledNursing');
+    if (/\bdme\b|hospital_grade_bed|hospital_bed|durable_medical/.test(key)) {
+      mapped.push('dmeHospitalBed');
+    }
+    if (/chemo|infusion_therapy/.test(key)) mapped.push('chemotherapy');
+    if (/home_health/.test(key)) mapped.push('homeHealth');
+    if (/dialysis/.test(key)) mapped.push('dialysis');
+    if (/physical_therapy/.test(key)) mapped.push('physicalTherapy');
+    if (/worldwide_emergency|foreign_travel/.test(key)) mapped.push('worldwideEmergency');
+    if (/post_discharge_meals|healthy_meals/.test(key)) mapped.push('postDischargeMeals');
+    if (!mapped.length) mapped.push(slugToFieldKey(key));
+    mapped.forEach(addMapped);
   };
   (Array.isArray(benefits) ? benefits : benefits ? [benefits] : []).forEach(add);
   if (query) add(query);
-  if (!out.size) {
-    out.add('hearingAids');
-    out.add('skilledNursing');
-    out.add('dmeHospitalBed');
-  }
-  return [...out];
+  return out;
 }
 
 function collapseWs(s) {
@@ -227,14 +253,72 @@ function parseDmeHospitalBed(text) {
   return cleanSnippet(sentence ? sentence[0] : win, 160);
 }
 
-function parseSobBenefits(text) {
+function escapeRe(s) {
+  return String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function looksLikePdfFragment(s) {
+  if (/[•]|\u2026$|\.\.\.$/.test(s)) return true;
+  if (/^[a-z]/.test(s) && !/^(no|yes|up to|not|covered|included|days?)\b/.test(s)) return true;
+  if (/\be\.g\.,|\(e\.g\./i.test(s)) return true;
+  if ((s.match(/ · /g) || []).length >= 3) return true;
+  return false;
+}
+
+const GENERIC_PHRASES = {
+  chemotherapy: ['chemotherapy', 'chemo', 'infusion therapy'],
+  homeHealth: ['home health'],
+  dialysis: ['dialysis'],
+  physicalTherapy: ['physical therapy'],
+  worldwideEmergency: ['worldwide emergency', 'emergency care worldwide', 'foreign travel'],
+  postDischargeMeals: ['post-discharge meals', 'post discharge meals', 'healthy meals'],
+};
+
+function phrasesFromFieldKey(key) {
+  const titled = String(key || '')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/_/g, ' ')
+    .trim();
+  return titled ? [titled] : [];
+}
+
+function parseGenericBenefit(text, phrases) {
+  const list = Array.isArray(phrases) ? phrases : [phrases];
+  for (const phrase of list) {
+    if (!phrase) continue;
+    let re;
+    try {
+      re = new RegExp(escapeRe(phrase), 'i');
+    } catch (_) {
+      continue;
+    }
+    const win = collapseWs(windowAround(text, re, 480, 10));
+    if (!win || !hasMoneyOrCoverage(win)) continue;
+    const sentence = win.match(
+      new RegExp(
+        escapeRe(phrase) + '[^.]{0,160}(?:\\$[\\d,]+|\\d+\\s*%|no copay|covered|not covered)[^.]{0,80}',
+        'i'
+      )
+    );
+    const snippet = cleanSnippet(sentence ? sentence[0] : win, 160);
+    if (snippet && hasMoneyOrCoverage(snippet) && !looksLikePdfFragment(snippet)) return snippet;
+  }
+  return null;
+}
+
+function parseSobBenefits(text, extraKeys) {
   const snf = parseSkilledNursing(text);
-  return {
+  const out = {
     hearingAids: parseHearingAids(text),
     snfDays1to20: snf.days1to20,
     snfDays21to100: snf.days21to100,
     dmeHospitalBed: parseDmeHospitalBed(text),
   };
+  (extraKeys || []).forEach((key) => {
+    if (out[key] !== undefined) return;
+    out[key] = parseGenericBenefit(text, GENERIC_PHRASES[key] || phrasesFromFieldKey(key));
+  });
+  return out;
 }
 
 function driveDirectUrl(url) {
@@ -420,9 +504,17 @@ async function fetchSobText(url, fetchImpl) {
 
 function requestedFieldKeys(wanted) {
   const keys = [];
-  if (wanted.includes('hearingAids')) keys.push('hearingAids');
-  if (wanted.includes('skilledNursing')) keys.push('snfDays1to20', 'snfDays21to100');
-  if (wanted.includes('dmeHospitalBed')) keys.push('dmeHospitalBed');
+  const add = (key) => {
+    if (key && keys.indexOf(key) < 0) keys.push(key);
+  };
+  (wanted || []).forEach((w) => {
+    if (w === 'hearingAids') add('hearingAids');
+    else if (w === 'skilledNursing') {
+      add('snfDays1to20');
+      add('snfDays21to100');
+    } else if (w === 'dmeHospitalBed') add('dmeHospitalBed');
+    else add(w);
+  });
   return keys;
 }
 
@@ -452,12 +544,15 @@ async function lookupSobBenefits(
     planId = '',
     planIds = [],
     sobUrl = '',
+    eocUrl = '',
     plans = [],
     benefits = [],
     query = '',
     year = PLAN_YEAR,
     sobText = '',
     sobTextByPlanId = {},
+    eocText = '',
+    eocTextByPlanId = {},
   } = {},
   fetchImpl
 ) {
@@ -468,14 +563,18 @@ async function lookupSobBenefits(
     .filter(Boolean);
   const planList = (Array.isArray(plans) ? plans.slice() : []).map((p) => mergeWiredPlan(p, y));
   if (ids.length && !planList.length && sobUrl) {
-    planList.push(mergeWiredPlan({ planId: ids[0], sobUrl }, y));
+    planList.push(mergeWiredPlan({ planId: ids[0], sobUrl, eocUrl }, y));
   }
   ids.forEach((id) => {
     if (!planList.some((p) => idsMatch(p.planId || p.id, id))) {
-      planList.push(mergeWiredPlan({ planId: id, sobUrl: ids.length === 1 ? sobUrl : '' }, y));
+      planList.push(mergeWiredPlan({
+        planId: id,
+        sobUrl: ids.length === 1 ? sobUrl : '',
+        eocUrl: ids.length === 1 ? eocUrl : '',
+      }, y));
     }
   });
-  if (!planList.length && sobUrl) planList.push({ planId: 'unknown', sobUrl });
+  if (!planList.length && sobUrl) planList.push({ planId: 'unknown', sobUrl, eocUrl });
 
   const byPlanId = {};
   const lookups = [];
@@ -483,9 +582,10 @@ async function lookupSobBenefits(
   for (const plan of planList) {
     const id = String(plan.planId || plan.id || '').trim() || 'unknown';
     const url = String(plan.sobUrl || sobUrl || '').trim();
+    const planEocUrl = String(plan.eocUrl || eocUrl || '').trim();
     const fromGrid = gridFallback(plan, wanted);
     const keys = requestedFieldKeys(wanted);
-    const gridCoversAll = keys.every((key) => fromGrid[key] && fromGrid[key].value);
+    const gridCoversAll = keys.length > 0 && keys.every((key) => fromGrid[key] && fromGrid[key].value);
     let parsed = {
       hearingAids: null,
       snfDays1to20: null,
@@ -498,14 +598,14 @@ async function lookupSobBenefits(
 
     const injected = sobTextByPlanId[id] || sobText;
     if (injected) {
-      parsed = parseSobBenefits(injected);
+      parsed = parseSobBenefits(injected, keys);
       sobRead = true;
       sourceUrl = sourceUrl || 'injected';
     } else if (url && !gridCoversAll) {
       const fetched = await fetchSobText(url, fetchImpl);
       sourceUrl = fetched.sourceUrl || url;
       if (fetched.ok && fetched.text) {
-        parsed = parseSobBenefits(fetched.text);
+        parsed = parseSobBenefits(fetched.text, keys);
         sobRead = true;
       } else {
         readError = fetched.error || 'sob_unreadable';
@@ -515,14 +615,38 @@ async function lookupSobBenefits(
     }
 
     const fromSob = pickRequested(parsed, wanted);
+    const missing = keys.filter((key) => !fromGrid[key] && !fromSob[key]);
+    let fromEoc = {};
+    let eocRead = false;
+    let eocError = null;
+    const injectedEoc = eocTextByPlanId[id] || eocText;
+    const callerPassedEoc = Boolean(eocUrl || eocText || eocTextByPlanId[id]);
+    if (missing.length) {
+      if (injectedEoc) {
+        fromEoc = pickRequested(parseSobBenefits(injectedEoc, missing), wanted);
+        eocRead = true;
+      } else if (planEocUrl && (!injected || callerPassedEoc)) {
+        const fetched = await fetchSobText(planEocUrl, fetchImpl);
+        if (fetched.ok && fetched.text) {
+          fromEoc = pickRequested(parseSobBenefits(fetched.text, missing), wanted);
+          eocRead = true;
+        } else {
+          eocError = fetched.error || 'eoc_unreadable';
+        }
+      }
+    }
     const fields = {};
     keys.forEach((key) => {
       if (fromGrid[key]) {
         fields[key] = { value: fromGrid[key].value, source: fromGrid[key].source, verified: true };
       } else if (fromSob[key]) {
         fields[key] = { value: fromSob[key], source: 'sob', verified: true };
+      } else if (fromEoc[key]) {
+        fields[key] = { value: fromEoc[key], source: 'eoc', verified: true };
+      } else if (sobRead && eocRead) {
+        fields[key] = { value: null, source: 'eoc', verified: false, reason: 'not_in_sob_or_eoc' };
       } else if (sobRead) {
-        fields[key] = { value: null, source: 'sob', verified: false, reason: 'not_in_sob' };
+        fields[key] = { value: null, source: 'sob', verified: false, reason: eocError || 'not_in_sob' };
       } else {
         fields[key] = { value: null, source: null, verified: false, reason: readError || 'unverified' };
       }
@@ -532,9 +656,11 @@ async function lookupSobBenefits(
       planId: id,
       year: y,
       sobUrl: url || null,
+      eocUrl: planEocUrl || null,
       sourceUrl,
       sobRead,
-      reason: readError,
+      eocRead,
+      reason: readError || eocError,
       fields,
     };
     byPlanId[id] = row;
@@ -580,6 +706,102 @@ function toExportSobBenefits(result) {
   return out;
 }
 
+const EXPORT_SOB_FIELD_KEYS = ['snfDays1to20', 'snfDays21to100', 'dmeHospitalBed'];
+const EXPORT_SOB_BENEFITS = ['skilled_nursing', 'dme'];
+const CMS_PLAN_ID_RE = /\b[HR]\d{3,4}[\s-]?\d{2,4}[A-Z]?(?:\s*\/\s*-?\d{2,4})?\b/gi;
+const ASKED_EXPORT_SOB_RE =
+  /\b(snf|skilled nursing|hospital[-\s]?grade bed|hospital bed|\bdme\b|durable medical)\b/i;
+
+function askedOffGridFromText(text) {
+  try {
+    const exp = require('../artifacts/comparison-export');
+    if (exp && typeof exp.askedOffGridBenefits === 'function') {
+      return exp.askedOffGridBenefits(text);
+    }
+  } catch (_) {
+    /* fall through */
+  }
+  const asked = ASKED_EXPORT_SOB_RE.test(String(text || ''));
+  return {
+    asked,
+    benefits: asked ? EXPORT_SOB_BENEFITS.slice() : [],
+    fieldKeys: asked ? EXPORT_SOB_FIELD_KEYS.slice() : [],
+    query: asked ? 'SNF days 1-20, SNF days 21-100, hospital-grade bed / DME' : '',
+  };
+}
+
+function messagePlainText(messages) {
+  return (messages || [])
+    .map((m) => {
+      if (typeof m.content === 'string') return m.content;
+      if (Array.isArray(m.content)) {
+        return m.content
+          .map((part) => (typeof part === 'string' ? part : (part && part.text) || ''))
+          .filter(Boolean)
+          .join('\n');
+      }
+      return '';
+    })
+    .join('\n');
+}
+
+function citedPlanIdsFromText(text) {
+  const re = new RegExp(CMS_PLAN_ID_RE.source, 'gi');
+  const seen = new Set();
+  const out = [];
+  (String(text || '').match(re) || []).forEach((raw) => {
+    const id = normalizePlanId(raw).split('/')[0];
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    out.push(id);
+  });
+  return out;
+}
+
+function rowHasExportSobFields(row, fieldKeys) {
+  if (!row || typeof row !== 'object') return false;
+  const fields = row.fields && typeof row.fields === 'object' ? row.fields : row;
+  const keys = fieldKeys && fieldKeys.length ? fieldKeys : EXPORT_SOB_FIELD_KEYS;
+  return keys.some((key) => Object.prototype.hasOwnProperty.call(fields, key));
+}
+
+function planIdsCoveredBySobToolResults(toolResults, fieldKeys) {
+  const ids = new Set();
+  (toolResults || []).forEach((tr) => {
+    if (!tr || tr.tool !== 'lookup_sob_benefit') return;
+    const out = tr.output || {};
+    (out.lookups || []).forEach((row) => {
+      if (row && row.planId && rowHasExportSobFields(row, fieldKeys)) ids.add(normalizePlanId(row.planId));
+    });
+    [out.sobBenefits, out.byPlanId].forEach((map) => {
+      if (!map || typeof map !== 'object') return;
+      Object.keys(map).forEach((id) => {
+        if (rowHasExportSobFields(map[id], fieldKeys)) ids.add(normalizePlanId(id));
+      });
+    });
+  });
+  return ids;
+}
+
+function uniquePlanIdsNeedingExportSob(messages, toolResults, fieldKeys) {
+  const text = messagePlainText(messages);
+  const asked = askedOffGridFromText(text);
+  const keys = fieldKeys && fieldKeys.length ? fieldKeys : asked.fieldKeys.length ? asked.fieldKeys : EXPORT_SOB_FIELD_KEYS;
+  const planIds = citedPlanIdsFromText(text);
+  const covered = planIdsCoveredBySobToolResults(toolResults, keys);
+  return planIds.filter((id) => !covered.has(normalizePlanId(id)) && !covered.has(id));
+}
+
+// Only when the agent asked for an off-grid benefit — never on every compare.
+function shouldAutoLookupComparisonSob(messages, toolResults) {
+  const text = messagePlainText(messages);
+  const asked = askedOffGridFromText(text);
+  if (!asked.asked) return false;
+  const planIds = citedPlanIdsFromText(text);
+  if (!planIds.length) return false;
+  return uniquePlanIdsNeedingExportSob(messages, toolResults, asked.fieldKeys).length > 0;
+}
+
 function resetSobCache() {
   textCache.clear();
   wiredPlansCache = null;
@@ -592,14 +814,24 @@ module.exports = {
   normalizeBenefitList,
   requestedFieldKeys,
   parseSobBenefits,
+  parseGenericBenefit,
   parseHearingAids,
   parseSkilledNursing,
   parseDmeHospitalBed,
   lookupSobBenefits,
+  askedOffGridFromText,
   formatSobLookupText,
   toExportSobBenefits,
   fetchSobText,
   driveDirectUrl,
   findWiredPlan,
   resetSobCache,
+  EXPORT_SOB_FIELD_KEYS,
+  EXPORT_SOB_BENEFITS,
+  ASKED_EXPORT_SOB_RE,
+  messagePlainText,
+  citedPlanIdsFromText,
+  planIdsCoveredBySobToolResults,
+  uniquePlanIdsNeedingExportSob,
+  shouldAutoLookupComparisonSob,
 };

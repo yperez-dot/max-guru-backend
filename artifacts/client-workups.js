@@ -289,7 +289,7 @@
   function compactWorkupContext(workup) {
     const w = workup && typeof workup === "object" ? workup : {};
     const lines = [
-      WORKUP_CONTEXT_PREFIX + " (structured facts only — not a prior chat transcript). Continue this comparison. Do not ask to re-paste Daisy. Discard any client-stated Rx tiers. Call lookup_formulary for any unverified drug × named plan.",
+      WORKUP_CONTEXT_PREFIX + " (structured facts only — not a prior chat transcript). Resume these saved facts as a starting point. If the agent later asks for different plans, doctors, drugs, or a benefit that is not on the grid, follow that NEW request for chat and Excel/PDF. Do not lock the export to this snapshot. Do not ask to re-paste Daisy. Discard any client-stated Rx tiers. Call lookup_formulary for any unverified drug × named plan.",
     ];
     if (w.clientName) lines.push("Client: " + w.clientName);
     const place = [w.zip, w.county].filter(Boolean).join(" / ");

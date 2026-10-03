@@ -166,6 +166,8 @@ describe('compact resume context', () => {
     assert.equal(JSON.stringify(workup).includes('claimedTier'), false);
     const compact = workupsUi.compactWorkupContext(workup);
     assert.match(compact, /LOADED CLIENT WORKUP/);
+    assert.match(compact, /Do not lock the export to this snapshot/);
+    assert.match(compact, /NEW request/);
     assert.match(compact, /Muskat/);
     assert.match(compact, /33176/);
     assert.match(compact, /Tier 5/);

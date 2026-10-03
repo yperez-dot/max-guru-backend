@@ -375,6 +375,8 @@ describe('HTML UI wiring', () => {
     assert.match(html, /H5420-001/);
     assert.match(html, /\\d\{2,4\}\[A-Z\]\?/);
     assert.match(html, /keepCurrentComparisonPlans/);
+    assert.match(html, /lastUserComparisonAsk/);
+    assert.match(html, /Do not lock the export to this snapshot/);
     assert.match(html, /dedupeComparisonPlans/);
     assert.match(html, /uniquePlansByContractPbp/);
     assert.match(html, /compactContractPbp/);
@@ -382,6 +384,12 @@ describe('HTML UI wiring', () => {
     assert.match(html, /Omit the MSP Levels row unless at least one compared plan is a D-SNP/);
     assert.match(html, /lookup_sob_benefit/);
     assert.match(html, /sobFromToolResults/);
+    assert.match(html, /fillExportSobBenefits/);
+    assert.match(html, /askedExportSobBenefits/);
+    assert.match(html, /askedOffGridBenefits/);
+    assert.match(html, /hydrateExportSobBenefits/);
+    assert.match(html, /runComparisonExport/);
+    assert.match(html, /Do NOT look up SNF or hospital-grade bed/);
     assert.match(html, /Do NOT add a Plan Terminating row unless/);
     assert.match(html, /MaxClientWorkups/);
     assert.match(html, /\/workups/);
@@ -401,7 +409,7 @@ describe('HTML UI wiring', () => {
     assert.match(html, /1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A/);
     assert.match(html, /archive of finished client comps/);
     assert.match(html, /not the 2027 benefit grid/);
-    assert.match(html, /collectComparisonExport\(messagesRef\.current, m\.plans/);
+    assert.match(html, /runComparisonExport\("excel", messagesRef\.current, m\.plans/);
   });
 
   it('keeps the 2027 grid export pointed at the working workbook, not Yahoska archive', () => {
@@ -483,7 +491,55 @@ describe('export doctors section + no carrier-as-drug', () => {
 });
 
 describe('SOB-only extra benefit rows', () => {
-  it('omits SNF / hearing-aids / DME rows when the SOB did not find them', () => {
+  it('omits SNF / DME rows when she did not ask for those benefits', () => {
+    const plans = [
+      { planId: 'H1036-054C', planName: 'Humana Gold Plus', inpatientHospital: '$0', hearing: '$0 exam' },
+      { planId: 'H4140-023', planName: 'DrSelect-SFL', inpatientHospital: '$0', hearing: '$1,350' },
+      { planId: 'H5420-001', planName: 'MedicareMax FL-0028', inpatientHospital: '$0', hearing: '$0 exam' },
+    ];
+    const model = exp.buildComparisonModel({
+      plans,
+      clientName: 'Mr. and Mrs. Muskat',
+      threadText: 'Compare H1036-054C, H4140-023, and H5420-001 for Mr. and Mrs. Muskat.',
+      skipMuskatLock: true,
+    });
+    const labels = model.aoa.map((row) => row[0]);
+    assert.equal(labels.includes('Skilled Nursing Facility (days 1–20)'), false);
+    assert.equal(labels.includes('Skilled Nursing Facility (days 21–100)'), false);
+    assert.equal(labels.includes('Hospital-grade bed / DME'), false);
+    assert.equal(labels.includes('Hearing Aids'), false);
+    assert.equal(labels.includes('Plan Terminating'), false);
+  });
+
+  it('still prints the three SOB rows when she asked and the chat never stored a lookup', () => {
+    const plans = [
+      { planId: 'H1036-054C', planName: 'Humana Gold Plus', inpatientHospital: '$0', hearing: '$0 exam' },
+      { planId: 'H4140-023', planName: 'DrSelect-SFL', inpatientHospital: '$0', hearing: '$1,350' },
+      { planId: 'H5420-001', planName: 'MedicareMax FL-0028', inpatientHospital: '$0', hearing: '$0 exam' },
+    ];
+    const payload = exp.buildExportPayload(
+      plans,
+      'Mr. and Mrs. Muskat need SNF days 1-20, SNF days 21-100, and a hospital-grade bed.',
+      { skipMuskatLock: true }
+    );
+    assert.equal(payload.askedExportSob, true);
+    const model = exp.buildComparisonModel(payload);
+    const labels = model.aoa.map((row) => row[0]);
+    assert.ok(labels.includes('Skilled Nursing Facility (days 1–20)'));
+    assert.ok(labels.includes('Skilled Nursing Facility (days 21–100)'));
+    assert.ok(labels.includes('Hospital-grade bed / DME'));
+    assert.equal(labels.includes('Hearing Aids'), false);
+    assert.equal(labels.includes('Plan Terminating'), false);
+    const snf1 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 1–20)');
+    const snf2 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 21–100)');
+    const dme = model.aoa.find((row) => row[0] === 'Hospital-grade bed / DME');
+    assert.deepEqual(snf1.slice(1), ['Unverified', 'Unverified', 'Unverified']);
+    assert.deepEqual(snf2.slice(1), ['Unverified', 'Unverified', 'Unverified']);
+    assert.deepEqual(dme.slice(1), ['Unverified', 'Unverified', 'Unverified']);
+    assert.equal(model.aoa.some((row) => /scription|cal DME|\u2026|\.\.\.$/.test(row.join(' '))), false);
+  });
+
+  it('omits hearing-aids rows when the SOB did not find them', () => {
     const plans = [
       { planId: 'H1036-054C', planName: 'Humana Gold Plus', inpatientHospital: '$0', hearing: '$0 exam' },
       { planId: 'H4140-023', planName: 'DrSelect-SFL', inpatientHospital: '$0', hearing: '$1,350' },
@@ -494,9 +550,148 @@ describe('SOB-only extra benefit rows', () => {
       skipMuskatLock: true,
     });
     const labels = model.aoa.map((row) => row[0]);
-    assert.equal(labels.includes('Skilled Nursing Facility (days 1–20)'), false);
     assert.equal(labels.includes('Hearing Aids'), false);
-    assert.equal(labels.includes('Hospital-grade bed / DME'), false);
+  });
+
+  it('fillExportSobBenefits looks up the three rows when she asked and chat stored nothing', async () => {
+    const plans = [
+      {
+        planId: 'H1036-054C',
+        planName: 'Humana Gold Plus',
+        sobUrl: 'https://example.com/humana.pdf',
+        inpatientHospital: '$0',
+      },
+      {
+        planId: 'H4140-023',
+        planName: 'DrSelect-SFL',
+        sobUrl: 'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax_ENG.pdf',
+        inpatientHospital: '$0',
+      },
+      {
+        planId: 'H5420-001',
+        planName: 'MedicareMax FL-0028',
+        sobUrl: 'https://example.com/uhc.pdf',
+        inpatientHospital: '$0',
+      },
+    ];
+    let called = null;
+    const skipped = await exp.fillExportSobBenefits(plans, {}, async () => {
+      throw new Error('should not look up when she did not ask');
+    });
+    assert.deepEqual(skipped, {});
+    const filled = await exp.fillExportSobBenefits(
+      plans,
+      {},
+      async (req) => {
+        called = req;
+        return {
+          sobBenefits: {
+            'H1036-054C': {
+              snfDays1to20: { value: 'Days 1-20: $0 copay', source: 'sob' },
+              snfDays21to100: { value: 'Days 21-100: $214 copay per day', source: 'sob' },
+              dmeHospitalBed: { value: 'Hospital bed 20% coinsurance', source: 'sob' },
+            },
+            'H4140-023': {},
+            'H5420-001': {
+              snfDays1to20: { value: 'Days 1-20: $0 copay', source: 'sob' },
+            },
+          },
+        };
+      },
+      { asked: true, threadText: 'Need SNF days 1-20 and a hospital-grade bed.' }
+    );
+    assert.ok(called);
+    assert.deepEqual(called.benefits, ['skilled_nursing', 'dme']);
+    assert.deepEqual(called.planIds, ['H1036-054C', 'H4140-023', 'H5420-001']);
+    const model = exp.buildComparisonModel({
+      plans,
+      clientName: 'Mr. and Mrs. Muskat',
+      sobBenefits: filled,
+      skipMuskatLock: true,
+    });
+    const snf1 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 1–20)');
+    const snf2 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 21–100)');
+    const dme = model.aoa.find((row) => row[0] === 'Hospital-grade bed / DME');
+    assert.equal(snf1[1], 'Days 1-20: $0 copay');
+    assert.equal(snf1[2], 'Unverified');
+    assert.equal(snf1[3], 'Days 1-20: $0 copay');
+    assert.match(snf2[1], /\$214/);
+    assert.equal(snf2[2], 'Unverified');
+    assert.equal(dme[1], 'Hospital bed 20% coinsurance');
+    assert.equal(dme[2], 'Unverified');
+    assert.equal(dme.includes('$999'), false);
+    assert.equal(model.aoa.some((row) => row[0] === 'Plan Terminating'), false);
+  });
+
+  it('prints an asked off-grid benefit that is not SNF or DME, and leaves grid rows alone', () => {
+    const plans = [
+      { planId: 'H1036-054C', planName: 'Humana Gold Plus', premium: '$0', inpatientHospital: '$0' },
+      { planId: 'H4140-023', planName: 'DrSelect-SFL', premium: '$0', inpatientHospital: '$0' },
+    ];
+    const asked = exp.askedOffGridBenefits(
+      'Compare H1036-054C and H4140-023. What is the copay for chemotherapy?'
+    );
+    assert.equal(asked.asked, true);
+    assert.ok(asked.benefits.includes('chemotherapy'));
+    assert.equal(
+      exp.askedOffGridBenefits('Compare H1036-054C and H4140-023 for Mr. and Mrs. Muskat.').asked,
+      false
+    );
+    const skipped = exp.buildComparisonModel({
+      plans,
+      threadText: 'Compare H1036-054C and H4140-023 for Mr. and Mrs. Muskat.',
+      skipMuskatLock: true,
+    });
+    const skippedLabels = skipped.aoa.map((row) => row[0]);
+    assert.equal(skippedLabels.includes('Chemotherapy'), false);
+    assert.ok(skippedLabels.includes('Premium'));
+    assert.ok(skippedLabels.includes('Inpatient Hospital'));
+    const model = exp.buildComparisonModel({
+      plans,
+      threadText: 'Compare H1036-054C and H4140-023. Need chemotherapy.',
+      skipMuskatLock: true,
+    });
+    const labels = model.aoa.map((row) => row[0]);
+    assert.ok(labels.includes('Chemotherapy'));
+    assert.ok(labels.includes('Premium'));
+    assert.equal(labels.includes('Skilled Nursing Facility (days 1–20)'), false);
+    const chemo = model.aoa.find((row) => row[0] === 'Chemotherapy');
+    assert.deepEqual(chemo.slice(1), ['Unverified', 'Unverified']);
+    assert.equal(model.aoa.find((row) => row[0] === 'Premium')[1], '$0');
+  });
+
+  it('fillExportSobBenefits looks up the asked off-grid benefit, not every extra', async () => {
+    const plans = [
+      { planId: 'H1036-054C', planName: 'Humana Gold Plus', sobUrl: 'https://example.com/humana.pdf' },
+      { planId: 'H4140-023', planName: 'DrSelect-SFL', sobUrl: 'https://example.com/doctors.pdf' },
+    ];
+    let called = null;
+    const filled = await exp.fillExportSobBenefits(
+      plans,
+      {},
+      async (req) => {
+        called = req;
+        return {
+          sobBenefits: {
+            'H1036-054C': { chemotherapy: { value: 'Chemotherapy $35 copay', source: 'sob' } },
+          },
+        };
+      },
+      { threadText: 'Need chemotherapy on H1036-054C and H4140-023.' }
+    );
+    assert.ok(called);
+    assert.deepEqual(called.benefits, ['chemotherapy']);
+    assert.match(called.query, /chemotherapy/i);
+    const model = exp.buildComparisonModel({
+      plans,
+      threadText: 'Need chemotherapy on H1036-054C and H4140-023.',
+      sobBenefits: filled,
+      skipMuskatLock: true,
+    });
+    const chemo = model.aoa.find((row) => row[0] === 'Chemotherapy');
+    assert.equal(chemo[1], 'Chemotherapy $35 copay');
+    assert.equal(chemo[2], 'Unverified');
+    assert.equal(model.aoa.some((row) => row[0] === 'Hospital-grade bed / DME'), false);
   });
 
   it('adds SNF, hearing aids, and DME rows only from live SOB/grid extras — no invented dollars', () => {
@@ -896,6 +1091,56 @@ MARGOLESKY, JASON is in network on H4140-023 and H5420-001.
     const model = exp.buildComparisonModel(payload);
     const header = model.aoa[1] || model.aoa.find((row) => /H1036-054C/.test(row.join(' ')));
     assert.ok(header && header.some((c) => /H1036-054C/.test(String(c))));
+  });
+
+  it('a new message after a saved workup updates Excel instead of locking the old sheet', () => {
+    const plans = loadPlans();
+    const saved = [
+      planById(plans, 'H1036-054C', 'Miami-Dade'),
+      planById(plans, 'H4140-023', 'Miami-Dade'),
+      planById(plans, 'H5420-001', 'Miami-Dade'),
+    ].filter(Boolean);
+    assert.equal(saved.length, 3);
+    const chemoAsk = 'Need chemotherapy on these plans.';
+    const chemo = exp.buildExportPayload(saved, chemoAsk, {
+      catalog: plans,
+      latestUserText: chemoAsk,
+      rememberedPlans: saved,
+      skipMuskatLock: true,
+    });
+    assert.deepEqual(
+      chemo.plans.map((p) => exp.displayContractPbp(p)),
+      ['H1036-054C', 'H4140-023', 'H5420-001']
+    );
+    assert.equal(chemo.askedExportSob, true);
+    const chemoModel = exp.buildComparisonModel(chemo);
+    assert.ok(chemoModel.aoa.some((row) => row[0] === 'Chemotherapy'));
+    assert.ok(chemoModel.aoa.some((row) => row[0] === 'Premium'));
+    assert.equal(chemoModel.aoa.some((row) => row[0] === 'Plan Terminating'), false);
+
+    const newCompare = 'Compare H4140-023 and H5420-001 only.';
+    const switched = exp.buildExportPayload(saved, newCompare, {
+      catalog: plans,
+      latestUserText: newCompare,
+      rememberedPlans: saved,
+      skipMuskatLock: true,
+    });
+    assert.deepEqual(
+      switched.plans.map((p) => exp.displayContractPbp(p)),
+      ['H4140-023', 'H5420-001']
+    );
+    assert.equal(switched.plans.some((p) => exp.displayContractPbp(p) === 'H1036-054C'), false);
+
+    const history = [
+      { role: 'workup', content: 'saved Muskat sheet' },
+      { role: 'offer', content: 'export', plans: saved },
+      { role: 'user', content: newCompare },
+      { role: 'user', content: 'Export Excel' },
+    ];
+    const lastAsk = exp.lastUserComparisonAsk(history);
+    assert.match(lastAsk, /H4140-023/);
+    assert.equal(exp.isExportOnlyAsk('Export Excel'), true);
+    assert.equal(exp.requestUpdatesComparison(chemoAsk), true);
   });
 
   it('collapses duplicate 023/001 columns and keeps verified Muskat Rx', () => {
