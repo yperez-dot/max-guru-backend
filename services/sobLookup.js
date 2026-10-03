@@ -22,7 +22,9 @@ const {
 const PLAN_YEAR = DEFAULT_PLAN_YEAR;
 const FETCH_TIMEOUT_MS = 40_000;
 const EXTRACT_TIMEOUT_MS = 45_000;
-const TEXT_CAP = 40_000;
+// Full Doctors 2027 booklet is ~69k of pdftotext -layout. Cap must
+// include printed page 17 (DME / CPAP) — that block starts after 40k.
+const TEXT_CAP = 100_000;
 
 const BENEFIT_KEYS = {
   hearing_aids: 'hearingAids',
@@ -227,6 +229,102 @@ function windowAround(text, re, after = 420, before = 40) {
   return src.slice(Math.max(0, m.index - before), Math.min(src.length, m.index + after));
 }
 
+function windowAroundAll(text, re, after = 420, before = 40) {
+  const src = String(text || '');
+  const flags = re.flags.includes('g') ? re.flags : `${re.flags}g`;
+  const r = new RegExp(re.source, flags);
+  const out = [];
+  let m;
+  while ((m = r.exec(src))) {
+    if (m.index == null) break;
+    out.push(src.slice(Math.max(0, m.index - before), Math.min(src.length, m.index + after)));
+    if (m[0] === '') r.lastIndex += 1;
+  }
+  return out;
+}
+
+function isDoctorsDualColumn(text) {
+  return /DrMax-Dade/i.test(text || '') && /DrSelect-SFL/i.test(text || '');
+}
+
+function isDoctorsColumnHeaderLine(line) {
+  const src = String(line || '');
+  const i = src.search(/DrSelect-SFL/i);
+  if (i < 24) return false;
+  // Real pdftotext -layout headers have a wide gap before DrSelect-SFL.
+  // Collapsed "DrMax-Dade (HMO) DrSelect-SFL (HMO)" blobs do not.
+  return /^\s+$/.test(src.slice(Math.max(0, i - 8), i));
+}
+
+function doctorsSelectColumnX(text) {
+  const xs = [];
+  String(text || '')
+    .split(/\n/)
+    .forEach((line) => {
+      if (!isDoctorsColumnHeaderLine(line)) return;
+      xs.push(line.search(/DrSelect-SFL/i));
+    });
+  if (!xs.length) return null;
+  xs.sort((a, b) => a - b);
+  const mid = xs[Math.floor(xs.length / 2)];
+  const clustered = xs.filter((x) => Math.abs(x - mid) <= 18);
+  if (!clustered.length) return null;
+  return clustered[Math.floor(clustered.length / 2)];
+}
+
+function contentSplitX(page) {
+  const xs = [];
+  String(page || '')
+    .split(/\n/)
+    .forEach((line) => {
+      const hits = [];
+      const re = /\$[\d,]+|\d+\s*%/g;
+      let m;
+      while ((m = re.exec(line))) {
+        if (m.index >= 16) hits.push(m.index);
+      }
+      // "0% - 20%" in one column is ~4 chars apart. True two-column
+      // money sits 20+ columns apart ($75 left / $60 right, 0% / 0%).
+      if (hits.length >= 2) {
+        const right = hits.find((x) => x - hits[0] >= 20);
+        if (right != null) xs.push(right);
+      }
+    });
+  if (!xs.length) return null;
+  xs.sort((a, b) => a - b);
+  return xs[0];
+}
+
+function pageSplitX(page, fallbackX) {
+  return doctorsSelectColumnX(page) ?? contentSplitX(page) ?? fallbackX;
+}
+
+function slicePageColumn(page, wantRight, fallbackX) {
+  const splitX = pageSplitX(page, fallbackX);
+  if (splitX == null) return page;
+  return page
+    .split(/\n/)
+    .map((line) => {
+      if (line.length < splitX) return line;
+      return wantRight ? line.slice(splitX) : line.slice(0, splitX);
+    })
+    .join('\n');
+}
+
+function sliceDoctorsColumn(text, planHint) {
+  const src = String(text || '');
+  if (!isDoctorsDualColumn(src)) return src;
+  const hint = String(planHint || '');
+  const wantRight = /H4140-023/i.test(hint);
+  const wantLeft = /H4140-022/i.test(hint);
+  if (!wantRight && !wantLeft) return src;
+  const fallbackX = doctorsSelectColumnX(src);
+  return src
+    .split(/\f/)
+    .map((page) => slicePageColumn(page, wantRight, fallbackX))
+    .join('\n');
+}
+
 function extractMoneyAfter(blob, dayRe) {
   const m = String(blob || '').match(dayRe);
   if (!m) return null;
@@ -242,10 +340,11 @@ function collectSnfBandAmounts(win, startDay, endDay) {
   const src = String(win || '');
   const amounts = [];
   const range = `days?\\s*${startDay}(?!\\d)\\s*(?:-|–|—|through|to)\\s*${endDay}(?!\\d)`;
+  // Require "copay per day for days N" so "$0 copay Days 21" (prior band) cannot
+  // steal the next range. Matches the Doctors 2027 booklet and collapsed dual text.
   const patterns = [
-    new RegExp(`(\\$[\\d,]+(?:\\.\\d{2})?)[^$.]{0,50}${range}`, 'ig'),
     new RegExp(
-      `days?\\s*${startDay}(?!\\d)\\s*(?:-|–|—|through|to)\\s*(\\$[\\d,]+(?:\\.\\d{2})?)\\s*copay\\s*${endDay}(?!\\d)`,
+      `(\\$[\\d,]+(?:\\.\\d{2})?)\\s+copay\\s+per\\s+day\\s+for\\s+${range}`,
       'ig'
     ),
   ];
@@ -270,31 +369,39 @@ function pickDualColumnAmount(amounts, planHint, fullText) {
 }
 
 function parseSkilledNursing(text, planHint) {
-  const blob = collapseWs(text);
+  const scoped = sliceDoctorsColumn(text, planHint);
+  const blob = collapseWs(scoped);
   if (!/skilled nursing|\bSNF\b/i.test(blob)) {
     return { days1to20: null, days21to100: null };
   }
-  const win = collapseWs(
-    windowAround(text, /skilled nursing facility|\bSNF\b|skilled nursing/i, 900, 400)
-  );
-  let days1to20 =
-    extractMoneyAfter(win, /days?\s*1\s*(?:-|–|—|through|to)\s*20/i) ||
-    extractMoneyAfter(win, /\$[\d,]+(?:\.\d{2})?[^.]{0,40}days?\s*1\s*(?:-|–|through|to)\s*20/i) ||
-    extractMoneyAfter(win, /days?\s*1\s*(?:-|–|—|through|to)\s*\$[\d,]+(?:\.\d{2})?\s*copay\s*20/i);
-  let days21to100 =
-    extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*100/i) ||
-    extractMoneyAfter(win, /\$[\d,]+(?:\.\d{2})?[^.]{0,40}days?\s*21\s*(?:-|–|through|to)\s*100/i) ||
-    extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*\$[\d,]+(?:\.\d{2})?\s*copay\s*100/i);
-
-  const dualDoctors = /DrMax-Dade/i.test(blob) && /DrSelect-SFL/i.test(blob);
-  if (dualDoctors) {
-    const band1 = collectSnfBandAmounts(win, 1, 20);
-    const band21 = collectSnfBandAmounts(win, 21, 100);
-    const picked1 = pickDualColumnAmount(band1, planHint, blob);
-    const picked21 = pickDualColumnAmount(band21, planHint, blob);
-    if (picked1) days1to20 = cleanSnippet(`Days 1-20: ${picked1}`, 80);
-    if (picked21) days21to100 = cleanSnippet(`Days 21-100: ${picked21}`, 80);
-  }
+  const windows = windowAroundAll(
+    scoped,
+    /skilled nursing facility|\bSNF\b|skilled nursing/i,
+    900,
+    500
+  ).map((w) => collapseWs(w));
+  const win =
+    windows.find((w) =>
+      /days?\s*1\s*(?:-|–|—|through|to)\s*20/i.test(w) ||
+      /days?\s*21\s*(?:-|–|—|through|to)\s*100/i.test(w)
+    ) ||
+    windows[0] ||
+    blob;
+  const dualDoctors = isDoctorsDualColumn(blob) || isDoctorsDualColumn(text);
+  const band1 = collectSnfBandAmounts(win, 1, 20);
+  const band21 = collectSnfBandAmounts(win, 21, 100);
+  const picked1 = pickDualColumnAmount(band1, planHint, dualDoctors ? text : scoped);
+  const picked21 = pickDualColumnAmount(band21, planHint, dualDoctors ? text : scoped);
+  let days1to20 = picked1
+    ? cleanSnippet(`Days 1-20: ${picked1}`, 80)
+    : extractMoneyAfter(win, /days?\s*1\s*(?:-|–|—|through|to)\s*20/i) ||
+      extractMoneyAfter(win, /\$[\d,]+(?:\.\d{2})?[^.]{0,40}days?\s*1\s*(?:-|–|through|to)\s*20/i) ||
+      extractMoneyAfter(win, /days?\s*1\s*(?:-|–|—|through|to)\s*\$[\d,]+(?:\.\d{2})?\s*copay\s*20/i);
+  let days21to100 = picked21
+    ? cleanSnippet(`Days 21-100: ${picked21}`, 80)
+    : extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*100/i) ||
+      extractMoneyAfter(win, /\$[\d,]+(?:\.\d{2})?[^.]{0,40}days?\s*21\s*(?:-|–|through|to)\s*100/i) ||
+      extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*\$[\d,]+(?:\.\d{2})?\s*copay\s*100/i);
   return { days1to20, days21to100 };
 }
 
@@ -326,12 +433,16 @@ function extractDrSelectDme(text) {
 }
 
 function parseDme(text, planHint) {
-  const blob = collapseWs(text);
-  const dual = /DrMax-Dade/i.test(blob) && /DrSelect-SFL/i.test(blob);
-  if (dual && /H4140-023/i.test(String(planHint || ''))) {
-    return extractDrSelectDme(text);
+  const scoped = sliceDoctorsColumn(text, planHint);
+  const blob = collapseWs(scoped);
+  if (/H4140-023|H4140-022/i.test(String(planHint || ''))) {
+    // Printed page 17 is the same in both columns. Prefer the sliced
+    // column; fall back to the full booklet so a tight slice cannot drop 0%/20%.
+    const quoted = extractDrSelectDme(scoped) || extractDrSelectDme(text);
+    if (quoted) return quoted;
+    if (/H4140-023/i.test(String(planHint || ''))) return null;
   }
-  const win = collapseWs(windowAround(text, /durable medical equipment|\bDME\b/i, 480, 400));
+  const win = collapseWs(windowAround(scoped, /durable medical equipment|\bDME\b/i, 480, 400));
   if (!win || !hasMoneyOrCoverage(win)) return null;
   if (namesHospitalBed(win) && !/CPAP|powered wheelchair|all other medical equipment/i.test(win)) {
     return null;
@@ -342,9 +453,10 @@ function parseDme(text, planHint) {
   return cleanSnippet(sentence ? sentence[0] : win, 160);
 }
 
-function parseHospitalBed(text) {
-  if (!namesHospitalBed(text)) return null;
-  const win = collapseWs(windowAround(text, /hospital[-\s]?grade bed|hospital bed/i, 480, 40));
+function parseHospitalBed(text, planHint) {
+  const scoped = sliceDoctorsColumn(text, planHint);
+  if (!namesHospitalBed(scoped)) return null;
+  const win = collapseWs(windowAround(scoped, /hospital[-\s]?grade bed|hospital bed/i, 480, 40));
   if (!win || !hasMoneyOrCoverage(win)) return null;
   const sentence = win.match(
     /(?:hospital[-\s]?grade bed|hospital bed)[^.]{0,160}(?:\$[\d,]+|\d+\s*%|covered|not covered|no copay)[^.]{0,80}/i
@@ -353,7 +465,7 @@ function parseHospitalBed(text) {
 }
 
 function parseDmeHospitalBed(text, planHint) {
-  const bed = parseHospitalBed(text);
+  const bed = parseHospitalBed(text, planHint);
   if (bed) return bed;
   if (/H4140-023/i.test(String(planHint || ''))) return null;
   return parseDme(text, planHint);
@@ -413,17 +525,18 @@ function parseGenericBenefit(text, phrases) {
 }
 
 function parseSobBenefits(text, extraKeys, planHint) {
-  const snf = parseSkilledNursing(text, planHint);
+  const scoped = sliceDoctorsColumn(text, planHint);
+  const snf = parseSkilledNursing(scoped, planHint);
   const out = {
-    hearingAids: parseHearingAids(text),
+    hearingAids: parseHearingAids(scoped),
     snfDays1to20: snf.days1to20,
     snfDays21to100: snf.days21to100,
-    dme: parseDme(text, planHint),
-    dmeHospitalBed: parseHospitalBed(text),
+    dme: parseDme(scoped, planHint),
+    dmeHospitalBed: parseHospitalBed(scoped, planHint),
   };
   (extraKeys || []).forEach((key) => {
     if (out[key] !== undefined) return;
-    out[key] = parseGenericBenefit(text, GENERIC_PHRASES[key] || phrasesFromFieldKey(key));
+    out[key] = parseGenericBenefit(scoped, GENERIC_PHRASES[key] || phrasesFromFieldKey(key));
   });
   return out;
 }
@@ -945,6 +1058,7 @@ module.exports = {
   loadWiredPlans,
   mergeWiredPlan,
   resetSobCache,
+  sliceDoctorsColumn,
   EXPORT_SOB_FIELD_KEYS,
   EXPORT_SOB_BENEFITS,
   ASKED_EXPORT_SOB_RE,

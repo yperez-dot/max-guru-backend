@@ -162,13 +162,15 @@ Phase 2 artifacts: `artifacts/reports/sob-phase2-audit.md`, `sob-phase2-correcti
 
 ### Doctors DrSelect-SFL H4140-023 SoB (updated 2026-10-03)
 
-Both Miami-Dade and Broward live `#plan-data` rows must use `https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf`. Do **not** point 023 at `2027_SOB_SF_DrMax_ENG.pdf`. The booklet is two-column: **DrMax-Dade left, DrSelect-SFL right** — for H4140-023 use the right column only.
+Both Miami-Dade and Broward live `#plan-data` rows must use `https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf`. Do **not** point 023 at `2027_SOB_SF_DrMax_ENG.pdf`.
 
-- **SNF:** $0 copay per day days 1–20; $60 copay per day days 21–100.
-- **DME (page 17):** 0% coinsurance for covered items including CPAP and all other medical equipment; 20% coinsurance for powered wheelchairs, powered mattress systems, and other electric devices.
-- **Hospital-grade bed** is not named on that SoB. Do not invent a hospital-bed dollar.
+The booklet is two-column: **DrMax-Dade left, DrSelect-SFL right**. Reading the PDF as one blob takes the **first** dollar (left / Dr Max). For **H4140-023 only**, `lookup_sob_benefit` must slice the **right** column before SNF, DME, hospital-bed, or any other off-grid parse.
 
-Leave **H4140-022 DrMax-Dade** on the Dr Max PDF. Export reads `plan.sobUrl`, so the live JSON is the SoT for the Summary of Benefits hyperlink.
+- **SNF (right / DrSelect):** $0 copay per day days 1–20; $60 copay per day days 21–100. Left / Dr Max is $0 then **$75** — never quote $75 as 023.
+- **DME (printed page 17, both columns the same):** 0% coinsurance for covered items including CPAP and all other medical equipment; 20% coinsurance for powered wheelchairs, powered mattress systems, and other electric devices.
+- **Hospital-grade bed** is not named. Do not invent a hospital-bed dollar.
+
+**H4140-022 DrMax-Dade** stays on `2027_SOB_SF_DrMax_ENG.pdf` and uses Dr Max numbers. The 2027 grid hyperlink on 022 currently points at the DrSelect PDF while the cell still says DrMax-Dade — that grid link is wrong. **Do not** copy it into Max `sobUrl`.
 
 ### CarePlus CareComplete H1019-150 crowns (updated 2026-10-02)
 
@@ -213,7 +215,7 @@ Live UI Excel **and** PDF export (`exportComparisonToExcel` / `exportComparisonT
 - **Medications immediately under Doctors**, before Premium and the rest of the benefit rows. Verified formulary / Yahoska-locked 2027 facts only. Daisy / paste “Tier X” is discarded. Never treat carrier names (Doctors, UHC, Humana) as medication rows. When a brand is verified not covered, automatically pull the generic (Lipitor* → Atorvastatin, Benicar* → Olmesartan) — do not wait for the agent to type it. Show brand* as not covered with the asterisk note. Generic tier from live `lookup_formulary` only — never invent a tier. If the generic lookup fails, the generic row is Unverified.
 - **Muskat 2027:** export the **current** thread columns. **H1036-054C first** whenever Humana is in the comparison. **One column per contract-PBP** — never two H4140-023 or two H5420-001 columns. Keep verified thread Rx; keep Lipitor*/Atorvastatin and Benicar*/Olmesartan. The 014 lock applies only when those IDs are the current comparison. Stay-put **H5420-001** keeps 001 green cells. See `max-knowledge/client-muskat-2027.md`.
 - **Benefit row order:** Premium; Part B Rebate; Referrals Needed?; **MSP Levels only if at least one compared plan is a D-SNP / dual** (omit the row entirely on HMO/C-SNP-only comps — never print “Not listed” across that row); Max Out of Pocket; Inpatient Hospital; Outpatient Hospital; PCP; Specialist; ER; Urgent Care; Advanced Imaging (MRI, CT, PET); Hearing Services; Dental; Deep Cleaning; Dentures; Fillings; Root Canals; Extractions; Crowns; Bridges; Implants; Vision Allowance; Ambulance; Transportation; Companionship; Custodial Care; RX Deductible; Tier 1–6; OTC; Grocery Card; Acupuncture; Fitness; Summary of Benefits; Evidence of Coverage.
-- **Asked off-grid extras only:** the THEI grid is the most-requested rows and stays as it is. When Yahoska asks for **any** benefit that is not on the grid (SNF, hospital-grade bed / DME, chemotherapy, home health, or a free-text need), Max must run `lookup_sob_benefit` on each compared plan’s `sobUrl`, then `eocUrl` if the SOB does not have it, and Excel/PDF includes **that** extra row (Unverified if she asked and neither document has a number). If she did not ask, do not add the row and do not auto-run the lookup. Never invent dollars. Never print chopped PDF fragments (PR #60 filter). Doctors DrSelect `H4140-023` uses whatever `sobUrl` is already on the plan (currently the same PDF as Dr Max).
+- **Asked off-grid extras only:** the THEI grid is the most-requested rows and stays as it is. When Yahoska asks for **any** benefit that is not on the grid (SNF, hospital-grade bed / DME, chemotherapy, home health, or a free-text need), Max must run `lookup_sob_benefit` on each compared plan’s `sobUrl`, then `eocUrl` if the SOB does not have it, and Excel/PDF includes **that** extra row (Unverified if she asked and neither document has a number). If she did not ask, do not add the row and do not auto-run the lookup. Never invent dollars. Never print chopped PDF fragments (PR #60 filter). Doctors DrSelect `H4140-023` uses `2027_SOB_SF_DrSelect_ENG.pdf` and the **right** DrSelect-SFL column (SNF $0/$60, not the left Dr Max $75). H4140-022 stays on the Dr Max PDF — do not copy the grid’s wrong DrSelect hyperlink.
 - Gaps: `Not listed` / `N/A` / `SOB pending` / `EOC pending` / `Unverified`. Never invent dollars. SOB/EOC are hyperlinks when a URL is on the plan object.
 
 Chat replies stay short bullets (no markdown tables). The export button is what builds the sheet.

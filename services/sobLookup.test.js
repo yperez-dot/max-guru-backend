@@ -13,8 +13,40 @@ const {
   shouldAutoLookupComparisonSob,
   uniquePlanIdsNeedingExportSob,
   citedPlanIdsFromText,
+  sliceDoctorsColumn,
 } = require('./sobLookup');
 const { processTool } = require('./claude');
+
+// pdftotext -layout excerpt from 2027_SOB_SF_DrSelect_ENG.pdf (printed pp. 15 / 17).
+// Left column is DrMax-Dade ($75 SNF days 21-100). Right is DrSelect-SFL ($60).
+const DOCTORS_2027_LAYOUT = `
+Additional                 DrMax-Dade (HMO)                            DrSelect-SFL (HMO)
+Benefits/Services
+                           $0 copay per day for days 1 through         $0 copay per day for days 1 through
+                           20.                                         20.
+                           $75 copay per day for days 21 through       $60 copay per day for days 21 through
+                           100.                                        100.
+                           Our plan covers up to 100 days in a         Our plan covers up to 100 days in a
+Skilled Nursing Facility
+                           SNF per benefit period. A benefit           SNF per benefit period. A benefit
+(SNF)
+                           care or skilled care in a SNF for 60 days   care or skilled care in a SNF for 60 days
+\f
+Additional          DrMax-Dade (HMO)                        DrSelect-SFL (HMO)
+Benefits/Services
+                    0% coinsurance for covered items,       0% coinsurance for covered items,
+                    including but not limited to:           including but not limited to:
+                       •    CPAP machines                      •    CPAP machines
+                       •    And all other medical              •    And all other medical
+                            equipment                               equipment
+                    20% coinsurance for covered items,      20% coinsurance for covered items,
+                    including but not limited to:           including but not limited to:
+                       • Powered wheelchairs                   • Powered wheelchairs
+Durable Medical
+                       • Powered mattress systems              • Powered mattress systems
+Equipment (DME)
+                       • And other electric devices            • And other electric devices
+`;
 
 const SAMPLE_SOB = `
 Summary of Benefits 2027 H1036-054C
@@ -394,6 +426,41 @@ describe('lookupSobBenefits grid then SOB', () => {
     assert.equal(bed.byPlanId['H4140-023'].fields.dmeHospitalBed.value, null);
     assert.equal(bed.byPlanId['H4140-023'].fields.dmeHospitalBed.reason, 'not_in_sob');
     assert.doesNotMatch(formatSobLookupText(bed), /hospital bed \$|hospital-grade bed \$/i);
+  });
+
+  it('uses the RIGHT DrSelect column on layout text, not the first (left/Dr Max) dollar', async () => {
+    const right = sliceDoctorsColumn(DOCTORS_2027_LAYOUT, 'H4140-023');
+    const left = sliceDoctorsColumn(DOCTORS_2027_LAYOUT, 'H4140-022');
+    assert.match(right, /\$60/);
+    assert.doesNotMatch(right, /\$75/);
+    assert.match(left, /\$75/);
+    assert.doesNotMatch(left, /\$60/);
+
+    const select = await lookupSobBenefits({
+      planId: 'H4140-023',
+      sobUrl: 'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf',
+      benefits: ['skilled_nursing', 'dme', 'hospital_bed'],
+      sobText: DOCTORS_2027_LAYOUT,
+    });
+    assert.match(select.byPlanId['H4140-023'].fields.snfDays1to20.value, /\$0/);
+    assert.match(select.byPlanId['H4140-023'].fields.snfDays21to100.value, /\$60/);
+    assert.doesNotMatch(select.byPlanId['H4140-023'].fields.snfDays21to100.value, /\$75/);
+    assert.match(select.byPlanId['H4140-023'].fields.dme.value, /0%/);
+    assert.match(select.byPlanId['H4140-023'].fields.dme.value, /20%/);
+    assert.equal(select.byPlanId['H4140-023'].fields.dmeHospitalBed.value, null);
+
+    const max = await lookupSobBenefits({
+      planId: 'H4140-022',
+      sobUrl: 'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax_ENG.pdf',
+      benefits: ['skilled_nursing'],
+      sobText: DOCTORS_2027_LAYOUT,
+    });
+    assert.match(max.byPlanId['H4140-022'].fields.snfDays21to100.value, /\$75/);
+    assert.doesNotMatch(max.byPlanId['H4140-022'].fields.snfDays21to100.value, /\$60/);
+    assert.equal(
+      findWiredPlan('H4140-022').sobUrl,
+      'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax_ENG.pdf'
+    );
   });
 });
 
