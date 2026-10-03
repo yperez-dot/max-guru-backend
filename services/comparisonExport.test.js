@@ -393,7 +393,12 @@ describe('HTML UI wiring', () => {
     assert.match(html, /Do NOT add a Plan Terminating row unless/);
     assert.match(html, /MaxClientWorkups/);
     assert.match(html, /\/workups/);
-    assert.match(html, /Save workup/);
+    assert.equal(html.includes('Save workup'), false);
+    assert.equal(html.includes('Update workup'), false);
+    assert.equal(html.includes('data-testid="save-workup"'), false);
+    assert.equal(html.includes('currentWorkupId ? "Update" : "Save"'), false);
+    assert.match(html, /Export Excel/);
+    assert.match(html, /Export PDF/);
     assert.match(html, /Client workups/);
     assert.match(html, /messagesForApi/);
     assert.match(html, /LOADED CLIENT WORKUP/);

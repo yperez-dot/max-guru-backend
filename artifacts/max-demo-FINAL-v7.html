@@ -4275,20 +4275,6 @@ function App() {
               >
                 New chat
               </button>
-              <button
-                onClick={() => void saveWorkup(lastComparisonExportRef.current)}
-                disabled={savingWorkup}
-                data-testid="save-workup"
-                className="max-tap"
-                style={{
-                  width: "100%", padding: "9px 14px", borderRadius: 12,
-                  border: "1px solid var(--line)", background: "rgba(255,255,255,0.85)",
-                  color: "var(--plum)", fontWeight: 600, fontSize: 13, cursor: savingWorkup ? "default" : "pointer",
-                  fontFamily: "var(--font)",
-                }}
-              >
-                {savingWorkup ? "Saving…" : (currentWorkupId ? "Update workup" : "Save workup")}
-              </button>
               <div data-testid="plan-year-toggle" style={{ display: "flex", gap: 6, marginTop: 2 }}>
                 {[2027, 2026].map((y) => (
                   <button
@@ -4421,15 +4407,6 @@ function App() {
               New chat
             </button>
           )}
-          <button
-            onClick={() => void saveWorkup(lastComparisonExportRef.current)}
-            disabled={savingWorkup}
-            title="Save structured workup to your Max login"
-            className="max-header-btn max-tap"
-            style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: savingWorkup ? "default" : "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 600, color: "var(--plum)", flexShrink: 0 }}
-          >
-            {currentWorkupId ? "Update" : "Save"}
-          </button>
           <button onClick={lockMax} title="Lock Max" className="max-header-btn max-tap" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 600, color: "var(--muted)", flexShrink: 0 }}>
             Lock
           </button>
