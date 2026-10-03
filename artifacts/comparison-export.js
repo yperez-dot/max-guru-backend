@@ -222,8 +222,25 @@
     return (plans || []).some((p) => Boolean(sobFieldValue(p, sobBenefits, key)));
   }
 
+  // Doctors DrSelect etc. store dental procedure rows as bare COUNTS of covered services
+  // (Fillings 2, Root Canals 1, Extractions 4) with no unit. They are not dollars.
+  const DENTAL_COUNT_KEYS = {
+    dentalDeepCleaning: true,
+    dentalDentures: true,
+    dentalFillings: true,
+    dentalRootCanals: true,
+    dentalExtractions: true,
+    dentalCrowns: true,
+    dentalBridges: true,
+    dentalImplants: true,
+  };
+
   function formatBenefitValue(v, key) {
     if (isBlankish(v)) return "Not listed";
+    if (DENTAL_COUNT_KEYS[key] && (typeof v === "number" || /^\d+$/.test(String(v).trim()))) {
+      const n = Number(v);
+      return n > 0 ? n + " covered" : "Not covered";
+    }
     if (key === "partBGiveback" && typeof v === "number") {
       return v === 0 ? "$0" : "$" + v;
     }
@@ -1823,6 +1840,18 @@
     return wantsComparisonExport(text);
   }
 
+  // Lookup results (doctors, formulary, SOB benefits like SNF / DME / hearing aids) arrive on
+  // whatever turn Max ran them, often NOT the turn that cites 2+ plan IDs. The UI keeps every
+  // result for the whole chat with this helper so the export can still use them.
+  function mergeToolResults(prior, incoming, cap) {
+    const max = cap > 0 ? cap : 300;
+    const out = Array.isArray(prior) ? prior.slice() : [];
+    (Array.isArray(incoming) ? incoming : []).forEach((tr) => {
+      if (tr && typeof tr === "object") out.push(tr);
+    });
+    return out.length > max ? out.slice(out.length - max) : out;
+  }
+
   function conversationPlainText(messages, userMessageTextFn) {
     const toText =
       typeof userMessageTextFn === "function"
@@ -1912,6 +1941,7 @@
     wantsComparisonExport,
     wantsExcelExport,
     conversationPlainText,
+    mergeToolResults,
     formatSobCell,
     formatEocCell,
   };

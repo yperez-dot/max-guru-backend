@@ -1268,4 +1268,53 @@ Earlier: all four In network on UHC H5420-001.
     const row = model.aoa.find((r) => /trattler/i.test(r[0]));
     assert.deepEqual(row.slice(1), ['Out of network', 'In network', 'In network']);
   });
+
+  describe('SOB rows, dental counts, session tool results', () => {
+    it('formats Doctors dental counts as "N covered", not dollars', () => {
+      assert.equal(exp.formatBenefitValue(2, 'dentalFillings'), '2 covered');
+      assert.equal(exp.formatBenefitValue('4', 'dentalExtractions'), '4 covered');
+      assert.equal(exp.formatBenefitValue(0, 'dentalBridges'), 'Not covered');
+      assert.equal(exp.formatBenefitValue(13, 'partBGiveback'), '$13');
+    });
+
+    it('mergeToolResults accumulates and caps', () => {
+      const a = [{ tool: 'a' }];
+      const b = [{ tool: 'b' }, null, 'x'];
+      assert.deepEqual(exp.mergeToolResults(a, b).map((t) => t.tool), ['a', 'b']);
+      const many = Array.from({ length: 10 }, (_, i) => ({ tool: 't' + i }));
+      const capped = exp.mergeToolResults([], many, 4);
+      assert.equal(capped.length, 4);
+      assert.equal(capped[3].tool, 't9');
+    });
+
+    it('prints SNF and DME rows when sobBenefits carries values', () => {
+      const plans = loadPlans().filter((p) => p.county === 'Miami-Dade').slice(0, 2);
+      const id0 = exp.displayContractPbp(plans[0]);
+      const model = exp.buildComparisonModel({
+        plans,
+        clientName: 'Carol Wong',
+        sobBenefits: {
+          [id0]: {
+            snfDays1to20: { value: '$0 copay' },
+            snfDays21to100: { value: '$203/day' },
+            dmeHospitalBed: { value: '20% coinsurance' },
+          },
+        },
+      });
+      const row = (label) => model.aoa.find((r) => r[0] === label);
+      assert.equal(row('Skilled Nursing Facility (days 1–20)')[1], '$0 copay');
+      assert.equal(row('Skilled Nursing Facility (days 21–100)')[1], '$203/day');
+      assert.equal(row('Hospital-grade bed / DME')[1], '20% coinsurance');
+      assert.equal(row('Hospital-grade bed / DME')[2], 'Unverified');
+    });
+
+    it('UI keeps session-wide tool results and passes SOB data to Excel/PDF', () => {
+      const html = fs.readFileSync(HTML_PATH, 'utf8');
+      assert.match(html, /sessionToolResultsRef\s*=\s*useRef/);
+      assert.match(html, /MaxComparisonExport\.mergeToolResults\(sessionToolResultsRef\.current/);
+      assert.match(html, /sobBenefits: payload\.sobBenefits/);
+      assert.match(html, /sobBenefits: m\.sobBenefits \|\| \{\}/);
+      assert.match(html, /toolResults: sessionToolResultsRef\.current/);
+    });
+  });
 });

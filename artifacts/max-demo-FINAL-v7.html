@@ -246,8 +246,25 @@
     return (plans || []).some((p) => Boolean(sobFieldValue(p, sobBenefits, key)));
   }
 
+  // Doctors DrSelect etc. store dental procedure rows as bare COUNTS of covered services
+  // (Fillings 2, Root Canals 1, Extractions 4) with no unit. They are not dollars.
+  const DENTAL_COUNT_KEYS = {
+    dentalDeepCleaning: true,
+    dentalDentures: true,
+    dentalFillings: true,
+    dentalRootCanals: true,
+    dentalExtractions: true,
+    dentalCrowns: true,
+    dentalBridges: true,
+    dentalImplants: true,
+  };
+
   function formatBenefitValue(v, key) {
     if (isBlankish(v)) return "Not listed";
+    if (DENTAL_COUNT_KEYS[key] && (typeof v === "number" || /^\d+$/.test(String(v).trim()))) {
+      const n = Number(v);
+      return n > 0 ? n + " covered" : "Not covered";
+    }
     if (key === "partBGiveback" && typeof v === "number") {
       return v === 0 ? "$0" : "$" + v;
     }
@@ -1847,6 +1864,18 @@
     return wantsComparisonExport(text);
   }
 
+  // Lookup results (doctors, formulary, SOB benefits like SNF / DME / hearing aids) arrive on
+  // whatever turn Max ran them, often NOT the turn that cites 2+ plan IDs. The UI keeps every
+  // result for the whole chat with this helper so the export can still use them.
+  function mergeToolResults(prior, incoming, cap) {
+    const max = cap > 0 ? cap : 300;
+    const out = Array.isArray(prior) ? prior.slice() : [];
+    (Array.isArray(incoming) ? incoming : []).forEach((tr) => {
+      if (tr && typeof tr === "object") out.push(tr);
+    });
+    return out.length > max ? out.slice(out.length - max) : out;
+  }
+
   function conversationPlainText(messages, userMessageTextFn) {
     const toText =
       typeof userMessageTextFn === "function"
@@ -1936,6 +1965,7 @@
     wantsComparisonExport,
     wantsExcelExport,
     conversationPlainText,
+    mergeToolResults,
     formatSobCell,
     formatEocCell,
   };
@@ -3141,6 +3171,9 @@ function App() {
   // Remembers the most recent exportable comparison even after the offer chip is dismissed
   // or later non-comparison replies push it out of the recent-message window.
   const lastComparisonExportRef = useRef(null);
+  // Every lookup result this chat (doctors, formulary, SOB like SNF/DME). Max may run a lookup on a
+  // turn that does not cite 2+ plan IDs; keeping them all means the export still sees them.
+  const sessionToolResultsRef = useRef([]);
   const loadedWorkupRef = useRef(null);
   const currentWorkupIdRef = useRef(null);
   const lastSavedSigRef = useRef("");
@@ -3224,6 +3257,7 @@ function App() {
       currentWorkupIdRef.current = null;
       setCurrentWorkupId(null);
       lastComparisonExportRef.current = null;
+      sessionToolResultsRef.current = [];
       lastSavedSigRef.current = "";
     }
     setMessages([]);
@@ -3387,7 +3421,7 @@ function App() {
           clientName: payload.clientName,
           terminatingPlan: payload.terminatingPlan,
           doctors: payload.doctors,
-          drugs: payload.drugs,
+          drugs: payload.drugs, sobBenefits: payload.sobBenefits,
           time: nowLabel(),
         });
       }
@@ -3584,6 +3618,7 @@ function App() {
             doctors: rememberedFits ? (remembered.doctors || []) : offerFits ? (lastOffer.doctors || []) : [],
             clientName: (remembered && remembered.clientName) || lastOffer?.clientName || "",
             sobBenefits: rememberedFits ? (remembered.sobBenefits || {}) : offerFits ? (lastOffer.sobBenefits || {}) : {},
+            toolResults: sessionToolResultsRef.current,
             rememberedPlans: (remembered && remembered.plans) || (lastOffer && lastOffer.plans) || [],
           });
           lastComparisonExportRef.current = payload;
@@ -3597,7 +3632,7 @@ function App() {
           const nextMsgs = [
             ...newHistory.filter((m) => m.role !== "offer"),
             assistantMsg,
-            { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, time: nowLabel() },
+            { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, sobBenefits: payload.sobBenefits, time: nowLabel() },
           ];
           messagesRef.current = nextMsgs;
           setMessages(nextMsgs);
@@ -3610,6 +3645,7 @@ function App() {
         loadedWorkupRef.current
       ));
       if (gen !== chatGenRef.current) return;
+      sessionToolResultsRef.current = window.MaxComparisonExport.mergeToolResults(sessionToolResultsRef.current, result.toolResults);
       const reply = result.text;
       if (result.banners.length) {
         setBanners((current) => {
@@ -3642,13 +3678,13 @@ function App() {
             ...drugsFromToolResults(result.toolResults),
           ],
           doctors: rememberedFits ? (remembered.doctors || []) : [],
-          toolResults: result.toolResults || [],
+          toolResults: sessionToolResultsRef.current,
           sobBenefits: rememberedFits ? (remembered.sobBenefits || {}) : {},
           rememberedPlans: (remembered && remembered.plans) || [],
         });
         lastComparisonExportRef.current = payload;
         scheduleAutoSave(payload);
-        nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, time: nowLabel() }];
+        nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, sobBenefits: payload.sobBenefits, time: nowLabel() }];
       } else {
         nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg];
       }
@@ -4065,11 +4101,11 @@ function App() {
                 <div className="max-export-scroll" style={{ padding: "12px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(255,255,255,0.88)", color: "var(--ink)", fontSize: 14.5, lineHeight: 1.5, border: "1px solid var(--line)", maxWidth: "100%" }}>
                   <div style={{ marginBottom: 10 }}>Want this comparison as Excel or PDF?</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button onClick={() => { exportComparisonToExcel(collectComparisonExport(messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", rememberedPlans: m.plans || [] })); setMessages(prev => prev.filter((_,j) => j !== i)); }}
+                    <button onClick={() => { exportComparisonToExcel(collectComparisonExport(messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", sobBenefits: m.sobBenefits || {}, toolResults: sessionToolResultsRef.current, rememberedPlans: m.plans || [] })); setMessages(prev => prev.filter((_,j) => j !== i)); }}
                       style={{ padding: "8px 14px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)", color: "white", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
                       Export Excel
                     </button>
-                    <button onClick={() => { exportComparisonToPdf(collectComparisonExport(messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", rememberedPlans: m.plans || [] })); setMessages(prev => prev.filter((_,j) => j !== i)); }}
+                    <button onClick={() => { exportComparisonToPdf(collectComparisonExport(messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", sobBenefits: m.sobBenefits || {}, toolResults: sessionToolResultsRef.current, rememberedPlans: m.plans || [] })); setMessages(prev => prev.filter((_,j) => j !== i)); }}
                       style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
                       Export PDF
                     </button>
