@@ -324,19 +324,43 @@
   function looksLikeTerminatingPlanName(value) {
     const v = String(value || "").replace(/\s+/g, " ").trim();
     if (v.length < 3 || v.length > 80) return false;
-    if (/^(row|rows|unless|never|do not|don't)\b/i.test(v)) return false;
-    if (/\b(msp(\s+levels?)?|not dual|no msp|unless she|do not|don't|never become)\b/i.test(v)) return false;
+    if (/^(row|rows|unless|never|do not|don't|omit)\b/i.test(v)) return false;
+    if (/\b(msp(\s+levels?)?|not dual|no msp|unless she|do not|don't|never become|hmo,\s*not dual)\b/i.test(v)) return false;
     if (/\bis\s+hmo\b/i.test(v)) return false;
+    if (/\b(plan\s+terminating|terminating\s+row)\b/i.test(v)) return false;
     return /[A-Za-z]/.test(v);
   }
 
-  function hasExplicitTerminatingLanguage(text) {
-    const t = String(text || "");
-    if (/\bcurrent\s+plan\s+(?:is\s+)?(?:terminat|ending)\b/i.test(t)) return true;
-    if (/\b(?:her|his|their)\s+(?:current\s+)?plan\s+is\s+(?:terminat|ending)\b/i.test(t)) return true;
-    if (/(?:^|[^\w])plan\s+terminating\s*[:\-–]\s*\S/i.test(t)) return true;
-    if (/\bterminating\s+plan\s*(?:is\s*)?[:\-–]\s*\S/i.test(t)) return true;
+  function isInstructionalTerminatingChunk(chunk) {
+    const t = String(chunk || "").replace(/\s+/g, " ").trim();
+    if (!t) return true;
+    if (/\b(do\s+not|don't|never|omit|unless)\b/i.test(t) && /\b(plan\s+terminat|terminating\s+plan|current\s+plan)/i.test(t)) {
+      return true;
+    }
+    if (/\b(msp(\s+levels?)?|not dual|no msp)\b/i.test(t) && !/\bplan\s+terminating\s*[:\-–]\s*[A-Za-z]/i.test(t)) {
+      return true;
+    }
     return false;
+  }
+
+  function hasExplicitTerminatingLanguage(text) {
+    const chunks = String(text || "").split(/(?<=[.!?])\s+|\n+/);
+    for (const chunk of chunks) {
+      if (isInstructionalTerminatingChunk(chunk)) continue;
+      const t = chunk.replace(/\s+/g, " ").trim();
+      if (/\bcurrent\s+plan\s+(?:is\s+)?(?:terminat|ending)\b/i.test(t)) return true;
+      if (/\b(?:her|his|their)\s+(?:current\s+)?plan\s+is\s+(?:terminat|ending)\b/i.test(t)) return true;
+      if (/(?:^|[^\w])plan\s+terminating\s*[:\-–]\s*\S/i.test(t)) return true;
+      if (/\bterminating\s+plan\s*(?:is\s*)?[:\-–]\s*\S/i.test(t)) return true;
+    }
+    return false;
+  }
+
+  function sanitizeTerminatingPlan(value, text) {
+    const v = String(value || "").replace(/\s+/g, " ").trim();
+    if (!v || !looksLikeTerminatingPlanName(v)) return "";
+    if (text && !hasExplicitTerminatingLanguage(text)) return "";
+    return v;
   }
 
   function extractTerminatingPlan(text) {
@@ -346,12 +370,13 @@
       /terminating\s+plan\s+(?:is\s+)?([A-Z][^\n]{2,90})/i,
     ];
     for (const re of patterns) {
-      const m = text.match(re);
+      const m = String(text || "").match(re);
       if (!m) continue;
       let value = String(m[1] || "").replace(/\s+/g, " ").trim();
       value = value.replace(/\s*[.]$/, "");
       value = value.replace(/\s+(and|for|in|on|with|who|which)\s+$/i, "").trim();
-      if (looksLikeTerminatingPlanName(value)) return value;
+      const clean = sanitizeTerminatingPlan(value, text);
+      if (clean) return clean;
     }
     return "";
   }
@@ -756,22 +781,52 @@
   function planIdAliases(plan) {
     const id = displayContractPbp(plan);
     const raw = String((plan && (plan.planId || plan.id)) || "");
-    const aliases = [id, raw, String((plan && plan.id) || "")].filter(Boolean);
-    if (id === "H4140-023") aliases.push("H4140-012");
-    if (id === "H4140-012") aliases.push("H4140-023");
-    if (id === "H5420-001") aliases.push("H5420-014", "H5420-001/0028");
-    if (id === "H5420-014") aliases.push("H5420-001", "H5420-001/0028");
-    if (id === "H1036-054C") aliases.push("H1036-054");
-    if (id === "H1036-054") aliases.push("H1036-054C");
+    const compact = compactContractPbp(raw || id);
+    const aliases = [id, raw, compact, String((plan && plan.id) || "")].filter(Boolean);
+    const base = String(id || compact || "").split("/")[0];
+    if (base) aliases.push(base);
+    if (base === "H4140-023" || compact === "H4140-023") aliases.push("H4140-012");
+    if (base === "H4140-012" || compact === "H4140-012") aliases.push("H4140-023");
+    if (base === "H5420-001" || compact === "H5420-001") aliases.push("H5420-014", "H5420-001/0028");
+    if (base === "H5420-014" || compact === "H5420-014") aliases.push("H5420-001", "H5420-001/0028");
+    if (base === "H1036-054C" || compact === "H1036-054C") aliases.push("H1036-054");
+    if (base === "H1036-054" || compact === "H1036-054") aliases.push("H1036-054C");
     return [...new Set(aliases)];
+  }
+
+  function planStatusKey(plan) {
+    return compactContractPbp(plan && (plan.planId || plan.id)) || displayContractPbp(plan);
   }
 
   function lookupPlanStatus(map, plan) {
     if (!map || !plan) return "";
     for (const key of planIdAliases(plan)) {
       if (map[key] != null && map[key] !== "") return map[key];
+      const compact = compactContractPbp(key);
+      if (compact && map[compact] != null && map[compact] !== "") return map[compact];
     }
     return "";
+  }
+
+  function byPlanIdFromStatuses(statuses, plans) {
+    const map = {};
+    (plans || []).forEach((p, i) => {
+      const key = planStatusKey(p);
+      const s = normalizeNetworkStatus(statuses && statuses[i]);
+      if (key && s) map[key] = s;
+    });
+    return map;
+  }
+
+  function mergeByPlanIdMaps(target, incoming) {
+    const out = Object.assign({}, target || {});
+    Object.keys(incoming || {}).forEach((id) => {
+      const key = compactContractPbp(id) || id;
+      const next = normalizeNetworkStatus(incoming[id]);
+      if (!next) return;
+      out[key] = mergeStatusPair(normalizeNetworkStatus(out[key]) || out[key], next);
+    });
+    return out;
   }
 
   function normalizeDoctors(doctors, plans) {
@@ -785,23 +840,24 @@
       const key = name.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
-      let statuses = [];
-      if (typeof d !== "string" && Array.isArray(d.statuses)) {
-        statuses = d.statuses.map((s) => normalizeNetworkStatus(s) || (s ? normalizeNetworkStatus(s) : "") || NETWORK_NOT_CONFIRMED);
-      } else if (typeof d !== "string" && (d.byPlanId || d.statusByPlanId || d.networks)) {
-        const map = d.byPlanId || d.statusByPlanId || {};
-        statuses = plans.map((p) => {
-          const fromMap = normalizeNetworkStatus(lookupPlanStatus(map, p));
-          if (fromMap) return fromMap;
-          if (d.networks) return statusFromProviderNetworks(p, d.networks);
-          return NETWORK_NOT_CONFIRMED;
-        });
-      } else {
-        statuses = plans.map(() => NETWORK_NOT_CONFIRMED);
+      let map = {};
+      if (typeof d !== "string") {
+        map = mergeByPlanIdMaps(map, d.byPlanId || d.statusByPlanId || {});
+        if (Array.isArray(d.statuses)) {
+          map = mergeByPlanIdMaps(map, byPlanIdFromStatuses(d.statuses, plans));
+        }
       }
+      const statuses = plans.map((p) => {
+        const fromMap = normalizeNetworkStatus(lookupPlanStatus(map, p));
+        if (fromMap === NETWORK_IN || fromMap === NETWORK_OUT) return fromMap;
+        const fromNet = typeof d !== "string" && d.networks ? statusFromProviderNetworks(p, d.networks) : "";
+        const merged = mergeStatusPair(fromMap, fromNet);
+        return merged || NETWORK_NOT_CONFIRMED;
+      });
       out.push({
         name,
-        statuses: plans.map((_, i) => statuses[i] || NETWORK_NOT_CONFIRMED),
+        statuses,
+        byPlanId: mergeByPlanIdMaps(map, byPlanIdFromStatuses(statuses, plans)),
       });
     }
     return out;
@@ -823,7 +879,13 @@
 
   function blobHasPlanId(blob, plan) {
     const hay = String(blob || "").toUpperCase().replace(/\s+/g, "");
-    return planIdAliases(plan).some((id) => hay.includes(String(id).toUpperCase().replace(/\s+/g, "")));
+    if (!hay) return false;
+    return planIdAliases(plan).some((id) => {
+      const raw = String(id || "").toUpperCase().replace(/\s+/g, "");
+      if (raw && hay.includes(raw)) return true;
+      const compact = compactContractPbp(id);
+      return Boolean(compact && hay.includes(compact));
+    });
   }
 
   function statusFromProviderNetworks(plan, networks) {
@@ -839,14 +901,16 @@
         fallback = fallback || NETWORK_NEED_MORE;
         continue;
       }
+      // Carrier-level hit only when this lookup did not name PBPs (Doctors HCP).
       if (net.inNetwork === true && !(net.plans && net.plans.length)) return NETWORK_IN;
       if (net.inNetwork === false && net.status !== "failed" && /doctors/i.test(net.carrier || "")) {
         return NETWORK_OUT;
       }
       if (net.inNetwork === true) fallback = fallback || NETWORK_IN;
-      else fallback = fallback || NETWORK_NOT_CONFIRMED;
+      // Miss / empty session / other PBPs only — not an explicit OON. Leave
+      // unknown so a verified In network on this plan id is not overwritten.
     }
-    return fallback || NETWORK_NOT_CONFIRMED;
+    return fallback;
   }
 
   function doctorsFromProviderLookups(lookups, plans) {
@@ -863,10 +927,13 @@
       providers.forEach((pr) => {
         const name = String(pr.doctorName || pr.name || "").trim();
         if (!name) return;
+        const networks = pr.networks || src.networks || [];
+        const statuses = plans.map((p) => statusFromProviderNetworks(p, networks) || NETWORK_NOT_CONFIRMED);
         out.push({
           name: /^dr\.?\s/i.test(name) || /clinic|neurology|rehab|mnrs/i.test(name) ? name : "Dr. " + name,
-          statuses: plans.map((p) => statusFromProviderNetworks(p, pr.networks || src.networks || [])),
-          networks: pr.networks || src.networks || [],
+          statuses,
+          byPlanId: byPlanIdFromStatuses(statuses, plans),
+          networks,
         });
       });
     });
@@ -937,7 +1004,12 @@
           return;
         }
         prev.name = preferredDoctorName(prev.name, doc.name);
-        prev.statuses = prev.statuses.map((s, i) => mergeStatusPair(s, doc.statuses[i]));
+        prev.byPlanId = mergeByPlanIdMaps(prev.byPlanId, doc.byPlanId);
+        prev.statuses = plans.map((p, i) => {
+          const fromMap = normalizeNetworkStatus(lookupPlanStatus(prev.byPlanId, p));
+          return mergeStatusPair(mergeStatusPair(prev.statuses[i], doc.statuses[i]), fromMap) || NETWORK_NOT_CONFIRMED;
+        });
+        prev.byPlanId = mergeByPlanIdMaps(prev.byPlanId, byPlanIdFromStatuses(prev.statuses, plans));
       });
     });
     return [...byKey.values()];
@@ -956,11 +1028,17 @@
       return orig.map((p, i) => (planColumnId(p) === key ? i : -1)).filter((i) => i >= 0);
     });
     return doctors.map((d) => {
-      if (!d || typeof d === "string" || !Array.isArray(d.statuses) || d.statuses.length !== orig.length) return d;
-      const statuses = groupIdx.map((idxs) =>
-        idxs.reduce((acc, i) => mergeStatusPair(acc, normalizeNetworkStatus(d.statuses[i]) || d.statuses[i]), "") || NETWORK_NOT_CONFIRMED
-      );
-      return Object.assign({}, d, { statuses });
+      if (!d || typeof d === "string") return d;
+      const hasPositional = Array.isArray(d.statuses) && d.statuses.length === orig.length;
+      const statuses = hasPositional
+        ? groupIdx.map((idxs) =>
+            idxs.reduce((acc, i) => mergeStatusPair(acc, normalizeNetworkStatus(d.statuses[i]) || d.statuses[i]), "") || ""
+          )
+        : d.statuses;
+      return Object.assign({}, d, {
+        statuses,
+        byPlanId: d.byPlanId || d.statusByPlanId || {},
+      });
     });
   }
 
@@ -973,12 +1051,19 @@
     if (plansOrPayload && typeof plansOrPayload === "object") {
       const plans = Array.isArray(plansOrPayload.plans) ? plansOrPayload.plans : [];
       const kept = uniq(plans);
-      return {
+      const aligned = realignDoctorStatuses(plansOrPayload.doctors, plans, kept);
+      const out = {
         ...plansOrPayload,
         plans: kept,
-        doctors: realignDoctorStatuses(plansOrPayload.doctors, plans, kept),
+        doctors: normalizeDoctors(aligned, kept),
         ...extra,
       };
+      out.terminatingPlan = sanitizeTerminatingPlan(out.terminatingPlan, out.threadText || extra.threadText);
+      if (isMuskatContext(out.threadText, out) && !out.skipMuskatLock) {
+        applyMuskatLockedFacts(out);
+        out.terminatingPlan = sanitizeTerminatingPlan(out.terminatingPlan, out.threadText);
+      }
+      return out;
     }
     return { plans: [], ...extra };
   }
@@ -1236,11 +1321,12 @@
   }
 
   function muskatLockedDoctors() {
+    const uhc = { "H5420-001": NETWORK_IN, "H5420-014": NETWORK_IN };
     return [
-      { name: "Dr. Alejandro Roca", statuses: [NETWORK_OUT, NETWORK_IN, NETWORK_IN] },
-      { name: "Dr. Charles J. Kaiser", statuses: [NETWORK_OUT, NETWORK_IN, NETWORK_IN] },
-      { name: "Dr. William Trattler", statuses: [NETWORK_OUT, NETWORK_IN, NETWORK_IN] },
-      { name: "Dr. Neeta Jane Erinjeri", statuses: [NETWORK_IN, NETWORK_IN, NETWORK_IN] },
+      { name: "Dr. Alejandro Roca", byPlanId: { "H1036-054C": NETWORK_OUT, "H4140-023": NETWORK_IN, ...uhc } },
+      { name: "Dr. Charles J. Kaiser", byPlanId: { "H1036-054C": NETWORK_OUT, "H4140-023": NETWORK_IN, ...uhc } },
+      { name: "Dr. William Trattler", byPlanId: { "H1036-054C": NETWORK_OUT, "H4140-023": NETWORK_IN, ...uhc } },
+      { name: "Dr. Neeta Jane Erinjeri", byPlanId: { "H1036-054C": NETWORK_IN, "H4140-023": NETWORK_IN, ...uhc } },
     ];
   }
 
@@ -1283,9 +1369,7 @@
       payload.drugs = applyKnownGenericSuggestions(live, payload.plans);
     }
     payload.genericOnlyNote = GENERIC_ONLY_NOTE;
-    if (!hasExplicitTerminatingLanguage(payload.threadText) && !payload.explicitTerminating) {
-      payload.terminatingPlan = "";
-    }
+    payload.terminatingPlan = sanitizeTerminatingPlan(payload.terminatingPlan, payload.threadText);
     return payload;
   }
 
@@ -1309,7 +1393,7 @@
     );
     const clientName = extra.clientName || extractClientName(text);
     const terminatingPlan = extra.explicitTerminating
-      ? extra.terminatingPlan || extractTerminatingPlan(text)
+      ? sanitizeTerminatingPlan(extra.terminatingPlan || extractTerminatingPlan(text), text)
       : extractTerminatingPlan(text);
     const fromLookups = doctorsFromProviderLookups(
       extra.providerLookups || extra.toolResults || extra.doctorsFromTools || [],
@@ -1813,6 +1897,8 @@
     isCarrierAsDrugName,
     looksLikeDrugName,
     hasExplicitTerminatingLanguage,
+    looksLikeTerminatingPlanName,
+    sanitizeTerminatingPlan,
     isMuskatContext,
     currentPlansMatchMuskatLock,
     sameExportPlanSet,
@@ -1831,6 +1917,9 @@
     extractTerminatingPlan,
     extractDoctors,
     normalizeDoctors,
+    planStatusKey,
+    lookupPlanStatus,
+    mergeByPlanIdMaps,
     extractDrugs,
     extractClaimedMeds,
     extractVerifiedLookups,
@@ -1882,6 +1971,33 @@
     let id = String((plan && (plan.planId || plan.id)) || "").replace(/\s+/g, "");
     id = id.replace(/-000$/i, "").replace(/\/000$/i, "");
     return id;
+  }
+
+  function comparisonExportApi() {
+    return (
+      (typeof globalThis !== "undefined" && globalThis.MaxComparisonExport) ||
+      (typeof window !== "undefined" && window.MaxComparisonExport) ||
+      null
+    );
+  }
+
+  function statusPlanKey(plan) {
+    const exp = comparisonExportApi();
+    if (exp && typeof exp.compactContractPbp === "function") {
+      return exp.compactContractPbp(plan && (plan.planId || plan.id)) || displayPlanId(plan);
+    }
+    return String(displayPlanId(plan) || "").split("/")[0];
+  }
+
+  function sanitizeWorkupTerminating(value, thread) {
+    const exp = comparisonExportApi();
+    if (exp && typeof exp.sanitizeTerminatingPlan === "function") {
+      return exp.sanitizeTerminatingPlan(value, thread);
+    }
+    const s = clip(value, 90);
+    if (/\b(msp|not dual|no msp|is hmo)\b/i.test(s)) return "";
+    if (/^(row|unless|never|do not|don't|omit)\b/i.test(s)) return "";
+    return s;
   }
 
   function marketingLabel(plan) {
@@ -1984,17 +2100,24 @@
       const name = clip(d.name || "", 80);
       if (!name) return;
       const byPlanId = {};
+      const writeBucket = (id, bucket) => {
+        if (!id || !bucket) return;
+        const exp = comparisonExportApi();
+        const key = exp && typeof exp.compactContractPbp === "function" ? exp.compactContractPbp(id) || id : String(id).split("/")[0];
+        const prev = byPlanId[key];
+        if (prev === NETWORK_IN || prev === NETWORK_OUT) {
+          if (bucket !== NETWORK_IN && bucket !== NETWORK_OUT) return;
+          return;
+        }
+        byPlanId[key] = bucket;
+      };
       if (d.byPlanId && typeof d.byPlanId === "object") {
-        Object.keys(d.byPlanId).forEach((id) => {
-          const bucket = normalizeNetworkBucket(d.byPlanId[id]);
-          if (bucket) byPlanId[id] = bucket;
-        });
+        Object.keys(d.byPlanId).forEach((id) => writeBucket(id, normalizeNetworkBucket(d.byPlanId[id])));
       }
       if (Array.isArray(d.statuses)) {
         d.statuses.forEach((status, i) => {
           const plan = plans[i];
-          const bucket = normalizeNetworkBucket(status);
-          if (bucket && plan) byPlanId[displayPlanId(plan)] = bucket;
+          if (plan) writeBucket(statusPlanKey(plan), normalizeNetworkBucket(status));
         });
       }
       out.push({ name: name, byPlanId: byPlanId });
@@ -2047,7 +2170,7 @@
     const county = clip(extra.county || src.county || extractCounty(thread) || (plans[0] && plans[0].county) || "", 40);
     const contacts = clip(extra.contacts || src.contacts || extractContacts(thread), 200);
     const needs = Array.isArray(extra.needs) && extra.needs.length ? extra.needs.map((n) => clip(n, 120)).filter(Boolean).slice(0, 8) : extractNeeds(thread);
-    const terminatingPlan = clip(extra.terminatingPlan || src.terminatingPlan || "", 90);
+    const terminatingPlan = sanitizeWorkupTerminating(extra.terminatingPlan || src.terminatingPlan || "", thread);
     return {
       id: extra.id || src.id || "",
       clientName: clientName,
@@ -3942,11 +4065,11 @@ function App() {
                 <div className="max-export-scroll" style={{ padding: "12px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(255,255,255,0.88)", color: "var(--ink)", fontSize: 14.5, lineHeight: 1.5, border: "1px solid var(--line)", maxWidth: "100%" }}>
                   <div style={{ marginBottom: 10 }}>Want this comparison as Excel or PDF?</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button onClick={() => { exportComparisonToExcel(m); setMessages(prev => prev.filter((_,j) => j !== i)); }}
+                    <button onClick={() => { exportComparisonToExcel(collectComparisonExport(messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", rememberedPlans: m.plans || [] })); setMessages(prev => prev.filter((_,j) => j !== i)); }}
                       style={{ padding: "8px 14px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)", color: "white", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
                       Export Excel
                     </button>
-                    <button onClick={() => { exportComparisonToPdf(m); setMessages(prev => prev.filter((_,j) => j !== i)); }}
+                    <button onClick={() => { exportComparisonToPdf(collectComparisonExport(messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", rememberedPlans: m.plans || [] })); setMessages(prev => prev.filter((_,j) => j !== i)); }}
                       style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
                       Export PDF
                     </button>

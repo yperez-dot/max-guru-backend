@@ -204,6 +204,7 @@ Muskat/Yahoska: Max listed Pablo/Miriam meds with Daisy’s tiers (Lorazepam T2,
 **What Max must NOT do:**
 - ❌ Overwrite the current comparison with the earlier 014 Muskat lock
 - ❌ Invent a Plan Terminating row from “no MSP row” / “do not add a Plan Terminating row”
+- ❌ Overwrite a verified UHC In network (H5420-001) with Not confirmed after a miss or failed session
 - ❌ Drop doctors or live Rx because an older snapshot had fewer rows
 - ❌ Drop Humana because a later reply only restated 023 and 001
 - ❌ Print the same doctor twice (legal name In network + short name Not confirmed)
