@@ -209,7 +209,7 @@ function collapseWs(s) {
 }
 
 function cleanSnippet(raw, max = 180) {
-  const s = collapseWs(raw)
+  const s = collapseWs(String(raw || '').replace(/[•●▪]/g, '·'))
     .replace(/\s*\n\s*/g, ' · ')
     .replace(/\s{2,}/g, ' ')
     .replace(/^[·\s,;:]+|[·\s,;:]+$/g, '')
@@ -328,7 +328,20 @@ function sliceDoctorsColumn(text, planHint) {
 function extractMoneyAfter(blob, dayRe) {
   const m = String(blob || '').match(dayRe);
   if (!m) return null;
-  const tail = blob.slice(m.index, Math.min(blob.length, m.index + 160));
+  // "$0 copay per day: days 1-20" puts the money BEFORE the label. Taking the money after
+  // the label would grab the next band's amount (swapping $0 and $221), so give up instead.
+  const before = String(blob).slice(Math.max(0, m.index - 60), m.index);
+  const moneyBefore = before.match(/(\$[\d,]+(?:\.\d{2})?\s*(?:copay|coinsurance)?\s*(?:per\s+day|\/\s*day)\s*(?:for|:|-|–)?\s*)$/i);
+  if (moneyBefore) {
+    // Label-after layout ("Days 1-20 $0 copay per day  Days 21-100 ...") has a day label
+    // right before that money; it belongs to the previous band, so reading after is fine.
+    const lead = before.slice(0, before.length - moneyBefore[1].length);
+    if (!/days?\s*\d+\s*(?:-|–|—|through|to)\s*\d+\s*:?\s*$/i.test(lead)) return null;
+  }
+  let tail = blob.slice(m.index, Math.min(blob.length, m.index + 160));
+  // Stop at the next "days N" label so one band can never take the next band's amount.
+  const next = tail.slice(m[0].length).search(/days?\s*\d+\s*(?:-|–|—|through|to)\s*\d+/i);
+  if (next >= 0) tail = tail.slice(0, m[0].length + next);
   const money = tail.match(
     /\$[\d,]+(?:\.\d{2})?(?:\s*(?:copay|coinsurance|per day|\/day))?|\d+\s*%(?:\s*coinsurance)?|no copay|\$0(?:\s*copay)?/i
   );
@@ -344,7 +357,7 @@ function collectSnfBandAmounts(win, startDay, endDay) {
   // steal the next range. Matches the Doctors 2027 booklet and collapsed dual text.
   const patterns = [
     new RegExp(
-      `(\\$[\\d,]+(?:\\.\\d{2})?)\\s+copay\\s+per\\s+day\\s+for\\s+${range}`,
+      `(\\$[\\d,]+(?:\\.\\d{2})?)\\s+copay\\s+per\\s+day(?:\\s+for|\\s*:|\\s*[-–])\\s*${range}`,
       'ig'
     ),
   ];
@@ -388,20 +401,38 @@ function parseSkilledNursing(text, planHint) {
     windows[0] ||
     blob;
   const dualDoctors = isDoctorsDualColumn(blob) || isDoctorsDualColumn(text);
-  const band1 = collectSnfBandAmounts(win, 1, 20);
-  const band21 = collectSnfBandAmounts(win, 21, 100);
+  // The "$X copay per day for days N" sentence shape was built for the Doctors booklet.
+  // On other carriers' PDFs it can match a different line, so only use it for Doctors.
+  const doctorsPlan = dualDoctors || /^H4140-/i.test(String(planHint || ''));
+  // Other carriers: use the same "$X copay per day for days N" shape only when it is
+  // unambiguous (exactly one amount for that band). Two different amounts = Unverified.
+  let ambiguous1 = false;
+  let ambiguous21 = false;
+  let band1 = collectSnfBandAmounts(win, 1, 20);
+  let band21 = collectSnfBandAmounts(win, 21, 100);
+  if (!doctorsPlan) {
+    if (band1.length > 1) { ambiguous1 = true; band1 = []; }
+    if (band21.length > 1) { ambiguous21 = true; band21 = []; }
+  }
   const picked1 = pickDualColumnAmount(band1, planHint, dualDoctors ? text : scoped);
   const picked21 = pickDualColumnAmount(band21, planHint, dualDoctors ? text : scoped);
   let days1to20 = picked1
     ? cleanSnippet(`Days 1-20: ${picked1}`, 80)
-    : extractMoneyAfter(win, /days?\s*1\s*(?:-|–|—|through|to)\s*20/i) ||
+    : ambiguous1 ? null : extractMoneyAfter(win, /days?\s*1\s*(?:-|–|—|through|to)\s*20/i) ||
       extractMoneyAfter(win, /\$[\d,]+(?:\.\d{2})?[^.]{0,40}days?\s*1\s*(?:-|–|through|to)\s*20/i) ||
       extractMoneyAfter(win, /days?\s*1\s*(?:-|–|—|through|to)\s*\$[\d,]+(?:\.\d{2})?\s*copay\s*20/i);
   let days21to100 = picked21
     ? cleanSnippet(`Days 21-100: ${picked21}`, 80)
-    : extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*100/i) ||
+    : ambiguous21 ? null : extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*100/i) ||
       extractMoneyAfter(win, /\$[\d,]+(?:\.\d{2})?[^.]{0,40}days?\s*21\s*(?:-|–|through|to)\s*100/i) ||
       extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*\$[\d,]+(?:\.\d{2})?\s*copay\s*100/i);
+  // Cross-check: when both layouts produce an answer for a band and the dollar amounts
+  // differ, we cannot tell which is right. Say nothing rather than guess.
+  const amt = (v) => (String(v || '').match(/\$[\d,]+(?:\.\d{2})?|\d+\s*%/) || [null])[0];
+  const alt1 = extractMoneyAfter(win, /days?\s*1\s*(?:-|–|—|through|to)\s*20/i);
+  const alt21 = extractMoneyAfter(win, /days?\s*21\s*(?:-|–|—|through|to)\s*100/i);
+  if (picked1 && alt1 && amt(alt1) !== amt(days1to20)) days1to20 = null;
+  if (picked21 && alt21 && amt(alt21) !== amt(days21to100)) days21to100 = null;
   return { days1to20, days21to100 };
 }
 
@@ -427,7 +458,7 @@ function extractDrSelectDme(text) {
   if (!/0%\s*coinsurance/i.test(src) || !/20%\s*coinsurance/i.test(src)) return null;
   if (!/CPAP/i.test(src) || !/powered wheelchair/i.test(src)) return null;
   return cleanSnippet(
-    '0% coinsurance for covered items including CPAP and all other medical equipment; 20% coinsurance for powered wheelchairs, powered mattress systems, and other electric devices',
+    '0% (CPAP, most equipment) · 20% (powered wheelchairs, powered mattress systems, other electric devices)',
     240
   );
 }
@@ -747,6 +778,32 @@ function pickRequested(parsed, wanted) {
   return row;
 }
 
+// Human-verified values (with the printed page) win over any live PDF parse. A value only
+// gets in here after someone compared it to the carrier's own Summary of Benefits.
+const VERIFIED_CACHE = {};
+function loadVerifiedRegistry(year) {
+  const y = Number(year) === 2026 ? 2026 : PLAN_YEAR;
+  if (VERIFIED_CACHE[y] !== undefined) return VERIFIED_CACHE[y];
+  let data = {};
+  try {
+    const file = path.join(__dirname, '..', 'max-knowledge', `sob-verified-${y}.json`);
+    data = JSON.parse(fs.readFileSync(file, 'utf8')).plans || {};
+  } catch (_) {
+    data = {};
+  }
+  VERIFIED_CACHE[y] = data;
+  return data;
+}
+
+function verifiedFor(planId, key, year) {
+  const reg = loadVerifiedRegistry(year);
+  const id = String(planId || '').toUpperCase().replace(/\s+/g, '');
+  const row = reg[id];
+  const hit = row && row[key];
+  if (!hit || !hit.value) return null;
+  return { value: String(hit.value), source: 'verified_sob', page: hit.page || null, quote: hit.quote || null };
+}
+
 function gridFallback(plan, wanted, year) {
   const out = {};
   const y = Number(year) === 2026 ? 2026 : PLAN_YEAR;
@@ -811,6 +868,11 @@ async function lookupSobBenefits(
     const planEocUrl = String(plan.eocUrl || '').trim();
     const fromGrid = gridFallback(plan, wanted, y);
     const keys = requestedFieldKeys(wanted);
+    keys.forEach((key) => {
+      if (fromGrid[key]) return;
+      const v = verifiedFor(id, key, y);
+      if (v) fromGrid[key] = v;
+    });
     const gridCoversAll = keys.length > 0 && keys.every((key) => fromGrid[key] && fromGrid[key].value);
     let parsed = {
       hearingAids: null,

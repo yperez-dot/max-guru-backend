@@ -1650,4 +1650,46 @@ Earlier: all four In network on UHC H5420-001.
       assert.deepEqual(mar.slice(1), ['Not confirmed', 'Not confirmed', 'Not confirmed']);
     });
   });
+
+  describe('clinic lookup misses vs explicit Out of network', () => {
+    const doctorsPlans = () => loadPlans().filter((p) => /doctors/i.test(p.carrier || p.planName || '')).slice(0, 1);
+    const miss = (name) => ({
+      doctorName: name,
+      networks: [{ carrier: 'Doctors HealthCare Plans', inNetwork: false, status: 'ok' }],
+    });
+
+    it('a clinic the directory does not list is Not confirmed; a person miss is still Out', () => {
+      const plans = doctorsPlans();
+      assert.equal(plans.length, 1);
+      const docs = exp.doctorsFromProviderLookups(
+        [miss('Miami Neurology & Rehab'), miss('Jason Margolesky')],
+        plans
+      );
+      const clinic = docs.find((d) => /miami neurology/i.test(d.name));
+      const person = docs.find((d) => /margolesky/i.test(d.name));
+      assert.equal(clinic.statuses[0], 'Not confirmed');
+      assert.equal(person.statuses[0], 'Out of network');
+    });
+
+    it('a clinic the agent says is out of network stays Out of network', () => {
+      const plans = doctorsPlans();
+      const id = exp.displayContractPbp(plans[0]);
+      const payload = exp.buildExportPayload(plans, 'Carol Wong comparison', {
+        catalog: loadPlans(),
+        doctors: [{ name: 'Miami Neurology & Rehab', byPlanId: { [id]: 'Out of network' } }],
+      });
+      const clinic = payload.doctors.find((d) => /miami neurology/i.test(d.name));
+      assert.equal(clinic.statuses[0], 'Out of network');
+    });
+
+    it('a clinic the carrier lists as out of network stays Out of network', () => {
+      const plans = doctorsPlans();
+      const id = exp.displayContractPbp(plans[0]);
+      const docs = exp.doctorsFromProviderLookups(
+        [{ doctorName: 'Miami Neurology & Rehab', networks: [{ carrier: 'Doctors HealthCare Plans', inNetwork: false, outOfNetworkPlans: [id] }] }],
+        plans
+      );
+      assert.equal(docs[0].statuses[0], 'Out of network');
+    });
+  });
 });

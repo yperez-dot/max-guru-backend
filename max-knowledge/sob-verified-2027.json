@@ -1,0 +1,34 @@
+{
+  "_readme": "Human-verified Summary of Benefits values. A row belongs here only after someone compared it to the carrier's own SOB. Lookup order: grid -> this file -> live PDF parse (only when unambiguous) -> Unverified. Add page + quote for every value. Plan year 2027.",
+  "plans": {
+    "H1036-054C": {
+      "snfDays1to20": {
+        "value": "Days 1-20: $0",
+        "page": 9,
+        "quote": "This plan covers up to 100 days in a SNF $0 copay per day for days 1-20 $60 copay per day for days 21-100"
+      },
+      "snfDays21to100": {
+        "value": "Days 21-100: $60",
+        "page": 9,
+        "quote": "This plan covers up to 100 days in a SNF $0 copay per day for days 1-20 $60 copay per day for days 21-100"
+      },
+      "dme": {
+        "value": "DME provider: 15% of the cost",
+        "page": 9,
+        "quote": "Durable medical equipment (DME) - DME provider: 15% of the cost"
+      }
+    },
+    "H5420-001": {
+      "snfDays1to20": {
+        "value": "Days 1-20: $0",
+        "page": null,
+        "quote": "$0 copay per day: days 1-20"
+      },
+      "snfDays21to100": {
+        "value": "Days 21-100: $221",
+        "page": null,
+        "quote": "$221 copay per day: days 21-100"
+      }
+    }
+  }
+}

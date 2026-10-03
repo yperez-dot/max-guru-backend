@@ -1048,7 +1048,10 @@
       const statuses = plans.map((p) => {
         const fromMap = normalizeNetworkStatus(lookupPlanStatus(map, p));
         if (fromMap === NETWORK_IN || fromMap === NETWORK_OUT) return fromMap;
-        const fromNet = typeof d !== "string" && d.networks ? statusFromProviderNetworks(p, d.networks) : "";
+        const fromNet =
+          typeof d !== "string" && d.networks
+            ? statusFromProviderNetworks(p, d.networks, { missIsUnknown: looksLikeOrganization(name) })
+            : "";
         const merged = mergeStatusPair(fromMap, fromNet);
         return merged || NETWORK_NOT_CONFIRMED;
       });
@@ -1059,6 +1062,12 @@
       });
     }
     return out;
+  }
+
+  function looksLikeOrganization(name) {
+    const n = String(name || "").trim();
+    if (!n || /^(dr|doctor)\b\.?\s/i.test(n)) return false;
+    return /\b(neurology|rehab(?:ilitation)?|clinic|center|centre|institute|associates|group|hospital|medical|health|imaging|laboratory|therapy|specialists)\b/i.test(n);
   }
 
   function carrierMatchesPlan(carrierLabel, plan) {
@@ -1086,8 +1095,9 @@
     });
   }
 
-  function statusFromProviderNetworks(plan, networks) {
+  function statusFromProviderNetworks(plan, networks, opts) {
     let fallback = "";
+    const missIsUnknown = Boolean(opts && opts.missIsUnknown);
     for (const net of networks || []) {
       if (!net) continue;
       const inBlob = (net.plans || []).join(" ");
@@ -1101,7 +1111,9 @@
       }
       // Carrier-level hit only when this lookup did not name PBPs (Doctors HCP).
       if (net.inNetwork === true && !(net.plans && net.plans.length)) return NETWORK_IN;
-      if (net.inNetwork === false && net.status !== "failed" && /doctors/i.test(net.carrier || "")) {
+      // A clinic that a directory simply does not list is "not found", not Out. An explicit
+      // out-of-network plan list (outBlob above) or something the agent says still means Out.
+      if (net.inNetwork === false && net.status !== "failed" && /doctors/i.test(net.carrier || "") && !missIsUnknown) {
         return NETWORK_OUT;
       }
       if (net.inNetwork === true) fallback = fallback || NETWORK_IN;
@@ -1126,7 +1138,10 @@
         const name = String(pr.doctorName || pr.name || "").trim();
         if (!name) return;
         const networks = pr.networks || src.networks || [];
-        const statuses = plans.map((p) => statusFromProviderNetworks(p, networks) || NETWORK_NOT_CONFIRMED);
+        const missIsUnknown = looksLikeOrganization(name);
+        const statuses = plans.map(
+          (p) => statusFromProviderNetworks(p, networks, { missIsUnknown }) || NETWORK_NOT_CONFIRMED
+        );
         out.push({
           name: /^dr\.?\s/i.test(name) || /clinic|neurology|rehab|mnrs/i.test(name) ? name : "Dr. " + name,
           statuses,
