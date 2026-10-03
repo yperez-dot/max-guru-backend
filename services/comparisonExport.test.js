@@ -202,6 +202,27 @@ Never invent a Plan Terminating row from "no MSP row."
   });
 });
 
+describe('H4140-023 DrSelect SoB URL on live plan-data', () => {
+  const DRSELECT = 'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf';
+  const DRMAX = 'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax_ENG.pdf';
+
+  it('exports Summary of Benefits as the 2027 DrSelect PDF, not Dr Max', () => {
+    const plans = loadPlans();
+    const dade = planById(plans, 'H4140-023', 'Miami-Dade');
+    const broward = planById(plans, 'H4140-023', 'Broward');
+    const max = planById(plans, 'H4140-022', 'Miami-Dade');
+    assert.equal(dade.sobUrl, DRSELECT);
+    assert.equal(broward.sobUrl, DRSELECT);
+    assert.equal(max.sobUrl, DRMAX);
+
+    const model = exp.buildComparisonModel({ plans: [dade] });
+    const sob = model.aoa.find((row) => row[0] === 'Summary of Benefits');
+    assert.equal(sob[1], 'Summary of Benefits');
+    assert.ok(model.hyperlinks.some((h) => h.url === DRSELECT));
+    assert.equal(model.hyperlinks.some((h) => h.url === DRMAX), false);
+  });
+});
+
 describe('Arias-like sheet model from live plan-data', () => {
   it('builds title, terminating, doctors, ordered benefits, SOB/EOC', () => {
     const plans = loadPlans();
@@ -532,12 +553,12 @@ describe('SOB-only extra benefit rows', () => {
     const labels = model.aoa.map((row) => row[0]);
     assert.ok(labels.includes('Skilled Nursing Facility (days 1–20)'));
     assert.ok(labels.includes('Skilled Nursing Facility (days 21–100)'));
-    assert.ok(labels.includes('Hospital-grade bed / DME'));
+    assert.ok(labels.includes('DME'));
     assert.equal(labels.includes('Hearing Aids'), false);
     assert.equal(labels.includes('Plan Terminating'), false);
     const snf1 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 1–20)');
     const snf2 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 21–100)');
-    const dme = model.aoa.find((row) => row[0] === 'Hospital-grade bed / DME');
+    const dme = model.aoa.find((row) => row[0] === 'DME');
     assert.deepEqual(snf1.slice(1), ['Unverified', 'Unverified', 'Unverified']);
     assert.deepEqual(snf2.slice(1), ['Unverified', 'Unverified', 'Unverified']);
     assert.deepEqual(dme.slice(1), ['Unverified', 'Unverified', 'Unverified']);
@@ -616,7 +637,7 @@ describe('SOB-only extra benefit rows', () => {
     });
     const snf1 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 1–20)');
     const snf2 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 21–100)');
-    const dme = model.aoa.find((row) => row[0] === 'Hospital-grade bed / DME');
+    const dme = model.aoa.find((row) => row[0] === 'DME');
     assert.equal(snf1[1], 'Days 1-20: $0 copay');
     assert.equal(snf1[2], 'Unverified');
     assert.equal(snf1[3], 'Days 1-20: $0 copay');
@@ -727,7 +748,7 @@ describe('SOB-only extra benefit rows', () => {
     assert.match(snf2[1], /\$214/);
     const aids = model.aoa.find((row) => row[0] === 'Hearing Aids');
     assert.match(aids[1], /\$199/);
-    const dme = model.aoa.find((row) => row[0] === 'Hospital-grade bed / DME');
+    const dme = model.aoa.find((row) => row[0] === 'DME');
     assert.match(dme[1], /20%/);
     assert.equal(dme.includes('$999'), false);
   });
@@ -1537,6 +1558,32 @@ Earlier: all four In network on UHC H5420-001.
       assert.equal(capped[3].tool, 't9');
     });
 
+    it('exports DrSelect DME without inventing a hospital-bed dollar', () => {
+      const doctors = planById(loadPlans(), 'H4140-023', 'Miami-Dade');
+      assert.equal(
+        doctors.sobUrl,
+        'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf'
+      );
+      const model = exp.buildComparisonModel({
+        plans: [doctors],
+        clientName: 'Carol Wong',
+        sobBenefits: {
+          'H4140-023': {
+            dme: {
+              value:
+                '0% coinsurance for covered items including CPAP and all other medical equipment; 20% coinsurance for powered wheelchairs, powered mattress systems, and other electric devices',
+              source: 'sob',
+            },
+          },
+        },
+      });
+      const row = (label) => model.aoa.find((r) => r[0] === label);
+      assert.match(row('DME')[1], /0%/);
+      assert.match(row('DME')[1], /20%/);
+      assert.doesNotMatch(row('DME')[1], /hospital/i);
+      assert.equal(row('Hospital-grade bed / DME'), undefined);
+    });
+
     it('prints SNF and DME rows when sobBenefits carries values', () => {
       const plans = loadPlans().filter((p) => p.county === 'Miami-Dade').slice(0, 2);
       const id0 = exp.displayContractPbp(plans[0]);
@@ -1554,8 +1601,8 @@ Earlier: all four In network on UHC H5420-001.
       const row = (label) => model.aoa.find((r) => r[0] === label);
       assert.equal(row('Skilled Nursing Facility (days 1–20)')[1], '$0 copay');
       assert.equal(row('Skilled Nursing Facility (days 21–100)')[1], '$203/day');
-      assert.equal(row('Hospital-grade bed / DME')[1], '20% coinsurance');
-      assert.equal(row('Hospital-grade bed / DME')[2], 'Unverified');
+      assert.equal(row('DME')[1], '20% coinsurance');
+      assert.equal(row('DME')[2], 'Unverified');
     });
 
     it('UI keeps session-wide tool results and passes SOB data to Excel/PDF', () => {
@@ -1584,8 +1631,8 @@ Earlier: all four In network on UHC H5420-001.
         },
       });
       const row = (label) => model.aoa.find((r) => r[0] === label);
-      assert.equal(row('Hospital-grade bed / DME')[1], 'Unverified');
-      assert.equal(row('Hospital-grade bed / DME')[2], '$0 copay');
+      assert.equal(row('DME')[1], 'Unverified');
+      assert.equal(row('DME')[2], '$0 copay');
       assert.equal(row('Skilled Nursing Facility (days 1–20)')[1], 'days 1-20: $60 copay');
       const hearing = row('Hearing Aids');
       assert.ok(!hearing || hearing[1] === 'Unverified' || !/scription/.test(hearing[1]));
