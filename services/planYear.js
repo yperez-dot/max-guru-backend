@@ -101,8 +101,8 @@ function resolveDocumentYear({
 function urlYearHints(url) {
   const s = String(url || '');
   return {
-    y26: /2026|SB26|SB_?2026|SB2026|_Current\b/i.test(s),
-    y27: /2027|SB27|SB_?2027|SB2027|_Next\b/i.test(s),
+    y26: /2026|SB26|SB_?2026|SB2026|EOC26|_Current\b/i.test(s),
+    y27: /2027|SB27|SB_?2027|SB2027|EOC27|_Next\b/i.test(s),
   };
 }
 

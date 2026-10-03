@@ -84,5 +84,9 @@ describe('resolveDocumentUrl never crosses years', () => {
   it('drops a wrong-year URL when that year has no wired file', () => {
     assert.equal(resolveDocumentUrl(url27, '', 2026), '');
     assert.equal(resolveDocumentUrl(url26, '', 2027), '');
+    assert.equal(
+      resolveDocumentUrl('https://assets.humana.com/is/content/humana/H1036054000EOC27pdf', '', 2026),
+      ''
+    );
   });
 });
