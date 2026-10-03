@@ -202,6 +202,27 @@ Never invent a Plan Terminating row from "no MSP row."
   });
 });
 
+describe('H4140-023 DrSelect SoB URL on live plan-data', () => {
+  const DRSELECT = 'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf';
+  const DRMAX = 'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax_ENG.pdf';
+
+  it('exports Summary of Benefits as the 2027 DrSelect PDF, not Dr Max', () => {
+    const plans = loadPlans();
+    const dade = planById(plans, 'H4140-023', 'Miami-Dade');
+    const broward = planById(plans, 'H4140-023', 'Broward');
+    const max = planById(plans, 'H4140-022', 'Miami-Dade');
+    assert.equal(dade.sobUrl, DRSELECT);
+    assert.equal(broward.sobUrl, DRSELECT);
+    assert.equal(max.sobUrl, DRMAX);
+
+    const model = exp.buildComparisonModel({ plans: [dade] });
+    const sob = model.aoa.find((row) => row[0] === 'Summary of Benefits');
+    assert.equal(sob[1], 'Summary of Benefits');
+    assert.ok(model.hyperlinks.some((h) => h.url === DRSELECT));
+    assert.equal(model.hyperlinks.some((h) => h.url === DRMAX), false);
+  });
+});
+
 describe('Arias-like sheet model from live plan-data', () => {
   it('builds title, terminating, doctors, ordered benefits, SOB/EOC', () => {
     const plans = loadPlans();

@@ -318,6 +318,47 @@ describe('lookupSobBenefits grid then SOB', () => {
     assert.equal(called, false);
     assert.match(result.byPlanId['H4140-023'].fields.snfDays21to100.value, /\$60/);
   });
+
+  it('wires H4140-023 to the 2027 DrSelect SoB, not Dr Max', () => {
+    const select = findWiredPlan('H4140-023');
+    const max = findWiredPlan('H4140-022');
+    assert.ok(select && select.sobUrl, 'H4140-023 should be in live #plan-data');
+    assert.equal(
+      select.sobUrl,
+      'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf'
+    );
+    assert.equal(
+      max.sobUrl,
+      'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax_ENG.pdf'
+    );
+  });
+
+  it('reads the DrSelect-SFL column from the two-column Doctors 2027 SoB', async () => {
+    const sobText = `
+      COVERED MEDICAL AND HOSPITAL BENEFITS
+      Benefits/Services DrMax-Dade (HMO) DrSelect-SFL (HMO)
+      Skilled Nursing Facility (SNF)
+      $0 copay per day for days 1 through 20. $75 copay per day for days 21 through 100.
+      $0 copay per day for days 1 through 20. $60 copay per day for days 21 through 100.
+    `;
+    const select = await lookupSobBenefits({
+      planId: 'H4140-023',
+      sobUrl: 'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf',
+      benefits: ['skilled_nursing'],
+      sobText,
+    });
+    assert.match(select.byPlanId['H4140-023'].fields.snfDays1to20.value, /\$0/);
+    assert.match(select.byPlanId['H4140-023'].fields.snfDays21to100.value, /\$60/);
+    assert.doesNotMatch(select.byPlanId['H4140-023'].fields.snfDays21to100.value, /\$75/);
+
+    const max = await lookupSobBenefits({
+      planId: 'H4140-022',
+      sobUrl: 'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax_ENG.pdf',
+      benefits: ['skilled_nursing'],
+      sobText,
+    });
+    assert.match(max.byPlanId['H4140-022'].fields.snfDays21to100.value, /\$75/);
+  });
 });
 
 describe('SOB lookup only when the agent asked', () => {
