@@ -553,12 +553,12 @@ describe('SOB-only extra benefit rows', () => {
     const labels = model.aoa.map((row) => row[0]);
     assert.ok(labels.includes('Skilled Nursing Facility (days 1–20)'));
     assert.ok(labels.includes('Skilled Nursing Facility (days 21–100)'));
-    assert.ok(labels.includes('Hospital-grade bed / DME'));
+    assert.ok(labels.includes('DME'));
     assert.equal(labels.includes('Hearing Aids'), false);
     assert.equal(labels.includes('Plan Terminating'), false);
     const snf1 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 1–20)');
     const snf2 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 21–100)');
-    const dme = model.aoa.find((row) => row[0] === 'Hospital-grade bed / DME');
+    const dme = model.aoa.find((row) => row[0] === 'DME');
     assert.deepEqual(snf1.slice(1), ['Unverified', 'Unverified', 'Unverified']);
     assert.deepEqual(snf2.slice(1), ['Unverified', 'Unverified', 'Unverified']);
     assert.deepEqual(dme.slice(1), ['Unverified', 'Unverified', 'Unverified']);
@@ -637,7 +637,7 @@ describe('SOB-only extra benefit rows', () => {
     });
     const snf1 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 1–20)');
     const snf2 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 21–100)');
-    const dme = model.aoa.find((row) => row[0] === 'Hospital-grade bed / DME');
+    const dme = model.aoa.find((row) => row[0] === 'DME');
     assert.equal(snf1[1], 'Days 1-20: $0 copay');
     assert.equal(snf1[2], 'Unverified');
     assert.equal(snf1[3], 'Days 1-20: $0 copay');
@@ -748,7 +748,7 @@ describe('SOB-only extra benefit rows', () => {
     assert.match(snf2[1], /\$214/);
     const aids = model.aoa.find((row) => row[0] === 'Hearing Aids');
     assert.match(aids[1], /\$199/);
-    const dme = model.aoa.find((row) => row[0] === 'Hospital-grade bed / DME');
+    const dme = model.aoa.find((row) => row[0] === 'DME');
     assert.match(dme[1], /20%/);
     assert.equal(dme.includes('$999'), false);
   });
@@ -1601,8 +1601,8 @@ Earlier: all four In network on UHC H5420-001.
       const row = (label) => model.aoa.find((r) => r[0] === label);
       assert.equal(row('Skilled Nursing Facility (days 1–20)')[1], '$0 copay');
       assert.equal(row('Skilled Nursing Facility (days 21–100)')[1], '$203/day');
-      assert.equal(row('Hospital-grade bed / DME')[1], '20% coinsurance');
-      assert.equal(row('Hospital-grade bed / DME')[2], 'Unverified');
+      assert.equal(row('DME')[1], '20% coinsurance');
+      assert.equal(row('DME')[2], 'Unverified');
     });
 
     it('UI keeps session-wide tool results and passes SOB data to Excel/PDF', () => {
@@ -1631,8 +1631,8 @@ Earlier: all four In network on UHC H5420-001.
         },
       });
       const row = (label) => model.aoa.find((r) => r[0] === label);
-      assert.equal(row('Hospital-grade bed / DME')[1], 'Unverified');
-      assert.equal(row('Hospital-grade bed / DME')[2], '$0 copay');
+      assert.equal(row('DME')[1], 'Unverified');
+      assert.equal(row('DME')[2], '$0 copay');
       assert.equal(row('Skilled Nursing Facility (days 1–20)')[1], 'days 1-20: $60 copay');
       const hearing = row('Hearing Aids');
       assert.ok(!hearing || hearing[1] === 'Unverified' || !/scription/.test(hearing[1]));

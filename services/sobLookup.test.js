@@ -213,11 +213,16 @@ describe('lookupSobBenefits grid then SOB', () => {
     assert.match(formatSobLookupText(result), /UNVERIFIED/);
   });
 
-  it('does not change the 2027 Doctors H4140-023 PDF mapping', () => {
+  it('maps the 2027 Doctors H4140-023 to the DrSelect SoB (right column) and H4140-022 to DrMax', () => {
     const wired = findWiredPlan('H4140-023', 2027);
     assert.ok(wired && wired.sobUrl);
     assert.equal(
       wired.sobUrl,
+      'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf'
+    );
+    const dr022 = findWiredPlan('H4140-022', 2027);
+    assert.equal(
+      dr022.sobUrl,
       'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax_ENG.pdf'
     );
   });

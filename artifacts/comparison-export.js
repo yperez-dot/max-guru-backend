@@ -70,7 +70,7 @@
     hearing: [["Hearing Aids", "hearingAids"]],
     advancedImaging: [
       ["DME", "dme"],
-      ["Hospital-grade bed / DME", "dmeHospitalBed"],
+      ["DME", "dmeHospitalBed"],
     ],
   };
   const PLACED_SOB_EXPORT_KEYS = {
@@ -95,7 +95,7 @@
       benefits: ["dme"],
       fieldKeys: ["dmeHospitalBed"],
       re: /\b(dme|hospital[-\s]?grade bed|hospital bed|durable medical)\b/i,
-      rows: [["Hospital-grade bed / DME", "dmeHospitalBed"]],
+      rows: [["DME", "dmeHospitalBed"]],
     },
     {
       benefits: ["hearing_aids"],
@@ -1798,7 +1798,11 @@
       askedKeys[k] = true;
     });
     const printedExtras = {};
+    const printedLabels = {};
     const pushBenefitRow = (label, values, highlight) => {
+      // A hospital bed IS durable medical equipment: one "DME" row, never a separate bed row.
+      if (printedLabels[label]) return;
+      printedLabels[label] = true;
       const rowKinds = ["label", ...values.slice(1).map((c) => (c === "Unverified" ? "pending" : highlight ? "highlight" : "text"))];
       const rowStyles = [makeStyle({ font: { bold: true } })];
       values.slice(1).forEach((c) => {
