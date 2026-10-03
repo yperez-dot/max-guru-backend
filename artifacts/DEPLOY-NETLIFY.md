@@ -24,6 +24,8 @@ Railway CORS allowlists `https://max.healthexps.com`.
 Max's Railway `/chat` proxy calls **xAI Grok** (`GROK_MODEL`, default `grok-4.6`).
 Set `XAI_API_KEY` on Railway before merge/cutover or chat returns 503.
 
+The live HTML starts each turn with `async: true` and polls `GET /chat/jobs/:id`, so a backgrounded or closed phone tab does not cancel Max. Publish this HTML after that change or Yahoska still holds one long `/chat` fetch.
+
 ## Auth (required)
 
 Do **not** commit `MAX_API_KEY` into the HTML. Inject it at publish time:

@@ -1,14 +1,16 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { passThroughChat, DEFAULT_MODEL, providerConfig } = require('./services/grok');
+const { providerConfig } = require('./services/grok');
 const { BudgetGuard } = require('./services/budgetGuard');
-const { ImageValidationError, normalizeMessages } = require('./services/chatImages');
+const { ImageValidationError } = require('./services/chatImages');
 const { requireApiKey } = require('./middleware/auth');
 const { accessEnabled, requireAccessToken, unlockHandler } = require('./middleware/access');
 const { createRateLimiter } = require('./middleware/rateLimit');
 const { loadKnowledge, getKnowledgeSummary } = require('./knowledge/loader');
 const { startSepRefreshScheduler, refreshSepTracker, getStatus: getSepRefreshStatus } = require('./services/sepRefresh');
+const { createChatJobStore, publicJob } = require('./services/chatJobs');
+const { validateChatInput, executeChatTurn } = require('./services/chatTurn');
 const drugLookupRouter = require('./routes/drugLookup');
 const formularyLookupRouter = require('./routes/formularyLookup');
 const providerLookupRouter = require('./routes/providerLookup');
@@ -17,6 +19,7 @@ const workupsRouter = require('./routes/workups');
 const app = express();
 const PORT = process.env.PORT || 3002;
 const budgetGuard = new BudgetGuard();
+const chatJobs = createChatJobStore();
 
 const allowedOrigins = [
   'https://thei-max-guru.netlify.app',
@@ -116,21 +119,59 @@ ADDITIONAL RUNTIME RULES (server-enforced):
   9) TPMO: No ranking ("best" / "closest" / "highest"). Objective tables only. Prefer search_knowledge for client-plan-comparison.
 `;
 
-// POST /chat { messages: [{role, content}], system?: string }
+function writeChatResponse(res, status, body) {
+  if (!res || res.writableEnded || res.destroyed) return false;
+  try {
+    res.status(status).json(body);
+    return true;
+  } catch (err) {
+    console.warn('Chat response dropped after client disconnect:', err.message);
+    return false;
+  }
+}
+
+function startChatJob(ownerEmail, job, { system, messages, budgetCheck }) {
+  const run = executeChatTurn({
+    system,
+    messages,
+    budgetGuard,
+    budgetCheck,
+    toolAppendix: TOOL_USE_APPENDIX,
+  })
+    .then((out) => {
+      chatJobs.complete(ownerEmail, job.id, out.body);
+      return out;
+    })
+    .catch((err) => {
+      chatJobs.fail(ownerEmail, job.id, err);
+      throw err;
+    });
+  return run;
+}
+
+// GET /chat/jobs/:id — poll a durable turn. Safe after the phone tab is backgrounded or closed.
+app.get('/chat/jobs/:id', requireApiKey, requireAccessToken, (req, res) => {
+  const job = chatJobs.get(req.accessEmail, req.params.id);
+  if (!job) {
+    return res.status(404).json({ error: 'Chat job not found', code: 'chat_job_not_found' });
+  }
+  return res.json(publicJob(job));
+});
+
+// POST /chat { messages: [{role, content}], system?: string, async?: true, requestId?, chatId? }
 // content may be a string or multimodal parts (text + PNG/JPEG/WebP data URLs).
 // Images are validated in-memory and forwarded to Grok/OpenAI vision; they are not persisted.
 // Netlify (thei-max-guru.netlify.app) always sends system = buildSystemPrompt() (~280KB plan grid).
 // Auth (MAX_API_KEY) is the trust boundary — do not reject client system prompts or the live UI breaks.
 // LLM: xAI Grok (OpenAI-compatible). Response shape stays Anthropic-like for the Netlify UI.
+// async:true returns 202 + jobId immediately; the turn keeps running if the phone disconnects.
 app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, res) => {
-  const { system } = req.body;
-  if (!Array.isArray(req.body.messages) || !req.body.messages.length) {
-    return res.status(400).json({ error: 'messages array required' });
-  }
-
   let messages;
+  let system;
   try {
-    messages = normalizeMessages(req.body.messages, { validate: true });
+    const parsed = validateChatInput(req.body, { maxClientSystemChars: MAX_CLIENT_SYSTEM_CHARS });
+    messages = parsed.messages;
+    system = parsed.system;
   } catch (err) {
     if (err instanceof ImageValidationError || err.code === 'invalid_image') {
       return res.status(err.status || 400).json({ error: err.message, code: err.code });
@@ -147,85 +188,51 @@ app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, 
     });
   }
 
-  if (system) {
-    if (typeof system !== 'string') {
-      return res.status(400).json({ error: 'system must be a string' });
-    }
-    if (system.length > MAX_CLIENT_SYSTEM_CHARS) {
-      return res.status(413).json({
-        error: `system prompt too large (${system.length} chars; max ${MAX_CLIENT_SYSTEM_CHARS})`,
-      });
-    }
+  const asyncMode = req.body.async === true || req.body.wait === false;
+  const { job, created } = chatJobs.create(req.accessEmail, {
+    id: req.body.requestId || req.body.jobId,
+    chatId: req.body.chatId,
+  });
 
-    const mergedSystem = `${system}\n${TOOL_USE_APPENDIX}`;
+  if (created) {
+    const run = startChatJob(req.accessEmail, job, { system, messages, budgetCheck });
+    run.catch((err) => {
+      console.error('Background chat job failed:', job.id, err.message);
+    });
+    if (asyncMode) {
+      return res.status(202).json({ ok: true, jobId: job.id, status: 'pending' });
+    }
     try {
-      const data = await passThroughChat({ system: mergedSystem, messages });
-      const budgetResult = budgetGuard.recordTurn({
-        provider: data.provider,
-        usageCalls: data.usageCalls,
-      });
-      const banners = [...budgetResult.banners];
-      if (budgetCheck.overrideActivated) {
-        banners.unshift({
-          id: `budget-${budgetResult.usage.day}-override`,
-          type: 'warning',
-          message: 'Daily budget override is active until the next America/New_York day.',
-        });
-      }
-      const contextNudge = budgetGuard.contextNudge(mergedSystem, messages);
-      if (contextNudge) banners.push(contextNudge);
-      data.banners = banners;
-      data.budget = budgetResult.usage;
-      delete data.usageCalls;
-      return res.json(data);
+      const out = await run;
+      return writeChatResponse(res, out.httpStatus || 200, out.body);
     } catch (err) {
-      console.error('Grok pass-through error:', err.message);
-      if (err.payload) console.error('Grok payload:', JSON.stringify(err.payload).slice(0, 500));
       const status = err.status && Number.isInteger(err.status) ? err.status : 500;
-      // Always return a string error — nested OpenAI {error:{message}} objects crash the Netlify UI
-      // when it treats data.error as chat text and later calls .match on it.
-      const msg =
-        (err && err.message) ||
-        (err.payload && err.payload.error && err.payload.error.message) ||
-        (typeof err.payload?.error === 'string' ? err.payload.error : null) ||
-        'Having trouble right now — try again in a moment.';
-      if (status === 503) {
-        return res.status(503).json({
-          error: 'LLM is not configured yet — set OPENAI_API_KEY (LLM_PROVIDER=openai) or XAI_API_KEY on Railway.',
-        });
-      }
-      return res.status(status).json({ error: String(msg) });
+      return writeChatResponse(res, status, { error: String(err.message || 'Having trouble right now — try again in a moment.') });
     }
   }
 
-  // LEGACY MODE — KB-search path (scheduled for retirement).
+  if (asyncMode) {
+    if (job.status === 'done' || job.status === 'error') {
+      return res.json(publicJob(job));
+    }
+    return res.status(202).json({ ok: true, jobId: job.id, status: job.status || 'pending' });
+  }
+
   try {
-    const { SYSTEM_PROMPT } = require('./services/claude');
-    const data = await passThroughChat({ system: SYSTEM_PROMPT, messages });
-    const budgetResult = budgetGuard.recordTurn({
-      provider: data.provider,
-      usageCalls: data.usageCalls,
-    });
-    const block = (data.content || []).find((item) => item.type === 'text');
-    const banners = [...budgetResult.banners];
-    if (budgetCheck.overrideActivated) {
-      banners.unshift({
-        id: `budget-${budgetResult.usage.day}-override`,
-        type: 'warning',
-        message: 'Daily budget override is active until the next America/New_York day.',
+    const finished = await chatJobs.wait(req.accessEmail, job.id);
+    if (!finished) {
+      return writeChatResponse(res, 404, { error: 'Chat job not found', code: 'chat_job_not_found' });
+    }
+    if (finished.status === 'error') {
+      return writeChatResponse(res, finished.httpStatus || 500, {
+        error: finished.error || 'Having trouble right now — try again in a moment.',
+        code: finished.code,
       });
     }
-    const contextNudge = budgetGuard.contextNudge(SYSTEM_PROMPT, messages);
-    if (contextNudge) banners.push(contextNudge);
-    res.json({
-      ok: true,
-      reply: block?.text || "I'm having trouble right now — please try again.",
-      banners,
-      budget: budgetResult.usage,
-    });
+    return writeChatResponse(res, 200, finished.result || publicJob(finished));
   } catch (err) {
-    console.error('Chat error:', err.message);
-    res.status(500).json({ error: 'Having trouble right now — try again in a moment.' });
+    const status = err.status && Number.isInteger(err.status) ? err.status : 500;
+    return writeChatResponse(res, status, { error: String(err.message || 'Having trouble right now — try again in a moment.') });
   }
 });
 

@@ -41,3 +41,5 @@ Doctors 2027 consumer fallback fetches `2027_FORMULARY.pdf` the same way (curl /
 Structured workups are stored on Railway (`GET/PUT/DELETE /workups`), keyed by the unlock email. They are **not** browser-only.
 
 Set `MAX_WORKUPS_FILE=/data/max-workups.json` on the same mounted volume as `MAX_USAGE_FILE` so saves survive restarts and sync across devices. Cap is `MAX_WORKUPS_PER_OWNER` (default 50) per agent.
+
+Chat turns are also durable: `POST /chat` with `async: true` returns a `jobId` and keeps running after the phone tab drops. Poll `GET /chat/jobs/:id`. Set `MAX_CHAT_JOBS_FILE=/data/max-chat-jobs.json` on that same volume so a finished reply survives a later Railway restart. An in-flight job that dies because Railway actually redeployed is the case where the UI may say Railway is redeploying.

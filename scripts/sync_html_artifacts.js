@@ -36,6 +36,13 @@ if (require.main === module) {
       '<!-- MAX_CLIENT_WORKUPS_END -->'
     );
   }
+  if (which === 'all' || which === 'chat-jobs') {
+    syncBlock(
+      'artifacts/chat-jobs.js',
+      '<!-- MAX_CHAT_JOBS_BEGIN -->',
+      '<!-- MAX_CHAT_JOBS_END -->'
+    );
+  }
 }
 
 module.exports = { syncBlock };

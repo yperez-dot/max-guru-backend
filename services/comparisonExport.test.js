@@ -395,6 +395,12 @@ describe('HTML UI wiring', () => {
     assert.match(html, /clientName: extractedName \|\| \(payload && payload.clientName\)/);
     assert.match(html, /max-workup-row/);
     assert.match(html, /max-chat-header/);
+    assert.match(html, /MaxChatJobs/);
+    assert.match(html, /async:\s*true/);
+    assert.match(html, /\/chat\/jobs\//);
+    assert.match(html, /pollChatJob/);
+    assert.match(html, /resumePendingJob/);
+    assert.match(html, /REACH_SERVER_ERROR/);
     assert.match(html, /@media \(max-width: 640px\)/);
     assert.match(html, /lookup_formulary/);
     assert.match(html, /CLIENT-STATED RX TIERS/);
