@@ -27,6 +27,33 @@
     return id;
   }
 
+  function comparisonExportApi() {
+    return (
+      (typeof globalThis !== "undefined" && globalThis.MaxComparisonExport) ||
+      (typeof window !== "undefined" && window.MaxComparisonExport) ||
+      null
+    );
+  }
+
+  function statusPlanKey(plan) {
+    const exp = comparisonExportApi();
+    if (exp && typeof exp.compactContractPbp === "function") {
+      return exp.compactContractPbp(plan && (plan.planId || plan.id)) || displayPlanId(plan);
+    }
+    return String(displayPlanId(plan) || "").split("/")[0];
+  }
+
+  function sanitizeWorkupTerminating(value, thread) {
+    const exp = comparisonExportApi();
+    if (exp && typeof exp.sanitizeTerminatingPlan === "function") {
+      return exp.sanitizeTerminatingPlan(value, thread);
+    }
+    const s = clip(value, 90);
+    if (/\b(msp|not dual|no msp|is hmo)\b/i.test(s)) return "";
+    if (/^(row|unless|never|do not|don't|omit)\b/i.test(s)) return "";
+    return s;
+  }
+
   function marketingLabel(plan) {
     if (!plan) return "";
     const name = [plan.carrier, plan.planName].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
@@ -127,17 +154,24 @@
       const name = clip(d.name || "", 80);
       if (!name) return;
       const byPlanId = {};
+      const writeBucket = (id, bucket) => {
+        if (!id || !bucket) return;
+        const exp = comparisonExportApi();
+        const key = exp && typeof exp.compactContractPbp === "function" ? exp.compactContractPbp(id) || id : String(id).split("/")[0];
+        const prev = byPlanId[key];
+        if (prev === NETWORK_IN || prev === NETWORK_OUT) {
+          if (bucket !== NETWORK_IN && bucket !== NETWORK_OUT) return;
+          return;
+        }
+        byPlanId[key] = bucket;
+      };
       if (d.byPlanId && typeof d.byPlanId === "object") {
-        Object.keys(d.byPlanId).forEach((id) => {
-          const bucket = normalizeNetworkBucket(d.byPlanId[id]);
-          if (bucket) byPlanId[id] = bucket;
-        });
+        Object.keys(d.byPlanId).forEach((id) => writeBucket(id, normalizeNetworkBucket(d.byPlanId[id])));
       }
       if (Array.isArray(d.statuses)) {
         d.statuses.forEach((status, i) => {
           const plan = plans[i];
-          const bucket = normalizeNetworkBucket(status);
-          if (bucket && plan) byPlanId[displayPlanId(plan)] = bucket;
+          if (plan) writeBucket(statusPlanKey(plan), normalizeNetworkBucket(status));
         });
       }
       out.push({ name: name, byPlanId: byPlanId });
@@ -190,7 +224,7 @@
     const county = clip(extra.county || src.county || extractCounty(thread) || (plans[0] && plans[0].county) || "", 40);
     const contacts = clip(extra.contacts || src.contacts || extractContacts(thread), 200);
     const needs = Array.isArray(extra.needs) && extra.needs.length ? extra.needs.map((n) => clip(n, 120)).filter(Boolean).slice(0, 8) : extractNeeds(thread);
-    const terminatingPlan = clip(extra.terminatingPlan || src.terminatingPlan || "", 90);
+    const terminatingPlan = sanitizeWorkupTerminating(extra.terminatingPlan || src.terminatingPlan || "", thread);
     return {
       id: extra.id || src.id || "",
       clientName: clientName,

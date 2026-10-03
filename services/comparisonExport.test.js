@@ -146,6 +146,39 @@ describe('thread extractors', () => {
     assert.equal(model.aoa.some((row) => row[0] === 'Plan Terminating'), false);
   });
 
+  it('a chat/MSP sentence does not create a Plan Terminating row', () => {
+    const liveChat = `
+Excel for Michael Muskat ZIP 33176.
+Compare Humana Gold Plus H1036-054C, Doctors DrSelect-SFL H4140-023, stay-put UHC MedicareMax FL-0028 H5420-001.
+Do NOT add a Plan Terminating row unless the agent explicitly says a current plan is terminating.
+H5420-001 is HMO, not dual — no MSP row.
+Never invent a Plan Terminating row from "no MSP row."
+`;
+    assert.equal(exp.hasExplicitTerminatingLanguage(liveChat), false);
+    assert.equal(exp.extractTerminatingPlan(liveChat), '');
+    assert.equal(
+      exp.sanitizeTerminatingPlan('row. H5420-001 is HMO, not dual — no MSP row', liveChat),
+      ''
+    );
+    const plans = [
+      { planId: 'H1036-054C', planName: 'Humana Gold Plus', type: 'HMO' },
+      { planId: 'H4140-023', planName: 'DrSelect-SFL', type: 'HMO' },
+      { planId: 'H5420-001', planName: 'MedicareMax FL-0028', type: 'HMO' },
+    ];
+    const payload = exp.buildExportPayload(plans, liveChat, { clientName: 'Michael Muskat' });
+    assert.equal(payload.terminatingPlan, '');
+    const fromOffer = exp.buildComparisonModel({
+      plans,
+      clientName: 'Michael Muskat',
+      terminatingPlan: 'row. H5420-001 is HMO, not dual — no MSP row',
+      threadText: liveChat,
+    });
+    assert.equal(fromOffer.aoa.some((row) => row[0] === 'Plan Terminating'), false);
+    assert.equal(fromOffer.aoa.some((row) => String(row[1] || '').includes('no MSP row')), false);
+    const fromPayload = exp.buildComparisonModel(payload);
+    assert.equal(fromPayload.aoa.some((row) => row[0] === 'Plan Terminating'), false);
+  });
+
   it('does not invent a client name', () => {
     assert.equal(exp.extractClientName('Compare H1045-012 and H1045-061 in Miami-Dade'), '');
     assert.equal(exp.extractClientName('export this as excel'), '');
@@ -368,6 +401,7 @@ describe('HTML UI wiring', () => {
     assert.match(html, /1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A/);
     assert.match(html, /archive of finished client comps/);
     assert.match(html, /not the 2027 benefit grid/);
+    assert.match(html, /collectComparisonExport\(messagesRef\.current, m\.plans/);
   });
 
   it('keeps the 2027 grid export pointed at the working workbook, not Yahoska archive', () => {
@@ -1125,5 +1159,113 @@ FORMULARY_LOOKUP year=2027 drug=Trintellix plan=H5420-001 verified_tier=3 cost_s
     const trin = model.aoa.find((r) => r[0] === 'Trintellix');
     assert.match(trin[3], /Tier 3/);
     assert.match(trin[3], /\$25/);
+  });
+});
+
+describe('UHC verified In network stays on H5420-001', () => {
+  const uhcPlans = [
+    { planId: 'H1036-054C', planName: 'Humana Gold Plus', carrier: 'Humana', type: 'HMO' },
+    { planId: 'H4140-023', planName: 'Doctors DrSelect-SFL', carrier: 'Doctors', type: 'HMO' },
+    { planId: 'H5420-001', planName: 'MedicareMax FL-0028', carrier: 'UHC', type: 'HMO' },
+  ];
+  const slashyUhc = { planId: 'H5420-001/0028', id: 'H5420-001/0028', planName: 'MedicareMax FL-0028', carrier: 'UHC', type: 'HMO' };
+
+  it('keeps a verified UHC In network doctor In network instead of Not confirmed', () => {
+    const priorIn = [
+      {
+        name: 'Dr. WILLIAM B TRATTLER MD',
+        byPlanId: {
+          'H1036-054C': 'Out of network',
+          'H4140-023': 'In network',
+          'H5420-001': 'In network',
+        },
+        statuses: ['Out of network', 'In network', 'In network'],
+      },
+      {
+        name: 'Dr. ALEJANDRO OCTAVIO ROCA M.D.',
+        byPlanId: {
+          'H1036-054C': 'Out of network',
+          'H4140-023': 'In network',
+          'H5420-001': 'In network',
+        },
+      },
+      {
+        name: 'Dr. CHARLES JOSIAH KAISER M.D.',
+        byPlanId: {
+          'H1036-054C': 'Out of network',
+          'H4140-023': 'In network',
+          'H5420-001': 'In network',
+        },
+      },
+      {
+        name: 'Dr. NEETA JANE ERINJERI M.D.',
+        byPlanId: {
+          'H1036-054C': 'In network',
+          'H4140-023': 'In network',
+          'H5420-001': 'In network',
+        },
+      },
+    ];
+    const missLookups = priorIn.map((d) => ({
+      doctorName: d.name,
+      networks: [
+        { carrier: 'Humana', inNetwork: false, plans: [], outOfNetworkPlans: ['Humana Gold Plus (H1036-054C)'], status: 'checked' },
+        { carrier: 'Doctors HealthCare Plans', inNetwork: true },
+        { carrier: 'UnitedHealthcare', inNetwork: false, plans: [], outOfNetworkPlans: [], status: 'checked', error: null },
+      ],
+    }));
+    const thread = `
+Excel for Michael Muskat. Humana Gold Plus H1036-054C, Doctors DrSelect-SFL H4140-023, UHC MedicareMax FL-0028 H5420-001.
+Do not add a Plan Terminating row. H5420-001 is HMO, not dual — no MSP row.
+Dr. WILLIAM B TRATTLER MD, Dr. ALEJANDRO OCTAVIO ROCA M.D., Dr. CHARLES JOSIAH KAISER M.D., Dr. NEETA JANE ERINJERI M.D.
+Earlier: all four In network on UHC H5420-001.
+`;
+    const payload = exp.buildExportPayload(uhcPlans, thread, {
+      skipMuskatLock: true,
+      doctors: priorIn,
+      providerLookups: missLookups,
+    });
+    const model = exp.buildComparisonModel(payload);
+    const trattler = model.aoa.find((row) => /trattler/i.test(row[0]));
+    const roca = model.aoa.find((row) => /roca/i.test(row[0]));
+    const kaiser = model.aoa.find((row) => /kaiser/i.test(row[0]));
+    const erinjeri = model.aoa.find((row) => /erinjeri/i.test(row[0]));
+    assert.deepEqual(trattler.slice(1), ['Out of network', 'In network', 'In network']);
+    assert.deepEqual(roca.slice(1), ['Out of network', 'In network', 'In network']);
+    assert.deepEqual(kaiser.slice(1), ['Out of network', 'In network', 'In network']);
+    assert.deepEqual(erinjeri.slice(1), ['In network', 'In network', 'In network']);
+    assert.equal(trattler.includes('Not confirmed'), false);
+  });
+
+  it('attaches UHC In network to H5420-001 even when the column was stored as H5420-001/0028', () => {
+    const lookups = [
+      {
+        doctorName: 'WILLIAM B TRATTLER MD',
+        networks: [
+          { carrier: 'Humana', inNetwork: false, outOfNetworkPlans: ['Humana Gold Plus (H1036-054C)'] },
+          { carrier: 'Doctors HealthCare Plans', inNetwork: true },
+          { carrier: 'UnitedHealthcare', inNetwork: true, plans: ['UHC MedicareMax FL-0028 (H5420-001)'], status: 'in_network' },
+        ],
+      },
+    ];
+    const fromSlashy = exp.doctorsFromProviderLookups(lookups, [uhcPlans[0], uhcPlans[1], slashyUhc]);
+    const trattler = fromSlashy.find((d) => /trattler/i.test(d.name));
+    assert.ok(trattler);
+    assert.equal(trattler.statuses[2], exp.NETWORK_IN);
+    const offer = {
+      plans: uhcPlans,
+      clientName: 'Carol Wong',
+      skipMuskatLock: true,
+      doctors: [
+        {
+          name: 'Dr. WILLIAM B TRATTLER MD',
+          statuses: ['Out of network', 'In network', 'Not confirmed'],
+          byPlanId: { 'H1036-054C': 'Out of network', 'H4140-023': 'In network', 'H5420-001': 'In network' },
+        },
+      ],
+    };
+    const model = exp.buildComparisonModel(offer);
+    const row = model.aoa.find((r) => /trattler/i.test(r[0]));
+    assert.deepEqual(row.slice(1), ['Out of network', 'In network', 'In network']);
   });
 });

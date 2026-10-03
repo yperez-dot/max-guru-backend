@@ -5,7 +5,7 @@ Pulled: 2026-10-02
 
 Not a ranking. Facts only. Export layout (Yahoska 2026-10-02): client title → plan headers → **Doctors first** → **Medications** (brand* not covered + generic) → 2027 green-cell benefits → SOB/EOC. **No Plan Terminating** (that row is only when she says a current plan is ending).
 
-**This 014 snapshot is not a forever lock.** If a later Muskat thread cites different PBPs (stay-put MedicareMax FL-0028 **H5420-001**), Excel/PDF must use **that** comparison — plans, doctors (including Jason Margolesky and Miami Neurology & Rehab), live formulary, and 001 green cells. Never overwrite with this sheet. Never invent Plan Terminating from “no MSP row” / “do not add a Plan Terminating row.”
+**This 014 snapshot is not a forever lock.** If a later Muskat thread cites different PBPs (stay-put MedicareMax FL-0028 **H5420-001**), Excel/PDF must use **that** comparison — plans, doctors (including Jason Margolesky and Miami Neurology & Rehab), live formulary, and 001 green cells. Never overwrite with this sheet. Never invent Plan Terminating from “no MSP row” / “do not add a Plan Terminating row.” Do not print that MSP sentence on the sheet. Verified In network on UHC **H5420-001** stays In network — a later miss or failed guest session is not Not confirmed.
 
 **Humana stays first.** If the current comparison still includes Gold Plus **H1036-054C**, it is column 1 even when a later reply only restates 023 and 001. **One column per contract-PBP** — never two Doctors H4140-023 columns or two UHC H5420-001 columns. Keep verified thread Rx; do not blank them to Unverified. Keep Lipitor*/Atorvastatin and Benicar*/Olmesartan. One row per doctor: merge NPI legal name with the short name; keep In/Out; do not print a duplicate Not confirmed row.
 
