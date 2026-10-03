@@ -1558,6 +1558,32 @@ Earlier: all four In network on UHC H5420-001.
       assert.equal(capped[3].tool, 't9');
     });
 
+    it('exports DrSelect DME without inventing a hospital-bed dollar', () => {
+      const doctors = planById(loadPlans(), 'H4140-023', 'Miami-Dade');
+      assert.equal(
+        doctors.sobUrl,
+        'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf'
+      );
+      const model = exp.buildComparisonModel({
+        plans: [doctors],
+        clientName: 'Carol Wong',
+        sobBenefits: {
+          'H4140-023': {
+            dme: {
+              value:
+                '0% coinsurance for covered items including CPAP and all other medical equipment; 20% coinsurance for powered wheelchairs, powered mattress systems, and other electric devices',
+              source: 'sob',
+            },
+          },
+        },
+      });
+      const row = (label) => model.aoa.find((r) => r[0] === label);
+      assert.match(row('DME')[1], /0%/);
+      assert.match(row('DME')[1], /20%/);
+      assert.doesNotMatch(row('DME')[1], /hospital/i);
+      assert.equal(row('Hospital-grade bed / DME'), undefined);
+    });
+
     it('prints SNF and DME rows when sobBenefits carries values', () => {
       const plans = loadPlans().filter((p) => p.county === 'Miami-Dade').slice(0, 2);
       const id0 = exp.displayContractPbp(plans[0]);

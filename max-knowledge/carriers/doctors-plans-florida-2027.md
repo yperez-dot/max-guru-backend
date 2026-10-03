@@ -172,6 +172,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **CMS ID:** H4140-023
 **SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf)
 **SNF (DrSelect-SFL column on that SoB):** $0 copay per day days 1–20; $60 copay per day days 21–100. Not the Dr Max PDF.
+**DME (page 17, DrSelect-SFL right column):** 0% coinsurance for covered items including CPAP and all other medical equipment; 20% coinsurance for powered wheelchairs, powered mattress systems, and other electric devices. A hospital-grade bed is not named — do not invent a hospital-bed dollar.
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
@@ -403,6 +404,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **CMS ID:** H4140-023
 **SoB:** [SoB](https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf)
 **SNF (DrSelect-SFL column on that SoB):** $0 copay per day days 1–20; $60 copay per day days 21–100. Not the Dr Max PDF.
+**DME (page 17, DrSelect-SFL right column):** 0% coinsurance for covered items including CPAP and all other medical equipment; 20% coinsurance for powered wheelchairs, powered mattress systems, and other electric devices. A hospital-grade bed is not named — do not invent a hospital-bed dollar.
 **Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
