@@ -733,7 +733,7 @@ describe('Muskat 2027 locked export', () => {
       'Excel for Michael Muskat ZIP 33176. Compare Humana, Doctors, and UHC MedicareMax Complete Care.',
       { catalog: plans }
     );
-    assert.equal(payload.clientName, 'Michael Muskat');
+    assert.equal(payload.clientName, 'Mr. and Mrs. Muskat');
     assert.equal(payload.terminatingPlan, '');
     assert.deepEqual(
       payload.plans.map((p) => exp.displayContractPbp(p)),
@@ -750,7 +750,7 @@ describe('Muskat 2027 locked export', () => {
 
     const model = exp.buildComparisonModel(payload);
     const labels = model.aoa.map((row) => row[0]);
-    assert.equal(labels[0], 'Michael Muskat');
+    assert.equal(labels[0], 'Mr. and Mrs. Muskat');
     assert.equal(labels.includes('Plan Terminating'), false);
     assert.ok(labels.indexOf('Doctors') < labels.indexOf('Medications'));
     assert.ok(labels.indexOf('Medications') < labels.indexOf('Premium'));

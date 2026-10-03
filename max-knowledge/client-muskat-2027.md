@@ -1,4 +1,4 @@
-# Michael Muskat 2027 comparison (Yahoska locked)
+# Mr. and Mrs. Muskat 2027 comparison (Yahoska locked) — export title reads "Mr. and Mrs. Muskat"
 
 Source: Yahoska / THEI — locked Excel/PDF content for **Michael Muskat**, ZIP **33176**, plan year **2027**.  
 Pulled: 2026-10-02

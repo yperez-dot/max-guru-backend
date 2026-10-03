@@ -1363,9 +1363,7 @@
     if (!uhcId) {
       return payload;
     }
-    payload.clientName = payload.clientName && /muskat/i.test(payload.clientName)
-      ? payload.clientName
-      : "Michael Muskat";
+    payload.clientName = "Mr. and Mrs. Muskat";
     payload.zip = payload.zip || "33176";
     payload.county = payload.county || "Miami-Dade";
     payload.doctors = mergeDoctorLists([muskatLockedDoctors(), payload.doctors], payload.plans);
