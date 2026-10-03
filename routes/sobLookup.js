@@ -1,9 +1,10 @@
 /**
  * GET /sob-lookup?planId=H1036-054C&benefits=hearing_aids,skilled_nursing,dme
- * Optional: sobUrl=  planIds=  query=
+ * Optional: sobUrl=  eocUrl=  planIds=  query=
  *
- * Grid green cells first, then that plan's Summary of Benefits PDF.
- * Never invents dollars. Unverified if the SOB cannot be read.
+ * Grid green cells first, then that plan's Summary of Benefits PDF,
+ * then the Evidence of Coverage if the SOB misses the asked benefit.
+ * Never invents dollars. Unverified if it is not in either document.
  */
 const { Router } = require('express');
 const { lookupSobBenefits, formatSobLookupText, toExportSobBenefits } = require('../services/sobLookup');
@@ -24,6 +25,7 @@ router.get('/', async (req, res) => {
     const result = await lookupSobBenefits({
       planIds,
       sobUrl: req.query.sobUrl,
+      eocUrl: req.query.eocUrl,
       benefits,
       query: req.query.query,
       year: req.query.year ? Number(req.query.year) : 2027,

@@ -61,6 +61,8 @@ describe('SOB benefit parsers (no invented dollars)', () => {
     assert.equal(usableGridValue(''), null);
     assert.equal(usableGridValue('Not listed'), null);
     assert.equal(usableGridValue('$199 Level 1'), '$199 Level 1');
+    assert.deepEqual(normalizeBenefitList(['chemotherapy']), ['chemotherapy']);
+    assert.deepEqual(normalizeBenefitList([], ''), []);
   });
 });
 
@@ -134,6 +136,48 @@ describe('lookupSobBenefits grid then SOB', () => {
     assert.equal(result.byPlanId['H1609-093'].fields.snfDays1to20, undefined);
   });
 
+  it('reads an asked off-grid benefit from SOB text and does not invent extras', () => {
+    const parsed = parseSobBenefits(
+      'Chemotherapy\nChemotherapy $35 copay for Medicare-covered chemo drugs\nHome health $0 copay',
+      ['chemotherapy', 'homeHealth', 'dialysis']
+    );
+    assert.match(parsed.chemotherapy, /\$35/);
+    assert.match(parsed.homeHealth, /\$0/);
+    assert.equal(parsed.dialysis, null);
+    assert.equal(parsed.dmeHospitalBed, null);
+  });
+
+  it('uses the Evidence of Coverage when the SOB does not have the asked benefit', async () => {
+    const result = await lookupSobBenefits({
+      planId: 'H1036-054C',
+      sobUrl: 'https://example.com/sob.pdf',
+      eocUrl: 'https://example.com/eoc.pdf',
+      benefits: ['chemotherapy'],
+      sobText: 'Hearing aids $199 copay. Skilled nursing Days 1-20 $0 copay.',
+      eocText: 'Chemotherapy $35 copay for Medicare-covered chemo drugs.',
+    });
+    assert.equal(result.byPlanId['H1036-054C'].fields.chemotherapy.source, 'eoc');
+    assert.match(result.byPlanId['H1036-054C'].fields.chemotherapy.value, /\$35/);
+    assert.equal(result.byPlanId['H1036-054C'].fields.snfDays1to20, undefined);
+    const text = formatSobLookupText(result);
+    assert.match(text, /source eoc/);
+    assert.doesNotMatch(text, /\$999|from memory|2026/i);
+  });
+
+  it('says unverified when the asked benefit is not in the SOB or the EOC', async () => {
+    const result = await lookupSobBenefits({
+      planId: 'H1036-054C',
+      sobUrl: 'https://example.com/sob.pdf',
+      eocUrl: 'https://example.com/eoc.pdf',
+      benefits: ['dialysis'],
+      sobText: 'This plan covers many services. See the EOC.',
+      eocText: 'Contact your provider for covered services.',
+    });
+    assert.equal(result.byPlanId['H1036-054C'].fields.dialysis.value, null);
+    assert.equal(result.byPlanId['H1036-054C'].fields.dialysis.reason, 'not_in_sob_or_eoc');
+    assert.match(formatSobLookupText(result), /UNVERIFIED/);
+  });
+
   it('does not use a fetchImpl when sobText is provided (no live dollars)', async () => {
     let called = false;
     const result = await lookupSobBenefits(
@@ -200,5 +244,12 @@ describe('SOB lookup only when the agent asked', () => {
     ];
     assert.equal(shouldAutoLookupComparisonSob(askedAgain, already), false);
     assert.deepEqual(uniquePlanIdsNeedingExportSob(askedAgain, already), []);
+  });
+
+  it('triggers when she asks for an off-grid benefit that is not SNF or DME', () => {
+    const messages = [
+      { role: 'user', content: 'What is the dialysis copay on H1036-054C?' },
+    ];
+    assert.equal(shouldAutoLookupComparisonSob(messages, []), true);
   });
 });

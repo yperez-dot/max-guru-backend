@@ -384,6 +384,7 @@ describe('HTML UI wiring', () => {
     assert.match(html, /sobFromToolResults/);
     assert.match(html, /fillExportSobBenefits/);
     assert.match(html, /askedExportSobBenefits/);
+    assert.match(html, /askedOffGridBenefits/);
     assert.match(html, /hydrateExportSobBenefits/);
     assert.match(html, /runComparisonExport/);
     assert.match(html, /Do NOT look up SNF or hospital-grade bed/);
@@ -618,6 +619,77 @@ describe('SOB-only extra benefit rows', () => {
     assert.equal(dme[2], 'Unverified');
     assert.equal(dme.includes('$999'), false);
     assert.equal(model.aoa.some((row) => row[0] === 'Plan Terminating'), false);
+  });
+
+  it('prints an asked off-grid benefit that is not SNF or DME, and leaves grid rows alone', () => {
+    const plans = [
+      { planId: 'H1036-054C', planName: 'Humana Gold Plus', premium: '$0', inpatientHospital: '$0' },
+      { planId: 'H4140-023', planName: 'DrSelect-SFL', premium: '$0', inpatientHospital: '$0' },
+    ];
+    const asked = exp.askedOffGridBenefits(
+      'Compare H1036-054C and H4140-023. What is the copay for chemotherapy?'
+    );
+    assert.equal(asked.asked, true);
+    assert.ok(asked.benefits.includes('chemotherapy'));
+    assert.equal(
+      exp.askedOffGridBenefits('Compare H1036-054C and H4140-023 for Mr. and Mrs. Muskat.').asked,
+      false
+    );
+    const skipped = exp.buildComparisonModel({
+      plans,
+      threadText: 'Compare H1036-054C and H4140-023 for Mr. and Mrs. Muskat.',
+      skipMuskatLock: true,
+    });
+    const skippedLabels = skipped.aoa.map((row) => row[0]);
+    assert.equal(skippedLabels.includes('Chemotherapy'), false);
+    assert.ok(skippedLabels.includes('Premium'));
+    assert.ok(skippedLabels.includes('Inpatient Hospital'));
+    const model = exp.buildComparisonModel({
+      plans,
+      threadText: 'Compare H1036-054C and H4140-023. Need chemotherapy.',
+      skipMuskatLock: true,
+    });
+    const labels = model.aoa.map((row) => row[0]);
+    assert.ok(labels.includes('Chemotherapy'));
+    assert.ok(labels.includes('Premium'));
+    assert.equal(labels.includes('Skilled Nursing Facility (days 1–20)'), false);
+    const chemo = model.aoa.find((row) => row[0] === 'Chemotherapy');
+    assert.deepEqual(chemo.slice(1), ['Unverified', 'Unverified']);
+    assert.equal(model.aoa.find((row) => row[0] === 'Premium')[1], '$0');
+  });
+
+  it('fillExportSobBenefits looks up the asked off-grid benefit, not every extra', async () => {
+    const plans = [
+      { planId: 'H1036-054C', planName: 'Humana Gold Plus', sobUrl: 'https://example.com/humana.pdf' },
+      { planId: 'H4140-023', planName: 'DrSelect-SFL', sobUrl: 'https://example.com/doctors.pdf' },
+    ];
+    let called = null;
+    const filled = await exp.fillExportSobBenefits(
+      plans,
+      {},
+      async (req) => {
+        called = req;
+        return {
+          sobBenefits: {
+            'H1036-054C': { chemotherapy: { value: 'Chemotherapy $35 copay', source: 'sob' } },
+          },
+        };
+      },
+      { threadText: 'Need chemotherapy on H1036-054C and H4140-023.' }
+    );
+    assert.ok(called);
+    assert.deepEqual(called.benefits, ['chemotherapy']);
+    assert.match(called.query, /chemotherapy/i);
+    const model = exp.buildComparisonModel({
+      plans,
+      threadText: 'Need chemotherapy on H1036-054C and H4140-023.',
+      sobBenefits: filled,
+      skipMuskatLock: true,
+    });
+    const chemo = model.aoa.find((row) => row[0] === 'Chemotherapy');
+    assert.equal(chemo[1], 'Chemotherapy $35 copay');
+    assert.equal(chemo[2], 'Unverified');
+    assert.equal(model.aoa.some((row) => row[0] === 'Hospital-grade bed / DME'), false);
   });
 
   it('adds SNF, hearing aids, and DME rows only from live SOB/grid extras — no invented dollars', () => {

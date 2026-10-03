@@ -64,19 +64,153 @@
   const HIGHLIGHT_KEYS = { hearing: true, otc: true };
   const SOB_EXTRA_AFTER = {
     inpatientHospital: [
-      ["Skilled Nursing Facility (days 1–20)", "snfDays1to20", { onAsk: true }],
-      ["Skilled Nursing Facility (days 21–100)", "snfDays21to100", { onAsk: true }],
+      ["Skilled Nursing Facility (days 1–20)", "snfDays1to20"],
+      ["Skilled Nursing Facility (days 21–100)", "snfDays21to100"],
     ],
     hearing: [["Hearing Aids", "hearingAids"]],
-    advancedImaging: [["Hospital-grade bed / DME", "dmeHospitalBed", { onAsk: true }]],
+    advancedImaging: [["Hospital-grade bed / DME", "dmeHospitalBed"]],
   };
-  const ASKED_SOB_EXPORT_KEYS = ["snfDays1to20", "snfDays21to100", "dmeHospitalBed"];
-  const EXPORT_SOB_BENEFITS = ["skilled_nursing", "dme"];
-  const ASKED_EXPORT_SOB_RE =
-    /\b(snf|skilled nursing|hospital[-\s]?grade bed|hospital bed|\bdme\b|durable medical)\b/i;
+  const PLACED_SOB_EXPORT_KEYS = {
+    snfDays1to20: true,
+    snfDays21to100: true,
+    dmeHospitalBed: true,
+    hearingAids: true,
+  };
+  const GRID_TOPIC_RE =
+    /\b(premium|part b(?:\s+(?:rebate|giveback|reduction))?|giveback|referrals?|msp levels?|moop|max out of pocket|out of pocket|inpatient hospital|outpatient hospital|pcp|primary care|specialist|emergency room|\ber\b|urgent care|advanced imaging|\bmri\b|\bct\b|\bpet\b|hearing services|hearing exam|dental|deep clean|denture|filling|root canal|extraction|crown|bridge|implant|vision|ambulance|transport(?:ation)?|companionship|custodial|rx deductible|tier\s*[1-6]|otc|grocery|food card|acupuncture|fitness|silver sneakers)\b/i;
+  const KNOWN_OFF_GRID = [
+    {
+      benefits: ["skilled_nursing"],
+      fieldKeys: ["snfDays1to20", "snfDays21to100"],
+      re: /\b(snf|skilled nursing)\b/i,
+      rows: [
+        ["Skilled Nursing Facility (days 1–20)", "snfDays1to20"],
+        ["Skilled Nursing Facility (days 21–100)", "snfDays21to100"],
+      ],
+    },
+    {
+      benefits: ["dme"],
+      fieldKeys: ["dmeHospitalBed"],
+      re: /\b(dme|hospital[-\s]?grade bed|hospital bed|durable medical)\b/i,
+      rows: [["Hospital-grade bed / DME", "dmeHospitalBed"]],
+    },
+    {
+      benefits: ["hearing_aids"],
+      fieldKeys: ["hearingAids"],
+      re: /\bhearing\s+aids?\b/i,
+      rows: [["Hearing Aids", "hearingAids"]],
+    },
+    {
+      benefits: ["chemotherapy"],
+      fieldKeys: ["chemotherapy"],
+      re: /\b(chemo(?:therapy)?|infusion therapy)\b/i,
+      rows: [["Chemotherapy", "chemotherapy"]],
+    },
+    {
+      benefits: ["home_health"],
+      fieldKeys: ["homeHealth"],
+      re: /\bhome health\b/i,
+      rows: [["Home Health", "homeHealth"]],
+    },
+    {
+      benefits: ["dialysis"],
+      fieldKeys: ["dialysis"],
+      re: /\bdialysis\b/i,
+      rows: [["Dialysis", "dialysis"]],
+    },
+    {
+      benefits: ["physical_therapy"],
+      fieldKeys: ["physicalTherapy"],
+      re: /\bphysical therapy\b/i,
+      rows: [["Physical Therapy", "physicalTherapy"]],
+    },
+    {
+      benefits: ["worldwide_emergency"],
+      fieldKeys: ["worldwideEmergency"],
+      re: /\b(worldwide emergency|foreign travel)\b/i,
+      rows: [["Worldwide Emergency", "worldwideEmergency"]],
+    },
+    {
+      benefits: ["post_discharge_meals"],
+      fieldKeys: ["postDischargeMeals"],
+      re: /\b(post[-\s]?discharge meals?|healthy meals?)\b/i,
+      rows: [["Post-discharge Meals", "postDischargeMeals"]],
+    },
+  ];
+
+  function slugBenefitKey(raw) {
+    return String(raw || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "")
+      .slice(0, 40);
+  }
+
+  function titleFromSlug(slug) {
+    return String(slug || "")
+      .split("_")
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  }
+
+  function askedOffGridBenefits(text) {
+    const src = String(text || "");
+    const benefits = [];
+    const fieldKeys = [];
+    const rows = [];
+    const seen = {};
+    const add = (item) => {
+      (item.benefits || []).forEach((b) => {
+        if (b && benefits.indexOf(b) < 0) benefits.push(b);
+      });
+      (item.fieldKeys || []).forEach((k) => {
+        if (k && fieldKeys.indexOf(k) < 0) fieldKeys.push(k);
+      });
+      (item.rows || []).forEach((r) => {
+        if (!r || !r[1] || seen[r[1]]) return;
+        seen[r[1]] = true;
+        rows.push(r);
+      });
+    };
+    KNOWN_OFF_GRID.forEach((item) => {
+      if (item.re.test(src)) add(item);
+    });
+    const genericRe =
+      /\b(?:need|needs|what's|whats|what is|does (?:it|this|the plan) cover|cover(?:age|ed)?(?: for)?|copay(?: for)?|cost (?:of|for)|how much (?:is|for))\s+([a-z][a-z0-9\s\-\/]{2,50})/gi;
+    let m;
+    while ((m = genericRe.exec(src))) {
+      const phrase = m[1].replace(/\s+/g, " ").trim().replace(/[?.!,;:]+$/, "");
+      if (!phrase || GRID_TOPIC_RE.test(phrase)) continue;
+      if (KNOWN_OFF_GRID.some((item) => item.re.test(phrase))) continue;
+      if (/^(the|a|an|this|that|her|his|their|plan|plans|benefit|benefits|for|on)$/i.test(phrase)) continue;
+      const key = slugBenefitKey(phrase);
+      if (!key || seen[key]) continue;
+      add({
+        benefits: [key],
+        fieldKeys: [key],
+        rows: [[titleFromSlug(key), key]],
+      });
+    }
+    return {
+      asked: fieldKeys.length > 0,
+      benefits,
+      fieldKeys,
+      rows,
+      query: rows.map((r) => r[0]).join(", "),
+    };
+  }
 
   function askedExportSobBenefits(text) {
-    return ASKED_EXPORT_SOB_RE.test(String(text || ""));
+    return askedOffGridBenefits(text).asked;
+  }
+
+  const ASKED_SOB_EXPORT_KEYS = ["snfDays1to20", "snfDays21to100", "dmeHospitalBed"];
+  const EXPORT_SOB_BENEFITS = ["skilled_nursing", "dme"];
+
+  function resolveAskedOffGrid(meta) {
+    if (meta && meta.askedInfo && typeof meta.askedInfo === "object") return meta.askedInfo;
+    return askedOffGridBenefits((meta && (meta.threadText || meta.text)) || "");
   }
 
   function isDualOrDsnpPlan(plan) {
@@ -252,21 +386,24 @@
     return out;
   }
 
-  function plansNeedingExportSob(plans, sobBenefits) {
-    return (plans || []).filter((p) =>
-      ASKED_SOB_EXPORT_KEYS.some((key) => !sobFieldValue(p, sobBenefits, key))
-    );
+  function plansNeedingExportSob(plans, sobBenefits, fieldKeys) {
+    const keys = fieldKeys && fieldKeys.length ? fieldKeys : ASKED_SOB_EXPORT_KEYS;
+    return (plans || []).filter((p) => keys.some((key) => !sobFieldValue(p, sobBenefits, key)));
   }
 
-  // When she asked for SNF / hospital-grade bed and chat never stored lookup_sob_benefit,
-  // export looks those rows up itself from each plan's sobUrl. Never invent dollars.
-  // If she did not ask, do not fetch and do not add the rows.
+  // When she asked for an off-grid benefit and chat never stored lookup_sob_benefit,
+  // export looks those rows up itself from each plan's sobUrl (then EOC). Never invent dollars.
+  // If she did not ask, do not fetch and do not add the rows. Grid rows stay as they are.
   async function fillExportSobBenefits(plans, sobBenefits, lookupFn, meta) {
+    const askedInfo = resolveAskedOffGrid(meta);
     const asked =
-      meta && meta.asked != null ? Boolean(meta.asked) : askedExportSobBenefits(meta && meta.threadText);
+      meta && meta.asked != null ? Boolean(meta.asked) : askedInfo.asked;
     const merged = mergeSobBenefitMaps({}, sobBenefits);
     if (!asked) return merged;
-    const need = plansNeedingExportSob(plans, merged);
+    const fieldKeys = (meta && meta.fieldKeys) || askedInfo.fieldKeys;
+    const benefits = (meta && meta.benefits) || askedInfo.benefits;
+    const query = (meta && meta.query) || askedInfo.query;
+    const need = plansNeedingExportSob(plans, merged, fieldKeys);
     if (!need.length || typeof lookupFn !== "function") return merged;
     const planIds = need
       .map((p) => displayContractPbp(p) || (p && (p.planId || p.id)) || "")
@@ -277,8 +414,8 @@
       const result = await lookupFn({
         planIds,
         plans: need,
-        benefits: EXPORT_SOB_BENEFITS.slice(),
-        query: "SNF days 1-20, SNF days 21-100, hospital-grade bed / DME",
+        benefits: benefits && benefits.length ? benefits.slice() : EXPORT_SOB_BENEFITS.slice(),
+        query: query || "asked off-grid benefits",
       });
       incoming = (result && (result.sobBenefits || result.byPlanId || result)) || {};
     } catch (_) {
@@ -1665,7 +1802,12 @@
     if (doctors.length || drugs.length) pushPlanHeaders();
 
     const sobBenefits = payload.sobBenefits || {};
-    const askedSob = payload.askedExportSob === true || askedExportSobBenefits(payload.threadText);
+    const askedInfo = askedOffGridBenefits(payload.threadText);
+    const askedKeys = {};
+    askedInfo.fieldKeys.forEach((k) => {
+      askedKeys[k] = true;
+    });
+    const printedExtras = {};
     const pushBenefitRow = (label, values, highlight) => {
       const rowKinds = ["label", ...values.slice(1).map((c) => (c === "Unverified" ? "pending" : highlight ? "highlight" : "text"))];
       const rowStyles = [makeStyle({ font: { bold: true } })];
@@ -1691,14 +1833,26 @@
       (SOB_EXTRA_AFTER[key] || []).forEach((extra) => {
         const extraLabel = extra[0];
         const extraKey = extra[1];
-        const onAsk = extra[2] && extra[2].onAsk;
-        if (!(onAsk && askedSob) && !anySobField(plans, sobBenefits, extraKey)) return;
+        if (!askedKeys[extraKey] && !anySobField(plans, sobBenefits, extraKey)) return;
+        printedExtras[extraKey] = true;
         const extraValues = [
           extraLabel,
           ...plans.map((p) => sobFieldValue(p, sobBenefits, extraKey) || "Unverified"),
         ];
         pushBenefitRow(extraLabel, extraValues, false);
       });
+    });
+
+    askedInfo.rows.forEach((extra) => {
+      const extraLabel = extra[0];
+      const extraKey = extra[1];
+      if (!extraKey || printedExtras[extraKey]) return;
+      printedExtras[extraKey] = true;
+      const extraValues = [
+        extraLabel,
+        ...plans.map((p) => sobFieldValue(p, sobBenefits, extraKey) || "Unverified"),
+      ];
+      pushBenefitRow(extraLabel, extraValues, false);
     });
 
     const sobRow = ["Summary of Benefits"];
@@ -1964,6 +2118,7 @@
     SOB_EXTRA_AFTER,
     ASKED_SOB_EXPORT_KEYS,
     EXPORT_SOB_BENEFITS,
+    askedOffGridBenefits,
     askedExportSobBenefits,
     sobFieldValue,
     anySobField,

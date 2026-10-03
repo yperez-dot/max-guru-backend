@@ -4,6 +4,8 @@ const { countImagesInMessages, normalizeMessages } = require('./chatImages');
 const {
   shouldAutoLookupComparisonSob,
   uniquePlanIdsNeedingExportSob,
+  askedOffGridFromText,
+  messagePlainText,
   EXPORT_SOB_BENEFITS,
 } = require('./sobLookup');
 
@@ -161,11 +163,12 @@ async function passThroughChat({ system, messages, processToolFn }) {
         autoSobLookupDone = true;
         const planIds = uniquePlanIdsNeedingExportSob(probeMessages, collectedToolResults);
         if (planIds.length) {
+          const asked = askedOffGridFromText(messagePlainText(probeMessages));
           console.log(`[AutoTool/${CONFIG.provider}] lookup_sob_benefit ${planIds.join(',')}`);
           const result = await runTool('lookup_sob_benefit', {
             planIds,
-            benefits: EXPORT_SOB_BENEFITS.slice(),
-            query: 'SNF days 1-20, SNF days 21-100, hospital-grade bed / DME',
+            benefits: asked.benefits.length ? asked.benefits.slice() : EXPORT_SOB_BENEFITS.slice(),
+            query: asked.query || 'asked off-grid benefits',
           });
           const text = resolveToolResult(result);
           const structured =
@@ -175,13 +178,14 @@ async function passThroughChat({ system, messages, processToolFn }) {
           collectedToolResults.push({ tool: 'lookup_sob_benefit', output: structured });
           apiMessages.push({
             role: 'assistant',
-            content: lastMessage.content || 'Looking up SNF and hospital-grade bed from each plan SOB.',
+            content: lastMessage.content || 'Looking up the asked off-grid benefit from each plan SOB, then EOC if needed.',
           });
           apiMessages.push({
             role: 'user',
             content:
-              'Required SOB lookup because the agent asked for SNF days 1–20 / 21–100 and/or hospital-grade bed / DME. ' +
-              'Quote only this extract. Unverified if no number. Never invent dollars. Never print chopped PDF fragments.\n' +
+              'Required SOB lookup because the agent asked for a benefit that is not on the THEI grid. ' +
+              'Read the Summary of Benefits first, then the Evidence of Coverage if the SOB does not have it. ' +
+              'Quote only this extract. Unverified if it is not in either. Never invent dollars. Never print chopped PDF fragments.\n' +
               text,
           });
           continue;
