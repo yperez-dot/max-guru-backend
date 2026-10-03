@@ -580,6 +580,79 @@ function toExportSobBenefits(result) {
   return out;
 }
 
+const EXPORT_SOB_FIELD_KEYS = ['snfDays1to20', 'snfDays21to100', 'dmeHospitalBed'];
+const EXPORT_SOB_BENEFITS = ['skilled_nursing', 'dme'];
+const CMS_PLAN_ID_RE = /\b[HR]\d{3,4}[\s-]?\d{2,4}[A-Z]?(?:\s*\/\s*-?\d{2,4})?\b/gi;
+const ASKED_EXPORT_SOB_RE =
+  /\b(snf|skilled nursing|hospital[-\s]?grade bed|hospital bed|\bdme\b|durable medical)\b/i;
+
+function messagePlainText(messages) {
+  return (messages || [])
+    .map((m) => {
+      if (typeof m.content === 'string') return m.content;
+      if (Array.isArray(m.content)) {
+        return m.content
+          .map((part) => (typeof part === 'string' ? part : (part && part.text) || ''))
+          .filter(Boolean)
+          .join('\n');
+      }
+      return '';
+    })
+    .join('\n');
+}
+
+function citedPlanIdsFromText(text) {
+  const re = new RegExp(CMS_PLAN_ID_RE.source, 'gi');
+  const seen = new Set();
+  const out = [];
+  (String(text || '').match(re) || []).forEach((raw) => {
+    const id = normalizePlanId(raw).split('/')[0];
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    out.push(id);
+  });
+  return out;
+}
+
+function rowHasExportSobFields(row) {
+  if (!row || typeof row !== 'object') return false;
+  const fields = row.fields && typeof row.fields === 'object' ? row.fields : row;
+  return EXPORT_SOB_FIELD_KEYS.some((key) => Object.prototype.hasOwnProperty.call(fields, key));
+}
+
+function planIdsCoveredBySobToolResults(toolResults) {
+  const ids = new Set();
+  (toolResults || []).forEach((tr) => {
+    if (!tr || tr.tool !== 'lookup_sob_benefit') return;
+    const out = tr.output || {};
+    (out.lookups || []).forEach((row) => {
+      if (row && row.planId && rowHasExportSobFields(row)) ids.add(normalizePlanId(row.planId));
+    });
+    [out.sobBenefits, out.byPlanId].forEach((map) => {
+      if (!map || typeof map !== 'object') return;
+      Object.keys(map).forEach((id) => {
+        if (rowHasExportSobFields(map[id])) ids.add(normalizePlanId(id));
+      });
+    });
+  });
+  return ids;
+}
+
+function uniquePlanIdsNeedingExportSob(messages, toolResults) {
+  const planIds = citedPlanIdsFromText(messagePlainText(messages));
+  const covered = planIdsCoveredBySobToolResults(toolResults);
+  return planIds.filter((id) => !covered.has(normalizePlanId(id)) && !covered.has(id));
+}
+
+// Comparison (2+ PBPs) always; a named SNF/DME ask also triggers even for one plan.
+function shouldAutoLookupComparisonSob(messages, toolResults) {
+  const text = messagePlainText(messages);
+  const planIds = citedPlanIdsFromText(text);
+  if (!planIds.length) return false;
+  if (planIds.length < 2 && !ASKED_EXPORT_SOB_RE.test(text)) return false;
+  return uniquePlanIdsNeedingExportSob(messages, toolResults).length > 0;
+}
+
 function resetSobCache() {
   textCache.clear();
   wiredPlansCache = null;
@@ -602,4 +675,11 @@ module.exports = {
   driveDirectUrl,
   findWiredPlan,
   resetSobCache,
+  EXPORT_SOB_FIELD_KEYS,
+  EXPORT_SOB_BENEFITS,
+  messagePlainText,
+  citedPlanIdsFromText,
+  planIdsCoveredBySobToolResults,
+  uniquePlanIdsNeedingExportSob,
+  shouldAutoLookupComparisonSob,
 };

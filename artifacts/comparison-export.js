@@ -64,12 +64,14 @@
   const HIGHLIGHT_KEYS = { hearing: true, otc: true };
   const SOB_EXTRA_AFTER = {
     inpatientHospital: [
-      ["Skilled Nursing Facility (days 1–20)", "snfDays1to20"],
-      ["Skilled Nursing Facility (days 21–100)", "snfDays21to100"],
+      ["Skilled Nursing Facility (days 1–20)", "snfDays1to20", { always: true }],
+      ["Skilled Nursing Facility (days 21–100)", "snfDays21to100", { always: true }],
     ],
     hearing: [["Hearing Aids", "hearingAids"]],
-    advancedImaging: [["Hospital-grade bed / DME", "dmeHospitalBed"]],
+    advancedImaging: [["Hospital-grade bed / DME", "dmeHospitalBed", { always: true }]],
   };
+  const ALWAYS_SOB_EXPORT_KEYS = ["snfDays1to20", "snfDays21to100", "dmeHospitalBed"];
+  const EXPORT_SOB_BENEFITS = ["skilled_nursing", "dme"];
 
   function isDualOrDsnpPlan(plan) {
     if (!plan) return false;
@@ -231,6 +233,48 @@
 
   function anySobField(plans, sobBenefits, key) {
     return (plans || []).some((p) => Boolean(sobFieldValue(p, sobBenefits, key)));
+  }
+
+  function mergeSobBenefitMaps(base, incoming) {
+    const out = Object.assign({}, base && typeof base === "object" ? base : {});
+    if (!incoming || typeof incoming !== "object") return out;
+    Object.keys(incoming).forEach((id) => {
+      const row = incoming[id] && incoming[id].fields ? incoming[id].fields : incoming[id];
+      if (!row || typeof row !== "object") return;
+      out[id] = Object.assign({}, out[id] || {}, row);
+    });
+    return out;
+  }
+
+  function plansNeedingExportSob(plans, sobBenefits) {
+    return (plans || []).filter((p) =>
+      ALWAYS_SOB_EXPORT_KEYS.some((key) => !sobFieldValue(p, sobBenefits, key))
+    );
+  }
+
+  // Export looks these three rows up itself when chat never stored lookup_sob_benefit.
+  // lookupFn must return { sobBenefits } from each plan's sobUrl — never invent dollars.
+  async function fillExportSobBenefits(plans, sobBenefits, lookupFn) {
+    const merged = mergeSobBenefitMaps({}, sobBenefits);
+    const need = plansNeedingExportSob(plans, merged);
+    if (!need.length || typeof lookupFn !== "function") return merged;
+    const planIds = need
+      .map((p) => displayContractPbp(p) || (p && (p.planId || p.id)) || "")
+      .map((id) => String(id).trim())
+      .filter(Boolean);
+    let incoming = {};
+    try {
+      const result = await lookupFn({
+        planIds,
+        plans: need,
+        benefits: EXPORT_SOB_BENEFITS.slice(),
+        query: "SNF days 1-20, SNF days 21-100, hospital-grade bed / DME",
+      });
+      incoming = (result && (result.sobBenefits || result.byPlanId || result)) || {};
+    } catch (_) {
+      incoming = {};
+    }
+    return mergeSobBenefitMaps(merged, incoming);
   }
 
   // Doctors DrSelect etc. store dental procedure rows as bare COUNTS of covered services
@@ -1632,8 +1676,11 @@
       if (key === "mspLevels" && !comparisonIncludesDual(plans)) return;
       const values = [label, ...plans.map((p) => formatBenefitValue(p[key], key))];
       pushBenefitRow(label, values, HIGHLIGHT_KEYS[key]);
-      (SOB_EXTRA_AFTER[key] || []).forEach(([extraLabel, extraKey]) => {
-        if (!anySobField(plans, sobBenefits, extraKey)) return;
+      (SOB_EXTRA_AFTER[key] || []).forEach((extra) => {
+        const extraLabel = extra[0];
+        const extraKey = extra[1];
+        const always = extra[2] && extra[2].always;
+        if (!always && !anySobField(plans, sobBenefits, extraKey)) return;
         const extraValues = [
           extraLabel,
           ...plans.map((p) => sobFieldValue(p, sobBenefits, extraKey) || "Unverified"),
@@ -1903,8 +1950,13 @@
     FIELD_ROWS,
     HIGHLIGHT_KEYS,
     SOB_EXTRA_AFTER,
+    ALWAYS_SOB_EXPORT_KEYS,
+    EXPORT_SOB_BENEFITS,
     sobFieldValue,
     anySobField,
+    mergeSobBenefitMaps,
+    plansNeedingExportSob,
+    fillExportSobBenefits,
     isDualOrDsnpPlan,
     comparisonIncludesDual,
     NETWORK_IN,

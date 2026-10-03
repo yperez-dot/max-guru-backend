@@ -88,12 +88,14 @@
   const HIGHLIGHT_KEYS = { hearing: true, otc: true };
   const SOB_EXTRA_AFTER = {
     inpatientHospital: [
-      ["Skilled Nursing Facility (days 1–20)", "snfDays1to20"],
-      ["Skilled Nursing Facility (days 21–100)", "snfDays21to100"],
+      ["Skilled Nursing Facility (days 1–20)", "snfDays1to20", { always: true }],
+      ["Skilled Nursing Facility (days 21–100)", "snfDays21to100", { always: true }],
     ],
     hearing: [["Hearing Aids", "hearingAids"]],
-    advancedImaging: [["Hospital-grade bed / DME", "dmeHospitalBed"]],
+    advancedImaging: [["Hospital-grade bed / DME", "dmeHospitalBed", { always: true }]],
   };
+  const ALWAYS_SOB_EXPORT_KEYS = ["snfDays1to20", "snfDays21to100", "dmeHospitalBed"];
+  const EXPORT_SOB_BENEFITS = ["skilled_nursing", "dme"];
 
   function isDualOrDsnpPlan(plan) {
     if (!plan) return false;
@@ -255,6 +257,48 @@
 
   function anySobField(plans, sobBenefits, key) {
     return (plans || []).some((p) => Boolean(sobFieldValue(p, sobBenefits, key)));
+  }
+
+  function mergeSobBenefitMaps(base, incoming) {
+    const out = Object.assign({}, base && typeof base === "object" ? base : {});
+    if (!incoming || typeof incoming !== "object") return out;
+    Object.keys(incoming).forEach((id) => {
+      const row = incoming[id] && incoming[id].fields ? incoming[id].fields : incoming[id];
+      if (!row || typeof row !== "object") return;
+      out[id] = Object.assign({}, out[id] || {}, row);
+    });
+    return out;
+  }
+
+  function plansNeedingExportSob(plans, sobBenefits) {
+    return (plans || []).filter((p) =>
+      ALWAYS_SOB_EXPORT_KEYS.some((key) => !sobFieldValue(p, sobBenefits, key))
+    );
+  }
+
+  // Export looks these three rows up itself when chat never stored lookup_sob_benefit.
+  // lookupFn must return { sobBenefits } from each plan's sobUrl — never invent dollars.
+  async function fillExportSobBenefits(plans, sobBenefits, lookupFn) {
+    const merged = mergeSobBenefitMaps({}, sobBenefits);
+    const need = plansNeedingExportSob(plans, merged);
+    if (!need.length || typeof lookupFn !== "function") return merged;
+    const planIds = need
+      .map((p) => displayContractPbp(p) || (p && (p.planId || p.id)) || "")
+      .map((id) => String(id).trim())
+      .filter(Boolean);
+    let incoming = {};
+    try {
+      const result = await lookupFn({
+        planIds,
+        plans: need,
+        benefits: EXPORT_SOB_BENEFITS.slice(),
+        query: "SNF days 1-20, SNF days 21-100, hospital-grade bed / DME",
+      });
+      incoming = (result && (result.sobBenefits || result.byPlanId || result)) || {};
+    } catch (_) {
+      incoming = {};
+    }
+    return mergeSobBenefitMaps(merged, incoming);
   }
 
   // Doctors DrSelect etc. store dental procedure rows as bare COUNTS of covered services
@@ -1656,8 +1700,11 @@
       if (key === "mspLevels" && !comparisonIncludesDual(plans)) return;
       const values = [label, ...plans.map((p) => formatBenefitValue(p[key], key))];
       pushBenefitRow(label, values, HIGHLIGHT_KEYS[key]);
-      (SOB_EXTRA_AFTER[key] || []).forEach(([extraLabel, extraKey]) => {
-        if (!anySobField(plans, sobBenefits, extraKey)) return;
+      (SOB_EXTRA_AFTER[key] || []).forEach((extra) => {
+        const extraLabel = extra[0];
+        const extraKey = extra[1];
+        const always = extra[2] && extra[2].always;
+        if (!always && !anySobField(plans, sobBenefits, extraKey)) return;
         const extraValues = [
           extraLabel,
           ...plans.map((p) => sobFieldValue(p, sobBenefits, extraKey) || "Unverified"),
@@ -1927,8 +1974,13 @@
     FIELD_ROWS,
     HIGHLIGHT_KEYS,
     SOB_EXTRA_AFTER,
+    ALWAYS_SOB_EXPORT_KEYS,
+    EXPORT_SOB_BENEFITS,
     sobFieldValue,
     anySobField,
+    mergeSobBenefitMaps,
+    plansNeedingExportSob,
+    fillExportSobBenefits,
     isDualOrDsnpPlan,
     comparisonIncludesDual,
     NETWORK_IN,
@@ -2614,6 +2666,41 @@ function collectComparisonExport(history, plans, extras) {
   });
 }
 
+async function fetchSobLookupForExport(req) {
+  const planIds = (req && req.planIds) || [];
+  if (!planIds.length) return { sobBenefits: {} };
+  const params = new URLSearchParams();
+  planIds.forEach((id) => params.append("planId", id));
+  params.set("benefits", "skilled_nursing,dme");
+  if (req && req.query) params.set("query", req.query);
+  const response = await fetch(API_BASE + "/sob-lookup?" + params.toString(), {
+    method: "GET",
+    headers: maxAuthHeaders(),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) return { sobBenefits: {} };
+  return { sobBenefits: data.sobBenefits || {} };
+}
+
+async function hydrateExportSobBenefits(payload) {
+  if (!payload || !payload.plans || !payload.plans.length) return payload;
+  const fill = window.MaxComparisonExport && window.MaxComparisonExport.fillExportSobBenefits;
+  if (typeof fill !== "function") return payload;
+  try {
+    payload.sobBenefits = await fill(payload.plans, payload.sobBenefits || {}, fetchSobLookupForExport);
+  } catch (_) {
+    payload.sobBenefits = payload.sobBenefits || {};
+  }
+  return payload;
+}
+
+async function runComparisonExport(kind, history, plans, extras) {
+  const payload = await hydrateExportSobBenefits(collectComparisonExport(history, plans, extras));
+  if (kind === "pdf") exportComparisonToPdf(payload);
+  else exportComparisonToExcel(payload);
+  return payload;
+}
+
 // This is an INTERNAL knowledge assistant -- not the customer-facing,
 // lead-qualification Elena. Different tool, different job: answer THEI
 // staff's real Medicare/plan questions using actual grid data, with
@@ -2855,7 +2942,7 @@ Your job: answer Medicare knowledge questions and specific plan benefit question
 HARD RULES -- these override everything else:
 1. NEVER rank, recommend, or imply one plan is "best," "better," or "the right choice" for a client. You may state objective facts (e.g. "Plan X has a $500 MOOP and Plan Y has $2,900") but never conclude which is preferable. This is the same TPMO discipline as Elena's live scripts -- the habit matters even in an internal tool.
 2. ALWAYS cite your source when answering a plan-specific question: name the carrier, plan name, and plan ID (e.g. "Source: CarePlus CareOne Plus, H1019-006"). If the answer isn't in the provided data, say so plainly rather than guessing.
-2b. Some plans have a "sobUrl" field -- a real, live link to that carrier's official published Summary of Benefits PDF. Format it as [SoB](the-actual-url) — short link text, never the raw URL. When an asked benefit is ABSENT from the 2027 green grid cells (hearing aids copay, SNF days 1–20 / 21–100, hospital-grade bed / DME, or any other client need not on the Plan Comparison Grid), call lookup_sob_benefit for each named plan using that plan's sobUrl. Quote only text the tool extracted. If the SOB cannot be read, say unverified — never invent dollars, never fill from 2026 or memory. After a successful lookup you HAVE read the SOB via the tool — cite it. If a plan has no sobUrl, say so.
+2b. Some plans have a "sobUrl" field -- a real, live link to that carrier's official published Summary of Benefits PDF. Format it as [SoB](the-actual-url) — short link text, never the raw URL. When an asked benefit is ABSENT from the 2027 green grid cells (hearing aids copay, SNF days 1–20 / 21–100, hospital-grade bed / DME, or any other client need not on the Plan Comparison Grid), call lookup_sob_benefit for each named plan using that plan's sobUrl. Quote only text the tool extracted. If the SOB cannot be read, say unverified — never invent dollars, never fill from 2026 or memory. After a successful lookup you HAVE read the SOB via the tool — cite it. If a plan has no sobUrl, say so. On every comparison with two or more plan IDs, ALWAYS call lookup_sob_benefit for SNF days 1–20, SNF days 21–100, and hospital-grade bed / DME on every compared plan — do not wait for the agent to ask again.
 2c. The "tags.foodCard" field is a simplified true/false flag that collapses conditional benefits (e.g. "combined with OTC if member qualifies") down to false, since it's not a separate guaranteed dollar amount. Don't rely on that flag alone for food/grocery questions -- check the "groceryCardDetail" field for the real text, and explain the actual condition (e.g. "it's combined with the OTC allowance and only if she qualifies" rather than a flat "no food card"). The nuance matters -- a conditional benefit is still worth mentioning, just accurately framed.
 3. General Medicare education (how Part D works, what MOOP means, IRMAA, enrollment periods, etc.) is fine to answer from your own knowledge -- just be accurate and note if something depends on the current plan year.
 4. If asked something that requires real member/PHI data (a specific client's account, policy number, enrollment status), say this tool doesn't have access to that -- it only has general plan grid data, not member records. Direct them to MedicarePro/GHL.
@@ -2876,10 +2963,10 @@ HARD RULES -- these override everything else:
 
 
 
-17b. CLIENT COMPARISON EXPORT -- this chat UI CAN export a side-by-side Excel or PDF when you cite two or more plan IDs (Export Excel / Export PDF buttons). NEVER say you cannot generate or export Excel, PDF, spreadsheets, or files. When an agent asks for Excel / PDF / export / side-by-side: briefly restate the plan names with their exact plan IDs from PLAN DATA (one line each), then tell them to click the button under your message. If the thread already has a client name or doctor in-network / out-of-network / not confirmed / need more info results from lookup_provider_network, mention those facts in the same reply so the export can pick them up -- never invent a client name, doctors, or network status. Do NOT add a Plan Terminating row unless the agent explicitly says a current plan is terminating. Export layout is the Yahoska / Arias Lazo sheet: client name as title, plan columns as full marketing name plus contract-PBP on its own line, Doctors section FIRST (In network / Out of network / Not confirmed / Need more info — always include when providers were checked or named), then Medications immediately under Doctors (brand* not covered + generic), then the fixed 2027 green-cell benefit row order plus SOB-only extras (Hearing Aids, SNF days 1–20 / 21–100, Hospital-grade bed / DME) when lookup_sob_benefit found them, then SOB/EOC as links or pending. Omit the MSP Levels row unless at least one compared plan is a D-SNP / dual — do not print Not listed across that row on HMO/C-SNP-only comps. When a asked benefit is not on the grid, call lookup_sob_benefit — never say it is not on the grid and omit it. Never treat carrier names (Doctors, UHC, Humana) as medication rows. When a brand is verified not covered, automatically pull the generic (Lipitor → Atorvastatin, Benicar → Olmesartan) — do not wait for the agent to type the generic. Show brand* as not covered with the asterisk note; generic tier from live lookup_formulary only — never invent a tier. Export the CURRENT thread comparison — never overwrite with an earlier Muskat snapshot. Do not invent file downloads yourself and do not send them to build a sheet manually.
+17b. CLIENT COMPARISON EXPORT -- this chat UI CAN export a side-by-side Excel or PDF when you cite two or more plan IDs (Export Excel / Export PDF buttons). NEVER say you cannot generate or export Excel, PDF, spreadsheets, or files. When an agent asks for Excel / PDF / export / side-by-side: briefly restate the plan names with their exact plan IDs from PLAN DATA (one line each), then tell them to click the button under your message. If the thread already has a client name or doctor in-network / out-of-network / not confirmed / need more info results from lookup_provider_network, mention those facts in the same reply so the export can pick them up -- never invent a client name, doctors, or network status. Do NOT add a Plan Terminating row unless the agent explicitly says a current plan is terminating. Export layout is the Yahoska / Arias Lazo sheet: client name as title, plan columns as full marketing name plus contract-PBP on its own line, Doctors section FIRST (In network / Out of network / Not confirmed / Need more info — always include when providers were checked or named), then Medications immediately under Doctors (brand* not covered + generic), then the fixed 2027 green-cell benefit row order plus always-on SNF days 1–20 / 21–100 and Hospital-grade bed / DME from each plan's sobUrl (Unverified if the SOB has no number — never a chopped PDF fragment), then SOB/EOC as links or pending. Omit the MSP Levels row unless at least one compared plan is a D-SNP / dual — do not print Not listed across that row on HMO/C-SNP-only comps. On every comparison, call lookup_sob_benefit for those three SOB rows without waiting for the agent to ask. Never treat carrier names (Doctors, UHC, Humana) as medication rows. When a brand is verified not covered, automatically pull the generic (Lipitor → Atorvastatin, Benicar → Olmesartan) — do not wait for the agent to type the generic. Show brand* as not covered with the asterisk note; generic tier from live lookup_formulary only — never invent a tier. Export the CURRENT thread comparison — never overwrite with an earlier Muskat snapshot. Do not cap a 4-plan compare at 3. Do not invent file downloads yourself and do not send them to build a sheet manually.
 17c. MUSKAT 2027 -- Excel/PDF must use the CURRENT comparison in this thread (plans, doctors, meds, 2027 green cells), never a hardcoded earlier snapshot. Humana Gold Plus H1036-054C must be the first plan column whenever it is in the current comparison — do not drop it if a later reply only restates H4140-023 and H5420-001. One column per distinct contract-PBP — collapse county/catalog/thread/workup copies (never Humana×2 / Doctors×3 / UHC×3). Do not cap a 4-plan comparison at 3. Keep verified formulary tiers from this thread; do not blank them to Unverified. Keep Lipitor*/Atorvastatin and Benicar*/Olmesartan when those brands are not covered. The 014 lock applies ONLY when those three IDs are the current columns. Stay-put H5420-001 keeps 001 green cells. One row per doctor. Do not drop Jason Margolesky or Miami Neurology & Rehab. Never invent a Plan Terminating row from "no MSP row."
 
-18. LIVE LOOKUP TOOLS -- you have live tools that query external systems: lookup_provider_network (NPI Registry first — people and clinic orgs — then FL Blue, Cigna/HealthSpring, HealthSun, Devoted, Doctors HealthCare Plans, Aetna guest, Simply guest, UHC public guest Find a Doctor for 2027 Duals/Preferred/MedicareMax — no Jarvis or member login, and Humana public Find Care guest for 2027 Gold Plus/Duals/Choice — no member login), search_clinic_or_provider (CMS NPPES org/DBA search + optional known clinic webpage; never Google SERPs), search_drug (Sunfire catalog — name/NDC only, not a plan tier), lookup_formulary (required before quoting a drug tier / PA / ST / T4 % on a named plan), and lookup_sob_benefit (required when an asked benefit is not on the 2027 grid — hearing aids copay, SNF days 1–20 / 21–100, hospital-grade bed / DME; quote only extracted SOB text, never invent dollars). Solis is county-PDF only. CarePlus and Wellcare still rely on Sunfire or the carrier site. These tools are the ONE exception to Rules 4, 15, and 17's "only the data provided here" boundary. Use normal API function calling -- never print tool-call syntax. Rules for provider results: (a) present them concisely and cite the source directory on each hit; (b) a failed check is not out-of-network — say the lookup failed and hand the guest URL (UHC: uhc.com/find-a-doctor Continue as guest; Humana: findcare.humana.com Search as a guest); (c) empty Sunfire is not UHC or Humana out-of-network; only report UHC/Humana OON when that guest directory returned a successful empty result for that CMS ID or network; (d) never fill a gap from training; (e) Rule 1 still applies — network participation is a fact, never a reason to call one plan better; (f) hospital questions still use HOSPITALS; (g) for enrollment-critical decisions, confirm with the carrier because directory data can lag; (h) a Cigna/HealthSpring directory hit is NOT a 2027 Miami-Dade or Broward MA enrollment option — HealthSpring has no 2027 MA plans in those counties; never say "she's in-network with Cigna so consider HealthSpring."; (i) if a clinic/group/DBA name misses (e.g. Miami Neurology & Rehab Specialists / MNRS vs legal MIAMI NEUROLOGY & REHABILITATION SPECIALISTS, org NPI 1689860280), call search_clinic_or_provider, propose the NPI(s), then re-run lookup_provider_network with npi= — true In/Out is NPI + carrier Find Care only; (j) a clinic insurances-accepted page is marketing, not verified In/Out. If a Humana (or other carrier) logo IS on the page: "Found a Humana logo on their site — here's the link. I recommend you call and confirm." If it is NOT (MNRS / https://miamiphysicaltherapy.com/insurances/ lists Aetna, ASHP, AvMed, Cigna, Doctors Healthcare, GEHA, Golden Rule, Hartford, Harvard Pilgrim, Medicare, NALC, PHCS, TRICARE, UnitedHealthcare, UAIC, UMR, VA, Gallagher Bassett — NO Humana): say "{carrier} is not listed on their accepted-insurances page", link it, recommend calling the office. Do not treat absence on the clinic site as definitive OON if Find Care later returns IN — report both: not listed on clinic site + the NPI Find Care result.
+18. LIVE LOOKUP TOOLS -- you have live tools that query external systems: lookup_provider_network (NPI Registry first — people and clinic orgs — then FL Blue, Cigna/HealthSpring, HealthSun, Devoted, Doctors HealthCare Plans, Aetna guest, Simply guest, UHC public guest Find a Doctor for 2027 Duals/Preferred/MedicareMax — no Jarvis or member login, and Humana public Find Care guest for 2027 Gold Plus/Duals/Choice — no member login), search_clinic_or_provider (CMS NPPES org/DBA search + optional known clinic webpage; never Google SERPs), search_drug (Sunfire catalog — name/NDC only, not a plan tier), lookup_formulary (required before quoting a drug tier / PA / ST / T4 % on a named plan), and lookup_sob_benefit (required on every comparison for SNF days 1–20 / 21–100 and hospital-grade bed / DME without the agent asking, and whenever another asked benefit is not on the 2027 grid — hearing aids copay or similar; quote only extracted SOB text, never invent dollars). Solis is county-PDF only. CarePlus and Wellcare still rely on Sunfire or the carrier site. These tools are the ONE exception to Rules 4, 15, and 17's "only the data provided here" boundary. Use normal API function calling -- never print tool-call syntax. Rules for provider results: (a) present them concisely and cite the source directory on each hit; (b) a failed check is not out-of-network — say the lookup failed and hand the guest URL (UHC: uhc.com/find-a-doctor Continue as guest; Humana: findcare.humana.com Search as a guest); (c) empty Sunfire is not UHC or Humana out-of-network; only report UHC/Humana OON when that guest directory returned a successful empty result for that CMS ID or network; (d) never fill a gap from training; (e) Rule 1 still applies — network participation is a fact, never a reason to call one plan better; (f) hospital questions still use HOSPITALS; (g) for enrollment-critical decisions, confirm with the carrier because directory data can lag; (h) a Cigna/HealthSpring directory hit is NOT a 2027 Miami-Dade or Broward MA enrollment option — HealthSpring has no 2027 MA plans in those counties; never say "she's in-network with Cigna so consider HealthSpring."; (i) if a clinic/group/DBA name misses (e.g. Miami Neurology & Rehab Specialists / MNRS vs legal MIAMI NEUROLOGY & REHABILITATION SPECIALISTS, org NPI 1689860280), call search_clinic_or_provider, propose the NPI(s), then re-run lookup_provider_network with npi= — true In/Out is NPI + carrier Find Care only; (j) a clinic insurances-accepted page is marketing, not verified In/Out. If a Humana (or other carrier) logo IS on the page: "Found a Humana logo on their site — here's the link. I recommend you call and confirm." If it is NOT (MNRS / https://miamiphysicaltherapy.com/insurances/ lists Aetna, ASHP, AvMed, Cigna, Doctors Healthcare, GEHA, Golden Rule, Hartford, Harvard Pilgrim, Medicare, NALC, PHCS, TRICARE, UnitedHealthcare, UAIC, UMR, VA, Gallagher Bassett — NO Humana): say "{carrier} is not listed on their accepted-insurances page", link it, recommend calling the office. Do not treat absence on the clinic site as definitive OON if Find Care later returns IN — report both: not listed on clinic site + the NPI Find Care result.
 
 19. AGENT MEDICARE HUB KNOWLEDGE (bot version of the Hub) -- you also have search_knowledge and get_knowledge_doc tools backed by THEI's Agent Medicare Hub content imported under keys like hub/compliance, hub/sep-tracker, hub/seps-by-state/FL, hub/medicare-basics, hub/medicaid-lis, hub/certs, hub/certs-compliance, hub/getting-started, hub/hra-guide, hub/non-comm-plans, hub/carrier-contact-guide, hub/retention-toolkit, hub/aep-2027-training, hub/ma-pdp-certs, hub/medicare-supplements, hub/agentsync-guide, hub/nextere-guide, hub/client-forms, hub/lead-gen-library, hub/sales-library, hub/contracting-blackout, hub/agent-benefits, and related hub/* docs. For questions about SEPs / disaster SEPs, compliance, SOA rules, AHIP/MA-PDP certs, contracting, blackout dates, Medicaid/LIS, HRA, retention, lead-gen, sales scripts/libraries, supplements, or "what's on the Hub" topics: ALWAYS call search_knowledge (or get_knowledge_doc for a known key) BEFORE answering. Prefer hub/seps-by-state/FL for Florida SEP questions. Cite the hub document key as your source. 2027 plan benefit dollars and plan IDs come from PLAN DATA (Rule 2) -- Hub docs cover ops/compliance/SEP/certs, not a replacement for the 2027 grid. If a 2027 benefit cell is blank, say pending SoB — do not fill it from 2026. If the Hub doc is thin or outdated-feeling, say what you found and note they can confirm on Agent Medicare Hub.
 
@@ -3639,14 +3726,14 @@ function App() {
           const sameSet = window.MaxComparisonExport.sameExportPlanSet;
           const rememberedFits = remembered && typeof sameSet === "function" && sameSet(remembered.plans, fromThread);
           const offerFits = lastOffer && typeof sameSet === "function" && sameSet(lastOffer.plans, fromThread);
-          const payload = collectComparisonExport(newHistory, fromThread, {
+          const payload = await hydrateExportSobBenefits(collectComparisonExport(newHistory, fromThread, {
             drugs: rememberedFits ? (remembered.drugs || []) : offerFits ? (lastOffer.drugs || []) : [],
             doctors: rememberedFits ? (remembered.doctors || []) : offerFits ? (lastOffer.doctors || []) : [],
             clientName: (remembered && remembered.clientName) || lastOffer?.clientName || "",
             sobBenefits: rememberedFits ? (remembered.sobBenefits || {}) : offerFits ? (lastOffer.sobBenefits || {}) : {},
             toolResults: sessionToolResultsRef.current,
             rememberedPlans: (remembered && remembered.plans) || (lastOffer && lastOffer.plans) || [],
-          });
+          }));
           lastComparisonExportRef.current = payload;
           scheduleAutoSave(payload);
           const labels = (payload.plans || fromThread).map((p) => `${p.carrier} ${p.planName} (${p.planId})`).join(" vs ");
@@ -3698,7 +3785,7 @@ function App() {
         columns = (typeof order === "function" ? order(columns) : columns).slice(0, 8);
         const sameSet = window.MaxComparisonExport.sameExportPlanSet;
         const rememberedFits = remembered && typeof sameSet === "function" && sameSet(remembered.plans, columns);
-        const payload = collectComparisonExport([...newHistory, assistantMsg], columns, {
+        const payload = await hydrateExportSobBenefits(collectComparisonExport([...newHistory, assistantMsg], columns, {
           drugs: [
             ...(rememberedFits ? (remembered.drugs || []) : []),
             ...drugsFromToolResults(result.toolResults),
@@ -3707,7 +3794,7 @@ function App() {
           toolResults: sessionToolResultsRef.current,
           sobBenefits: rememberedFits ? (remembered.sobBenefits || {}) : {},
           rememberedPlans: (remembered && remembered.plans) || [],
-        });
+        }));
         lastComparisonExportRef.current = payload;
         scheduleAutoSave(payload);
         nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, sobBenefits: payload.sobBenefits, time: nowLabel() }];
@@ -4127,11 +4214,11 @@ function App() {
                 <div className="max-export-scroll" style={{ padding: "12px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(255,255,255,0.88)", color: "var(--ink)", fontSize: 14.5, lineHeight: 1.5, border: "1px solid var(--line)", maxWidth: "100%" }}>
                   <div style={{ marginBottom: 10 }}>Want this comparison as Excel or PDF?</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button onClick={() => { exportComparisonToExcel(collectComparisonExport(messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", sobBenefits: m.sobBenefits || {}, toolResults: sessionToolResultsRef.current, rememberedPlans: m.plans || [] })); setMessages(prev => prev.filter((_,j) => j !== i)); }}
+                    <button onClick={() => { void runComparisonExport("excel", messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", sobBenefits: m.sobBenefits || {}, toolResults: sessionToolResultsRef.current, rememberedPlans: m.plans || [] }).then(() => setMessages(prev => prev.filter((_,j) => j !== i))); }}
                       style={{ padding: "8px 14px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)", color: "white", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
                       Export Excel
                     </button>
-                    <button onClick={() => { exportComparisonToPdf(collectComparisonExport(messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", sobBenefits: m.sobBenefits || {}, toolResults: sessionToolResultsRef.current, rememberedPlans: m.plans || [] })); setMessages(prev => prev.filter((_,j) => j !== i)); }}
+                    <button onClick={() => { void runComparisonExport("pdf", messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", sobBenefits: m.sobBenefits || {}, toolResults: sessionToolResultsRef.current, rememberedPlans: m.plans || [] }).then(() => setMessages(prev => prev.filter((_,j) => j !== i))); }}
                       style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
                       Export PDF
                     </button>

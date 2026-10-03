@@ -382,6 +382,10 @@ describe('HTML UI wiring', () => {
     assert.match(html, /Omit the MSP Levels row unless at least one compared plan is a D-SNP/);
     assert.match(html, /lookup_sob_benefit/);
     assert.match(html, /sobFromToolResults/);
+    assert.match(html, /fillExportSobBenefits/);
+    assert.match(html, /hydrateExportSobBenefits/);
+    assert.match(html, /runComparisonExport/);
+    assert.match(html, /do not wait for the agent to ask/);
     assert.match(html, /Do NOT add a Plan Terminating row unless/);
     assert.match(html, /MaxClientWorkups/);
     assert.match(html, /\/workups/);
@@ -401,7 +405,7 @@ describe('HTML UI wiring', () => {
     assert.match(html, /1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A/);
     assert.match(html, /archive of finished client comps/);
     assert.match(html, /not the 2027 benefit grid/);
-    assert.match(html, /collectComparisonExport\(messagesRef\.current, m\.plans/);
+    assert.match(html, /runComparisonExport\("excel", messagesRef\.current, m\.plans/);
   });
 
   it('keeps the 2027 grid export pointed at the working workbook, not Yahoska archive', () => {
@@ -483,7 +487,33 @@ describe('export doctors section + no carrier-as-drug', () => {
 });
 
 describe('SOB-only extra benefit rows', () => {
-  it('omits SNF / hearing-aids / DME rows when the SOB did not find them', () => {
+  it('still prints the three SOB rows when the chat never stored a lookup', () => {
+    const plans = [
+      { planId: 'H1036-054C', planName: 'Humana Gold Plus', inpatientHospital: '$0', hearing: '$0 exam' },
+      { planId: 'H4140-023', planName: 'DrSelect-SFL', inpatientHospital: '$0', hearing: '$1,350' },
+      { planId: 'H5420-001', planName: 'MedicareMax FL-0028', inpatientHospital: '$0', hearing: '$0 exam' },
+    ];
+    const model = exp.buildComparisonModel({
+      plans,
+      clientName: 'Mr. and Mrs. Muskat',
+      skipMuskatLock: true,
+    });
+    const labels = model.aoa.map((row) => row[0]);
+    assert.ok(labels.includes('Skilled Nursing Facility (days 1–20)'));
+    assert.ok(labels.includes('Skilled Nursing Facility (days 21–100)'));
+    assert.ok(labels.includes('Hospital-grade bed / DME'));
+    assert.equal(labels.includes('Hearing Aids'), false);
+    assert.equal(labels.includes('Plan Terminating'), false);
+    const snf1 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 1–20)');
+    const snf2 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 21–100)');
+    const dme = model.aoa.find((row) => row[0] === 'Hospital-grade bed / DME');
+    assert.deepEqual(snf1.slice(1), ['Unverified', 'Unverified', 'Unverified']);
+    assert.deepEqual(snf2.slice(1), ['Unverified', 'Unverified', 'Unverified']);
+    assert.deepEqual(dme.slice(1), ['Unverified', 'Unverified', 'Unverified']);
+    assert.equal(model.aoa.some((row) => /scription|cal DME|\u2026|\.\.\.$/.test(row.join(' '))), false);
+  });
+
+  it('omits hearing-aids rows when the SOB did not find them', () => {
     const plans = [
       { planId: 'H1036-054C', planName: 'Humana Gold Plus', inpatientHospital: '$0', hearing: '$0 exam' },
       { planId: 'H4140-023', planName: 'DrSelect-SFL', inpatientHospital: '$0', hearing: '$1,350' },
@@ -494,9 +524,68 @@ describe('SOB-only extra benefit rows', () => {
       skipMuskatLock: true,
     });
     const labels = model.aoa.map((row) => row[0]);
-    assert.equal(labels.includes('Skilled Nursing Facility (days 1–20)'), false);
     assert.equal(labels.includes('Hearing Aids'), false);
-    assert.equal(labels.includes('Hospital-grade bed / DME'), false);
+  });
+
+  it('fillExportSobBenefits looks up the three rows when chat stored nothing', async () => {
+    const plans = [
+      {
+        planId: 'H1036-054C',
+        planName: 'Humana Gold Plus',
+        sobUrl: 'https://example.com/humana.pdf',
+        inpatientHospital: '$0',
+      },
+      {
+        planId: 'H4140-023',
+        planName: 'DrSelect-SFL',
+        sobUrl: 'https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax_ENG.pdf',
+        inpatientHospital: '$0',
+      },
+      {
+        planId: 'H5420-001',
+        planName: 'MedicareMax FL-0028',
+        sobUrl: 'https://example.com/uhc.pdf',
+        inpatientHospital: '$0',
+      },
+    ];
+    let called = null;
+    const filled = await exp.fillExportSobBenefits(plans, {}, async (req) => {
+      called = req;
+      return {
+        sobBenefits: {
+          'H1036-054C': {
+            snfDays1to20: { value: 'Days 1-20: $0 copay', source: 'sob' },
+            snfDays21to100: { value: 'Days 21-100: $214 copay per day', source: 'sob' },
+            dmeHospitalBed: { value: 'Hospital bed 20% coinsurance', source: 'sob' },
+          },
+          'H4140-023': {},
+          'H5420-001': {
+            snfDays1to20: { value: 'Days 1-20: $0 copay', source: 'sob' },
+          },
+        },
+      };
+    });
+    assert.ok(called);
+    assert.deepEqual(called.benefits, ['skilled_nursing', 'dme']);
+    assert.deepEqual(called.planIds, ['H1036-054C', 'H4140-023', 'H5420-001']);
+    const model = exp.buildComparisonModel({
+      plans,
+      clientName: 'Mr. and Mrs. Muskat',
+      sobBenefits: filled,
+      skipMuskatLock: true,
+    });
+    const snf1 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 1–20)');
+    const snf2 = model.aoa.find((row) => row[0] === 'Skilled Nursing Facility (days 21–100)');
+    const dme = model.aoa.find((row) => row[0] === 'Hospital-grade bed / DME');
+    assert.equal(snf1[1], 'Days 1-20: $0 copay');
+    assert.equal(snf1[2], 'Unverified');
+    assert.equal(snf1[3], 'Days 1-20: $0 copay');
+    assert.match(snf2[1], /\$214/);
+    assert.equal(snf2[2], 'Unverified');
+    assert.equal(dme[1], 'Hospital bed 20% coinsurance');
+    assert.equal(dme[2], 'Unverified');
+    assert.equal(dme.includes('$999'), false);
+    assert.equal(model.aoa.some((row) => row[0] === 'Plan Terminating'), false);
   });
 
   it('adds SNF, hearing aids, and DME rows only from live SOB/grid extras — no invented dollars', () => {

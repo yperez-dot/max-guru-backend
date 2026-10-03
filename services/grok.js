@@ -1,6 +1,11 @@
 // services/grok.js — Max Medicare Guru via OpenAI-compatible chat (Grok or OpenAI)
 const { TOOLS, processTool } = require('./claude');
 const { countImagesInMessages, normalizeMessages } = require('./chatImages');
+const {
+  shouldAutoLookupComparisonSob,
+  uniquePlanIdsNeedingExportSob,
+  EXPORT_SOB_BENEFITS,
+} = require('./sobLookup');
 
 /**
  * Provider selection (Railway Variables):
@@ -117,13 +122,15 @@ async function callGrok(opts) {
  * Pass-through chat used by Netlify UI.
  * Returns Anthropic-shaped { content: [{type:'text', text}], toolResults? }
  */
-async function passThroughChat({ system, messages }) {
+async function passThroughChat({ system, messages, processToolFn }) {
+  const runTool = typeof processToolFn === 'function' ? processToolFn : processTool;
   const openaiTools = toOpenAITools(TOOLS);
   let apiMessages = normalizeMessages(messages, { validate: false });
   const collectedToolResults = [];
   const usageCalls = [];
   let lastData = null;
   let lastMessage = null;
+  let autoSobLookupDone = false;
 
   const captureUsage = (data) => {
     if (!data?.usage) return;
@@ -141,7 +148,48 @@ async function passThroughChat({ system, messages }) {
     lastMessage = lastData.choices?.[0]?.message || {};
     const toolCalls = lastMessage.tool_calls || [];
 
-    if (!toolCalls.length) break;
+    if (!toolCalls.length) {
+      const probeMessages = apiMessages.concat(
+        lastMessage && lastMessage.content
+          ? [{ role: 'assistant', content: lastMessage.content }]
+          : []
+      );
+      if (
+        !autoSobLookupDone &&
+        shouldAutoLookupComparisonSob(probeMessages, collectedToolResults)
+      ) {
+        autoSobLookupDone = true;
+        const planIds = uniquePlanIdsNeedingExportSob(probeMessages, collectedToolResults);
+        if (planIds.length) {
+          console.log(`[AutoTool/${CONFIG.provider}] lookup_sob_benefit ${planIds.join(',')}`);
+          const result = await runTool('lookup_sob_benefit', {
+            planIds,
+            benefits: EXPORT_SOB_BENEFITS.slice(),
+            query: 'SNF days 1-20, SNF days 21-100, hospital-grade bed / DME',
+          });
+          const text = resolveToolResult(result);
+          const structured =
+            result && typeof result === 'object' && result.structured
+              ? result.structured
+              : { text };
+          collectedToolResults.push({ tool: 'lookup_sob_benefit', output: structured });
+          apiMessages.push({
+            role: 'assistant',
+            content: lastMessage.content || 'Looking up SNF and hospital-grade bed from each plan SOB.',
+          });
+          apiMessages.push({
+            role: 'user',
+            content:
+              'Required SOB lookup for this comparison (do this without the agent asking). ' +
+              'Quote SNF days 1–20, SNF days 21–100, and hospital-grade bed / DME from this extract only. ' +
+              'Unverified if no number. Never invent dollars. Never print chopped PDF fragments.\n' +
+              text,
+          });
+          continue;
+        }
+      }
+      break;
+    }
 
     apiMessages.push({
       role: 'assistant',
@@ -158,7 +206,7 @@ async function passThroughChat({ system, messages }) {
         input = {};
       }
       console.log(`[Tool/${CONFIG.provider}] ${name}`);
-      const result = await processTool(name, input);
+      const result = await runTool(name, input);
       const text = resolveToolResult(result);
       const structured =
         result && typeof result === 'object' && result.structured
@@ -184,7 +232,7 @@ async function passThroughChat({ system, messages }) {
       toolInput = JSON.parse(toolMatch[2]);
     } catch (_) {}
     console.log(`[ReactiveToolCall/${CONFIG.provider}] ${toolName}`);
-    const toolResult = await processTool(toolName, toolInput);
+    const toolResult = await runTool(toolName, toolInput);
     const resolved = resolveToolResult(toolResult);
     const cleanText = text
       .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '')
