@@ -2743,6 +2743,12 @@
   }
   .max-fade { animation: maxFadeUp 0.45s ease both; }
   .max-online-dot { animation: maxPulse 2.2s infinite; }
+  .max-composer-row textarea {
+    min-width: 0;
+    resize: none;
+    overflow-y: auto;
+    line-height: 1.35;
+  }
   @media (max-width: 640px) {
     html, body, #root { height: 100%; height: 100dvh; overflow: hidden; }
     body { background-attachment: scroll; }
@@ -2752,7 +2758,7 @@
     .max-tap { min-height: 44px; min-width: 44px; }
     .max-workup-actions { flex-wrap: wrap; }
     .max-workup-actions .max-tap { flex: 1 1 42%; }
-    .max-composer-row input { min-width: 0; font-size: 16px !important; }
+    .max-composer-row textarea { min-width: 0; font-size: 16px !important; }
     .max-error-banner { max-width: 100%; }
     .max-export-scroll { overscroll-behavior-x: contain; }
   }
@@ -2766,6 +2772,115 @@
 
 
 <script id="hospitals-data" type="application/json">[{"hospital": "Aventura", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Devoted HMO", "Doctors", "HealthSun", "Humana", "MedicareMax", "Preferred Care Partner", "Simply", "Solis", "WellCare"]}, {"hospital": "Baptist Hospital", "inNetworkCarriers": ["Aetna", "CarePlus", "Devoted HMO", "Doctors", "FL BLUE", "HealthSpring", "Humana", "MedicareMax"]}, {"hospital": "Bascom Palmer", "inNetworkCarriers": ["Aetna", "Humana", "MedicareMax", "Solis"]}, {"hospital": "Bethesda West", "inNetworkCarriers": ["AARP/UHC Choice PPO", "WellCare"]}, {"hospital": "Broward Health", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Doctors", "FL BLUE", "Humana", "MedicareMax", "Preferred Care Partner", "Simply", "WellCare"]}, {"hospital": "Broward Health (ALL)", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Doctors", "FL BLUE", "Humana", "MedicareMax", "Preferred Care Partner", "Simply", "WellCare"], "note": "Near-duplicate of the \"Broward Health\" row above -- same carrier list. Possibly meant as an \"all locations\" summary row; worth confirming with Carolina whether this should be merged."}, {"hospital": "Broward Health Coral Springs", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Doctors", "FL BLUE", "HealthSpring", "Humana", "MedicareMax", "Preferred Care Partner", "Simply", "WellCare"]}, {"hospital": "Broward Health Imperial Point", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Doctors", "FL BLUE", "HealthSun", "Humana", "MedicareMax", "Preferred Care Partner", "Simply", "WellCare"]}, {"hospital": "Broward Health Medical Center", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Doctors", "FL BLUE", "HealthSun", "Humana", "Humana PPO", "MedicareMax", "Preferred Care Partner", "Simply", "WellCare"]}, {"hospital": "Broward Health North", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Doctors", "FL BLUE", "Humana", "Humana PPO", "MedicareMax", "Preferred Care Partner", "Simply", "WellCare"]}, {"hospital": "Cleveland Clinic", "inNetworkCarriers": ["Aetna", "Devoted HMO", "Doctors", "FL BLUE", "HealthSpring", "Humana", "Humana PPO", "MedicareMax", "Preferred Care Partner"]}, {"hospital": "Coral Gables", "inNetworkCarriers": ["Aetna", "CarePlus", "Devoted HMO", "HealthSun", "Humana", "Humana PPO", "MedicareMax", "Preferred Care Partner", "Simply", "Solis", "WellCare"]}, {"hospital": "Coral Springs Medical Center", "inNetworkCarriers": ["HealthSun"]}, {"hospital": "Delray Medical", "inNetworkCarriers": ["AARP/UHC Choice PPO", "WellCare"]}, {"hospital": "Doctors", "inNetworkCarriers": ["Aetna", "CarePlus", "Devoted HMO", "Doctors", "FL BLUE", "HealthSpring", "Humana", "Humana PPO", "MedicareMax"]}, {"hospital": "Douglas Gardens", "inNetworkCarriers": ["FL BLUE"]}, {"hospital": "Emergency Mount Sinai", "inNetworkCarriers": ["FL BLUE"]}, {"hospital": "Florida Medical Center", "inNetworkCarriers": ["Devoted HMO", "MedicareMax", "Simply", "WellCare"]}, {"hospital": "Fort Lauderdale Hosp", "inNetworkCarriers": ["FL BLUE"]}, {"hospital": "HCA Florida", "inNetworkCarriers": ["FL BLUE", "Humana PPO"]}, {"hospital": "HCA Florida Aventura", "inNetworkCarriers": ["FL BLUE", "Humana PPO"]}, {"hospital": "HCA Northwest", "inNetworkCarriers": ["Humana PPO", "Preferred Care Partner"]}, {"hospital": "HCA Davie", "inNetworkCarriers": ["Humana PPO", "Preferred Care Partner"]}, {"hospital": "HCA University", "inNetworkCarriers": ["Doctors", "Humana PPO", "Preferred Care Partner"]}, {"hospital": "HCA Westside", "inNetworkCarriers": ["HealthSpring", "Humana PPO", "Preferred Care Partner"]}, {"hospital": "HCA Woodmont", "inNetworkCarriers": ["Doctors", "Humana PPO", "Preferred Care Partner"]}, {"hospital": "HealthSouth", "inNetworkCarriers": ["WellCare"]}, {"hospital": "Henderson Behavioral", "inNetworkCarriers": ["FL BLUE"]}, {"hospital": "Hialeah", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Devoted HMO", "HealthSun", "Humana", "MedicareMax", "Preferred Care Partner", "Solis", "WellCare"]}, {"hospital": "Holy Cross", "inNetworkCarriers": ["Aetna", "CarePlus", "Devoted HMO", "FL BLUE", "Humana PPO", "MedicareMax", "Preferred Care Partner", "Solis"]}, {"hospital": "Homestead", "inNetworkCarriers": ["CarePlus", "Devoted HMO", "Doctors", "FL BLUE", "Humana"]}, {"hospital": "Jackson North", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Devoted HMO", "Doctors", "FL BLUE", "HealthSpring", "HealthSun", "Humana", "Humana PPO", "MedicareMax", "Preferred Care Partner", "Simply", "Solis", "WellCare"]}, {"hospital": "Jackson South", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Devoted HMO", "Doctors", "FL BLUE", "HealthSpring", "HealthSun", "Humana", "MedicareMax", "Preferred Care Partner", "Simply", "Solis", "WellCare"]}, {"hospital": "Jackson West", "inNetworkCarriers": ["Devoted HMO", "FL BLUE", "HealthSpring", "HealthSun", "MedicareMax"]}, {"hospital": "Kendall Regional", "inNetworkCarriers": ["Aetna", "CarePlus", "Devoted HMO", "Doctors", "HealthSpring", "HealthSun", "Humana", "Humana PPO", "MedicareMax", "Preferred Care Partner", "Simply", "Solis"]}, {"hospital": "Kindred", "inNetworkCarriers": ["AARP/UHC Choice PPO", "FL BLUE", "Humana PPO", "MedicareMax", "Preferred Care Partner", "Simply", "WellCare"]}, {"hospital": "Kindred FTL", "inNetworkCarriers": ["Humana PPO", "Preferred Care Partner"]}, {"hospital": "Kindred Hollywood", "inNetworkCarriers": ["Humana PPO", "Preferred Care Partner"]}, {"hospital": "Kindred Hospital", "inNetworkCarriers": ["AARP/UHC Choice PPO", "HealthSpring", "Humana PPO", "WellCare"]}, {"hospital": "Kindred Hospital of Coral Gables", "inNetworkCarriers": ["Humana PPO", "MedicareMax"]}, {"hospital": "Larkin", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Devoted HMO", "Doctors", "FL BLUE", "HealthSun", "Humana", "MedicareMax", "Preferred Care Partner", "Simply", "WellCare"]}, {"hospital": "Larkin Hollywood", "inNetworkCarriers": ["Preferred Care Partner"]}, {"hospital": "LCH Palm Springs", "inNetworkCarriers": ["MedicareMax"]}, {"hospital": "Memorial Hospitals", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Doctors", "FL BLUE", "HealthSun", "Humana", "MedicareMax", "Preferred Care Partner", "Simply", "Solis", "WellCare"]}, {"hospital": "Memorial Miramar", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Doctors", "FL BLUE", "HealthSun", "Humana", "MedicareMax", "Preferred Care Partner", "Simply", "Solis", "WellCare"]}, {"hospital": "Memorial Pembroke", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Doctors", "FL BLUE", "HealthSun", "Humana", "MedicareMax", "Preferred Care Partner", "Simply", "Solis", "WellCare"]}, {"hospital": "Memorial Regional", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Doctors", "FL BLUE", "HealthSun", "Humana", "MedicareMax", "Preferred Care Partner", "Simply", "Solis", "WellCare"]}, {"hospital": "Memorial West", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Doctors", "FL BLUE", "HealthSun", "Humana", "MedicareMax", "Preferred Care Partner", "Simply", "Solis", "WellCare"]}, {"hospital": "Mercy", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Devoted HMO", "Doctors", "FL BLUE", "HealthSpring", "HealthSun", "Humana", "MedicareMax", "Preferred Care Partner", "Simply", "Solis", "WellCare"]}, {"hospital": "Mount Sinai", "inNetworkCarriers": ["Aetna", "CarePlus", "Devoted HMO", "Doctors", "FL BLUE", "MedicareMax", "Preferred Care Partner", "Simply"]}, {"hospital": "North Shore", "inNetworkCarriers": ["Aetna", "CarePlus", "Devoted HMO", "HealthSun", "Humana", "MedicareMax", "Preferred Care Partner", "Simply"]}, {"hospital": "Northwest Medical", "inNetworkCarriers": ["AARP/UHC Choice PPO", "CarePlus", "Devoted HMO", "Doctors", "HealthSun", "Humana", "MedicareMax", "WellCare"]}, {"hospital": "Palm Springs", "inNetworkCarriers": ["AARP/UHC Choice PPO", "WellCare"]}, {"hospital": "Palmetto", "inNetworkCarriers": ["Aetna", "CarePlus", "Devoted HMO", "HealthSun", "Humana", "MedicareMax", "Preferred Care Partner", "Simply", "WellCare"]}, {"hospital": "Plantation", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Devoted HMO", "HealthSun", "Humana", "MedicareMax", "Simply", "WellCare"]}, {"hospital": "Promise", "inNetworkCarriers": ["Aetna"]}, {"hospital": "Select Specialty", "inNetworkCarriers": ["HealthSpring"]}, {"hospital": "Select Specialty Hospital", "inNetworkCarriers": ["MedicareMax"]}, {"hospital": "Solera", "inNetworkCarriers": ["FL BLUE"]}, {"hospital": "South Broward", "inNetworkCarriers": ["Solis"]}, {"hospital": "South Miami", "inNetworkCarriers": ["Aetna", "CarePlus", "Devoted HMO", "Doctors", "FL BLUE", "HealthSpring", "Humana", "MedicareMax"]}, {"hospital": "South Miami Baptist", "inNetworkCarriers": ["Devoted HMO"]}, {"hospital": "St Catherines West Rehab", "inNetworkCarriers": ["HealthSpring"]}, {"hospital": "St. Anthony Rehab", "inNetworkCarriers": ["FL BLUE"]}, {"hospital": "Steward", "inNetworkCarriers": ["HealthSpring"]}, {"hospital": "Steward Coral Gables", "inNetworkCarriers": ["AARP/UHC Choice PPO", "FL BLUE", "Solis"]}, {"hospital": "Steward Florida", "inNetworkCarriers": ["FL BLUE"]}, {"hospital": "Steward Florida Medical Center", "inNetworkCarriers": ["AARP/UHC Choice PPO"]}, {"hospital": "Steward Hialeah", "inNetworkCarriers": ["AARP/UHC Choice PPO", "HealthSun", "Solis"]}, {"hospital": "Steward Hialeah & North Shore", "inNetworkCarriers": ["Doctors"]}, {"hospital": "Steward Medical Center", "inNetworkCarriers": ["Preferred Care Partner"]}, {"hospital": "Steward Palmetto", "inNetworkCarriers": ["AARP/UHC Choice PPO"]}, {"hospital": "Trinity", "inNetworkCarriers": ["Aetna"]}, {"hospital": "University Hospital", "inNetworkCarriers": ["Aetna", "CarePlus", "HealthSpring", "HealthSun", "Humana", "MedicareMax", "Simply"]}, {"hospital": "West Boca", "inNetworkCarriers": ["AARP/UHC Choice PPO", "WellCare"]}, {"hospital": "West Boca Medical", "inNetworkCarriers": ["MedicareMax"]}, {"hospital": "West Gables Rehab", "inNetworkCarriers": ["AARP/UHC Choice PPO", "HealthSpring", "MedicareMax", "WellCare"]}, {"hospital": "West Kendall Baptist", "inNetworkCarriers": ["Aetna", "CarePlus", "Devoted HMO", "Doctors", "FL BLUE", "HealthSpring", "Humana", "MedicareMax"]}, {"hospital": "Westchester", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "MedicareMax", "Simply", "WellCare"]}, {"hospital": "Westchester General", "inNetworkCarriers": ["HealthSpring"]}, {"hospital": "Westchester Hospital", "inNetworkCarriers": ["Preferred Care Partner"]}, {"hospital": "Westside Regional", "inNetworkCarriers": ["AARP/UHC Choice PPO", "Aetna", "CarePlus", "Doctors", "HealthSun", "Humana", "Simply", "WellCare"]}, {"hospital": "University of Miami", "inNetworkCarriers": ["Aetna", "Humana", "MedicareMax", "Solis"], "note": "Aetna, Humana, and Solis show as in-network but with 'No UM PCP' restriction -- confirm exact meaning with carrier before telling an agent this is unrestricted access."}]</script>
+<!-- MAX_COMPOSER_CARET_BEGIN -->
+<script>
+/**
+ * Chat composer caret helpers.
+ * Mobile Safari/Chrome often put the caret at index 0 (and scroll at the
+ * start) when a filled input/textarea is focused, remounted, or given a
+ * whole new value. Pin to the end in those reset cases only — never on
+ * every keystroke, so mid-message edits stay put.
+ */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root && typeof root === "object") root.MaxComposerCaret = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  "use strict";
+
+  const COMPOSER_MIN_PX = 46;
+  const COMPOSER_MAX_PX = 160;
+
+  function valueOf(el) {
+    if (!el || el.value == null) return "";
+    return String(el.value);
+  }
+
+  function shouldPinCaretToEnd(el) {
+    if (!el) return false;
+    const value = valueOf(el);
+    if (!value) return false;
+    const start = el.selectionStart == null ? 0 : el.selectionStart;
+    const end = el.selectionEnd == null ? 0 : el.selectionEnd;
+    const collapsedAtStart = start === 0 && end === 0;
+    const entireValueSelected = start === 0 && end === value.length;
+    const scrolledToStart = (el.scrollTop || 0) <= 1 && (el.scrollLeft || 0) <= 1;
+    return (collapsedAtStart || entireValueSelected) && scrolledToStart;
+  }
+
+  function placeCaretAtEnd(el) {
+    if (!el) return;
+    const len = valueOf(el).length;
+    if (typeof el.setSelectionRange === "function") {
+      try {
+        el.setSelectionRange(len, len);
+      } catch (_) {
+        el.selectionStart = len;
+        el.selectionEnd = len;
+      }
+    } else {
+      el.selectionStart = len;
+      el.selectionEnd = len;
+    }
+    el.scrollTop = el.scrollHeight;
+    el.scrollLeft = el.scrollWidth;
+  }
+
+  function pinCaretToEndIfReset(el) {
+    if (shouldPinCaretToEnd(el)) placeCaretAtEnd(el);
+  }
+
+  function schedulePinCaretToEndIfReset(el) {
+    if (!el) return;
+    const run = function () {
+      pinCaretToEndIfReset(el);
+    };
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(run);
+      });
+    }
+    setTimeout(run, 0);
+    setTimeout(run, 50);
+  }
+
+  function resizeComposer(el, opts) {
+    if (!el) return;
+    const minPx = (opts && opts.minPx) || COMPOSER_MIN_PX;
+    const maxPx = (opts && opts.maxPx) || COMPOSER_MAX_PX;
+    const value = valueOf(el);
+    const selStart = el.selectionStart == null ? 0 : el.selectionStart;
+    const selEnd = el.selectionEnd == null ? selStart : el.selectionEnd;
+    const atEnd = selStart >= value.length && selEnd >= value.length;
+    const prevScroll = el.scrollTop || 0;
+    el.style.height = "0px";
+    const next = Math.min(maxPx, Math.max(minPx, el.scrollHeight || minPx));
+    el.style.height = next + "px";
+    if (typeof el.setSelectionRange === "function") {
+      try {
+        el.setSelectionRange(selStart, selEnd);
+      } catch (_) {}
+    }
+    if (atEnd) {
+      el.scrollTop = el.scrollHeight;
+      el.scrollLeft = el.scrollWidth;
+    } else {
+      el.scrollTop = prevScroll;
+    }
+  }
+
+  return {
+    COMPOSER_MIN_PX,
+    COMPOSER_MAX_PX,
+    shouldPinCaretToEnd,
+    placeCaretAtEnd,
+    pinCaretToEndIfReset,
+    schedulePinCaretToEndIfReset,
+    resizeComposer,
+  };
+});
+</script>
+<!-- MAX_COMPOSER_CARET_END -->
 <script type="text/babel">
 const { useState, useRef, useEffect } = React;
 
@@ -3559,6 +3674,7 @@ function App() {
   const [savingWorkup, setSavingWorkup] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const pinComposerAfterRenderRef = useRef(false);
   const fileInputRef = useRef(null);
   // Remembers the most recent exportable comparison even after the offer chip is dismissed
   // or later non-comparison replies push it out of the recent-message window.
@@ -3621,12 +3737,36 @@ function App() {
         const tag = (document.activeElement && document.activeElement.tagName) || "";
         if (tag === "INPUT" || tag === "TEXTAREA") return;
         e.preventDefault();
-        inputRef.current?.focus();
+        focusComposer();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  const focusComposer = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus();
+    if (window.MaxComposerCaret) window.MaxComposerCaret.schedulePinCaretToEndIfReset(el);
+  };
+
+  const replaceComposerValue = (next) => {
+    pinComposerAfterRenderRef.current = true;
+    setInput(next);
+  };
+
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el || !window.MaxComposerCaret) return;
+    if (pinComposerAfterRenderRef.current) {
+      pinComposerAfterRenderRef.current = false;
+      window.MaxComposerCaret.resizeComposer(el);
+      window.MaxComposerCaret.placeCaretAtEnd(el);
+      return;
+    }
+    if (!input) window.MaxComposerCaret.resizeComposer(el);
+  }, [input]);
 
   const collapsed = !isMobile && sidebarWidth < 140;
 
@@ -3656,7 +3796,7 @@ function App() {
     messagesRef.current = [];
     setBanners([]);
     setError(null);
-    setInput("");
+    replaceComposerValue("");
     setPendingImages([]);
     setAttachError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -3821,7 +3961,7 @@ function App() {
       setMessages(next);
       setWorkupNotice(null);
       if (isMobile) setSidebarOpen(false);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      setTimeout(() => focusComposer(), 50);
     } catch (err) {
       if (err && err.code === "access_required") {
         setUnlocked(false);
@@ -3855,7 +3995,7 @@ function App() {
   const startNewChat = () => {
     resetChatSession();
     if (isMobile) setSidebarOpen(false);
-    setTimeout(() => inputRef.current?.focus(), 50);
+    setTimeout(() => focusComposer(), 50);
   };
 
   const copyLink = async () => {
@@ -3880,7 +4020,7 @@ function App() {
       await unlockMax(email, pw);
       setUnlocked(true);
       setGatePassword("");
-      setTimeout(() => inputRef.current?.focus(), 50);
+      setTimeout(() => focusComposer(), 50);
     } catch (err) {
       const msg =
         err.status === 401
@@ -3950,7 +4090,7 @@ function App() {
   };
 
   const clearComposer = () => {
-    setInput("");
+    replaceComposerValue("");
     setPendingImages([]);
     setAttachError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -4636,7 +4776,7 @@ function App() {
                 >×</button>
               </div>
             )}
-            <div className="max-composer-row" style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div className="max-composer-row" style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -4660,17 +4800,32 @@ function App() {
                   <path d="M21.4 11.6l-8.8 8.8a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.1-8.1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
-              <input
+              <textarea
                 ref={inputRef}
+                data-testid="chat-composer"
+                rows={1}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && send()}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  if (window.MaxComposerCaret) window.MaxComposerCaret.resizeComposer(e.target);
+                }}
+                onFocus={(e) => {
+                  if (window.MaxComposerCaret) window.MaxComposerCaret.schedulePinCaretToEndIfReset(e.currentTarget);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+                  e.preventDefault();
+                  send();
+                }}
                 onPaste={onComposerPaste}
+                enterKeyHint="send"
+                aria-label="Message Max"
                 placeholder={loading ? "Type the next question — it will queue…" : "Ask Max, or paste a screenshot…"}
                 style={{
                   flex: 1, padding: "13px 18px", borderRadius: 14,
                   border: "1px solid var(--line)", background: "rgba(255,255,255,0.9)",
                   fontSize: 14.5, outline: "none", fontFamily: "var(--font)", color: "var(--ink)",
+                  minHeight: 46, maxHeight: 160, height: 46,
                 }}
               />
               <button
