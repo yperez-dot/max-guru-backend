@@ -239,7 +239,24 @@ describe('named plans become the columns', () => {
     const doc = { requestedName: 'Howard Bush', doctorName: 'HOWARD BUSH M.D.', status: 'done', carriersIn: ['Devoted Health', 'Aetna Medicare', 'UnitedHealthcare'], inNetworkPlans: ['AARP Medicare Advantage from UHC FL-0031 (Regional PPO) (R0759-001)'], outOfNetworkPlans: ['Humana Gold Plus (H1036-065C)'] };
     const text = n.fallbackAnswer([doc], ask);
     assert.match(text, /\| Doctor \| Humana Gold Plus · H1036-065C \| Aetna Medicare Select · H1609-018 \| Devoted C-SNP Enhanced · H1290-073 \|/);
-    assert.match(text, /\| Howard Bush \| ❌ Out \| ✅ In\* \| ✅ In\* \|/);
+    assert.match(text, /\| Howard Bush \| ❌ Out \| ✅ In\* \| ✅ In \|/);
     assert.doesNotMatch(text, /R0759|H5420-014 ·|To narrow/);
+  });
+});
+
+describe('follow-up plan edits + Devoted single network', () => {
+  const n = require('./doctorPlanNarrow');
+  const first = 'Maria & Gaspar Padron, ZIP 33332. Current plan H5420-014 terminating 2027. No Medicaid. Compare Humana Gold Plus H1036-065C, Aetna Medicare Select H1609-018, Devoted C-SNP Enhanced H1290-073.';
+  it('"remove devoted, add H1045-005 instead" keeps Humana + Aetna and adds UHC', () => {
+    const t = `${first}\nremove devoted from comparison, lets add UHC Preferred MA FL-0002 HMO · H1045-005 instead`;
+    assert.deepEqual(n.namedPlansFromAsk(t, n.askConstraints(t)).map((p) => p.planId), ['H1036-065C', 'H1609-018', 'H1045-005']);
+  });
+  it('a fresh "compare X and Y" replaces the set', () => {
+    const t = `${first}\ncompare H1036-065C and H1045-005`;
+    assert.deepEqual(n.namedPlansFromAsk(t, n.askConstraints(t)).map((p) => p.planId), ['H1036-065C', 'H1045-005']);
+  });
+  it('a Devoted directory hit is ✅ In for the Devoted plan (one network for all plans)', () => {
+    const doc = { requestedName: 'Howard Bush', status: 'done', carriersIn: ['Devoted Health'], inNetworkPlans: [], outOfNetworkPlans: [] };
+    assert.match(n.fallbackAnswer([doc], first), /\| Howard Bush \| ❔ \| ❔ \| ✅ In \|/);
   });
 });
