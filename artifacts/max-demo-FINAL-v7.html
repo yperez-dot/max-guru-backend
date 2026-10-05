@@ -3637,45 +3637,80 @@ function Avatar({ size = 32, showStatus = false }) {
   );
 }
 
-// Lightweight, safe markdown-lite renderer -- handles just **bold** and
-// [text](url), which is all Max actually needs. Deliberately NOT using a full
-// markdown library + dangerouslySetInnerHTML here -- this builds real React
-// elements instead, so there's no HTML-injection surface even though the
-// content source (Claude's own responses) is trusted.
+function renderInlineMd(line, keyBase) {
+  const parts = [];
+  const pattern = /(\*\*(.+?)\*\*)|(\[([^\]]+)\]\(([^)]+)\))/g;
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+  while ((match = pattern.exec(line)) !== null) {
+    if (match.index > lastIndex) parts.push(line.slice(lastIndex, match.index));
+    if (match[1]) {
+      parts.push(<strong key={keyBase + "-" + key++}>{match[2]}</strong>);
+    } else if (match[3]) {
+      parts.push(
+        <a key={keyBase + "-" + key++} href={match[5]} target="_blank" rel="noopener noreferrer"
+           className="underline" style={{ color: "#ff1090" }}>
+          {match[4]}
+        </a>
+      );
+    }
+    lastIndex = pattern.lastIndex;
+  }
+  if (lastIndex < line.length) parts.push(line.slice(lastIndex));
+  return parts.length ? parts : line;
+}
+
+function splitTableRow(line) {
+  return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+}
+
+function renderMdTable(rows, key) {
+  const header = splitTableRow(rows[0]);
+  const body = rows.slice(1).filter((r) => !/^\s*\|?\s*:?-{2,}/.test(r)).map(splitTableRow);
+  const cellStyle = { padding: "6px 10px", borderBottom: "1px solid var(--line)", textAlign: "left", verticalAlign: "top", whiteSpace: "nowrap" };
+  return (
+    <div key={key} style={{ overflowX: "auto", margin: "6px 0" }}>
+      <table style={{ borderCollapse: "collapse", fontSize: 12.5, minWidth: "60%" }}>
+        <thead>
+          <tr>{header.map((h, i) => <th key={i} style={{ ...cellStyle, fontWeight: 700, color: "var(--plum)", whiteSpace: "normal", minWidth: i ? 120 : 0 }}>{renderInlineMd(h, key + "h" + i)}</th>)}</tr>
+        </thead>
+        <tbody>
+          {body.map((r, ri) => (
+            <tr key={ri} style={{ background: ri % 2 ? "rgba(69,32,104,0.03)" : "transparent" }}>
+              {r.map((c, ci) => <td key={ci} style={{ ...cellStyle, fontWeight: ci === 0 ? 600 : 400 }}>{renderInlineMd(c, key + "r" + ri + "c" + ci)}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// Lightweight, safe markdown-lite renderer -- **bold**, [text](url) and
+// pipe tables (Max's doctor × plan grid). Builds real React elements, no
+// dangerouslySetInnerHTML, so there's no HTML-injection surface.
 function renderMessageText(text) {
-  const lines = text.split("\n");
-  return lines.map((line, lineIdx) => {
-    const parts = [];
-    const pattern = /(\*\*(.+?)\*\*)|(\[([^\]]+)\]\(([^)]+)\))/g;
-    let lastIndex = 0;
-    let match;
-    let key = 0;
-    while ((match = pattern.exec(line)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(line.slice(lastIndex, match.index));
-      }
-      if (match[1]) {
-        parts.push(<strong key={key++}>{match[2]}</strong>);
-      } else if (match[3]) {
-        parts.push(
-          <a key={key++} href={match[5]} target="_blank" rel="noopener noreferrer"
-             className="underline" style={{ color: "#ff1090" }}>
-            {match[4]}
-          </a>
-        );
-      }
-      lastIndex = pattern.lastIndex;
+  const lines = String(text || "").split("\n");
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (/^\s*\|.*\|\s*$/.test(lines[i]) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
+      const rows = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) rows.push(lines[i++]);
+      out.push(renderMdTable(rows, "t" + i));
+      continue;
     }
-    if (lastIndex < line.length) {
-      parts.push(line.slice(lastIndex));
-    }
-    return (
-      <React.Fragment key={lineIdx}>
-        {parts.length > 0 ? parts : line}
-        {lineIdx < lines.length - 1 && <br />}
+    const line = lines[i];
+    out.push(
+      <React.Fragment key={"l" + i}>
+        {renderInlineMd(line, "l" + i)}
+        {i < lines.length - 1 && <br />}
       </React.Fragment>
     );
-  });
+    i += 1;
+  }
+  return out;
 }
 
 const SUGGESTIONS = [

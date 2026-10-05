@@ -32,6 +32,7 @@ const {
 } = require('./sunfireProvider');
 const { conversationAskText } = require('./planYear');
 const { lookupProviderNetwork } = require('./providerNetwork');
+const { askConstraints } = require('./doctorPlanNarrow');
 
 // Sunfire plan ID → plan name/carrier map (built 2026-07-23)
 let SUNFIRE_PLAN_MAP = {};
@@ -399,11 +400,19 @@ async function processTool(toolName, toolInput, context = {}) {
           `\nCatalog only — call lookup_formulary with drugName + planIds before quoting a tier.`
         );
       }
+      // Never price drugs on the plan the agent said is terminating / skipped.
+      const { skip: skipIds } = askConstraints(conversationAskText(context.messages || []));
+      const keepId = (id) => !skipIds.has(String(id || '').toUpperCase().replace(/[A-Z]$/, '')) && !skipIds.has(String(id || '').toUpperCase());
+      const keptPlanId = toolInput.planId && keepId(toolInput.planId) ? toolInput.planId : undefined;
+      const keptPlanIds = (Array.isArray(toolInput.planIds) ? toolInput.planIds : []).filter(keepId);
+      if (!keptPlanId && !keptPlanIds.length && planIds.length) {
+        return `Skipped ${drugName}: every plan asked (${planIds.join(', ')}) is terminating or excluded by the agent. Check the meds on the 2027 candidates instead.`;
+      }
       const result = await lookupFormulary({
         drugName,
         ndc: toolInput.ndc,
-        planId: toolInput.planId,
-        planIds: toolInput.planIds,
+        planId: keptPlanId,
+        planIds: keptPlanIds,
         year: toolInput.year || 2027,
       });
       return {

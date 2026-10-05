@@ -207,3 +207,27 @@ describe('lookup_provider_network batch (Padron 8 doctors)', () => {
     assert.equal(again.structured.finished, 2);
   });
 });
+
+describe('Padron narrowing constraints + grid', () => {
+  const n = require('./doctorPlanNarrow');
+  const ask = 'Maria & Gaspar Padron, ZIP 33332. Current plan H5420-014 terminating 2027. No Medicaid. HMO ok. Skip R0759-001 (non-commissionable). David Shenassa (must-keep). Meds: metformin';
+  const mk = (nm, pl, out = []) => ({ requestedName: nm, doctorName: `${nm.toUpperCase()} M.D.`, status: 'done', carriersIn: ['UHC'], inNetworkPlans: pl, outOfNetworkPlans: out });
+  const P = 'AARP Medicare Advantage from UHC FL-0031 (Regional PPO) (R0759-001)';
+  const D = 'UHC Dual Complete FL-Q1 (PPO D-SNP) (H1889-002)';
+  const H = 'UHC Preferred Medicare Advantage FL-0002 (HMO) (H1045-005)';
+  const G = 'Humana Gold Plus (H1036-065C)';
+  const T = 'UHC MedicareMax Complete Care FL-30 (H5420-014)';
+
+  it('reads No Medicaid, skipped and terminating plans from the ask', () => {
+    const c = n.askConstraints(ask);
+    assert.equal(c.noMedicaid, true);
+    assert.deepEqual([...c.skip].sort(), ['H5420-014', 'R0759-001']);
+  });
+
+  it('fallback is a doctor × plan table without D-SNP, skipped or terminating plans', () => {
+    const text = n.fallbackAnswer([mk('Ernesto Padron', [P, D, H, G, T]), mk('Howard Bush', [P, D, H], [G])], ask);
+    assert.match(text, /\| Doctor \| UHC Preferred MA FL-0002 HMO · H1045-005 \| Humana Gold Plus · H1036-065C \|/);
+    assert.match(text, /\| Howard Bush \| ✅ In \| ❌ Out \|/);
+    assert.doesNotMatch(text, /H1889-002|R0759-001|H5420-014|NPI|M\.D\./);
+  });
+});
