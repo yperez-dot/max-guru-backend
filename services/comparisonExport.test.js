@@ -1724,3 +1724,13 @@ describe('Padron export cleanup', () => {
     assert.equal(exp.cleanProviderDisplayName('EYE SURGERY ASSOCIATES LLC'), 'Eye Surgery Associates');
   });
 });
+
+describe('unverified not-covered in the Excel', () => {
+  it('shows "Confirm in Sunfire", never a flat "Not covered", when Max could not verify', () => {
+    const f = require('./formularyLookup');
+    const d = f.toExportDrug({ drugName: 'Levothyroxine Sodium', notCoveredNote: 'x', byPlanId: { 'H1036-065C': { verified: true, coverage: 'not_covered' } }, lookups: [] });
+    const p = exp.buildExportPayload([{ planId: 'H1036-065C', carrier: 'Humana', planName: 'Gold Plus' }, { planId: 'H1045-005', carrier: 'UHC', planName: 'Preferred MA' }], 'Compare H1036-065C, H1045-005', { drugs: [d] });
+    assert.equal(exp.formatDrugCell(p.drugs[0].byPlanId['H1036-065C'], p.plans[0]), 'Confirm in Sunfire');
+    assert.equal(exp.formatDrugCell({ verified: true, coverage: 'not_covered' }, p.plans[0]), 'Not covered');
+  });
+});

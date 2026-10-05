@@ -148,6 +148,8 @@ function titleCase(t) {
 
 function shortPlanHeader(p) {
   const name = String(p.name || '')
+    // Aetna names already carry the ID ("Aetna Medicare Select HMO - H1609-018") — don't print it twice.
+    .replace(new RegExp(`\\s*[-–·(]?\\s*${String(p.planId || '').slice(0, 9)}[A-Z]?\\)?\\s*$`, 'i'), '')
     .replace(/Medicare Advantage/gi, 'MA')
     .replace(/\((?:Regional )?(HMO-POS|HMO|PPO)(?: D-SNP)?\)/i, '$1')
     .replace(/\s+/g, ' ')
