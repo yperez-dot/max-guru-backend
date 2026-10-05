@@ -134,7 +134,11 @@ function fallbackFromToolResults(collected, askText = '', messages = []) {
     .filter((t) => t.tool === 'lookup_provider_network' && t.output && (t.output.doctorName || t.output.requestedName))
     .map((t) => t.output);
   if (!doctors.length) return '';
-  return `${fallbackAnswer(doctors, askText, { answered: narrowingAnswered(messages) })}\n\n_Max ran out of chat wait before writing the full answer. Answer the questions above (or send the same ask again — finished doctor lookups come back from cache)._`;
+  const body = fallbackAnswer(doctors, askText, { answered: narrowingAnswered(messages) });
+  const next = /To narrow to 2/.test(body)
+    ? 'Answer the questions above, or send the same ask again — finished doctor lookups come back from cache.'
+    : 'Send the same ask again — finished doctor lookups come back from cache, so Max can write the 2–3 plans.';
+  return `${body}\n\n_Max ran out of chat wait before writing the full answer. ${next}_`;
 }
 
 async function mapConcurrent(items, limit, worker) {

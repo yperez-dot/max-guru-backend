@@ -111,3 +111,22 @@ describe('npiRegistry organization names', () => {
     assert.equal(rec.addresses.length, 2);
   });
 });
+
+const { describe: describe2, it: it2 } = require('node:test');
+const assert2 = require('node:assert/strict');
+const { cleanDoctorQuery } = require('./npiRegistry');
+
+describe2('cleanDoctorQuery (reopened workup names)', () => {
+  it2('strips dotted credentials and specialty hints from saved NPPES names', () => {
+    assert2.equal(cleanDoctorQuery('ERNESTO PADRON M.D'), 'Ernesto Padron');
+    assert2.equal(cleanDoctorQuery('OSWALDO S SANDOVAL M.D.'), 'Oswaldo S Sandoval');
+    assert2.equal(cleanDoctorQuery('ALFRED ALEXANDER DESIMONE M.D.'), 'Alfred Alexander Desimone');
+    assert2.equal(cleanDoctorQuery('Dr. Howard Bush, MD, FACC'), 'Howard Bush');
+    assert2.equal(cleanDoctorQuery('Howard Bush Cardio'), 'Howard Bush');
+    assert2.equal(cleanDoctorQuery('Jorge Diaz PCP'), 'Jorge Diaz');
+  });
+  it2('keeps clinic names and NPIs usable', () => {
+    assert2.equal(cleanDoctorQuery('EYE SURGERY ASSOCIATES LLC'), 'Eye Surgery Associates');
+    assert2.equal(cleanDoctorQuery('1417108895'), '1417108895');
+  });
+});

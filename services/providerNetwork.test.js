@@ -26,7 +26,10 @@ function npiFor(name) {
   return NPI_BY_NAME[name];
 }
 
+const { cleanDoctorQuery } = require('./npiRegistry');
+delete require.cache[require.resolve('./npiRegistry')];
 stub('npiRegistry', {
+  cleanDoctorQuery,
   resolveNpiRecords: async ({ doctorName, npi }) => {
     if (knobs.hangNpiFor.has(doctorName)) await new Promise(() => {});
     await sleep(knobs.npiMs);
@@ -195,5 +198,12 @@ describe('lookup_provider_network batch (Padron 8 doctors)', () => {
       run(job('d3-best'), 0), run(job('d3-backup'), 1),
     ]);
     assert.deepEqual(order, ['d1-best', 'd2-best', 'd3-best', 'd1-backup', 'd2-backup', 'd3-backup']);
+  });
+  it('a reopened workup name ("HOWARD BUSH M.D.") reuses the finished lookup', async () => {
+    await lookupProviderNetwork({ doctors: [{ doctorName: 'Howard Bush Cardio' }, { doctorName: 'Jorge Diaz PCP' }], zip: '33332' }, { deadlineAt: Date.now() + 2000 });
+    const before = knobs.humanaCalls;
+    const again = await lookupProviderNetwork({ doctors: [{ doctorName: 'HOWARD BUSH M.D.' }, { doctorName: 'Jorge Diaz' }], zip: '33332' }, { deadlineAt: Date.now() + 2000 });
+    assert.equal(knobs.humanaCalls, before, 'should come from cache');
+    assert.equal(again.structured.finished, 2);
   });
 });
