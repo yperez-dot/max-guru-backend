@@ -168,7 +168,7 @@ function priorToolResultsNote(prior) {
 // POST /chat { messages: [{role, content}], system?: string, priorToolResults?: [] }
 // content may be a string or multimodal parts (text + PNG/JPEG/WebP data URLs).
 // Images are validated in-memory and forwarded to Grok/OpenAI vision; they are not persisted.
-// Netlify (thei-max-guru.netlify.app) always sends system = buildSystemPrompt() (~280KB plan grid).
+// Netlify (thei-max-guru.netlify.app) sends system = buildSystemPrompt(): rules + hospitals + carrier rules (~45KB) plus only the plan rows for the ask (client county from ZIP/workup, carrier, plan IDs).
 // Auth (MAX_API_KEY) is the trust boundary — do not reject client system prompts or the live UI breaks.
 // LLM: xAI Grok (OpenAI-compatible). Response shape stays Anthropic-like for the Netlify UI.
 app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, res) => {
