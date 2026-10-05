@@ -1,7 +1,7 @@
 # SEP Tracker — AR
 
-2 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+2 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-lis-ar — Arkansas — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -21,7 +21,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Arkansas - Severe Winter Weather 1/22/2026
-- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix", "Temperature - Arctic Blast/Dangerous Cold"]
+- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix","Temperature - Arctic Blast/Dangerous Cold"]
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix;Temperature - Arctic Blast/Dangerous Cold
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL

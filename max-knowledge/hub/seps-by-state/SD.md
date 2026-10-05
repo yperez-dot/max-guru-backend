@@ -1,7 +1,7 @@
 # SEP Tracker — SD
 
-5 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+5 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-xl-sd-fire-202612 — South Dakota — 79 Fire
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: April 11, 2026 – December 31, 2026
 - **incident_effective**: 2026-04-11
 - **incident_window_raw**: April 11, 2026 – ongoing
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 
 ## sep-xl-sd-quryfire-202705 — South Dakota — Qury Fire
 - **status**: active
@@ -33,7 +33,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: March 12, 2026 – May 31, 2027
 - **incident_effective**: 2026-03-12
 - **incident_window_raw**: March 12, 2026 – ongoing
-- **days_until_expiry**: 279
+- **days_until_expiry**: 238
 
 ## sep-xl-sd-severewinterwin-202609 — South Dakota — Severe Winter Windstorm
 - **status**: active
@@ -49,7 +49,6 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: December 17, 2025 – September 30, 2026
 - **incident_effective**: 2025-12-17
 - **incident_window_raw**: December 17, 2025 – ongoing
-- **days_until_expiry**: 36
 
 ## sep-lis-sd — South Dakota — Dual / LIS PDP Monthly SEP
 - **status**: yearround

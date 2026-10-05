@@ -1,7 +1,7 @@
 # SEP Tracker — VT
 
-2 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+2 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-lis-vt — Vermont — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -21,7 +21,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Vermont - Severe Storms 7/9 thru 7/11/2023
-- **disaster_types**: ["Storms - Rain", "Floods", "Straight-Line Winds", "Landslides/Mudslides"]
+- **disaster_types**: ["Storms - Rain","Floods","Straight-Line Winds","Landslides/Mudslides"]
 - **disaster_type_raw**: Storms - Rain;Floods;Straight-Line Winds;Landslides/Mudslides
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL

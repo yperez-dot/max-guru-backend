@@ -3765,6 +3765,233 @@ const QUICK_ASKS = [
   { label: "DrMax vs MedicareMax", prompt: "Compare Doctors DrMax H4140-022 and UHC MedicareMax H5420-001 in Miami-Dade — premium, MOOP, PCP, specialist, Tier 1-5, OTC." },
 ];
 
+
+// ---- Client Comparison mode: doctors + meds run as one background job (no chat wait) ----
+const COMPARE_URL = API_BASE + "/compare";
+
+async function compareRequest(method, path, body) {
+  const response = await fetch(COMPARE_URL + path, {
+    method,
+    headers: maxAuthHeaders(),
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (response.status === 401 && data.code === "access_required") {
+    setAccessToken("");
+    const err = new Error("Session expired — sign in again.");
+    err.code = "access_required";
+    throw err;
+  }
+  if (!response.ok) throw new Error(data.error || "Comparison request failed");
+  return data;
+}
+
+const linesOf = (t) => String(t || "").split(/\n|,/).map((x) => x.trim()).filter(Boolean);
+
+function compareAskText(f) {
+  const parts = [];
+  if (f.clientName) parts.push(f.clientName + ".");
+  if (f.zip) parts.push("ZIP " + f.zip + ".");
+  if (f.terminatingPlan) parts.push("Current plan " + f.terminatingPlan + " terminating " + (f.year || 2027) + ".");
+  if (f.noMedicaid) parts.push("No Medicaid.");
+  parts.push((f.year || 2027) + " plans.");
+  return parts.join(" ");
+}
+
+function ProgressRow({ label, done, total }) {
+  const pct = total ? Math.round((done / total) * 100) : 100;
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, fontWeight: 600, color: "var(--ink)", marginBottom: 4 }}>
+        <span>{label}</span><span>{done}/{total}</span>
+      </div>
+      <div style={{ height: 8, borderRadius: 6, background: "rgba(69,32,104,0.10)", overflow: "hidden" }}>
+        <div style={{ width: pct + "%", height: "100%", background: "linear-gradient(90deg, var(--plum), var(--magenta))", transition: "width .4s" }} />
+      </div>
+    </div>
+  );
+}
+
+function ComparePanel({ isMobile, onSaveWorkup, onClose }) {
+  const [askText, setAskText] = useState("");
+  const [fields, setFields] = useState(null);
+  const [job, setJob] = useState(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const pollRef = useRef(null);
+
+  useEffect(() => () => { if (pollRef.current) clearTimeout(pollRef.current); }, []);
+
+  const label = { fontSize: 11.5, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "12px 0 4px" };
+  const box = { width: "100%", boxSizing: "border-box", padding: "9px 11px", borderRadius: 10, border: "1px solid var(--line)", fontFamily: "var(--font)", fontSize: 13.5, background: "#fff", color: "var(--ink)" };
+  const btn = (primary) => ({ padding: "10px 16px", borderRadius: 10, border: primary ? "none" : "1px solid var(--line)", background: primary ? "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)" : "#fff", color: primary ? "#fff" : "var(--plum)", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "var(--font)" });
+
+  const readAsk = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      const data = await compareRequest("POST", "/parse", { text: askText });
+      const f = data.fields || {};
+      setFields({
+        clientName: f.clientName || "",
+        zip: f.zip || "",
+        doctors: (f.doctors || []).map((d) => d.name + (d.mustKeep ? " *" : "")).join("\n"),
+        meds: (f.meds || []).join("\n"),
+        plans: (f.plans || []).join(", "),
+        terminatingPlan: f.terminatingPlan || "",
+        noMedicaid: Boolean(f.noMedicaid),
+        year: f.year || 2027,
+      });
+      setJob(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const poll = async (id) => {
+    try {
+      const data = await compareRequest("GET", "/jobs/" + id);
+      setJob(data.job);
+      if (data.job.status !== "done" && data.job.status !== "error") {
+        pollRef.current = setTimeout(() => poll(id), 1500);
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const run = async () => {
+    setError("");
+    const f = fields;
+    const body = {
+      clientName: f.clientName,
+      zip: f.zip,
+      doctors: linesOf(f.doctors).map((n) => ({ name: n.replace(/\s*\*$/, ""), mustKeep: /\*$/.test(n) })),
+      meds: linesOf(f.meds),
+      plans: linesOf(f.plans),
+      terminatingPlan: f.terminatingPlan,
+      noMedicaid: f.noMedicaid,
+      year: f.year,
+      // Marketing names from the grid so table headers read "Humana Gold Plus · H1036-065C".
+      planNames: Object.fromEntries(findComparisonPlans(linesOf(f.plans).join(" ") + " " + (f.year || 2027))
+        .map((p) => [String(p.planId || p.id || "").toUpperCase(), [p.carrier, p.planName].filter(Boolean).join(" ")])),
+    };
+    try {
+      const data = await compareRequest("POST", "/jobs", body);
+      setJob(data.job);
+      poll(data.job.id);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const result = job && job.status === "done" ? job.result : null;
+  const exportPlans = () => {
+    const ids = (result && result.planIds) || [];
+    return findComparisonPlans(ids.join(" ") + " " + (fields.year || 2027));
+  };
+  const exportExtras = () => ({
+    toolResults: result.toolResults || [],
+    drugs: (result.drugs || []).flatMap((d) => d.export || []),
+    clientName: fields.clientName,
+    explicitTerminating: Boolean(fields.terminatingPlan),
+    terminatingPlan: fields.terminatingPlan,
+  });
+  const history = () => [{ role: "user", content: compareAskText(fields) }];
+  const doExport = async (kind) => {
+    const plans = exportPlans();
+    if (!plans.length) { setError("Those plan IDs aren't in the " + (fields.year || 2027) + " grid, so Excel/PDF can't build benefit rows. The tables above are still correct."); return; }
+    await runComparisonExport(kind, history(), plans, exportExtras());
+  };
+  const save = async () => {
+    const plans = exportPlans();
+    if (plans.length < 2) return;
+    const payload = await hydrateExportSobBenefits(collectComparisonExport(history(), plans, exportExtras()));
+    await onSaveWorkup(payload);
+  };
+
+  // Workups save on their own (no Save button anywhere in Max): once per finished run.
+  const savedJobRef = useRef(null);
+  useEffect(() => {
+    if (!result || !job || savedJobRef.current === job.id) return;
+    savedJobRef.current = job.id;
+    if (exportPlans().length >= 2) void save().catch(() => {});
+  }, [result, job]);
+
+  const running = job && job.status !== "done" && job.status !== "error";
+  return (
+    <div className="max-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 14px" : "24px 22px" }}>
+      <div style={{ maxWidth: 980, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 20, color: "var(--plum)" }}>Client comparison</div>
+          <button onClick={onClose} style={btn(false)}>Back to chat</button>
+        </div>
+
+        <div style={label}>1 · Paste the client ask</div>
+        <textarea value={askText} onChange={(e) => setAskText(e.target.value)} rows={4} style={box}
+          placeholder="Maria & Gaspar Padron, ZIP 33332. Current plan H5420-014 terminating 2027. No Medicaid. Doctors: … Meds: … Compare H1036-065C, H1609-018 …" />
+        <div style={{ marginTop: 8 }}>
+          <button onClick={readAsk} disabled={busy || !askText.trim()} style={btn(true)}>{busy ? "Reading…" : "Read it"}</button>
+        </div>
+
+        {fields && (
+          <div style={{ marginTop: 16, padding: 14, borderRadius: 14, border: "1px solid var(--line)", background: "rgba(255,255,255,0.75)" }}>
+            <div style={{ ...label, marginTop: 0 }}>2 · Check the fields</div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr 1fr", gap: 10 }}>
+              <div><div style={label}>Client</div><input style={box} value={fields.clientName} onChange={(e) => setFields({ ...fields, clientName: e.target.value })} /></div>
+              <div><div style={label}>ZIP</div><input style={box} value={fields.zip} onChange={(e) => setFields({ ...fields, zip: e.target.value })} /></div>
+              <div><div style={label}>Terminating plan</div><input style={box} value={fields.terminatingPlan} onChange={(e) => setFields({ ...fields, terminatingPlan: e.target.value })} /></div>
+            </div>
+            <div style={label}>Plans to compare (blank = Max picks the 3 with the most doctors in)</div>
+            <input style={box} value={fields.plans} onChange={(e) => setFields({ ...fields, plans: e.target.value })} placeholder="H1036-065C, H1609-018, H1290-073" />
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
+              <div><div style={label}>Doctors (one per line · * = must-keep)</div><textarea rows={8} style={box} value={fields.doctors} onChange={(e) => setFields({ ...fields, doctors: e.target.value })} /></div>
+              <div><div style={label}>Meds (one per line)</div><textarea rows={8} style={box} value={fields.meds} onChange={(e) => setFields({ ...fields, meds: e.target.value })} /></div>
+            </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, fontSize: 13, color: "var(--ink)" }}>
+              <input type="checkbox" checked={fields.noMedicaid} onChange={(e) => setFields({ ...fields, noMedicaid: e.target.checked })} />
+              No Medicaid / MSP (leave out D-SNPs)
+            </label>
+            <div style={{ marginTop: 12 }}>
+              <button onClick={run} disabled={running} style={btn(true)}>{running ? "Running…" : "Run comparison"}</button>
+            </div>
+          </div>
+        )}
+
+        {job && (
+          <div style={{ marginTop: 16, padding: 14, borderRadius: 14, border: "1px solid var(--line)", background: "rgba(255,255,255,0.85)" }}>
+            <ProgressRow label="Doctors" done={job.progress.doctors.done} total={job.progress.doctors.total} />
+            <ProgressRow label="Meds" done={job.progress.meds.done} total={job.progress.meds.total} />
+            {job.status === "error" && <div style={{ color: "#9B1C3C", fontSize: 13 }}>Comparison failed: {job.error}</div>}
+            {result && (
+              <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--ink)" }}>
+                {result.planSource === "top_doctor_coverage" && (
+                  <div style={{ fontSize: 12.5, color: "var(--muted)", margin: "6px 0" }}>No plans named — columns are the plans with the most of these doctors in network (a count, not a recommendation).</div>
+                )}
+                {result.doctorTable ? <>{renderMessageText("**Doctors**\n\n" + result.doctorTable)}</> : <div>No plan found with these doctors in network.</div>}
+                {result.medsTable && <div style={{ marginTop: 10 }}>{renderMessageText("**Meds**\n\n" + result.medsTable)}</div>}
+                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
+                  ✅ In · ❌ Out · ❔ not confirmed (never assume Out) · T = tier · ⚠️ confirm = check the exact product in Sunfire
+                </div>
+                {(result.notConfirmed || []).length > 0 && (
+                  <div style={{ fontSize: 12.5, color: "#92400e", marginTop: 6 }}>No NPI match: {result.notConfirmed.join(", ")} — try the NPI or practice name.</div>
+                )}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                  <button onClick={() => void doExport("excel")} style={btn(true)}>Export Excel</button>
+                  <button onClick={() => void doExport("pdf")} style={btn(false)}>Export PDF</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {error && <div style={{ marginTop: 12, fontSize: 12.5, color: "#9B1C3C", background: "rgba(255,230,236,0.9)", border: "1px solid rgba(155,28,60,0.2)", borderRadius: 12, padding: "10px 12px" }}>{error}</div>}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [unlocked, setUnlocked] = useState(() => Boolean(getAccessToken()));
   const [planYear, setPlanYear] = useState(DEFAULT_PLAN_YEAR);
@@ -3827,6 +4054,7 @@ function App() {
   // Every lookup result this chat (doctors, formulary, SOB like SNF/DME). Max may run a lookup on a
   // turn that does not cite 2+ plan IDs; keeping them all means the export still sees them.
   const sessionToolResultsRef = useRef([]);
+  const [compareOpen, setCompareOpen] = useState(false);
   // Finished lookups from a reply that hit the chat wait — sent once with the next ask.
   const resumeToolResultsRef = useRef([]);
   const loadedWorkupRef = useRef(null);
@@ -4799,6 +5027,9 @@ function App() {
               Online · {PLANS.length} plans · {planYear}
             </div>
           </div>
+          <button onClick={() => setCompareOpen((v) => !v)} className="max-tap" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: compareOpen ? "var(--plum)" : "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 700, color: compareOpen ? "#fff" : "var(--plum)", flexShrink: 0 }}>
+            {compareOpen ? "Chat" : "Compare"}
+          </button>
           {!isMobile && (
             <button onClick={startNewChat} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 600, color: "var(--plum)" }}>
               New chat
@@ -4810,6 +5041,13 @@ function App() {
         </header>
 
 
+        {compareOpen ? (
+          <ComparePanel
+            isMobile={isMobile}
+            onClose={() => setCompareOpen(false)}
+            onSaveWorkup={(payload) => saveWorkup(payload, { silent: false })}
+          />
+        ) : (<>
         {/* Messages */}
         <div className="max-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 14px" : "24px 22px", display: "flex", flexDirection: "column", gap: 4 }}>
           {banners.length > 0 && (
@@ -5089,6 +5327,7 @@ function App() {
             </div>
           </div>
         </div>
+        </>)}
       </main>
     </div>
   );

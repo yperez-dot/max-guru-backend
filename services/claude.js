@@ -408,13 +408,11 @@ async function processTool(toolName, toolInput, context = {}) {
       if (!keptPlanId && !keptPlanIds.length && planIds.length) {
         return `Skipped ${drugName}: every plan asked (${planIds.join(', ')}) is terminating or excluded by the agent. Check the meds on the 2027 candidates instead.`;
       }
-      const result = await lookupFormulary({
-        drugName,
-        ndc: toolInput.ndc,
-        planId: keptPlanId,
-        planIds: keptPlanIds,
-        year: toolInput.year || 2027,
-      });
+      // Same 24h drug × plan cache as Compare mode (tiers don't change mid-season).
+      const ids = [...(keptPlanId ? [keptPlanId] : []), ...keptPlanIds];
+      const result = toolInput.ndc
+        ? await lookupFormulary({ drugName, ndc: toolInput.ndc, planId: keptPlanId, planIds: keptPlanIds, year: toolInput.year || 2027 })
+        : await require('./compareJobs').lookupFormularyCached({ drugName, planIds: ids, year: toolInput.year || 2027 });
       return {
         text: formatFormularyText(result),
         structured: { ...result, drug: toExportDrug(result), drugs: toExportDrugs(result) },

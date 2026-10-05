@@ -1,7 +1,7 @@
 # SEP Tracker — NE
 
-11 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+11 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0122 — Nebraska - Severe storms 8/8/25
 - **status**: active
@@ -10,14 +10,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Nebraska - Severe storms 8/8/25
 - **disaster_types**: ["Floods"]
 - **disaster_type_raw**: Floods
-- **counties**: ["Burt", "Butler", "Cass", "Dodge", "Douglas", "Fillmore", "Gage", "Harlan", "Jefferson", "Johnson", "Lancaster", "Nemaha", "Nickolls", "Otoe", "Pawnee", "Saline", "Sarpy", "Saunders", "Seward", "Thayer", "Washington", "Webster", "York"]
+- **counties**: ["Burt","Butler","Cass","Dodge","Douglas","Fillmore","Gage","Harlan","Jefferson","Johnson","Lancaster","Nemaha","Nickolls","Otoe","Pawnee","Saline","Sarpy","Saunders","Seward","Thayer","Washington","Webster","York"]
 - **counties_raw**: Burt, Butler, Cass, Dodge, Douglas, Fillmore, Gage, Harlan, Jefferson, Johnson, Lancaster, Nemaha, Nickolls, Otoe, Pawnee, Saline, Sarpy, Saunders, Seward, Thayer, Washington, Webster, York
 - **sep_effective**: 2025-08-08
 - **sep_termination**: 2026-10-31
 - **sep_window_raw**: Aug 8, 2025 – Oct 31, 2026
 - **incident_effective**: 2025-08-08
 - **incident_window_raw**: Aug 8, 2025 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-xl-ne-corkscrewroadfi-202611 — Nebraska — Corkscrew Road Fire
 - **status**: active
@@ -33,7 +33,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: July 10, 2026 – November 30, 2026
 - **incident_effective**: 2026-07-10
 - **incident_window_raw**: July 10, 2026 – ongoing
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 
 ## sep-xl-ne-cottonwoodfire-202705 — Nebraska — Cottonwood Fire
 - **status**: active
@@ -42,14 +42,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Nebraska — Cottonwood Fire
 - **disaster_types**: ["Cottonwood Fire"]
 - **disaster_type_raw**: Cottonwood Fire
-- **counties**: ["Arthur", "Dawson", "Frontier", "Garden", "Grant", "Keith", "Lincoln", "Morrill"]
+- **counties**: ["Arthur","Dawson","Frontier","Garden","Grant","Keith","Lincoln","Morrill"]
 - **counties_raw**: Arthur, Dawson, Frontier, Garden, Grant, Keith, Lincoln, Morrill counties
 - **sep_effective**: 2026-03-12
 - **sep_termination**: 2027-05-31
 - **sep_window_raw**: March 12, 2026 – May 31, 2027
 - **incident_effective**: 2026-03-12
 - **incident_window_raw**: March 12, 2026 – ongoing
-- **days_until_expiry**: 279
+- **days_until_expiry**: 238
 
 ## sep-xl-ne-logroadfire-202610 — Nebraska — Log Road Fire
 - **status**: active
@@ -65,7 +65,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: June 9, 2026 – October 31, 2026
 - **incident_effective**: 2026-06-09
 - **incident_window_raw**: June 9, 2026 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-xl-ne-morrillcottonwo-202705 — Nebraska FEMA — Morrill-Cottonwood Fire
 - **status**: active
@@ -74,14 +74,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Nebraska FEMA — Morrill-Cottonwood Fire
 - **disaster_types**: ["Morrill-Cottonwood Fire"]
 - **disaster_type_raw**: Morrill-Cottonwood Fire
-- **counties**: ["Arthur", "Dawson", "Garden", "Keith", "Lincoln", "Morrill"]
+- **counties**: ["Arthur","Dawson","Garden","Keith","Lincoln","Morrill"]
 - **counties_raw**: Arthur, Dawson, Garden, Keith, Lincoln, Morrill counties
 - **sep_effective**: 2026-03-12
 - **sep_termination**: 2027-05-31
 - **sep_window_raw**: March 12, 2026 – May 31, 2027
 - **incident_effective**: 2026-03-12
 - **incident_window_raw**: March 12, 2026 – ongoing
-- **days_until_expiry**: 279
+- **days_until_expiry**: 238
 
 ## sep-xl-ne-southforkfire-202708 — Nebraska FEMA — South Fork Fire
 - **status**: active
@@ -90,14 +90,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Nebraska FEMA — South Fork Fire
 - **disaster_types**: ["South Fork Fire"]
 - **disaster_type_raw**: South Fork Fire
-- **counties**: ["Sioux", "Dawes"]
+- **counties**: ["Sioux","Dawes"]
 - **counties_raw**: Sioux and Dawes counties
 - **sep_effective**: 2026-06-09
 - **sep_termination**: 2027-08-31
 - **sep_window_raw**: June 9, 2026 – August 31, 2027
 - **incident_effective**: 2026-06-09
 - **incident_window_raw**: June 9, 2026 – ongoing
-- **days_until_expiry**: 371
+- **days_until_expiry**: 330
 
 ## sep-xl-ne-wildfire-202610 — Nebraska — Wildfire
 - **status**: active
@@ -113,7 +113,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: June 9, 2026 – October 31, 2026
 - **incident_effective**: 2026-06-09
 - **incident_window_raw**: June 9, 2026 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-0121 — Nebraska - ICE Civil Unrest - 6/13/2025
 - **status**: expiring
@@ -130,7 +130,6 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2025-06-13
 - **incident_termination**: 2026-06-13
 - **incident_window_raw**: Jun 13, 2025 – Jun 13, 2026
-- **days_until_expiry**: 6
 - **declaration_number**: 6/13
 
 ## sep-lis-ne — Nebraska — Dual / LIS PDP Monthly SEP

@@ -1,14 +1,14 @@
 # SEP Tracker — KY
 
-10 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+10 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0073 — Kentucky - Severe Weather, Rain, Hail, Tornadoes - 5/16/2025
 - **status**: active
 - **raw_status**: active
 - **entity**: Hub tracker
 - **declaration_name**: Kentucky - Severe Weather, Rain, Hail, Tornadoes - 5/16/2025
-- **disaster_types**: ["Storms - Rain", "Storms  - Hail", "Straight-Line Winds", "Tornado"]
+- **disaster_types**: ["Storms - Rain","Storms  - Hail","Straight-Line Winds","Tornado"]
 - **disaster_type_raw**: Storms - Rain;Storms  - Hail;Straight-Line Winds;Tornado
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
@@ -18,7 +18,6 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2025-05-16
 - **incident_termination**: 2026-07-15
 - **incident_window_raw**: May 16, 2025 – Jul 15, 2026
-- **days_until_expiry**: 36
 - **declaration_number**: 26-34, 2025-343, 2025-306, 2025-305
 
 ## sep-0074 — Kentucky - Severe Weather System 4/2/2025 (Counties Declared; STATEWIDE Ended)
@@ -26,7 +25,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: active
 - **entity**: Hub tracker
 - **declaration_name**: Kentucky - Severe Weather System 4/2/2025 (Counties Declared; STATEWIDE Ended)
-- **disaster_types**: ["Storms - Rain", "Straight-Line Winds", "Storms  - Hail", "Floods", "Tornado"]
+- **disaster_types**: ["Storms - Rain","Straight-Line Winds","Storms  - Hail","Floods","Tornado"]
 - **disaster_type_raw**: Storms - Rain;Straight-Line Winds;Storms  - Hail;Floods;Tornado
 - **counties**: ["Anderson Bracken Breathitt Butler Floyd Franklin Gallatin Garrard Johnson Kenton Magoffin Marion Martin Nicholas Oldham Perry Washington Wolfe City of Frankfort City of Rochester City of Warsaw Louisville - Jefferson  Metro Government"]
 - **counties_raw**: Anderson Bracken Breathitt Butler Floyd Franklin Gallatin Garrard Johnson Kenton Magoffin Marion Martin Nicholas Oldham Perry Washington Wolfe City of Frankfort City of Rochester City of Warsaw Louisville - Jefferson  Metro Government
@@ -36,7 +35,6 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2025-04-02
 - **incident_termination**: 2026-07-15
 - **incident_window_raw**: Apr 2, 2025 – Jul 15, 2026
-- **days_until_expiry**: 36
 - **declaration_number**: 26-35
 
 ## sep-0075 — Kentucky - Catastrophic Plane Crash 11/4/2025
@@ -44,7 +42,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: active
 - **entity**: Hub tracker
 - **declaration_name**: Kentucky - Catastrophic Plane Crash 11/4/2025
-- **disaster_types**: ["Building/Bridge/Structural Collapse’", "Explosion"]
+- **disaster_types**: ["Building/Bridge/Structural Collapse’","Explosion"]
 - **disaster_type_raw**: Building/Bridge/Structural Collapse’;Explosion
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
@@ -54,7 +52,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2025-11-04
 - **incident_termination**: 2026-08-02
 - **incident_window_raw**: Nov 4, 2025 – Aug 2, 2026
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **declaration_number**: 2025-758
 
 ## sep-0076 — Kentucky - Severe Winter Storm 1/23/2026
@@ -72,7 +70,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-01-23
 - **incident_termination**: 2026-10-20
 - **incident_window_raw**: Jan 23, 2026 – Oct 20, 2026
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 - **declaration_number**: 26-76, 26-50, 26-48, 26-47
 
 ## sep-0077 — Kentucky - Severe Winter Storm 1/23/2026
@@ -89,7 +87,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Jan 23, 2026 – Mar 31, 2027
 - **incident_effective**: 2026-01-23
 - **incident_window_raw**: Jan 23, 2026 – ongoing
-- **days_until_expiry**: 218
+- **days_until_expiry**: 177
 - **declaration_number**: EM-3633-KY
 
 ## sep-lis-ky — Kentucky — Dual / LIS PDP Monthly SEP
@@ -110,7 +108,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Kentucky - Severe Weather System 4/2/2025 (STATEWIDE)
-- **disaster_types**: ["Storms - Rain", "Straight-Line Winds", "Tornado"]
+- **disaster_types**: ["Storms - Rain","Straight-Line Winds","Tornado"]
 - **disaster_type_raw**: Storms - Rain;Straight-Line Winds;Tornado
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
@@ -127,7 +125,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Kentucky - Severe Weather 2/15/2025
-- **disaster_types**: ["Storms - Rain", "Floods", "Landslides/Mudslides"]
+- **disaster_types**: ["Storms - Rain","Floods","Landslides/Mudslides"]
 - **disaster_type_raw**: Storms - Rain;Floods;Landslides/Mudslides
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
@@ -146,7 +144,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Kentucky - Suspension of KRS 5/20/2025
 - **disaster_types**: ["Other"]
 - **disaster_type_raw**: Other
-- **counties**: ["Caldwell", "Christian", "Laurel", "Pulaski", "Russell", "Todd", "Trigg", "Union  & any other  included in a Presidential Major Disaster Area Declaration or amended Presidential Major Disaster Area Declaration"]
+- **counties**: ["Caldwell","Christian","Laurel","Pulaski","Russell","Todd","Trigg","Union  & any other  included in a Presidential Major Disaster Area Declaration or amended Presidential Major Disaster Area Declaration"]
 - **counties_raw**: Caldwell, Christian, Laurel, Pulaski, Russell, Todd, Trigg, Union  & any other  included in a Presidential Major Disaster Area Declaration or amended Presidential Major Disaster Area Declaration
 - **sep_effective**: 2025-05-20
 - **sep_termination**: 2026-04-30
@@ -163,7 +161,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Kentucky - Unemployment Insurance Claims & Benefits relating to 5/16/25 Severe Weather 5/28/2025
 - **disaster_types**: ["Other"]
 - **disaster_type_raw**: Other
-- **counties**: ["Caldwell", "Laurel", "Pulaski", "Russel", "Trigg & Union"]
+- **counties**: ["Caldwell","Laurel","Pulaski","Russel","Trigg & Union"]
 - **counties_raw**: Caldwell, Laurel, Pulaski, Russel, Trigg & Union
 - **sep_effective**: 2025-05-28
 - **sep_termination**: 2026-04-30

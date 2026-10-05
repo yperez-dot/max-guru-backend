@@ -13,6 +13,7 @@ const drugLookupRouter = require('./routes/drugLookup');
 const formularyLookupRouter = require('./routes/formularyLookup');
 const providerLookupRouter = require('./routes/providerLookup');
 const workupsRouter = require('./routes/workups');
+const compareRouter = require('./routes/compare');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -89,6 +90,8 @@ app.use('/formulary-lookup', requireApiKey, requireAccessToken, formularyLookupR
 app.use('/sob-lookup', requireApiKey, requireAccessToken, require('./routes/sobLookup'));
 app.use('/provider-lookup', requireApiKey, requireAccessToken, providerLookupRouter);
 app.use('/workups', requireApiKey, requireAccessToken, workupsRouter);
+// Client Comparison mode — background doctor + Rx job, no chat wait
+app.use('/compare', requireApiKey, requireAccessToken, compareRouter);
 
 const MAX_CLIENT_SYSTEM_CHARS = Number(process.env.MAX_CLIENT_SYSTEM_CHARS || 400000);
 // passThroughChat hard-caps this at MAX_CHAT_DEADLINE_CAP_MS (110s) so the 120s browser wait never fires first.

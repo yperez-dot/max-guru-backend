@@ -1,7 +1,7 @@
 # SEP Tracker — WV
 
-7 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+7 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-xl-wv-flashfloodingan-202609 — West Virginia — Flash Flooding and Landslides
 - **status**: active
@@ -10,14 +10,13 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: West Virginia — Flash Flooding and Landslides
 - **disaster_types**: ["Flash Flooding and Landslides"]
 - **disaster_type_raw**: Flash Flooding and Landslides
-- **counties**: ["Boone", "Logan", "Raleigh"]
+- **counties**: ["Boone","Logan","Raleigh"]
 - **counties_raw**: Boone, Logan, and Raleigh  Counties
 - **sep_effective**: 2026-06-22
 - **sep_termination**: 2026-09-30
 - **sep_window_raw**: June 22, 2026 – September 30, 2026
 - **incident_effective**: 2026-06-22
 - **incident_window_raw**: June 22, 2026 – ongoing
-- **days_until_expiry**: 36
 
 ## sep-xl-wv-severeflooding-202611 — West Virginia — Severe Flooding
 - **status**: active
@@ -26,14 +25,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: West Virginia — Severe Flooding
 - **disaster_types**: ["Severe Flooding"]
 - **disaster_type_raw**: Severe Flooding
-- **counties**: ["Barbour", "Doddridge", "Harrison", "Lewis", "Pendleton", "Pleasants", "Randolph", "Ritchie", "Tucker", "Tyler", "Upshur", "Wetzel"]
+- **counties**: ["Barbour","Doddridge","Harrison","Lewis","Pendleton","Pleasants","Randolph","Ritchie","Tucker","Tyler","Upshur","Wetzel"]
 - **counties_raw**: Barbour, Doddridge, Harrison, Lewis, Pendleton, Pleasants, Randolph, Ritchie, Tucker, Tyler, Upshur, and Wetzel counties
 - **sep_effective**: 2026-07-21
 - **sep_termination**: 2026-11-30
 - **sep_window_raw**: July 21, 2026 – November 30, 2026
 - **incident_effective**: 2026-07-21
 - **incident_window_raw**: July 21, 2026 – ongoing
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 
 ## sep-xl-wv-severestorm-202610 — West Virginia — Severe Storm
 - **status**: active
@@ -42,14 +41,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: West Virginia — Severe Storm
 - **disaster_types**: ["Severe Storm"]
 - **disaster_type_raw**: Severe Storm
-- **counties**: ["Lewis", "Upshur"]
+- **counties**: ["Lewis","Upshur"]
 - **counties_raw**: Lewis and Upshur Counties
 - **sep_effective**: 2026-07-21
 - **sep_termination**: 2026-10-31
 - **sep_window_raw**: July 21, 2026 – October 31, 2026
 - **incident_effective**: 2026-07-21
 - **incident_window_raw**: July 21, 2026 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-xl-wv-severestormsand-202611 — West Virginia — Severe Storms and Flooding
 - **status**: active
@@ -65,7 +64,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: August 16, 2026 – November 30, 2026
 - **incident_effective**: 2026-08-16
 - **incident_window_raw**: August 16, 2026 – ongoing
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 
 ## sep-xl-wv-warehousefire-202610 — West Virginia — Warehouse Fire
 - **status**: active
@@ -81,7 +80,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: July 5, 2026 – October 31, 2026
 - **incident_effective**: 2026-07-05
 - **incident_window_raw**: July 5, 2026 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-lis-wv — West Virginia — Dual / LIS PDP Monthly SEP
 - **status**: yearround

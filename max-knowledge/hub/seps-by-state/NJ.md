@@ -1,7 +1,7 @@
 # SEP Tracker — NJ
 
-9 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+9 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0130 — New Jersey - Propane Fuel Shortage 11/21/2025
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Nov 21, 2025 – Feb 28, 2027
 - **incident_effective**: 2025-11-21
 - **incident_window_raw**: Nov 21, 2025 – ongoing
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **declaration_number**: 408
 
 ## sep-lis-nj — New Jersey — Dual / LIS PDP Monthly SEP
@@ -40,7 +40,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: New Jersey - Winter Storm 12/2/2025
 - **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix"]
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix
-- **counties**: ["Hunterdon", "Morris", "Passaic", "Sussex & Warren"]
+- **counties**: ["Hunterdon","Morris","Passaic","Sussex & Warren"]
 - **counties_raw**: Hunterdon, Morris, Passaic, Sussex & Warren
 - **sep_effective**: 2025-12-02
 - **sep_termination**: 2026-02-28
@@ -57,7 +57,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: New Jersey - Severe Winter Storms 12/26/2025
 - **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix"]
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix
-- **counties**: ["Bergen", "Burlington", "Camden", "Cumberland", "Essex", "Gloucester", "Hudson", "Hunterdon", "Mercer", "Middlesex", "Monmouth", "Morris", "Ocean", "Passaic", "Salem", "Somerset", "Sussex", "Union", "and Warren"]
+- **counties**: ["Bergen","Burlington","Camden","Cumberland","Essex","Gloucester","Hudson","Hunterdon","Mercer","Middlesex","Monmouth","Morris","Ocean","Passaic","Salem","Somerset","Sussex","Union","and Warren"]
 - **counties_raw**: Bergen, Burlington, Camden, Cumberland, Essex, Gloucester, Hudson, Hunterdon, Mercer, Middlesex, Monmouth, Morris, Ocean, Passaic, Salem, Somerset, Sussex, Union, and Warren
 - **sep_effective**: 2025-12-26
 - **sep_termination**: 2026-02-28

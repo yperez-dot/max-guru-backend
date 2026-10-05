@@ -1,7 +1,7 @@
 # SEP Tracker — PR
 
-4 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+4 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0170 — Puerto Rico - Influenza Epidemic 1/27/2026
 - **status**: active
@@ -18,7 +18,6 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-01-27
 - **incident_termination**: 2026-07-27
 - **incident_window_raw**: Jan 27, 2026 – Jul 27, 2026
-- **days_until_expiry**: 36
 - **declaration_number**: 26-05
 
 ## sep-0167 — Puerto Rico - Coast Critical Condition -

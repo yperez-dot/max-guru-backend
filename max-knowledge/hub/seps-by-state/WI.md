@@ -1,7 +1,7 @@
 # SEP Tracker — WI
 
-7 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+7 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-wi-flooding-aug-2025 — Wisconsin - Flooding and Severe Weather
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Aug 9, 2025 – Dec 31, 2026
 - **incident_effective**: 2025-08-09
 - **incident_window_raw**: Aug 9, 2025 – ongoing
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 
 ## sep-xl-wi-highwindshailan-202610 — Wisconsin — High Winds, Hail, and Tornadoes
 - **status**: active
@@ -26,14 +26,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Wisconsin — High Winds, Hail, and Tornadoes
 - **disaster_types**: ["High Winds, Hail, and Tornadoes"]
 - **disaster_type_raw**: High Winds, Hail, and Tornadoes
-- **counties**: ["Forest", "Outagamie", "Vilas", "Winnebago"]
+- **counties**: ["Forest","Outagamie","Vilas","Winnebago"]
 - **counties_raw**: Forest, Outagamie, Vilas, Winnebago Counties
 - **sep_effective**: 2026-07-27
 - **sep_termination**: 2026-10-31
 - **sep_window_raw**: July 27, 2026 – October 31, 2026
 - **incident_effective**: 2026-07-27
 - **incident_window_raw**: July 27, 2026 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-wi-flooding-apr-2026 — Wisconsin - Flooding and Severe Weather
 - **status**: expiring
@@ -49,7 +49,6 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Apr 13, 2026 – Aug 31, 2026
 - **incident_effective**: 2026-04-13
 - **incident_window_raw**: Apr 13, 2026 – ongoing
-- **days_until_expiry**: 6
 
 ## sep-lis-wi — Wisconsin — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -98,7 +97,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Wisconsin - Energy Emergency 11/27/2025
-- **disaster_types**: ["Fuel Shortage", "Other"]
+- **disaster_types**: ["Fuel Shortage","Other"]
 - **disaster_type_raw**: Fuel Shortage;Other
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL

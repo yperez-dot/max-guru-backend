@@ -1,7 +1,7 @@
 # SEP Tracker — MS
 
-5 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+5 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-xl-ms-tropicalstormar-202610 — Mississippi — Tropical Storm Arthur
 - **status**: active
@@ -10,14 +10,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Mississippi — Tropical Storm Arthur
 - **disaster_types**: ["Tropical Storm Arthur"]
 - **disaster_type_raw**: Tropical Storm Arthur
-- **counties**: ["Hancock", "Harrison", "Pearl River", "Stone"]
+- **counties**: ["Hancock","Harrison","Pearl River","Stone"]
 - **counties_raw**: Hancock, Harrison, Pearl River, and Stone Counties
 - **sep_effective**: 2026-06-18
 - **sep_termination**: 2026-10-31
 - **sep_window_raw**: June 18, 2026 – October 31, 2026
 - **incident_effective**: 2026-06-18
 - **incident_window_raw**: June 18, 2026 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-lis-ms — Mississippi — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -54,7 +54,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Mississippi - Prolonged Freezing Temperatures & Winter Weather 1/22/2026
-- **disaster_types**: ["Temperature - Arctic Blast/Dangerous Cold", "Storms - Snowstorm/Blizzard/Mix"]
+- **disaster_types**: ["Temperature - Arctic Blast/Dangerous Cold","Storms - Snowstorm/Blizzard/Mix"]
 - **disaster_type_raw**: Temperature - Arctic Blast/Dangerous Cold;Storms - Snowstorm/Blizzard/Mix
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL

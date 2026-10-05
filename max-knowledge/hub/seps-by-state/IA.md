@@ -1,7 +1,7 @@
 # SEP Tracker — IA
 
-7 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+7 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-ia-storm-2026 — Iowa - Severe Storm Systems
 - **status**: active
@@ -10,7 +10,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Iowa - Severe Storm Systems
 - **disaster_types**: ["Severe Storm"]
 - **disaster_type_raw**: Severe Storm
-- **counties**: ["Cherokee", "Clay", "Kossuth", "Montgomery", "Ringgold"]
+- **counties**: ["Cherokee","Clay","Kossuth","Montgomery","Ringgold"]
 - **counties_raw**: Cherokee, Clay, Kossuth, Montgomery, Ringgold
 - **sep_effective**: 2026-06-29
 - **sep_termination**: 2026-10-31
@@ -18,7 +18,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-05-15
 - **incident_termination**: 2026-07-20
 - **incident_window_raw**: May 15, 2026 – Jul 20, 2026
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-xl-ia-damagingwindsst-202610 — Iowa — Damaging Winds, Straight-line Winds, Thunderstorms and Flash Flooding
 - **status**: active
@@ -27,14 +27,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Iowa — Damaging Winds, Straight-line Winds, Thunderstorms and Flash Flooding
 - **disaster_types**: ["Damaging Winds, Straight-line Winds, Thunderstorms and Flash Flooding"]
 - **disaster_type_raw**: Damaging Winds, Straight-line Winds, Thunderstorms and Flash Flooding
-- **counties**: ["Franklin", "Hardin"]
+- **counties**: ["Franklin","Hardin"]
 - **counties_raw**: Franklin and Hardin Counties
 - **sep_effective**: 2026-07-20
 - **sep_termination**: 2026-10-31
 - **sep_window_raw**: July 20, 2026 – October 31, 2026
 - **incident_effective**: 2026-07-20
 - **incident_window_raw**: July 20, 2026 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-lis-ia — Iowa — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -88,7 +88,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Iowa - Fuels Proclamation 1/15/2026
-- **disaster_types**: ["Fuel Shortage", "Other"]
+- **disaster_types**: ["Fuel Shortage","Other"]
 - **disaster_type_raw**: Fuel Shortage;Other
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
@@ -107,7 +107,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Iowa - HPA Influenza 10/1/2025
 - **disaster_types**: ["Health Emergency"]
 - **disaster_type_raw**: Health Emergency
-- **counties**: ["Calhoun", "Hamilton & Kossuth"]
+- **counties**: ["Calhoun","Hamilton & Kossuth"]
 - **counties_raw**: Calhoun, Hamilton & Kossuth
 - **sep_effective**: 2025-10-01
 - **sep_termination**: 2026-04-30

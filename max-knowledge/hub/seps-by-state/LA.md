@@ -1,7 +1,7 @@
 # SEP Tracker — LA
 
-18 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+18 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0227 — Louisiana - Tropical Storm Arthur 6/17/2026
 - **status**: active
@@ -10,7 +10,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Louisiana - Tropical Storm Arthur 6/17/2026
 - **disaster_types**: ["Tropical Storm"]
 - **disaster_type_raw**: Tropical Storm
-- **counties**: ["Avoyelles", "East Feliciana", "Lafourche", "Pointe Coupee", "St. Charles", "St. Landry", "St. Tammany", "Terrebonne", "Winn"]
+- **counties**: ["Avoyelles","East Feliciana","Lafourche","Pointe Coupee","St. Charles","St. Landry","St. Tammany","Terrebonne","Winn"]
 - **counties_raw**: Avoyelles, East Feliciana, Lafourche, Pointe Coupee, St. Charles, St. Landry, St. Tammany, Terrebonne, Winn
 - **sep_effective**: 2026-07-22
 - **sep_termination**: 2026-10-31
@@ -18,7 +18,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-06-17
 - **incident_termination**: 2026-10-04
 - **incident_window_raw**: Jun 17, 2026 – Oct 4, 2026
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-xl-la-hurricaneida-202610 — Louisiana — Hurricane Ida
 - **status**: active
@@ -34,7 +34,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: August 26, 2021 – October 31, 2026
 - **incident_effective**: 2021-08-26
 - **incident_window_raw**: August 26, 2021 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-xl-la-tropicalstormar-202608 — Louisiana — Tropical Storm Arthur
 - **status**: expiring
@@ -43,14 +43,13 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Louisiana — Tropical Storm Arthur
 - **disaster_types**: ["Tropical Storm Arthur"]
 - **disaster_type_raw**: Tropical Storm Arthur
-- **counties**: ["Avoyelles", "St. Landry", "St. Tammany", "Terrebonne"]
+- **counties**: ["Avoyelles","St. Landry","St. Tammany","Terrebonne"]
 - **counties_raw**: Avoyelles, St. Landry, St. Tammany, Terrebonne
 - **sep_effective**: 2026-06-17
 - **sep_termination**: 2026-08-31
 - **sep_window_raw**: June 17, 2026 – August 31, 2026
 - **incident_effective**: 2026-06-17
 - **incident_window_raw**: June 17, 2026 – ongoing
-- **days_until_expiry**: 6
 
 ## sep-lis-la — Louisiana — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -106,7 +105,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Louisiana - vacancy exists in the office of Member, State Board of Elementary and  Secondary Education District 1, Parishes of Jefferson, Orleans, St. Tammany, and Tangipahoa 12/19/2026
 - **disaster_types**: ["Other"]
 - **disaster_type_raw**: Other
-- **counties**: ["Parishes of Jefferson", "Orleans", "St. Tammany", "and Tangipahoa"]
+- **counties**: ["Parishes of Jefferson","Orleans","St. Tammany","and Tangipahoa"]
 - **counties_raw**: Parishes of Jefferson, Orleans, St. Tammany, and Tangipahoa
 - **sep_effective**: 2025-12-19
 - **sep_termination**: 2026-03-31
@@ -123,7 +122,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Louisiana - vacancy in the office of Associate Justice, 1st Supreme Court District  of Louisiana, Parishes of Livingston, Orleans, St. Bernard, St. Tammany, Tangipahoa, and  Washington 12/22/2025
 - **disaster_types**: ["Other"]
 - **disaster_type_raw**: Other
-- **counties**: ["Parishes of Livingston", "Orleans", "St. Bernard", "St. Tammany", "Tangipahoa", "and  Washington"]
+- **counties**: ["Parishes of Livingston","Orleans","St. Bernard","St. Tammany","Tangipahoa","and  Washington"]
 - **counties_raw**: Parishes of Livingston, Orleans, St. Bernard, St. Tammany, Tangipahoa, and  Washington
 - **sep_effective**: 2025-12-22
 - **sep_termination**: 2026-03-31

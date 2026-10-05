@@ -1,7 +1,7 @@
 # SEP Tracker — MI
 
-2 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+2 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-xl-mi-significantrain-202610 — Michigan — Significant rain event
 - **status**: active
@@ -10,14 +10,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Michigan — Significant rain event
 - **disaster_types**: ["Significant rain event"]
 - **disaster_type_raw**: Significant rain event
-- **counties**: ["Antrim", "Cheboygan", "Emmet"]
+- **counties**: ["Antrim","Cheboygan","Emmet"]
 - **counties_raw**: Antrim, Cheboygan, and Emmet Counties
 - **sep_effective**: 2026-06-29
 - **sep_termination**: 2026-10-31
 - **sep_window_raw**: June 29, 2026 – October 31, 2026
 - **incident_effective**: 2026-06-29
 - **incident_window_raw**: June 29, 2026 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-lis-mi — Michigan — Dual / LIS PDP Monthly SEP
 - **status**: yearround

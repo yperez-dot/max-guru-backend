@@ -1,7 +1,7 @@
 # SEP Tracker — OK
 
-12 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+12 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0149 — Oklahoma - 43 Fire 2/17/2026
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: March 15, 2026 – May 31, 2027
 - **incident_effective**: 2026-02-17
 - **incident_window_raw**: Feb 17, 2026 – ongoing
-- **days_until_expiry**: 279
+- **days_until_expiry**: 238
 - **declaration_number**: FM-5618-OK
 
 ## sep-0150 — Oklahoma - Ranger Road Fire 2/17/2026
@@ -34,7 +34,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Feb 17, 2026 – Apr 30, 2027
 - **incident_effective**: 2026-02-17
 - **incident_window_raw**: Feb 17, 2026 – ongoing
-- **days_until_expiry**: 248
+- **days_until_expiry**: 207
 - **declaration_number**: FM-5617-OK
 
 ## sep-0151 — Oklahoma - Stevens Fire 2/17/2026
@@ -51,7 +51,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Feb 17, 2026 – Apr 30, 2027
 - **incident_effective**: 2026-02-17
 - **incident_window_raw**: Feb 17, 2026 – ongoing
-- **days_until_expiry**: 248
+- **days_until_expiry**: 207
 - **declaration_number**: FM-5616-OK
 
 ## sep-0152 — Oklahoma - Rattlesnake Fire2/19/2026
@@ -68,7 +68,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Feb 19, 2026 – Apr 30, 2027
 - **incident_effective**: 2026-02-19
 - **incident_window_raw**: Feb 19, 2026 – ongoing
-- **days_until_expiry**: 248
+- **days_until_expiry**: 207
 - **declaration_number**: FM-5621-OK
 
 ## sep-0153 — Oklahoma - Hospital Road Fire 2/19/2026
@@ -85,7 +85,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Feb 19, 2026 – Apr 30, 2027
 - **incident_effective**: 2026-02-19
 - **incident_window_raw**: Feb 19, 2026 – ongoing
-- **days_until_expiry**: 248
+- **days_until_expiry**: 207
 - **declaration_number**: FM-5620-OK
 
 ## sep-0234 — Oklahoma - Train Trestle Fire 8/13/2026
@@ -95,7 +95,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Oklahoma - Train Trestle Fire 8/13/2026
 - **disaster_types**: ["Fires/Wildfires"]
 - **disaster_type_raw**: Fires/Wildfires
-- **counties**: ["Canadian", "Oklahoma"]
+- **counties**: ["Canadian","Oklahoma"]
 - **counties_raw**: Canadian, Oklahoma
 - **sep_effective**: 2026-08-13
 - **sep_termination**: 2027-10-31
@@ -103,7 +103,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-08-13
 - **incident_termination**: 2027-08-12
 - **incident_window_raw**: Aug 13, 2026 – Aug 12, 2027
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 
 ## sep-xl-ok-dangerousfloodi-202609 — Oklahoma — Dangerous Flooding and Severe Weather
 - **status**: active
@@ -112,14 +112,13 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Oklahoma — Dangerous Flooding and Severe Weather
 - **disaster_types**: ["Dangerous Flooding and Severe Weather"]
 - **disaster_type_raw**: Dangerous Flooding and Severe Weather
-- **counties**: ["Atoka", "Beaver", "Blaine", "Caddo", "Canadian", "Cherokee", "Cimmaron", "Creek", "Dewey", "Ellis", "Grady", "Harper", "Hughes", "Johnston", "Kay", "Kiowa", "Major", "McCurtain", "McIntosh", "Murray", "Nowata", "Okfuskee", "Oklahoma", "Ottawa", "Pawnee", "Pushmataha", "Tulsa", "Wagoner", "Washita"]
+- **counties**: ["Atoka","Beaver","Blaine","Caddo","Canadian","Cherokee","Cimmaron","Creek","Dewey","Ellis","Grady","Harper","Hughes","Johnston","Kay","Kiowa","Major","McCurtain","McIntosh","Murray","Nowata","Okfuskee","Oklahoma","Ottawa","Pawnee","Pushmataha","Tulsa","Wagoner","Washita"]
 - **counties_raw**: Atoka, Beaver, Blaine, Caddo, Canadian, Cherokee, Cimmaron, Creek, Dewey, Ellis, Grady, Harper, Hughes, Johnston, Kay, Kiowa, Major, McCurtain, McIntosh, Murray, Nowata, Okfuskee, Oklahoma, Ottawa, Pawnee, Pushmataha, Tulsa, Wagoner, and Washita counties
 - **sep_effective**: 2026-06-06
 - **sep_termination**: 2026-09-30
 - **sep_window_raw**: June 6, 2026 – September 30, 2026
 - **incident_effective**: 2026-06-06
 - **incident_window_raw**: June 6, 2026 – ongoing
-- **days_until_expiry**: 36
 
 ## sep-xl-ok-dangeroussevere-202610 — Oklahoma — Dangerous severe weather, high winds, and flooding
 - **status**: active
@@ -128,14 +127,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Oklahoma — Dangerous severe weather, high winds, and flooding
 - **disaster_types**: ["Dangerous severe weather, high winds, and flooding"]
 - **disaster_type_raw**: Dangerous severe weather, high winds, and flooding
-- **counties**: ["Cleveland", "Washington"]
+- **counties**: ["Cleveland","Washington"]
 - **counties_raw**: Cleveland and Washington Counties
 - **sep_effective**: 2026-07-04
 - **sep_termination**: 2026-10-31
 - **sep_window_raw**: July 4, 2026 – October 31, 2026
 - **incident_effective**: 2026-07-04
 - **incident_window_raw**: July 4, 2026 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-lis-ok — Oklahoma — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -172,7 +171,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Oklahoma - Heavy Rain, Flooding, and Storms 4/17/2025
-- **disaster_types**: ["Storms - Rain", "Floods"]
+- **disaster_types**: ["Storms - Rain","Floods"]
 - **disaster_type_raw**: Storms - Rain;Floods
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
@@ -188,9 +187,9 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Oklahoma - Dangerous Wildfires & Straight-Line-Winds 2/17/2026
-- **disaster_types**: ["Fires/Wildfires", "Straight-Line Winds"]
+- **disaster_types**: ["Fires/Wildfires","Straight-Line Winds"]
 - **disaster_type_raw**: Fires/Wildfires;Straight-Line Winds
-- **counties**: ["Beaver", "Harper", "Texas", "& Woodward"]
+- **counties**: ["Beaver","Harper","Texas","& Woodward"]
 - **counties_raw**: Beaver, Harper, Texas, & Woodward
 - **sep_effective**: 2026-02-17
 - **sep_termination**: 2026-05-31

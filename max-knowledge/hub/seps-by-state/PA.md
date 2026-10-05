@@ -1,7 +1,7 @@
 # SEP Tracker — PA
 
-3 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+3 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-lis-pa — Pennsylvania — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -40,7 +40,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Pennsylvania - Complex Winter Storm 2/22/2026
 - **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix"]
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix
-- **counties**: ["Adams", "Bedford", "Berks", "Blair", "Bucks", "Cambria", "Carbon", "Centre", "Chester", "Clearfield", "Clinton", "Cumberland", "Dauphin", "Delaware", "Fayette", "Franklin", "Fulton", "Juniata", "Indiana", "Lackawanna", "Lancaster", "Lebanon", "Lehigh", "Luzerne", "Mifflin", "Monroe", "Montgomery", "Northampton", "Perry", "Philadelphia", "Pike", "Schuylkill", "Snyder", "Somerset", "Sullivan", "Susquehanna", "Union", "Wayne", "Westmoreland", "Wyoming", "and York"]
+- **counties**: ["Adams","Bedford","Berks","Blair","Bucks","Cambria","Carbon","Centre","Chester","Clearfield","Clinton","Cumberland","Dauphin","Delaware","Fayette","Franklin","Fulton","Juniata","Indiana","Lackawanna","Lancaster","Lebanon","Lehigh","Luzerne","Mifflin","Monroe","Montgomery","Northampton","Perry","Philadelphia","Pike","Schuylkill","Snyder","Somerset","Sullivan","Susquehanna","Union","Wayne","Westmoreland","Wyoming","and York"]
 - **counties_raw**: Adams, Bedford, Berks, Blair, Bucks, Cambria, Carbon, Centre, Chester, Clearfield, Clinton, Cumberland, Dauphin, Delaware, Fayette, Franklin, Fulton, Juniata, Indiana, Lackawanna, Lancaster, Lebanon, Lehigh, Luzerne, Mifflin, Monroe, Montgomery, Northampton, Perry, Philadelphia, Pike, Schuylkill, Snyder, Somerset, Sullivan, Susquehanna, Union, Wayne, Westmoreland, Wyoming, and York
 - **sep_effective**: 2026-02-22
 - **sep_termination**: 2026-05-31

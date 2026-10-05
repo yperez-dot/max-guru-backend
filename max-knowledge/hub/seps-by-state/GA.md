@@ -1,7 +1,7 @@
 # SEP Tracker — GA
 
-8 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+8 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-xl-ga-highwayfire-202706 — Georgia FEMA — Highway 82 Fire
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: April 21, 2026 – June 30, 2027
 - **incident_effective**: 2026-04-21
 - **incident_window_raw**: April 21, 2026 – ongoing
-- **days_until_expiry**: 309
+- **days_until_expiry**: 268
 
 ## sep-xl-ga-pinelandroadfir-202706 — Georgia FEMA — Pineland Road Fire
 - **status**: active
@@ -26,14 +26,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Georgia FEMA — Pineland Road Fire
 - **disaster_types**: ["Pineland Road Fire"]
 - **disaster_type_raw**: Pineland Road Fire
-- **counties**: ["Clinch", "Echols"]
+- **counties**: ["Clinch","Echols"]
 - **counties_raw**: Clinch and Echols counties
 - **sep_effective**: 2026-04-18
 - **sep_termination**: 2027-06-30
 - **sep_window_raw**: April 18, 2026 – June 30, 2027
 - **incident_effective**: 2026-04-18
 - **incident_window_raw**: April 18, 2026 – ongoing
-- **days_until_expiry**: 309
+- **days_until_expiry**: 268
 
 ## sep-xl-ga-wildfires-202609 — Georgia — Wildfires
 - **status**: active
@@ -42,14 +42,13 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Georgia — Wildfires
 - **disaster_types**: ["Wildfires"]
 - **disaster_type_raw**: Wildfires
-- **counties**: ["Appling", "Atkinson", "Bacon", "Berrien", "Brantley", "Camden", "Charlton", "Clinch", "Coffee", "Echols", "Glynn", "Jeff Davis", "Lanier", "Lowndes", "Pierce", "Ware", "Wayne"]
+- **counties**: ["Appling","Atkinson","Bacon","Berrien","Brantley","Camden","Charlton","Clinch","Coffee","Echols","Glynn","Jeff Davis","Lanier","Lowndes","Pierce","Ware","Wayne"]
 - **counties_raw**: Appling, Atkinson, Bacon, Berrien, Brantley, Camden, Charlton, Clinch, Coffee, Echols, Glynn, Jeff Davis, Lanier, Lowndes, Pierce, Ware and Wayne counties
 - **sep_effective**: 2026-04-18
 - **sep_termination**: 2026-09-30
 - **sep_window_raw**: April 18, 2026 – September 30, 2026
 - **incident_effective**: 2026-04-18
 - **incident_window_raw**: April 18, 2026 – ongoing
-- **days_until_expiry**: 36
 
 ## sep-lis-ga — Georgia — Dual / LIS PDP Monthly SEP
 - **status**: yearround

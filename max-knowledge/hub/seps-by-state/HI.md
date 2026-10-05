@@ -1,7 +1,7 @@
 # SEP Tracker — HI
 
-12 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+12 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0055 — Hawaii - Kunia Road Fire 8/19/25
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: August 19, 2025 – October 31, 2026
 - **incident_effective**: 2025-08-19
 - **incident_window_raw**: Aug 19, 2025 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **declaration_number**: FM-5609-HI
 
 ## sep-0215 — Hawaii - Tropical Storm LALA 8/13/2026
@@ -35,7 +35,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-08-13
 - **incident_termination**: 2026-09-25
 - **incident_window_raw**: Aug 13, 2026 – Sep 25, 2026
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-xl-hi-kawaihaeroadfir-202709 — Hawaii FEMA — Kawaihae Road Fire
 - **status**: active
@@ -51,7 +51,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: July 25, 2026 – September 30, 2027
 - **incident_effective**: 2026-07-25
 - **incident_window_raw**: July 25, 2026 – ongoing
-- **days_until_expiry**: 401
+- **days_until_expiry**: 360
 
 ## sep-xl-hi-konaearthquake-202612 — Hawaii — Kona Earthquake
 - **status**: active
@@ -67,7 +67,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: May 22, 2026 – December 31, 2026
 - **incident_effective**: 2026-05-22
 - **incident_window_raw**: May 22, 2026 – ongoing
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 
 ## sep-xl-hi-konalowweathere-202611 — Hawaii — Kona Low Weather Event
 - **status**: active
@@ -83,7 +83,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: March 10, 2026 – November 30, 2026
 - **incident_effective**: 2026-03-10
 - **incident_window_raw**: March 10, 2026 – ongoing
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 
 ## sep-xl-hi-severestormsflo-202611 — Hawaii — Severe storms, flooding, landslides, and mudslides
 - **status**: active
@@ -99,7 +99,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: March 10, 2026 – November 30, 2026
 - **incident_effective**: 2026-03-10
 - **incident_window_raw**: March 10, 2026 – ongoing
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 
 ## sep-lis-hi — Hawaii — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -187,7 +187,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Hawaii - Pharmacist-Provided Vaccination Services 9/23/2025
-- **disaster_types**: ["Health Emergency", "Other"]
+- **disaster_types**: ["Health Emergency","Other"]
 - **disaster_type_raw**: Health Emergency;Other
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
