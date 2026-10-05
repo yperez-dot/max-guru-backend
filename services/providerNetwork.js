@@ -199,7 +199,7 @@ function startNpiChecks(rec, { zip, planYear, guestPlanIds, rank = 0 }) {
   const done = Promise.all([
     track('fhir', limited('fhir', () => fhirHits(npi), rank), []),
     track('doctorsResult', limited('doctors', () => queryDoctorsHcp(npi), rank), { inNetwork: false, error: 'request_failed' }),
-    track('aetnaResult', limited('aetna', () => queryAetnaPublic(npi, { zip, lastName: rec.lastName }), rank), { inNetwork: false, plans: [], error: 'request_failed' }),
+    track('aetnaResult', limited('aetna', () => queryAetnaPublic(npi, { zip, lastName: rec.lastName, year: planYear }), rank), { inNetwork: false, plans: [], error: 'request_failed' }),
     track('simplyResult', limited('simply', () => querySimplyFindcare(npi, { zip, lastName: rec.lastName }), rank), { inNetwork: false, plans: [], error: 'request_failed' }),
     track('uhcResult', limited('uhc', () => queryUhcGuest(npi, { zip, year: planYear, planIds: guestPlanIds }), rank), { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'request_failed', year: String(planYear) }),
     track('humanaResult', limited('humana', () => queryHumanaFindcare(npi, { zip, year: planYear, planIds: guestPlanIds }), rank), { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'request_failed', year: String(planYear) }),
@@ -262,6 +262,7 @@ function summarizeNpi(state, planYear) {
     lookupErrors,
     checkedGuest,
     pending,
+    aetnaResult,
     uhcResult,
     humanaResult,
   };
@@ -315,6 +316,7 @@ function structuredFor(doctorName, providerResults, { status, sunfireLabels = []
   if (!firstProvider) return { doctorName, networks: [], status };
   const inNetworkPlans = [...new Set([...firstProvider.inNetworkFor, ...sunfireLabels])];
   const outOfNetworkPlans = [
+    ...(firstProvider.aetnaResult?.error ? [] : (firstProvider.aetnaResult?.outOfNetworkPlans || [])),
     ...(firstProvider.uhcResult?.error ? [] : (firstProvider.uhcResult?.outOfNetworkPlans || [])),
     ...(firstProvider.humanaResult?.error ? [] : (firstProvider.humanaResult?.outOfNetworkPlans || [])),
   ];

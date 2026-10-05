@@ -79,3 +79,15 @@ describe('aetnaPublicSearch helpers', () => {
     assert.ok(parsed.clientId);
   });
 });
+
+describe('Aetna 2027 plan-level (Padron)', () => {
+  const a = require('./aetnaPublicSearch');
+  it('defaults to the 2027 network, not 2026', () => {
+    assert.equal(a.PLAN_YEAR, '2027');
+    assert.equal(a.buildMedicareSearchBody({ lastName: 'Bush', countyCode: '12011' }).medicare_plans.plan_year, '2027');
+    assert.equal(a.buildTaxonomyBody({ q: '1598725954', year: 2027 }).plan_year, '2027');
+  });
+  it('keeps the CMS ID on the plan label so Max can match H1609-018 plan by plan', () => {
+    assert.equal(a.formatPlanLabel({ plan_name: 'Aetna Medicare Select (HMO)', plan_id: 'H1609-018-000' }), 'Aetna Medicare Select (HMO) (H1609-018)');
+  });
+});

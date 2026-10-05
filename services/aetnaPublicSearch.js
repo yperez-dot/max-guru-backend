@@ -18,7 +18,8 @@ const API03 = 'https://api03.aetna.com/healthcare/prod';
 const GEOCODE_URL = 'https://api01.aetna.com/hcb/prod/v4/geocode';
 const SPA_URL = 'https://health.aetna.com/ahpublic/medicare-direct';
 const FETCH_TIMEOUT_MS = 12_000;
-const PLAN_YEAR = '2026';
+// AEP: 2027 networks by default. Was hard-coded 2026, so 2027 answers used last year's network.
+const PLAN_YEAR = String(process.env.MAX_AETNA_PLAN_YEAR || '2027');
 const PAGE_SIZE = 50;
 const MAX_PAGES = 6;
 const CARRIER_LABEL = 'Aetna Medicare';
@@ -155,19 +156,21 @@ function formatPlanLabel(plan) {
   const name = plan?.plan_name || plan?.planName || '';
   const id = String(plan?.plan_id || plan?.planId || '');
   const cms = id.match(/^(H\d{4}-\d{3})/i);
+  // Keep the CMS ID on the label so Max can match it plan-by-plan (H1609-018), not just "Aetna".
+  if (name && cms) return `${name} (${cms[1].toUpperCase()})`;
   if (name) return name;
   if (cms) return `Aetna ${cms[1]}`;
   return id ? `${CARRIER_LABEL} – ${id}` : CARRIER_LABEL;
 }
 
-function buildTaxonomyBody({ q, latlng, countyCode, state = 'FL' }) {
+function buildTaxonomyBody({ q, latlng, countyCode, state = 'FL', year = PLAN_YEAR }) {
   return {
     q: String(q || ''),
     latlng,
     supported_types: ['practitioner'],
     county_code: countyCode || null,
     plan_type: 'IND',
-    plan_year: PLAN_YEAR,
+    plan_year: String(year),
     use_template: true,
     public_site_id: 'medicare',
     lob: 'medicare',
@@ -175,7 +178,7 @@ function buildTaxonomyBody({ q, latlng, countyCode, state = 'FL' }) {
   };
 }
 
-function buildMedicareSearchBody({ q, latlng, countyCode, lastName, offset = 0 }) {
+function buildMedicareSearchBody({ q, latlng, countyCode, lastName, offset = 0, year = PLAN_YEAR }) {
   return {
     latlng,
     q: q || lastName,
@@ -184,7 +187,7 @@ function buildMedicareSearchBody({ q, latlng, countyCode, lastName, offset = 0 }
       public_site_id: 'medicare',
       county_code: String(countyCode),
       plan_type: 'IND',
-      plan_year: PLAN_YEAR,
+      plan_year: String(year),
     },
     limit: PAGE_SIZE,
     offset,
@@ -206,18 +209,18 @@ async function geocodeZip(session, zip) {
   };
 }
 
-async function taxonomyByNpi(session, { npi, latlng, countyCode, state }) {
+async function taxonomyByNpi(session, { npi, latlng, countyCode, state, year = PLAN_YEAR }) {
   const res = await fetchJar(session.jar, `${API03}/v1/ahpublic_taxonomy`, {
     method: 'POST',
     headers: authHeaders(session),
-    body: JSON.stringify(buildTaxonomyBody({ q: npi, latlng, countyCode, state })),
+    body: JSON.stringify(buildTaxonomyBody({ q: npi, latlng, countyCode, state, year })),
   });
   if (!res.ok) return [];
   const data = await res.json();
   return (data.find_care || []).filter((row) => npiMatches(row.npi, npi));
 }
 
-async function searchMedicarePages(session, { lastName, latlng, countyCode, npi }) {
+async function searchMedicarePages(session, { lastName, latlng, countyCode, npi, year = PLAN_YEAR }) {
   const matches = [];
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const offset = page * PAGE_SIZE;
@@ -230,6 +233,7 @@ async function searchMedicarePages(session, { lastName, latlng, countyCode, npi 
         countyCode,
         lastName,
         offset,
+        year,
       })),
     });
     if (!res.ok) break;
@@ -245,26 +249,26 @@ async function searchMedicarePages(session, { lastName, latlng, countyCode, npi 
   return matches;
 }
 
-async function fetchMedicarePlans(session, site, countyCode) {
+async function fetchMedicarePlans(session, site, countyCode, year = PLAN_YEAR) {
   const id = site.id;
   const loc = site.service_location_number;
-  if (!id || !loc) return [];
-  const url = `${API03}/v3/ahpublic_providers/${encodeURIComponent(id)}/locations/${encodeURIComponent(loc)}/lobs/medicare/healthplans?plan_year=${PLAN_YEAR}&county_code=${encodeURIComponent(countyCode)}&plan_type=IND`;
+  if (!id || !loc) return { inPlans: [], outPlans: [] };
+  const url = `${API03}/v3/ahpublic_providers/${encodeURIComponent(id)}/locations/${encodeURIComponent(loc)}/lobs/medicare/healthplans?plan_year=${encodeURIComponent(year)}&county_code=${encodeURIComponent(countyCode)}&plan_type=IND`;
   const res = await fetchJar(session.jar, url, { headers: authHeaders(session) });
-  if (!res.ok) return [];
+  if (!res.ok) return { inPlans: [], outPlans: [] };
   const data = await res.json();
   const rows = data.inside_area_plans || [];
   const seen = new Set();
-  const plans = [];
+  const inPlans = [];
+  const outPlans = [];
   for (const row of rows) {
-    if (!isInNetworkStatus(row.network_status)) continue;
     const hp = row.health_plan || {};
     const key = hp.plan_id || hp.plan_name;
     if (!key || seen.has(key)) continue;
     seen.add(key);
-    plans.push(formatPlanLabel(hp));
+    (isInNetworkStatus(row.network_status) ? inPlans : outPlans).push(formatPlanLabel(hp));
   }
-  return plans;
+  return { inPlans, outPlans };
 }
 
 function formatMatch(site) {
@@ -283,7 +287,7 @@ function formatMatch(site) {
 /**
  * Look up one NPI in Aetna's public Medicare directory for a Florida ZIP.
  */
-async function queryAetnaPublic(npi, { zip = '33176', state = 'FL', lastName = '' } = {}) {
+async function queryAetnaPublic(npi, { zip = '33176', state = 'FL', lastName = '', year = PLAN_YEAR } = {}) {
   if (!npi) {
     return {
       inNetwork: false,
@@ -314,6 +318,7 @@ async function queryAetnaPublic(npi, { zip = '33176', state = 'FL', lastName = '
       latlng: geo.latlng,
       countyCode: geo.countyCode,
       state: geo.state || state,
+      year,
     });
     const directoryHit = taxHits.length > 0;
     const searchLast = lastNameFromDisplay(taxHits[0]?.name) || lastName;
@@ -333,6 +338,7 @@ async function queryAetnaPublic(npi, { zip = '33176', state = 'FL', lastName = '
       latlng: geo.latlng,
       countyCode: geo.countyCode,
       npi,
+      year,
     });
 
     const taxZip = String(taxHits[0]?.address?.zipCode || '').slice(0, 5);
@@ -344,6 +350,7 @@ async function queryAetnaPublic(npi, { zip = '33176', state = 'FL', lastName = '
           latlng: geo2.latlng,
           countyCode: geo2.countyCode,
           npi,
+          year,
         });
       }
     }
@@ -360,21 +367,30 @@ async function queryAetnaPublic(npi, { zip = '33176', state = 'FL', lastName = '
     }
 
     const planLists = await Promise.all(
-      sites.slice(0, 3).map((site) => fetchMedicarePlans(session, site, geo.countyCode))
+      sites.slice(0, 3).map((site) => fetchMedicarePlans(session, site, geo.countyCode, year))
     );
     const plans = [];
     const seen = new Set();
     for (const list of planLists) {
-      for (const label of list) {
+      for (const label of list.inPlans) {
         if (seen.has(label)) continue;
         seen.add(label);
         plans.push(label);
+      }
+    }
+    // A plan is Out only if no office of this doctor lists it as in-network.
+    const outOfNetworkPlans = [];
+    for (const list of planLists) {
+      for (const label of list.outPlans) {
+        if (!seen.has(label) && !outOfNetworkPlans.includes(label)) outOfNetworkPlans.push(label);
       }
     }
 
     return {
       inNetwork: plans.length > 0 || sites.some((s) => isInNetworkStatus(s.specialties?.[0]?.medical_network_status)),
       plans,
+      outOfNetworkPlans,
+      year: String(year),
       matches: sites.slice(0, 3).map(formatMatch),
       directoryHit: true,
       error: null,
