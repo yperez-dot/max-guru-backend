@@ -36,6 +36,13 @@ if (require.main === module) {
       '<!-- MAX_CLIENT_WORKUPS_END -->'
     );
   }
+  if (which === 'all' || which === 'caret') {
+    syncBlock(
+      'artifacts/composerCaret.js',
+      '<!-- MAX_COMPOSER_CARET_BEGIN -->',
+      '<!-- MAX_COMPOSER_CARET_END -->'
+    );
+  }
 }
 
 module.exports = { syncBlock };

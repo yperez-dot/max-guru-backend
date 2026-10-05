@@ -1,0 +1,138 @@
+const { describe, it } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
+
+const caret = require('../artifacts/composerCaret.js');
+const HTML_PATH = path.join(__dirname, '../artifacts/max-demo-FINAL-v7.html');
+
+function fakeEl(overrides) {
+  const el = {
+    value: '',
+    selectionStart: 0,
+    selectionEnd: 0,
+    scrollTop: 0,
+    scrollLeft: 0,
+    scrollHeight: 200,
+    scrollWidth: 400,
+    clientHeight: 46,
+    clientWidth: 280,
+    style: { height: '46px' },
+    setSelectionRange(start, end) {
+      this.selectionStart = start;
+      this.selectionEnd = end;
+    },
+    ...overrides,
+  };
+  return el;
+}
+
+const PADRON = 'My clients have UnitedHealthcare UHC MedicareMax Complete Care FL-30 (HMO D-SNP) (H5430-14-0) and this plan is being discontinued for 2027. its for maria and gaspar padron. they have the following drs and meds: Ernesto Padron PCP. look up their drs too';
+
+describe('composer caret helpers', () => {
+  it('pins when focus left the caret at the start and scroll at the top', () => {
+    const el = fakeEl({ value: PADRON, selectionStart: 0, selectionEnd: 0 });
+    assert.equal(caret.shouldPinCaretToEnd(el), true);
+    caret.revealComposerEnd(el);
+    assert.equal(el.selectionStart, el.value.length);
+    assert.equal(el.selectionEnd, el.value.length);
+    assert.equal(el.scrollTop, el.scrollHeight);
+    assert.equal(el.scrollLeft, el.scrollWidth);
+  });
+
+  it('pins when mobile select-all left the whole draft highlighted at the top', () => {
+    const el = fakeEl({ value: PADRON, selectionStart: 0, selectionEnd: PADRON.length });
+    assert.equal(caret.shouldPinCaretToEnd(el), true);
+    caret.placeCaretAtEnd(el);
+    assert.equal(el.selectionStart, PADRON.length);
+    assert.equal(el.selectionEnd, PADRON.length);
+  });
+
+  it('scrolls to the end when caret is already at the end but the box shows the top', () => {
+    const el = fakeEl({
+      value: PADRON,
+      selectionStart: PADRON.length,
+      selectionEnd: PADRON.length,
+      scrollTop: 0,
+      scrollLeft: 0,
+    });
+    assert.equal(caret.shouldPinCaretToEnd(el), false);
+    caret.revealComposerEnd(el);
+    assert.equal(el.selectionStart, PADRON.length);
+    assert.equal(el.scrollTop, el.scrollHeight);
+  });
+
+  it('does not yank a mid-message caret', () => {
+    const el = fakeEl({
+      value: PADRON,
+      selectionStart: 8,
+      selectionEnd: 8,
+      scrollTop: 40,
+      scrollLeft: 12,
+    });
+    assert.equal(caret.shouldPinCaretToEnd(el), false);
+    caret.revealComposerEnd(el);
+    assert.equal(el.selectionStart, 8);
+    assert.equal(el.selectionEnd, 8);
+    assert.equal(el.scrollTop, 40);
+    assert.equal(el.scrollLeft, 12);
+  });
+
+  it('does not pin an empty composer', () => {
+    const el = fakeEl({ value: '' });
+    assert.equal(caret.shouldPinCaretToEnd(el), false);
+    caret.revealComposerEnd(el);
+    assert.equal(el.selectionStart, 0);
+  });
+
+  it('recognizes the Try again failure copy so the draft can be refilled', () => {
+    assert.equal(caret.looksLikeFailedGuruReply("I couldn't generate a response. Try again."), true);
+    assert.equal(caret.looksLikeFailedGuruReply("Couldn't reach Max. Check your connection and try again — if this keeps happening, Railway may be redeploying."), true);
+    assert.equal(caret.looksLikeFailedGuruReply('Got it — here is H1045-012 vs H1045-061.'), false);
+  });
+
+  it('keeps scroll and caret when resizing while editing in the middle', () => {
+    const value = 'a'.repeat(80);
+    const el = fakeEl({
+      value,
+      selectionStart: 10,
+      selectionEnd: 10,
+      scrollTop: 55,
+      scrollHeight: 260,
+    });
+    caret.resizeComposer(el);
+    assert.equal(el.selectionStart, 10);
+    assert.equal(el.selectionEnd, 10);
+    assert.equal(el.scrollTop, 55);
+    assert.equal(el.style.height, `${caret.COMPOSER_MAX_PX}px`);
+  });
+
+  it('scrolls to the end when resizing with the caret at the end', () => {
+    const value = 'a'.repeat(80);
+    const el = fakeEl({
+      value,
+      selectionStart: value.length,
+      selectionEnd: value.length,
+      scrollTop: 0,
+      scrollHeight: 180,
+    });
+    caret.resizeComposer(el);
+    assert.equal(el.scrollTop, 180);
+  });
+});
+
+describe('live UI wires the caret helpers', () => {
+  it('inlines MaxComposerCaret and uses a textarea composer', () => {
+    const html = fs.readFileSync(HTML_PATH, 'utf8');
+    assert.match(html, /MAX_COMPOSER_CARET_BEGIN/);
+    assert.match(html, /root\.MaxComposerCaret = api/);
+    assert.match(html, /<textarea/);
+    assert.match(html, /data-testid="chat-composer"/);
+    assert.match(html, /MaxComposerCaret\.scheduleRevealComposerEnd/);
+    assert.match(html, /MaxComposerCaret\.placeCaretAtEnd/);
+    assert.match(html, /refillComposerFromFailedSend/);
+    assert.match(html, /data-testid="reuse-user-message"/);
+    assert.doesNotMatch(html, /onKeyDown=\{\(e\) => e\.key === "Enter" && send\(\)\}/);
+    assert.match(html, /\.max-composer-row textarea/);
+  });
+});
