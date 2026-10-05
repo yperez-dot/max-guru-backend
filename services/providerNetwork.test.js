@@ -154,4 +154,33 @@ describe('lookup_provider_network batch (Padron 8 doctors)', () => {
     const list = normalizeDoctorList({ doctorName: 'Jorge Diaz', doctors: [{ doctorName: 'Jorge Diaz' }, 'Howard Bush', { npi: '1234567890' }] });
     assert.deepEqual(list.map((d) => d.doctorName), ['Jorge Diaz', 'Howard Bush', '1234567890']);
   });
+  it('Padron output: carriers per doctor, no Cigna for 2027, coverage counts, narrowing questions', async () => {
+    global.fetch = async (url) => (/cigna/.test(String(url))
+      ? { ok: true, json: async () => ({ total: 1, entry: [{}] }) }
+      : { ok: false, json: async () => ({}) });
+    try {
+      const out = await lookupProviderNetwork(
+        { doctors: PADRON.map((doctorName) => ({ doctorName })), zip: '33332' },
+        { deadlineAt: Date.now() + 3000, messages: [{ role: 'user', content: 'Maria & Gaspar Padron, ZIP 33332. Check these doctors In/Out and suggest 2-3 2027 plans' }] },
+      );
+      for (const d of out.expand) assert.ok(!d.carriersIn.includes('Cigna'), 'Cigna must not be a 2027 option');
+      assert.doesNotMatch(out.text.split('PLAN COVERAGE')[0], /Cigna/);
+      assert.match(out.text, /Humana Gold Plus \(H1036-054\) — 8\/8 doctors in/);
+      assert.match(out.text, /Do Maria and Gaspar have Medicaid/);
+      assert.match(out.text, /HMO OK|meds/i);
+      assert.ok(out.text.length < 6000, `tool text should be compact, was ${out.text.length}`);
+    } finally {
+      global.fetch = async () => ({ ok: false, json: async () => ({}) });
+    }
+  });
+  it('stops asking once the agent answered the narrowing questions', async () => {
+    const messages = [
+      { role: 'user', content: 'Maria & Gaspar Padron ZIP 33332, check doctors, suggest 2-3 plans' },
+      { role: 'assistant', content: 'To narrow to 2–3 plans: 1. Medicaid or a Medicare Savings Program? 2. must-keep doctors? 3. HMO or PPO?' },
+      { role: 'user', content: '1 no 2 Ernesto and Howard 3 HMO ok' },
+    ];
+    const out = await lookupProviderNetwork({ doctors: [{ doctorName: 'Ernesto Padron' }, { doctorName: 'Howard Bush' }], zip: '33332' }, { deadlineAt: Date.now() + 2000, messages });
+    assert.match(out.text, /suggest exactly 2–3 plans/);
+    assert.deepEqual(out.structured.questions, []);
+  });
 });

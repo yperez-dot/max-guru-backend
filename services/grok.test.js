@@ -493,14 +493,17 @@ describe('Padron chat budget', () => {
     });
   });
 
-  it('builds a per-doctor fallback instead of the generic reply when the model itself times out', () => {
+  it('builds a short per-doctor fallback with narrowing questions when the model itself times out', () => {
     const { fallbackFromToolResults } = loadGrok({ provider: 'grok', key: 'test-xai-key' });
     const text = fallbackFromToolResults([
-      { tool: 'lookup_provider_network', output: { requestedName: 'Jorge Diaz', doctorName: 'JORGE DIAZ', npi: '1111111111', status: 'done', networks: [{ carrier: 'Humana', inNetwork: true, plans: ['Humana Gold Plus (H1036-054)'] }] } },
+      { tool: 'lookup_provider_network', output: { requestedName: 'Jorge Diaz', doctorName: 'JORGE DIAZ', npi: '1111111111', status: 'done', carriersIn: ['Humana'], inNetworkPlans: ['Humana Gold Plus (H1036-065C)', 'Humana Dual Select (H1036-077)'], outOfNetworkPlans: [] } },
       { tool: 'lookup_provider_network', output: { requestedName: 'Howard Bush', doctorName: 'Howard Bush', status: 'timeout', networks: [] } },
-    ]);
-    assert.match(text, /Jorge Diaz \(JORGE DIAZ, NPI 1111111111\): In network — Humana \(Humana Gold Plus \(H1036-054\)\)/);
-    assert.match(text, /Howard Bush.*NOT CONFIRMED/);
+    ], 'Maria & Gaspar Padron, ZIP 33332. Check these doctors and suggest 2-3 2027 plans');
+    assert.match(text, /- Jorge Diaz \(JORGE DIAZ, NPI 1111111111\): Humana/);
+    assert.match(text, /Howard Bush: NOT CONFIRMED/);
+    assert.match(text, /Humana Gold Plus \(H1036-065C\) — 1\/2 doctors in/);
+    assert.match(text, /Do Maria and Gaspar have Medicaid/);
+    assert.doesNotMatch(text, /H1036-065C.*H1036-077.*H1036-065C/s);
   });
 
   it('says nothing was saved when the deadline hits before any lookup', async () => {

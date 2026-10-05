@@ -1,6 +1,8 @@
 // services/grok.js — Max Medicare Guru via OpenAI-compatible chat (Grok or OpenAI)
 const { TOOLS, processTool } = require('./claude');
 const { countImagesInMessages, normalizeMessages } = require('./chatImages');
+const { fallbackAnswer, narrowingAnswered } = require('./doctorPlanNarrow');
+const { conversationAskText } = require('./planYear');
 const {
   shouldAutoLookupComparisonSob,
   uniquePlanIdsNeedingExportSob,
@@ -126,33 +128,13 @@ function chatResult({ lastData, text, collectedToolResults, usageCalls, deadline
   return out;
 }
 
-/** Plain-text doctor table from finished tool results — used only when the model itself ran out of time. */
-function fallbackFromToolResults(collected) {
-  const doctors = collected.filter((t) => t.tool === 'lookup_provider_network' && t.output && (t.output.doctorName || t.output.requestedName));
+/** Short doctor answer from finished tool results — used only when the model itself ran out of time. */
+function fallbackFromToolResults(collected, askText = '', messages = []) {
+  const doctors = collected
+    .filter((t) => t.tool === 'lookup_provider_network' && t.output && (t.output.doctorName || t.output.requestedName))
+    .map((t) => t.output);
   if (!doctors.length) return '';
-  const lines = ['Doctor network check (the model ran out of chat wait before writing the summary — these are the raw finished results):'];
-  for (const d of doctors) {
-    const o = d.output;
-    const label = o.requestedName && o.doctorName && o.requestedName !== o.doctorName
-      ? `${o.requestedName} (${o.doctorName}${o.npi ? `, NPI ${o.npi}` : ''})`
-      : `${o.doctorName || o.requestedName}${o.npi ? ` (NPI ${o.npi})` : ''}`;
-    if (o.status === 'timeout' || o.status === 'error') {
-      lines.push(`- ${label}: NOT CONFIRMED — lookup did not finish.`);
-      continue;
-    }
-    if (o.status === 'not_found') {
-      lines.push(`- ${label}: NOT CONFIRMED — no NPI match.`);
-      continue;
-    }
-    const inNets = (o.networks || []).filter((n) => n.inNetwork).map((n) => (
-      n.plans && n.plans.length ? `${n.carrier} (${n.plans.join('; ')})` : n.carrier
-    ));
-    const pending = (o.pending || []).length ? ` — still pending: ${o.pending.join(', ')}` : '';
-    lines.push(`- ${label}: ${inNets.length ? `In network — ${inNets.join(', ')}` : 'no in-network hit in the finished checks (not confirmed out)'}${pending}`);
-  }
-  lines.push('');
-  lines.push('Plan suggestions did not fit in this wait. Send the same ask again — finished doctor lookups are saved and come back instantly.');
-  return lines.join('\n');
+  return `${fallbackAnswer(doctors, askText, { answered: narrowingAnswered(messages) })}\n\n_Max ran out of chat wait before writing the full answer. Answer the questions above (or send the same ask again — finished doctor lookups come back from cache)._`;
 }
 
 async function mapConcurrent(items, limit, worker) {
@@ -291,11 +273,12 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
         messages: finalOnly && i > 0
           ? apiMessages.concat([{
             role: 'user',
-            content: 'Chat wait is almost up — no more lookups. Answer now from the finished tool results only. Any doctor/drug/benefit without a finished result is NOT CONFIRMED (never out-of-network, never an invented dollar).',
+            content: 'Chat wait is almost up — no more lookups. Answer now from the finished tool results only, SHORT: follow the ANSWER FORMAT in the tool result if there is one (one line per doctor with carrier names, max 3 candidate plans, then the narrowing questions). Never list every plan. Any doctor/drug/benefit without a finished result is NOT CONFIRMED (never out-of-network, never an invented dollar).',
           }])
           : apiMessages,
         tools: finalOnly ? null : openaiTools,
-        maxTokens: 8000,
+        // Short final answer = fast final answer.
+        maxTokens: finalOnly && i > 0 ? 2500 : 8000,
         timeoutMs: grokTimeout(),
       });
     } catch (err) {
@@ -407,7 +390,7 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
 
   let text = answerText;
   if (deadlineHit) {
-    const partial = fallbackFromToolResults(collectedToolResults);
+    const partial = fallbackFromToolResults(collectedToolResults, conversationAskText(messages), messages);
     return chatResult({
       lastData,
       text: partial || '',
@@ -459,7 +442,7 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
       text = typeof lastMessage.content === 'string' ? lastMessage.content : '';
     } catch (err) {
       if (!(err && (err.name === 'TimeoutError' || err.name === 'AbortError'))) throw err;
-      return chatResult({ lastData, text: fallbackFromToolResults(collectedToolResults), collectedToolResults, usageCalls, deadlineHit: true });
+      return chatResult({ lastData, text: fallbackFromToolResults(collectedToolResults, conversationAskText(messages), messages), collectedToolResults, usageCalls, deadlineHit: true });
     }
   }
 
