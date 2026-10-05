@@ -285,7 +285,7 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
         input = {};
       }
       input = capToolPlanIds(name, input);
-      if (remainingMs(deadline) < 5000) {
+      if (remainingMs(deadline) < 12000) {
         deadlineHit = true;
         const skip = `Skipped ${name} — chat deadline. Answer with finished tool results. Do not invent dollars.`;
         collectedToolResults.push({ tool: name, output: { text: skip } });

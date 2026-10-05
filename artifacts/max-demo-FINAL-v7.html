@@ -3539,7 +3539,7 @@ async function askGuru(conversationHistory) {
   };
   const headers = maxAuthHeaders();
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 85_000);
+  const timer = setTimeout(() => ctrl.abort(), 120_000);
   try {
     const response = await fetch(PROXY_URL, {
       method: "POST",
