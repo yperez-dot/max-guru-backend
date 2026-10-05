@@ -55,7 +55,9 @@ describe('HealthSpring 2027 South Florida — no MA in Miami-Dade / Broward', ()
     assert.match(claude, /19\. CARRIER GEOGRAPHY 2027/);
     assert.match(claude, /no HealthSpring plan to enroll into/);
     assert.match(claude, /she's in-network with Cigna so consider HealthSpring/);
-    assert.match(claude, /Cigna\/HealthSpring directory hits are not a 2027 Miami-Dade or Broward MA enrollment option/);
+    // Provider tool output moved to providerNetwork.js (parallel doctor batch).
+    const providerNetwork = fs.readFileSync(path.join(__dirname, 'providerNetwork.js'), 'utf8');
+    assert.match(providerNetwork, /Cigna\/HealthSpring directory hits are not a 2027 Miami-Dade or Broward MA enrollment option/);
 
     const html = fs.readFileSync(HTML_PATH, 'utf8');
     assert.match(html, /20c\. CARRIER GEOGRAPHY 2027/);

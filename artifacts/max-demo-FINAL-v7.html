@@ -3524,7 +3524,7 @@ async function unlockMax(email, password) {
 const UI_QA = typeof location !== "undefined" ? new URLSearchParams(location.search) : new URLSearchParams();
 const MOCK_DELAY_MS = Number(UI_QA.get("mockDelay") || 0);
 
-async function askGuru(conversationHistory) {
+async function askGuru(conversationHistory, opts) {
   if (MOCK_DELAY_MS > 0) {
     await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
     return { text: "QA mock reply.", banners: [] };
@@ -3537,6 +3537,10 @@ async function askGuru(conversationHistory) {
     system: buildSystemPrompt(selection.plans, selection.meta.year),
     messages: conversationHistory,
   };
+  // Real resume: lookups that finished before the last chat-wait cut are sent back,
+  // so "send the same ask again" continues instead of starting cold.
+  const prior = opts && Array.isArray(opts.priorToolResults) ? opts.priorToolResults : [];
+  if (prior.length) payload.priorToolResults = prior.slice(-40);
   const headers = maxAuthHeaders();
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 120_000);
@@ -3582,6 +3586,7 @@ async function askGuru(conversationHistory) {
       text: textBlock ? textBlock.text : "I couldn't generate a response. Try again.",
       banners: Array.isArray(data.banners) ? data.banners : [],
       toolResults: Array.isArray(data.toolResults) ? data.toolResults : [],
+      resume: data.resume && typeof data.resume === "object" ? data.resume : null,
     };
   } finally {
     clearTimeout(timer);
@@ -3740,6 +3745,8 @@ function App() {
   // Every lookup result this chat (doctors, formulary, SOB like SNF/DME). Max may run a lookup on a
   // turn that does not cite 2+ plan IDs; keeping them all means the export still sees them.
   const sessionToolResultsRef = useRef([]);
+  // Finished lookups from a reply that hit the chat wait — sent once with the next ask.
+  const resumeToolResultsRef = useRef([]);
   const loadedWorkupRef = useRef(null);
   const currentWorkupIdRef = useRef(null);
   const lastSavedSigRef = useRef("");
@@ -3881,6 +3888,7 @@ function App() {
       setCurrentWorkupId(null);
       lastComparisonExportRef.current = null;
       sessionToolResultsRef.current = [];
+      resumeToolResultsRef.current = [];
       lastSavedSigRef.current = "";
     }
     setMessages([]);
@@ -4278,11 +4286,15 @@ function App() {
         }
       }
 
+      const priorToolResults = resumeToolResultsRef.current;
       const result = await askGuru(window.MaxClientWorkups.messagesForApi(
         newHistory.filter((m) => m.role === "user" || m.role === "assistant").map((m) => ({ role: m.role, content: m.content })),
         loadedWorkupRef.current
-      ));
+      ), { priorToolResults });
       if (gen !== chatGenRef.current) return;
+      resumeToolResultsRef.current = result.resume && result.resume.resumable
+        ? window.MaxComparisonExport.mergeToolResults(priorToolResults, result.toolResults, 40)
+        : [];
       sessionToolResultsRef.current = window.MaxComparisonExport.mergeToolResults(sessionToolResultsRef.current, result.toolResults);
       const reply = result.text;
       if (window.MaxComposerCaret && window.MaxComposerCaret.looksLikeFailedGuruReply(reply)) {

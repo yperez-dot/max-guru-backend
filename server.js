@@ -91,12 +91,14 @@ app.use('/provider-lookup', requireApiKey, requireAccessToken, providerLookupRou
 app.use('/workups', requireApiKey, requireAccessToken, workupsRouter);
 
 const MAX_CLIENT_SYSTEM_CHARS = Number(process.env.MAX_CLIENT_SYSTEM_CHARS || 400000);
-const CHAT_DEADLINE_MS = Number(process.env.MAX_CHAT_DEADLINE_MS || 70_000);
+// passThroughChat hard-caps this at MAX_CHAT_DEADLINE_CAP_MS (110s) so the 120s browser wait never fires first.
+const CHAT_DEADLINE_MS = Number(process.env.MAX_CHAT_DEADLINE_MS || 105_000);
+const MAX_PRIOR_TOOL_RESULTS = 40;
 const TOOL_USE_APPENDIX = `
 
 ADDITIONAL RUNTIME RULES (server-enforced):
 - Use the provided tools via the API function-calling mechanism. Never invent <tool_call> XML or pretend you looked something up.
-- For questions about whether a doctor/provider is in-network, call lookup_provider_network before answering. If a clinic/group/DBA name misses, call search_clinic_or_provider (CMS NPPES org search + optional known clinic page — never Google SERPs), propose the NPI(s), then re-run lookup_provider_network with npi=.
+- For questions about whether a doctor/provider is in-network, call lookup_provider_network before answering. When the agent lists 2 or more doctors, make ONE lookup_provider_network call with every doctor in doctors[] plus the shared zip (e.g. Padron: 8 doctors, ZIP 33332) — never one call per doctor and never split them across turns. In the answer, list EVERY doctor the agent named with In network / Out of network per plan, or NOT CONFIRMED when the tool result says NOT CONFIRMED / did not finish / no NPI match. NOT CONFIRMED is never out-of-network. Still give the rest of the answer (plan options) from what finished. If a clinic/group/DBA name misses, call search_clinic_or_provider (CMS NPPES org search + optional known clinic page — never Google SERPs), propose the NPI(s), then re-run lookup_provider_network with npi=.
 - Clinic "insurances accepted" pages are marketing, not verified In/Out. If a Humana (or other carrier) logo IS on the page: "Found a Humana logo on their site — here's the link. I recommend you call and confirm." If it is NOT (MNRS Physical Therapy / https://miamiphysicaltherapy.com/insurances/ lists Aetna, ASHP, AvMed, Cigna, Doctors Healthcare, GEHA, Golden Rule, Hartford, Harvard Pilgrim, Medicare, NALC, PHCS, TRICARE, UnitedHealthcare, UAIC, UMR, VA, Gallagher Bassett — NO Humana): "{carrier} is not listed on their accepted-insurances page" + link + recommend calling the office. Absence on the clinic site is not definitive OON if Find Care later returns IN — report both: not listed on clinic site + the NPI Find Care result. True In/Out is NPI + carrier Find Care / FHIR / guest directory only.
 - Provider results are facts, never a ranking signal. UHC uses the public guest Find a Doctor (2027) — no Jarvis/member login. Humana uses public Find Care guest (2027) — no member login. A failed check or empty Sunfire is not out-of-network. Only report UHC/Humana OON when that guest directory returned a successful empty result for that plan/network.
 - For medication name / NDC lookups, call search_drug (catalog only). search_drug does NOT verify a plan tier.
@@ -117,7 +119,49 @@ ADDITIONAL RUNTIME RULES (server-enforced):
   9) TPMO: No ranking ("best" / "closest" / "highest"). Objective tables only. Prefer search_knowledge for client-plan-comparison.
 `;
 
-// POST /chat { messages: [{role, content}], system?: string }
+function deadlineBanner(resume) {
+  const resumable = Boolean(resume && resume.resumable);
+  return {
+    id: 'chat-deadline',
+    type: 'warning',
+    message: resumable
+      ? `Max hit the chat wait with ${resume.finished} lookup result(s) finished. They are saved — send the same ask again and Max continues from them (doctor lookups come back from cache). Dollars stay unverified unless a SOB lookup finished.`
+      : 'Max hit the chat wait before any lookup finished — nothing was saved. Sending again starts fresh.',
+  };
+}
+
+function compactToolOutput(output) {
+  if (!output || typeof output !== 'object') return String(output || '').slice(0, 400);
+  if (output.doctorName || output.requestedName) {
+    const inNets = (output.networks || []).filter((n) => n.inNetwork).map((n) => (
+      n.plans && n.plans.length ? `${n.carrier} (${n.plans.join('; ')})` : n.carrier
+    ));
+    const who = [output.requestedName, output.doctorName].filter(Boolean).join(' → ');
+    if (output.status === 'timeout' || output.status === 'not_found' || output.status === 'error') {
+      return `${who}: NOT CONFIRMED (${output.status})`;
+    }
+    return `${who}${output.npi ? ` NPI ${output.npi}` : ''}: ${inNets.length ? `in-network ${inNets.join(', ')}` : 'no in-network hit in finished checks'}${(output.pending || []).length ? `; pending ${output.pending.join(', ')}` : ''}`;
+  }
+  try {
+    return JSON.stringify(output).slice(0, 600);
+  } catch (_) {
+    return '';
+  }
+}
+
+/** Real resume: finished lookups from the attempt that hit the chat wait, sent back by the UI. */
+function priorToolResultsNote(prior) {
+  if (!Array.isArray(prior) || !prior.length) return '';
+  const lines = prior
+    .slice(-MAX_PRIOR_TOOL_RESULTS)
+    .filter((t) => t && typeof t === 'object' && typeof t.tool === 'string')
+    .map((t) => `- ${t.tool}: ${compactToolOutput(t.output)}`)
+    .filter((line) => line.length > 4);
+  if (!lines.length) return '';
+  return `\n\nFINISHED LOOKUPS FROM THE PREVIOUS ATTEMPT (it hit the chat wait; these already finished — reuse them; only look up what is NOT CONFIRMED or missing; doctor lookups re-run from cache instantly if you call them again):\n${lines.join('\n').slice(0, 8000)}\n`;
+}
+
+// POST /chat { messages: [{role, content}], system?: string, priorToolResults?: [] }
 // content may be a string or multimodal parts (text + PNG/JPEG/WebP data URLs).
 // Images are validated in-memory and forwarded to Grok/OpenAI vision; they are not persisted.
 // Netlify (thei-max-guru.netlify.app) always sends system = buildSystemPrompt() (~280KB plan grid).
@@ -158,7 +202,8 @@ app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, 
       });
     }
 
-    const mergedSystem = `${system}\n${TOOL_USE_APPENDIX}`;
+    const priorNote = priorToolResultsNote(req.body.priorToolResults);
+    const mergedSystem = `${system}\n${TOOL_USE_APPENDIX}${priorNote}`;
     try {
       const data = await passThroughChat({
         system: mergedSystem,
@@ -171,12 +216,7 @@ app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, 
       });
       const banners = [...budgetResult.banners];
       if (data.deadline) {
-        banners.unshift({
-          id: 'chat-deadline',
-          type: 'warning',
-          message:
-            'Max hit the chat wait while a lookup was still running. Send the same ask again — dollars stay unverified unless a SOB lookup already finished.',
-        });
+        banners.unshift(deadlineBanner(data.resume));
         delete data.deadline;
       }
       if (budgetCheck.overrideActivated) {
@@ -227,12 +267,7 @@ app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, 
     const block = (data.content || []).find((item) => item.type === 'text');
     const banners = [...budgetResult.banners];
     if (data.deadline) {
-      banners.unshift({
-        id: 'chat-deadline',
-        type: 'warning',
-        message:
-          'Max hit the chat wait while a lookup was still running. Send the same ask again — dollars stay unverified unless a SOB lookup already finished.',
-      });
+      banners.unshift(deadlineBanner(data.resume));
     }
     if (budgetCheck.overrideActivated) {
       banners.unshift({

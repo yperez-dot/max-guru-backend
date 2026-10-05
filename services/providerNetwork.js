@@ -1,0 +1,539 @@
+// services/providerNetwork.js — lookup_provider_network engine.
+//
+// Padron-style asks (8 doctors + ZIP in one send) used to run every doctor,
+// every NPI and Sunfire one after another, so /chat hit its deadline before
+// half the doctors finished. This module:
+//   - runs all doctors in a batch at once, and all NPIs of a doctor at once
+//   - runs FHIR / Doctors / Aetna / Simply / UHC / Humana / Sunfire side by side
+//   - bounds everything by an absolute deadline and returns a partial result
+//     (finished carriers + "NOT CONFIRMED" for the rest) instead of hanging
+//   - caches finished doctors for 30 min, and lets a lookup that was cut off
+//     keep running in the background so "send the same ask again" is instant.
+// A failed or timed-out check is never out-of-network.
+
+const { queryDoctorsHcp, PLAN_LABEL: DOCTORS_PLAN_LABEL } = require('./doctorsHcp');
+const { queryAetnaPublic, CARRIER_LABEL: AETNA_PLAN_LABEL } = require('./aetnaPublicSearch');
+const { querySimplyFindcare, CARRIER_LABEL: SIMPLY_PLAN_LABEL } = require('./simplyFindcare');
+const {
+  queryUhcGuest,
+  CARRIER_LABEL: UHC_PLAN_LABEL,
+  PLAN_YEAR: UHC_PLAN_YEAR,
+  formatUhcAgentNote,
+} = require('./uhcGuestSearch');
+const {
+  queryHumanaFindcare,
+  CARRIER_LABEL: HUMANA_PLAN_LABEL,
+  isHumanaLabel,
+  formatHumanaAgentNote,
+} = require('./humanaFindcare');
+const { formatSolisNote } = require('./solisDirectory');
+const { resolveNpiRecords, displayName, allLocationAddresses } = require('./npiRegistry');
+const {
+  querySunfireProviderList,
+  inNetworkLabelsFromSunfirePlans,
+} = require('./sunfireProvider');
+
+let SUNFIRE_PLAN_MAP = {};
+try {
+  SUNFIRE_PLAN_MAP = require('./sunfire-id-map.json');
+} catch (_) {
+  SUNFIRE_PLAN_MAP = {};
+}
+
+const FHIR_CARRIERS = [
+  { name: 'Florida Blue', key: 'flblue', base: 'https://apigw.bcbsfl.com/interop/interop-developer-portal/emr/api/v1/fhir' },
+  { name: 'Cigna', key: 'cigna', base: 'https://fhir.cigna.com/ProviderDirectory/v1' },
+  { name: 'HealthSun', key: 'healthsun', base: 'https://api.aaneelconnect.com/cms/r4/providerdirectory', extra: 'payer-id=8d4e5e9ec9c64b1a9db68fbec4bd6f95' },
+  { name: 'Devoted Health', key: 'devoted', base: 'https://fhir.devoted.com/fhir' },
+];
+
+const SINGLE_NPI_CAP = Number(process.env.MAX_PROVIDER_NPI_CAP || 3);
+const BATCH_NPI_CAP = Number(process.env.MAX_PROVIDER_BATCH_NPI_CAP || 2);
+const BATCH_MAX_DOCTORS = Number(process.env.MAX_PROVIDER_BATCH_MAX || 12);
+const CARRIER_CONCURRENCY = Number(process.env.MAX_PROVIDER_CARRIER_CONCURRENCY || 8);
+const SUNFIRE_TIMEOUT_MS = Number(process.env.MAX_SUNFIRE_PROVIDER_DOCTOR_TIMEOUT_MS || 6000);
+const CACHE_TTL_MS = Number(process.env.MAX_PROVIDER_CACHE_MS || 30 * 60 * 1000);
+const DEFAULT_BUDGET_MS = 60_000;
+
+const NOT_CONFIRMED = 'NOT CONFIRMED';
+
+function sunfireEnabled() {
+  return String(process.env.MAX_SUNFIRE_PROVIDER_LOOKUP || 'on').toLowerCase() !== 'off';
+}
+
+// ─── small helpers ──────────────────────────────────────────────────────────
+
+/** Simple per-key concurrency limiter so 8 doctors × 2 NPIs don't open 16 Humana searches at once. */
+function createLimiter(limit) {
+  let active = 0;
+  const queue = [];
+  const next = () => {
+    if (active >= limit || !queue.length) return;
+    active += 1;
+    const { fn, resolve, reject } = queue.shift();
+    Promise.resolve()
+      .then(fn)
+      .then(resolve, reject)
+      .finally(() => {
+        active -= 1;
+        next();
+      });
+  };
+  return (fn) => new Promise((resolve, reject) => {
+    queue.push({ fn, resolve, reject });
+    next();
+  });
+}
+
+const limiters = {};
+function limited(key, fn) {
+  if (!limiters[key]) limiters[key] = createLimiter(Math.max(1, CARRIER_CONCURRENCY));
+  return limiters[key](fn);
+}
+
+/** Resolve with `promise`, or with `onTimeout()` once `deadlineAt` passes. The promise keeps running. */
+function raceDeadline(promise, deadlineAt, onTimeout) {
+  const ms = Math.max(0, deadlineAt - Date.now());
+  let timer;
+  const timeout = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(onTimeout()), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+function normalizeNpi(value) {
+  const m = String(value || '').match(/\b(\d{10})\b/);
+  return m ? m[1] : '';
+}
+
+// ─── cache ──────────────────────────────────────────────────────────────────
+
+const cache = new Map();
+
+function cacheKey({ doctorName, npi, zip, year, planId }) {
+  const who = normalizeNpi(npi) || normalizeNpi(doctorName) || String(doctorName || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  return [who, String(zip || ''), String(year || ''), String(planId || '').toUpperCase()].join('|');
+}
+
+function cacheGet(key) {
+  const hit = cache.get(key);
+  if (!hit) return null;
+  if (hit.expiresAt <= Date.now()) {
+    cache.delete(key);
+    return null;
+  }
+  return hit.value;
+}
+
+function cacheSet(key, value) {
+  cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+  if (cache.size > 500) {
+    const oldest = cache.keys().next().value;
+    cache.delete(oldest);
+  }
+}
+
+function clearProviderCache() {
+  cache.clear();
+}
+
+// ─── per-NPI carrier fan-out ────────────────────────────────────────────────
+
+async function fhirHits(npi) {
+  const hits = [];
+  await Promise.all(FHIR_CARRIERS.map(async (carrier) => {
+    try {
+      const url = carrier.extra
+        ? `${carrier.base}/PractitionerRole?practitioner.identifier=${npi}&${carrier.extra}`
+        : `${carrier.base}/PractitionerRole?practitioner.identifier=${npi}`;
+      const r = await fetch(url, { headers: { Accept: 'application/fhir+json' }, signal: AbortSignal.timeout(8000) });
+      if (r.ok) {
+        const fd = await r.json();
+        if ((fd.total || 0) > 0 || (fd.entry || []).length > 0) hits.push(carrier.name);
+      }
+    } catch (_) { /* skip carrier */ }
+  }));
+  return FHIR_CARRIERS.map((c) => c.name).filter((name) => hits.includes(name));
+}
+
+function npiRecordInfo(p) {
+  const pName = displayName(p) || [p.basic?.first_name, p.basic?.middle_name, p.basic?.last_name].filter(Boolean).join(' ');
+  const spec = (p.taxonomies || []).find((t) => t.primary)?.desc || 'Unknown';
+  const locs = allLocationAddresses(p);
+  const addr = locs[0] || {};
+  const address = locs.length
+    ? locs.map((a) => `${a.address_1 || ''}, ${a.city || ''}, FL ${String(a.postal_code || '').slice(0, 5)}`.trim()).join(' | ')
+    : `${addr.address_1 || ''}, ${addr.city || ''}, FL ${addr.postal_code || ''}`.trim();
+  return {
+    name: pName,
+    npi: p.number,
+    specialty: spec,
+    address,
+    lastName: p.basic?.last_name || p.basic?.organization_name || '',
+  };
+}
+
+/**
+ * Starts every carrier check for one NPI. Returns a live `state` object whose
+ * fields fill in as each carrier answers, plus `done` (all settled).
+ */
+function startNpiChecks(rec, { zip, planYear, guestPlanIds }) {
+  const state = {
+    ...rec,
+    fhir: undefined,
+    doctorsResult: undefined,
+    aetnaResult: undefined,
+    simplyResult: undefined,
+    uhcResult: undefined,
+    humanaResult: undefined,
+  };
+  const npi = rec.npi;
+  const track = (field, promise, fallback) => promise
+    .then((v) => { state[field] = v; }, () => { state[field] = fallback; });
+  const done = Promise.all([
+    track('fhir', limited('fhir', () => fhirHits(npi)), []),
+    track('doctorsResult', limited('doctors', () => queryDoctorsHcp(npi)), { inNetwork: false, error: 'request_failed' }),
+    track('aetnaResult', limited('aetna', () => queryAetnaPublic(npi, { zip, lastName: rec.lastName })), { inNetwork: false, plans: [], error: 'request_failed' }),
+    track('simplyResult', limited('simply', () => querySimplyFindcare(npi, { zip, lastName: rec.lastName })), { inNetwork: false, plans: [], error: 'request_failed' }),
+    track('uhcResult', limited('uhc', () => queryUhcGuest(npi, { zip, year: planYear, planIds: guestPlanIds })), { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'request_failed', year: String(planYear) }),
+    track('humanaResult', limited('humana', () => queryHumanaFindcare(npi, { zip, year: planYear, planIds: guestPlanIds })), { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'request_failed', year: String(planYear) }),
+  ]);
+  return { state, done };
+}
+
+const TIMED_OUT = { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'timeout' };
+
+/** Snapshot a (possibly unfinished) NPI state into the classic providerResults shape. */
+function summarizeNpi(state, planYear) {
+  const inNetworkFor = [...(state.fhir || [])];
+  const pending = [];
+  const pick = (field, label) => {
+    const v = state[field];
+    if (v === undefined) {
+      pending.push(label);
+      return { ...TIMED_OUT, year: String(planYear) };
+    }
+    return v;
+  };
+  if (state.fhir === undefined) pending.push('FHIR (FL Blue / Cigna / HealthSun / Devoted)');
+  const doctorsResult = pick('doctorsResult', 'Doctors HealthCare Plans');
+  const aetnaResult = pick('aetnaResult', 'Aetna guest search');
+  const simplyResult = pick('simplyResult', 'Simply Find Care');
+  const uhcResult = pick('uhcResult', 'UHC guest Find a Doctor');
+  const humanaResult = pick('humanaResult', 'Humana Find Care');
+
+  if (doctorsResult.inNetwork && !inNetworkFor.includes(DOCTORS_PLAN_LABEL)) inNetworkFor.push(DOCTORS_PLAN_LABEL);
+  for (const [res, fallbackLabel] of [[aetnaResult, AETNA_PLAN_LABEL], [simplyResult, SIMPLY_PLAN_LABEL]]) {
+    if (!res.error && res.inNetwork) {
+      for (const plan of res.plans || []) if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
+      if (!(res.plans || []).length && !inNetworkFor.includes(fallbackLabel)) inNetworkFor.push(fallbackLabel);
+    }
+  }
+  for (const res of [uhcResult, humanaResult]) {
+    if (!res.error && res.inNetwork) {
+      for (const plan of res.plans || []) if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
+    }
+  }
+
+  const lookupErrors = [];
+  if (doctorsResult.error) lookupErrors.push('Doctors HealthCare Plans');
+  if (aetnaResult.error) lookupErrors.push('Aetna guest search');
+  if (simplyResult.error) lookupErrors.push('Simply Find Care');
+  if (uhcResult.error) lookupErrors.push('UHC guest Find a Doctor');
+  if (humanaResult.error) lookupErrors.push('Humana Find Care');
+  const checkedGuest = ['FL Blue', 'Cigna', 'HealthSun', 'Devoted', 'Doctors'];
+  if (!aetnaResult.error) checkedGuest.push('Aetna guest search');
+  if (!simplyResult.error) checkedGuest.push('Simply Find Care');
+  checkedGuest.push('UHC guest Find a Doctor');
+  checkedGuest.push('Humana Find Care');
+
+  return {
+    name: state.name,
+    npi: state.npi,
+    specialty: state.specialty,
+    address: state.address,
+    inNetworkFor,
+    lookupErrors,
+    checkedGuest,
+    pending,
+    uhcResult,
+    humanaResult,
+  };
+}
+
+// ─── one doctor ─────────────────────────────────────────────────────────────
+
+function formatDoctorText({ doctorName, zip, planYear, providerResults, sunfire, timedOut }) {
+  let out = `Provider network results for "${doctorName}":\n\n`;
+  for (const pr of providerResults) {
+    out += `**${pr.name}** (NPI: ${pr.npi})\n`;
+    out += `Specialty: ${pr.specialty}\n`;
+    out += `Address: ${pr.address}\n`;
+    const allNetworks = [...pr.inNetworkFor];
+    const missList = (pr.checkedGuest || []).join(', ');
+    out += allNetworks.length
+      ? `In-network for: ${allNetworks.join(', ')}\n`
+      : `Not found in ${missList} (a miss on FHIR/Doctors/Aetna/Simply is not a UHC or Humana answer).\n`;
+    if (pr.uhcResult && pr.uhcResult.error !== 'timeout') out += `${formatUhcAgentNote(pr.uhcResult)}\n`;
+    if (pr.humanaResult && pr.humanaResult.error !== 'timeout') out += `${formatHumanaAgentNote(pr.humanaResult)}\n`;
+    if (sunfire.labels.length > 0) {
+      out += `Sunfire also listed (${sunfire.labels.length}; secondary, year ${planYear}):\n${sunfire.labels.map((p) => `  - ${p}`).join('\n')}\n`;
+    } else if (sunfire.error === 'skipped') {
+      out += 'Sunfire skipped for this doctor check (secondary only). Wellcare / CarePlus: check the carrier site.\n';
+    } else if (sunfire.error) {
+      out += `Sunfire provider lookup failed (${sunfire.error}) — empty/truncated Sunfire is not UHC or Humana out-of-network. Wellcare / CarePlus: check the carrier site.\n`;
+    } else {
+      out += process.env.SUNFIRE_SFP
+        ? `Sunfire did not confirm additional plans for ${planYear}. Empty Sunfire is not UHC or Humana out-of-network.\n`
+        : 'Sunfire session unavailable (secondary only). UHC uses public guest Find a Doctor. Humana uses public Find Care. Wellcare / CarePlus still need Sunfire or the carrier site.\n';
+    }
+    if (pr.pending && pr.pending.length) {
+      out += `${NOT_CONFIRMED} (still running at the chat wait): ${pr.pending.join(', ')} — not out-of-network.\n`;
+    }
+    const realErrors = (pr.lookupErrors || []).filter((label) => !(pr.pending || []).includes(label));
+    if (realErrors.length) {
+      out += `Could not complete: ${realErrors.join(', ')} — that is not the same as out-of-network. Hand the agent the guest URL.\n`;
+    }
+    out += `${formatSolisNote(zip)}\n`;
+    out += '\n';
+  }
+  if (timedOut) {
+    out += 'Some checks were still running when the chat wait hit — they keep running and are saved, so asking again returns them without starting over.\n';
+  }
+  out += 'Note: Cigna/HealthSpring directory hits are not a 2027 Miami-Dade or Broward MA enrollment option. HealthSpring has no 2027 MA plans in those counties.\n';
+  return out.slice(0, 7000);
+}
+
+function structuredFor(doctorName, providerResults, { status }) {
+  const firstProvider = providerResults[0];
+  if (!firstProvider) return { doctorName, networks: [], status };
+  const guestEntry = (label, res) => ({
+    carrier: label,
+    inNetwork: Boolean(res?.inNetwork),
+    status: res?.error ? 'failed' : (res?.inNetwork ? 'in_network' : 'checked'),
+    plans: res?.plans || [],
+    outOfNetworkPlans: res?.outOfNetworkPlans || [],
+    year: res?.year || UHC_PLAN_YEAR,
+  });
+  return {
+    doctorName: firstProvider.name,
+    requestedName: doctorName,
+    npi: firstProvider.npi,
+    status,
+    pending: firstProvider.pending || [],
+    networks: [
+      ...FHIR_CARRIERS.map((c) => ({ carrier: c.name, inNetwork: firstProvider.inNetworkFor.includes(c.name) })),
+      { carrier: DOCTORS_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.includes(DOCTORS_PLAN_LABEL) },
+      { carrier: AETNA_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.some((p) => /aetna/i.test(p)) },
+      { carrier: SIMPLY_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.some((p) => /simply/i.test(p)) },
+      guestEntry(UHC_PLAN_LABEL, firstProvider.uhcResult),
+      guestEntry(HUMANA_PLAN_LABEL, firstProvider.humanaResult),
+    ],
+  };
+}
+
+function notFoundResult(doctorName) {
+  return {
+    status: 'not_found',
+    doctorName,
+    text: `No providers found matching "${doctorName}" in Florida (NPI-1 person or NPI-2 clinic). If this is a clinic/group/DBA, call search_clinic_or_provider, then re-run lookup_provider_network with the NPI. Do not invent In/Out from a clinic insurances-accepted webpage.`,
+    structured: { doctorName, networks: [], status: 'not_found' },
+  };
+}
+
+function pendingResult(doctorName, why) {
+  return {
+    status: 'timeout',
+    doctorName,
+    text: `Provider network results for "${doctorName}": ${NOT_CONFIRMED} — ${why}. A lookup that did not finish is not out-of-network. It keeps running and is saved, so asking again picks it up.`,
+    structured: { doctorName, requestedName: doctorName, networks: [], status: 'timeout' },
+  };
+}
+
+/**
+ * Look up one doctor. Resolves by `deadlineAt` at the latest — with whatever
+ * finished — and lets the unfinished work continue into the cache.
+ */
+async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCache = true } = {}) {
+  const doctorName = String(input.doctorName || input.name || input.npi || '').trim();
+  const zip = String(input.zip || '33136');
+  const planYear = Number(input.year) || Number(UHC_PLAN_YEAR);
+  const guestPlanIds = input.planId ? [String(input.planId)] : [];
+  const key = cacheKey({ doctorName, npi: input.npi, zip, year: planYear, planId: input.planId });
+  const until = Number(deadlineAt) > 0 ? Number(deadlineAt) : Date.now() + DEFAULT_BUDGET_MS;
+
+  if (useCache) {
+    const hit = cacheGet(key);
+    if (hit) {
+      if (hit.value) return { ...hit.value, cached: true };
+      if (hit.inflight) {
+        // An earlier (cut-off) attempt is still running — wait for it within this budget.
+        return raceDeadline(hit.inflight, until, () => pendingResult(doctorName, 'carrier directories still answering from the previous attempt'));
+      }
+    }
+  }
+
+  const live = { npiStates: [], sunfire: { labels: [], error: null }, phase: 'npi' };
+  let finishedAll = false;
+
+  const full = (async () => {
+    const records = await resolveNpiRecords({
+      doctorName,
+      zip,
+      state: input.state || 'FL',
+      npi: input.npi,
+      limit: 5,
+    });
+    if (!records.length) return notFoundResult(doctorName);
+    const picked = records.slice(0, Math.max(1, npiCap)).map(npiRecordInfo);
+    live.phase = 'carriers';
+    const runs = picked.map((rec) => startNpiChecks(rec, { zip, planYear, guestPlanIds }));
+    live.npiStates = runs.map((r) => r.state);
+
+    const sunfirePromise = (async () => {
+      if (!sunfireEnabled()) {
+        live.sunfire = { labels: [], error: 'skipped' };
+        return;
+      }
+      const sf = await querySunfireProviderList({
+        providers: picked.map((pr) => ({ id: pr.npi, name: pr.name, firstName: pr.name.split(' ')[0], radius: 25, primaryDoctor: true })),
+        zip,
+        year: planYear,
+        county: '12086',
+        timeoutMs: Math.max(1000, Math.min(SUNFIRE_TIMEOUT_MS, until - Date.now())),
+        retry: false,
+      });
+      await Promise.all(runs.map((r) => r.done));
+      if (sf.ok) {
+        const humanaGuestOk = live.npiStates.some((s) => (
+          s.humanaResult?.checks?.some((c) => c.status === 'in_network' || c.status === 'out_of_network')
+        ));
+        live.sunfire = {
+          labels: inNetworkLabelsFromSunfirePlans(sf.plans, SUNFIRE_PLAN_MAP, { skipHumana: humanaGuestOk, isHumanaLabel }),
+          error: null,
+        };
+      } else if (sf.error && sf.error !== 'missing_credentials') {
+        live.sunfire = { labels: [], error: sf.error };
+      }
+    })().catch((e) => {
+      live.sunfire = { labels: [], error: e.message || 'sunfire_error' };
+    });
+
+    await Promise.all([...runs.map((r) => r.done), sunfirePromise]);
+    finishedAll = true;
+    return buildDoctorResult(doctorName, zip, planYear, live, { timedOut: false });
+  })();
+
+  const settled = full.then((result) => {
+    if (useCache && result && result.status !== 'timeout') cacheSet(key, { value: result });
+    return result;
+  }, (err) => {
+    cache.delete(key);
+    return { status: 'error', doctorName, text: `Provider lookup error: ${err.message}`, structured: { doctorName, networks: [], status: 'error' } };
+  });
+  if (useCache) cacheSet(key, { inflight: settled });
+
+  return raceDeadline(settled, until, () => {
+    if (finishedAll) return null; // race lost by a hair — settled wins below
+    if (live.phase === 'npi' || !live.npiStates.length) {
+      return pendingResult(doctorName, 'NPI registry lookup did not finish');
+    }
+    return buildDoctorResult(doctorName, zip, planYear, live, { timedOut: true });
+  }).then((r) => r || settled);
+}
+
+function buildDoctorResult(doctorName, zip, planYear, live, { timedOut }) {
+  const providerResults = live.npiStates.map((s) => summarizeNpi(s, planYear));
+  const anyPending = providerResults.some((pr) => pr.pending.length);
+  const status = timedOut && anyPending ? 'partial' : 'done';
+  return {
+    status,
+    doctorName,
+    text: formatDoctorText({ doctorName, zip, planYear, providerResults, sunfire: live.sunfire, timedOut: status === 'partial' }),
+    structured: structuredFor(doctorName, providerResults, { status }),
+  };
+}
+
+// ─── batch ──────────────────────────────────────────────────────────────────
+
+function normalizeDoctorList(toolInput) {
+  const list = [];
+  const seen = new Set();
+  const add = (d) => {
+    if (!d) return;
+    const entry = typeof d === 'string' ? { doctorName: d } : { ...d };
+    entry.doctorName = String(entry.doctorName || entry.name || entry.npi || '').trim();
+    if (!entry.doctorName && !entry.npi) return;
+    const k = (normalizeNpi(entry.npi) || entry.doctorName).toLowerCase();
+    if (seen.has(k)) return;
+    seen.add(k);
+    list.push(entry);
+  };
+  (Array.isArray(toolInput.doctors) ? toolInput.doctors : []).forEach(add);
+  if (toolInput.doctorName || toolInput.npi) add({ doctorName: toolInput.doctorName, npi: toolInput.npi, planId: toolInput.planId });
+  return list.slice(0, BATCH_MAX_DOCTORS);
+}
+
+/**
+ * Run lookup_provider_network for one or many doctors in parallel.
+ * Returns { text, structured, expand } — `expand` holds one structured entry per
+ * doctor so the UI export sees each doctor like a separate tool call.
+ */
+async function lookupProviderNetwork(toolInput = {}, context = {}) {
+  const doctors = normalizeDoctorList(toolInput);
+  const deadlineAt = Number(context.deadlineAt) > 0
+    ? Number(context.deadlineAt)
+    : Date.now() + (Number(context.remainingMs) > 0 ? Math.max(3000, Number(context.remainingMs) - 5000) : DEFAULT_BUDGET_MS);
+  if (!doctors.length) {
+    return 'lookup_provider_network needs doctorName, npi, or doctors[]. Nothing was looked up.';
+  }
+  const common = { zip: toolInput.zip, state: toolInput.state, year: toolInput.year, planId: toolInput.planId };
+  const npiCap = doctors.length > 1 ? BATCH_NPI_CAP : SINGLE_NPI_CAP;
+  const results = await Promise.all(doctors.map((d) => lookupDoctor(
+    { ...common, ...d, planId: d.planId || common.planId },
+    { deadlineAt, npiCap }
+  )));
+
+  if (doctors.length === 1) {
+    const r = results[0];
+    return { text: r.text, structured: r.structured, status: r.status };
+  }
+
+  const done = results.filter((r) => r.status === 'done').length;
+  const header = [
+    `Doctor network batch — ${results.length} doctors, ZIP ${common.zip || '33136'}, year ${Number(common.year) || UHC_PLAN_YEAR}.`,
+    `Finished: ${done}/${results.length}.` + (done < results.length
+      ? ` Anything marked ${NOT_CONFIRMED} did not finish before the chat wait (or was not found) — never report it as out-of-network.`
+      : ''),
+    'Summary:',
+    ...results.map((r) => {
+      const label = r.doctorName;
+      if (r.status === 'not_found') return `- ${label}: ${NOT_CONFIRMED} — no NPI match (try search_clinic_or_provider).`;
+      if (r.status === 'timeout' || r.status === 'error') return `- ${label}: ${NOT_CONFIRMED} — lookup did not finish.`;
+      const nets = (r.structured?.networks || []);
+      const inNames = nets.filter((n) => n.inNetwork).map((n) => n.carrier);
+      const suffix = r.status === 'partial' ? ` (partial — still pending: ${(r.structured?.pending || []).join(', ')})` : '';
+      return `- ${label} → ${r.structured?.doctorName || label}: ${inNames.length ? `in-network for ${inNames.join(', ')}` : 'no in-network hit in finished checks'}${suffix}.`;
+    }),
+    '',
+  ].join('\n');
+  // Per-doctor detail, trimmed so 8 doctors stay inside one tool message.
+  const perDoctorCap = Math.max(900, Math.floor(14000 / results.length));
+  const body = results.map((r) => r.text.slice(0, perDoctorCap)).join('\n---\n');
+  return {
+    text: `${header}\n${body}`.slice(0, 18000),
+    structured: { doctors: results.map((r) => r.structured), finished: done, total: results.length },
+    expand: results.map((r) => r.structured),
+    status: done === results.length ? 'done' : 'partial',
+  };
+}
+
+module.exports = {
+  lookupProviderNetwork,
+  lookupDoctor,
+  normalizeDoctorList,
+  clearProviderCache,
+  raceDeadline,
+  createLimiter,
+  NOT_CONFIRMED,
+};
