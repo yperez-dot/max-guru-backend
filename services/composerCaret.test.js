@@ -88,6 +88,7 @@ describe('composer caret helpers', () => {
   it('recognizes the Try again failure copy so the draft can be refilled', () => {
     assert.equal(caret.looksLikeFailedGuruReply("I couldn't generate a response. Try again."), true);
     assert.equal(caret.looksLikeFailedGuruReply("Couldn't reach Max. Check your connection and try again — if this keeps happening, Railway may be redeploying."), true);
+    assert.equal(caret.looksLikeFailedGuruReply("Max is still working — try again in a minute. A long doctor or Rx check can outlast the browser wait."), true);
     assert.equal(caret.looksLikeFailedGuruReply('Got it — here is H1045-012 vs H1045-061.'), false);
   });
 

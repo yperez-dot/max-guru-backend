@@ -525,6 +525,51 @@ describe('SOB lookup only when the agent asked', () => {
     assert.equal(shouldAutoLookupComparisonSob(messages, []), true);
   });
 
+  it('does not AutoTool a Padron doctor/Rx ask, even if the model dumps the Florida grid', () => {
+    const gridDump = Array.from({ length: 90 }, (_, i) => `H10${String(i).padStart(2, '0')}-${String(i).padStart(3, '0')}`).join(' ');
+    const messages = [
+      {
+        role: 'user',
+        content:
+          'Maria and Gaspar Padron ZIP 33332. Need to check these doctors: Ernesto Padron PCP plus several specialists. Meds: Jardiance and Mounjaro.',
+      },
+      { role: 'assistant', content: `Florida grid: ${gridDump}` },
+    ];
+    assert.equal(shouldAutoLookupComparisonSob(messages, []), false);
+    assert.deepEqual(uniquePlanIdsNeedingExportSob(messages, []), []);
+  });
+
+  it('uses user-named comparison plans, not an assistant grid dump', () => {
+    const gridDump = Array.from({ length: 90 }, (_, i) => `H1045-${String(i).padStart(3, '0')}`).join(' ');
+    const messages = [
+      {
+        role: 'user',
+        content: 'Compare H1036-054C, H4140-023, and H5420-001. Need SNF days 1-20.',
+      },
+      { role: 'assistant', content: `Also on the grid: ${gridDump}` },
+    ];
+    assert.equal(shouldAutoLookupComparisonSob(messages, []), true);
+    assert.deepEqual(uniquePlanIdsNeedingExportSob(messages, []), [
+      'H1036-054C',
+      'H4140-023',
+      'H5420-001',
+    ]);
+  });
+
+  it('caps a 90-plan SOB lookup and does not invent dollars', async () => {
+    const ids = Array.from({ length: 90 }, (_, i) => `H9998-${String(i + 1).padStart(3, '0')}`);
+    const result = await lookupSobBenefits({
+      planIds: ids,
+      benefits: ['skilled_nursing'],
+      year: 2027,
+    });
+    assert.equal(result.lookups.length, 8);
+    assert.equal(result.cappedFrom, 90);
+    const text = formatSobLookupText(result);
+    assert.match(text, /Capped to 8 of 90/);
+    assert.doesNotMatch(text, /invented|from memory/i);
+  });
+
   it('non-Doctors carriers: a band never takes the next band\'s amount, and no Doctors-only pattern', () => {
     const { parseSobBenefits } = require('./sobLookup');
     const text = [

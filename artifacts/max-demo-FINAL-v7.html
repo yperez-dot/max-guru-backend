@@ -2799,7 +2799,12 @@
 
   function looksLikeFailedGuruReply(text) {
     const t = String(text || "");
-    return /couldn't generate a response/i.test(t) || /couldn't reach max/i.test(t);
+    return (
+      /couldn't generate a response/i.test(t) ||
+      /couldn't reach max/i.test(t) ||
+      /max is still working/i.test(t) ||
+      /taking longer than the chat wait/i.test(t)
+    );
   }
 
   function caretIsAtEnd(el) {
@@ -3533,47 +3538,54 @@ async function askGuru(conversationHistory) {
     messages: conversationHistory,
   };
   const headers = maxAuthHeaders();
-  const response = await fetch(PROXY_URL, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (response.status === 401) {
-    if (data.code === "access_required") {
-      setAccessToken("");
-      const err = new Error("access_required");
-      err.code = "access_required";
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 85_000);
+  try {
+    const response = await fetch(PROXY_URL, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      signal: ctrl.signal,
+    });
+    const data = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      if (data.code === "access_required") {
+        setAccessToken("");
+        const err = new Error("access_required");
+        err.code = "access_required";
+        throw err;
+      }
+      return { text: "Backend auth isn't configured in this deploy (missing MAX_API_KEY inject). Ask admin to set the Netlify snippet.", banners: [] };
+    }
+    if (response.status === 429) {
+      return { text: data.error || "Max is rate-limited to protect spend — try again shortly.", banners: data.banners || [] };
+    }
+    if (response.status === 402 && data.code === "daily_budget_reached") {
+      return { text: data.error || "Max reached today’s budget. Say “OK go over” to continue today.", banners: data.banners || [] };
+    }
+    if (response.status === 413) {
+      return { text: data.error || "That image is too large. Use PNG, JPEG, or WebP under 4MB each.", banners: data.banners || [] };
+    }
+    if (response.status === 503) {
+      return { text: data.error || "Max's Grok backend isn't configured yet (missing XAI_API_KEY on Railway).", banners: [] };
+    }
+    if (response.status === 400 && data.code === "invalid_image") {
+      const err = new Error(data.error || "Images must be PNG, JPEG, or WebP under 4MB.");
+      err.code = "invalid_image";
       throw err;
     }
-    return { text: "Backend auth isn't configured in this deploy (missing MAX_API_KEY inject). Ask admin to set the Netlify snippet.", banners: [] };
+    if (!response.ok) {
+      return { text: data.error || "I couldn't generate a response. Try again.", banners: data.banners || [] };
+    }
+    const textBlock = data.content && data.content.find((b) => b.type === "text");
+    return {
+      text: textBlock ? textBlock.text : "I couldn't generate a response. Try again.",
+      banners: Array.isArray(data.banners) ? data.banners : [],
+      toolResults: Array.isArray(data.toolResults) ? data.toolResults : [],
+    };
+  } finally {
+    clearTimeout(timer);
   }
-  if (response.status === 429) {
-    return { text: data.error || "Max is rate-limited to protect spend — try again shortly.", banners: data.banners || [] };
-  }
-  if (response.status === 402 && data.code === "daily_budget_reached") {
-    return { text: data.error || "Max reached today’s budget. Say “OK go over” to continue today.", banners: data.banners || [] };
-  }
-  if (response.status === 413) {
-    return { text: data.error || "That image is too large. Use PNG, JPEG, or WebP under 4MB each.", banners: data.banners || [] };
-  }
-  if (response.status === 503) {
-    return { text: data.error || "Max's Grok backend isn't configured yet (missing XAI_API_KEY on Railway).", banners: [] };
-  }
-  if (response.status === 400 && data.code === "invalid_image") {
-    const err = new Error(data.error || "Images must be PNG, JPEG, or WebP under 4MB.");
-    err.code = "invalid_image";
-    throw err;
-  }
-  if (!response.ok) {
-    return { text: data.error || "I couldn't generate a response. Try again.", banners: data.banners || [] };
-  }
-  const textBlock = data.content && data.content.find((b) => b.type === "text");
-  return {
-    text: textBlock ? textBlock.text : "I couldn't generate a response. Try again.",
-    banners: Array.isArray(data.banners) ? data.banners : [],
-    toolResults: Array.isArray(data.toolResults) ? data.toolResults : [],
-  };
 }
 
 function TypingIndicator() {
@@ -4177,6 +4189,7 @@ function App() {
 
   const sendNow = async (content, images) => {
     const gen = chatGenRef.current;
+    const startedAt = Date.now();
     if (isMobile) setSidebarOpen(false);
     loadingRef.current = true;
     setLoading(true);
@@ -4368,7 +4381,11 @@ function App() {
         setAttachError(err.message || "Images must be PNG, JPEG, or WebP under 4MB.");
         return;
       }
-      setError("Couldn't reach Max. Check your connection and try again — if this keeps happening, Railway may be redeploying.");
+      setError(
+        Date.now() - startedAt >= 15000
+          ? "Max is still working — try again in a minute. A long doctor or Rx check can outlast the browser wait. This is not always a Railway redeploy."
+          : "Couldn't reach Max. Check your connection and try again — if this keeps happening, Railway may be redeploying."
+      );
       restoreDraft = true;
     } finally {
       if (gen !== chatGenRef.current) {

@@ -7,6 +7,8 @@ const {
   askedOffGridFromText,
   messagePlainText,
   EXPORT_SOB_BENEFITS,
+  gateSobPlanIds,
+  maxSobLookupPlans,
 } = require('./sobLookup');
 
 /**
@@ -38,6 +40,10 @@ function providerConfig() {
 
 const CONFIG = providerConfig();
 const DEFAULT_MODEL = CONFIG.model;
+const DEFAULT_CHAT_DEADLINE_MS = Number(process.env.MAX_CHAT_DEADLINE_MS || 70_000);
+const DEFAULT_GROK_FETCH_MS = Number(process.env.MAX_GROK_FETCH_MS || 20_000);
+const DEADLINE_REPLY =
+  'This lookup is taking longer than the chat wait. Send the same ask again and I will continue from what already finished. I will not invent dollars. Doctor / Rx / SOB checks that completed are in this turn\'s tool results.';
 
 function requireApiKey() {
   if (!CONFIG.key) {
@@ -67,7 +73,41 @@ function resolveToolResult(result) {
   return String(result);
 }
 
-async function callChatCompletions({ system, messages, tools, maxTokens }) {
+function capToolPlanIds(name, input) {
+  if (name !== 'lookup_sob_benefit' && name !== 'lookup_formulary') return input || {};
+  const next = input && typeof input === 'object' ? { ...input } : {};
+  const raw = [].concat(next.planId || [], next.planIds || []).filter(Boolean);
+  if (raw.length <= maxSobLookupPlans()) return next;
+  const capped = gateSobPlanIds(raw, { source: name });
+  console.warn(
+    `[Tool/${CONFIG.provider}] ${name} oversized planIds=${raw.length}; capping to ${capped.length}`
+  );
+  next.planIds = capped;
+  delete next.planId;
+  return next;
+}
+
+function remainingMs(deadline) {
+  return deadline - Date.now();
+}
+
+function chatResult({ lastData, lastMessage, text, collectedToolResults, usageCalls, deadlineHit }) {
+  const out = {
+    id: lastData?.id,
+    model: lastData?.model || DEFAULT_MODEL,
+    provider: CONFIG.provider,
+    role: 'assistant',
+    content: [{ type: 'text', text: text || (deadlineHit ? DEADLINE_REPLY : "I couldn't generate a response. Try again.") }],
+    stop_reason: deadlineHit ? 'deadline' : 'end_turn',
+    usage: lastData?.usage,
+    usageCalls,
+  };
+  if (deadlineHit) out.deadline = true;
+  if (collectedToolResults.length) out.toolResults = collectedToolResults;
+  return out;
+}
+
+async function callChatCompletions({ system, messages, tools, maxTokens, timeoutMs }) {
   const key = requireApiKey();
   const body = {
     model: DEFAULT_MODEL,
@@ -95,6 +135,7 @@ async function callChatCompletions({ system, messages, tools, maxTokens }) {
     })
   );
 
+  const ms = Math.max(1000, Number(timeoutMs) || DEFAULT_GROK_FETCH_MS);
   const res = await fetch(`${CONFIG.base}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -102,6 +143,7 @@ async function callChatCompletions({ system, messages, tools, maxTokens }) {
       Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(ms),
   });
   const data = await res.json();
   if (!res.ok) {
@@ -124,7 +166,7 @@ async function callGrok(opts) {
  * Pass-through chat used by Netlify UI.
  * Returns Anthropic-shaped { content: [{type:'text', text}], toolResults? }
  */
-async function passThroughChat({ system, messages, processToolFn }) {
+async function passThroughChat({ system, messages, processToolFn, deadlineMs }) {
   const runTool = typeof processToolFn === 'function' ? processToolFn : processTool;
   const openaiTools = toOpenAITools(TOOLS);
   let apiMessages = normalizeMessages(messages, { validate: false });
@@ -133,19 +175,47 @@ async function passThroughChat({ system, messages, processToolFn }) {
   let lastData = null;
   let lastMessage = null;
   let autoSobLookupDone = false;
+  let deadlineHit = false;
+  const deadline = Date.now() + (Number(deadlineMs) > 0 ? Number(deadlineMs) : DEFAULT_CHAT_DEADLINE_MS);
 
   const captureUsage = (data) => {
     if (!data?.usage) return;
     usageCalls.push({ model: data.model || DEFAULT_MODEL, usage: data.usage });
   };
 
+  const grokTimeout = () => Math.max(1000, Math.min(DEFAULT_GROK_FETCH_MS, remainingMs(deadline) - 2000));
+
+  const finish = (text) => chatResult({
+    lastData,
+    lastMessage,
+    text,
+    collectedToolResults,
+    usageCalls,
+    deadlineHit,
+  });
+
   for (let i = 0; i < 5; i++) {
-    lastData = await callChatCompletions({
-      system,
-      messages: apiMessages,
-      tools: openaiTools,
-      maxTokens: 8000,
-    });
+    if (remainingMs(deadline) < 8000) {
+      deadlineHit = true;
+      console.warn(`[chat] deadline before model round ${i + 1}; returning partial`);
+      break;
+    }
+    try {
+      lastData = await callChatCompletions({
+        system,
+        messages: apiMessages,
+        tools: openaiTools,
+        maxTokens: 8000,
+        timeoutMs: grokTimeout(),
+      });
+    } catch (err) {
+      if (err && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
+        deadlineHit = true;
+        console.warn(`[chat] model fetch aborted: ${err.message}`);
+        break;
+      }
+      throw err;
+    }
     captureUsage(lastData);
     lastMessage = lastData.choices?.[0]?.message || {};
     const toolCalls = lastMessage.tool_calls || [];
@@ -158,18 +228,24 @@ async function passThroughChat({ system, messages, processToolFn }) {
       );
       if (
         !autoSobLookupDone &&
+        remainingMs(deadline) >= 12000 &&
         shouldAutoLookupComparisonSob(probeMessages, collectedToolResults)
       ) {
         autoSobLookupDone = true;
         const planIds = uniquePlanIdsNeedingExportSob(probeMessages, collectedToolResults);
-        if (planIds.length) {
+        if (planIds.length > maxSobLookupPlans()) {
+          console.warn(
+            `[AutoTool/${CONFIG.provider}] oversized SOB plan list (${planIds.length}); refusing grid dump`
+          );
+        } else if (planIds.length) {
           const asked = askedOffGridFromText(messagePlainText(probeMessages));
           console.log(`[AutoTool/${CONFIG.provider}] lookup_sob_benefit ${planIds.join(',')}`);
           const result = await runTool('lookup_sob_benefit', {
             planIds,
             benefits: asked.benefits.length ? asked.benefits.slice() : EXPORT_SOB_BENEFITS.slice(),
             query: asked.query || 'asked off-grid benefits',
-          }, { messages, system });
+            budgetMs: Math.max(4000, remainingMs(deadline) - 8000),
+          }, { messages, system, remainingMs: remainingMs(deadline) });
           const text = resolveToolResult(result);
           const structured =
             result && typeof result === 'object' && result.structured
@@ -208,8 +284,24 @@ async function passThroughChat({ system, messages, processToolFn }) {
       } catch (_) {
         input = {};
       }
+      input = capToolPlanIds(name, input);
+      if (remainingMs(deadline) < 5000) {
+        deadlineHit = true;
+        const skip = `Skipped ${name} — chat deadline. Answer with finished tool results. Do not invent dollars.`;
+        collectedToolResults.push({ tool: name, output: { text: skip } });
+        apiMessages.push({
+          role: 'tool',
+          tool_call_id: tc.id,
+          content: skip,
+        });
+        continue;
+      }
       console.log(`[Tool/${CONFIG.provider}] ${name}`);
-      const result = await runTool(name, input, { messages, system });
+      const result = await runTool(name, input, {
+        messages,
+        system,
+        remainingMs: remainingMs(deadline),
+      });
       const text = resolveToolResult(result);
       const structured =
         result && typeof result === 'object' && result.structured
@@ -222,20 +314,29 @@ async function passThroughChat({ system, messages, processToolFn }) {
         content: text,
       });
     }
+    if (deadlineHit) break;
   }
 
   let text = typeof lastMessage?.content === 'string' ? lastMessage.content : '';
+  if (deadlineHit) {
+    return finish(text ? `${text}\n\n${DEADLINE_REPLY}` : DEADLINE_REPLY);
+  }
   const toolMatch = text.match(
     /<tool_call>[\s\S]*?"name"\s*:\s*"(\w+)"[\s\S]*?(?:"arguments"|"parameters"|"input")\s*:\s*(\{[\s\S]*?\})[\s\S]*?<\/tool_call>/
   );
-  if (toolMatch) {
+  if (toolMatch && remainingMs(deadline) >= 8000) {
     const toolName = toolMatch[1];
     let toolInput = {};
     try {
       toolInput = JSON.parse(toolMatch[2]);
     } catch (_) {}
+    toolInput = capToolPlanIds(toolName, toolInput);
     console.log(`[ReactiveToolCall/${CONFIG.provider}] ${toolName}`);
-    const toolResult = await runTool(toolName, toolInput, { messages, system });
+    const toolResult = await runTool(toolName, toolInput, {
+      messages,
+      system,
+      remainingMs: remainingMs(deadline),
+    });
     const resolved = resolveToolResult(toolResult);
     const cleanText = text
       .replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '')
@@ -254,6 +355,7 @@ async function passThroughChat({ system, messages, processToolFn }) {
       messages: apiMessages,
       tools: openaiTools,
       maxTokens: 4000,
+      timeoutMs: grokTimeout(),
     });
     captureUsage(lastData);
     lastMessage = lastData.choices?.[0]?.message || {};
@@ -265,18 +367,7 @@ async function passThroughChat({ system, messages, processToolFn }) {
     }
   }
 
-  const out = {
-    id: lastData?.id,
-    model: lastData?.model || DEFAULT_MODEL,
-    provider: CONFIG.provider,
-    role: 'assistant',
-    content: [{ type: 'text', text: text || "I couldn't generate a response. Try again." }],
-    stop_reason: 'end_turn',
-    usage: lastData?.usage,
-    usageCalls,
-  };
-  if (collectedToolResults.length) out.toolResults = collectedToolResults;
-  return out;
+  return finish(text);
 }
 
 async function chat(messages, systemPrompt) {
@@ -295,4 +386,6 @@ module.exports = {
   toOpenAITools,
   DEFAULT_MODEL,
   providerConfig,
+  capToolPlanIds,
 };
+

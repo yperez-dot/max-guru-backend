@@ -32,12 +32,15 @@ const { queryUhcGuest, CARRIER_LABEL: UHC_PLAN_LABEL, PLAN_YEAR: UHC_PLAN_YEAR }
 const { queryHumanaFindcare, CARRIER_LABEL: HUMANA_PLAN_LABEL, PLAN_YEAR: HUMANA_PLAN_YEAR, isHumanaLabel } = require('../services/humanaFindcare');
 const { solisLookupNote } = require('../services/solisDirectory');
 const { parseName, extractNpi, resolveNpiRecords, displayName } = require('../services/npiRegistry');
+const {
+  querySunfireProviderList,
+  inNetworkLabelsFromSunfirePlans,
+} = require('../services/sunfireProvider');
 const router = Router();
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const FETCH_TIMEOUT_MS  = 12_000;
-const SUNFIRE_BASE      = 'https://www.sunfirematrix.com';
 
 // ─── Sunfire Plan Map (internal ID → plan name / carrier) ────────────────────
 // Built 2026-07-23 by intercepting Sunfire's own plan-list API (303 plans).
@@ -497,17 +500,7 @@ router.post('/', async (req, res) => {
  * Requires SUNFIRE_JWT and SUNFIRE_SFP on Railway.
  */
 async function querySunfire(npi, zip, county = '12086', year = Number(UHC_PLAN_YEAR)) {
-  const jwt = process.env.SUNFIRE_JWT;
-  const sfp = process.env.SUNFIRE_SFP;
-
-  if (!jwt || !sfp) {
-    console.warn('[sunfire] Missing SUNFIRE_JWT or SUNFIRE_SFP — skipping Sunfire lookup');
-    return { plans: [], error: 'missing_credentials', status: 'failed', year };
-  }
-
-  const body = {
-    type: 'network',
-    county,
+  const sf = await querySunfireProviderList({
     providers: [{
       id: npi,
       name: npi,
@@ -517,62 +510,16 @@ async function querySunfire(npi, zip, county = '12086', year = Number(UHC_PLAN_Y
       locations: [{ npi, selected: true }],
       primaryDoctor: true,
     }],
-    restrictedProviderCarrierId: '',
-    year,
     zip,
-  };
-
-  const ctrl  = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 10_000);
-
-  try {
-    const res = await fetch(`${SUNFIRE_BASE}/v2/provider/list`, {
-      method:  'POST',
-      headers: {
-        'Authorization': `Bearer ${jwt}`,
-        'Cookie':        `sfp-cookie=${sfp}`,
-        'Content-Type':  'application/json',
-      },
-      body:   JSON.stringify(body),
-      signal: ctrl.signal,
-    });
-
-    if (!res.ok) {
-      console.warn(`[sunfire] provider/list HTTP ${res.status}`);
-      return { plans: [], error: `http_${res.status}`, status: 'failed', year };
-    }
-
-    const data  = await res.json();
-    const plans = Array.isArray(data) ? data : (data.plans || []);
-
-    const inNetwork = [];
-    for (const plan of plans) {
-      const covered = (plan.doctorInformation || []).some(di =>
-        (di.locations || []).some(loc => loc.covered === 'Y')
-      );
-      if (!covered) continue;
-
-      const id      = String(plan.id);
-      const mapEntry = SUNFIRE_PLAN_MAP[id];
-      if (mapEntry) {
-        const label = mapEntry.planName
-          ? `${mapEntry.planName} — ${mapEntry.carrier}`.trim()
-          : mapEntry.carrier || `Sunfire plan ${id}`;
-        inNetwork.push(label);
-      } else {
-        inNetwork.push(`Plan ID ${id}`);
-      }
-    }
-
-    console.log(`[sunfire] NPI ${npi} year ${year}: ${inNetwork.length} in-network plans`);
-    return { plans: inNetwork, error: null, status: 'ok', year };
-  } catch (err) {
-    const label = err.name === 'AbortError' ? 'Timeout' : err.message;
-    console.warn(`[sunfire] provider/list error: ${label}`);
-    return { plans: [], error: label, status: 'failed', year };
-  } finally {
-    clearTimeout(timer);
+    year,
+    county,
+  });
+  if (!sf.ok) {
+    return { plans: [], error: sf.error || 'sunfire_error', status: sf.status === 'skipped' ? 'failed' : 'failed', year };
   }
+  const inNetwork = inNetworkLabelsFromSunfirePlans(sf.plans, SUNFIRE_PLAN_MAP);
+  console.log(`[sunfire] NPI ${npi} year ${year}: ${inNetwork.length} in-network plans`);
+  return { plans: inNetwork, error: null, status: 'ok', year };
 }
 
 module.exports = router;

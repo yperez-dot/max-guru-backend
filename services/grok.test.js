@@ -278,6 +278,113 @@ describe('auto SOB lookup on comparison chat', () => {
     });
   });
 
+  it('does not AutoTool a Padron-length doctor/Rx ask when the model dumps the Florida grid', async () => {
+    const { passThroughChat } = loadGrok({ provider: 'grok', key: 'test-xai-key' });
+    const gridDump = Array.from({ length: 90 }, (_, i) => `H10${String(i).padStart(2, '0')}-${String(i).padStart(3, '0')}`).join(', ');
+    let stubbed = 0;
+    await withMockedFetch(() => ({
+      ok: true,
+      json: async () => ({
+        id: 'chatcmpl-padron',
+        model: 'grok-4.6',
+        choices: [
+          {
+            message: {
+              role: 'assistant',
+              content: `Florida 2027 grid: ${gridDump}. Checking doctors and Jardiance / Mounjaro.`,
+            },
+          },
+        ],
+      }),
+    }), async (calls) => {
+      const result = await passThroughChat({
+        system: 'You are Max.',
+        messages: [
+          {
+            role: 'user',
+            content:
+              'Maria and Gaspar Padron ZIP 33332. Need to check these doctors: Ernesto Padron PCP plus several specialists. Meds: Jardiance and Mounjaro.',
+          },
+        ],
+        processToolFn: async () => {
+          stubbed += 1;
+          throw new Error('should not AutoTool the whole Florida grid');
+        },
+      });
+      assert.equal(calls.length, 1);
+      assert.equal(stubbed, 0);
+      assert.equal(result.toolResults, undefined);
+    });
+  });
+
+  it('caps a Grok lookup_sob_benefit tool call that passes the whole grid', async () => {
+    const { passThroughChat, capToolPlanIds } = loadGrok({ provider: 'grok', key: 'test-xai-key' });
+    const grid = Array.from({ length: 90 }, (_, i) => `H9998-${String(i + 1).padStart(3, '0')}`);
+    const capped = capToolPlanIds('lookup_sob_benefit', { planIds: grid, benefits: ['skilled_nursing'] });
+    assert.equal(capped.planIds.length, 8);
+    assert.equal(capped.planIds[0], 'H9998-001');
+    const stubCalls = [];
+    let round = 0;
+    await withMockedFetch(() => {
+      round += 1;
+      const first = round === 1;
+      return {
+        ok: true,
+        json: async () => ({
+          id: first ? 'chatcmpl-cap1' : 'chatcmpl-cap2',
+          model: 'grok-4.6',
+          choices: [
+            {
+              message: first
+                ? {
+                    role: 'assistant',
+                    content: null,
+                    tool_calls: [
+                      {
+                        id: 'call_sob',
+                        type: 'function',
+                        function: {
+                          name: 'lookup_sob_benefit',
+                          arguments: JSON.stringify({ planIds: grid, benefits: ['skilled_nursing'] }),
+                        },
+                      },
+                    ],
+                  }
+                : { role: 'assistant', content: 'SNF lookup finished. Unverified — do not invent dollars.' },
+            },
+          ],
+        }),
+      };
+    }, async () => {
+      await passThroughChat({
+        system: 'You are Max.',
+        messages: [{ role: 'user', content: 'SNF on the Florida grid please' }],
+        processToolFn: async (name, input) => {
+          stubCalls.push({ name, input });
+          return { text: 'SOB_LOOKUP capped', structured: { cappedFrom: 90 } };
+        },
+      });
+      assert.ok(stubCalls.length >= 1);
+      assert.equal(stubCalls[0].input.planIds.length, 8);
+      assert.ok(stubCalls.every((c) => !c.input.planIds || c.input.planIds.length <= 8));
+    });
+  });
+
+  it('returns a partial reply when the chat deadline has already expired', async () => {
+    const { passThroughChat } = loadGrok({ provider: 'grok', key: 'test-xai-key' });
+    await withMockedFetch(() => {
+      throw new Error('should not call the model after deadline');
+    }, async () => {
+      const result = await passThroughChat({
+        system: 'You are Max.',
+        messages: [{ role: 'user', content: 'hello' }],
+        deadlineMs: 1,
+      });
+      assert.equal(result.deadline, true);
+      assert.match(result.content[0].text, /taking longer than the chat wait/i);
+    });
+  });
+
   it('does not auto-lookup a single-plan premium question', async () => {
     const { passThroughChat } = loadGrok({ provider: 'grok', key: 'test-xai-key' });
     let stubbed = 0;
