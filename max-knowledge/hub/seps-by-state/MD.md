@@ -1,7 +1,7 @@
 # SEP Tracker — MD
 
-4 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+4 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0095 — Maryland - Severe Winter Storm 1/23/2026
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Jan 23, 2026 – Mar 31, 2027
 - **incident_effective**: 2026-02-23
 - **incident_window_raw**: Feb 23, 2026 – ongoing
-- **days_until_expiry**: 218
+- **days_until_expiry**: 177
 - **declaration_number**: EM-3634-MD
 
 ## sep-lis-md — Maryland — Dual / LIS PDP Monthly SEP

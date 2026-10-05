@@ -1,7 +1,7 @@
 # SEP Tracker — KS
 
-8 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+8 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0068 — Kansas - 2026 FIFA World Cup 6/11/2026 thru 7/19/2026
 - **status**: active
@@ -10,7 +10,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Kansas - 2026 FIFA World Cup 6/11/2026 thru 7/19/2026
 - **disaster_types**: ["Other"]
 - **disaster_type_raw**: Other
-- **counties**: ["Douglas", "Johnson", "& Wyandotte"]
+- **counties**: ["Douglas","Johnson","& Wyandotte"]
 - **counties_raw**: Douglas, Johnson, & Wyandotte
 - **sep_effective**: 2026-06-20
 - **sep_termination**: 2026-09-30
@@ -18,7 +18,6 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-06-11
 - **incident_termination**: 2026-08-09
 - **incident_window_raw**: Jun 11, 2026 – Aug 9, 2026
-- **days_until_expiry**: 36
 - **declaration_number**: 2.9.26
 
 ## sep-xl-ks-hantavirus-202608 — Kansas — Hantavirus
@@ -35,7 +34,6 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: May 12, 2026 – August 31, 2026
 - **incident_effective**: 2026-05-12
 - **incident_window_raw**: May 12, 2026 – ongoing
-- **days_until_expiry**: 6
 
 ## sep-xl-ks-severeweatherwi-202608 — Kansas — Severe Weather  (Wildland Fires)
 - **status**: expiring
@@ -44,14 +42,13 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Kansas — Severe Weather  (Wildland Fires)
 - **disaster_types**: ["Severe Weather  (Wildland Fires)"]
 - **disaster_type_raw**: Severe Weather  (Wildland Fires)
-- **counties**: ["Clark", "Cloud", "Comanche", "Meade", "Morton", "Thomas"]
+- **counties**: ["Clark","Cloud","Comanche","Meade","Morton","Thomas"]
 - **counties_raw**: Clark, Cloud, Comanche, Meade, Morton, and Thomas counties
 - **sep_effective**: 2026-05-14
 - **sep_termination**: 2026-08-31
 - **sep_window_raw**: May 14, 2026 – August 31, 2026
 - **incident_effective**: 2026-05-14
 - **incident_window_raw**: May 14, 2026 – ongoing
-- **days_until_expiry**: 6
 
 ## sep-lis-ks — Kansas — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -71,7 +68,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Kansas - Severe Storms, Straight-line Winds, and Flooding 7/17/2025 thru 7/22/2025
-- **disaster_types**: ["Floods", "Straight-Line Winds", "Storms - Rain"]
+- **disaster_types**: ["Floods","Straight-Line Winds","Storms - Rain"]
 - **disaster_type_raw**: Floods;Straight-Line Winds;Storms - Rain
 - **counties**: ["Barton  Comanche  Edwards  Hodgeman  Logan  Morris  Ottawa  Rawlins  Saline  Stevens  Sumner  Wyandotte"]
 - **counties_raw**: Barton  Comanche  Edwards  Hodgeman  Logan  Morris  Ottawa  Rawlins  Saline  Stevens  Sumner  Wyandotte
@@ -124,7 +121,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Kansas - Dangerous Fire Weather 2/15/2026
 - **disaster_types**: ["Fires/Wildfires"]
 - **disaster_type_raw**: Fires/Wildfires
-- **counties**: ["Allen", "Barber", "Barton", "Bourbon", "Chautauqua", "Cherokee", "Cheyenne", "Clark", "Clay", "Cloud", "Comanche", "Cowley", "Crawford", "Decatur", "Dickinson", "Edwards", "Elk", "Ellis", "Ellsworth", "Finney", "Ford", "Gove", "Graham", "Grant", "Gray", "Greeley", "Hamilton", "Harper", "Haskell", "Hodgeman", "Jewell", "Kearny", "Kingman", "Kiowa", "Labette", "Lane", "Lincoln", "Linn", "Logan", "Marshall", "McPherson", "Meade", "Mitchell", "Montgomery", "Morton", "Neosho", "Ness", "Norton", "Osborne", "Ottawa", "Pawnee", "Phillips", "Pratt", "Rawlins", "Reno", "Republic", "Rice", "Riley", "Rooks", "Rush", "Russell", "Saline", "Scott", "Seward", "Sheridan", "Sherman", "Smith", "Stafford", "Stanton", "Stevens", "Sumner", "Thomas", "Trego", "Wallace", "Washington", "Wichita", "Wilson"]
+- **counties**: ["Allen","Barber","Barton","Bourbon","Chautauqua","Cherokee","Cheyenne","Clark","Clay","Cloud","Comanche","Cowley","Crawford","Decatur","Dickinson","Edwards","Elk","Ellis","Ellsworth","Finney","Ford","Gove","Graham","Grant","Gray","Greeley","Hamilton","Harper","Haskell","Hodgeman","Jewell","Kearny","Kingman","Kiowa","Labette","Lane","Lincoln","Linn","Logan","Marshall","McPherson","Meade","Mitchell","Montgomery","Morton","Neosho","Ness","Norton","Osborne","Ottawa","Pawnee","Phillips","Pratt","Rawlins","Reno","Republic","Rice","Riley","Rooks","Rush","Russell","Saline","Scott","Seward","Sheridan","Sherman","Smith","Stafford","Stanton","Stevens","Sumner","Thomas","Trego","Wallace","Washington","Wichita","Wilson"]
 - **counties_raw**: Allen, Barber, Barton, Bourbon, Chautauqua, Cherokee, Cheyenne, Clark, Clay, Cloud, Comanche, Cowley, Crawford, Decatur, Dickinson, Edwards, Elk, Ellis, Ellsworth, Finney, Ford, Gove, Graham, Grant, Gray, Greeley, Hamilton, Harper, Haskell, Hodgeman, Jewell, Kearny, Kingman, Kiowa, Labette, Lane, Lincoln, Linn, Logan, Marshall, McPherson, Meade, Mitchell, Montgomery, Morton, Neosho, Ness, Norton, Osborne, Ottawa, Pawnee, Phillips, Pratt, Rawlins, Reno, Republic, Rice, Riley, Rooks, Rush, Russell, Saline, Scott, Seward, Sheridan, Sherman, Smith, Stafford, Stanton, Stevens, Sumner, Thomas, Trego, Wallace, Washington, Wichita, Wilson
 - **sep_effective**: 2026-02-15
 - **sep_termination**: 2026-05-31

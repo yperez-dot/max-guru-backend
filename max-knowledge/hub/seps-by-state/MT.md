@@ -1,14 +1,14 @@
 # SEP Tracker — MT
 
-9 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+9 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0110 — Montana - Severe Storms and Flooding 12/10/2025
 - **status**: active
 - **raw_status**: active
 - **entity**: Hub tracker
 - **declaration_name**: Montana - Severe Storms and Flooding 12/10/2025
-- **disaster_types**: ["Storms - Rain", "Floods"]
+- **disaster_types**: ["Storms - Rain","Floods"]
 - **disaster_type_raw**: Storms - Rain;Floods
 - **counties**: ["Blackfeet Indian Reservation Lincoln  Sanders"]
 - **counties_raw**: Blackfeet Indian Reservation Lincoln  Sanders
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Dec 10, 2025 – Feb 28, 2027
 - **incident_effective**: 2025-12-10
 - **incident_window_raw**: Dec 10, 2025 – ongoing
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **declaration_number**: (EM-3630-MT)
 
 ## sep-xl-mt-flooding-202610 — Montana — Flooding
@@ -34,7 +34,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: July 3, 2026 – October 30, 2026
 - **incident_effective**: 2026-07-03
 - **incident_window_raw**: July 3, 2026 – ongoing
-- **days_until_expiry**: 66
+- **days_until_expiry**: 25
 
 ## sep-xl-mt-flooding-202610-2 — Montana — Flooding
 - **status**: active
@@ -50,7 +50,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: July 3, 2026 – October 31, 2026
 - **incident_effective**: 2026-07-03
 - **incident_window_raw**: July 3, 2026 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-xl-mt-sandcreekfire-202710 — Montana — Sand Creek Fire
 - **status**: active
@@ -66,7 +66,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: August 14, 2026 – October 31, 2027
 - **incident_effective**: 2026-08-14
 - **incident_window_raw**: August 14, 2026 – ongoing
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 
 ## sep-xl-mt-windyrockfire-202610 — Montana — Windy Rock Fire
 - **status**: active
@@ -82,7 +82,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: August 14, 2025 – October 31, 2026
 - **incident_effective**: 2025-08-14
 - **incident_window_raw**: August 14, 2025 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-lis-mt — Montana — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -102,7 +102,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Montana - Hours of Service 12/17/2025
-- **disaster_types**: ["Other", "Fuel Shortage"]
+- **disaster_types**: ["Other","Fuel Shortage"]
 - **disaster_type_raw**: Other;Fuel Shortage
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
@@ -119,9 +119,9 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Montana - Fisher & Yaak River Flooding Crisis 12/8/2025
-- **disaster_types**: ["Floods", "Storms - Rain"]
+- **disaster_types**: ["Floods","Storms - Rain"]
 - **disaster_type_raw**: Floods;Storms - Rain
-- **counties**: ["Lincoln", "Sanders", "and Flathead"]
+- **counties**: ["Lincoln","Sanders","and Flathead"]
 - **counties_raw**: Lincoln, Sanders, and Flathead
 - **sep_effective**: 2025-12-08
 - **sep_termination**: 2026-03-31

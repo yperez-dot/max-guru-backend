@@ -1,7 +1,7 @@
 # SEP Tracker — VA
 
-4 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+4 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0194 — Virginia - Severe Winter Storm 1/22/2026
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Jan 22, 2026 – Mar 31, 2027
 - **incident_effective**: 2026-01-22
 - **incident_window_raw**: Jan 22, 2026 – ongoing
-- **days_until_expiry**: 218
+- **days_until_expiry**: 177
 - **declaration_number**: EM-3631-VA
 
 ## sep-0195 — Virginia - Calling the VA National Guard to Active Governor Unable to Discharge the Powers & Duties of Her Office when the Governor Cannot be Reached or is Incapacitated  1/17/2026
@@ -35,7 +35,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-01-17
 - **incident_termination**: 2030-01-31
 - **incident_window_raw**: Jan 17, 2026 – Jan 31, 2030
-- **days_until_expiry**: 1314
+- **days_until_expiry**: 1273
 - **declaration_number**: EO-7
 
 ## sep-lis-va — Virginia — Dual / LIS PDP Monthly SEP

@@ -1,7 +1,7 @@
 # SEP Tracker — NV
 
-6 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+6 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0228 — Nevada - Fred Mountain Fire 8/9/2026
 - **status**: active
@@ -18,7 +18,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-08-09
 - **incident_termination**: 2027-08-10
 - **incident_window_raw**: Aug 9, 2026 – Aug 10, 2027
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 
 ## sep-0229 — Nevada - Stallion Fire 8/10/2026
 - **status**: active
@@ -35,7 +35,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-08-10
 - **incident_termination**: 2027-08-10
 - **incident_window_raw**: Aug 10, 2026 – Aug 10, 2027
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 
 ## sep-0230 — Nevada - Bug Fire 8/8/2026
 - **status**: active
@@ -52,7 +52,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-08-08
 - **incident_termination**: 2027-08-07
 - **incident_window_raw**: Aug 8, 2026 – Aug 7, 2027
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 
 ## sep-xl-nv-peavinefire-202610 — Nevada — Peavine Fire
 - **status**: active
@@ -68,7 +68,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: August 2, 2025 – October 31, 2026
 - **incident_effective**: 2025-08-02
 - **incident_window_raw**: August 2, 2025 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-xl-nv-connerfire-202608 — Nevada — Conner Fire
 - **status**: expiring
@@ -84,7 +84,6 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: June 20, 2025 – August 31, 2026
 - **incident_effective**: 2025-06-20
 - **incident_window_raw**: June 20, 2025 – ongoing
-- **days_until_expiry**: 6
 
 ## sep-lis-nv — Nevada — Dual / LIS PDP Monthly SEP
 - **status**: yearround

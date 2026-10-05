@@ -1,7 +1,7 @@
 # SEP Tracker — ID
 
-4 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+4 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-xl-id-biggrassfire-202611 — Idaho — Big Grass Fire
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: July 23, 2026 – November 30, 2026
 - **incident_effective**: 2026-07-23
 - **incident_window_raw**: July 23, 2026 – ongoing
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 
 ## sep-xl-id-sunsetfire-202610 — Idaho — Sunset Fire
 - **status**: active
@@ -33,7 +33,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: August 13, 2025 – October 31, 2026
 - **incident_effective**: 2025-08-13
 - **incident_window_raw**: August 13, 2025 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-xl-id-tartarfire-202710 — Idaho FEMA — Tartar Fire
 - **status**: active
@@ -49,7 +49,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: July 24, 2026 – October 31, 2027
 - **incident_effective**: 2026-07-24
 - **incident_window_raw**: July 24, 2026 – ongoing
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 
 ## sep-lis-id — Idaho — Dual / LIS PDP Monthly SEP
 - **status**: yearround

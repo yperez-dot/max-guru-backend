@@ -1,7 +1,7 @@
 # SEP Tracker — NC
 
-9 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+9 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0118 — North Carolina - Severe Winter Storm 1/21/2026
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Jan 21, 2026 – Mar 31, 2027
 - **incident_effective**: 2026-01-21
 - **incident_window_raw**: Jan 21, 2026 – ongoing
-- **days_until_expiry**: 218
+- **days_until_expiry**: 177
 - **declaration_number**: EM-3637-NC
 
 ## sep-lis-nc — North Carolina — Dual / LIS PDP Monthly SEP

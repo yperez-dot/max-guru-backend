@@ -1,8 +1,8 @@
 # SEP Tracker Reference (Agent Medicare Hub)
 
-Snapshot: generated_at=2026-08-25T02:10:23Z last_imported=2026-08-25 last_updated=2026-08-25
-Counts: {"total": 420, "active": 202, "expiring": 18, "ended": 146, "yearround": 54, "fl_active": 9}
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+Snapshot: generated_at=2026-10-05T21:29:51Z last_imported=2026-10-05 last_updated=2026-10-05
+Counts: {"total":420,"active":202,"expiring":18,"ended":146,"yearround":54,"fl_active":9}
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 Live UI: https://www.agentmedicarehub.com/sep-tracker
 
 Use for Special Enrollment Period questions. Cite SEP id/name, counties, and windows.
@@ -25,7 +25,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_termination**: 2026-10-01
 - **sep_effective**: 2026-07-21
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: Jul 21, 2026 – Nov 30, 2026
 - **incident_window_raw**: Jul 21, 2026 – Oct 1, 2026
 - **sort_rank**: 39
@@ -46,7 +46,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_termination**: 2026-10-09
 - **sep_effective**: 2026-08-12
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: Aug 12, 2026 – Nov 30, 2026
 - **incident_window_raw**: Aug 12, 2026 – Oct 9, 2026
 - **sort_rank**: 38
@@ -66,7 +66,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2026-08-17
 - **sep_effective**: 2026-08-17
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: August 17, 2026 – October 31, 2027
 - **incident_window_raw**: August 17, 2026 – ongoing
 - **sort_rank**: 200
@@ -86,7 +86,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2025-06-22
 - **sep_effective**: 2025-06-22
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: June 22, 2025 – September 30, 2026
 - **incident_window_raw**: June 22, 2025 – ongoing
 - **sort_rank**: 200
@@ -101,14 +101,14 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **declaration_name**: America Samoa - Flooding, High Surf, & Landslide Hazards - 7/28/2025
 - **declaration_number**: 004-2025
 - **disaster_type_raw**: Floods;Landslides/Mudslides
-- **disaster_types**: ["Floods", "Landslides/Mudslides"]
+- **disaster_types**: ["Floods","Landslides/Mudslides"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2025-07-28
 - **incident_termination**: 2026-07-28
 - **sep_effective**: 2025-07-28
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Jul 28, 2025 – Sep 30, 2026
 - **incident_window_raw**: Jul 28, 2025 – Jul 28, 2026
 - **sort_rank**: 6
@@ -123,14 +123,14 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **declaration_name**: California - 2025 Late-March Winter Storms - 3/30/2025 thru 4/1/2025
 - **declaration_number**: 40-2025
 - **disaster_type_raw**: Storms - Rain;Landslides/Mudslides
-- **disaster_types**: ["Storms - Rain", "Landslides/Mudslides"]
+- **disaster_types**: ["Storms - Rain","Landslides/Mudslides"]
 - **counties**: ["Trinity"]
 - **counties_raw**: Trinity
 - **incident_effective**: 2025-03-30
 - **incident_termination**: 2026-07-29
 - **sep_effective**: 2025-03-30
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Mar 30, 2025 – Sep 30, 2026
 - **incident_window_raw**: Mar 30, 2025 – Jul 29, 2026
 - **sort_rank**: 7
@@ -145,14 +145,14 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **declaration_name**: California - February Storms - 1/31/2025 & 2/17/2025
 - **declaration_number**: 07-29
 - **disaster_type_raw**: Storms - Rain;Landslides/Mudslides
-- **disaster_types**: ["Storms - Rain", "Landslides/Mudslides"]
-- **counties**: ["Humboldt", "Mendocino", "Modoc", "Napa", "Shasta", "Sonoma", "& Trinity"]
+- **disaster_types**: ["Storms - Rain","Landslides/Mudslides"]
+- **counties**: ["Humboldt","Mendocino","Modoc","Napa","Shasta","Sonoma","& Trinity"]
 - **counties_raw**: Humboldt, Mendocino, Modoc, Napa, Shasta, Sonoma, & Trinity
 - **incident_effective**: 2025-01-31
 - **incident_termination**: 2026-07-29
 - **sep_effective**: 2025-01-31
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Jan 31, 2025 – Sep 30, 2026
 - **incident_window_raw**: Jan 31, 2025 – Jul 29, 2026
 - **sort_rank**: 8
@@ -173,7 +173,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2025-08-07
 - **sep_effective**: 2025-08-07
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: August 7, 2025 – October 31, 2026
 - **incident_window_raw**: Aug 7, 2025 – ongoing
 - **sort_rank**: 24
@@ -194,7 +194,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2025-09-02
 - **sep_effective**: 2025-09-02
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: Sep 2, 2025 – Nov 30, 2026
 - **incident_window_raw**: Sep 2, 2025 – ongoing
 - **sort_rank**: 40
@@ -216,7 +216,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_termination**: 2025-09-13
 - **sep_effective**: 2025-09-02
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: Sep 2, 2025 – Nov 30, 2026
 - **incident_window_raw**: Sep 2, 2025 – Sep 13, 2025
 - **sort_rank**: 41
@@ -231,13 +231,13 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **declaration_name**: California - Pack Fire in Mono County 11/13/2025
 - **declaration_number**: 12.9.25
 - **disaster_type_raw**: Fires/Wildfires;Explosion
-- **disaster_types**: ["Fires/Wildfires", "Explosion"]
+- **disaster_types**: ["Fires/Wildfires","Explosion"]
 - **counties**: ["Mono"]
 - **counties_raw**: Mono
 - **incident_effective**: 2025-11-13
 - **sep_effective**: 2025-11-13
 - **sep_termination**: 2027-01-31
-- **days_until_expiry**: 159
+- **days_until_expiry**: 118
 - **sep_window_raw**: Nov 13, 2025 – Jan 31, 2027
 - **incident_window_raw**: Nov 13, 2025 – ongoing
 - **sort_rank**: 58
@@ -258,7 +258,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2025-03-01
 - **sep_effective**: 2025-03-01
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: Mar 1, 2025 – Feb 28, 2027
 - **incident_window_raw**: Mar 1, 2025 – ongoing
 - **sort_rank**: 65
@@ -273,13 +273,13 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **declaration_name**: California - 2025 Mid-September Storm 9/18/2025
 - **declaration_number**: 6- SOE
 - **disaster_type_raw**: Straight-Line Winds;Floods;Landslides/Mudslides;Storms - Rain
-- **disaster_types**: ["Straight-Line Winds", "Floods", "Landslides/Mudslides", "Storms - Rain"]
-- **counties**: ["San Bernardino", "& Imperial"]
+- **disaster_types**: ["Straight-Line Winds","Floods","Landslides/Mudslides","Storms - Rain"]
+- **counties**: ["San Bernardino","& Imperial"]
 - **counties_raw**: San Bernardino, & Imperial
 - **incident_effective**: 2025-09-18
 - **sep_effective**: 2025-09-18
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: Sep 18, 2025 – Feb 28, 2027
 - **incident_window_raw**: Sep 18, 2025 – ongoing
 - **sort_rank**: 64
@@ -294,13 +294,13 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **declaration_name**: California - 2025 Late August Storms and Mudslides 8/23/2025 & 8/27/2025
 - **declaration_number**: 1- SOE
 - **disaster_type_raw**: Storms - Rain;Landslides/Mudslides
-- **disaster_types**: ["Storms - Rain", "Landslides/Mudslides"]
+- **disaster_types**: ["Storms - Rain","Landslides/Mudslides"]
 - **counties**: ["Sierra"]
 - **counties_raw**: Sierra
 - **incident_effective**: 2025-08-23
 - **sep_effective**: 2025-08-23
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: Aug 23, 2025 – Feb 28, 2027
 - **incident_window_raw**: Aug 23, 2025 – ongoing
 - **sort_rank**: 62
@@ -315,13 +315,13 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **declaration_name**: California - 2025 August Monsoon Storms 8/24/2025 & 8/25/2025
 - **declaration_number**: 4- SOE
 - **disaster_type_raw**: Storms - Rain;Straight-Line Winds
-- **disaster_types**: ["Storms - Rain", "Straight-Line Winds"]
+- **disaster_types**: ["Storms - Rain","Straight-Line Winds"]
 - **counties**: ["Imperial"]
 - **counties_raw**: Imperial
 - **incident_effective**: 2025-08-24
 - **sep_effective**: 2025-08-24
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: Aug 24, 2025 – Feb 28, 2027
 - **incident_window_raw**: Aug 24, 2025 – ongoing
 - **sort_rank**: 60
@@ -336,13 +336,13 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **declaration_name**: California- Gifford Fire 8/1/2025 thru 9/28/2025
 - **declaration_number**: 2- SOE
 - **disaster_type_raw**: Fires/Wildfires;Health Emergency
-- **disaster_types**: ["Fires/Wildfires", "Health Emergency"]
+- **disaster_types**: ["Fires/Wildfires","Health Emergency"]
 - **counties**: ["Santa Barbara and San Luis Obispo"]
 - **counties_raw**: Santa Barbara and San Luis Obispo
 - **incident_effective**: 2025-08-01
 - **sep_effective**: 2025-08-01
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: Aug 1, 2025 – Feb 28, 2027
 - **incident_window_raw**: Aug 1, 2025 – ongoing
 - **sort_rank**: 66
@@ -357,13 +357,13 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **declaration_name**: California - 2025 July Tsunami 7/29/2025
 - **declaration_number**: 5- SOE
 - **disaster_type_raw**: Building/Bridge/Structural Collapse’;Earthquake
-- **disaster_types**: ["Building/Bridge/Structural Collapse’", "Earthquake"]
+- **disaster_types**: ["Building/Bridge/Structural Collapse’","Earthquake"]
 - **counties**: ["Del Norte"]
 - **counties_raw**: Del Norte
 - **incident_effective**: 2025-07-29
 - **sep_effective**: 2025-07-29
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: Jul 29, 2025 – Feb 28, 2027
 - **incident_window_raw**: Jul 29, 2025 – ongoing
 - **sort_rank**: 61
@@ -378,13 +378,13 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **declaration_name**: California- January 2025  Windstorm Event 1/7/2025 & 1/8/2025
 - **declaration_number**: 3 - SOE
 - **disaster_type_raw**: Straight-Line Winds;Building/Bridge/Structural Collapse’
-- **disaster_types**: ["Straight-Line Winds", "Building/Bridge/Structural Collapse’"]
+- **disaster_types**: ["Straight-Line Winds","Building/Bridge/Structural Collapse’"]
 - **counties**: ["Rancho Cucamonga"]
 - **counties_raw**: Rancho Cucamonga
 - **incident_effective**: 2025-01-07
 - **sep_effective**: 2025-01-07
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: Jan 7, 2025 – Feb 28, 2027
 - **incident_window_raw**: Jan 7, 2025 – ongoing
 - **sort_rank**: 67
@@ -399,13 +399,13 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **declaration_name**: California - 2025 Late December Storms - 12/23/2025
 - **declaration_number**: 12.24.25
 - **disaster_type_raw**: Storms - Rain;Floods;Landslides/Mudslides
-- **disaster_types**: ["Storms - Rain", "Floods", "Landslides/Mudslides"]
-- **counties**: ["Los Angeles", "Orange", "Riverside", "San Bernardino", "San Diego", "and Shasta"]
+- **disaster_types**: ["Storms - Rain","Floods","Landslides/Mudslides"]
+- **counties**: ["Los Angeles","Orange","Riverside","San Bernardino","San Diego","and Shasta"]
 - **counties_raw**: Los Angeles, Orange, Riverside, San Bernardino, San Diego, and Shasta
 - **incident_effective**: 2025-12-23
 - **sep_effective**: 2025-12-23
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: Dec 23, 2025 – Feb 28, 2027
 - **incident_window_raw**: Dec 23, 2025 – ongoing
 - **sort_rank**: 63
@@ -421,13 +421,13 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **declaration_number**: N-1-26, N-29-25, N-28-25, N-26-25, N-24-25, N-22-25, N-23-25, N-21-25, N-18-25, N-17-25, N-15-25, N-14-25, N-13-25, N-12-25, N-11-25, N-8-25, N-6-25, N-4-25, N-3-25, N-2-25, 1/7/2025
 - **disaster_type_raw**: Fires/Wildfires
 - **disaster_types**: ["Fires/Wildfires"]
-- **counties**: ["Los Angeles and Ventura (includes Pacific Palisades", "Eaton", "Hurst", "Lidia", "Sunset", "Woodley and Hughes Fires)"]
+- **counties**: ["Los Angeles and Ventura (includes Pacific Palisades","Eaton","Hurst","Lidia","Sunset","Woodley and Hughes Fires)"]
 - **counties_raw**: Los Angeles and Ventura (includes Pacific Palisades, Eaton, Hurst, Lidia, Sunset, Woodley and Hughes Fires)
 - **incident_effective**: 2025-01-07
 - **incident_termination**: 2027-01-06
 - **sep_effective**: 2025-01-07
 - **sep_termination**: 2027-03-31
-- **days_until_expiry**: 218
+- **days_until_expiry**: 177
 - **sep_window_raw**: Jan 7, 2025 – Mar 31, 2027
 - **incident_window_raw**: Jan 7, 2025 – Jan 6, 2027
 - **sort_rank**: 72
@@ -448,7 +448,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_termination**: 2027-05-24
 - **sep_effective**: 2026-05-21
 - **sep_termination**: 2027-07-31
-- **days_until_expiry**: 340
+- **days_until_expiry**: 299
 - **sep_window_raw**: May 21, 2026 – Jul 31, 2027
 - **incident_window_raw**: May 21, 2026 – May 24, 2027
 - **sort_rank**: 89
@@ -469,7 +469,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_termination**: 2026-08-19
 - **sep_effective**: 2026-05-21
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: May 21, 2026 – Sep 30, 2026
 - **incident_window_raw**: May 21, 2026 – Aug 19, 2026
 - **sort_rank**: 9
@@ -489,7 +489,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2026-06-17
 - **sep_effective**: 2026-06-17
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: Jun 17, 2026 – Oct 31, 2026
 - **incident_window_raw**: Jun 17, 2026 – ongoing
 - **sort_rank**: 0
@@ -509,7 +509,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2026-05-19
 - **sep_effective**: 2026-05-19
 - **sep_termination**: 2027-07-31
-- **days_until_expiry**: 340
+- **days_until_expiry**: 299
 - **sep_window_raw**: May 19, 2026 – July 31, 2027
 - **incident_window_raw**: May 19, 2026 – ongoing
 - **sort_rank**: 200
@@ -529,7 +529,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2026-07-26
 - **sep_effective**: 2026-07-26
 - **sep_termination**: 2027-09-30
-- **days_until_expiry**: 401
+- **days_until_expiry**: 360
 - **sep_window_raw**: July 26, 2026 – September 30, 2027
 - **incident_window_raw**: July 26, 2026 – ongoing
 - **sort_rank**: 200
@@ -549,7 +549,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2026-08-03
 - **sep_effective**: 2026-08-03
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: August 3, 2026 – October 31, 2027
 - **incident_window_raw**: August 3, 2026 – ongoing
 - **sort_rank**: 200
@@ -569,7 +569,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2026-05-18
 - **sep_effective**: 2026-05-18
 - **sep_termination**: 2027-07-31
-- **days_until_expiry**: 340
+- **days_until_expiry**: 299
 - **sep_window_raw**: May 18, 2026 – July 31, 2027
 - **incident_window_raw**: May 18, 2026 – ongoing
 - **sort_rank**: 200
@@ -590,7 +590,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2025-08-02
 - **sep_effective**: 2026-06-29
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: June 29, 2026 – September 30, 2026
 - **incident_window_raw**: Aug 2, 2025 – ongoing
 - **sort_rank**: 25
@@ -611,7 +611,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2025-08-02
 - **sep_effective**: 2026-08-06
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: August 6, 2026 – November 30, 2026
 - **incident_window_raw**: Aug 2, 2025 – ongoing
 - **sort_rank**: 26
@@ -632,7 +632,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2025-08-10
 - **sep_effective**: 2025-08-10
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: Aug 10, 2025 – Oct 31, 2026
 - **incident_window_raw**: Aug 10, 2025 – ongoing
 - **sort_rank**: 27
@@ -653,7 +653,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_termination**: 2026-10-04
 - **sep_effective**: 2026-08-06
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: Aug 6, 2026 – Nov 30, 2026
 - **incident_window_raw**: Aug 6, 2026 – Oct 4, 2026
 - **sort_rank**: 42
@@ -674,7 +674,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_termination**: 2026-10-10
 - **sep_effective**: 2026-08-12
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: Aug 12, 2026 – Nov 30, 2026
 - **incident_window_raw**: Aug 12, 2026 – Oct 10, 2026
 - **sort_rank**: 43
@@ -695,7 +695,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_termination**: 2026-10-10
 - **sep_effective**: 2026-08-11
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: Aug 11, 2026 – Nov 30, 2026
 - **incident_window_raw**: Aug 11, 2026 – Oct 10, 2026
 - **sort_rank**: 46
@@ -716,7 +716,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_termination**: 2026-10-10
 - **sep_effective**: 2026-08-12
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: Aug 12, 2026 – Nov 30, 2026
 - **incident_window_raw**: Aug 12, 2026 – Oct 10, 2026
 - **sort_rank**: 45
@@ -737,7 +737,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_termination**: 2026-10-10
 - **sep_effective**: 2026-08-12
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: Aug 12, 2026 – Nov 30, 2026
 - **incident_window_raw**: Aug 12, 2026 – Oct 10, 2026
 - **sort_rank**: 44
@@ -757,7 +757,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2026-06-29
 - **sep_effective**: 2026-06-29
 - **sep_termination**: 2027-08-31
-- **days_until_expiry**: 371
+- **days_until_expiry**: 330
 - **sep_window_raw**: June 29, 2026 – August 31, 2027
 - **incident_window_raw**: June 29, 2026 – ongoing
 - **sort_rank**: 200
@@ -777,7 +777,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2026-06-28
 - **sep_effective**: 2026-06-28
 - **sep_termination**: 2027-08-31
-- **days_until_expiry**: 371
+- **days_until_expiry**: 330
 - **sep_window_raw**: June 28, 2026 – August 31, 2027
 - **incident_window_raw**: June 28, 2026 – ongoing
 - **sort_rank**: 200
@@ -797,7 +797,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2026-06-28
 - **sep_effective**: 2026-06-28
 - **sep_termination**: 2027-09-30
-- **days_until_expiry**: 401
+- **days_until_expiry**: 360
 - **sep_window_raw**: June 28, 2026 – September 30, 2027
 - **incident_window_raw**: June 28, 2026 – ongoing
 - **sort_rank**: 200
@@ -818,7 +818,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2026-01-19
 - **sep_effective**: 2026-01-19
 - **sep_termination**: 2027-04-30
-- **days_until_expiry**: 248
+- **days_until_expiry**: 207
 - **sep_window_raw**: Jan 19, 2026 – Apr 30, 2027
 - **incident_window_raw**: Jan 19, 2026 – ongoing
 - **sort_rank**: 81
@@ -833,14 +833,14 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **declaration_name**: Florida - Emergency Management-Impacts of Winter Weather, Droughts, and Wildfire Risks 1/31/2026 thru 11/3/2026
 - **declaration_number**: 26-33
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix; Drought; Fires/Wildfires
-- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix", "Drought", "Fires/Wildfires"]
+- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix","Drought","Fires/Wildfires"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2026-01-31
 - **incident_termination**: 2026-11-03
 - **sep_effective**: 2026-01-31
 - **sep_termination**: 2026-12-31
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 - **sep_window_raw**: Jan 31, 2026 – Dec 31, 2026
 - **incident_window_raw**: Jan 31, 2026 – Nov 3, 2026
 - **sort_rank**: 54
@@ -860,7 +860,7 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **incident_effective**: 2026-04-21
 - **sep_effective**: 2026-04-21
 - **sep_termination**: 2027-06-30
-- **days_until_expiry**: 309
+- **days_until_expiry**: 268
 - **sep_window_raw**: April 21, 2026 – June 30, 2027
 - **incident_window_raw**: April 21, 2026 – ongoing
 - **sort_rank**: 200
@@ -875,12 +875,12 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **declaration_name**: Florida — Hurricane Debby
 - **disaster_type_raw**: Hurricane Debby
 - **disaster_types**: ["Hurricane Debby"]
-- **counties**: ["Alachua", "Baker", "Bay", "Bradford", "Brevard", "Calhoun", "Charlotte", "Citrus", "Clay", "Collier", "Columbia", "DeSoto", "Dixie", "Duval", "Escambia", "Flagler", "Franklin", "Gadsden", "Gilchrist", "Glades", "Gulf", "Hamilton", "Hardee", "Hendry", "Hernando", "Highlands", "Hillsborough", "Holmes", "Jackson", "Jefferson", "Lafayette", "Lake", "Lee", "Leon", "Levy", "Liberty", "Madison", "Manatee", "Marion", "Monroe", "Nassau", "Okaloosa", "Okeechobee", "Orange", "Osceola", "Pasco", "Pinellas", "Polk", "Putnam", "Santa Rosa", "Sarasota", "Seminole", "St. Johns", "Sumter", "Suwannee", "Taylor", "Union", "Volusia", "Wakulla", "Walton", "Washington"]
+- **counties**: ["Alachua","Baker","Bay","Bradford","Brevard","Calhoun","Charlotte","Citrus","Clay","Collier","Columbia","DeSoto","Dixie","Duval","Escambia","Flagler","Franklin","Gadsden","Gilchrist","Glades","Gulf","Hamilton","Hardee","Hendry","Hernando","Highlands","Hillsborough","Holmes","Jackson","Jefferson","Lafayette","Lake","Lee","Leon","Levy","Liberty","Madison","Manatee","Marion","Monroe","Nassau","Okaloosa","Okeechobee","Orange","Osceola","Pasco","Pinellas","Polk","Putnam","Santa Rosa","Sarasota","Seminole","St. Johns","Sumter","Suwannee","Taylor","Union","Volusia","Wakulla","Walton","Washington"]
 - **counties_raw**: Alachua, Baker, Bay, Bradford, Brevard, Calhoun, Charlotte, Citrus, Clay, Collier, Columbia, DeSoto, Dixie, Duval, Escambia, Flagler, Franklin, Gadsden, Gilchrist, Glades, Gulf, Hamilton, Hardee, Hendry, Hernando, Highlands, Hillsborough, Holmes, Jackson, Jefferson, Lafayette, Lake, Lee, Leon, Levy, Liberty, Madison, Manatee, Marion, Monroe, Nassau, Okaloosa, Okeechobee, Orange, Osceola, Pasco, Pinellas, Polk, Putnam, Santa Rosa, Sarasota, Seminole, St. Johns, Sumter, Suwannee, Taylor, Union, Volusia, Wakulla, Walton, and Washington counties
 - **incident_effective**: 2024-08-01
 - **sep_effective**: 2024-08-01
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: August 1, 2024 – October 31, 2026
 - **incident_window_raw**: August 1, 2024 – ongoing
 - **sort_rank**: 200
@@ -896,13 +896,13 @@ For the interactive tracker, agents can open Agent Medicare Hub → SEP Tracker.
 - **disaster_type_raw**: Hurricane Helene
 
 Previously: Potential Tropical Cyclone Nine
-- **disaster_types**: ["Hurricane Helene", "Previously: Potential Tropical Cyclone Nine"]
-- **counties**: ["Alachua", "Baker", "Bay", "Bradford", "Brevard", "Calhoun", "Charlotte", "Citrus", "Clay", "Collier", "Columbia", "DeSoto", "Dixie", "Duval", "Escambia", "Flagler", "Franklin", "Gadsden", "Gilchrist", "Glades", "Gulf", "Hamilton", "Hardee", "Hendry", "Hernando", "Highlands", "Hillsborough", "Holmes", "Jackson", "Jefferson", "Lafayette", "Lake", "Lee", "Leon", "Levy", "Liberty", "Madison", "Manatee", "Marion", "Monroe", "Nassau", "Okaloosa", "Okeechobee", "Orange", "Osceola", "Pasco", "Pinellas", "Polk", "Putnam", "Santa Rosa", "Sarasota", "Seminole", "St. Johns", "Sumter", "Suwannee", "Taylor", "Union", "Volusia", "Wakulla", "Walton", "Washington"]
+- **disaster_types**: ["Hurricane Helene","Previously: Potential Tropical Cyclone Nine"]
+- **counties**: ["Alachua","Baker","Bay","Bradford","Brevard","Calhoun","Charlotte","Citrus","Clay","Collier","Columbia","DeSoto","Dixie","Duval","Escambia","Flagler","Franklin","Gadsden","Gilchrist","Glades","Gulf","Hamilton","Hardee","Hendry","Hernando","Highlands","Hillsborough","Holmes","Jackson","Jefferson","Lafayette","Lake","Lee","Leon","Levy","Liberty","Madison","Manatee","Marion","Monroe","Nassau","Okaloosa","Okeechobee","Orange","Osceola","Pasco","Pinellas","Polk","Putnam","Santa Rosa","Sarasota","Seminole","St. Johns","Sumter","Suwannee","Taylor","Union","Volusia","Wakulla","Walton","Washington"]
 - **counties_raw**: Alachua, Baker, Bay, Bradford, Brevard, Calhoun, Charlotte, Citrus, Clay, Collier, Columbia, DeSoto, Dixie, Duval, Escambia, Flagler, Franklin, Gadsden, Gilchrist, Glades, Gulf, Hamilton, Hardee, Hendry, Hernando, Highlands, Hillsborough, Holmes, Jackson, Jefferson, Lafayette, Lake, Lee, Leon, Levy, Liberty, Madison, Manatee, Marion, Monroe, Nassau, Okaloosa, Okeechobee, Orange, Osceola, Pasco, Pinellas, Polk, Putnam, Santa Rosa, Sarasota, Seminole, St. Johns, Sumter, Suwannee, Taylor, Union, Volusia, Wakulla, Walton, and Washington counties
 - **incident_effective**: 2024-09-23
 - **sep_effective**: 2024-09-23
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: September 23, 2024 – October 31, 2026
 - **incident_window_raw**: September 23, 2024 – ongoing
 - **sort_rank**: 200
@@ -922,7 +922,7 @@ Previously: Potential Tropical Cyclone Nine
 - **incident_effective**: 2023-01-06
 - **sep_effective**: 2023-01-06
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: January 6, 2023 – November 30, 2026
 - **incident_window_raw**: January 6, 2023 – ongoing
 - **sort_rank**: 200
@@ -937,12 +937,12 @@ Previously: Potential Tropical Cyclone Nine
 - **declaration_name**: Florida — May North Florida Tornadoes
 - **disaster_type_raw**: May North Florida Tornadoes
 - **disaster_types**: ["May North Florida Tornadoes"]
-- **counties**: ["Baker", "Columbia", "Escambia", "Gadsden", "Hamilton", "Jefferson", "Lafayette", "Leon", "Liberty", "Madison", "Okaloosa", "Santa Rosa", "Suwannee", "Taylor", "Wakulla"]
+- **counties**: ["Baker","Columbia","Escambia","Gadsden","Hamilton","Jefferson","Lafayette","Leon","Liberty","Madison","Okaloosa","Santa Rosa","Suwannee","Taylor","Wakulla"]
 - **counties_raw**: Baker, Columbia, Escambia, Gadsden, Hamilton, Jefferson, Lafayette, Leon, Liberty, Madison, Okaloosa, Santa Rosa, Suwannee, Taylor, and Wakulla
 - **incident_effective**: 2024-05-10
 - **sep_effective**: 2024-05-10
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: May 10, 2024 – October 31, 2026
 - **incident_window_raw**: May 10, 2024 – ongoing
 - **sort_rank**: 200
@@ -962,7 +962,7 @@ Previously: Potential Tropical Cyclone Nine
 - **incident_effective**: 2025-05-10
 - **sep_effective**: 2025-05-10
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: May 10, 2025 – October 31, 2026
 - **incident_window_raw**: May 10, 2025 – ongoing
 - **sort_rank**: 200
@@ -977,12 +977,12 @@ Previously: Potential Tropical Cyclone Nine
 - **declaration_name**: Florida FEMA — Railroad Complex Fire
 - **disaster_type_raw**: Railroad Complex Fire
 - **disaster_types**: ["Railroad Complex Fire"]
-- **counties**: ["Putnam", "Clay"]
+- **counties**: ["Putnam","Clay"]
 - **counties_raw**: Putnam and Clay Counties
 - **incident_effective**: 2026-04-19
 - **sep_effective**: 2026-04-19
 - **sep_termination**: 2027-06-30
-- **days_until_expiry**: 309
+- **days_until_expiry**: 268
 - **sep_window_raw**: April 19, 2026 – June 30, 2027
 - **incident_window_raw**: April 19, 2026 – ongoing
 - **sort_rank**: 200
@@ -997,13 +997,13 @@ Previously: Potential Tropical Cyclone Nine
 - **declaration_name**: Florida — Tropical Storm Milton
 - **disaster_type_raw**: Tropical Storm Milton
 - **disaster_types**: ["Tropical Storm Milton"]
-- **counties**: ["Alachua", "Baker", "Bradford", "Brevard", "Broward", "Charlotte", "Citrus", "Clay", "Collier", "Columbia", "DeSoto", "Dixie", "Duval", "Flagler", "Gilchrist", "Glades", "Hamilton", "Hardee", "Hendry", "Hernando", "Highlands", "Hillsborough", "Indian River", "Lafayette", "Lake", "Lee", "Levy", "Madison", "Manatee", "Marion", "Martin", "Miami-Dade", "Monroe", "Nassau", "Okeechobee", "Orange", "Osceola", "Palm Beach", "Pasco", "Pinellas", "Polk", "Putnam", "Sarasota", "Seminole", "St. Johns", "St. Lucie", "Sumter", "Suwanee", "Taylor", "Union", "Volusia"]
+- **counties**: ["Alachua","Baker","Bradford","Brevard","Broward","Charlotte","Citrus","Clay","Collier","Columbia","DeSoto","Dixie","Duval","Flagler","Gilchrist","Glades","Hamilton","Hardee","Hendry","Hernando","Highlands","Hillsborough","Indian River","Lafayette","Lake","Lee","Levy","Madison","Manatee","Marion","Martin","Miami-Dade","Monroe","Nassau","Okeechobee","Orange","Osceola","Palm Beach","Pasco","Pinellas","Polk","Putnam","Sarasota","Seminole","St. Johns","St. Lucie","Sumter","Suwanee","Taylor","Union","Volusia"]
 - **counties_raw**: Alachua, Baker, Bradford, Brevard, Broward, Charlotte, Citrus, Clay, Collier, Columbia, DeSoto, Dixie, Duval, Flagler, Gilchrist, Glades, Hamilton,
 Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake, Lee, Levy, Madison, Manatee, Marion, Martin, Miami-Dade, Monroe, Nassau, Okeechobee, Orange, Osceola, Palm Beach, Pasco, Pinellas, Polk, Putnam, Sarasota, Seminole, St. Johns, St. Lucie, Sumter, Suwanee, Taylor, Union, and Volusia counties
 - **incident_effective**: 2024-10-05
 - **sep_effective**: 2024-10-05
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: October 5, 2024 – November 30, 2026
 - **incident_window_raw**: October 5, 2024 – ongoing
 - **sort_rank**: 200
@@ -1023,7 +1023,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-04-21
 - **sep_effective**: 2026-04-21
 - **sep_termination**: 2027-06-30
-- **days_until_expiry**: 309
+- **days_until_expiry**: 268
 - **sep_window_raw**: April 21, 2026 – June 30, 2027
 - **incident_window_raw**: April 21, 2026 – ongoing
 - **sort_rank**: 200
@@ -1038,12 +1038,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Georgia FEMA — Pineland Road Fire
 - **disaster_type_raw**: Pineland Road Fire
 - **disaster_types**: ["Pineland Road Fire"]
-- **counties**: ["Clinch", "Echols"]
+- **counties**: ["Clinch","Echols"]
 - **counties_raw**: Clinch and Echols counties
 - **incident_effective**: 2026-04-18
 - **sep_effective**: 2026-04-18
 - **sep_termination**: 2027-06-30
-- **days_until_expiry**: 309
+- **days_until_expiry**: 268
 - **sep_window_raw**: April 18, 2026 – June 30, 2027
 - **incident_window_raw**: April 18, 2026 – ongoing
 - **sort_rank**: 200
@@ -1058,12 +1058,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Georgia — Wildfires
 - **disaster_type_raw**: Wildfires
 - **disaster_types**: ["Wildfires"]
-- **counties**: ["Appling", "Atkinson", "Bacon", "Berrien", "Brantley", "Camden", "Charlton", "Clinch", "Coffee", "Echols", "Glynn", "Jeff Davis", "Lanier", "Lowndes", "Pierce", "Ware", "Wayne"]
+- **counties**: ["Appling","Atkinson","Bacon","Berrien","Brantley","Camden","Charlton","Clinch","Coffee","Echols","Glynn","Jeff Davis","Lanier","Lowndes","Pierce","Ware","Wayne"]
 - **counties_raw**: Appling, Atkinson, Bacon, Berrien, Brantley, Camden, Charlton, Clinch, Coffee, Echols, Glynn, Jeff Davis, Lanier, Lowndes, Pierce, Ware and Wayne counties
 - **incident_effective**: 2026-04-18
 - **sep_effective**: 2026-04-18
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: April 18, 2026 – September 30, 2026
 - **incident_window_raw**: April 18, 2026 – ongoing
 - **sort_rank**: 200
@@ -1084,7 +1084,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-09-08
 - **sep_effective**: 2026-07-02
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: Jul 2, 2026 – Oct 31, 2026
 - **incident_window_raw**: Jul 2, 2026 – Sep 8, 2026
 - **sort_rank**: 28
@@ -1104,7 +1104,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-07-02
 - **sep_effective**: 2026-07-02
 - **sep_termination**: 2026-12-31
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 - **sep_window_raw**: July 2, 2026 – December 31, 2026
 - **incident_window_raw**: July 2, 2026 – ongoing
 - **sort_rank**: 200
@@ -1124,7 +1124,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-04-11
 - **sep_effective**: 2026-04-11
 - **sep_termination**: 2026-12-31
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 - **sep_window_raw**: April 11, 2026 – December 31, 2026
 - **incident_window_raw**: April 11, 2026 – ongoing
 - **sort_rank**: 200
@@ -1145,7 +1145,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2025-08-19
 - **sep_effective**: 2025-08-19
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: August 19, 2025 – October 31, 2026
 - **incident_window_raw**: Aug 19, 2025 – ongoing
 - **sort_rank**: 29
@@ -1166,7 +1166,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-09-25
 - **sep_effective**: 2026-08-13
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: Aug 13, 2026 – Oct 31, 2026
 - **incident_window_raw**: Aug 13, 2026 – Sep 25, 2026
 - **sort_rank**: 30
@@ -1186,7 +1186,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-07-25
 - **sep_effective**: 2026-07-25
 - **sep_termination**: 2027-09-30
-- **days_until_expiry**: 401
+- **days_until_expiry**: 360
 - **sep_window_raw**: July 25, 2026 – September 30, 2027
 - **incident_window_raw**: July 25, 2026 – ongoing
 - **sort_rank**: 200
@@ -1206,7 +1206,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-05-22
 - **sep_effective**: 2026-05-22
 - **sep_termination**: 2026-12-31
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 - **sep_window_raw**: May 22, 2026 – December 31, 2026
 - **incident_window_raw**: May 22, 2026 – ongoing
 - **sort_rank**: 200
@@ -1226,7 +1226,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-03-10
 - **sep_effective**: 2026-03-10
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: March 10, 2026 – November 30, 2026
 - **incident_window_raw**: March 10, 2026 – ongoing
 - **sort_rank**: 200
@@ -1246,7 +1246,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-03-10
 - **sep_effective**: 2026-03-10
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: March 10, 2026 – November 30, 2026
 - **incident_window_raw**: March 10, 2026 – ongoing
 - **sort_rank**: 200
@@ -1261,13 +1261,13 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Iowa - Severe Storm Systems
 - **disaster_type_raw**: Severe Storm
 - **disaster_types**: ["Severe Storm"]
-- **counties**: ["Cherokee", "Clay", "Kossuth", "Montgomery", "Ringgold"]
+- **counties**: ["Cherokee","Clay","Kossuth","Montgomery","Ringgold"]
 - **counties_raw**: Cherokee, Clay, Kossuth, Montgomery, Ringgold
 - **incident_effective**: 2026-05-15
 - **incident_termination**: 2026-07-20
 - **sep_effective**: 2026-06-29
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: June 29, 2026 – October 31, 2026
 - **incident_window_raw**: May 15, 2026 – Jul 20, 2026
 - **sort_rank**: 2
@@ -1282,12 +1282,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Iowa — Damaging Winds, Straight-line Winds, Thunderstorms and Flash Flooding
 - **disaster_type_raw**: Damaging Winds, Straight-line Winds, Thunderstorms and Flash Flooding
 - **disaster_types**: ["Damaging Winds, Straight-line Winds, Thunderstorms and Flash Flooding"]
-- **counties**: ["Franklin", "Hardin"]
+- **counties**: ["Franklin","Hardin"]
 - **counties_raw**: Franklin and Hardin Counties
 - **incident_effective**: 2026-07-20
 - **sep_effective**: 2026-07-20
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: July 20, 2026 – October 31, 2026
 - **incident_window_raw**: July 20, 2026 – ongoing
 - **sort_rank**: 200
@@ -1307,7 +1307,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-07-23
 - **sep_effective**: 2026-07-23
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: July 23, 2026 – November 30, 2026
 - **incident_window_raw**: July 23, 2026 – ongoing
 - **sort_rank**: 200
@@ -1327,7 +1327,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2025-08-13
 - **sep_effective**: 2025-08-13
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: August 13, 2025 – October 31, 2026
 - **incident_window_raw**: August 13, 2025 – ongoing
 - **sort_rank**: 200
@@ -1347,7 +1347,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-07-24
 - **sep_effective**: 2026-07-24
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: July 24, 2026 – October 31, 2027
 - **incident_window_raw**: July 24, 2026 – ongoing
 - **sort_rank**: 200
@@ -1368,7 +1368,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-08-27
 - **sep_effective**: 2026-03-10
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Mar 10, 2026 – Sep 30, 2026
 - **incident_window_raw**: Mar 10, 2026 – Aug 27, 2026
 - **sort_rank**: 19
@@ -1389,7 +1389,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-08-27
 - **sep_effective**: 2026-04-14
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Apr 14, 2026 – Sep 30, 2026
 - **incident_window_raw**: Apr 14, 2026 – Aug 27, 2026
 - **sort_rank**: 12
@@ -1410,7 +1410,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-08-27
 - **sep_effective**: 2026-04-17
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Apr 17, 2026 – Sep 30, 2026
 - **incident_window_raw**: Apr 17, 2026 – Aug 27, 2026
 - **sort_rank**: 11
@@ -1431,7 +1431,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-08-27
 - **sep_effective**: 2026-04-17
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Apr 17, 2026 – Sep 30, 2026
 - **incident_window_raw**: Apr 17, 2026 – Aug 27, 2026
 - **sort_rank**: 13
@@ -1452,7 +1452,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-08-27
 - **sep_effective**: 2026-06-10
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Jun 10, 2026 – Sep 30, 2026
 - **incident_window_raw**: Jun 10, 2026 – Aug 27, 2026
 - **sort_rank**: 16
@@ -1467,13 +1467,13 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Illinois - Tornadoes 6/11/2026
 - **disaster_type_raw**: Tornado
 - **disaster_types**: ["Tornado"]
-- **counties**: ["LaSalle", "Woodford"]
+- **counties**: ["LaSalle","Woodford"]
 - **counties_raw**: LaSalle, Woodford
 - **incident_effective**: 2026-06-11
 - **incident_termination**: 2026-08-27
 - **sep_effective**: 2026-06-11
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Jun 11, 2026 – Sep 30, 2026
 - **incident_window_raw**: Jun 11, 2026 – Aug 27, 2026
 - **sort_rank**: 18
@@ -1494,7 +1494,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-08-27
 - **sep_effective**: 2026-06-17
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Jun 17, 2026 – Sep 30, 2026
 - **incident_window_raw**: Jun 17, 2026 – Aug 27, 2026
 - **sort_rank**: 14
@@ -1515,7 +1515,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-08-27
 - **sep_effective**: 2026-06-17
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Jun 17, 2026 – Sep 30, 2026
 - **incident_window_raw**: Jun 17, 2026 – Aug 27, 2026
 - **sort_rank**: 10
@@ -1536,7 +1536,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-08-27
 - **sep_effective**: 2026-06-17
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Jun 17, 2026 – Sep 30, 2026
 - **incident_window_raw**: Jun 17, 2026 – Aug 27, 2026
 - **sort_rank**: 17
@@ -1557,7 +1557,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-08-27
 - **sep_effective**: 2026-06-21
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Jun 21, 2026 – Sep 30, 2026
 - **incident_window_raw**: Jun 21, 2026 – Aug 27, 2026
 - **sort_rank**: 15
@@ -1577,7 +1577,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-05-16
 - **sep_effective**: 2026-05-16
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: May 16, 2026 – November 30, 2026
 - **incident_window_raw**: May 16, 2026 – ongoing
 - **sort_rank**: 200
@@ -1597,7 +1597,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-06-19
 - **sep_effective**: 2026-06-19
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: June 19, 2026 – November 30, 2026
 - **incident_window_raw**: June 19, 2026 – ongoing
 - **sort_rank**: 200
@@ -1612,12 +1612,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Illinois — Flash Flooding
 - **disaster_type_raw**: Flash Flooding
 - **disaster_types**: ["Flash Flooding"]
-- **counties**: ["Alexander", "Pulaski"]
+- **counties**: ["Alexander","Pulaski"]
 - **counties_raw**: Alexander and Pulaski Counties
 - **incident_effective**: 2026-07-09
 - **sep_effective**: 2026-07-09
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: July 9, 2026 – November 30, 2026
 - **incident_window_raw**: July 9, 2026 – ongoing
 - **sort_rank**: 200
@@ -1637,7 +1637,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-07-02
 - **sep_effective**: 2026-07-02
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: July 2, 2026 – November 30, 2026
 - **incident_window_raw**: July 2, 2026 – ongoing
 - **sort_rank**: 200
@@ -1652,12 +1652,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Illinois — Straight-line winds, and damaging hail
 - **disaster_type_raw**: Straight-line winds, and damaging hail
 - **disaster_types**: ["Straight-line winds, and damaging hail"]
-- **counties**: ["Cook", "DuPage", "Lake", "Vermilion", "Will"]
+- **counties**: ["Cook","DuPage","Lake","Vermilion","Will"]
 - **counties_raw**: Cook, DuPage, Lake, Vermilion, and Will Counties
 - **incident_effective**: 2026-07-27
 - **sep_effective**: 2026-07-27
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: July 27, 2026 – November 30, 2026
 - **incident_window_raw**: July 27, 2026 – ongoing
 - **sort_rank**: 200
@@ -1677,7 +1677,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-06-10
 - **sep_effective**: 2026-06-10
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: June 10, 2026 – November 30, 2026
 - **incident_window_raw**: June 10, 2026 – ongoing
 - **sort_rank**: 200
@@ -1698,7 +1698,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-01-23
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2027-03-31
-- **days_until_expiry**: 218
+- **days_until_expiry**: 177
 - **sep_window_raw**: Jan 23, 2026 – Mar 31, 2027
 - **incident_window_raw**: Jan 23, 2026 – ongoing
 - **sort_rank**: 73
@@ -1719,7 +1719,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-10-10
 - **sep_effective**: 2026-08-11
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: Aug 11, 2026 – Nov 30, 2026
 - **incident_window_raw**: Aug 11, 2026 – Oct 10, 2026
 - **sort_rank**: 47
@@ -1734,12 +1734,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Indiana — Severe Storms, Straight-line Winds, Tornadoes, and Flooding
 - **disaster_type_raw**: Severe Storms, Straight-line Winds, Tornadoes, and Flooding
 - **disaster_types**: ["Severe Storms, Straight-line Winds, Tornadoes, and Flooding"]
-- **counties**: ["llen", "Bartholomew", "Boone", "Carroll", "Cass", "Clinton", "Dearborn", "Decatur", "Delaware", "Fayette", "Fountain", "Franklin", "Fulton", "Grant", "Hamilton", "Hancock", "Harrison", "Hendricks", "Henry", "Jasper", "Jay", "Jefferson", "Jennings", "Knox", "Kosciusko", "Lake", "LaPorte", "Madison", "Marion", "Marshall", "Miami", "Morgan", "Newton", "Orange", "Owen", "Parke", "Perry", "Pike", "Porter", "Pulaski", "Randolph", "Ripley", "Rush", "Shelby", "St. Joseph", "Starke", "Tipton", "Union", "Wabash", "Warren", "Washington", "Wayne", "White"]
+- **counties**: ["llen","Bartholomew","Boone","Carroll","Cass","Clinton","Dearborn","Decatur","Delaware","Fayette","Fountain","Franklin","Fulton","Grant","Hamilton","Hancock","Harrison","Hendricks","Henry","Jasper","Jay","Jefferson","Jennings","Knox","Kosciusko","Lake","LaPorte","Madison","Marion","Marshall","Miami","Morgan","Newton","Orange","Owen","Parke","Perry","Pike","Porter","Pulaski","Randolph","Ripley","Rush","Shelby","St. Joseph","Starke","Tipton","Union","Wabash","Warren","Washington","Wayne","White counties"]
 - **counties_raw**: llen, Bartholomew, Boone, Carroll, Cass, Clinton, Dearborn, Decatur, Delaware, Fayette, Fountain, Franklin, Fulton, Grant, Hamilton, Hancock, Harrison, Hendricks, Henry, Jasper, Jay, Jefferson, Jennings, Knox, Kosciusko, Lake, LaPorte, Madison, Marion, Marshall, Miami, Morgan, Newton, Orange, Owen, Parke, Perry, Pike, Porter, Pulaski, Randolph, Ripley, Rush, Shelby, St. Joseph, Starke, Tipton, Union, Wabash, Warren, Washington, Wayne and White counties.
 - **incident_effective**: 2026-08-11
 - **sep_effective**: 2026-08-11
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: August 11, 2026 – October 31, 2027
 - **incident_window_raw**: August 11, 2026 – ongoing
 - **sort_rank**: 200
@@ -1754,12 +1754,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Indiana — Severe Weather and Tornadic activity
 - **disaster_type_raw**: Severe Weather and Tornadic activity
 - **disaster_types**: ["Severe Weather and Tornadic activity"]
-- **counties**: ["Allen", "Bartholomew", "Benton", "Boone", "Brown", "Carroll", "Cass", "Clay", "Clinton", "Dearborn", "Decatur", "Delaware", "Elkhart", "Fountain", "Franklin", "Fulton", "Grant", "Greene", "Hamilton", "Hancock", "Harrison", "Hendricks", "Howard", "Huntington", "Jackson", "Jasper", "Jay", "Jefferson", "Jennings", "Johnson", "Knox", "Kosciusko", "LaGrange", "LaPorte", "Lake", "Lawrence", "Madison", "Marion", "Marshall", "Miami", "Monroe", "Montgomery", "Morgan", "Newton", "Ohio", "Owen", "Parke", "Porter", "Putnam", "Randolph", "Ripley", "Rush", "Shelby", "St. Joseph", "Steuben", "Switzerland", "Tippecanoe", "Vanderburgh", "Vermillion", "Vigo", "Wabash", "Warren", "White"]
+- **counties**: ["Allen","Bartholomew","Benton","Boone","Brown","Carroll","Cass","Clay","Clinton","Dearborn","Decatur","Delaware","Elkhart","Fountain","Franklin","Fulton","Grant","Greene","Hamilton","Hancock","Harrison","Hendricks","Howard","Huntington","Jackson","Jasper","Jay","Jefferson","Jennings","Johnson","Knox","Kosciusko","LaGrange","LaPorte","Lake","Lawrence","Madison","Marion","Marshall","Miami","Monroe","Montgomery","Morgan","Newton","Ohio","Owen","Parke","Porter","Putnam","Randolph","Ripley","Rush","Shelby","St. Joseph","Steuben","Switzerland","Tippecanoe","Vanderburgh","Vermillion","Vigo","Wabash","Warren","White"]
 - **counties_raw**: Allen, Bartholomew, Benton, Boone, Brown, Carroll, Cass, Clay, Clinton, Dearborn, Decatur, Delaware, Elkhart, Fountain, Franklin, Fulton, Grant, Greene, Hamilton, Hancock, Harrison, Hendricks, Howard, Huntington, Jackson, Jasper, Jay, Jefferson, Jennings, Johnson, Knox, Kosciusko, LaGrange, LaPorte, Lake, Lawrence, Madison, Marion, Marshall, Miami, Monroe, Montgomery, Morgan, Newton, Ohio, Owen, Parke, Porter, Putnam, Randolph, Ripley, Rush, Shelby, St. Joseph, Steuben, Switzerland, Tippecanoe, Vanderburgh, Vermillion, Vigo, Wabash, Warren, and White.
 - **incident_effective**: 2026-06-06
 - **sep_effective**: 2026-06-06
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: June 6, 2026 – September 30, 2026
 - **incident_window_raw**: June 6, 2026 – ongoing
 - **sort_rank**: 200
@@ -1775,13 +1775,13 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_number**: 2.9.26
 - **disaster_type_raw**: Other
 - **disaster_types**: ["Other"]
-- **counties**: ["Douglas", "Johnson", "& Wyandotte"]
+- **counties**: ["Douglas","Johnson","& Wyandotte"]
 - **counties_raw**: Douglas, Johnson, & Wyandotte
 - **incident_effective**: 2026-06-11
 - **incident_termination**: 2026-08-09
 - **sep_effective**: 2026-06-20
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: June 20, 2026 – September 30, 2026
 - **incident_window_raw**: Jun 11, 2026 – Aug 9, 2026
 - **sort_rank**: 31
@@ -1796,14 +1796,14 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Kentucky - Severe Weather, Rain, Hail, Tornadoes - 5/16/2025
 - **declaration_number**: 26-34, 2025-343, 2025-306, 2025-305
 - **disaster_type_raw**: Storms - Rain;Storms  - Hail;Straight-Line Winds;Tornado
-- **disaster_types**: ["Storms - Rain", "Storms  - Hail", "Straight-Line Winds", "Tornado"]
+- **disaster_types**: ["Storms - Rain","Storms  - Hail","Straight-Line Winds","Tornado"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2025-05-16
 - **incident_termination**: 2026-07-15
 - **sep_effective**: 2025-05-16
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: May 16, 2025 – Sep 30, 2026
 - **incident_window_raw**: May 16, 2025 – Jul 15, 2026
 - **sort_rank**: 21
@@ -1818,14 +1818,14 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Kentucky - Severe Weather System 4/2/2025 (Counties Declared; STATEWIDE Ended)
 - **declaration_number**: 26-35
 - **disaster_type_raw**: Storms - Rain;Straight-Line Winds;Storms  - Hail;Floods;Tornado
-- **disaster_types**: ["Storms - Rain", "Straight-Line Winds", "Storms  - Hail", "Floods", "Tornado"]
+- **disaster_types**: ["Storms - Rain","Straight-Line Winds","Storms  - Hail","Floods","Tornado"]
 - **counties**: ["Anderson Bracken Breathitt Butler Floyd Franklin Gallatin Garrard Johnson Kenton Magoffin Marion Martin Nicholas Oldham Perry Washington Wolfe City of Frankfort City of Rochester City of Warsaw Louisville - Jefferson  Metro Government"]
 - **counties_raw**: Anderson Bracken Breathitt Butler Floyd Franklin Gallatin Garrard Johnson Kenton Magoffin Marion Martin Nicholas Oldham Perry Washington Wolfe City of Frankfort City of Rochester City of Warsaw Louisville - Jefferson  Metro Government
 - **incident_effective**: 2025-04-02
 - **incident_termination**: 2026-07-15
 - **sep_effective**: 2025-04-02
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Apr 2, 2025 – Sep 30, 2026
 - **incident_window_raw**: Apr 2, 2025 – Jul 15, 2026
 - **sort_rank**: 20
@@ -1840,14 +1840,14 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Kentucky - Catastrophic Plane Crash 11/4/2025
 - **declaration_number**: 2025-758
 - **disaster_type_raw**: Building/Bridge/Structural Collapse’;Explosion
-- **disaster_types**: ["Building/Bridge/Structural Collapse’", "Explosion"]
+- **disaster_types**: ["Building/Bridge/Structural Collapse’","Explosion"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2025-11-04
 - **incident_termination**: 2026-08-02
 - **sep_effective**: 2025-11-04
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: Nov 4, 2025 – Oct 31, 2026
 - **incident_window_raw**: Nov 4, 2025 – Aug 2, 2026
 - **sort_rank**: 32
@@ -1869,7 +1869,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-10-20
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-12-31
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 - **sep_window_raw**: Jan 23, 2026 – Dec 31, 2026
 - **incident_window_raw**: Jan 23, 2026 – Oct 20, 2026
 - **sort_rank**: 55
@@ -1890,7 +1890,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-01-23
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2027-03-31
-- **days_until_expiry**: 218
+- **days_until_expiry**: 177
 - **sep_window_raw**: Jan 23, 2026 – Mar 31, 2027
 - **incident_window_raw**: Jan 23, 2026 – ongoing
 - **sort_rank**: 74
@@ -1905,13 +1905,13 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Louisiana - Tropical Storm Arthur 6/17/2026
 - **disaster_type_raw**: Tropical Storm
 - **disaster_types**: ["Tropical Storm"]
-- **counties**: ["Avoyelles", "East Feliciana", "Lafourche", "Pointe Coupee", "St. Charles", "St. Landry", "St. Tammany", "Terrebonne", "Winn"]
+- **counties**: ["Avoyelles","East Feliciana","Lafourche","Pointe Coupee","St. Charles","St. Landry","St. Tammany","Terrebonne","Winn"]
 - **counties_raw**: Avoyelles, East Feliciana, Lafourche, Pointe Coupee, St. Charles, St. Landry, St. Tammany, Terrebonne, Winn
 - **incident_effective**: 2026-06-17
 - **incident_termination**: 2026-10-04
 - **sep_effective**: 2026-07-22
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: July 22, 2026 – October 31, 2026
 - **incident_window_raw**: Jun 17, 2026 – Oct 4, 2026
 - **sort_rank**: 48
@@ -1931,7 +1931,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2021-08-26
 - **sep_effective**: 2021-08-26
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: August 26, 2021 – October 31, 2026
 - **incident_window_raw**: August 26, 2021 – ongoing
 - **sort_rank**: 200
@@ -1953,7 +1953,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2027-02-22
 - **sep_effective**: 2026-02-22
 - **sep_termination**: 2027-04-30
-- **days_until_expiry**: 248
+- **days_until_expiry**: 207
 - **sep_window_raw**: Feb 22, 2026 – Apr 30, 2027
 - **incident_window_raw**: Feb 22, 2026 – Feb 22, 2027
 - **sort_rank**: 82
@@ -1974,7 +1974,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-02-23
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2027-03-31
-- **days_until_expiry**: 218
+- **days_until_expiry**: 177
 - **sep_window_raw**: Jan 23, 2026 – Mar 31, 2027
 - **incident_window_raw**: Feb 23, 2026 – ongoing
 - **sort_rank**: 75
@@ -1989,12 +1989,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Michigan — Significant rain event
 - **disaster_type_raw**: Significant rain event
 - **disaster_types**: ["Significant rain event"]
-- **counties**: ["Antrim", "Cheboygan", "Emmet"]
+- **counties**: ["Antrim","Cheboygan","Emmet"]
 - **counties_raw**: Antrim, Cheboygan, and Emmet Counties
 - **incident_effective**: 2026-06-29
 - **sep_effective**: 2026-06-29
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: June 29, 2026 – October 31, 2026
 - **incident_window_raw**: June 29, 2026 – ongoing
 - **sort_rank**: 200
@@ -2014,7 +2014,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2025-06-21
 - **sep_effective**: 2025-06-21
 - **sep_termination**: 2026-12-31
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 - **sep_window_raw**: June 21, 2025 – December 31, 2026
 - **incident_window_raw**: June 21, 2025 – ongoing
 - **sort_rank**: 200
@@ -2034,7 +2034,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-07-11
 - **sep_effective**: 2026-07-11
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: July 11, 2026 – October 31, 2026
 - **incident_window_raw**: July 11, 2026 – ongoing
 - **sort_rank**: 200
@@ -2049,12 +2049,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Missouri — Severe Storms, Straight-line Winds, Tornadoes, and Flooding
 - **disaster_type_raw**: Severe Storms, Straight-line Winds, Tornadoes, and Flooding
 - **disaster_types**: ["Severe Storms, Straight-line Winds, Tornadoes, and Flooding"]
-- **counties**: ["Adair", "Andrew", "Callaway", "Camden", "Cape Girardeau", "Dade", "Daviess", "Gasconade", "Gentry", "Grundy", "Harrison", "Hickory", "Holt", "Jasper", "Knox", "Lewis", "Linn", "Macon", "Marion", "Mercer", "Miller", "Moniteau", "Morgan", "Newton", "Nodaway", "Osage", "Polk", "Putnam", "Scott", "Shelby", "Sullivan", "Vernon", "Webster", "Worth"]
+- **counties**: ["Adair","Andrew","Callaway","Camden","Cape Girardeau","Dade","Daviess","Gasconade","Gentry","Grundy","Harrison","Hickory","Holt","Jasper","Knox","Lewis","Linn","Macon","Marion","Mercer","Miller","Moniteau","Morgan","Newton","Nodaway","Osage","Polk","Putnam","Scott","Shelby","Sullivan","Vernon","Webster","Worth"]
 - **counties_raw**: Adair, Andrew, Callaway, Camden, Cape Girardeau, Dade, Daviess, Gasconade, Gentry, Grundy, Harrison, Hickory, Holt, Jasper, Knox, Lewis, Linn, Macon, Marion, Mercer, Miller, Moniteau, Morgan, Newton, Nodaway, Osage, Polk, Putnam, Scott, Shelby, Sullivan, Vernon, Webster, Worth counties
 - **incident_effective**: 2026-06-04
 - **sep_effective**: 2026-06-04
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: June 4, 2026 – October 31, 2026
 - **incident_window_raw**: June 4, 2026 – ongoing
 - **sort_rank**: 200
@@ -2074,7 +2074,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-06-04
 - **sep_effective**: 2026-06-04
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: June 4, 2026 – September 30, 2026
 - **incident_window_raw**: June 4, 2026 – ongoing
 - **sort_rank**: 200
@@ -2089,12 +2089,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Commonwealth of the Northern Mariana Islands — Super Typhoon Bavi
 - **disaster_type_raw**: Super Typhoon Bavi
 - **disaster_types**: ["Super Typhoon Bavi"]
-- **counties**: ["Rota", "Saipan", "Tinian Municipalities"]
+- **counties**: ["Rota","Saipan","Tinian Municipalities"]
 - **counties_raw**: Rota, Saipan, and  Tinian Municipalities
 - **incident_effective**: 2026-07-04
 - **sep_effective**: 2026-07-04
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: July 4, 2026 – October 31, 2026
 - **incident_window_raw**: July 4, 2026 – ongoing
 - **sort_rank**: 200
@@ -2114,7 +2114,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-07-02
 - **sep_effective**: 2026-07-02
 - **sep_termination**: 2026-12-31
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 - **sep_window_raw**: July 2, 2026 – December 31, 2026
 - **incident_window_raw**: July 2, 2026 – ongoing
 - **sort_rank**: 200
@@ -2129,12 +2129,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Commonwealth of Northern Mariana Islands — Typhoon Bavi
 - **disaster_type_raw**: Typhoon Bavi
 - **disaster_types**: ["Typhoon Bavi"]
-- **counties**: ["Northern Islands", "Rota", "Saipan", "Tinian Municipalities"]
+- **counties**: ["Northern Islands","Rota","Saipan","Tinian Municipalities"]
 - **counties_raw**: Northern Islands, Rota, Saipan,  Tinian Municipalities
 - **incident_effective**: 2026-07-02
 - **sep_effective**: 2026-07-02
 - **sep_termination**: 2027-09-30
-- **days_until_expiry**: 401
+- **days_until_expiry**: 360
 - **sep_window_raw**: July 2, 2026 – September 30, 2027
 - **incident_window_raw**: July 2, 2026 – ongoing
 - **sort_rank**: 200
@@ -2154,7 +2154,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-04-11
 - **sep_effective**: 2026-04-11
 - **sep_termination**: 2026-12-31
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 - **sep_window_raw**: April 11, 2026 – December 31, 2026
 - **incident_window_raw**: April 11, 2026 – ongoing
 - **sort_rank**: 200
@@ -2169,12 +2169,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Mississippi — Tropical Storm Arthur
 - **disaster_type_raw**: Tropical Storm Arthur
 - **disaster_types**: ["Tropical Storm Arthur"]
-- **counties**: ["Hancock", "Harrison", "Pearl River", "Stone"]
+- **counties**: ["Hancock","Harrison","Pearl River","Stone"]
 - **counties_raw**: Hancock, Harrison, Pearl River, and Stone Counties
 - **incident_effective**: 2026-06-18
 - **sep_effective**: 2026-06-18
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: June 18, 2026 – October 31, 2026
 - **incident_window_raw**: June 18, 2026 – ongoing
 - **sort_rank**: 200
@@ -2189,13 +2189,13 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Montana - Severe Storms and Flooding 12/10/2025
 - **declaration_number**: (EM-3630-MT)
 - **disaster_type_raw**: Storms - Rain;Floods
-- **disaster_types**: ["Storms - Rain", "Floods"]
+- **disaster_types**: ["Storms - Rain","Floods"]
 - **counties**: ["Blackfeet Indian Reservation Lincoln  Sanders"]
 - **counties_raw**: Blackfeet Indian Reservation Lincoln  Sanders
 - **incident_effective**: 2025-12-10
 - **sep_effective**: 2025-12-10
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: Dec 10, 2025 – Feb 28, 2027
 - **incident_window_raw**: Dec 10, 2025 – ongoing
 - **sort_rank**: 68
@@ -2215,7 +2215,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-07-03
 - **sep_effective**: 2026-07-03
 - **sep_termination**: 2026-10-30
-- **days_until_expiry**: 66
+- **days_until_expiry**: 25
 - **sep_window_raw**: July 3, 2026 – October 30, 2026
 - **incident_window_raw**: July 3, 2026 – ongoing
 - **sort_rank**: 200
@@ -2235,7 +2235,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-07-03
 - **sep_effective**: 2026-07-03
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: July 3, 2026 – October 31, 2026
 - **incident_window_raw**: July 3, 2026 – ongoing
 - **sort_rank**: 200
@@ -2255,7 +2255,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-08-14
 - **sep_effective**: 2026-08-14
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: August 14, 2026 – October 31, 2027
 - **incident_window_raw**: August 14, 2026 – ongoing
 - **sort_rank**: 200
@@ -2275,7 +2275,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2025-08-14
 - **sep_effective**: 2025-08-14
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: August 14, 2025 – October 31, 2026
 - **incident_window_raw**: August 14, 2025 – ongoing
 - **sort_rank**: 200
@@ -2296,7 +2296,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-01-21
 - **sep_effective**: 2026-01-21
 - **sep_termination**: 2027-03-31
-- **days_until_expiry**: 218
+- **days_until_expiry**: 177
 - **sep_window_raw**: Jan 21, 2026 – Mar 31, 2027
 - **incident_window_raw**: Jan 21, 2026 – ongoing
 - **sort_rank**: 76
@@ -2317,7 +2317,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-12-30
 - **sep_effective**: 2026-08-04
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: Aug 4, 2026 – Feb 28, 2027
 - **incident_window_raw**: Aug 4, 2026 – Dec 30, 2026
 - **sort_rank**: 69
@@ -2337,7 +2337,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-08-06
 - **sep_effective**: 2026-08-06
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: August 6, 2026 – November 30, 2026
 - **incident_window_raw**: August 6, 2026 – ongoing
 - **sort_rank**: 200
@@ -2357,7 +2357,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-06-07
 - **sep_effective**: 2026-06-07
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: June 7, 2026 – October 31, 2026
 - **incident_window_raw**: June 7, 2026 – ongoing
 - **sort_rank**: 200
@@ -2372,12 +2372,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Nebraska - Severe storms 8/8/25
 - **disaster_type_raw**: Floods
 - **disaster_types**: ["Floods"]
-- **counties**: ["Burt", "Butler", "Cass", "Dodge", "Douglas", "Fillmore", "Gage", "Harlan", "Jefferson", "Johnson", "Lancaster", "Nemaha", "Nickolls", "Otoe", "Pawnee", "Saline", "Sarpy", "Saunders", "Seward", "Thayer", "Washington", "Webster", "York"]
+- **counties**: ["Burt","Butler","Cass","Dodge","Douglas","Fillmore","Gage","Harlan","Jefferson","Johnson","Lancaster","Nemaha","Nickolls","Otoe","Pawnee","Saline","Sarpy","Saunders","Seward","Thayer","Washington","Webster","York"]
 - **counties_raw**: Burt, Butler, Cass, Dodge, Douglas, Fillmore, Gage, Harlan, Jefferson, Johnson, Lancaster, Nemaha, Nickolls, Otoe, Pawnee, Saline, Sarpy, Saunders, Seward, Thayer, Washington, Webster, York
 - **incident_effective**: 2025-08-08
 - **sep_effective**: 2025-08-08
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: Aug 8, 2025 – Oct 31, 2026
 - **incident_window_raw**: Aug 8, 2025 – ongoing
 - **sort_rank**: 33
@@ -2397,7 +2397,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-07-10
 - **sep_effective**: 2026-07-10
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: July 10, 2026 – November 30, 2026
 - **incident_window_raw**: July 10, 2026 – ongoing
 - **sort_rank**: 200
@@ -2412,12 +2412,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Nebraska — Cottonwood Fire
 - **disaster_type_raw**: Cottonwood Fire
 - **disaster_types**: ["Cottonwood Fire"]
-- **counties**: ["Arthur", "Dawson", "Frontier", "Garden", "Grant", "Keith", "Lincoln", "Morrill"]
+- **counties**: ["Arthur","Dawson","Frontier","Garden","Grant","Keith","Lincoln","Morrill"]
 - **counties_raw**: Arthur, Dawson, Frontier, Garden, Grant, Keith, Lincoln, Morrill counties
 - **incident_effective**: 2026-03-12
 - **sep_effective**: 2026-03-12
 - **sep_termination**: 2027-05-31
-- **days_until_expiry**: 279
+- **days_until_expiry**: 238
 - **sep_window_raw**: March 12, 2026 – May 31, 2027
 - **incident_window_raw**: March 12, 2026 – ongoing
 - **sort_rank**: 200
@@ -2437,7 +2437,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-06-09
 - **sep_effective**: 2026-06-09
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: June 9, 2026 – October 31, 2026
 - **incident_window_raw**: June 9, 2026 – ongoing
 - **sort_rank**: 200
@@ -2452,12 +2452,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Nebraska FEMA — Morrill-Cottonwood Fire
 - **disaster_type_raw**: Morrill-Cottonwood Fire
 - **disaster_types**: ["Morrill-Cottonwood Fire"]
-- **counties**: ["Arthur", "Dawson", "Garden", "Keith", "Lincoln", "Morrill"]
+- **counties**: ["Arthur","Dawson","Garden","Keith","Lincoln","Morrill"]
 - **counties_raw**: Arthur, Dawson, Garden, Keith, Lincoln, Morrill counties
 - **incident_effective**: 2026-03-12
 - **sep_effective**: 2026-03-12
 - **sep_termination**: 2027-05-31
-- **days_until_expiry**: 279
+- **days_until_expiry**: 238
 - **sep_window_raw**: March 12, 2026 – May 31, 2027
 - **incident_window_raw**: March 12, 2026 – ongoing
 - **sort_rank**: 200
@@ -2472,12 +2472,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Nebraska FEMA — South Fork Fire
 - **disaster_type_raw**: South Fork Fire
 - **disaster_types**: ["South Fork Fire"]
-- **counties**: ["Sioux", "Dawes"]
+- **counties**: ["Sioux","Dawes"]
 - **counties_raw**: Sioux and Dawes counties
 - **incident_effective**: 2026-06-09
 - **sep_effective**: 2026-06-09
 - **sep_termination**: 2027-08-31
-- **days_until_expiry**: 371
+- **days_until_expiry**: 330
 - **sep_window_raw**: June 9, 2026 – August 31, 2027
 - **incident_window_raw**: June 9, 2026 – ongoing
 - **sort_rank**: 200
@@ -2497,7 +2497,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-06-09
 - **sep_effective**: 2026-06-09
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: June 9, 2026 – October 31, 2026
 - **incident_window_raw**: June 9, 2026 – ongoing
 - **sort_rank**: 200
@@ -2518,7 +2518,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2025-11-21
 - **sep_effective**: 2025-11-21
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: Nov 21, 2025 – Feb 28, 2027
 - **incident_window_raw**: Nov 21, 2025 – ongoing
 - **sort_rank**: 70
@@ -2539,7 +2539,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2025-09-02
 - **sep_effective**: 2025-09-02
 - **sep_termination**: 2026-12-02
-- **days_until_expiry**: 99
+- **days_until_expiry**: 58
 - **sep_window_raw**: Sep 2, 2025 – Dec 2, 2026
 - **incident_window_raw**: Sep 2, 2025 – ongoing
 - **sort_rank**: 52
@@ -2560,7 +2560,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2025-09-02
 - **sep_effective**: 2025-09-02
 - **sep_termination**: 2026-12-02
-- **days_until_expiry**: 99
+- **days_until_expiry**: 58
 - **sep_window_raw**: Sep 2, 2025 – Dec 2, 2026
 - **incident_window_raw**: Sep 2, 2025 – ongoing
 - **sort_rank**: 53
@@ -2581,7 +2581,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2025-10-27
 - **sep_effective**: 2025-10-27
 - **sep_termination**: 2026-12-31
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 - **sep_window_raw**: Oct 27, 2025 – Dec 31, 2026
 - **incident_window_raw**: Oct 27, 2025 – ongoing
 - **sort_rank**: 57
@@ -2602,7 +2602,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2025-10-29
 - **sep_effective**: 2025-10-29
 - **sep_termination**: 2026-12-31
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 - **sep_window_raw**: Oct 29, 2025 – Dec 31, 2026
 - **incident_window_raw**: Oct 29, 2025 – ongoing
 - **sort_rank**: 56
@@ -2617,13 +2617,13 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: New Mexico - Frijoles Fire 8/4/2026
 - **disaster_type_raw**: Fires/Wildfires
 - **disaster_types**: ["Fires/Wildfires"]
-- **counties**: ["Rio Arriba", "Santa Fe"]
+- **counties**: ["Rio Arriba","Santa Fe"]
 - **counties_raw**: Rio Arriba, Santa Fe
 - **incident_effective**: 2026-08-04
 - **incident_termination**: 2026-10-08
 - **sep_effective**: 2026-08-04
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: Aug 4, 2026 – Nov 30, 2026
 - **incident_window_raw**: Aug 4, 2026 – Oct 8, 2026
 - **sort_rank**: 49
@@ -2643,7 +2643,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-07-22
 - **sep_effective**: 2026-07-22
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: July 22, 2026 – October 31, 2026
 - **incident_window_raw**: July 22, 2026 – ongoing
 - **sort_rank**: 200
@@ -2664,7 +2664,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2027-08-10
 - **sep_effective**: 2026-08-09
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: Aug 9, 2026 – Oct 31, 2027
 - **incident_window_raw**: Aug 9, 2026 – Aug 10, 2027
 - **sort_rank**: 91
@@ -2685,7 +2685,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2027-08-10
 - **sep_effective**: 2026-08-10
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: Aug 10, 2026 – Oct 31, 2027
 - **incident_window_raw**: Aug 10, 2026 – Aug 10, 2027
 - **sort_rank**: 92
@@ -2706,7 +2706,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2027-08-07
 - **sep_effective**: 2026-08-08
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: Aug 8, 2026 – Oct 31, 2027
 - **incident_window_raw**: Aug 8, 2026 – Aug 7, 2027
 - **sort_rank**: 90
@@ -2726,7 +2726,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2025-08-02
 - **sep_effective**: 2025-08-02
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: August 2, 2025 – October 31, 2026
 - **incident_window_raw**: August 2, 2025 – ongoing
 - **sort_rank**: 200
@@ -2741,13 +2741,13 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Ohio - Severe Flooding 8/10/2026
 - **disaster_type_raw**: Floods
 - **disaster_types**: ["Floods"]
-- **counties**: ["Perry", "Muskingum"]
+- **counties**: ["Perry","Muskingum"]
 - **counties_raw**: Perry, Muskingum
 - **incident_effective**: 2026-08-10
 - **incident_termination**: 2026-12-07
 - **sep_effective**: 2026-08-10
 - **sep_termination**: 2027-01-31
-- **days_until_expiry**: 159
+- **days_until_expiry**: 118
 - **sep_window_raw**: August 10, 2026 – January 31, 2027
 - **incident_window_raw**: Aug 10, 2026 – Dec 7, 2026
 - **sort_rank**: 59
@@ -2762,12 +2762,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Ohio — Severe Flooding and Severe weather
 - **disaster_type_raw**: Severe Flooding and Severe weather
 - **disaster_types**: ["Severe Flooding and Severe weather"]
-- **counties**: ["Franklin", "Muskingum", "Perry"]
+- **counties**: ["Franklin","Muskingum","Perry"]
 - **counties_raw**: Franklin, Muskingum, and Perry Counties
 - **incident_effective**: 2026-08-10
 - **sep_effective**: 2026-08-10
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: August 10, 2026 – November 30, 2026
 - **incident_window_raw**: August 10, 2026 – ongoing
 - **sort_rank**: 200
@@ -2788,7 +2788,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-02-17
 - **sep_effective**: 2026-03-15
 - **sep_termination**: 2027-05-31
-- **days_until_expiry**: 279
+- **days_until_expiry**: 238
 - **sep_window_raw**: March 15, 2026 – May 31, 2027
 - **incident_window_raw**: Feb 17, 2026 – ongoing
 - **sort_rank**: 83
@@ -2809,7 +2809,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-02-17
 - **sep_effective**: 2026-02-17
 - **sep_termination**: 2027-04-30
-- **days_until_expiry**: 248
+- **days_until_expiry**: 207
 - **sep_window_raw**: Feb 17, 2026 – Apr 30, 2027
 - **incident_window_raw**: Feb 17, 2026 – ongoing
 - **sort_rank**: 85
@@ -2830,7 +2830,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-02-17
 - **sep_effective**: 2026-02-17
 - **sep_termination**: 2027-04-30
-- **days_until_expiry**: 248
+- **days_until_expiry**: 207
 - **sep_window_raw**: Feb 17, 2026 – Apr 30, 2027
 - **incident_window_raw**: Feb 17, 2026 – ongoing
 - **sort_rank**: 87
@@ -2851,7 +2851,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-02-19
 - **sep_effective**: 2026-02-19
 - **sep_termination**: 2027-04-30
-- **days_until_expiry**: 248
+- **days_until_expiry**: 207
 - **sep_window_raw**: Feb 19, 2026 – Apr 30, 2027
 - **incident_window_raw**: Feb 19, 2026 – ongoing
 - **sort_rank**: 86
@@ -2872,7 +2872,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-02-19
 - **sep_effective**: 2026-02-19
 - **sep_termination**: 2027-04-30
-- **days_until_expiry**: 248
+- **days_until_expiry**: 207
 - **sep_window_raw**: Feb 19, 2026 – Apr 30, 2027
 - **incident_window_raw**: Feb 19, 2026 – ongoing
 - **sort_rank**: 84
@@ -2887,13 +2887,13 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Oklahoma - Train Trestle Fire 8/13/2026
 - **disaster_type_raw**: Fires/Wildfires
 - **disaster_types**: ["Fires/Wildfires"]
-- **counties**: ["Canadian", "Oklahoma"]
+- **counties**: ["Canadian","Oklahoma"]
 - **counties_raw**: Canadian, Oklahoma
 - **incident_effective**: 2026-08-13
 - **incident_termination**: 2027-08-12
 - **sep_effective**: 2026-08-13
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: Aug 13, 2026 – Oct 31, 2027
 - **incident_window_raw**: Aug 13, 2026 – Aug 12, 2027
 - **sort_rank**: 93
@@ -2908,12 +2908,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Oklahoma — Dangerous Flooding and Severe Weather
 - **disaster_type_raw**: Dangerous Flooding and Severe Weather
 - **disaster_types**: ["Dangerous Flooding and Severe Weather"]
-- **counties**: ["Atoka", "Beaver", "Blaine", "Caddo", "Canadian", "Cherokee", "Cimmaron", "Creek", "Dewey", "Ellis", "Grady", "Harper", "Hughes", "Johnston", "Kay", "Kiowa", "Major", "McCurtain", "McIntosh", "Murray", "Nowata", "Okfuskee", "Oklahoma", "Ottawa", "Pawnee", "Pushmataha", "Tulsa", "Wagoner", "Washita"]
+- **counties**: ["Atoka","Beaver","Blaine","Caddo","Canadian","Cherokee","Cimmaron","Creek","Dewey","Ellis","Grady","Harper","Hughes","Johnston","Kay","Kiowa","Major","McCurtain","McIntosh","Murray","Nowata","Okfuskee","Oklahoma","Ottawa","Pawnee","Pushmataha","Tulsa","Wagoner","Washita"]
 - **counties_raw**: Atoka, Beaver, Blaine, Caddo, Canadian, Cherokee, Cimmaron, Creek, Dewey, Ellis, Grady, Harper, Hughes, Johnston, Kay, Kiowa, Major, McCurtain, McIntosh, Murray, Nowata, Okfuskee, Oklahoma, Ottawa, Pawnee, Pushmataha, Tulsa, Wagoner, and Washita counties
 - **incident_effective**: 2026-06-06
 - **sep_effective**: 2026-06-06
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: June 6, 2026 – September 30, 2026
 - **incident_window_raw**: June 6, 2026 – ongoing
 - **sort_rank**: 200
@@ -2928,12 +2928,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Oklahoma — Dangerous severe weather, high winds, and flooding
 - **disaster_type_raw**: Dangerous severe weather, high winds, and flooding
 - **disaster_types**: ["Dangerous severe weather, high winds, and flooding"]
-- **counties**: ["Cleveland", "Washington"]
+- **counties**: ["Cleveland","Washington"]
 - **counties_raw**: Cleveland and Washington Counties
 - **incident_effective**: 2026-07-04
 - **sep_effective**: 2026-07-04
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: July 4, 2026 – October 31, 2026
 - **incident_window_raw**: July 4, 2026 – ongoing
 - **sort_rank**: 200
@@ -2955,7 +2955,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-06-30
 - **sep_effective**: 2026-08-07
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: August 7, 2026 – November 30, 2026
 - **incident_window_raw**: Jun 11, 2025 – Jun 30, 2026
 - **sort_rank**: 5
@@ -2971,13 +2971,13 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_number**: 26-01, 25-01, 24-03, 24-02, 23-09, 23-03, 23-02
 - **disaster_type_raw**: Homelessness/Housing Crisis
 - **disaster_types**: ["Homelessness/Housing Crisis"]
-- **counties**: ["1/7/2026 updated list to include: Metro region Continuums of Care", "Central Oregon", "Eugene", "Springfield/Lane", "Medford", "Ashland/Jackson", "Salem/Marion", "Polk", "Linn", "Clatsop  & Malheur    1/7/2025 updated list to include: Metro region Continuums of Care", "Clatsop  & Malheur   1/11/2024 updated list:  Metro Region Continuums of Care", "Salem", "Marion", "Clatstop and Malhaeur.     Clatsop", "Malheur", "Portland", "Gresham/Multnomah", "Central", "Hillsboro", "Beaverton/Washington", "Clackamas"]
+- **counties**: ["1/7/2026 updated list to include: Metro region Continuums of Care","Central Oregon","Eugene","Springfield/Lane","Medford","Ashland/Jackson","Salem/Marion","Polk","Linn","Clatsop  & Malheur    1/7/2025 updated list to include: Metro region Continuums of Care","Clatsop  & Malheur   1/11/2024 updated list:  Metro Region Continuums of Care","Salem","Marion","Clatstop and Malhaeur.     Clatsop","Malheur","Portland","Gresham/Multnomah","Central","Hillsboro","Beaverton/Washington","Clackamas"]
 - **counties_raw**: 1/7/2026 updated list to include: Metro region Continuums of Care, Central Oregon, Eugene, Springfield/Lane, Medford, Ashland/Jackson, Salem/Marion, Polk, Linn, Clatsop  & Malheur    1/7/2025 updated list to include: Metro region Continuums of Care, Clatsop  & Malheur   1/11/2024 updated list:  Metro Region Continuums of Care, Salem, Marion, Clatstop and Malhaeur.     Clatsop, Malheur, Portland, Gresham/Multnomah, Central, Hillsboro, Beaverton/Washington, Clackamas
 - **incident_effective**: 2023-01-10
 - **incident_termination**: 2027-01-10
 - **sep_effective**: 2026-05-19
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: May 19, 2026 – February 28, 2027
 - **incident_window_raw**: Jan 10, 2023 – Jan 10, 2027
 - **sort_rank**: 77
@@ -2998,7 +2998,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-09-25
 - **sep_effective**: 2026-07-29
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: Jul 29, 2026 – Oct 31, 2026
 - **incident_window_raw**: Jul 29, 2026 – Sep 25, 2026
 - **sort_rank**: 34
@@ -3019,7 +3019,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-10-04
 - **sep_effective**: 2026-08-07
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: Aug 7, 2026 – Nov 30, 2026
 - **incident_window_raw**: Aug 7, 2026 – Oct 4, 2026
 - **sort_rank**: 50
@@ -3040,7 +3040,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2027-08-08
 - **sep_effective**: 2026-08-07
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: Aug 7, 2026 – Oct 31, 2027
 - **incident_window_raw**: Aug 7, 2026 – Aug 8, 2027
 - **sort_rank**: 96
@@ -3055,13 +3055,13 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Oregon - Hagen Fire 7/21/2026
 - **disaster_type_raw**: Fires/Wildfires
 - **disaster_types**: ["Fires/Wildfires"]
-- **counties**: ["Umatilla", "Union"]
+- **counties**: ["Umatilla","Union"]
 - **counties_raw**: Umatilla, Union
 - **incident_effective**: 2026-07-21
 - **incident_termination**: 2027-08-08
 - **sep_effective**: 2026-07-21
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: Jul 21, 2026 – Oct 31, 2027
 - **incident_window_raw**: Jul 21, 2026 – Aug 8, 2027
 - **sort_rank**: 95
@@ -3076,13 +3076,13 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Oregon - Fielder Mountain Fire 8/13/2026
 - **disaster_type_raw**: Fires/Wildfires
 - **disaster_types**: ["Fires/Wildfires"]
-- **counties**: ["Jackson", "Josephine"]
+- **counties**: ["Jackson","Josephine"]
 - **counties_raw**: Jackson, Josephine
 - **incident_effective**: 2026-08-13
 - **incident_termination**: 2027-08-12
 - **sep_effective**: 2026-08-07
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: August 7, 2026 – October 31, 2027
 - **incident_window_raw**: Aug 13, 2026 – Aug 12, 2027
 - **sort_rank**: 94
@@ -3097,12 +3097,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Oregon — Drought Conditions
 - **disaster_type_raw**: Drought Conditions
 - **disaster_types**: ["Drought Conditions"]
-- **counties**: ["Coos", "Klamath", "Wheeler"]
+- **counties**: ["Coos","Klamath","Wheeler"]
 - **counties_raw**: Coos, Klamath, and Wheeler counties
 - **incident_effective**: 2026-04-28
 - **sep_effective**: 2026-04-28
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: April 28, 2026 – February 28, 2027
 - **incident_window_raw**: April 28, 2026 – ongoing
 - **sort_rank**: 200
@@ -3117,12 +3117,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Oregon — Drought Emergency
 - **disaster_type_raw**: Drought Emergency
 - **disaster_types**: ["Drought Emergency"]
-- **counties**: ["Baker", "Deschutes", "Umatilla"]
+- **counties**: ["Baker","Deschutes","Umatilla"]
 - **counties_raw**: Baker, Deschutes, Umatilla Counties
 - **incident_effective**: 2026-03-13
 - **sep_effective**: 2026-03-13
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: March 13, 2026 – February 28, 2027
 - **incident_window_raw**: March 13, 2026 – ongoing
 - **sort_rank**: 200
@@ -3142,7 +3142,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-07-17
 - **sep_effective**: 2026-07-17
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: July 17, 2026 – October 31, 2026
 - **incident_window_raw**: July 17, 2026 – ongoing
 - **sort_rank**: 200
@@ -3164,7 +3164,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-07-27
 - **sep_effective**: 2026-01-27
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Jan 27, 2026 – Sep 30, 2026
 - **incident_window_raw**: Jan 27, 2026 – Jul 27, 2026
 - **sort_rank**: 22
@@ -3185,7 +3185,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-01-21
 - **sep_effective**: 2026-01-21
 - **sep_termination**: 2027-03-31
-- **days_until_expiry**: 218
+- **days_until_expiry**: 177
 - **sep_window_raw**: Jan 21, 2026 – Mar 31, 2027
 - **incident_window_raw**: Jan 21, 2026 – ongoing
 - **sort_rank**: 78
@@ -3205,7 +3205,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-04-11
 - **sep_effective**: 2026-04-11
 - **sep_termination**: 2026-12-31
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 - **sep_window_raw**: April 11, 2026 – December 31, 2026
 - **incident_window_raw**: April 11, 2026 – ongoing
 - **sort_rank**: 200
@@ -3225,7 +3225,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-03-12
 - **sep_effective**: 2026-03-12
 - **sep_termination**: 2027-05-31
-- **days_until_expiry**: 279
+- **days_until_expiry**: 238
 - **sep_window_raw**: March 12, 2026 – May 31, 2027
 - **incident_window_raw**: March 12, 2026 – ongoing
 - **sort_rank**: 200
@@ -3245,7 +3245,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2025-12-17
 - **sep_effective**: 2025-12-17
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: December 17, 2025 – September 30, 2026
 - **incident_window_raw**: December 17, 2025 – ongoing
 - **sort_rank**: 200
@@ -3266,7 +3266,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-01-22
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2027-03-31
-- **days_until_expiry**: 218
+- **days_until_expiry**: 177
 - **sep_window_raw**: Jan 22, 2026 – Mar 31, 2027
 - **incident_window_raw**: Jan 22, 2026 – ongoing
 - **sort_rank**: 79
@@ -3287,7 +3287,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2025-07-02
 - **sep_effective**: 2025-07-02
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: Jul 2, 2025 – Sep 30, 2026
 - **incident_window_raw**: Jul 2, 2025 – ongoing
 - **sort_rank**: 23
@@ -3308,7 +3308,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-02-17
 - **sep_effective**: 2026-03-15
 - **sep_termination**: 2027-05-31
-- **days_until_expiry**: 279
+- **days_until_expiry**: 238
 - **sep_window_raw**: March 15, 2026 – May 31, 2027
 - **incident_window_raw**: Feb 17, 2026 – ongoing
 - **sort_rank**: 88
@@ -3323,12 +3323,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Texas — Border Crisis
 - **disaster_type_raw**: Border Crisis
 - **disaster_types**: ["Border Crisis"]
-- **counties**: ["Aransas", "Atascosa", "Bee", "Brewster", "Brooks", "Caldwell", "Calhoun", "Cameron", "Chambers", "Coleman", "Colorado", "Crane", "Crockett", "Culberson", "DeWitt", "Dimmit", "Duval", "Edwards", "El Paso", "Frio", "Galveston", "Goliad", "Gonzales", "Hidalgo", "Hudspeth", "Jackson", "Jeff Davis", "Jim Hogg", "Jim Wells", "Karnes", "Kenedy", "Kerr", "Kimble", "Kinney", "Kleberg", "La Salle", "Lavaca", "Live Oak", "Mason", "Matagorda", "Maverick", "McCulloch", "McLennan", "McMullen", "Medina", "Menard", "Midland", "Pecos", "Presidio", "Real", "Refugio", "San Jacinto", "San Patricio", "Schleicher", "Shackelford", "Starr", "Sutton", "Terrell", "Throckmorton", "Upton", "Uvalde", "Val Verde", "Victoria", "Webb", "Wharton", "Wilbarger", "Willacy", "Wilson", "Zapata", "Zavala"]
+- **counties**: ["Aransas","Atascosa","Bee","Brewster","Brooks","Caldwell","Calhoun","Cameron","Chambers","Coleman","Colorado","Crane","Crockett","Culberson","DeWitt","Dimmit","Duval","Edwards","El Paso","Frio","Galveston","Goliad","Gonzales","Hidalgo","Hudspeth","Jackson","Jeff Davis","Jim Hogg","Jim Wells","Karnes","Kenedy","Kerr","Kimble","Kinney","Kleberg","La Salle","Lavaca","Live Oak","Mason","Matagorda","Maverick","McCulloch","McLennan","McMullen","Medina","Menard","Midland","Pecos","Presidio","Real","Refugio","San Jacinto","San Patricio","Schleicher","Shackelford","Starr","Sutton","Terrell","Throckmorton","Upton","Uvalde","Val Verde","Victoria","Webb","Wharton","Wilbarger","Willacy","Wilson","Zapata","Zavala"]
 - **counties_raw**: Aransas, Atascosa, Bee, Brewster, Brooks, Caldwell, Calhoun, Cameron, Chambers, Coleman, Colorado, Crane, Crockett, Culberson, DeWitt, Dimmit, Duval, Edwards, El Paso, Frio, Galveston, Goliad, Gonzales, Hidalgo, Hudspeth, Jackson, Jeff Davis, Jim Hogg, Jim Wells, Karnes, Kenedy, Kerr, Kimble, Kinney, Kleberg, La Salle, Lavaca, Live Oak, Mason, Matagorda, Maverick, McCulloch, McLennan, McMullen, Medina, Menard, Midland, Pecos, Presidio, Real, Refugio, San Jacinto, San Patricio, Schleicher, Shackelford, Starr, Sutton, Terrell, Throckmorton, Upton, Uvalde, Val Verde, Victoria, Webb, Wharton, Wilbarger, Willacy, Wilson, Zapata, and Zavala Counties
 - **incident_effective**: 2021-05-31
 - **sep_effective**: 2021-05-31
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: May 31, 2021 – September 30, 2026
 - **incident_window_raw**: May 31, 2021 – ongoing
 - **sort_rank**: 200
@@ -3343,12 +3343,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Texas — Drought
 - **disaster_type_raw**: Drought
 - **disaster_types**: ["Drought"]
-- **counties**: ["Aransas", "Armstrong", "Atascosa", "Bailey", "Bandera", "Bastrop", "Bee", "Bexar", "Blanco", "Borden", "Bowie", "Brewster", "Briscoe", "Burnet", "Caldwell", "Calhoun", "Cameron", "Camp", "Carson", "Cass", "Castro", "Childress", "Clay", "Cochran", "Collingsworth", "Comal", "Cottle", "Crosby", "Dallam", "Dawson", "Deaf Smith", "DeWitt", "Dickens", "Donley", "Fayette", "Fisher", "Floyd", "Foard", "Franklin", "Garza", "Gillespie", "Gonzales", "Gray", "Guadalupe", "Hale", "Hall", "Hansford", "Hardeman", "Hardin", "Harrison", "Hartley", "Hays", "Hemphill", "Henderson", "Hidalgo", "Hockley", "Hutchinson", "Jim Wells", "Kendall", "Kent", "Kerr", "King", "Kleberg", "La Salle", "Lamar", "Lamb", "Lipscomb", "Live Oak", "Llano", "Lubbock", "Lynn", "Marion", "Martin", "Maverick", "McMullen", "Medina", "Moore", "Morris", "Motley", "Nueces", "Ochiltree", "Oldham", "Orange", "Panola", "Parmer", "Potter", "Rains", "Randall", "Real", "Red River", "Roberts", "San Patricio", "Scurry", "Shelby", "Sherman", "Smith", "Stonewall", "Swisher", "Terry", "Titus", "Travis", "Upshur", "Uvalde", "Van Zandt", "Wheeler", "Wilbarger", "Willacy", "Williamson", "Wilson", "Wood", "Yoakum"]
+- **counties**: ["Aransas","Armstrong","Atascosa","Bailey","Bandera","Bastrop","Bee","Bexar","Blanco","Borden","Bowie","Brewster","Briscoe","Burnet","Caldwell","Calhoun","Cameron","Camp","Carson","Cass","Castro","Childress","Clay","Cochran","Collingsworth","Comal","Cottle","Crosby","Dallam","Dawson","Deaf Smith","DeWitt","Dickens","Donley","Fayette","Fisher","Floyd","Foard","Franklin","Garza","Gillespie","Gonzales","Gray","Guadalupe","Hale","Hall","Hansford","Hardeman","Hardin","Harrison","Hartley","Hays","Hemphill","Henderson","Hidalgo","Hockley","Hutchinson","Jim Wells","Kendall","Kent","Kerr","King","Kleberg","La Salle","Lamar","Lamb","Lipscomb","Live Oak","Llano","Lubbock","Lynn","Marion","Martin","Maverick","McMullen","Medina","Moore","Morris","Motley","Nueces","Ochiltree","Oldham","Orange","Panola","Parmer","Potter","Rains","Randall","Real","Red River","Roberts","San Patricio","Scurry","Shelby","Sherman","Smith","Stonewall","Swisher","Terry","Titus","Travis","Upshur","Uvalde","Van Zandt","Wheeler","Wilbarger","Willacy","Williamson","Wilson","Wood","Yoakum"]
 - **counties_raw**: Aransas, Armstrong, Atascosa, Bailey, Bandera, Bastrop, Bee, Bexar, Blanco, Borden, Bowie, Brewster, Briscoe, Burnet, Caldwell, Calhoun, Cameron, Camp, Carson, Cass, Castro, Childress, Clay, Cochran, Collingsworth, Comal, Cottle, Crosby, Dallam, Dawson, Deaf Smith, DeWitt, Dickens, Donley, Fayette, Fisher, Floyd, Foard, Franklin, Garza, Gillespie, Gonzales, Gray, Guadalupe, Hale, Hall, Hansford, Hardeman, Hardin, Harrison, Hartley, Hays, Hemphill, Henderson, Hidalgo, Hockley, Hutchinson, Jim Wells, Kendall, Kent, Kerr, King, Kleberg, La Salle, Lamar, Lamb, Lipscomb, Live Oak, Llano, Lubbock, Lynn, Marion, Martin, Maverick, McMullen, Medina, Moore, Morris, Motley, Nueces, Ochiltree, Oldham, Orange, Panola, Parmer, Potter, Rains, Randall, Real, Red River, Roberts, San Patricio, Scurry, Shelby, Sherman, Smith, Stonewall, Swisher, Terry, Titus, Travis, Upshur, Uvalde, Van Zandt, Wheeler, Wilbarger, Willacy, Williamson, Wilson, Wood, and Yoakum Counties
 - **incident_effective**: 2022-07-08
 - **sep_effective**: 2022-07-08
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: July 8, 2022 – September 30, 2026
 - **incident_window_raw**: July 8, 2022 – ongoing
 - **sort_rank**: 200
@@ -3363,12 +3363,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Texas — Flooding
 - **disaster_type_raw**: Flooding
 - **disaster_types**: ["Flooding"]
-- **counties**: ["Atascosa", "Bandera", "Bexar", "Blanco", "Brewster", "Comal", "Crockett", "Dimmit", "Duval", "Edwards", "Frio", "Gillespie", "Jim Wills", "Kendall", "Kerr", "Kimble", "Kinney", "La Salle", "Live Oak", "Mason", "Maverick", "Medina", "Menard", "Pecos", "Real", "Schleicher", "Sutton", "Terrell", "Uvalde", "Val Verde", "Webb", "Wilson", "Zavala"]
+- **counties**: ["Atascosa","Bandera","Bexar","Blanco","Brewster","Comal","Crockett","Dimmit","Duval","Edwards","Frio","Gillespie","Jim Wills","Kendall","Kerr","Kimble","Kinney","La Salle","Live Oak","Mason","Maverick","Medina","Menard","Pecos","Real","Schleicher","Sutton","Terrell","Uvalde","Val Verde","Webb","Wilson","Zavala"]
 - **counties_raw**: Atascosa, Bandera, Bexar, Blanco, Brewster, Comal, Crockett, Dimmit, Duval, Edwards, Frio, Gillespie, Jim Wills, Kendall, Kerr, Kimble, Kinney, La Salle, Live Oak, Mason, Maverick, Medina, Menard, Pecos, Real, Schleicher, Sutton, Terrell, Uvalde, Val Verde, Webb, Wilson, and Zavala
 - **incident_effective**: 2026-07-12
 - **sep_effective**: 2026-07-12
 - **sep_termination**: 2027-09-30
-- **days_until_expiry**: 401
+- **days_until_expiry**: 360
 - **sep_window_raw**: July 12, 2026 – September 30, 2027
 - **incident_window_raw**: July 12, 2026 – ongoing
 - **sort_rank**: 200
@@ -3383,12 +3383,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Texas — Heavy Rainfall and Flash Flooding
 - **disaster_type_raw**: Heavy Rainfall and Flash Flooding
 - **disaster_types**: ["Heavy Rainfall and Flash Flooding"]
-- **counties**: ["Atascosa", "Austin", "Bandera", "Bastrop", "Bexar", "Blanco", "Brazoria", "Brewster", "Burnet", "Caldwell", "Colorado", "Comal", "Crockett", "DeWitt", "Dimmit", "Edwards", "Fayette", "Fort Bend", "Frio", "Galveston", "Gillespie", "Goliad", "Gonzales", "Guadalupe", "Harris", "Hays", "Jackson", "Karnes", "Kendall", "Kerr", "Kimble", "Kinney", "La Salle", "Lavaca", "Lee", "Llano", "Mason", "Matagorda", "Maverick", "McMullen", "Medina", "Menard", "Pecos", "Real", "Schleicher", "Sutton", "Terrell", "Travis", "Uvalde", "Val Verde", "Victoria", "Waller", "Washington", "Webb", "Wharton", "Williamson", "Wilson", "Zapata", "Zavala"]
+- **counties**: ["Atascosa","Austin","Bandera","Bastrop","Bexar","Blanco","Brazoria","Brewster","Burnet","Caldwell","Colorado","Comal","Crockett","DeWitt","Dimmit","Edwards","Fayette","Fort Bend","Frio","Galveston","Gillespie","Goliad","Gonzales","Guadalupe","Harris","Hays","Jackson","Karnes","Kendall","Kerr","Kimble","Kinney","La Salle","Lavaca","Lee","Llano","Mason","Matagorda","Maverick","McMullen","Medina","Menard","Pecos","Real","Schleicher","Sutton","Terrell","Travis","Uvalde","Val Verde","Victoria","Waller","Washington","Webb","Wharton","Williamson","Wilson","Zapata","Zavala"]
 - **counties_raw**: Atascosa, Austin, Bandera, Bastrop, Bexar, Blanco, Brazoria, Brewster, Burnet, Caldwell, Colorado, Comal, Crockett, DeWitt, Dimmit, Edwards, Fayette, Fort Bend, Frio, Galveston, Gillespie, Goliad, Gonzales, Guadalupe, Harris, Hays, Jackson, Karnes, Kendall, Kerr, Kimble, Kinney, La Salle, Lavaca, Lee, Llano, Mason, Matagorda, Maverick, McMullen, Medina, Menard, Pecos, Real, Schleicher, Sutton, Terrell, Travis, Uvalde, Val Verde, Victoria, Waller, Washington, Webb, Wharton, Williamson, Wilson, Zapata, and Zavala Counties
 - **incident_effective**: 2026-07-13
 - **sep_effective**: 2026-07-13
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: July 13, 2026 – October 31, 2026
 - **incident_window_raw**: July 13, 2026 – ongoing
 - **sort_rank**: 200
@@ -3403,12 +3403,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Texas — Heavy Rainfall, Wind Gusts and Tornado threats
 - **disaster_type_raw**: Heavy Rainfall, Wind Gusts and Tornado threats
 - **disaster_types**: ["Heavy Rainfall, Wind Gusts and Tornado threats"]
-- **counties**: ["Angelina", "Aransas", "Atascosa", "Austin", "Bandera", "Bastrop", "Bee", "Bell", "Bexar", "Blanco", "Brazoria", "Brazos", "Brooks", "Burleson", "Burnet", "Caldwell", "Calhoun", "Cameron", "Chambers", "Colorado", "Comal", "Coryell", "DeWitt", "Dimmit", "Duval", "Edwards", "Falls", "Fayette", "Fort Bend", "Freestone", "Frio", "Galveston", "Gillespie", "Goliad", "Gonzales", "Grimes", "Guadalupe", "Hardin", "Harris", "Hays", "Hidalgo", "Houston", "Jackson", "Jasper", "Jefferson", "Jim Hogg", "Jim Wells", "Karnes", "Kendall", "Kenedy", "Kerr", "Kimble", "Kinney", "Kleberg", "La Salle", "Lampasas", "Lavaca", "Lee", "Leon", "Liberty", "Limestone", "Live Oak", "Llano", "Madison", "Mason", "Matagorda", "Maverick", "McLennan", "McMullen", "Medina", "Milam", "Montgomery", "Newton", "Nueces", "Orange", "Polk", "Real", "Refugio", "Robertson", "Sabine", "San Augustine", "San Jacinto", "San Patricio", "San Saba", "Starr", "Travis", "Trinity", "Tyler", "Uvalde", "Val Verde", "Victoria", "Walker", "Waller", "Washington", "Webb", "Wharton", "Willacy", "Williamson", "Wilson", "Zapata", "Zavala"]
+- **counties**: ["Angelina","Aransas","Atascosa","Austin","Bandera","Bastrop","Bee","Bell","Bexar","Blanco","Brazoria","Brazos","Brooks","Burleson","Burnet","Caldwell","Calhoun","Cameron","Chambers","Colorado","Comal","Coryell","DeWitt","Dimmit","Duval","Edwards","Falls","Fayette","Fort Bend","Freestone","Frio","Galveston","Gillespie","Goliad","Gonzales","Grimes","Guadalupe","Hardin","Harris","Hays","Hidalgo","Houston","Jackson","Jasper","Jefferson","Jim Hogg","Jim Wells","Karnes","Kendall","Kenedy","Kerr","Kimble","Kinney","Kleberg","La Salle","Lampasas","Lavaca","Lee","Leon","Liberty","Limestone","Live Oak","Llano","Madison","Mason","Matagorda","Maverick","McLennan","McMullen","Medina","Milam","Montgomery","Newton","Nueces","Orange","Polk","Real","Refugio","Robertson","Sabine","San Augustine","San Jacinto","San Patricio","San Saba","Starr","Travis","Trinity","Tyler","Uvalde","Val Verde","Victoria","Walker","Waller","Washington","Webb","Wharton","Willacy","Williamson","Wilson","Zapata","Zavala"]
 - **counties_raw**: Angelina, Aransas, Atascosa, Austin, Bandera, Bastrop, Bee, Bell, Bexar, Blanco, Brazoria, Brazos, Brooks, Burleson, Burnet, Caldwell, Calhoun, Cameron, Chambers, Colorado, Comal, Coryell, DeWitt, Dimmit, Duval, Edwards, Falls, Fayette, Fort Bend, Freestone, Frio, Galveston, Gillespie, Goliad, Gonzales, Grimes, Guadalupe, Hardin, Harris, Hays, Hidalgo, Houston, Jackson, Jasper, Jefferson, Jim Hogg, Jim Wells, Karnes, Kendall, Kenedy, Kerr, Kimble, Kinney, Kleberg, La Salle, Lampasas, Lavaca, Lee, Leon, Liberty, Limestone, Live Oak, Llano, Madison, Mason, Matagorda, Maverick, McLennan, McMullen, Medina, Milam, Montgomery, Newton, Nueces, Orange, Polk, Real, Refugio, Robertson, Sabine, San Augustine, San Jacinto, San Patricio, San Saba, Starr, Travis, Trinity, Tyler, Uvalde, Val Verde, Victoria, Walker, Waller, Washington, Webb, Wharton, Willacy, Williamson, Wilson, Zapata, and Zavala Counties
 - **incident_effective**: 2026-06-14
 - **sep_effective**: 2026-06-14
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: June 14, 2026 – September 30, 2026
 - **incident_window_raw**: June 14, 2026 – ongoing
 - **sort_rank**: 200
@@ -3423,12 +3423,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Texas — Hill Country Heavy Rainfall and Flooding
 - **disaster_type_raw**: Hill Country Heavy Rainfall and Flooding
 - **disaster_types**: ["Hill Country Heavy Rainfall and Flooding"]
-- **counties**: ["Bandera", "Bexar", "Burnet", "Caldwell", "Coke", "Comal", "Concho", "Edwards", "Gillespie", "Guadalupe", "Hamilton", "Kendall", "Kerr", "Kimble", "Kinney", "Lampasas", "Llano", "Mason", "Maverick", "McCulloch", "Menard", "Real", "Reeves", "San Saba", "Schleicher", "Sutton", "Tom Green", "Travis", "Uvalde", "Williamson"]
+- **counties**: ["Bandera","Bexar","Burnet","Caldwell","Coke","Comal","Concho","Edwards","Gillespie","Guadalupe","Hamilton","Kendall","Kerr","Kimble","Kinney","Lampasas","Llano","Mason","Maverick","McCulloch","Menard","Real","Reeves","San Saba","Schleicher","Sutton","Tom Green","Travis","Uvalde","Williamson"]
 - **counties_raw**: Bandera, Bexar, Burnet, Caldwell, Coke, Comal, Concho, Edwards, Gillespie, Guadalupe, Hamilton, Kendall, Kerr, Kimble, Kinney, Lampasas, Llano, Mason, Maverick, McCulloch, Menard, Real, Reeves, San Saba, Schleicher, Sutton, Tom Green, Travis, Uvalde, and Williamson Counties
 - **incident_effective**: 2025-07-02
 - **sep_effective**: 2025-07-02
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: July 2, 2025 – September 30, 2026
 - **incident_window_raw**: July 2, 2025 – ongoing
 - **sort_rank**: 200
@@ -3448,7 +3448,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-05-14
 - **sep_effective**: 2026-05-14
 - **sep_termination**: 2027-07-31
-- **days_until_expiry**: 340
+- **days_until_expiry**: 299
 - **sep_window_raw**: May 14, 2026 – July 31, 2027
 - **incident_window_raw**: May 14, 2026 – ongoing
 - **sort_rank**: 200
@@ -3468,7 +3468,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-05-18
 - **sep_effective**: 2026-05-18
 - **sep_termination**: 2027-07-31
-- **days_until_expiry**: 340
+- **days_until_expiry**: 299
 - **sep_window_raw**: May 18, 2026 – July 31, 2027
 - **incident_window_raw**: May 18, 2026 – ongoing
 - **sort_rank**: 200
@@ -3483,13 +3483,13 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Utah - Rocky Canyon Fire 8/7/2026
 - **disaster_type_raw**: Fires/Wildfires
 - **disaster_types**: ["Fires/Wildfires"]
-- **counties**: ["Morgan", "Summit"]
+- **counties**: ["Morgan","Summit"]
 - **counties_raw**: Morgan, Summit
 - **incident_effective**: 2026-08-07
 - **incident_termination**: 2027-08-08
 - **sep_effective**: 2026-08-07
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: Aug 7, 2026 – Oct 31, 2027
 - **incident_window_raw**: Aug 7, 2026 – Aug 8, 2027
 - **sort_rank**: 97
@@ -3504,12 +3504,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Utah FEMA — Cherry Fire
 - **disaster_type_raw**: Cherry Fire
 - **disaster_types**: ["Cherry Fire"]
-- **counties**: ["Juab", "Tooele"]
+- **counties**: ["Juab","Tooele"]
 - **counties_raw**: Juab and Tooele Counties
 - **incident_effective**: 2026-06-26
 - **sep_effective**: 2026-06-26
 - **sep_termination**: 2027-08-31
-- **days_until_expiry**: 371
+- **days_until_expiry**: 330
 - **sep_window_raw**: June 26, 2026 – August 31, 2027
 - **incident_window_raw**: June 26, 2026 – ongoing
 - **sort_rank**: 200
@@ -3529,7 +3529,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-06-22
 - **sep_effective**: 2026-06-22
 - **sep_termination**: 2027-08-31
-- **days_until_expiry**: 371
+- **days_until_expiry**: 330
 - **sep_window_raw**: June 22, 2026 – August 31, 2027
 - **incident_window_raw**: June 22, 2026 – ongoing
 - **sort_rank**: 200
@@ -3549,7 +3549,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2025-07-10
 - **sep_effective**: 2025-07-10
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: July 10, 2025 – September 30, 2026
 - **incident_window_raw**: July 10, 2025 – ongoing
 - **sort_rank**: 200
@@ -3569,7 +3569,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-05-21
 - **sep_effective**: 2026-05-21
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: May 21, 2026 – September 30, 2026
 - **incident_window_raw**: May 21, 2026 – ongoing
 - **sort_rank**: 200
@@ -3584,12 +3584,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Utah FEMA — Iron Fire
 - **disaster_type_raw**: Iron Fire
 - **disaster_types**: ["Iron Fire"]
-- **counties**: ["Juab", "Toole", "Utah"]
+- **counties**: ["Juab","Toole","Utah"]
 - **counties_raw**: Juab, Toole, and Utah Counties
 - **incident_effective**: 2026-06-19
 - **sep_effective**: 2026-06-19
 - **sep_termination**: 2027-08-31
-- **days_until_expiry**: 371
+- **days_until_expiry**: 330
 - **sep_window_raw**: June 19, 2026 – August 31, 2027
 - **incident_window_raw**: June 19, 2026 – ongoing
 - **sort_rank**: 200
@@ -3604,12 +3604,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Utah — Monroe Canyon Fire
 - **disaster_type_raw**: Monroe Canyon Fire
 - **disaster_types**: ["Monroe Canyon Fire"]
-- **counties**: ["Sevier", "Piute"]
+- **counties**: ["Sevier","Piute"]
 - **counties_raw**: Sevier and Piute Counties
 - **incident_effective**: 2025-07-07
 - **sep_effective**: 2025-07-07
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: July 7, 2025 – September 30, 2026
 - **incident_window_raw**: July 7, 2025 – ongoing
 - **sort_rank**: 200
@@ -3624,12 +3624,12 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Utah — Wildfires and Catastrophic flooding
 - **disaster_type_raw**: Wildfires and Catastrophic flooding
 - **disaster_types**: ["Wildfires and Catastrophic flooding"]
-- **counties**: ["Beaver", "Piute", "Sevier"]
+- **counties**: ["Beaver","Piute","Sevier"]
 - **counties_raw**: Beaver, Piute and Sevier Counties
 - **incident_effective**: 2026-07-22
 - **sep_effective**: 2026-07-22
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: July 22, 2026 – October 31, 2026
 - **incident_window_raw**: July 22, 2026 – ongoing
 - **sort_rank**: 200
@@ -3650,7 +3650,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_effective**: 2026-01-22
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2027-03-31
-- **days_until_expiry**: 218
+- **days_until_expiry**: 177
 - **sep_window_raw**: Jan 22, 2026 – Mar 31, 2027
 - **incident_window_raw**: Jan 22, 2026 – ongoing
 - **sort_rank**: 80
@@ -3672,7 +3672,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2030-01-31
 - **sep_effective**: 2026-01-17
 - **sep_termination**: 2030-03-31
-- **days_until_expiry**: 1314
+- **days_until_expiry**: 1273
 - **sep_window_raw**: Jan 17, 2026 – Mar 31, 2030
 - **incident_window_raw**: Jan 17, 2026 – Jan 31, 2030
 - **sort_rank**: 98
@@ -3687,13 +3687,13 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Washington - Severe Storms, Straight-line Winds, Flooding, Landslides, and Mudslides 12/9/2025
 - **declaration_number**: EM-3629-WA
 - **disaster_type_raw**: Storms - Rain;Straight-Line Winds;Landslides/Mudslides;Floods
-- **disaster_types**: ["Storms - Rain", "Straight-Line Winds", "Landslides/Mudslides", "Floods"]
+- **disaster_types**: ["Storms - Rain","Straight-Line Winds","Landslides/Mudslides","Floods"]
 - **counties**: ["Benton  Chelan  Clallam  Grays Harbor  Jefferson  King  Kittitas  Lewis  Mason  Pierce  Samish (TDSA) Skagit  Snohomish  Thurston  Wahkiakum  Whatcom  Yakima"]
 - **counties_raw**: Benton  Chelan  Clallam  Grays Harbor  Jefferson  King  Kittitas  Lewis  Mason  Pierce  Samish (TDSA) Skagit  Snohomish  Thurston  Wahkiakum  Whatcom  Yakima
 - **incident_effective**: 2025-12-09
 - **sep_effective**: 2025-12-09
 - **sep_termination**: 2027-02-28
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **sep_window_raw**: Dec 9, 2025 – Feb 28, 2027
 - **incident_window_raw**: Dec 9, 2025 – ongoing
 - **sort_rank**: 71
@@ -3714,7 +3714,7 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **incident_termination**: 2026-10-08
 - **sep_effective**: 2026-08-01
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: Aug 1, 2026 – Nov 30, 2026
 - **incident_window_raw**: Aug 1, 2026 – Oct 8, 2026
 - **sort_rank**: 51
@@ -3729,13 +3729,13 @@ Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake
 - **declaration_name**: Washington — Atmospheric River Storm Damage
 - **disaster_type_raw**: Atmospheric River Storm Damage
 - **disaster_types**: ["Atmospheric River Storm Damage"]
-- **counties**: ["Asotin", "Cowlitz", "Grays Harbor", "King", "Lewis", "Pierce", "Walla Walla", "Whatcom", "Whitman", "Yakima"]
+- **counties**: ["Asotin","Cowlitz","Grays Harbor","King","Lewis","Pierce","Walla Walla","Whatcom","Whitman","Yakima"]
 - **counties_raw**: Asotin, Cowlitz, Grays Harbor, King, Lewis, Pierce, Walla Walla, 
 Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2026-03-10
 - **sep_effective**: 2026-03-10
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: March 10, 2026 – September 30, 2026
 - **incident_window_raw**: March 10, 2026 – ongoing
 - **sort_rank**: 200
@@ -3750,12 +3750,12 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Washington FEMA — Autumn Lane Fire
 - **disaster_type_raw**: Autumn Lane Fire
 - **disaster_types**: ["Autumn Lane Fire"]
-- **counties**: ["Spokane", "Stevens County"]
+- **counties**: ["Spokane","Stevens County"]
 - **counties_raw**: Spokane and Stevens County
 - **incident_effective**: 2026-08-01
 - **sep_effective**: 2026-08-01
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: August 1, 2026 – October 31, 2027
 - **incident_window_raw**: August 1, 2026 – ongoing
 - **sort_rank**: 200
@@ -3775,7 +3775,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-07-20
 - **sep_effective**: 2025-07-20
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: July 20, 2025 – September 30, 2026
 - **incident_window_raw**: July 20, 2025 – ongoing
 - **sort_rank**: 200
@@ -3795,7 +3795,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2026-08-01
 - **sep_effective**: 2026-08-01
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: August 1, 2026 – October 31, 2027
 - **incident_window_raw**: August 1, 2026 – ongoing
 - **sort_rank**: 200
@@ -3815,7 +3815,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2026-07-16
 - **sep_effective**: 2026-07-16
 - **sep_termination**: 2027-09-30
-- **days_until_expiry**: 401
+- **days_until_expiry**: 360
 - **sep_window_raw**: July 16, 2026 – September 30, 2027
 - **incident_window_raw**: July 16, 2026 – ongoing
 - **sort_rank**: 200
@@ -3835,7 +3835,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-09-01
 - **sep_effective**: 2025-09-01
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: September 1, 2025 – November 30, 2026
 - **incident_window_raw**: September 1, 2025 – ongoing
 - **sort_rank**: 200
@@ -3855,7 +3855,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2026-07-17
 - **sep_effective**: 2026-07-17
 - **sep_termination**: 2027-09-30
-- **days_until_expiry**: 401
+- **days_until_expiry**: 360
 - **sep_window_raw**: July 17, 2026 – September 30, 2027
 - **incident_window_raw**: July 17, 2026 – ongoing
 - **sort_rank**: 200
@@ -3875,7 +3875,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2026-08-01
 - **sep_effective**: 2026-08-01
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: August 1, 2026 – October 31, 2027
 - **incident_window_raw**: August 1, 2026 – ongoing
 - **sort_rank**: 200
@@ -3890,12 +3890,12 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Washington FEMA — Ransier Fire
 - **disaster_type_raw**: Ransier Fire
 - **disaster_types**: ["Ransier Fire"]
-- **counties**: ["Yakama Reservation", "Yakima County"]
+- **counties**: ["Yakama Reservation","Yakima County"]
 - **counties_raw**: Yakama Reservation and Yakima County
 - **incident_effective**: 2026-07-26
 - **sep_effective**: 2026-07-26
 - **sep_termination**: 2027-09-30
-- **days_until_expiry**: 401
+- **days_until_expiry**: 360
 - **sep_window_raw**: July 26, 2026 – September 30, 2027
 - **incident_window_raw**: July 26, 2026 – ongoing
 - **sort_rank**: 200
@@ -3915,7 +3915,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2026-07-26
 - **sep_effective**: 2026-07-26
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: July 26, 2026 – October 31, 2027
 - **incident_window_raw**: July 26, 2026 – ongoing
 - **sort_rank**: 200
@@ -3935,7 +3935,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2026-06-16
 - **sep_effective**: 2026-06-16
 - **sep_termination**: 2027-08-31
-- **days_until_expiry**: 371
+- **days_until_expiry**: 330
 - **sep_window_raw**: June 16, 2026 – August 31, 2027
 - **incident_window_raw**: June 16, 2026 – ongoing
 - **sort_rank**: 200
@@ -3950,12 +3950,12 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Washington — Wildfires
 - **disaster_type_raw**: Wildfires
 - **disaster_types**: ["Wildfires"]
-- **counties**: ["Chelan", "Ferry", "Okanogan", "Spokane", "Stevens", "Yakima", "alongside the Confederated Tribes", "Bands of the Yakama Nation", "the Confederated Tribes of the Colville Reservation", "the Spokane Tribe of Indians"]
+- **counties**: ["Chelan","Ferry","Okanogan","Spokane","Stevens","Yakima","alongside the Confederated Tribes","Bands of the Yakama Nation","the Confederated Tribes of the Colville Reservation","the Spokane Tribe of Indians"]
 - **counties_raw**: Chelan, Ferry, Okanogan, Spokane, Stevens, and Yakima counties, alongside the Confederated Tribes and Bands of the Yakama Nation, the Confederated Tribes of the Colville Reservation, and the Spokane Tribe of Indians.
 - **incident_effective**: 2026-08-01
 - **sep_effective**: 2026-08-01
 - **sep_termination**: 2027-10-31
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 - **sep_window_raw**: August 1, 2026 – October 31, 2027
 - **incident_window_raw**: August 1, 2026 – ongoing
 - **sort_rank**: 200
@@ -3975,7 +3975,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-08-09
 - **sep_effective**: 2025-08-09
 - **sep_termination**: 2026-12-31
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 - **sep_window_raw**: Aug 9, 2025 – Dec 31, 2026
 - **incident_window_raw**: Aug 9, 2025 – ongoing
 - **sort_rank**: 0
@@ -3990,12 +3990,12 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Wisconsin — High Winds, Hail, and Tornadoes
 - **disaster_type_raw**: High Winds, Hail, and Tornadoes
 - **disaster_types**: ["High Winds, Hail, and Tornadoes"]
-- **counties**: ["Forest", "Outagamie", "Vilas", "Winnebago"]
+- **counties**: ["Forest","Outagamie","Vilas","Winnebago"]
 - **counties_raw**: Forest, Outagamie, Vilas, Winnebago Counties
 - **incident_effective**: 2026-07-27
 - **sep_effective**: 2026-07-27
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: July 27, 2026 – October 31, 2026
 - **incident_window_raw**: July 27, 2026 – ongoing
 - **sort_rank**: 200
@@ -4010,12 +4010,12 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: West Virginia — Flash Flooding and Landslides
 - **disaster_type_raw**: Flash Flooding and Landslides
 - **disaster_types**: ["Flash Flooding and Landslides"]
-- **counties**: ["Boone", "Logan", "Raleigh"]
+- **counties**: ["Boone","Logan","Raleigh"]
 - **counties_raw**: Boone, Logan, and Raleigh  Counties
 - **incident_effective**: 2026-06-22
 - **sep_effective**: 2026-06-22
 - **sep_termination**: 2026-09-30
-- **days_until_expiry**: 36
+- **days_since_expiry**: 5
 - **sep_window_raw**: June 22, 2026 – September 30, 2026
 - **incident_window_raw**: June 22, 2026 – ongoing
 - **sort_rank**: 200
@@ -4030,12 +4030,12 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: West Virginia — Severe Flooding
 - **disaster_type_raw**: Severe Flooding
 - **disaster_types**: ["Severe Flooding"]
-- **counties**: ["Barbour", "Doddridge", "Harrison", "Lewis", "Pendleton", "Pleasants", "Randolph", "Ritchie", "Tucker", "Tyler", "Upshur", "Wetzel"]
+- **counties**: ["Barbour","Doddridge","Harrison","Lewis","Pendleton","Pleasants","Randolph","Ritchie","Tucker","Tyler","Upshur","Wetzel"]
 - **counties_raw**: Barbour, Doddridge, Harrison, Lewis, Pendleton, Pleasants, Randolph, Ritchie, Tucker, Tyler, Upshur, and Wetzel counties
 - **incident_effective**: 2026-07-21
 - **sep_effective**: 2026-07-21
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: July 21, 2026 – November 30, 2026
 - **incident_window_raw**: July 21, 2026 – ongoing
 - **sort_rank**: 200
@@ -4050,12 +4050,12 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: West Virginia — Severe Storm
 - **disaster_type_raw**: Severe Storm
 - **disaster_types**: ["Severe Storm"]
-- **counties**: ["Lewis", "Upshur"]
+- **counties**: ["Lewis","Upshur"]
 - **counties_raw**: Lewis and Upshur Counties
 - **incident_effective**: 2026-07-21
 - **sep_effective**: 2026-07-21
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: July 21, 2026 – October 31, 2026
 - **incident_window_raw**: July 21, 2026 – ongoing
 - **sort_rank**: 200
@@ -4075,7 +4075,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2026-08-16
 - **sep_effective**: 2026-08-16
 - **sep_termination**: 2026-11-30
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **sep_window_raw**: August 16, 2026 – November 30, 2026
 - **incident_window_raw**: August 16, 2026 – ongoing
 - **sort_rank**: 200
@@ -4095,7 +4095,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2026-07-05
 - **sep_effective**: 2026-07-05
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: July 5, 2026 – October 31, 2026
 - **incident_window_raw**: July 5, 2026 – ongoing
 - **sort_rank**: 200
@@ -4116,7 +4116,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-08-15
 - **sep_effective**: 2025-08-15
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: Aug 15, 2025 – Oct 31, 2026
 - **incident_window_raw**: Aug 15, 2025 – ongoing
 - **sort_rank**: 37
@@ -4132,12 +4132,12 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 2025-05
 - **disaster_type_raw**: Fires/Wildfires
 - **disaster_types**: ["Fires/Wildfires"]
-- **counties**: ["Hot Springs", "Fremont", "Park", "Washakie"]
+- **counties**: ["Hot Springs","Fremont","Park","Washakie"]
 - **counties_raw**: Hot Springs, Fremont, Park, Washakie
 - **incident_effective**: 2025-08-13
 - **sep_effective**: 2025-08-13
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: Aug 13, 2025 – Oct 31, 2026
 - **incident_window_raw**: Aug 13, 2025 – ongoing
 - **sort_rank**: 36
@@ -4158,7 +4158,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-08-25
 - **sep_effective**: 2025-08-25
 - **sep_termination**: 2026-10-31
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **sep_window_raw**: Aug 25, 2025 – Oct 31, 2026
 - **incident_window_raw**: Aug 25, 2025 – ongoing
 - **sort_rank**: 35
@@ -4178,7 +4178,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2026-05-07
 - **sep_effective**: 2026-05-07
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: May 7, 2026 – Aug 31, 2026
 - **incident_window_raw**: May 7, 2026 – ongoing
 - **sort_rank**: 0
@@ -4198,7 +4198,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-06-22
 - **sep_effective**: 2025-06-22
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: June 22, 2025 – August 31, 2026
 - **incident_window_raw**: June 22, 2025 – ongoing
 - **sort_rank**: 200
@@ -4218,7 +4218,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-06-19
 - **sep_effective**: 2025-06-19
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: June 19, 2025 – August 31, 2026
 - **incident_window_raw**: June 19, 2025 – ongoing
 - **sort_rank**: 200
@@ -4240,7 +4240,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2024-12-18
 - **sep_effective**: 2024-12-09
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: Dec 9, 2024 – Aug 31, 2026
 - **incident_window_raw**: Dec 9, 2024 – Dec 18, 2024
 - **sort_rank**: 1
@@ -4260,7 +4260,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2026-05-12
 - **sep_effective**: 2026-05-12
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: May 12, 2026 – August 31, 2026
 - **incident_window_raw**: May 12, 2026 – ongoing
 - **sort_rank**: 200
@@ -4275,12 +4275,12 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Kansas — Severe Weather  (Wildland Fires)
 - **disaster_type_raw**: Severe Weather  (Wildland Fires)
 - **disaster_types**: ["Severe Weather  (Wildland Fires)"]
-- **counties**: ["Clark", "Cloud", "Comanche", "Meade", "Morton", "Thomas"]
+- **counties**: ["Clark","Cloud","Comanche","Meade","Morton","Thomas"]
 - **counties_raw**: Clark, Cloud, Comanche, Meade, Morton, and Thomas counties
 - **incident_effective**: 2026-05-14
 - **sep_effective**: 2026-05-14
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: May 14, 2026 – August 31, 2026
 - **incident_window_raw**: May 14, 2026 – ongoing
 - **sort_rank**: 200
@@ -4295,12 +4295,12 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Louisiana — Tropical Storm Arthur
 - **disaster_type_raw**: Tropical Storm Arthur
 - **disaster_types**: ["Tropical Storm Arthur"]
-- **counties**: ["Avoyelles", "St. Landry", "St. Tammany", "Terrebonne"]
+- **counties**: ["Avoyelles","St. Landry","St. Tammany","Terrebonne"]
 - **counties_raw**: Avoyelles, St. Landry, St. Tammany, Terrebonne
 - **incident_effective**: 2026-06-17
 - **sep_effective**: 2026-06-17
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: June 17, 2026 – August 31, 2026
 - **incident_window_raw**: June 17, 2026 – ongoing
 - **sort_rank**: 200
@@ -4315,12 +4315,12 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Minnesota — Wildfires
 - **disaster_type_raw**: Wildfires
 - **disaster_types**: ["Wildfires"]
-- **counties**: ["Lake", "Crow Wing", "St. Louis"]
+- **counties**: ["Lake","Crow Wing","St. Louis"]
 - **counties_raw**: Lake, Crow Wing, and St. Louis Counties
 - **incident_effective**: 2026-05-15
 - **sep_effective**: 2026-05-15
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: May 15, 2026 – August 31, 2026
 - **incident_window_raw**: May 15, 2026 – ongoing
 - **sort_rank**: 200
@@ -4340,7 +4340,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2026-05-16
 - **sep_effective**: 2026-05-16
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: May 16, 2026 – August 31, 2026
 - **incident_window_raw**: May 16, 2026 – ongoing
 - **sort_rank**: 200
@@ -4362,7 +4362,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-06-13
 - **sep_effective**: 2025-06-13
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: Jun 13, 2025 – Aug 31, 2026
 - **incident_window_raw**: Jun 13, 2025 – Jun 13, 2026
 - **sort_rank**: 3
@@ -4383,7 +4383,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-07-19
 - **sep_effective**: 2026-05-19
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: May 19, 2026 – Aug 31, 2026
 - **incident_window_raw**: May 19, 2026 – Jul 19, 2026
 - **sort_rank**: 4
@@ -4403,7 +4403,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-06-20
 - **sep_effective**: 2025-06-20
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: June 20, 2025 – August 31, 2026
 - **incident_window_raw**: June 20, 2025 – ongoing
 - **sort_rank**: 200
@@ -4423,7 +4423,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-06-11
 - **sep_effective**: 2025-06-11
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: June 11, 2025 – August 31, 2026
 - **incident_window_raw**: June 11, 2025 – ongoing
 - **sort_rank**: 200
@@ -4443,7 +4443,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-06-18
 - **sep_effective**: 2025-06-18
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: June 18, 2025 – August 31, 2026
 - **incident_window_raw**: June 18, 2025 – ongoing
 - **sort_rank**: 200
@@ -4458,12 +4458,12 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Texas — Fire Weather Conditions
 - **disaster_type_raw**: Fire Weather Conditions
 - **disaster_types**: ["Fire Weather Conditions"]
-- **counties**: ["Armstrong", "Bailey", "Briscoe", "Carson", "Castro", "Cochran", "Collingsworth", "Crosby", "Dallam", "Deaf Smith", "Dickens", "Donley", "Floyd", "Garza", "Gray", "Hale", "Hall", "Hansford", "Hartley", "Hemphill", "Hockley", "Hutchinson", "Kent", "Lamb", "Lipscomb", "Lubbock", "Lynn", "Moore", "Motley", "Ochiltree", "Oldham", "Parmer", "Potter", "Randall", "Roberts", "Sherman", "Swisher", "Terry", "Wheeler", "Yoakum"]
+- **counties**: ["Armstrong","Bailey","Briscoe","Carson","Castro","Cochran","Collingsworth","Crosby","Dallam","Deaf Smith","Dickens","Donley","Floyd","Garza","Gray","Hale","Hall","Hansford","Hartley","Hemphill","Hockley","Hutchinson","Kent","Lamb","Lipscomb","Lubbock","Lynn","Moore","Motley","Ochiltree","Oldham","Parmer","Potter","Randall","Roberts","Sherman","Swisher","Terry","Wheeler","Yoakum Counties"]
 - **counties_raw**: Armstrong, Bailey, Briscoe, Carson, Castro, Cochran, Collingsworth, Crosby, Dallam, Deaf Smith, Dickens, Donley, Floyd, Garza, Gray, Hale, Hall, Hansford, Hartley, Hemphill, Hockley, Hutchinson, Kent, Lamb, Lipscomb, Lubbock, Lynn, Moore, Motley, Ochiltree, Oldham, Parmer, Potter, Randall, Roberts, Sherman, Swisher, Terry, Wheeler, and Yoakum Counties.
 - **incident_effective**: 2025-08-10
 - **sep_effective**: 2025-08-10
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: August 10, 2025 – August 31, 2026
 - **incident_window_raw**: August 10, 2025 – ongoing
 - **sort_rank**: 200
@@ -4478,12 +4478,12 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Texas — Severe Storms Event
 - **disaster_type_raw**: Severe Storms Event
 - **disaster_types**: ["Severe Storms Event"]
-- **counties**: ["Calhoun", "Cameron", "Lamar", "Palo Pinto", "Parker", "Victoria", "Wise"]
+- **counties**: ["Calhoun","Cameron","Lamar","Palo Pinto","Parker","Victoria","Wise"]
 - **counties_raw**: Calhoun, Cameron, Lamar, Palo Pinto, Parker, Victoria, and Wise Counties
 - **incident_effective**: 2026-04-24
 - **sep_effective**: 2026-04-24
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: April 24, 2026 – August 31, 2026
 - **incident_window_raw**: April 24, 2026 – ongoing
 - **sort_rank**: 200
@@ -4503,7 +4503,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-06-19
 - **sep_effective**: 2025-06-19
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: June 19, 2025 – August 31, 2026
 - **incident_window_raw**: June 19, 2025 – ongoing
 - **sort_rank**: 200
@@ -4523,7 +4523,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2026-04-13
 - **sep_effective**: 2026-04-13
 - **sep_termination**: 2026-08-31
-- **days_until_expiry**: 6
+- **days_since_expiry**: 35
 - **sep_window_raw**: Apr 13, 2026 – Aug 31, 2026
 - **incident_window_raw**: Apr 13, 2026 – ongoing
 - **sort_rank**: 0
@@ -5453,14 +5453,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Alaska - West Coast Storm Disaster 10/9/2025
 - **declaration_number**: 11.8.25, 1-2025
 - **disaster_type_raw**: Storms - Rain;Floods;Straight-Line Winds
-- **disaster_types**: ["Storms - Rain", "Floods", "Straight-Line Winds"]
-- **counties**: ["Kashunamiut", "Lower Yukon", "Pribilof Island", "Iditarod Area", "Lower Kuskokwim", "Bering Strait Regional Education Attendance Area (REAA)", "Yukon-Koyukuk REAA", "City of Galena", "Northwest Arctic (NWAB)", "North Slope Boroughs (NSB)"]
+- **disaster_types**: ["Storms - Rain","Floods","Straight-Line Winds"]
+- **counties**: ["Kashunamiut","Lower Yukon","Pribilof Island","Iditarod Area","Lower Kuskokwim","Bering Strait Regional Education Attendance Area (REAA)","Yukon-Koyukuk REAA","City of Galena","Northwest Arctic (NWAB)","North Slope Boroughs (NSB)"]
 - **counties_raw**: Kashunamiut, Lower Yukon, Pribilof Island, Iditarod Area, Lower Kuskokwim, Bering Strait Regional Education Attendance Area (REAA), Yukon-Koyukuk REAA, City of Galena, Northwest Arctic (NWAB), North Slope Boroughs (NSB)
 - **incident_effective**: 2025-10-09
 - **incident_termination**: 2025-12-08
 - **sep_effective**: 2025-10-09
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Oct 9, 2025 – Feb 28, 2026
 - **incident_window_raw**: Oct 9, 2025 – Dec 8, 2025
 - **sort_rank**: 100
@@ -5482,7 +5482,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-12-03
 - **sep_effective**: 2025-10-01
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Oct 1, 2025 – Feb 28, 2026
 - **incident_window_raw**: Oct 1, 2025 – Dec 3, 2025
 - **sort_rank**: 99
@@ -5497,14 +5497,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Alabama - Winter Storm Event 1/22/2026
 - **declaration_number**: 1.26.26, 1.22.26
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix;Temperature - Arctic Blast/Dangerous Cold
-- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix", "Temperature - Arctic Blast/Dangerous Cold"]
-- **counties**: ["Blount", "Cherokee", "Colbert", "Cullman", "DeKalb", "Etowah Fayette", "Franklin", "Geneva", "Houston", "Jackson", "Lamar", "Lauderdale", "Lawrence", "Limestone", "Madison", "Marion", "Marshall", "Montgomery", "Morgan", "Walker", "& Winston"]
+- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix","Temperature - Arctic Blast/Dangerous Cold"]
+- **counties**: ["Blount","Cherokee","Colbert","Cullman","DeKalb","Etowah Fayette","Franklin","Geneva","Houston","Jackson","Lamar","Lauderdale","Lawrence","Limestone","Madison","Marion","Marshall","Montgomery","Morgan","Walker","& Winston"]
 - **counties_raw**: Blount, Cherokee, Colbert, Cullman, DeKalb, Etowah Fayette, Franklin, Geneva, Houston, Jackson, Lamar, Lauderdale, Lawrence, Limestone, Madison, Marion, Marshall, Montgomery, Morgan, Walker, & Winston
 - **incident_effective**: 2026-01-22
 - **incident_termination**: 2026-03-22
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Jan 22, 2026 – May 31, 2026
 - **incident_window_raw**: Jan 22, 2026 – Mar 22, 2026
 - **sort_rank**: 201
@@ -5519,14 +5519,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Arkansas - Severe Winter Weather 1/22/2026
 - **declaration_number**: 26-03
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix;Temperature - Arctic Blast/Dangerous Cold
-- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix", "Temperature - Arctic Blast/Dangerous Cold"]
+- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix","Temperature - Arctic Blast/Dangerous Cold"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2026-01-22
 - **incident_termination**: 2026-02-22
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 22, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 22, 2026 – Feb 22, 2026
 - **sort_rank**: 159
@@ -5542,12 +5542,12 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 12/5/2024
 - **disaster_type_raw**: Earthquake
 - **disaster_types**: ["Earthquake"]
-- **counties**: ["Del Norte", "Humboldt and Mendocino"]
+- **counties**: ["Del Norte","Humboldt and Mendocino"]
 - **counties_raw**: Del Norte, Humboldt and Mendocino
 - **incident_effective**: 2024-12-05
 - **sep_effective**: 2024-12-05
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Dec 5, 2024 – Feb 28, 2026
 - **incident_window_raw**: Dec 5, 2024 – ongoing
 - **sort_rank**: 101
@@ -5568,7 +5568,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-01-07
 - **sep_effective**: 2025-01-07
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jan 7, 2025 – Mar 31, 2026
 - **incident_window_raw**: Jan 7, 2025 – ongoing
 - **sort_rank**: 126
@@ -5589,7 +5589,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-01-07
 - **sep_effective**: 2025-01-07
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jan 7, 2025 – Mar 31, 2026
 - **incident_window_raw**: Jan 7, 2025 – ongoing
 - **sort_rank**: 124
@@ -5610,7 +5610,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-01-07
 - **sep_effective**: 2025-01-07
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jan 7, 2025 – Mar 31, 2026
 - **incident_window_raw**: Jan 7, 2025 – ongoing
 - **sort_rank**: 125
@@ -5632,7 +5632,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-12-15
 - **sep_effective**: 2024-12-15
 - **sep_termination**: 2026-07-31
-- **days_since_expiry**: 25
+- **days_since_expiry**: 66
 - **sep_window_raw**: Dec 15, 2024 – Jul 31, 2026
 - **incident_window_raw**: Dec 15, 2024 – Dec 15, 2025
 - **sort_rank**: 241
@@ -5653,7 +5653,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-10-21
 - **sep_effective**: 2024-10-21
 - **sep_termination**: 2026-07-31
-- **days_since_expiry**: 25
+- **days_since_expiry**: 66
 - **sep_window_raw**: Oct 21, 2024 – Jul 31, 2026
 - **incident_window_raw**: Oct 21, 2024 – Oct 21, 2025
 - **sort_rank**: 242
@@ -5668,14 +5668,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Connecticut - Limits Commercial Vehicle Travel Ahead of Approaching Major Winter Storm 1/24/2026
 - **declaration_number**: 1.24.26
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix;Other
-- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix", "Other"]
+- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix","Other"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2026-01-24
 - **incident_termination**: 2026-01-26
 - **sep_effective**: 2026-01-24
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jan 24, 2026 – Mar 31, 2026
 - **incident_window_raw**: Jan 24, 2026 – Jan 26, 2026
 - **sort_rank**: 127
@@ -5697,7 +5697,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-23
 - **sep_effective**: 2026-02-22
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Feb 22, 2026 – Apr 30, 2026
 - **incident_window_raw**: Feb 22, 2026 – Feb 23, 2026
 - **sort_rank**: 160
@@ -5712,14 +5712,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: DC - Snow Emergency 1/24/2026
 - **declaration_number**: 26-05
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix;Other
-- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix", "Other"]
+- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix","Other"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2026-01-24
 - **incident_termination**: 2026-02-11
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 23, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 24, 2026 – Feb 11, 2026
 - **sort_rank**: 161
@@ -5741,7 +5741,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-26
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jan 23, 2026 – Mar 31, 2026
 - **incident_window_raw**: Jan 25, 2026 – Jan 26, 2026
 - **sort_rank**: 128
@@ -5763,7 +5763,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-03-22
 - **sep_effective**: 2026-02-22
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Feb 22, 2026 – May 31, 2026
 - **incident_window_raw**: Feb 22, 2026 – Mar 22, 2026
 - **sort_rank**: 202
@@ -5778,14 +5778,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Florida - Lake County Flooding 10/26/2025
 - **declaration_number**: 25-257, 25-213
 - **disaster_type_raw**: Storms - Rain;Floods
-- **disaster_types**: ["Storms - Rain", "Floods"]
-- **counties**: ["Lake", "City of Eustis & City of Mount Dora"]
+- **disaster_types**: ["Storms - Rain","Floods"]
+- **counties**: ["Lake","City of Eustis & City of Mount Dora"]
 - **counties_raw**: Lake, City of Eustis & City of Mount Dora
 - **incident_effective**: 2025-10-26
 - **incident_termination**: 2026-02-22
 - **sep_effective**: 2025-10-26
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Oct 26, 2025 – Apr 30, 2026
 - **incident_window_raw**: Oct 26, 2025 – Feb 22, 2026
 - **sort_rank**: 162
@@ -5807,7 +5807,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-03-23
 - **sep_effective**: 2023-01-06
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Jan 6, 2023 – May 31, 2026
 - **incident_window_raw**: Jan 6, 2023 – Mar 23, 2026
 - **sort_rank**: 204
@@ -5823,13 +5823,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 26-02, 25-231, 25-143, 25-102, 25-57, 25-10, 24-249, 24-234, 24-213, 24-209, 24-208
 - **disaster_type_raw**: Tropical Storm
 - **disaster_types**: ["Tropical Storm"]
-- **counties**: ["Alachua", "Baker", "Bay", "Bradford", "Brevard", "Calhoun", "Charlotte", "Citrus", "Clay", "Collier", "Columbia", "DeSoto", "Dixie", "Duval", "Escambia", "Flagler", "Franklin", "Gadsden", "Gilchrist", "Glades", "Gulf", "Hamilton", "Hardee", "Hendry", "Hernando", "Highlands", "Hillsborough", "Holmes", "Jackson", "Jefferson", "Lafayette", "Lake", "Lee", "Leon", "Levy", "Liberty", "Madison", "Manatee", "Marion", "Monroe", "Nassau", "Okaloosa", "Okeechobee", "Orange", "Osceola", "Pasco", "Pinellas", "Polk", "Putnam", "Santa Rosa", "Sarasota", "Seminole", "St. Johns", "Sumter", "Suwannee", "Taylor", "Union", "Volusia", "Wakulla", "Walton", "and Washington"]
+- **counties**: ["Alachua","Baker","Bay","Bradford","Brevard","Calhoun","Charlotte","Citrus","Clay","Collier","Columbia","DeSoto","Dixie","Duval","Escambia","Flagler","Franklin","Gadsden","Gilchrist","Glades","Gulf","Hamilton","Hardee","Hendry","Hernando","Highlands","Hillsborough","Holmes","Jackson","Jefferson","Lafayette","Lake","Lee","Leon","Levy","Liberty","Madison","Manatee","Marion","Monroe","Nassau","Okaloosa","Okeechobee","Orange","Osceola","Pasco","Pinellas","Polk","Putnam","Santa Rosa","Sarasota","Seminole","St. Johns","Sumter","Suwannee","Taylor","Union","Volusia","Wakulla","Walton","and Washington"]
 - **counties_raw**: Alachua, Baker, Bay, Bradford, Brevard, Calhoun, Charlotte, Citrus, Clay, Collier, Columbia, DeSoto, Dixie, Duval, Escambia, Flagler, Franklin, Gadsden, Gilchrist, Glades, Gulf, Hamilton, Hardee, Hendry, Hernando, Highlands, Hillsborough, Holmes, Jackson, Jefferson, Lafayette, Lake, Lee, Leon, Levy, Liberty, Madison, Manatee, Marion, Monroe, Nassau, Okaloosa, Okeechobee, Orange, Osceola, Pasco, Pinellas, Polk, Putnam, Santa Rosa, Sarasota, Seminole, St. Johns, Sumter, Suwannee, Taylor, Union, Volusia, Wakulla, Walton, and Washington
 - **incident_effective**: 2024-09-23
 - **incident_termination**: 2026-03-06
 - **sep_effective**: 2024-09-23
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Sep 23, 2024 – May 31, 2026
 - **incident_window_raw**: Sep 23, 2024 – Mar 6, 2026
 - **sort_rank**: 206
@@ -5845,13 +5845,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 26-03, 25-232, 25-144, 25-104, 25-59, 25-12, 24-261, 24-211, 24-158, 24-156, 25-184
 - **disaster_type_raw**: Hurricane/Typhoon
 - **disaster_types**: ["Hurricane/Typhoon"]
-- **counties**: ["Alachua", "Baker", "Bradford", "Charlotte", "Citrus", "Clay", "Collier", "Columbia", "Dixie", "Duval", "Franklin", "Gadsden", "Gilchrist", "Hamilton", "Hernando", "Hillsborough", "Jefferson", "Lafayette", "Lake", "Lee", "Leon", "Levy", "Liberty", "Madison", "Manatee", "Marion", "Nassau", "Pasco", "Pinellas", "Putnam", "Sarasota", "St. Johns", "Sumter", "Suwannee", "Taylor", "Union", "and Wakulla"]
+- **counties**: ["Alachua","Baker","Bradford","Charlotte","Citrus","Clay","Collier","Columbia","Dixie","Duval","Franklin","Gadsden","Gilchrist","Hamilton","Hernando","Hillsborough","Jefferson","Lafayette","Lake","Lee","Leon","Levy","Liberty","Madison","Manatee","Marion","Nassau","Pasco","Pinellas","Putnam","Sarasota","St. Johns","Sumter","Suwannee","Taylor","Union","and Wakulla"]
 - **counties_raw**: Alachua, Baker, Bradford, Charlotte, Citrus, Clay, Collier, Columbia, Dixie, Duval, Franklin, Gadsden, Gilchrist, Hamilton, Hernando, Hillsborough, Jefferson, Lafayette, Lake, Lee, Leon, Levy, Liberty, Madison, Manatee, Marion, Nassau, Pasco, Pinellas, Putnam, Sarasota, St. Johns, Sumter, Suwannee, Taylor, Union, and Wakulla
 - **incident_effective**: 2024-08-01
 - **incident_termination**: 2026-03-06
 - **sep_effective**: 2024-08-01
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Aug 1, 2024 – May 31, 2026
 - **incident_window_raw**: Aug 1, 2024 – Mar 6, 2026
 - **sort_rank**: 203
@@ -5867,13 +5867,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 26-16, 25-191, 25-150, 25-119, 25-68, 25-26, 24-264, 24-234, 24-215, 24-214
 - **disaster_type_raw**: Tropical Storm
 - **disaster_types**: ["Tropical Storm"]
-- **counties**: ["Alachua", "Baker", "Bradford", "Brevard", "Broward", "Charlotte", "Citrus", "Clay", "Collier", "Columbia", "DeSoto", "Dixie", "Duval", "Flagler", "Gilchrist", "Glades", "Hamilton", "Hardee", "Hendry", "Hernando", "Highlands", "Hillsborough", "Indian River", "Lafayette", "Lake", "Lee", "Levy", "Madison", "Manatee", "Marion", "Maiiin", "Miami-Dade", "Momoe", "Nassau", "Okeechobee", "Orange", "Osceola", "Palm Beach", "Pasco", "Pinellas", "Polk", "Putnam", "Sarasota", "Seminole", "St. Johns", "St. Lucie", "Sumter", "Suwanee", "Taylor", "Union", "and Volusia"]
+- **counties**: ["Alachua","Baker","Bradford","Brevard","Broward","Charlotte","Citrus","Clay","Collier","Columbia","DeSoto","Dixie","Duval","Flagler","Gilchrist","Glades","Hamilton","Hardee","Hendry","Hernando","Highlands","Hillsborough","Indian River","Lafayette","Lake","Lee","Levy","Madison","Manatee","Marion","Maiiin","Miami-Dade","Momoe","Nassau","Okeechobee","Orange","Osceola","Palm Beach","Pasco","Pinellas","Polk","Putnam","Sarasota","Seminole","St. Johns","St. Lucie","Sumter","Suwanee","Taylor","Union","and Volusia"]
 - **counties_raw**: Alachua, Baker, Bradford, Brevard, Broward, Charlotte, Citrus, Clay, Collier, Columbia, DeSoto, Dixie, Duval, Flagler, Gilchrist, Glades, Hamilton, Hardee, Hendry, Hernando, Highlands, Hillsborough, Indian River, Lafayette, Lake, Lee, Levy, Madison, Manatee, Marion, Maiiin, Miami-Dade, Momoe, Nassau, Okeechobee, Orange, Osceola, Palm Beach, Pasco, Pinellas, Polk, Putnam, Sarasota, Seminole, St. Johns, St. Lucie, Sumter, Suwanee, Taylor, Union, and Volusia
 - **incident_effective**: 2024-10-05
 - **incident_termination**: 2026-03-23
 - **sep_effective**: 2024-10-05
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Oct 5, 2024 – May 31, 2026
 - **incident_window_raw**: Oct 5, 2024 – Mar 23, 2026
 - **sort_rank**: 207
@@ -5895,7 +5895,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-03-06
 - **sep_effective**: 2025-05-10
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: May 10, 2025 – May 31, 2026
 - **incident_window_raw**: May 10, 2025 – Mar 6, 2026
 - **sort_rank**: 205
@@ -5910,14 +5910,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Florida - Severe Thunderstorms and Tornadoes 5/10/2024
 - **declaration_number**: 26-34, 25-256, 25-211, 25-179, 25-139, 25-94, 25-50, 24-288, 24-239, 24-193, 24-148, 24-95, 24-94
 - **disaster_type_raw**: Storms - Rain;Tornado
-- **disaster_types**: ["Storms - Rain", "Tornado"]
-- **counties**: ["Baker", "Columbia", "Escambia", "Gadsden", "Hamilton", "Jefferson", "Lafayette", "Leon", "Liberty", "Madison", "Okaloosa", "Santa Rosa", "Suwannee", "Taylor", "Wakulla"]
+- **disaster_types**: ["Storms - Rain","Tornado"]
+- **counties**: ["Baker","Columbia","Escambia","Gadsden","Hamilton","Jefferson","Lafayette","Leon","Liberty","Madison","Okaloosa","Santa Rosa","Suwannee","Taylor","Wakulla"]
 - **counties_raw**: Baker, Columbia, Escambia, Gadsden, Hamilton, Jefferson, Lafayette, Leon, Liberty, Madison, Okaloosa, Santa Rosa, Suwannee, Taylor, Wakulla
 - **incident_effective**: 2024-05-10
 - **incident_termination**: 2026-04-20
 - **sep_effective**: 2024-05-10
 - **sep_termination**: 2026-06-30
-- **days_since_expiry**: 56
+- **days_since_expiry**: 97
 - **sep_window_raw**: May 10, 2024 – Jun 30, 2026
 - **incident_window_raw**: May 10, 2024 – Apr 20, 2026
 - **sort_rank**: 234
@@ -5939,7 +5939,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-29
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jan 22, 2026 – Mar 31, 2026
 - **incident_window_raw**: Jan 22, 2026 – Jan 29, 2026
 - **sort_rank**: 130
@@ -5961,7 +5961,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-27
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jan 22, 2026 – Mar 31, 2026
 - **incident_window_raw**: Jan 22, 2026 – Jan 27, 2026
 - **sort_rank**: 129
@@ -5983,7 +5983,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-06
 - **sep_effective**: 2026-01-30
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 30, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 30, 2026 – Feb 6, 2026
 - **sort_rank**: 163
@@ -6005,7 +6005,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-06
 - **sep_effective**: 2026-01-30
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 30, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 31, 2026 – Feb 6, 2026
 - **sort_rank**: 164
@@ -6027,7 +6027,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-03-17
 - **sep_effective**: 2022-03-23
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Mar 23, 2022 – May 31, 2026
 - **incident_window_raw**: Mar 23, 2022 – Mar 17, 2026
 - **sort_rank**: 210
@@ -6049,7 +6049,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-03-16
 - **sep_effective**: 2023-01-23
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Jan 23, 2023 – May 31, 2026
 - **incident_window_raw**: Jan 23, 2023 – Mar 16, 2026
 - **sort_rank**: 211
@@ -6071,7 +6071,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-03-17
 - **sep_effective**: 2023-07-17
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Jul 17, 2023 – May 31, 2026
 - **incident_window_raw**: Jul 17, 2023 – Mar 17, 2026
 - **sort_rank**: 209
@@ -6093,7 +6093,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-03-07
 - **sep_effective**: 2023-08-08
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Aug 8, 2023 – May 31, 2026
 - **incident_window_raw**: Aug 8, 2023 – Mar 7, 2026
 - **sort_rank**: 208
@@ -6108,14 +6108,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Hawaii - Pharmacist-Provided Vaccination Services 9/23/2025
 - **declaration_number**: 1.16.26, 11.18, 9.23.25
 - **disaster_type_raw**: Health Emergency;Other
-- **disaster_types**: ["Health Emergency", "Other"]
+- **disaster_types**: ["Health Emergency","Other"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2025-09-23
 - **incident_termination**: 2026-03-17
 - **sep_effective**: 2025-09-23
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Sep 23, 2025 – May 31, 2026
 - **incident_window_raw**: Sep 23, 2025 – Mar 17, 2026
 - **sort_rank**: 212
@@ -6137,7 +6137,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-12-19
 - **sep_effective**: 2025-09-18
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Sep 18, 2025 – Feb 28, 2026
 - **incident_window_raw**: Sep 18, 2025 – Dec 19, 2025
 - **sort_rank**: 102
@@ -6159,7 +6159,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-03
 - **sep_effective**: 2025-12-04
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Dec 4, 2025 – Mar 31, 2026
 - **incident_window_raw**: Dec 4, 2025 – Jan 3, 2026
 - **sort_rank**: 131
@@ -6174,14 +6174,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Iowa - Fuels Proclamation 1/15/2026
 - **declaration_number**: 26-01
 - **disaster_type_raw**: Fuel Shortage;Other
-- **disaster_types**: ["Fuel Shortage", "Other"]
+- **disaster_types**: ["Fuel Shortage","Other"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2026-01-15
 - **incident_termination**: 2026-01-29
 - **sep_effective**: 2026-01-15
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jan 15, 2026 – Mar 31, 2026
 - **incident_window_raw**: Jan 15, 2026 – Jan 29, 2026
 - **sort_rank**: 132
@@ -6197,13 +6197,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 26-02, 25-26, 2025-23
 - **disaster_type_raw**: Health Emergency
 - **disaster_types**: ["Health Emergency"]
-- **counties**: ["Calhoun", "Hamilton & Kossuth"]
+- **counties**: ["Calhoun","Hamilton & Kossuth"]
 - **counties_raw**: Calhoun, Hamilton & Kossuth
 - **incident_effective**: 2025-10-01
 - **incident_termination**: 2026-02-22
 - **sep_effective**: 2025-10-01
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Oct 1, 2025 – Apr 30, 2026
 - **incident_window_raw**: Oct 1, 2025 – Feb 22, 2026
 - **sort_rank**: 165
@@ -6218,14 +6218,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Indiana - Waiver of Hours of Service Regs. Relating to Motor Carriers & Drivers Transporting Propane Gas 12/13/2025
 - **declaration_number**: 25-75, 25-74
 - **disaster_type_raw**: Fuel Shortage;Other
-- **disaster_types**: ["Fuel Shortage", "Other"]
+- **disaster_types**: ["Fuel Shortage","Other"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2025-12-13
 - **incident_termination**: 2026-01-20
 - **sep_effective**: 2025-12-13
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Dec 13, 2025 – Mar 31, 2026
 - **incident_window_raw**: Dec 13, 2025 – Jan 20, 2026
 - **sort_rank**: 133
@@ -6240,14 +6240,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Indiana - Waiver of Hours of Service Regulations Relating to Motor Carriers & Drivers Transporting Propane Gas & Crucial Agriculture Products 1/22/2026
 - **declaration_number**: 26-02
 - **disaster_type_raw**: Fuel Shortage;Other
-- **disaster_types**: ["Fuel Shortage", "Other"]
+- **disaster_types**: ["Fuel Shortage","Other"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2026-01-22
 - **incident_termination**: 2026-02-07
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 22, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 22, 2026 – Feb 7, 2026
 - **sort_rank**: 166
@@ -6262,14 +6262,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Indiana - Severe Winter Storm 1/23/2026
 - **declaration_number**: 26-03
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix;Temperature - Arctic Blast/Dangerous Cold
-- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix", "Temperature - Arctic Blast/Dangerous Cold"]
+- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix","Temperature - Arctic Blast/Dangerous Cold"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2026-01-23
 - **incident_termination**: 2026-03-23
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Jan 23, 2026 – May 31, 2026
 - **incident_window_raw**: Jan 23, 2026 – Mar 23, 2026
 - **sort_rank**: 213
@@ -6284,14 +6284,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Kansas - Severe Storms, Straight-line Winds, and Flooding 7/17/2025 thru 7/22/2025
 - **declaration_number**: DR-4897-KS
 - **disaster_type_raw**: Floods;Straight-Line Winds;Storms - Rain
-- **disaster_types**: ["Floods", "Straight-Line Winds", "Storms - Rain"]
+- **disaster_types**: ["Floods","Straight-Line Winds","Storms - Rain"]
 - **counties**: ["Barton  Comanche  Edwards  Hodgeman  Logan  Morris  Ottawa  Rawlins  Saline  Stevens  Sumner  Wyandotte"]
 - **counties_raw**: Barton  Comanche  Edwards  Hodgeman  Logan  Morris  Ottawa  Rawlins  Saline  Stevens  Sumner  Wyandotte
 - **incident_effective**: 2025-07-17
 - **incident_termination**: 2025-07-22
 - **sep_effective**: 2025-07-17
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Jul 17, 2025 – Feb 28, 2026
 - **incident_window_raw**: Jul 17, 2025 – Jul 22, 2025
 - **sort_rank**: 103
@@ -6313,7 +6313,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-31
 - **sep_effective**: 2026-01-14
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jan 14, 2026 – Mar 31, 2026
 - **incident_window_raw**: Jan 15, 2026 – Jan 31, 2026
 - **sort_rank**: 134
@@ -6335,7 +6335,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-13
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 23, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 24, 2026 – Feb 13, 2026
 - **sort_rank**: 167
@@ -6351,13 +6351,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 2.16.26
 - **disaster_type_raw**: Fires/Wildfires
 - **disaster_types**: ["Fires/Wildfires"]
-- **counties**: ["Allen", "Barber", "Barton", "Bourbon", "Chautauqua", "Cherokee", "Cheyenne", "Clark", "Clay", "Cloud", "Comanche", "Cowley", "Crawford", "Decatur", "Dickinson", "Edwards", "Elk", "Ellis", "Ellsworth", "Finney", "Ford", "Gove", "Graham", "Grant", "Gray", "Greeley", "Hamilton", "Harper", "Haskell", "Hodgeman", "Jewell", "Kearny", "Kingman", "Kiowa", "Labette", "Lane", "Lincoln", "Linn", "Logan", "Marshall", "McPherson", "Meade", "Mitchell", "Montgomery", "Morton", "Neosho", "Ness", "Norton", "Osborne", "Ottawa", "Pawnee", "Phillips", "Pratt", "Rawlins", "Reno", "Republic", "Rice", "Riley", "Rooks", "Rush", "Russell", "Saline", "Scott", "Seward", "Sheridan", "Sherman", "Smith", "Stafford", "Stanton", "Stevens", "Sumner", "Thomas", "Trego", "Wallace", "Washington", "Wichita", "Wilson"]
+- **counties**: ["Allen","Barber","Barton","Bourbon","Chautauqua","Cherokee","Cheyenne","Clark","Clay","Cloud","Comanche","Cowley","Crawford","Decatur","Dickinson","Edwards","Elk","Ellis","Ellsworth","Finney","Ford","Gove","Graham","Grant","Gray","Greeley","Hamilton","Harper","Haskell","Hodgeman","Jewell","Kearny","Kingman","Kiowa","Labette","Lane","Lincoln","Linn","Logan","Marshall","McPherson","Meade","Mitchell","Montgomery","Morton","Neosho","Ness","Norton","Osborne","Ottawa","Pawnee","Phillips","Pratt","Rawlins","Reno","Republic","Rice","Riley","Rooks","Rush","Russell","Saline","Scott","Seward","Sheridan","Sherman","Smith","Stafford","Stanton","Stevens","Sumner","Thomas","Trego","Wallace","Washington","Wichita","Wilson"]
 - **counties_raw**: Allen, Barber, Barton, Bourbon, Chautauqua, Cherokee, Cheyenne, Clark, Clay, Cloud, Comanche, Cowley, Crawford, Decatur, Dickinson, Edwards, Elk, Ellis, Ellsworth, Finney, Ford, Gove, Graham, Grant, Gray, Greeley, Hamilton, Harper, Haskell, Hodgeman, Jewell, Kearny, Kingman, Kiowa, Labette, Lane, Lincoln, Linn, Logan, Marshall, McPherson, Meade, Mitchell, Montgomery, Morton, Neosho, Ness, Norton, Osborne, Ottawa, Pawnee, Phillips, Pratt, Rawlins, Reno, Republic, Rice, Riley, Rooks, Rush, Russell, Saline, Scott, Seward, Sheridan, Sherman, Smith, Stafford, Stanton, Stevens, Sumner, Thomas, Trego, Wallace, Washington, Wichita, Wilson
 - **incident_effective**: 2026-02-15
 - **incident_termination**: 2026-03-06
 - **sep_effective**: 2026-02-15
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Feb 15, 2026 – May 31, 2026
 - **incident_window_raw**: Feb 15, 2026 – Mar 6, 2026
 - **sort_rank**: 214
@@ -6372,14 +6372,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Kentucky - Severe Weather System 4/2/2025 (STATEWIDE)
 - **declaration_number**: 26-35, 2025-210, 2025-211
 - **disaster_type_raw**: Storms - Rain;Straight-Line Winds;Tornado
-- **disaster_types**: ["Storms - Rain", "Straight-Line Winds", "Tornado"]
+- **disaster_types**: ["Storms - Rain","Straight-Line Winds","Tornado"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2025-04-02
 - **incident_termination**: 2025-12-28
 - **sep_effective**: 2025-04-02
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Apr 2, 2025 – Feb 28, 2026
 - **incident_window_raw**: Apr 2, 2025 – Dec 28, 2025
 - **sort_rank**: 104
@@ -6394,14 +6394,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Kentucky - Severe Weather 2/15/2025
 - **declaration_number**: 2025-162, 2025-135, 2025-124, 2025-100, 2025-096, 2025-095
 - **disaster_type_raw**: Storms - Rain;Floods;Landslides/Mudslides
-- **disaster_types**: ["Storms - Rain", "Floods", "Landslides/Mudslides"]
+- **disaster_types**: ["Storms - Rain","Floods","Landslides/Mudslides"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2025-02-15
 - **incident_termination**: 2026-01-16
 - **sep_effective**: 2025-02-15
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Feb 15, 2025 – Mar 31, 2026
 - **incident_window_raw**: Feb 15, 2025 – Jan 16, 2026
 - **sort_rank**: 135
@@ -6417,13 +6417,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 2025-320
 - **disaster_type_raw**: Other
 - **disaster_types**: ["Other"]
-- **counties**: ["Caldwell", "Christian", "Laurel", "Pulaski", "Russell", "Todd", "Trigg", "Union  & any other  included in a Presidential Major Disaster Area Declaration or amended Presidential Major Disaster Area Declaration"]
+- **counties**: ["Caldwell","Christian","Laurel","Pulaski","Russell","Todd","Trigg","Union  & any other  included in a Presidential Major Disaster Area Declaration or amended Presidential Major Disaster Area Declaration"]
 - **counties_raw**: Caldwell, Christian, Laurel, Pulaski, Russell, Todd, Trigg, Union  & any other  included in a Presidential Major Disaster Area Declaration or amended Presidential Major Disaster Area Declaration
 - **incident_effective**: 2025-05-20
 - **incident_termination**: 2026-02-14
 - **sep_effective**: 2025-05-20
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: May 20, 2025 – Apr 30, 2026
 - **incident_window_raw**: May 20, 2025 – Feb 14, 2026
 - **sort_rank**: 168
@@ -6439,13 +6439,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 2025-334
 - **disaster_type_raw**: Other
 - **disaster_types**: ["Other"]
-- **counties**: ["Caldwell", "Laurel", "Pulaski", "Russel", "Trigg & Union"]
+- **counties**: ["Caldwell","Laurel","Pulaski","Russel","Trigg & Union"]
 - **counties_raw**: Caldwell, Laurel, Pulaski, Russel, Trigg & Union
 - **incident_effective**: 2025-05-28
 - **incident_termination**: 2026-02-22
 - **sep_effective**: 2025-05-28
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: May 28, 2025 – Apr 30, 2026
 - **incident_window_raw**: May 28, 2025 – Feb 22, 2026
 - **sort_rank**: 169
@@ -6467,7 +6467,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-12-07
 - **sep_effective**: 2025-06-20
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Jun 20, 2025 – Feb 28, 2026
 - **incident_window_raw**: Jun 20, 2025 – Dec 7, 2025
 - **sort_rank**: 105
@@ -6489,7 +6489,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-29
 - **sep_effective**: 2025-10-10
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Oct 10, 2025 – Mar 31, 2026
 - **incident_window_raw**: Oct 10, 2025 – Jan 29, 2026
 - **sort_rank**: 137
@@ -6505,13 +6505,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 79 JML 2025
 - **disaster_type_raw**: Other
 - **disaster_types**: ["Other"]
-- **counties**: ["Parishes of Jefferson", "Orleans", "St. Tammany", "and Tangipahoa"]
+- **counties**: ["Parishes of Jefferson","Orleans","St. Tammany","and Tangipahoa"]
 - **counties_raw**: Parishes of Jefferson, Orleans, St. Tammany, and Tangipahoa
 - **incident_effective**: 2025-12-19
 - **incident_termination**: 2026-01-23
 - **sep_effective**: 2025-12-19
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Dec 19, 2025 – Mar 31, 2026
 - **incident_window_raw**: Dec 19, 2025 – Jan 23, 2026
 - **sort_rank**: 138
@@ -6527,13 +6527,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 80 JML 2025
 - **disaster_type_raw**: Other
 - **disaster_types**: ["Other"]
-- **counties**: ["Parishes of Livingston", "Orleans", "St. Bernard", "St. Tammany", "Tangipahoa", "and  Washington"]
+- **counties**: ["Parishes of Livingston","Orleans","St. Bernard","St. Tammany","Tangipahoa","and  Washington"]
 - **counties_raw**: Parishes of Livingston, Orleans, St. Bernard, St. Tammany, Tangipahoa, and  Washington
 - **incident_effective**: 2025-12-23
 - **incident_termination**: 2026-01-23
 - **sep_effective**: 2025-12-22
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Dec 22, 2025 – Mar 31, 2026
 - **incident_window_raw**: Dec 23, 2025 – Jan 23, 2026
 - **sort_rank**: 139
@@ -6555,7 +6555,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-27
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jan 23, 2026 – Mar 31, 2026
 - **incident_window_raw**: Jan 23, 2026 – Jan 27, 2026
 - **sort_rank**: 136
@@ -6577,7 +6577,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-15
 - **sep_effective**: 2023-09-20
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Sep 20, 2023 – Apr 30, 2026
 - **incident_window_raw**: Sep 20, 2023 – Feb 15, 2026
 - **sort_rank**: 175
@@ -6599,7 +6599,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-21
 - **sep_effective**: 2024-01-23
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 23, 2024 – Apr 30, 2026
 - **incident_window_raw**: Jan 23, 2024 – Feb 21, 2026
 - **sort_rank**: 171
@@ -6621,7 +6621,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-21
 - **sep_effective**: 2025-02-13
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Feb 13, 2025 – Apr 30, 2026
 - **incident_window_raw**: Feb 13, 2025 – Feb 21, 2026
 - **sort_rank**: 170
@@ -6643,7 +6643,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-15
 - **sep_effective**: 2025-07-25
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jul 25, 2025 – Apr 30, 2026
 - **incident_window_raw**: Jul 25, 2025 – Feb 15, 2026
 - **sort_rank**: 173
@@ -6665,7 +6665,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-21
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 22, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 22, 2026 – Feb 21, 2026
 - **sort_rank**: 177
@@ -6687,7 +6687,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-21
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 23, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 23, 2026 – Feb 21, 2026
 - **sort_rank**: 176
@@ -6709,7 +6709,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-21
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 23, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 23, 2026 – Feb 21, 2026
 - **sort_rank**: 172
@@ -6731,7 +6731,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-27
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 23, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 23, 2026 – Jan 27, 2026
 - **sort_rank**: 174
@@ -6753,7 +6753,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-03-15
 - **sep_effective**: 2021-08-29
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Aug 29, 2021 – May 31, 2026
 - **incident_window_raw**: Aug 29, 2021 – Mar 15, 2026
 - **sort_rank**: 215
@@ -6775,7 +6775,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-29
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jan 23, 2026 – Mar 31, 2026
 - **incident_window_raw**: Jan 24, 2026 – Jan 29, 2026
 - **sort_rank**: 140
@@ -6797,7 +6797,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-26
 - **sep_effective**: 2026-02-22
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Feb 22, 2026 – Apr 30, 2026
 - **incident_window_raw**: Feb 22, 2026 – Feb 26, 2026
 - **sort_rank**: 178
@@ -6819,7 +6819,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-04
 - **sep_effective**: 2025-12-18
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Dec 18, 2025 – Mar 31, 2026
 - **incident_window_raw**: Dec 18, 2025 – Jan 4, 2026
 - **sort_rank**: 141
@@ -6841,7 +6841,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-15
 - **sep_effective**: 2026-01-05
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jan 5, 2026 – Mar 31, 2026
 - **incident_window_raw**: Jan 5, 2026 – Jan 15, 2026
 - **sort_rank**: 142
@@ -6863,7 +6863,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-22
 - **sep_effective**: 2025-12-23
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Dec 23, 2025 – Mar 31, 2026
 - **incident_window_raw**: Dec 23, 2025 – Jan 22, 2026
 - **sort_rank**: 143
@@ -6885,7 +6885,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-02
 - **sep_effective**: 2025-12-28
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Dec 28, 2025 – Mar 31, 2026
 - **incident_window_raw**: Dec 28, 2025 – Jan 2, 2026
 - **sort_rank**: 144
@@ -6907,7 +6907,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-02
 - **sep_effective**: 2025-12-15
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Dec 15, 2025 – Mar 31, 2026
 - **incident_window_raw**: Dec 15, 2025 – Jan 2, 2026
 - **sort_rank**: 145
@@ -6922,14 +6922,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Missouri - Severe Storm Systems 3/14/2025
 - **declaration_number**: 26-06, 25-38, 25-31, 25-28, 25-27, 25-23, 25-22, 25-20, 25-19
 - **disaster_type_raw**: Straight-Line Winds;Storms - Rain;Floods
-- **disaster_types**: ["Straight-Line Winds", "Storms - Rain", "Floods"]
+- **disaster_types**: ["Straight-Line Winds","Storms - Rain","Floods"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2025-03-14
 - **incident_termination**: 2026-02-28
 - **sep_effective**: 2025-03-14
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Mar 14, 2025 – Apr 30, 2026
 - **incident_window_raw**: Mar 14, 2025 – Feb 28, 2026
 - **sort_rank**: 180
@@ -6944,14 +6944,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Missouri - January Severe Winter Storms 1/22/2026
 - **declaration_number**: 26-05
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix;Temperature - Arctic Blast/Dangerous Cold
-- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix", "Temperature - Arctic Blast/Dangerous Cold"]
+- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix","Temperature - Arctic Blast/Dangerous Cold"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2026-01-22
 - **incident_termination**: 2026-02-22
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 22, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 22, 2026 – Feb 22, 2026
 - **sort_rank**: 179
@@ -6967,13 +6967,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 25-34, 25-29
 - **disaster_type_raw**: Drought
 - **disaster_types**: ["Drought"]
-- **counties**: ["Audrain", "Barry", "Bates", "Benton", "Bollinger", "Boone", "Butler", "Callaway", "Camden", "Cape Girardeau", "Carter", "Cass", "Christian", "Clark", "Clay", "Cole", "Cooper", "Crawford", "Dade", "Dallas", "Dent", "Douglas", "Dunklin", "Franklin", "Gasconade", "Greene", "Henry", "Hickory", "Howard", "Howell", "Iron", "Jackson", "Jasper", "Jefferson", "Johnson", "Knox", "Laclede", "Lafayette", "Lawrence", "Lewis", "Lincoln", "Madison", "Maries", "Marion", "McDonald", "Miller", "Mississippi", "Moniteau", "Monroe", "Montgomery", "Morgan", "New Madrid", "Newton", "Oregon", "Osage", "Ozark", "Pemiscot", "Perry", "Pettis", "Phelps", "Pike", "Platte", "Polk", "Pulaski", "Ralls", "Ray", "Reynolds", "Ripley", "St. Charles", "St. Clair", "St. Francois", "St. Louis", "Ste. Genevieve", "Scott", "Shannon", "Shelby", "Stoddard", "Stone", "Taney", "Texas", "Warren", "Washington", "Wayne", "Webster", "Wright", "and the City of St. Louis  ADDED  11/26/25: Barton", "Buchanan", "Caldwell", "Carroll", "Cedar", "Chariton", "Clinton", "Daviess", "DeKalb", "Gentry", "Grundy", "Harrison", "Linn", "Livingston", "Macon", "Randolph", "Saline", "Schuyler", "Scotland", "Sullivan", "and Vernon"]
+- **counties**: ["Audrain","Barry","Bates","Benton","Bollinger","Boone","Butler","Callaway","Camden","Cape Girardeau","Carter","Cass","Christian","Clark","Clay","Cole","Cooper","Crawford","Dade","Dallas","Dent","Douglas","Dunklin","Franklin","Gasconade","Greene","Henry","Hickory","Howard","Howell","Iron","Jackson","Jasper","Jefferson","Johnson","Knox","Laclede","Lafayette","Lawrence","Lewis","Lincoln","Madison","Maries","Marion","McDonald","Miller","Mississippi","Moniteau","Monroe","Montgomery","Morgan","New Madrid","Newton","Oregon","Osage","Ozark","Pemiscot","Perry","Pettis","Phelps","Pike","Platte","Polk","Pulaski","Ralls","Ray","Reynolds","Ripley","St. Charles","St. Clair","St. Francois","St. Louis","Ste. Genevieve","Scott","Shannon","Shelby","Stoddard","Stone","Taney","Texas","Warren","Washington","Wayne","Webster","Wright","and the City of St. Louis  ADDED  11/26/25: Barton","Buchanan","Caldwell","Carroll","Cedar","Chariton","Clinton","Daviess","DeKalb","Gentry","Grundy","Harrison","Linn","Livingston","Macon","Randolph","Saline","Schuyler","Scotland","Sullivan","and Vernon"]
 - **counties_raw**: Audrain, Barry, Bates, Benton, Bollinger, Boone, Butler, Callaway, Camden, Cape Girardeau, Carter, Cass, Christian, Clark, Clay, Cole, Cooper, Crawford, Dade, Dallas, Dent, Douglas, Dunklin, Franklin, Gasconade, Greene, Henry, Hickory, Howard, Howell, Iron, Jackson, Jasper, Jefferson, Johnson, Knox, Laclede, Lafayette, Lawrence, Lewis, Lincoln, Madison, Maries, Marion, McDonald, Miller, Mississippi, Moniteau, Monroe, Montgomery, Morgan, New Madrid, Newton, Oregon, Osage, Ozark, Pemiscot, Perry, Pettis, Phelps, Pike, Platte, Polk, Pulaski, Ralls, Ray, Reynolds, Ripley, St. Charles, St. Clair, St. Francois, St. Louis, Ste. Genevieve, Scott, Shannon, Shelby, Stoddard, Stone, Taney, Texas, Warren, Washington, Wayne, Webster, Wright, and the City of St. Louis  ADDED  11/26/25: Barton, Buchanan, Caldwell, Carroll, Cedar, Chariton, Clinton, Daviess, DeKalb, Gentry, Grundy, Harrison, Linn, Livingston, Macon, Randolph, Saline, Schuyler, Scotland, Sullivan, and Vernon
 - **incident_effective**: 2025-09-22
 - **incident_termination**: 2026-04-01
 - **sep_effective**: 2025-09-22
 - **sep_termination**: 2026-06-30
-- **days_since_expiry**: 56
+- **days_since_expiry**: 97
 - **sep_window_raw**: Sep 22, 2025 – Jun 30, 2026
 - **incident_window_raw**: Sep 22, 2025 – Apr 1, 2026
 - **sort_rank**: 235
@@ -6995,7 +6995,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-27
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jan 23, 2026 – Mar 31, 2026
 - **incident_window_raw**: Jan 23, 2026 – Jan 27, 2026
 - **sort_rank**: 146
@@ -7010,14 +7010,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Mississippi - Prolonged Freezing Temperatures & Winter Weather 1/22/2026
 - **declaration_number**: 1592
 - **disaster_type_raw**: Temperature - Arctic Blast/Dangerous Cold;Storms - Snowstorm/Blizzard/Mix
-- **disaster_types**: ["Temperature - Arctic Blast/Dangerous Cold", "Storms - Snowstorm/Blizzard/Mix"]
+- **disaster_types**: ["Temperature - Arctic Blast/Dangerous Cold","Storms - Snowstorm/Blizzard/Mix"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2026-01-22
 - **incident_termination**: 2026-02-05
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 22, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 22, 2026 – Feb 5, 2026
 - **sort_rank**: 181
@@ -7039,7 +7039,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-27
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 23, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 23, 2026 – Jan 27, 2026
 - **sort_rank**: 182
@@ -7054,14 +7054,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Montana - Hours of Service 12/17/2025
 - **declaration_number**: 10-2025
 - **disaster_type_raw**: Other;Fuel Shortage
-- **disaster_types**: ["Other", "Fuel Shortage"]
+- **disaster_types**: ["Other","Fuel Shortage"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2025-12-17
 - **incident_termination**: 2025-12-30
 - **sep_effective**: 2025-12-17
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Dec 17, 2025 – Feb 28, 2026
 - **incident_window_raw**: Dec 17, 2025 – Dec 30, 2025
 - **sort_rank**: 106
@@ -7076,14 +7076,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Montana - Fisher & Yaak River Flooding Crisis 12/8/2025
 - **declaration_number**: 9-2025
 - **disaster_type_raw**: Floods;Storms - Rain
-- **disaster_types**: ["Floods", "Storms - Rain"]
-- **counties**: ["Lincoln", "Sanders", "and Flathead"]
+- **disaster_types**: ["Floods","Storms - Rain"]
+- **counties**: ["Lincoln","Sanders","and Flathead"]
 - **counties_raw**: Lincoln, Sanders, and Flathead
 - **incident_effective**: 2025-12-08
 - **incident_termination**: 2026-01-25
 - **sep_effective**: 2025-12-08
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Dec 8, 2025 – Mar 31, 2026
 - **incident_window_raw**: Dec 8, 2025 – Jan 25, 2026
 - **sort_rank**: 147
@@ -7105,7 +7105,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-01
 - **sep_effective**: 2025-12-18
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Dec 18, 2025 – Apr 30, 2026
 - **incident_window_raw**: Dec 18, 2025 – Feb 1, 2026
 - **sort_rank**: 183
@@ -7127,7 +7127,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-21
 - **sep_effective**: 2026-01-21
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 21, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 21, 2026 – Feb 21, 2026
 - **sort_rank**: 185
@@ -7149,7 +7149,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-20
 - **sep_effective**: 2026-01-29
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 29, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 29, 2026 – Feb 20, 2026
 - **sort_rank**: 184
@@ -7170,7 +7170,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-03-19
 - **sep_effective**: 2025-03-19
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Mar 19, 2025 – May 31, 2026
 - **incident_window_raw**: Mar 19, 2025 – ongoing
 - **sort_rank**: 217
@@ -7191,7 +7191,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-03-25
 - **sep_effective**: 2025-03-25
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Mar 25, 2025 – May 31, 2026
 - **incident_window_raw**: Mar 25, 2025 – ongoing
 - **sort_rank**: 216
@@ -7212,7 +7212,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-03-26
 - **sep_effective**: 2025-03-26
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Mar 26, 2025 – May 31, 2026
 - **incident_window_raw**: Mar 26, 2025 – ongoing
 - **sort_rank**: 218
@@ -7233,7 +7233,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-04-18
 - **sep_effective**: 2025-04-18
 - **sep_termination**: 2026-06-30
-- **days_since_expiry**: 56
+- **days_since_expiry**: 97
 - **sep_window_raw**: Apr 18, 2025 – Jun 30, 2026
 - **incident_window_raw**: Apr 18, 2025 – ongoing
 - **sort_rank**: 236
@@ -7254,7 +7254,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-05-02
 - **sep_effective**: 2025-05-02
 - **sep_termination**: 2026-07-31
-- **days_since_expiry**: 25
+- **days_since_expiry**: 66
 - **sep_window_raw**: May 2, 2025 – Jul 31, 2026
 - **incident_window_raw**: May 2, 2025 – ongoing
 - **sort_rank**: 243
@@ -7276,7 +7276,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-03
 - **sep_effective**: 2025-12-22
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Dec 22, 2025 – Mar 31, 2026
 - **incident_window_raw**: Dec 22, 2025 – Jan 3, 2026
 - **sort_rank**: 148
@@ -7298,7 +7298,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-27
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 23, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 23, 2026 – Feb 27, 2026
 - **sort_rank**: 186
@@ -7314,13 +7314,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 407, 406
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix
 - **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix"]
-- **counties**: ["Hunterdon", "Morris", "Passaic", "Sussex & Warren"]
+- **counties**: ["Hunterdon","Morris","Passaic","Sussex & Warren"]
 - **counties_raw**: Hunterdon, Morris, Passaic, Sussex & Warren
 - **incident_effective**: 2025-12-02
 - **incident_termination**: 2025-12-09
 - **sep_effective**: 2025-12-02
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Dec 2, 2025 – Feb 28, 2026
 - **incident_window_raw**: Dec 2, 2025 – Dec 9, 2025
 - **sort_rank**: 108
@@ -7336,13 +7336,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 410, 409
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix
 - **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix"]
-- **counties**: ["Bergen", "Burlington", "Camden", "Cumberland", "Essex", "Gloucester", "Hudson", "Hunterdon", "Mercer", "Middlesex", "Monmouth", "Morris", "Ocean", "Passaic", "Salem", "Somerset", "Sussex", "Union", "and Warren"]
+- **counties**: ["Bergen","Burlington","Camden","Cumberland","Essex","Gloucester","Hudson","Hunterdon","Mercer","Middlesex","Monmouth","Morris","Ocean","Passaic","Salem","Somerset","Sussex","Union","and Warren"]
 - **counties_raw**: Bergen, Burlington, Camden, Cumberland, Essex, Gloucester, Hudson, Hunterdon, Mercer, Middlesex, Monmouth, Morris, Ocean, Passaic, Salem, Somerset, Sussex, Union, and Warren
 - **incident_effective**: 2025-12-26
 - **incident_termination**: 2025-12-30
 - **sep_effective**: 2025-12-26
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Dec 26, 2025 – Feb 28, 2026
 - **incident_window_raw**: Dec 26, 2025 – Dec 30, 2025
 - **sort_rank**: 107
@@ -7363,7 +7363,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-03-08
 - **sep_effective**: 2025-03-08
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Mar 8, 2025 – Mar 31, 2026
 - **incident_window_raw**: Mar 8, 2025 – ongoing
 - **sort_rank**: 149
@@ -7385,7 +7385,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-26
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jan 23, 2026 – Mar 31, 2026
 - **incident_window_raw**: Jan 24, 2026 – Jan 26, 2026
 - **sort_rank**: 150
@@ -7407,7 +7407,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-25
 - **sep_effective**: 2026-02-22
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Feb 22, 2026 – Apr 30, 2026
 - **incident_window_raw**: Feb 22, 2026 – Feb 25, 2026
 - **sort_rank**: 187
@@ -7429,7 +7429,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-04-18
 - **sep_effective**: 2026-02-13
 - **sep_termination**: 2026-06-30
-- **days_since_expiry**: 56
+- **days_since_expiry**: 97
 - **sep_window_raw**: Feb 13, 2026 – Jun 30, 2026
 - **incident_window_raw**: Feb 15, 2026 – Apr 18, 2026
 - **sort_rank**: 237
@@ -7450,7 +7450,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-04-22
 - **sep_effective**: 2025-04-22
 - **sep_termination**: 2026-07-31
-- **days_since_expiry**: 25
+- **days_since_expiry**: 66
 - **sep_window_raw**: Apr 22, 2025 – Jul 31, 2026
 - **incident_window_raw**: Apr 22, 2025 – ongoing
 - **sort_rank**: 244
@@ -7472,7 +7472,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-23
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 23, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 23, 2026 – Feb 23, 2026
 - **sort_rank**: 188
@@ -7493,7 +7493,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-04-17
 - **sep_effective**: 2025-04-17
 - **sep_termination**: 2026-06-30
-- **days_since_expiry**: 56
+- **days_since_expiry**: 97
 - **sep_window_raw**: Apr 17, 2025 – Jun 30, 2026
 - **incident_window_raw**: Apr 17, 2025 – ongoing
 - **sort_rank**: 238
@@ -7515,7 +7515,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-23
 - **sep_effective**: 2025-09-05
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Sep 5, 2025 – Mar 31, 2026
 - **incident_window_raw**: Sep 5, 2025 – Jan 23, 2026
 - **sort_rank**: 151
@@ -7537,7 +7537,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-28
 - **sep_effective**: 2025-12-26
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Dec 26, 2025 – Mar 31, 2026
 - **incident_window_raw**: Dec 26, 2025 – Jan 28, 2026
 - **sort_rank**: 152
@@ -7553,13 +7553,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 56.8, 56.7, 56.6, 56.5, 56.4, 56.3, 56.2, 56.1, 56
 - **disaster_type_raw**: Other
 - **disaster_types**: ["Other"]
-- **counties**: ["EO 56.2 - terming Nassau  eff 1/24/26 (final term date 3/31/26)", "Bronx", "New York", "& contiguous  extended to 2/2/26 EO 56.1 & 56 - Bronx", "Nassau", "and contiguous"]
+- **counties**: ["EO 56.2 - terming Nassau  eff 1/24/26 (final term date 3/31/26)","Bronx","New York","& contiguous  extended to 2/2/26 EO 56.1 & 56 - Bronx","Nassau","and contiguous"]
 - **counties_raw**: EO 56.2 - terming Nassau  eff 1/24/26 (final term date 3/31/26), Bronx, New York, & contiguous  extended to 2/2/26 EO 56.1 & 56 - Bronx, Nassau, and contiguous
 - **incident_effective**: 2026-01-09
 - **incident_termination**: 2026-02-17
 - **sep_effective**: 2026-01-09
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 9, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 9, 2026 – Feb 17, 2026
 - **sort_rank**: 189
@@ -7581,7 +7581,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-03-19
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Jan 23, 2026 – May 31, 2026
 - **incident_window_raw**: Jan 23, 2026 – Mar 19, 2026
 - **sort_rank**: 220
@@ -7597,13 +7597,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 58
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix
 - **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix"]
-- **counties**: ["Albany", "Bronx", "Columbia", "Greene", "Delaware", "Dutchess", "Kings", "Nassau", "New York", "Orange", "Otsego", "Putnam", "Queens", "Rensselaer", "Richmond", "Rockland", "Schoharie", "Schenectady", "Suffolk", "Sullivan", "Ulster", "Westchester", "and contiguous"]
+- **counties**: ["Albany","Bronx","Columbia","Greene","Delaware","Dutchess","Kings","Nassau","New York","Orange","Otsego","Putnam","Queens","Rensselaer","Richmond","Rockland","Schoharie","Schenectady","Suffolk","Sullivan","Ulster","Westchester","and contiguous"]
 - **counties_raw**: Albany, Bronx, Columbia, Greene, Delaware, Dutchess, Kings, Nassau, New York, Orange, Otsego, Putnam, Queens, Rensselaer, Richmond, Rockland, Schoharie, Schenectady, Suffolk, Sullivan, Ulster, Westchester, and contiguous
 - **incident_effective**: 2026-02-22
 - **incident_termination**: 2026-03-23
 - **sep_effective**: 2026-02-21
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Feb 21, 2026 – May 31, 2026
 - **incident_window_raw**: Feb 22, 2026 – Mar 23, 2026
 - **sort_rank**: 219
@@ -7619,13 +7619,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 53
 - **disaster_type_raw**: Storms - Rain
 - **disaster_types**: ["Storms - Rain"]
-- **counties**: ["Bronx", "Kings", "Nassau", "New York", "Queens Richmond", "Suffolk", "Westchester", "& Contagious"]
+- **counties**: ["Bronx","Kings","Nassau","New York","Queens Richmond","Suffolk","Westchester","& Contagious"]
 - **counties_raw**: Bronx, Kings, Nassau, New York, Queens Richmond, Suffolk, Westchester, & Contagious
 - **incident_effective**: 2025-10-12
 - **incident_termination**: 2026-04-12
 - **sep_effective**: 2025-10-12
 - **sep_termination**: 2026-06-30
-- **days_since_expiry**: 56
+- **days_since_expiry**: 97
 - **sep_window_raw**: Oct 12, 2025 – Jun 30, 2026
 - **incident_window_raw**: Oct 12, 2025 – Apr 12, 2026
 - **sort_rank**: 239
@@ -7647,7 +7647,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-29
 - **sep_effective**: 2025-10-01
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Oct 1, 2025 – Mar 31, 2026
 - **incident_window_raw**: Oct 1, 2025 – Jan 29, 2026
 - **sort_rank**: 154
@@ -7669,7 +7669,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-14
 - **sep_effective**: 2025-10-14
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Oct 14, 2025 – Mar 31, 2026
 - **incident_window_raw**: Oct 14, 2025 – Jan 14, 2026
 - **sort_rank**: 153
@@ -7691,7 +7691,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-04-24
 - **sep_effective**: 2026-01-24
 - **sep_termination**: 2026-06-30
-- **days_since_expiry**: 56
+- **days_since_expiry**: 97
 - **sep_window_raw**: Jan 24, 2026 – Jun 30, 2026
 - **incident_window_raw**: Jan 24, 2026 – Apr 24, 2026
 - **sort_rank**: 240
@@ -7713,7 +7713,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-12-30
 - **sep_effective**: 2025-12-19
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Dec 19, 2025 – Feb 28, 2026
 - **incident_window_raw**: Dec 19, 2025 – Dec 30, 2025
 - **sort_rank**: 109
@@ -7728,13 +7728,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Oklahoma - Heavy Rain, Flooding, and Storms 4/17/2025
 - **declaration_number**: EO 2025-11
 - **disaster_type_raw**: Storms - Rain;Floods
-- **disaster_types**: ["Storms - Rain", "Floods"]
+- **disaster_types**: ["Storms - Rain","Floods"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2025-04-19
 - **sep_effective**: 2025-04-17
 - **sep_termination**: 2026-05-05
-- **days_since_expiry**: 112
+- **days_since_expiry**: 153
 - **sep_window_raw**: Apr 17, 2025 – May 5, 2026
 - **incident_window_raw**: Apr 19, 2025 – ongoing
 - **sort_rank**: 199
@@ -7749,14 +7749,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Oklahoma - Dangerous Wildfires & Straight-Line-Winds 2/17/2026
 - **declaration_number**: 26-09
 - **disaster_type_raw**: Fires/Wildfires;Straight-Line Winds
-- **disaster_types**: ["Fires/Wildfires", "Straight-Line Winds"]
-- **counties**: ["Beaver", "Harper", "Texas", "& Woodward"]
+- **disaster_types**: ["Fires/Wildfires","Straight-Line Winds"]
+- **counties**: ["Beaver","Harper","Texas","& Woodward"]
 - **counties_raw**: Beaver, Harper, Texas, & Woodward
 - **incident_effective**: 2026-02-17
 - **incident_termination**: 2026-03-17
 - **sep_effective**: 2026-02-17
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Feb 17, 2026 – May 31, 2026
 - **incident_window_raw**: Feb 17, 2026 – Mar 17, 2026
 - **sort_rank**: 221
@@ -7778,7 +7778,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-12-31
 - **sep_effective**: 2025-06-18
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Jun 18, 2025 – Feb 28, 2026
 - **incident_window_raw**: Jun 18, 2025 – Dec 31, 2025
 - **sort_rank**: 111
@@ -7800,7 +7800,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-12-31
 - **sep_effective**: 2025-07-02
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Jul 2, 2025 – Feb 28, 2026
 - **incident_window_raw**: Jul 2, 2025 – Dec 31, 2025
 - **sort_rank**: 113
@@ -7822,7 +7822,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-12-31
 - **sep_effective**: 2025-07-16
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Jul 16, 2025 – Feb 28, 2026
 - **incident_window_raw**: Jul 16, 2025 – Dec 31, 2025
 - **sort_rank**: 117
@@ -7838,13 +7838,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 2025-18
 - **disaster_type_raw**: Drought
 - **disaster_types**: ["Drought"]
-- **counties**: ["Morrow", "D Morrow", "Douglas", "& Union"]
+- **counties**: ["Morrow","D Morrow","Douglas","& Union"]
 - **counties_raw**: Morrow, D Morrow, Douglas, & Union
 - **incident_effective**: 2025-07-02
 - **incident_termination**: 2025-12-31
 - **sep_effective**: 2025-07-02
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Jul 2, 2025 – Feb 28, 2026
 - **incident_window_raw**: Jul 2, 2025 – Dec 31, 2025
 - **sort_rank**: 115
@@ -7860,13 +7860,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 25-19
 - **disaster_type_raw**: Drought
 - **disaster_types**: ["Drought"]
-- **counties**: ["Coos", "Wheeler"]
+- **counties**: ["Coos","Wheeler"]
 - **counties_raw**: Coos, Wheeler
 - **incident_effective**: 2025-08-13
 - **incident_termination**: 2025-12-31
 - **sep_effective**: 2025-08-13
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Aug 13, 2025 – Feb 28, 2026
 - **incident_window_raw**: Aug 13, 2025 – Dec 31, 2025
 - **sort_rank**: 110
@@ -7888,7 +7888,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-12-31
 - **sep_effective**: 2025-09-29
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Sep 29, 2025 – Feb 28, 2026
 - **incident_window_raw**: Sep 29, 2025 – Dec 31, 2025
 - **sort_rank**: 112
@@ -7910,7 +7910,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-12-31
 - **sep_effective**: 2025-10-30
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Oct 30, 2025 – Feb 28, 2026
 - **incident_window_raw**: Oct 30, 2025 – Dec 31, 2025
 - **sort_rank**: 116
@@ -7932,7 +7932,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-12-09
 - **sep_effective**: 2025-11-17
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Nov 17, 2025 – Feb 28, 2026
 - **incident_window_raw**: Nov 17, 2025 – Dec 9, 2025
 - **sort_rank**: 114
@@ -7948,13 +7948,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 26-02, 25-32
 - **disaster_type_raw**: Storms - Rain
 - **disaster_types**: ["Storms - Rain"]
-- **counties**: ["clackamas", "clatsop", "coos", "curry", "Douglas", "Hood River", "Jackson", "Klamath", "Lane", "Lincoln", "Marion", "Multnomah", "Tillamook", "Washington", "and yamhill"]
+- **counties**: ["clackamas","clatsop","coos","curry","Douglas","Hood River","Jackson","Klamath","Lane","Lincoln","Marion","Multnomah","Tillamook","Washington","and yamhill"]
 - **counties_raw**: clackamas, clatsop, coos, curry, Douglas, Hood River, Jackson, Klamath, Lane, Lincoln, Marion, Multnomah, Tillamook, Washington, and yamhill
 - **incident_effective**: 2025-12-08
 - **incident_termination**: 2026-01-31
 - **sep_effective**: 2025-12-08
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Dec 8, 2025 – Mar 31, 2026
 - **incident_window_raw**: Dec 8, 2025 – Jan 31, 2026
 - **sort_rank**: 155
@@ -7976,7 +7976,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-13
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 23, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 23, 2026 – Feb 13, 2026
 - **sort_rank**: 190
@@ -7992,13 +7992,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 2.22.26
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix
 - **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix"]
-- **counties**: ["Adams", "Bedford", "Berks", "Blair", "Bucks", "Cambria", "Carbon", "Centre", "Chester", "Clearfield", "Clinton", "Cumberland", "Dauphin", "Delaware", "Fayette", "Franklin", "Fulton", "Juniata", "Indiana", "Lackawanna", "Lancaster", "Lebanon", "Lehigh", "Luzerne", "Mifflin", "Monroe", "Montgomery", "Northampton", "Perry", "Philadelphia", "Pike", "Schuylkill", "Snyder", "Somerset", "Sullivan", "Susquehanna", "Union", "Wayne", "Westmoreland", "Wyoming", "and York"]
+- **counties**: ["Adams","Bedford","Berks","Blair","Bucks","Cambria","Carbon","Centre","Chester","Clearfield","Clinton","Cumberland","Dauphin","Delaware","Fayette","Franklin","Fulton","Juniata","Indiana","Lackawanna","Lancaster","Lebanon","Lehigh","Luzerne","Mifflin","Monroe","Montgomery","Northampton","Perry","Philadelphia","Pike","Schuylkill","Snyder","Somerset","Sullivan","Susquehanna","Union","Wayne","Westmoreland","Wyoming","and York"]
 - **counties_raw**: Adams, Bedford, Berks, Blair, Bucks, Cambria, Carbon, Centre, Chester, Clearfield, Clinton, Cumberland, Dauphin, Delaware, Fayette, Franklin, Fulton, Juniata, Indiana, Lackawanna, Lancaster, Lebanon, Lehigh, Luzerne, Mifflin, Monroe, Montgomery, Northampton, Perry, Philadelphia, Pike, Schuylkill, Snyder, Somerset, Sullivan, Susquehanna, Union, Wayne, Westmoreland, Wyoming, and York
 - **incident_effective**: 2026-02-22
 - **incident_termination**: 2026-03-15
 - **sep_effective**: 2026-02-22
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Feb 22, 2026 – May 31, 2026
 - **incident_window_raw**: Feb 22, 2026 – Mar 15, 2026
 - **sort_rank**: 222
@@ -8020,7 +8020,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-12-30
 - **sep_effective**: 2025-06-30
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Jun 30, 2025 – Feb 28, 2026
 - **incident_window_raw**: Jun 30, 2025 – Dec 30, 2025
 - **sort_rank**: 118
@@ -8042,7 +8042,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-01
 - **sep_effective**: 2016-06-30
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Jun 30, 2016 – Mar 31, 2026
 - **incident_window_raw**: Jun 30, 2016 – Jan 1, 2026
 - **sort_rank**: 156
@@ -8064,7 +8064,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-03-22
 - **sep_effective**: 2025-04-02
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Apr 2, 2025 – May 31, 2026
 - **incident_window_raw**: Apr 2, 2025 – Mar 22, 2026
 - **sort_rank**: 223
@@ -8086,7 +8086,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-03-23
 - **sep_effective**: 2026-02-22
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Feb 22, 2026 – May 31, 2026
 - **incident_window_raw**: Feb 22, 2026 – Mar 23, 2026
 - **sort_rank**: 224
@@ -8108,7 +8108,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-05
 - **sep_effective**: 2026-01-21
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 21, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 21, 2026 – Feb 5, 2026
 - **sort_rank**: 191
@@ -8129,7 +8129,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-03-01
 - **sep_effective**: 2025-03-01
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Mar 1, 2025 – May 31, 2026
 - **incident_window_raw**: Mar 1, 2025 – ongoing
 - **sort_rank**: 225
@@ -8150,7 +8150,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-03-21
 - **sep_effective**: 2025-03-21
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Mar 21, 2025 – May 31, 2026
 - **incident_window_raw**: Mar 21, 2025 – ongoing
 - **sort_rank**: 226
@@ -8171,7 +8171,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_effective**: 2025-03-23
 - **sep_effective**: 2025-03-23
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Mar 23, 2025 – May 31, 2026
 - **incident_window_raw**: Mar 23, 2025 – ongoing
 - **sort_rank**: 227
@@ -8193,7 +8193,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-07
 - **sep_effective**: 2025-12-17
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Dec 17, 2025 – Mar 31, 2026
 - **incident_window_raw**: Dec 17, 2025 – Feb 7, 2026
 - **sort_rank**: 157
@@ -8215,7 +8215,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-01-27
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 22, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 22, 2026 – Jan 27, 2026
 - **sort_rank**: 192
@@ -8237,7 +8237,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-03-07
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Jan 22, 2026 – May 31, 2026
 - **incident_window_raw**: Jan 22, 2026 – Mar 7, 2026
 - **sort_rank**: 228
@@ -8253,13 +8253,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 11.9, 10.10.25
 - **disaster_type_raw**: Fires/Wildfires
 - **disaster_types**: ["Fires/Wildfires"]
-- **counties**: ["Anderson", "Angelina", "Aransas", "Archer", "Atascosa", "Austin", "Bandera", "Bastrop", "Baylor", "Bee", "Bell", "Bexar", "Blanco", "Bosque", "Bowie", "Brazoria", "Brazos", "Briscoe", "Brown", "Burleson", "Burnet", "Caldwell", "Calhoun", "Callahan", "Camp", "Cass", "Chambers", "Cherokee", "Childress", "Clay", "Coke", "Coleman", "Collin", "Colorado", "Comal", "Comanche", "Concho", "Cooke", "Coryell", "Cottle", "Crosby", "Dallas", "Delta", "Denton", "DeWitt", "Dickens", "Dimmit", "Duval", "Eastland", "Ellis", "Erath", "Falls", "Fannin", "Fayette", "Fisher", "Floyd", "Foard", "Fort Bend", "Franklin", "Freestone", "Frio", "Galveston", "Gillespie", "Goliad", "Gonzales", "Grayson", "Gregg", "Grimes", "Guadalupe", "Hall", "Hamilton", "Hardeman", "Hardin", "Harris", "Harrison", "Haskell", "Hays", "Henderson", "Hill", "Hood", "Hopkins", "Houston", "Hunt", "Jack", "Jackson", "Jasper", "Jefferson", "Jim Wells", "Johnson", "Jones", "Karnes", "Kaufman", "Kendall", "Kent", "Kerr", "Kimble", "King", "Kleberg", "Knox", "La Salle", "Lamar", "Lampasas", "Lavaca", "Lee", "Leon", "Liberty", "Limestone", "Live Oak", "Llano", "Madison", "Marion", "Mason", "Matagorda", "Maverick", "McCulloch", "McLennan", "McMullen", "Medina", "Menard", "Milam", "Mills", "Mitchell", "Montague", "Montgomery", "Morris", "Motley", "Nacogdoches", "Navarro", "Newton", "Nolan", "Nueces", "Orange", "Palo Pinto", "Panola", "Parker", "Polk", "Rains", "Red River", "Refugio", "Robertson", "Rockwall", "Runnels", "Rusk", "Sabine", "San Augustine", "San Jacinto", "San Patricio", "San Saba", "Scurry", "Shackelford", "Shelby", "Smith", "Somervell", "Stephens", "Stonewall", "Tarrant", "Taylor", "Throckmorton", "Titus", "Tom Green", "Travis", "Trinity", "Tyler", "Upshur", "Van Zandt", "Victoria", "Walker", "Waller", "Washington", "Webb", "Wharton", "Wichita", "Wilbarger", "Williamson", "Wilson", "Wise", "Wood", "Young", "and Zavala"]
+- **counties**: ["Anderson","Angelina","Aransas","Archer","Atascosa","Austin","Bandera","Bastrop","Baylor","Bee","Bell","Bexar","Blanco","Bosque","Bowie","Brazoria","Brazos","Briscoe","Brown","Burleson","Burnet","Caldwell","Calhoun","Callahan","Camp","Cass","Chambers","Cherokee","Childress","Clay","Coke","Coleman","Collin","Colorado","Comal","Comanche","Concho","Cooke","Coryell","Cottle","Crosby","Dallas","Delta","Denton","DeWitt","Dickens","Dimmit","Duval","Eastland","Ellis","Erath","Falls","Fannin","Fayette","Fisher","Floyd","Foard","Fort Bend","Franklin","Freestone","Frio","Galveston","Gillespie","Goliad","Gonzales","Grayson","Gregg","Grimes","Guadalupe","Hall","Hamilton","Hardeman","Hardin","Harris","Harrison","Haskell","Hays","Henderson","Hill","Hood","Hopkins","Houston","Hunt","Jack","Jackson","Jasper","Jefferson","Jim Wells","Johnson","Jones","Karnes","Kaufman","Kendall","Kent","Kerr","Kimble","King","Kleberg","Knox","La Salle","Lamar","Lampasas","Lavaca","Lee","Leon","Liberty","Limestone","Live Oak","Llano","Madison","Marion","Mason","Matagorda","Maverick","McCulloch","McLennan","McMullen","Medina","Menard","Milam","Mills","Mitchell","Montague","Montgomery","Morris","Motley","Nacogdoches","Navarro","Newton","Nolan","Nueces","Orange","Palo Pinto","Panola","Parker","Polk","Rains","Red River","Refugio","Robertson","Rockwall","Runnels","Rusk","Sabine","San Augustine","San Jacinto","San Patricio","San Saba","Scurry","Shackelford","Shelby","Smith","Somervell","Stephens","Stonewall","Tarrant","Taylor","Throckmorton","Titus","Tom Green","Travis","Trinity","Tyler","Upshur","Van Zandt","Victoria","Walker","Waller","Washington","Webb","Wharton","Wichita","Wilbarger","Williamson","Wilson","Wise","Wood","Young","and Zavala"]
 - **counties_raw**: Anderson, Angelina, Aransas, Archer, Atascosa, Austin, Bandera, Bastrop, Baylor, Bee, Bell, Bexar, Blanco, Bosque, Bowie, Brazoria, Brazos, Briscoe, Brown, Burleson, Burnet, Caldwell, Calhoun, Callahan, Camp, Cass, Chambers, Cherokee, Childress, Clay, Coke, Coleman, Collin, Colorado, Comal, Comanche, Concho, Cooke, Coryell, Cottle, Crosby, Dallas, Delta, Denton, DeWitt, Dickens, Dimmit, Duval, Eastland, Ellis, Erath, Falls, Fannin, Fayette, Fisher, Floyd, Foard, Fort Bend, Franklin, Freestone, Frio, Galveston, Gillespie, Goliad, Gonzales, Grayson, Gregg, Grimes, Guadalupe, Hall, Hamilton, Hardeman, Hardin, Harris, Harrison, Haskell, Hays, Henderson, Hill, Hood, Hopkins, Houston, Hunt, Jack, Jackson, Jasper, Jefferson, Jim Wells, Johnson, Jones, Karnes, Kaufman, Kendall, Kent, Kerr, Kimble, King, Kleberg, Knox, La Salle, Lamar, Lampasas, Lavaca, Lee, Leon, Liberty, Limestone, Live Oak, Llano, Madison, Marion, Mason, Matagorda, Maverick, McCulloch, McLennan, McMullen, Medina, Menard, Milam, Mills, Mitchell, Montague, Montgomery, Morris, Motley, Nacogdoches, Navarro, Newton, Nolan, Nueces, Orange, Palo Pinto, Panola, Parker, Polk, Rains, Red River, Refugio, Robertson, Rockwall, Runnels, Rusk, Sabine, San Augustine, San Jacinto, San Patricio, San Saba, Scurry, Shackelford, Shelby, Smith, Somervell, Stephens, Stonewall, Tarrant, Taylor, Throckmorton, Titus, Tom Green, Travis, Trinity, Tyler, Upshur, Van Zandt, Victoria, Walker, Waller, Washington, Webb, Wharton, Wichita, Wilbarger, Williamson, Wilson, Wise, Wood, Young, and Zavala
 - **incident_effective**: 2025-08-10
 - **incident_termination**: 2025-12-09
 - **sep_effective**: 2025-08-10
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Aug 10, 2025 – Feb 28, 2026
 - **incident_window_raw**: Aug 10, 2025 – Dec 9, 2025
 - **sort_rank**: 119
@@ -8275,13 +8275,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 11.9.25
 - **disaster_type_raw**: Fires/Wildfires
 - **disaster_types**: ["Fires/Wildfires"]
-- **counties**: ["Anderson", "Angelina", "Aransas", "Archer", "Armstrong", "Atascosa", "Austin", "Bailey", "Bandera", "Bastrop", "Baylor", "Bee", "Bell", "Bexar", "Blanco", "Bosque", "Bowie", "Brazoria", "Brazos", "Briscoe", "Brooks", "Brown", "Burleson", "Burnet", "Caldwell", "Calhoun", "Callahan", "Cameron", "Camp", "Carson", "Cass", "Castro", "Chambers", "Cherokee", "Childress", "Clay", "Cochran", "Coke", "Coleman", "Collin", "Collingsworth", "Colorado", "Comal", "Comanche", "Concho", "Cooke", "Coryell", "Cottle", "Crosby", "Dallam", "Dallas", "Deaf Smith", "Delta", "Denton", "DeWitt", "Dickens", "Dimmit", "Donley", "Duval", "Eastland", "Ellis", "Erath", "Falls", "Fannin", "Fayette", "Fisher", "Floyd", "Foard", "Fort Bend", "Franklin", "Freestone", "Frio", "Galveston", "Gillespie", "Goliad", "Gonzales", "Gray", "Grayson", "Gregg", "Grimes", "Guadalupe", "Hale", "Hall", "Hamilton", "Hansford", "Hardeman", "Hardin", "Harris", "Harrison", "Hartley", "Haskell", "Hays", "Hemphill", "Henderson", "Hidalgo", "Hill", "Hockley", "Hood", "Hopkins", "Houston", "Hunt", "Hutchinson", "Jack", "Jackson", "Jasper", "Jefferson", "Jim Hogg", "Jim Wells", "Johnson", "Jones", "Karnes", "Kaufman", "Kendall", "Kenedy", "Kent", "Kerr", "Kimble", "King", "Kleberg", "Knox", "La Salle", "Lamar", "Lamb", "Lampasas", "Lavaca", "Lee", "Leon", "Liberty", "Limestone", "Lipscomb", "Live Oak", "Llano", "Lubbock", "Madison", "Marion", "Mason", "Matagorda", "Maverick", "McCulloch", "McLennan", "McMullen", "Medina", "Menard", "Milam", "Mills", "Mitchell", "Montague", "Montgomery", "Moore", "Morris", "Motley", "Nacogdoches", "Navarro", "Newton", "Nolan", "Nueces", "Ochiltree", "Oldham", "Orange", "Palo Pinto", "Panola", "Parker", "Parmer", "Polk", "Potter", "Rains", "Randall", "Red River", "Refugio", "Roberts", "Robertson", "Rockwall", "Runnels", "Rusk", "Sabine", "San Augustine", "San Jacinto", "San Patricio", "San Saba", "Scurry", "Shackelford", "Shelby", "Sherman", "Smith", "Somervell", "Starr", "Stephens", "Stonewall", "Swisher", "Tarrant", "Taylor", "Throckmorton", "Titus", "Tom Green", "Travis", "Trinity", "Tyler", "Upshur", "Van Zandt", "Victoria", "Walker", "Waller", "Washington", "Webb", "Wharton", "Wheeler", "Wichita", "Wilbarger", "Willacy", "Williamson", "Wilson", "Wise", "Wood", "Young", "Zapata", "and Zavala"]
+- **counties**: ["Anderson","Angelina","Aransas","Archer","Armstrong","Atascosa","Austin","Bailey","Bandera","Bastrop","Baylor","Bee","Bell","Bexar","Blanco","Bosque","Bowie","Brazoria","Brazos","Briscoe","Brooks","Brown","Burleson","Burnet","Caldwell","Calhoun","Callahan","Cameron","Camp","Carson","Cass","Castro","Chambers","Cherokee","Childress","Clay","Cochran","Coke","Coleman","Collin","Collingsworth","Colorado","Comal","Comanche","Concho","Cooke","Coryell","Cottle","Crosby","Dallam","Dallas","Deaf Smith","Delta","Denton","DeWitt","Dickens","Dimmit","Donley","Duval","Eastland","Ellis","Erath","Falls","Fannin","Fayette","Fisher","Floyd","Foard","Fort Bend","Franklin","Freestone","Frio","Galveston","Gillespie","Goliad","Gonzales","Gray","Grayson","Gregg","Grimes","Guadalupe","Hale","Hall","Hamilton","Hansford","Hardeman","Hardin","Harris","Harrison","Hartley","Haskell","Hays","Hemphill","Henderson","Hidalgo","Hill","Hockley","Hood","Hopkins","Houston","Hunt","Hutchinson","Jack","Jackson","Jasper","Jefferson","Jim Hogg","Jim Wells","Johnson","Jones","Karnes","Kaufman","Kendall","Kenedy","Kent","Kerr","Kimble","King","Kleberg","Knox","La Salle","Lamar","Lamb","Lampasas","Lavaca","Lee","Leon","Liberty","Limestone","Lipscomb","Live Oak","Llano","Lubbock","Madison","Marion","Mason","Matagorda","Maverick","McCulloch","McLennan","McMullen","Medina","Menard","Milam","Mills","Mitchell","Montague","Montgomery","Moore","Morris","Motley","Nacogdoches","Navarro","Newton","Nolan","Nueces","Ochiltree","Oldham","Orange","Palo Pinto","Panola","Parker","Parmer","Polk","Potter","Rains","Randall","Red River","Refugio","Roberts","Robertson","Rockwall","Runnels","Rusk","Sabine","San Augustine","San Jacinto","San Patricio","San Saba","Scurry","Shackelford","Shelby","Sherman","Smith","Somervell","Starr","Stephens","Stonewall","Swisher","Tarrant","Taylor","Throckmorton","Titus","Tom Green","Travis","Trinity","Tyler","Upshur","Van Zandt","Victoria","Walker","Waller","Washington","Webb","Wharton","Wheeler","Wichita","Wilbarger","Willacy","Williamson","Wilson","Wise","Wood","Young","Zapata","and Zavala"]
 - **counties_raw**: Anderson, Angelina, Aransas, Archer, Armstrong, Atascosa, Austin, Bailey, Bandera, Bastrop, Baylor, Bee, Bell, Bexar, Blanco, Bosque, Bowie, Brazoria, Brazos, Briscoe, Brooks, Brown, Burleson, Burnet, Caldwell, Calhoun, Callahan, Cameron, Camp, Carson, Cass, Castro, Chambers, Cherokee, Childress, Clay, Cochran, Coke, Coleman, Collin, Collingsworth, Colorado, Comal, Comanche, Concho, Cooke, Coryell, Cottle, Crosby, Dallam, Dallas, Deaf Smith, Delta, Denton, DeWitt, Dickens, Dimmit, Donley, Duval, Eastland, Ellis, Erath, Falls, Fannin, Fayette, Fisher, Floyd, Foard, Fort Bend, Franklin, Freestone, Frio, Galveston, Gillespie, Goliad, Gonzales, Gray, Grayson, Gregg, Grimes, Guadalupe, Hale, Hall, Hamilton, Hansford, Hardeman, Hardin, Harris, Harrison, Hartley, Haskell, Hays, Hemphill, Henderson, Hidalgo, Hill, Hockley, Hood, Hopkins, Houston, Hunt, Hutchinson, Jack, Jackson, Jasper, Jefferson, Jim Hogg, Jim Wells, Johnson, Jones, Karnes, Kaufman, Kendall, Kenedy, Kent, Kerr, Kimble, King, Kleberg, Knox, La Salle, Lamar, Lamb, Lampasas, Lavaca, Lee, Leon, Liberty, Limestone, Lipscomb, Live Oak, Llano, Lubbock, Madison, Marion, Mason, Matagorda, Maverick, McCulloch, McLennan, McMullen, Medina, Menard, Milam, Mills, Mitchell, Montague, Montgomery, Moore, Morris, Motley, Nacogdoches, Navarro, Newton, Nolan, Nueces, Ochiltree, Oldham, Orange, Palo Pinto, Panola, Parker, Parmer, Polk, Potter, Rains, Randall, Red River, Refugio, Roberts, Robertson, Rockwall, Runnels, Rusk, Sabine, San Augustine, San Jacinto, San Patricio, San Saba, Scurry, Shackelford, Shelby, Sherman, Smith, Somervell, Starr, Stephens, Stonewall, Swisher, Tarrant, Taylor, Throckmorton, Titus, Tom Green, Travis, Trinity, Tyler, Upshur, Van Zandt, Victoria, Walker, Waller, Washington, Webb, Wharton, Wheeler, Wichita, Wilbarger, Willacy, Williamson, Wilson, Wise, Wood, Young, Zapata, and Zavala
 - **incident_effective**: 2025-11-09
 - **incident_termination**: 2026-01-08
 - **sep_effective**: 2025-11-09
 - **sep_termination**: 2026-03-31
-- **days_since_expiry**: 147
+- **days_since_expiry**: 188
 - **sep_window_raw**: Nov 9, 2025 – Mar 31, 2026
 - **incident_window_raw**: Nov 9, 2025 – Jan 8, 2026
 - **sort_rank**: 158
@@ -8297,13 +8297,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 2/16, 1/17, 12/18, 10/19, 9/19, 8/20, 7/21, 6/21/2025, 5/21/2025, 4/22/25, 3/23, 2/21, 1/22/25
 - **disaster_type_raw**: Drought
 - **disaster_types**: ["Drought"]
-- **counties**: ["Bell", "Brewster", "Burnet", "Edwards", "El Paso", "Hamilton", "Hudspeth", "Jeff Davis", "Matagorda", "Midland", "Terrell"]
+- **counties**: ["Bell","Brewster","Burnet","Edwards","El Paso","Hamilton","Hudspeth","Jeff Davis","Matagorda","Midland","Terrell"]
 - **counties_raw**: Bell, Brewster, Burnet, Edwards, El Paso, Hamilton, Hudspeth, Jeff Davis, Matagorda, Midland, Terrell
 - **incident_effective**: 2022-07-08
 - **incident_termination**: 2026-02-17
 - **sep_effective**: 2022-07-08
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jul 8, 2022 – Apr 30, 2026
 - **incident_window_raw**: Jul 8, 2022 – Feb 17, 2026
 - **sort_rank**: 193
@@ -8319,13 +8319,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 1.8.26
 - **disaster_type_raw**: Fires/Wildfires
 - **disaster_types**: ["Fires/Wildfires"]
-- **counties**: ["Andrews", "Aransas", "Archer", "Armstrong", "Atascosa", "Austin", "Bailey", "Bandera", "Bastrop", "Baylor", "Bee", "Bexar", "Blanco", "Borden", "Bowie", "Brazos", "Briscoe", "Brooks", "Brown", "Burleson", "Burnet", "Caldwell", "Calhoun", "Callahan", "Cameron", "Carson", "Castro", "Childress", "Clay", "Cochran", "Coke", "Coleman", "Collingsworth", "Colorado", "Comal", "Comanche", "Concho", "Cottle", "Crane", "Crockett", "Crosby", "Culberson", "Dallam", "Dawson", "Deaf Smith", "Delta", "DeWitt", "Dickens", "Dimmit", "Donley", "Duval", "Eastland", "Ector", "El Paso", "Erath", "Fannin", "Fayette", "Fisher", "Floyd", "Foard", "Franklin", "Frio", "Gaines", "Garza", "Gillespie", "Glasscock", "Goliad", "Gonzales", "Gray", "Grimes", "Guadalupe", "Hale", "Hall", "Hamilton", "Hansford", "Hardeman", "Hartley", "Haskell", "Hays", "Hemphill", "Hidalgo", "Hockley", "Hopkins", "Hood", "Howard", "Houston", "Hudspeth", "Hunt", "Hutchinson", "Irion", "Jack", "Jackson", "Jeff Davis", "Jim Hogg", "Jim Wells", "Jones", "Karnes", "Kendall", "Kenedy", "Kent", "Kerr", "Kimble", "King", "Kleberg", "Knox", "La Salle", "Lamb", "Lampasas", "Lavaca", "Lee", "Lipscomb", "Live Oak", "Llano", "Loving", "Lubbock", "Lynn", "Madison", "Martin", "Mason", "Matagorda", "Maverick", "McCulloch", "McMullen", "Medina", "Menard", "Midland", "Milam", "Mills", "Mitchell", "Moore", "Motley", "Nolan", "Nueces", "Ochiltree", "Oldham", "Palo Pinto", "Parker", "Parmer", "Pecos", "Polk", "Potter", "Randall", "Reagan", "Real", "Red River", "Reeves", "Refugio", "Roberts", "Robertson", "Runnels", "San Patricio", "San Saba", "San Jacinto", "Schleicher", "Scurry", "Shackelford", "Shelby", "Sherman", "Somervell", "Starr", "Stephens", "Sterling", "Stonewall", "Sutton", "Swisher", "Taylor", "Terry", "Titus", "Throckmorton", "Tom Green", "Travis", "Trinity", "Upton", "Uvalde", "Victoria", "Walker", "Waller", "Ward", "Washington", "Webb", "Wharton", "Wheeler", "Wichita", "Wilbarger", "Willacy", "Williamson", "Wilson", "Winkler", "Yoakum", "Young", "Zapata", "and Zavala"]
+- **counties**: ["Andrews","Aransas","Archer","Armstrong","Atascosa","Austin","Bailey","Bandera","Bastrop","Baylor","Bee","Bexar","Blanco","Borden","Bowie","Brazos","Briscoe","Brooks","Brown","Burleson","Burnet","Caldwell","Calhoun","Callahan","Cameron","Carson","Castro","Childress","Clay","Cochran","Coke","Coleman","Collingsworth","Colorado","Comal","Comanche","Concho","Cottle","Crane","Crockett","Crosby","Culberson","Dallam","Dawson","Deaf Smith","Delta","DeWitt","Dickens","Dimmit","Donley","Duval","Eastland","Ector","El Paso","Erath","Fannin","Fayette","Fisher","Floyd","Foard","Franklin","Frio","Gaines","Garza","Gillespie","Glasscock","Goliad","Gonzales","Gray","Grimes","Guadalupe","Hale","Hall","Hamilton","Hansford","Hardeman","Hartley","Haskell","Hays","Hemphill","Hidalgo","Hockley","Hopkins","Hood","Howard","Houston","Hudspeth","Hunt","Hutchinson","Irion","Jack","Jackson","Jeff Davis","Jim Hogg","Jim Wells","Jones","Karnes","Kendall","Kenedy","Kent","Kerr","Kimble","King","Kleberg","Knox","La Salle","Lamb","Lampasas","Lavaca","Lee","Lipscomb","Live Oak","Llano","Loving","Lubbock","Lynn","Madison","Martin","Mason","Matagorda","Maverick","McCulloch","McMullen","Medina","Menard","Midland","Milam","Mills","Mitchell","Moore","Motley","Nolan","Nueces","Ochiltree","Oldham","Palo Pinto","Parker","Parmer","Pecos","Polk","Potter","Randall","Reagan","Real","Red River","Reeves","Refugio","Roberts","Robertson","Runnels","San Patricio","San Saba","San Jacinto","Schleicher","Scurry","Shackelford","Shelby","Sherman","Somervell","Starr","Stephens","Sterling","Stonewall","Sutton","Swisher","Taylor","Terry","Titus","Throckmorton","Tom Green","Travis","Trinity","Upton","Uvalde","Victoria","Walker","Waller","Ward","Washington","Webb","Wharton","Wheeler","Wichita","Wilbarger","Willacy","Williamson","Wilson","Winkler","Yoakum","Young","Zapata","and Zavala"]
 - **counties_raw**: Andrews, Aransas, Archer, Armstrong, Atascosa, Austin, Bailey, Bandera, Bastrop, Baylor, Bee, Bexar, Blanco, Borden, Bowie, Brazos, Briscoe, Brooks, Brown, Burleson, Burnet, Caldwell, Calhoun, Callahan, Cameron, Carson, Castro, Childress, Clay, Cochran, Coke, Coleman, Collingsworth, Colorado, Comal, Comanche, Concho, Cottle, Crane, Crockett, Crosby, Culberson, Dallam, Dawson, Deaf Smith, Delta, DeWitt, Dickens, Dimmit, Donley, Duval, Eastland, Ector, El Paso, Erath, Fannin, Fayette, Fisher, Floyd, Foard, Franklin, Frio, Gaines, Garza, Gillespie, Glasscock, Goliad, Gonzales, Gray, Grimes, Guadalupe, Hale, Hall, Hamilton, Hansford, Hardeman, Hartley, Haskell, Hays, Hemphill, Hidalgo, Hockley, Hopkins, Hood, Howard, Houston, Hudspeth, Hunt, Hutchinson, Irion, Jack, Jackson, Jeff Davis, Jim Hogg, Jim Wells, Jones, Karnes, Kendall, Kenedy, Kent, Kerr, Kimble, King, Kleberg, Knox, La Salle, Lamb, Lampasas, Lavaca, Lee, Lipscomb, Live Oak, Llano, Loving, Lubbock, Lynn, Madison, Martin, Mason, Matagorda, Maverick, McCulloch, McMullen, Medina, Menard, Midland, Milam, Mills, Mitchell, Moore, Motley, Nolan, Nueces, Ochiltree, Oldham, Palo Pinto, Parker, Parmer, Pecos, Polk, Potter, Randall, Reagan, Real, Red River, Reeves, Refugio, Roberts, Robertson, Runnels, San Patricio, San Saba, San Jacinto, Schleicher, Scurry, Shackelford, Shelby, Sherman, Somervell, Starr, Stephens, Sterling, Stonewall, Sutton, Swisher, Taylor, Terry, Titus, Throckmorton, Tom Green, Travis, Trinity, Upton, Uvalde, Victoria, Walker, Waller, Ward, Washington, Webb, Wharton, Wheeler, Wichita, Wilbarger, Willacy, Williamson, Wilson, Winkler, Yoakum, Young, Zapata, and Zavala
 - **incident_effective**: 2026-01-08
 - **incident_termination**: 2026-02-08
 - **sep_effective**: 2026-01-08
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 8, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 8, 2026 – Feb 8, 2026
 - **sort_rank**: 194
@@ -8341,13 +8341,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 1.25.26, 1.22.26
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix
 - **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix"]
-- **counties**: ["Anderson", "Andrews", "Angelina", "Archer", "Armstrong", "Austin", "Bailey", "Bandera", "Bastrop", "Baylor", "Bell", "Bexar", "Blanco", "Borden", "Bosque", "Bowie", "Brazoria", "Brazos", "Brewster", "Briscoe", "Brown", "Burleson", "Burnet", "Caldwell", "Callahan", "Camp", "Carson", "Cass", "Castro", "Chambers", "Cherokee", "Childress", "Clay", "Cochran", "Coke", "Coleman", "Collin", "Collingsworth", "Colorado", "Comal", "Comanche", "Concho", "Cooke", "Coryell", "Cottle", "Crane", "Crockett", "Crosby", "Culberson", "Dallam", "Dallas", "Dawson", "Deaf Smith", "Delta", "Denton", "Dickens", "Donley", "Eastland", "Ector", "Edwards", "El Paso", "Ellis", "Erath", "Falls", "Fannin", "Fayette", "Fisher", "Floyd", "Foard", "Fort Bend", "Franklin", "Freestone", "Gaines", "Galveston", "Garza", "Gillespie", "Glasscock", "Gonzales", "Gray", "Grayson", "Gregg", "Grimes", "Guadalupe", "Hale", "Hall", "Hamilton", "Hansford", "Hardeman", "Hardin", "Harris", "Harrison", "Hartley", "Haskell", "Hays", "Hemphill", "Henderson", "Hill", "Hockley", "Hood", "Hopkins", "Houston", "Howard", "Hudspeth", "Hunt", "Hutchinson", "Irion", "Jack", "Jasper", "Jeff Davis", "Jefferson", "Johnson", "Jones", "Kaufman", "Kendall", "Kent", "Kerr", "Kimble", "King", "Kinney", "Knox", "Lamar", "Lamb", "Lampasas", "Lee", "Leon", "Liberty", "Limestone", "Lipscomb", "Llano", "Loving", "Lubbock", "Lynn", "Madison", "Marion", "Martin", "Mason", "McCulloch", "McLennan", "Medina", "Menard", "Midland", "Milam", "Mills", "Mitchell", "Montague", "Montgomery", "Moore", "Morris", "Motley", "Nacogdoches", "Navarro", "Newton", "Nolan", "Ochiltree", "Oldham", "Orange", "Palo Pinto", "Panola", "Parker", "Parmer", "Pecos", "Polk", "Potter", "Presidio", "Rains", "Randall", "Reagan", "Real", "Red River", "Reeves", "Roberts", "Robertson", "Rockwall", "Runnels", "Rusk", "Sabine", "San Augustine", "San Jacinto", "San Saba", "Schleicher", "Scurry", "Shackelford", "Shelby", "Sherman", "Smith", "Somervell", "Stephens", "Sterling", "Stonewall", "Sutton", "Swisher", "Tarrant", "Taylor", "Terrell", "Terry", "Throckmorton", "Titus", "Tom Green", "Travis", "Trinity", "Tyler", "Upshur", "Upton", "Uvalde", "Val Verde", "Van Zandt", "Walker", "Waller", "Ward", "Washington", "Wheeler", "Wichita", "Wilbarger", "Williamson", "Winkler", "Wise", "Wood", "Yoakum", "Young"]
+- **counties**: ["Anderson","Andrews","Angelina","Archer","Armstrong","Austin","Bailey","Bandera","Bastrop","Baylor","Bell","Bexar","Blanco","Borden","Bosque","Bowie","Brazoria","Brazos","Brewster","Briscoe","Brown","Burleson","Burnet","Caldwell","Callahan","Camp","Carson","Cass","Castro","Chambers","Cherokee","Childress","Clay","Cochran","Coke","Coleman","Collin","Collingsworth","Colorado","Comal","Comanche","Concho","Cooke","Coryell","Cottle","Crane","Crockett","Crosby","Culberson","Dallam","Dallas","Dawson","Deaf Smith","Delta","Denton","Dickens","Donley","Eastland","Ector","Edwards","El Paso","Ellis","Erath","Falls","Fannin","Fayette","Fisher","Floyd","Foard","Fort Bend","Franklin","Freestone","Gaines","Galveston","Garza","Gillespie","Glasscock","Gonzales","Gray","Grayson","Gregg","Grimes","Guadalupe","Hale","Hall","Hamilton","Hansford","Hardeman","Hardin","Harris","Harrison","Hartley","Haskell","Hays","Hemphill","Henderson","Hill","Hockley","Hood","Hopkins","Houston","Howard","Hudspeth","Hunt","Hutchinson","Irion","Jack","Jasper","Jeff Davis","Jefferson","Johnson","Jones","Kaufman","Kendall","Kent","Kerr","Kimble","King","Kinney","Knox","Lamar","Lamb","Lampasas","Lee","Leon","Liberty","Limestone","Lipscomb","Llano","Loving","Lubbock","Lynn","Madison","Marion","Martin","Mason","McCulloch","McLennan","Medina","Menard","Midland","Milam","Mills","Mitchell","Montague","Montgomery","Moore","Morris","Motley","Nacogdoches","Navarro","Newton","Nolan","Ochiltree","Oldham","Orange","Palo Pinto","Panola","Parker","Parmer","Pecos","Polk","Potter","Presidio","Rains","Randall","Reagan","Real","Red River","Reeves","Roberts","Robertson","Rockwall","Runnels","Rusk","Sabine","San Augustine","San Jacinto","San Saba","Schleicher","Scurry","Shackelford","Shelby","Sherman","Smith","Somervell","Stephens","Sterling","Stonewall","Sutton","Swisher","Tarrant","Taylor","Terrell","Terry","Throckmorton","Titus","Tom Green","Travis","Trinity","Tyler","Upshur","Upton","Uvalde","Val Verde","Van Zandt","Walker","Waller","Ward","Washington","Wheeler","Wichita","Wilbarger","Williamson","Winkler","Wise","Wood","Yoakum","Young"]
 - **counties_raw**: Anderson, Andrews, Angelina, Archer, Armstrong, Austin, Bailey, Bandera, Bastrop, Baylor, Bell, Bexar, Blanco, Borden, Bosque, Bowie, Brazoria, Brazos, Brewster, Briscoe, Brown, Burleson, Burnet, Caldwell, Callahan, Camp, Carson, Cass, Castro, Chambers, Cherokee, Childress, Clay, Cochran, Coke, Coleman, Collin, Collingsworth, Colorado, Comal, Comanche, Concho, Cooke, Coryell, Cottle, Crane, Crockett, Crosby, Culberson, Dallam, Dallas, Dawson, Deaf Smith, Delta, Denton, Dickens, Donley, Eastland, Ector, Edwards, El Paso, Ellis, Erath, Falls, Fannin, Fayette, Fisher, Floyd, Foard, Fort Bend, Franklin, Freestone, Gaines, Galveston, Garza, Gillespie, Glasscock, Gonzales, Gray, Grayson, Gregg, Grimes, Guadalupe, Hale, Hall, Hamilton, Hansford, Hardeman, Hardin, Harris, Harrison, Hartley, Haskell, Hays, Hemphill, Henderson, Hill, Hockley, Hood, Hopkins, Houston, Howard, Hudspeth, Hunt, Hutchinson, Irion, Jack, Jasper, Jeff Davis, Jefferson, Johnson, Jones, Kaufman, Kendall, Kent, Kerr, Kimble, King, Kinney, Knox, Lamar, Lamb, Lampasas, Lee, Leon, Liberty, Limestone, Lipscomb, Llano, Loving, Lubbock, Lynn, Madison, Marion, Martin, Mason, McCulloch, McLennan, Medina, Menard, Midland, Milam, Mills, Mitchell, Montague, Montgomery, Moore, Morris, Motley, Nacogdoches, Navarro, Newton, Nolan, Ochiltree, Oldham, Orange, Palo Pinto, Panola, Parker, Parmer, Pecos, Polk, Potter, Presidio, Rains, Randall, Reagan, Real, Red River, Reeves, Roberts, Robertson, Rockwall, Runnels, Rusk, Sabine, San Augustine, San Jacinto, San Saba, Schleicher, Scurry, Shackelford, Shelby, Sherman, Smith, Somervell, Stephens, Sterling, Stonewall, Sutton, Swisher, Tarrant, Taylor, Terrell, Terry, Throckmorton, Titus, Tom Green, Travis, Trinity, Tyler, Upshur, Upton, Uvalde, Val Verde, Van Zandt, Walker, Waller, Ward, Washington, Wheeler, Wichita, Wilbarger, Williamson, Winkler, Wise, Wood, Yoakum, Young
 - **incident_effective**: 2026-01-22
 - **incident_termination**: 2026-02-25
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 22, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 22, 2026 – Feb 25, 2026
 - **sort_rank**: 195
@@ -8363,13 +8363,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 2/16, 1/17, 12/18, 11/18, 10/19, 9/19, 8/20, 7/21, 6/21, 5/21, 4/22/25, 3/23/25, 2/21/25, 1/22/25
 - **disaster_type_raw**: Border Security / Illegal Immigration
 - **disaster_types**: ["Border Security / Illegal Immigration"]
-- **counties**: ["Aransas", "Atascosa", "Bee", "Brewster", "Brooks", "Caldwell", "Calhoun", "Cameron", "Chambers", "Coleman", "Colorado", "Crane", "Crockett", "Culberson", "DeWitt", "Dimmit", "Duval", "Edwards", "El Paso", "Frio", "Galveston", "Goliad", "Gonzales", "Hidalgo", "Hudspeth", "Jackson", "Jeff Davis", "Jim Hogg", "Jim Wells", "Karnes", "Kenedy", "Kerr", "Kimble", "Kinney", "Kleberg", "La Salle", "Lavaca", "Live Oak", "Mason", "Matagorda", "Maverick", "McCulloch", "McLennan", "McMullen", "Medina", "Menard", "Midland", "Pecos", "Presidio", "Real", "Refugio", "San Jacinto", "San Patricio", "Schleicher", "Shackelford", "Starr", "Sutton", "Terrell", "Throckmorton", "Upton", "Uvalde", "Val Verde", "Victoria", "Webb", "Wharton", "Wilbarger", "Wilson", "Zapata", "and Zavala"]
+- **counties**: ["Aransas","Atascosa","Bee","Brewster","Brooks","Caldwell","Calhoun","Cameron","Chambers","Coleman","Colorado","Crane","Crockett","Culberson","DeWitt","Dimmit","Duval","Edwards","El Paso","Frio","Galveston","Goliad","Gonzales","Hidalgo","Hudspeth","Jackson","Jeff Davis","Jim Hogg","Jim Wells","Karnes","Kenedy","Kerr","Kimble","Kinney","Kleberg","La Salle","Lavaca","Live Oak","Mason","Matagorda","Maverick","McCulloch","McLennan","McMullen","Medina","Menard","Midland","Pecos","Presidio","Real","Refugio","San Jacinto","San Patricio","Schleicher","Shackelford","Starr","Sutton","Terrell","Throckmorton","Upton","Uvalde","Val Verde","Victoria","Webb","Wharton","Wilbarger","Wilson","Zapata","and Zavala"]
 - **counties_raw**: Aransas, Atascosa, Bee, Brewster, Brooks, Caldwell, Calhoun, Cameron, Chambers, Coleman, Colorado, Crane, Crockett, Culberson, DeWitt, Dimmit, Duval, Edwards, El Paso, Frio, Galveston, Goliad, Gonzales, Hidalgo, Hudspeth, Jackson, Jeff Davis, Jim Hogg, Jim Wells, Karnes, Kenedy, Kerr, Kimble, Kinney, Kleberg, La Salle, Lavaca, Live Oak, Mason, Matagorda, Maverick, McCulloch, McLennan, McMullen, Medina, Menard, Midland, Pecos, Presidio, Real, Refugio, San Jacinto, San Patricio, Schleicher, Shackelford, Starr, Sutton, Terrell, Throckmorton, Upton, Uvalde, Val Verde, Victoria, Webb, Wharton, Wilbarger, Wilson, Zapata, and Zavala
 - **incident_effective**: 2021-05-31
 - **incident_termination**: 2026-03-16
 - **sep_effective**: 2021-05-31
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: May 31, 2021 – May 31, 2026
 - **incident_window_raw**: May 31, 2021 – Mar 16, 2026
 - **sort_rank**: 230
@@ -8384,14 +8384,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Texas - Heavy Rain & Flooding - 7/2/2025
 - **declaration_number**: 2/16, 1/17, 12/18, 11/18, 10/19, 9/19, 9/2, 8/20, 7/22, 7/22, 7/16, 7/5, 7/4/2025
 - **disaster_type_raw**: Storms - Rain;Floods
-- **disaster_types**: ["Storms - Rain", "Floods"]
-- **counties**: ["Bandera", "Bexar", "Burnet", "Caldwell", "Coke", "Comal", "Concho", "Edwards", "Gillespie", "Guadalupe", "Hamilton", "Kendall", "Kerr", "Kimble", "Kinney", "Lampasas", "Llano", "Mason", "Maverick", "McCulloch", "Menard", "Real", "Reeves", "San Saba", "Schleicher", "Sutton", "Tom Green", "Travis", "Uvalde", "and Williamson"]
+- **disaster_types**: ["Storms - Rain","Floods"]
+- **counties**: ["Bandera","Bexar","Burnet","Caldwell","Coke","Comal","Concho","Edwards","Gillespie","Guadalupe","Hamilton","Kendall","Kerr","Kimble","Kinney","Lampasas","Llano","Mason","Maverick","McCulloch","Menard","Real","Reeves","San Saba","Schleicher","Sutton","Tom Green","Travis","Uvalde","and Williamson"]
 - **counties_raw**: Bandera, Bexar, Burnet, Caldwell, Coke, Comal, Concho, Edwards, Gillespie, Guadalupe, Hamilton, Kendall, Kerr, Kimble, Kinney, Lampasas, Llano, Mason, Maverick, McCulloch, Menard, Real, Reeves, San Saba, Schleicher, Sutton, Tom Green, Travis, Uvalde, and Williamson
 - **incident_effective**: 2025-07-02
 - **incident_termination**: 2026-03-16
 - **sep_effective**: 2025-07-02
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Jul 2, 2025 – May 31, 2026
 - **incident_window_raw**: Jul 2, 2025 – Mar 16, 2026
 - **sort_rank**: 231
@@ -8407,13 +8407,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 2.7.26, 12.9, 11.9, 10.10, 8.11.25
 - **disaster_type_raw**: Fires/Wildfires
 - **disaster_types**: ["Fires/Wildfires"]
-- **counties**: ["2/7/26: Excludes Jasper   2/9/26 : Added - Brazos", "Delta", "Fannin", "Franklin", "Grimes", "Hopkins", "Houston", "Hunt", "Madison", "Polk", "Real", "Red River", "Robertson", "San Jacinto", "Titus", "Trinity", "Uvalde", "Walker     Amended Excluded  and added 12/9/25: Borden", "Garza", "Glasscock", "Howard", "Irion", "Lynn", "Reagan", "Schleicher", "Sterling", "& Sutton  Full Amended List as of 12/9/25: Andrews", "Aransas", "Archer", "Armstrong", "Atascosa", "Austin", "Bailey", "Bandera", "Bastrop", "Baylor", "Bee", "Bexar", "Blanco", "Borden", "Briscoe", "Brooks", "Brown", "Burleson", "Burnet", "Caldwell", "Calhoun", "Callahan", "Cameron", "Carson", "Castro", "Childress", "Clay", "Cochran", "Coke", "Coleman", "Collingsworth", "Colorado", "Comal", "Comanche", "Concho", "Cottle", "Crane", "Crockett", "Crosby", "Culberson", "Dallam", "Dawson", "Deaf Smith", "DeWitt", "Dickens", "Dimmit", "Donley", "Duval", "Eastland", "Ector", "El Paso", "Erath", "Fayette", "Fisher", "Floyd", "Foard", "Frio", "Gaines", "Gillespie", "Goliad", "Gonzales", "Gray", "Guadalupe", "Hale", "Hall", "Hamilton", "Hansford", "Hardeman", "Hartley", "Haskell", "Hays", "Hemphill", "Hidalgo", "Hockley", "Hood", "Hudspeth", "Hutchinson", "Jack", "Jackson", "Jasper", "Jeff Davis", "Jim Hogg", "Jim Wells", "Jones", "Karnes", "Kendall", "Kenedy", "Kent", "Kerr", "Kimble", "King", "Kleberg", "Knox", "La Salle", "Lamb", "Lampasas", "Lavaca", "Lee", "Lipscomb", "Live Oak", "Llano", "Loving", "Lubbock", "Martin", "Mason", "Matagorda", "Maverick", "McCulloch", "McMullen", "Medina", "Menard", "Midland", "Milam", "Mills", "Mitchell", "Moore", "Motley", "Nolan", "Nueces", "Ochiltree", "Oldham", "Palo Pinto", "Parker", "Parmer", "Pecos", "Potter", "Randall", "Reeves", "Refugio", "Roberts", "Runnels", "San Patricio", "San Saba", "Scurry", "Shackelford", "Sherman", "Somervell", "Starr", "Stephens", "Stonewall", "Sutton", "Swisher", "Taylor", "Terry", "Throckmorton", "Tom Green", "Travis", "Upton", "Victoria", "Waller", "Ward", "Washington", "Webb", "Wharton", "Wheeler", "Wichita", "Wilbarger", "Willacy", "Williamson", "Wilson", "Winkler", "Yoakum", "Young", "Zapata", "and Zavala"]
+- **counties**: ["2/7/26: Excludes Jasper   2/9/26 : Added - Brazos","Delta","Fannin","Franklin","Grimes","Hopkins","Houston","Hunt","Madison","Polk","Real","Red River","Robertson","San Jacinto","Titus","Trinity","Uvalde","Walker     Amended Excluded  and added 12/9/25: Borden","Garza","Glasscock","Howard","Irion","Lynn","Reagan","Schleicher","Sterling","& Sutton  Full Amended List as of 12/9/25: Andrews","Aransas","Archer","Armstrong","Atascosa","Austin","Bailey","Bandera","Bastrop","Baylor","Bee","Bexar","Blanco","Borden","Briscoe","Brooks","Brown","Burleson","Burnet","Caldwell","Calhoun","Callahan","Cameron","Carson","Castro","Childress","Clay","Cochran","Coke","Coleman","Collingsworth","Colorado","Comal","Comanche","Concho","Cottle","Crane","Crockett","Crosby","Culberson","Dallam","Dawson","Deaf Smith","DeWitt","Dickens","Dimmit","Donley","Duval","Eastland","Ector","El Paso","Erath","Fayette","Fisher","Floyd","Foard","Frio","Gaines","Gillespie","Goliad","Gonzales","Gray","Guadalupe","Hale","Hall","Hamilton","Hansford","Hardeman","Hartley","Haskell","Hays","Hemphill","Hidalgo","Hockley","Hood","Hudspeth","Hutchinson","Jack","Jackson","Jasper","Jeff Davis","Jim Hogg","Jim Wells","Jones","Karnes","Kendall","Kenedy","Kent","Kerr","Kimble","King","Kleberg","Knox","La Salle","Lamb","Lampasas","Lavaca","Lee","Lipscomb","Live Oak","Llano","Loving","Lubbock","Martin","Mason","Matagorda","Maverick","McCulloch","McMullen","Medina","Menard","Midland","Milam","Mills","Mitchell","Moore","Motley","Nolan","Nueces","Ochiltree","Oldham","Palo Pinto","Parker","Parmer","Pecos","Potter","Randall","Reeves","Refugio","Roberts","Runnels","San Patricio","San Saba","Scurry","Shackelford","Sherman","Somervell","Starr","Stephens","Stonewall","Sutton","Swisher","Taylor","Terry","Throckmorton","Tom Green","Travis","Upton","Victoria","Waller","Ward","Washington","Webb","Wharton","Wheeler","Wichita","Wilbarger","Willacy","Williamson","Wilson","Winkler","Yoakum","Young","Zapata","and Zavala"]
 - **counties_raw**: 2/7/26: Excludes Jasper   2/9/26 : Added - Brazos, Delta, Fannin, Franklin, Grimes, Hopkins, Houston, Hunt, Madison, Polk, Real, Red River, Robertson, San Jacinto, Titus, Trinity, Uvalde, Walker     Amended Excluded  and added 12/9/25: Borden, Garza, Glasscock, Howard, Irion, Lynn, Reagan, Schleicher, Sterling, & Sutton  Full Amended List as of 12/9/25: Andrews, Aransas, Archer, Armstrong, Atascosa, Austin, Bailey, Bandera, Bastrop, Baylor, Bee, Bexar, Blanco, Borden, Briscoe, Brooks, Brown, Burleson, Burnet, Caldwell, Calhoun, Callahan, Cameron, Carson, Castro, Childress, Clay, Cochran, Coke, Coleman, Collingsworth, Colorado, Comal, Comanche, Concho, Cottle, Crane, Crockett, Crosby, Culberson, Dallam, Dawson, Deaf Smith, DeWitt, Dickens, Dimmit, Donley, Duval, Eastland, Ector, El Paso, Erath, Fayette, Fisher, Floyd, Foard, Frio, Gaines, Gillespie, Goliad, Gonzales, Gray, Guadalupe, Hale, Hall, Hamilton, Hansford, Hardeman, Hartley, Haskell, Hays, Hemphill, Hidalgo, Hockley, Hood, Hudspeth, Hutchinson, Jack, Jackson, Jasper, Jeff Davis, Jim Hogg, Jim Wells, Jones, Karnes, Kendall, Kenedy, Kent, Kerr, Kimble, King, Kleberg, Knox, La Salle, Lamb, Lampasas, Lavaca, Lee, Lipscomb, Live Oak, Llano, Loving, Lubbock, Martin, Mason, Matagorda, Maverick, McCulloch, McMullen, Medina, Menard, Midland, Milam, Mills, Mitchell, Moore, Motley, Nolan, Nueces, Ochiltree, Oldham, Palo Pinto, Parker, Parmer, Pecos, Potter, Randall, Reeves, Refugio, Roberts, Runnels, San Patricio, San Saba, Scurry, Shackelford, Sherman, Somervell, Starr, Stephens, Stonewall, Sutton, Swisher, Taylor, Terry, Throckmorton, Tom Green, Travis, Upton, Victoria, Waller, Ward, Washington, Webb, Wharton, Wheeler, Wichita, Wilbarger, Willacy, Williamson, Wilson, Winkler, Yoakum, Young, Zapata, and Zavala
 - **incident_effective**: 2025-08-10
 - **incident_termination**: 2026-03-07
 - **sep_effective**: 2025-08-10
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Aug 10, 2025 – May 31, 2026
 - **incident_window_raw**: Aug 10, 2025 – Mar 7, 2026
 - **sort_rank**: 233
@@ -8435,7 +8435,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-03-01
 - **sep_effective**: 2026-01-29
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Jan 29, 2026 – May 31, 2026
 - **incident_window_raw**: Jan 29, 2026 – Mar 1, 2026
 - **sort_rank**: 232
@@ -8451,13 +8451,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_number**: 2/16
 - **disaster_type_raw**: Drought
 - **disaster_types**: ["Drought"]
-- **counties**: ["Aransas", "Atascosa", "Austin", "Bandera", "Bastrop", "Bee", "Bexar", "Blanco", "Bowie", "Brazos", "Brewster", "Brooks", "Burleson", "Burnet", "Caldwell", "Calhoun", "Cameron", "Childress", "Clay", "Collingsworth", "Colorado", "Comal", "Comanche", "Delta", "DeWitt", "Dimmit", "Donley", "Duval", "Fayette", "Foard", "Franklin", "Freestone", "Frio", "Gillespie", "Goliad", "Gonzales", "Grayson", "Grimes", "Guadalupe", "Hall", "Hardeman", "Hays", "Hidalgo", "Hopkins", "Jackson", "Jim Hogg", "Jim Wells", "Karnes", "Kendall", "Kenedy", "Kerr", "Kinney", "Kleberg", "La Salle", "Lamar", "Lavaca", "Lee", "Liberty", "Live Oak", "Llano", "Lubbock", "Maverick", "McMullen", "Medina", "Milam", "Montgomery", "Nueces", "Pecos", "Presidio", "Real", "Red River", "Refugio", "San Jacinto", "San Patricio", "Starr", "Titus", "Travis", "Uvalde", "Val Verde", "Victoria", "Waller", "Washington", "Webb", "Wharton", "Willacy", "Williamson", "Wilson", "Zapata", "and Zavala"]
+- **counties**: ["Aransas","Atascosa","Austin","Bandera","Bastrop","Bee","Bexar","Blanco","Bowie","Brazos","Brewster","Brooks","Burleson","Burnet","Caldwell","Calhoun","Cameron","Childress","Clay","Collingsworth","Colorado","Comal","Comanche","Delta","DeWitt","Dimmit","Donley","Duval","Fayette","Foard","Franklin","Freestone","Frio","Gillespie","Goliad","Gonzales","Grayson","Grimes","Guadalupe","Hall","Hardeman","Hays","Hidalgo","Hopkins","Jackson","Jim Hogg","Jim Wells","Karnes","Kendall","Kenedy","Kerr","Kinney","Kleberg","La Salle","Lamar","Lavaca","Lee","Liberty","Live Oak","Llano","Lubbock","Maverick","McMullen","Medina","Milam","Montgomery","Nueces","Pecos","Presidio","Real","Red River","Refugio","San Jacinto","San Patricio","Starr","Titus","Travis","Uvalde","Val Verde","Victoria","Waller","Washington","Webb","Wharton","Willacy","Williamson","Wilson","Zapata","and Zavala"]
 - **counties_raw**: Aransas, Atascosa, Austin, Bandera, Bastrop, Bee, Bexar, Blanco, Bowie, Brazos, Brewster, Brooks, Burleson, Burnet, Caldwell, Calhoun, Cameron, Childress, Clay, Collingsworth, Colorado, Comal, Comanche, Delta, DeWitt, Dimmit, Donley, Duval, Fayette, Foard, Franklin, Freestone, Frio, Gillespie, Goliad, Gonzales, Grayson, Grimes, Guadalupe, Hall, Hardeman, Hays, Hidalgo, Hopkins, Jackson, Jim Hogg, Jim Wells, Karnes, Kendall, Kenedy, Kerr, Kinney, Kleberg, La Salle, Lamar, Lavaca, Lee, Liberty, Live Oak, Llano, Lubbock, Maverick, McMullen, Medina, Milam, Montgomery, Nueces, Pecos, Presidio, Real, Red River, Refugio, San Jacinto, San Patricio, Starr, Titus, Travis, Uvalde, Val Verde, Victoria, Waller, Washington, Webb, Wharton, Willacy, Williamson, Wilson, Zapata, and Zavala
 - **incident_effective**: 2022-07-08
 - **incident_termination**: 2026-03-16
 - **sep_effective**: 2022-07-08
 - **sep_termination**: 2026-05-31
-- **days_since_expiry**: 86
+- **days_since_expiry**: 127
 - **sep_window_raw**: Jul 8, 2022 – May 31, 2026
 - **incident_window_raw**: Jul 8, 2022 – Mar 16, 2026
 - **sort_rank**: 229
@@ -8479,7 +8479,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-22
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 22, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 22, 2026 – Feb 22, 2026
 - **sort_rank**: 196
@@ -8494,14 +8494,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Vermont - Severe Storms 7/9 thru 7/11/2023
 - **declaration_number**: 12/31/2024, 8/9/2023, 7/13/2024, 7/10/2024, 1/12/2024, 04-23, 03-23
 - **disaster_type_raw**: Storms - Rain;Floods;Straight-Line Winds;Landslides/Mudslides
-- **disaster_types**: ["Storms - Rain", "Floods", "Straight-Line Winds", "Landslides/Mudslides"]
+- **disaster_types**: ["Storms - Rain","Floods","Straight-Line Winds","Landslides/Mudslides"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2023-07-09
 - **incident_termination**: 2025-12-31
 - **sep_effective**: 2023-07-09
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Jul 9, 2023 – Feb 28, 2026
 - **incident_window_raw**: Jul 9, 2023 – Dec 31, 2025
 - **sort_rank**: 120
@@ -8523,7 +8523,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-12-11
 - **sep_effective**: 2025-11-11
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Nov 11, 2025 – Feb 28, 2026
 - **incident_window_raw**: Nov 11, 2025 – Dec 11, 2025
 - **sort_rank**: 122
@@ -8538,13 +8538,13 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Washington - December Atmospheric River & Windy Weather 12/2/2025
 - **declaration_number**: 25-07.2, 25-07.1, 25-07
 - **disaster_type_raw**: Straight-Line Winds;Floods;Landslides/Mudslides
-- **disaster_types**: ["Straight-Line Winds", "Floods", "Landslides/Mudslides"]
+- **disaster_types**: ["Straight-Line Winds","Floods","Landslides/Mudslides"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2025-12-02
 - **sep_effective**: 2025-12-02
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Dec 2, 2025 – Feb 28, 2026
 - **incident_window_raw**: Dec 2, 2025 – ongoing
 - **sort_rank**: 121
@@ -8566,7 +8566,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2025-12-31
 - **sep_effective**: 2025-10-31
 - **sep_termination**: 2026-02-28
-- **days_since_expiry**: 178
+- **days_since_expiry**: 219
 - **sep_window_raw**: Oct 31, 2025 – Feb 28, 2026
 - **incident_window_raw**: Oct 31, 2025 – Dec 31, 2025
 - **sort_rank**: 123
@@ -8581,14 +8581,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Wisconsin - Energy Emergency 11/27/2025
 - **declaration_number**: 284, 283, 282
 - **disaster_type_raw**: Fuel Shortage;Other
-- **disaster_types**: ["Fuel Shortage", "Other"]
+- **disaster_types**: ["Fuel Shortage","Other"]
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
 - **incident_effective**: 2025-11-27
 - **incident_termination**: 2026-03-16
 - **sep_effective**: 2025-11-27
 - **sep_termination**: 2026-05-30
-- **days_since_expiry**: 87
+- **days_since_expiry**: 128
 - **sep_window_raw**: Nov 27, 2025 – May 30, 2026
 - **incident_window_raw**: Nov 27, 2025 – Mar 16, 2026
 - **sort_rank**: 200
@@ -8610,7 +8610,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-23
 - **sep_effective**: 2026-01-23
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Jan 23, 2026 – Apr 30, 2026
 - **incident_window_raw**: Jan 23, 2026 – Feb 23, 2026
 - **sort_rank**: 197
@@ -8632,7 +8632,7 @@ Whatcom, Whitman, and Yakima counties
 - **incident_termination**: 2026-02-14
 - **sep_effective**: 2025-02-14
 - **sep_termination**: 2026-04-30
-- **days_since_expiry**: 117
+- **days_since_expiry**: 158
 - **sep_window_raw**: Feb 14, 2025 – Apr 30, 2026
 - **incident_window_raw**: Feb 14, 2025 – Feb 14, 2026
 - **sort_rank**: 198

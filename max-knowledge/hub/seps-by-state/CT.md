@@ -1,7 +1,7 @@
 # SEP Tracker — CT
 
-3 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+3 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-lis-ct — Connecticut — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -21,7 +21,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Connecticut - Limits Commercial Vehicle Travel Ahead of Approaching Major Winter Storm 1/24/2026
-- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix", "Other"]
+- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix","Other"]
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix;Other
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL

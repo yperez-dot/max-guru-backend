@@ -1,7 +1,7 @@
 # SEP Tracker — GU
 
-3 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+3 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0214 — Guam - Typhoon Bavi 7/2/2026
 - **status**: active
@@ -18,7 +18,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-07-02
 - **incident_termination**: 2026-09-08
 - **incident_window_raw**: Jul 2, 2026 – Sep 8, 2026
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-xl-gu-typhoonbavi-202612 — Guam — Typhoon Bavi
 - **status**: active
@@ -34,7 +34,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: July 2, 2026 – December 31, 2026
 - **incident_effective**: 2026-07-02
 - **incident_window_raw**: July 2, 2026 – ongoing
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87
 
 ## sep-xl-gu-typhoonsinlaku-202612 — Guam — Typhoon Sinlaku
 - **status**: active
@@ -50,4 +50,4 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: April 11, 2026 – December 31, 2026
 - **incident_effective**: 2026-04-11
 - **incident_window_raw**: April 11, 2026 – ongoing
-- **days_until_expiry**: 128
+- **days_until_expiry**: 87

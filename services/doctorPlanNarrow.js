@@ -152,7 +152,7 @@ function shortPlanHeader(p) {
     .replace(/\((?:Regional )?(HMO-POS|HMO|PPO)(?: D-SNP)?\)/i, '$1')
     .replace(/\s+/g, ' ')
     .trim();
-  return `${name} · ${p.planId}`;
+  return !name || name.toUpperCase() === p.planId.toUpperCase() ? p.planId : `${name} · ${p.planId}`;
 }
 
 const CELL = { in: '✅ In', out: '❌ Out', unknown: '❔' };

@@ -1,7 +1,7 @@
 # SEP Tracker — WY
 
-5 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+5 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0204 — Wyoming - Red Canyon Fire 8/15/25
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Aug 15, 2025 – Oct 31, 2026
 - **incident_effective**: 2025-08-15
 - **incident_window_raw**: Aug 15, 2025 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **declaration_number**: FM-5608-WY
 
 ## sep-0205 — Wyoming - Fire 8/13/202
@@ -27,14 +27,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Wyoming - Fire 8/13/202
 - **disaster_types**: ["Fires/Wildfires"]
 - **disaster_type_raw**: Fires/Wildfires
-- **counties**: ["Hot Springs", "Fremont", "Park", "Washakie"]
+- **counties**: ["Hot Springs","Fremont","Park","Washakie"]
 - **counties_raw**: Hot Springs, Fremont, Park, Washakie
 - **sep_effective**: 2025-08-13
 - **sep_termination**: 2026-10-31
 - **sep_window_raw**: Aug 13, 2025 – Oct 31, 2026
 - **incident_effective**: 2025-08-13
 - **incident_window_raw**: Aug 13, 2025 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **declaration_number**: 2025-05
 
 ## sep-0206 — Wyoming - Dollar Lake Fire 8/25/2025
@@ -51,7 +51,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Aug 25, 2025 – Oct 31, 2026
 - **incident_effective**: 2025-08-25
 - **incident_window_raw**: Aug 25, 2025 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 - **declaration_number**: 2505-6
 
 ## sep-lis-wy — Wyoming — Dual / LIS PDP Monthly SEP

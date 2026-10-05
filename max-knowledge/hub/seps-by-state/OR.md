@@ -1,7 +1,7 @@
 # SEP Tracker — OR
 
-22 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+22 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0163 — Oregon - Rowena Fire - 6/11/2025
 - **status**: active
@@ -18,7 +18,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2025-06-11
 - **incident_termination**: 2026-06-30
 - **incident_window_raw**: Jun 11, 2025 – Jun 30, 2026
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 - **declaration_number**: 26-03, 25-28, 25-17, 25-08, 25-06
 
 ## sep-0164 — Oregon - Homelessness 1/10/2023
@@ -28,7 +28,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Oregon - Homelessness 1/10/2023
 - **disaster_types**: ["Homelessness/Housing Crisis"]
 - **disaster_type_raw**: Homelessness/Housing Crisis
-- **counties**: ["1/7/2026 updated list to include: Metro region Continuums of Care", "Central Oregon", "Eugene", "Springfield/Lane", "Medford", "Ashland/Jackson", "Salem/Marion", "Polk", "Linn", "Clatsop  & Malheur    1/7/2025 updated list to include: Metro region Continuums of Care", "Clatsop  & Malheur   1/11/2024 updated list:  Metro Region Continuums of Care", "Salem", "Marion", "Clatstop and Malhaeur.     Clatsop", "Malheur", "Portland", "Gresham/Multnomah", "Central", "Hillsboro", "Beaverton/Washington", "Clackamas"]
+- **counties**: ["1/7/2026 updated list to include: Metro region Continuums of Care","Central Oregon","Eugene","Springfield/Lane","Medford","Ashland/Jackson","Salem/Marion","Polk","Linn","Clatsop  & Malheur    1/7/2025 updated list to include: Metro region Continuums of Care","Clatsop  & Malheur   1/11/2024 updated list:  Metro Region Continuums of Care","Salem","Marion","Clatstop and Malhaeur.     Clatsop","Malheur","Portland","Gresham/Multnomah","Central","Hillsboro","Beaverton/Washington","Clackamas"]
 - **counties_raw**: 1/7/2026 updated list to include: Metro region Continuums of Care, Central Oregon, Eugene, Springfield/Lane, Medford, Ashland/Jackson, Salem/Marion, Polk, Linn, Clatsop  & Malheur    1/7/2025 updated list to include: Metro region Continuums of Care, Clatsop  & Malheur   1/11/2024 updated list:  Metro Region Continuums of Care, Salem, Marion, Clatstop and Malhaeur.     Clatsop, Malheur, Portland, Gresham/Multnomah, Central, Hillsboro, Beaverton/Washington, Clackamas
 - **sep_effective**: 2026-05-19
 - **sep_termination**: 2027-02-28
@@ -36,7 +36,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2023-01-10
 - **incident_termination**: 2027-01-10
 - **incident_window_raw**: Jan 10, 2023 – Jan 10, 2027
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 - **declaration_number**: 26-01, 25-01, 24-03, 24-02, 23-09, 23-03, 23-02
 
 ## sep-0235 — Oregon - Grasshopper Fire 7/29/2026
@@ -54,7 +54,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-07-29
 - **incident_termination**: 2026-09-25
 - **incident_window_raw**: Jul 29, 2026 – Sep 25, 2026
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-0236 — Oregon - Wrights Spring Fire 8/7/2026
 - **status**: active
@@ -71,7 +71,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-08-07
 - **incident_termination**: 2026-10-04
 - **incident_window_raw**: Aug 7, 2026 – Oct 4, 2026
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 
 ## sep-0237 — Oregon - Wrights Spring Fire 8/7/2026
 - **status**: active
@@ -88,7 +88,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-08-07
 - **incident_termination**: 2027-08-08
 - **incident_window_raw**: Aug 7, 2026 – Aug 8, 2027
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 
 ## sep-0238 — Oregon - Hagen Fire 7/21/2026
 - **status**: active
@@ -97,7 +97,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Oregon - Hagen Fire 7/21/2026
 - **disaster_types**: ["Fires/Wildfires"]
 - **disaster_type_raw**: Fires/Wildfires
-- **counties**: ["Umatilla", "Union"]
+- **counties**: ["Umatilla","Union"]
 - **counties_raw**: Umatilla, Union
 - **sep_effective**: 2026-07-21
 - **sep_termination**: 2027-10-31
@@ -105,7 +105,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-07-21
 - **incident_termination**: 2027-08-08
 - **incident_window_raw**: Jul 21, 2026 – Aug 8, 2027
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 
 ## sep-0239 — Oregon - Fielder Mountain Fire 8/13/2026
 - **status**: active
@@ -114,7 +114,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Oregon - Fielder Mountain Fire 8/13/2026
 - **disaster_types**: ["Fires/Wildfires"]
 - **disaster_type_raw**: Fires/Wildfires
-- **counties**: ["Jackson", "Josephine"]
+- **counties**: ["Jackson","Josephine"]
 - **counties_raw**: Jackson, Josephine
 - **sep_effective**: 2026-08-07
 - **sep_termination**: 2027-10-31
@@ -122,7 +122,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-08-13
 - **incident_termination**: 2027-08-12
 - **incident_window_raw**: Aug 13, 2026 – Aug 12, 2027
-- **days_until_expiry**: 432
+- **days_until_expiry**: 391
 
 ## sep-xl-or-droughtconditio-202702 — Oregon — Drought Conditions
 - **status**: active
@@ -131,14 +131,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Oregon — Drought Conditions
 - **disaster_types**: ["Drought Conditions"]
 - **disaster_type_raw**: Drought Conditions
-- **counties**: ["Coos", "Klamath", "Wheeler"]
+- **counties**: ["Coos","Klamath","Wheeler"]
 - **counties_raw**: Coos, Klamath, and Wheeler counties
 - **sep_effective**: 2026-04-28
 - **sep_termination**: 2027-02-28
 - **sep_window_raw**: April 28, 2026 – February 28, 2027
 - **incident_effective**: 2026-04-28
 - **incident_window_raw**: April 28, 2026 – ongoing
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 
 ## sep-xl-or-droughtemergenc-202702 — Oregon — Drought Emergency
 - **status**: active
@@ -147,14 +147,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Oregon — Drought Emergency
 - **disaster_types**: ["Drought Emergency"]
 - **disaster_type_raw**: Drought Emergency
-- **counties**: ["Baker", "Deschutes", "Umatilla"]
+- **counties**: ["Baker","Deschutes","Umatilla"]
 - **counties_raw**: Baker, Deschutes, Umatilla Counties
 - **sep_effective**: 2026-03-13
 - **sep_termination**: 2027-02-28
 - **sep_window_raw**: March 13, 2026 – February 28, 2027
 - **incident_effective**: 2026-03-13
 - **incident_window_raw**: March 13, 2026 – ongoing
-- **days_until_expiry**: 187
+- **days_until_expiry**: 146
 
 ## sep-xl-or-rowecreekcomple-202610 — Oregon — Rowe Creek Complex
 - **status**: active
@@ -170,7 +170,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: July 17, 2026 – October 31, 2026
 - **incident_effective**: 2026-07-17
 - **incident_window_raw**: July 17, 2026 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-xl-or-rowenafire-202608 — Oregon — Rowena Fire
 - **status**: expiring
@@ -186,7 +186,6 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: June 11, 2025 – August 31, 2026
 - **incident_effective**: 2025-06-11
 - **incident_window_raw**: June 11, 2025 – ongoing
-- **days_until_expiry**: 6
 
 ## sep-xl-or-upperapplegater-202608 — Oregon — Upper Applegate Road Fire
 - **status**: expiring
@@ -202,7 +201,6 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: June 18, 2025 – August 31, 2026
 - **incident_effective**: 2025-06-18
 - **incident_window_raw**: June 18, 2025 – ongoing
-- **days_until_expiry**: 6
 
 ## sep-lis-or — Oregon — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -275,7 +273,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Oregon - State of Drought - 7/2/2025
 - **disaster_types**: ["Drought"]
 - **disaster_type_raw**: Drought
-- **counties**: ["Morrow", "D Morrow", "Douglas", "& Union"]
+- **counties**: ["Morrow","D Morrow","Douglas","& Union"]
 - **counties_raw**: Morrow, D Morrow, Douglas, & Union
 - **sep_effective**: 2025-07-02
 - **sep_termination**: 2026-02-28
@@ -292,7 +290,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Oregon - Drought 8/13/25
 - **disaster_types**: ["Drought"]
 - **disaster_type_raw**: Drought
-- **counties**: ["Coos", "Wheeler"]
+- **counties**: ["Coos","Wheeler"]
 - **counties_raw**: Coos, Wheeler
 - **sep_effective**: 2025-08-13
 - **sep_termination**: 2026-02-28
@@ -360,7 +358,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Oregon - Severe Storms 12/8/2025
 - **disaster_types**: ["Storms - Rain"]
 - **disaster_type_raw**: Storms - Rain
-- **counties**: ["clackamas", "clatsop", "coos", "curry", "Douglas", "Hood River", "Jackson", "Klamath", "Lane", "Lincoln", "Marion", "Multnomah", "Tillamook", "Washington", "and yamhill"]
+- **counties**: ["clackamas","clatsop","coos","curry","Douglas","Hood River","Jackson","Klamath","Lane","Lincoln","Marion","Multnomah","Tillamook","Washington","and yamhill"]
 - **counties_raw**: clackamas, clatsop, coos, curry, Douglas, Hood River, Jackson, Klamath, Lane, Lincoln, Marion, Multnomah, Tillamook, Washington, and yamhill
 - **sep_effective**: 2025-12-08
 - **sep_termination**: 2026-03-31

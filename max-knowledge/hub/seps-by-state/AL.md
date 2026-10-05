@@ -1,7 +1,7 @@
 # SEP Tracker — AL
 
-2 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+2 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-lis-al — Alabama — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -21,9 +21,9 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Alabama - Winter Storm Event 1/22/2026
-- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix", "Temperature - Arctic Blast/Dangerous Cold"]
+- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix","Temperature - Arctic Blast/Dangerous Cold"]
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix;Temperature - Arctic Blast/Dangerous Cold
-- **counties**: ["Blount", "Cherokee", "Colbert", "Cullman", "DeKalb", "Etowah Fayette", "Franklin", "Geneva", "Houston", "Jackson", "Lamar", "Lauderdale", "Lawrence", "Limestone", "Madison", "Marion", "Marshall", "Montgomery", "Morgan", "Walker", "& Winston"]
+- **counties**: ["Blount","Cherokee","Colbert","Cullman","DeKalb","Etowah Fayette","Franklin","Geneva","Houston","Jackson","Lamar","Lauderdale","Lawrence","Limestone","Madison","Marion","Marshall","Montgomery","Morgan","Walker","& Winston"]
 - **counties_raw**: Blount, Cherokee, Colbert, Cullman, DeKalb, Etowah Fayette, Franklin, Geneva, Houston, Jackson, Lamar, Lauderdale, Lawrence, Limestone, Madison, Marion, Marshall, Montgomery, Morgan, Walker, & Winston
 - **sep_effective**: 2026-01-22
 - **sep_termination**: 2026-05-31

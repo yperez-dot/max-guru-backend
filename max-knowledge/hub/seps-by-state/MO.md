@@ -1,7 +1,7 @@
 # SEP Tracker — MO
 
-8 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+8 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-xl-mo-severestormsstr-202610 — Missouri — Severe Storms, Straight-line Winds, Tornadoes, and Flooding
 - **status**: active
@@ -10,14 +10,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Missouri — Severe Storms, Straight-line Winds, Tornadoes, and Flooding
 - **disaster_types**: ["Severe Storms, Straight-line Winds, Tornadoes, and Flooding"]
 - **disaster_type_raw**: Severe Storms, Straight-line Winds, Tornadoes, and Flooding
-- **counties**: ["Adair", "Andrew", "Callaway", "Camden", "Cape Girardeau", "Dade", "Daviess", "Gasconade", "Gentry", "Grundy", "Harrison", "Hickory", "Holt", "Jasper", "Knox", "Lewis", "Linn", "Macon", "Marion", "Mercer", "Miller", "Moniteau", "Morgan", "Newton", "Nodaway", "Osage", "Polk", "Putnam", "Scott", "Shelby", "Sullivan", "Vernon", "Webster", "Worth"]
+- **counties**: ["Adair","Andrew","Callaway","Camden","Cape Girardeau","Dade","Daviess","Gasconade","Gentry","Grundy","Harrison","Hickory","Holt","Jasper","Knox","Lewis","Linn","Macon","Marion","Mercer","Miller","Moniteau","Morgan","Newton","Nodaway","Osage","Polk","Putnam","Scott","Shelby","Sullivan","Vernon","Webster","Worth"]
 - **counties_raw**: Adair, Andrew, Callaway, Camden, Cape Girardeau, Dade, Daviess, Gasconade, Gentry, Grundy, Harrison, Hickory, Holt, Jasper, Knox, Lewis, Linn, Macon, Marion, Mercer, Miller, Moniteau, Morgan, Newton, Nodaway, Osage, Polk, Putnam, Scott, Shelby, Sullivan, Vernon, Webster, Worth counties
 - **sep_effective**: 2026-06-04
 - **sep_termination**: 2026-10-31
 - **sep_window_raw**: June 4, 2026 – October 31, 2026
 - **incident_effective**: 2026-06-04
 - **incident_window_raw**: June 4, 2026 – ongoing
-- **days_until_expiry**: 67
+- **days_until_expiry**: 26
 
 ## sep-xl-mo-severestormsyst-202609 — Missouri — Severe Storm Systems
 - **status**: active
@@ -33,7 +33,6 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: June 4, 2026 – September 30, 2026
 - **incident_effective**: 2026-06-04
 - **incident_window_raw**: June 4, 2026 – ongoing
-- **days_until_expiry**: 36
 
 ## sep-xl-mo-severestormsyst-202608 — Missouri — Severe Storm Systems
 - **status**: expiring
@@ -49,7 +48,6 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: May 16, 2026 – August 31, 2026
 - **incident_effective**: 2026-05-16
 - **incident_window_raw**: May 16, 2026 – ongoing
-- **days_until_expiry**: 6
 
 ## sep-lis-mo — Missouri — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -86,7 +84,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Missouri - Severe Storm Systems 3/14/2025
-- **disaster_types**: ["Straight-Line Winds", "Storms - Rain", "Floods"]
+- **disaster_types**: ["Straight-Line Winds","Storms - Rain","Floods"]
 - **disaster_type_raw**: Straight-Line Winds;Storms - Rain;Floods
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
@@ -103,7 +101,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Missouri - January Severe Winter Storms 1/22/2026
-- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix", "Temperature - Arctic Blast/Dangerous Cold"]
+- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix","Temperature - Arctic Blast/Dangerous Cold"]
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix;Temperature - Arctic Blast/Dangerous Cold
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
@@ -122,7 +120,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Missouri - Drought 9/22/2025
 - **disaster_types**: ["Drought"]
 - **disaster_type_raw**: Drought
-- **counties**: ["Audrain", "Barry", "Bates", "Benton", "Bollinger", "Boone", "Butler", "Callaway", "Camden", "Cape Girardeau", "Carter", "Cass", "Christian", "Clark", "Clay", "Cole", "Cooper", "Crawford", "Dade", "Dallas", "Dent", "Douglas", "Dunklin", "Franklin", "Gasconade", "Greene", "Henry", "Hickory", "Howard", "Howell", "Iron", "Jackson", "Jasper", "Jefferson", "Johnson", "Knox", "Laclede", "Lafayette", "Lawrence", "Lewis", "Lincoln", "Madison", "Maries", "Marion", "McDonald", "Miller", "Mississippi", "Moniteau", "Monroe", "Montgomery", "Morgan", "New Madrid", "Newton", "Oregon", "Osage", "Ozark", "Pemiscot", "Perry", "Pettis", "Phelps", "Pike", "Platte", "Polk", "Pulaski", "Ralls", "Ray", "Reynolds", "Ripley", "St. Charles", "St. Clair", "St. Francois", "St. Louis", "Ste. Genevieve", "Scott", "Shannon", "Shelby", "Stoddard", "Stone", "Taney", "Texas", "Warren", "Washington", "Wayne", "Webster", "Wright", "and the City of St. Louis  ADDED  11/26/25: Barton", "Buchanan", "Caldwell", "Carroll", "Cedar", "Chariton", "Clinton", "Daviess", "DeKalb", "Gentry", "Grundy", "Harrison", "Linn", "Livingston", "Macon", "Randolph", "Saline", "Schuyler", "Scotland", "Sullivan", "and Vernon"]
+- **counties**: ["Audrain","Barry","Bates","Benton","Bollinger","Boone","Butler","Callaway","Camden","Cape Girardeau","Carter","Cass","Christian","Clark","Clay","Cole","Cooper","Crawford","Dade","Dallas","Dent","Douglas","Dunklin","Franklin","Gasconade","Greene","Henry","Hickory","Howard","Howell","Iron","Jackson","Jasper","Jefferson","Johnson","Knox","Laclede","Lafayette","Lawrence","Lewis","Lincoln","Madison","Maries","Marion","McDonald","Miller","Mississippi","Moniteau","Monroe","Montgomery","Morgan","New Madrid","Newton","Oregon","Osage","Ozark","Pemiscot","Perry","Pettis","Phelps","Pike","Platte","Polk","Pulaski","Ralls","Ray","Reynolds","Ripley","St. Charles","St. Clair","St. Francois","St. Louis","Ste. Genevieve","Scott","Shannon","Shelby","Stoddard","Stone","Taney","Texas","Warren","Washington","Wayne","Webster","Wright","and the City of St. Louis  ADDED  11/26/25: Barton","Buchanan","Caldwell","Carroll","Cedar","Chariton","Clinton","Daviess","DeKalb","Gentry","Grundy","Harrison","Linn","Livingston","Macon","Randolph","Saline","Schuyler","Scotland","Sullivan","and Vernon"]
 - **counties_raw**: Audrain, Barry, Bates, Benton, Bollinger, Boone, Butler, Callaway, Camden, Cape Girardeau, Carter, Cass, Christian, Clark, Clay, Cole, Cooper, Crawford, Dade, Dallas, Dent, Douglas, Dunklin, Franklin, Gasconade, Greene, Henry, Hickory, Howard, Howell, Iron, Jackson, Jasper, Jefferson, Johnson, Knox, Laclede, Lafayette, Lawrence, Lewis, Lincoln, Madison, Maries, Marion, McDonald, Miller, Mississippi, Moniteau, Monroe, Montgomery, Morgan, New Madrid, Newton, Oregon, Osage, Ozark, Pemiscot, Perry, Pettis, Phelps, Pike, Platte, Polk, Pulaski, Ralls, Ray, Reynolds, Ripley, St. Charles, St. Clair, St. Francois, St. Louis, Ste. Genevieve, Scott, Shannon, Shelby, Stoddard, Stone, Taney, Texas, Warren, Washington, Wayne, Webster, Wright, and the City of St. Louis  ADDED  11/26/25: Barton, Buchanan, Caldwell, Carroll, Cedar, Chariton, Clinton, Daviess, DeKalb, Gentry, Grundy, Harrison, Linn, Livingston, Macon, Randolph, Saline, Schuyler, Scotland, Sullivan, and Vernon
 - **sep_effective**: 2025-09-22
 - **sep_termination**: 2026-06-30

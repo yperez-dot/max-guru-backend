@@ -1,7 +1,7 @@
 # SEP Tracker — DC
 
-3 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+3 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0035 — District of Columbia (DC) - Sewer Line Collapse 1/19/2026
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **sep_window_raw**: Jan 19, 2026 – Apr 30, 2027
 - **incident_effective**: 2026-01-19
 - **incident_window_raw**: Jan 19, 2026 – ongoing
-- **days_until_expiry**: 248
+- **days_until_expiry**: 207
 - **declaration_number**: EM-3643-DC
 
 ## sep-lis-dc — District of Columbia — Dual / LIS PDP Monthly SEP
@@ -38,7 +38,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: DC - Snow Emergency 1/24/2026
-- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix", "Other"]
+- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix","Other"]
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix;Other
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL

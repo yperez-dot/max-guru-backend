@@ -1,7 +1,7 @@
 # SEP Tracker — OH
 
-6 entries from Agent Medicare Hub SEP snapshot (2026-08-25).
-Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
+6 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
+Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 
 ## sep-0233 — Ohio - Severe Flooding 8/10/2026
 - **status**: active
@@ -10,7 +10,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Ohio - Severe Flooding 8/10/2026
 - **disaster_types**: ["Floods"]
 - **disaster_type_raw**: Floods
-- **counties**: ["Perry", "Muskingum"]
+- **counties**: ["Perry","Muskingum"]
 - **counties_raw**: Perry, Muskingum
 - **sep_effective**: 2026-08-10
 - **sep_termination**: 2027-01-31
@@ -18,7 +18,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **incident_effective**: 2026-08-10
 - **incident_termination**: 2026-12-07
 - **incident_window_raw**: Aug 10, 2026 – Dec 7, 2026
-- **days_until_expiry**: 159
+- **days_until_expiry**: 118
 
 ## sep-xl-oh-severefloodinga-202611 — Ohio — Severe Flooding and Severe weather
 - **status**: active
@@ -27,14 +27,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEM
 - **declaration_name**: Ohio — Severe Flooding and Severe weather
 - **disaster_types**: ["Severe Flooding and Severe weather"]
 - **disaster_type_raw**: Severe Flooding and Severe weather
-- **counties**: ["Franklin", "Muskingum", "Perry"]
+- **counties**: ["Franklin","Muskingum","Perry"]
 - **counties_raw**: Franklin, Muskingum, and Perry Counties
 - **sep_effective**: 2026-08-10
 - **sep_termination**: 2026-11-30
 - **sep_window_raw**: August 10, 2026 – November 30, 2026
 - **incident_effective**: 2026-08-10
 - **incident_window_raw**: August 10, 2026 – ongoing
-- **days_until_expiry**: 97
+- **days_until_expiry**: 56
 
 ## sep-lis-oh — Ohio — Dual / LIS PDP Monthly SEP
 - **status**: yearround
