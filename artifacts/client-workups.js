@@ -104,6 +104,50 @@
     return "";
   }
 
+  /**
+   * County for the two counties THEI's plan grid covers, from a FL ZIP.
+   * Returns "Miami-Dade", "Broward", or "" (unknown / outside the grid — e.g. Palm Beach).
+   */
+  function gridCountyForZip(zip) {
+    const m = String(zip || "").match(/^(\d{5})/);
+    if (!m) return "";
+    const n = Number(m[1]);
+    if (n === 33004 || n === 33009) return "Broward"; // Dania Beach, Hallandale Beach
+    if (n >= 33019 && n <= 33029) return "Broward"; // Hollywood, Pembroke Pines, Miramar
+    if (n >= 33060 && n <= 33077) return "Broward"; // Pompano, Margate, Coral Springs, Coconut Creek
+    if (n >= 33301 && n <= 33394) return "Broward"; // Fort Lauderdale, Sunrise, Plantation, Weston, Davie
+    if (n >= 33441 && n <= 33443) return "Broward"; // Deerfield Beach
+    if (n >= 33010 && n <= 33018) return "Miami-Dade"; // Hialeah
+    if (n >= 33030 && n <= 33039) return "Miami-Dade"; // Homestead, Florida City, Key Largo edge
+    if (n >= 33054 && n <= 33056) return "Miami-Dade"; // Opa-locka, Miami Gardens
+    if (n >= 33090 && n <= 33092) return "Miami-Dade";
+    if (n >= 33101 && n <= 33299) return "Miami-Dade"; // Miami, Doral, Kendall, Coral Gables, ...
+    return "";
+  }
+
+  /**
+   * Which grid county does this conversation put the client in?
+   * Newest user message wins; inside a message a ZIP beats a county word. The loaded-workup
+   * context message ("ZIP/county: 33332 / Broward") is a user message too, so it is covered.
+   * Returns { counties: [] | ["Broward"] | ["Miami-Dade"], via: "zip" | "text" | "" }.
+   */
+  function inferGridCountyFromHistory(history) {
+    const msgs = Array.isArray(history) ? history : [];
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i];
+      if (!m || m.role !== "user") continue;
+      const text = typeof m.content === "string" ? m.content : Array.isArray(m.content)
+        ? m.content.map((p) => (typeof p === "string" ? p : p && typeof p.text === "string" ? p.text : "")).join("\n")
+        : "";
+      if (!text || text.trim().startsWith("data:image/")) continue;
+      const zipCounty = gridCountyForZip(extractZip(text));
+      if (zipCounty) return { counties: [zipCounty], via: "zip" };
+      const c = extractCounty(text);
+      if (c === "Miami-Dade" || c === "Broward") return { counties: [c], via: "text" };
+    }
+    return { counties: [], via: "" };
+  }
+
   function extractContacts(text) {
     const t = String(text || "");
     const labeled = t.match(/\bcontacts?\s*[:=]\s*([^\n]{3,200})/i);
@@ -221,7 +265,9 @@
     const extractedName = extractClientNameFromThread(thread);
     const clientName = clip(extractedName || extra.clientName || src.clientName || "", 80);
     const zip = clip(extra.zip || src.zip || extractZip(thread), 10);
-    const county = clip(extra.county || src.county || extractCounty(thread) || (plans[0] && plans[0].county) || "", 40);
+    // ZIP is the authoritative county for the two counties the grid covers (a plan row's county is
+    // only a guess — plans exist in both counties).
+    const county = clip(gridCountyForZip(zip) || extra.county || src.county || extractCounty(thread) || (plans[0] && plans[0].county) || "", 40);
     const contacts = clip(extra.contacts || src.contacts || extractContacts(thread), 200);
     const needs = Array.isArray(extra.needs) && extra.needs.length ? extra.needs.map((n) => clip(n, 120)).filter(Boolean).slice(0, 8) : extractNeeds(thread);
     const terminatingPlan = sanitizeWorkupTerminating(extra.terminatingPlan || src.terminatingPlan || "", thread);
@@ -373,6 +419,8 @@
     bucketToExportStatus,
     extractZip,
     extractCounty,
+    gridCountyForZip,
+    inferGridCountyFromHistory,
     extractContacts,
     extractNeeds,
     buildWorkupFromExport,

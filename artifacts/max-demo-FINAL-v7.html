@@ -2471,6 +2471,50 @@
     return "";
   }
 
+  /**
+   * County for the two counties THEI's plan grid covers, from a FL ZIP.
+   * Returns "Miami-Dade", "Broward", or "" (unknown / outside the grid — e.g. Palm Beach).
+   */
+  function gridCountyForZip(zip) {
+    const m = String(zip || "").match(/^(\d{5})/);
+    if (!m) return "";
+    const n = Number(m[1]);
+    if (n === 33004 || n === 33009) return "Broward"; // Dania Beach, Hallandale Beach
+    if (n >= 33019 && n <= 33029) return "Broward"; // Hollywood, Pembroke Pines, Miramar
+    if (n >= 33060 && n <= 33077) return "Broward"; // Pompano, Margate, Coral Springs, Coconut Creek
+    if (n >= 33301 && n <= 33394) return "Broward"; // Fort Lauderdale, Sunrise, Plantation, Weston, Davie
+    if (n >= 33441 && n <= 33443) return "Broward"; // Deerfield Beach
+    if (n >= 33010 && n <= 33018) return "Miami-Dade"; // Hialeah
+    if (n >= 33030 && n <= 33039) return "Miami-Dade"; // Homestead, Florida City, Key Largo edge
+    if (n >= 33054 && n <= 33056) return "Miami-Dade"; // Opa-locka, Miami Gardens
+    if (n >= 33090 && n <= 33092) return "Miami-Dade";
+    if (n >= 33101 && n <= 33299) return "Miami-Dade"; // Miami, Doral, Kendall, Coral Gables, ...
+    return "";
+  }
+
+  /**
+   * Which grid county does this conversation put the client in?
+   * Newest user message wins; inside a message a ZIP beats a county word. The loaded-workup
+   * context message ("ZIP/county: 33332 / Broward") is a user message too, so it is covered.
+   * Returns { counties: [] | ["Broward"] | ["Miami-Dade"], via: "zip" | "text" | "" }.
+   */
+  function inferGridCountyFromHistory(history) {
+    const msgs = Array.isArray(history) ? history : [];
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i];
+      if (!m || m.role !== "user") continue;
+      const text = typeof m.content === "string" ? m.content : Array.isArray(m.content)
+        ? m.content.map((p) => (typeof p === "string" ? p : p && typeof p.text === "string" ? p.text : "")).join("\n")
+        : "";
+      if (!text || text.trim().startsWith("data:image/")) continue;
+      const zipCounty = gridCountyForZip(extractZip(text));
+      if (zipCounty) return { counties: [zipCounty], via: "zip" };
+      const c = extractCounty(text);
+      if (c === "Miami-Dade" || c === "Broward") return { counties: [c], via: "text" };
+    }
+    return { counties: [], via: "" };
+  }
+
   function extractContacts(text) {
     const t = String(text || "");
     const labeled = t.match(/\bcontacts?\s*[:=]\s*([^\n]{3,200})/i);
@@ -2588,7 +2632,9 @@
     const extractedName = extractClientNameFromThread(thread);
     const clientName = clip(extractedName || extra.clientName || src.clientName || "", 80);
     const zip = clip(extra.zip || src.zip || extractZip(thread), 10);
-    const county = clip(extra.county || src.county || extractCounty(thread) || (plans[0] && plans[0].county) || "", 40);
+    // ZIP is the authoritative county for the two counties the grid covers (a plan row's county is
+    // only a guess — plans exist in both counties).
+    const county = clip(gridCountyForZip(zip) || extra.county || src.county || extractCounty(thread) || (plans[0] && plans[0].county) || "", 40);
     const contacts = clip(extra.contacts || src.contacts || extractContacts(thread), 200);
     const needs = Array.isArray(extra.needs) && extra.needs.length ? extra.needs.map((n) => clip(n, 120)).filter(Boolean).slice(0, 8) : extractNeeds(thread);
     const terminatingPlan = sanitizeWorkupTerminating(extra.terminatingPlan || src.terminatingPlan || "", thread);
@@ -2740,6 +2786,8 @@
     bucketToExportStatus,
     extractZip,
     extractCounty,
+    gridCountyForZip,
+    inferGridCountyFromHistory,
     extractContacts,
     extractNeeds,
     buildWorkupFromExport,
@@ -3299,7 +3347,7 @@ function detectCarriers(text) {
 function detectPlanIds(text) {
   const t = String(text || "");
   const ids = new Set();
-  const re = /\bH\d{3,4}\s*[-–\/]?\s*\d{2,4}(?:\s*\/\s*\d{2,4})?\b/gi;
+  const re = /\bH\d{3,4}\s*[-–\/]?\s*\d{2,4}[A-Z]?(?:\s*\/\s*\d{2,4})?\b/gi;
   let m;
   while ((m = re.exec(t))) {
     ids.add(m[0].replace(/\s+/g, "").replace(/–/g, "-").toUpperCase());
@@ -3342,7 +3390,16 @@ function selectPlansForAsk(conversationHistory) {
   const text = conversationAskText(conversationHistory);
   const year = detectPlanYear(text);
   const pool = getPlansForYear(year);
-  const counties = detectCounties(text);
+  // County scope: both counties only when asked for explicitly; otherwise the client's county from
+  // the conversation (ZIP beats a county word, newest message wins — the loaded workup counts),
+  // else whatever county words the recent asks contain. Unknown county → no county filter (the
+  // clarify / cap rules below still apply), so we never attach the wrong county silently.
+  const explicitCounties = detectCounties(text);
+  const inferred = window.MaxClientWorkups && window.MaxClientWorkups.inferGridCountyFromHistory
+    ? window.MaxClientWorkups.inferGridCountyFromHistory(conversationHistory)
+    : { counties: [], via: "" };
+  const counties = explicitCounties.length > 1 ? explicitCounties : inferred.counties.length ? inferred.counties : explicitCounties;
+  const countyVia = explicitCounties.length > 1 ? "text" : inferred.counties.length ? inferred.via : explicitCounties.length ? "text" : "";
   const carrierMatchers = detectCarriers(text);
   const planNameMatchers = detectPlanNameHints(text);
   const planIds = detectPlanIds(text);
@@ -3359,6 +3416,21 @@ function selectPlansForAsk(conversationHistory) {
       const id = norm(p.id);
       return wanted.some((w) => (pid && (pid === w || pid.includes(w) || w.includes(pid))) || (id && (id === w || id.includes(w) || w.includes(id))));
     });
+    // A plan ID usually exists in both counties: keep the client's county copy. Per plan ID — if a
+    // plan only exists in the other county, keep it rather than silently dropping it.
+    if (counties.length && counties.length < 2) {
+      const byPid = new Map();
+      filtered.forEach((p) => {
+        const k = norm(p.planId || p.id);
+        if (!byPid.has(k)) byPid.set(k, []);
+        byPid.get(k).push(p);
+      });
+      filtered = [];
+      byPid.forEach((rows) => {
+        const mine = rows.filter((p) => counties.includes(p.county));
+        (mine.length ? mine : rows).forEach((p) => filtered.push(p));
+      });
+    }
   } else {
     if (counties.length) {
       filtered = filtered.filter((p) => counties.includes(p.county));
@@ -3419,12 +3491,20 @@ function selectPlansForAsk(conversationHistory) {
       matched: filtered.length,
       total: pool.length,
       year,
+      countyVia,
     },
   };
 }
 
 
-function buildSystemPrompt(selectedPlans, planYear) {
+function countyScopeLine(meta) {
+  const c = meta && Array.isArray(meta.counties) ? meta.counties : [];
+  if (c.length !== 1) return "";
+  const src = meta.countyVia === "zip" ? "from the client's ZIP" : "from the agent's ask";
+  return `COUNTY SCOPE: PLAN DATA is limited to ${c[0]} plans (${src}). Quote benefits for that county only. If the agent asks about the other county or says "both counties", say you have only ${c[0]} attached and ask them to confirm the county, rather than guessing.\n\n`;
+}
+
+function buildSystemPrompt(selectedPlans, planYear, scopeMeta) {
   const attachedYear = Number(planYear) === 2026 ? 2026 : DEFAULT_PLAN_YEAR;
   return `You are Max, the internal Medicare knowledge assistant for The Health Experts Insurance (THEI), a Florida Medicare/health insurance brokerage. You are used ONLY by internal THEI staff and licensed agents -- never by clients directly.
 
@@ -3472,7 +3552,7 @@ HARD RULES -- these override everything else:
 
 FILTERED PLAN ATTACHMENT — PLAN DATA below is a FILTERED SUBSET for this question only (not the full THEI grid). It was narrowed by county, carrier, and/or plan ID from the agent's ask to control cost. If the plan they need is not in PLAN DATA, do NOT invent numbers from training knowledge — ask ONE short clarifying question for county, carrier, or plan ID. If PLAN DATA is empty and the question is general Medicare education (Rule 3), answer from training knowledge. If PLAN DATA is empty and they clearly want plan dollars, ask which county (Miami-Dade or Broward) and carrier/plan.
 
-ATTACHED_PLAN_YEAR=${attachedYear}
+${countyScopeLine(scopeMeta)}ATTACHED_PLAN_YEAR=${attachedYear}
 PLAN DATA (${(selectedPlans || []).length} plans attached for this ask; full grid has ${PLANS.length} across Miami-Dade and Broward, ${attachedYear} plan year, AEP default 2027):
 ${JSON.stringify(selectedPlans || [])}
 
@@ -3587,7 +3667,7 @@ async function askGuru(conversationHistory, opts) {
     return { text: selection.clarifyMessage, banners: [] };
   }
   const payload = {
-    system: buildSystemPrompt(selection.plans, selection.meta.year),
+    system: buildSystemPrompt(selection.plans, selection.meta.year, selection.meta),
     messages: conversationHistory,
   };
   // Real resume: lookups that finished before the last chat-wait cut are sent back,
