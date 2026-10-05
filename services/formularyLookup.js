@@ -1280,10 +1280,18 @@ function toExportDrug(result) {
   if (!result) return null;
   const generic = knownGenericFor(result.drugName);
   const notCovered = brandVerifiedNotCovered(result.lookups);
+  // "Not covered" on every plan after retrying other products is unverified —
+  // the export must say confirm, never a flat "Not covered".
+  let byPlanId = result.byPlanId;
+  if (result.notCoveredNote && byPlanId) {
+    byPlanId = Object.fromEntries(Object.entries(byPlanId).map(([id, row]) => (
+      [id, row && row.coverage === 'not_covered' ? { ...row, unsure: true } : row]
+    )));
+  }
   return {
     name: generic && notCovered ? starBrandName(result.drugName) : result.drugName,
     ndc: result.ndc || '',
-    byPlanId: result.byPlanId,
+    byPlanId,
     brandNotCovered: Boolean(generic && notCovered),
     suggestedGeneric: result.suggestedGeneric || null,
   };

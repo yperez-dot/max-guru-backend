@@ -914,6 +914,7 @@
         pa: incoming.pa,
         st: incoming.st,
         source: incoming.source || null,
+        unsure: Boolean(incoming.unsure),
       };
     } else if (!target[key]) {
       target[key] = { verified: false, tier: null, costShare: incoming.costShare || null };
@@ -977,6 +978,7 @@
 
   function formatDrugCell(status, plan) {
     if (!status || !status.verified) return "Unverified";
+    if (status.coverage === "not_covered" && status.unsure) return "Confirm in Sunfire";
     if (status.coverage === "not_covered") return "Not covered";
     if (!status.tier) return "Unverified";
     const cost =
@@ -1861,18 +1863,15 @@
       // A hospital bed IS durable medical equipment: one "DME" row, never a separate bed row.
       if (printedLabels[label]) return;
       printedLabels[label] = true;
-      const rowKinds = ["label", ...values.slice(1).map((c) => (c === "Unverified" ? "pending" : highlight ? "highlight" : "text"))];
+      // No yellow highlight on client sheets (Yahoska 10/5) — plain cells only.
+      void highlight;
+      const rowKinds = ["label", ...values.slice(1).map((c) => (c === "Unverified" ? "pending" : "text"))];
       const rowStyles = [makeStyle({ font: { bold: true } })];
       values.slice(1).forEach((c) => {
         rowStyles.push(
           c === "Unverified"
             ? makeStyle({ font: { color: { rgb: RED } } })
-            : highlight
-              ? makeStyle({
-                  fill: { patternType: "solid", fgColor: { rgb: YELLOW } },
-                  alignment: { wrapText: true, vertical: "top" },
-                })
-              : makeStyle({ alignment: { wrapText: true, vertical: "top" } })
+            : makeStyle({ alignment: { wrapText: true, vertical: "top" } })
         );
       });
       push(values, rowKinds, rowStyles);
