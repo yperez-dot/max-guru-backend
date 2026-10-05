@@ -134,7 +134,10 @@ function fallbackFromToolResults(collected, askText = '', messages = []) {
     .filter((t) => t.tool === 'lookup_provider_network' && t.output && (t.output.doctorName || t.output.requestedName))
     .map((t) => t.output);
   if (!doctors.length) return '';
-  const body = fallbackAnswer(doctors, askText, { answered: narrowingAnswered(messages) });
+  const drugs = collected
+    .filter((t) => t.tool === 'lookup_formulary' && t.output && t.output.byPlanId)
+    .map((t) => t.output);
+  const body = fallbackAnswer(doctors, askText, { answered: narrowingAnswered(messages), drugs });
   const next = /To narrow to 2/.test(body)
     ? 'Answer the questions above, or send the same ask again — finished doctor lookups come back from cache.'
     : 'Send the same ask again — finished doctor lookups come back from cache, so Max can write the 2–3 plans.';
