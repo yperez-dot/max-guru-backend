@@ -1693,3 +1693,13 @@ Earlier: all four In network on UHC H5420-001.
     });
   });
 });
+
+describe('narrowing replies are not a finished comparison', () => {
+  it('flags the Padron candidates + questions reply', () => {
+    const reply = 'No one plan has all eight. Counts only — not a ranking:\n- AARP Medicare Advantage from UHC FL-0031 (R0759-001) — 6/8 in\n- UHC Preferred Medicare Advantage FL-0002 (H1045-005) — 5/8 in\n- Humana Gold Plus (H1036-065C) — 4/8 in\n1. Do they have Medicaid or an MSP (QMB/SLMB)? Yes, full / Yes, MSP only / No\n2. Which doctors are must-keep?\n3. HMO OK, or do they need a PPO?\nOnce I have those, I\u2019ll pull 2\u20133 plans that actually fit.';
+    assert.equal(exp.isNarrowingReply(reply), true);
+  });
+  it('does not flag a final 2–3 plan answer', () => {
+    assert.equal(exp.isNarrowingReply('Here are 2 plans that fit: Humana Gold Plus (H1036-065C) and UHC Preferred MA (H1045-005). Ernesto Padron In on both.'), false);
+  });
+});

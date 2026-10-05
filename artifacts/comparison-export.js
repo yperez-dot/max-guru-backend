@@ -2111,6 +2111,14 @@
     return String(content || "");
   }
 
+  // Max listing candidates and asking narrowing questions (Medicaid / must-keep /
+  // HMO vs PPO) is not a finished comparison — no export offer, no autosave.
+  function isNarrowingReply(text) {
+    const t = String(text || "");
+    if (!/\?/.test(t)) return false;
+    return /medicaid or (an? )?(msp|medicare savings)|must-keep|hmo ok,? or do they need a ppo|once i have (those|these|your answers)|to narrow (it )?(down |to 2)/i.test(t);
+  }
+
   function isExportOnlyAsk(text) {
     const t = String(text || "");
     if (!t || !wantsComparisonExport(t)) return false;
@@ -2232,6 +2240,7 @@
     lastUserComparisonAsk,
     requestUpdatesComparison,
     isExportOnlyAsk,
+    isNarrowingReply,
     dedupeComparisonPlans,
     uniquePlansByContractPbp,
     compactContractPbp,
