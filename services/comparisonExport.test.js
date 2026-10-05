@@ -1703,3 +1703,24 @@ describe('narrowing replies are not a finished comparison', () => {
     assert.equal(exp.isNarrowingReply('Here are 2 plans that fit: Humana Gold Plus (H1036-065C) and UHC Preferred MA (H1045-005). Ernesto Padron In on both.'), false);
   });
 });
+
+describe('Padron export cleanup', () => {
+  const plans = [
+    { planId: 'H5420-014', carrier: 'UHC', planName: 'MedicareMax Complete Care FL-30' },
+    { planId: 'R0759-001', carrier: 'UHC', planName: 'AARP Regional PPO FL-0031' },
+    { planId: 'H1045-005', carrier: 'UHC', planName: 'Preferred MA FL-0002' },
+    { planId: 'H1036-065C', carrier: 'Humana', planName: 'Gold Plus' },
+  ];
+  const text = 'Maria & Gaspar Padron, ZIP 33332. Current plan H5420-014 terminating 2027. No Medicaid. Skip R0759-001 (non-commissionable).';
+
+  it('keeps the terminating and skipped plans out of the columns', () => {
+    const p = exp.buildExportPayload(plans, text, {});
+    assert.deepEqual(p.plans.map((x) => x.planId), ['H1045-005', 'H1036-065C']);
+    assert.equal(p.terminatingPlan, 'H5420-014');
+  });
+
+  it('shows clean doctor names', () => {
+    assert.equal(exp.cleanProviderDisplayName('ERNESTO PADRON M.D'), 'Dr. Ernesto Padron');
+    assert.equal(exp.cleanProviderDisplayName('EYE SURGERY ASSOCIATES LLC'), 'Eye Surgery Associates');
+  });
+});
