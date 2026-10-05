@@ -595,6 +595,25 @@ def archive_2026_plans(plans: list[dict]) -> list[dict]:
     return archived
 
 
+# Verified SoB links that the workbook hyperlinks get wrong (MAX.md 2026-10-03):
+# H4140-023 DrSelect-SFL uses the DrSelect PDF; H4140-022 stays on Dr Max.
+SOB_URL_OVERRIDES_2027 = {
+    "H4140-023": "https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrSelect_ENG.pdf",
+    "H4140-022": "https://www.doctorshcp.com/wp-content/uploads/2027_SOB_SF_DrMax_ENG.pdf",
+}
+
+
+def apply_sob_overrides_2027(plans: list) -> int:
+    fixed = 0
+    for plan in plans:
+        pid = str(plan.get("planId") or plan.get("id") or "")[:9].upper()
+        url = SOB_URL_OVERRIDES_2027.get(pid)
+        if url and plan.get("sobUrl") != url:
+            plan["sobUrl"] = url
+            fixed += 1
+    return fixed
+
+
 def sync_2027(xlsx: Path) -> int:
     if not xlsx.exists():
         print(f"missing {xlsx}", file=sys.stderr)
@@ -636,6 +655,7 @@ def sync_2027(xlsx: Path) -> int:
     print("by carrier", dict(sorted(by_carrier.items())))
     print(f"pending_sob stubs={pending} healthspring_in_output={hs}")
 
+    print(f"sob url overrides applied: {apply_sob_overrides_2027(plans)}")
     text = replace_or_insert_script_json(text, "plan-data", plans)
     if existing_2026:
         text = replace_or_insert_script_json(text, "plan-data-2026", existing_2026, after_id="plan-data")

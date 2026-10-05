@@ -1,7 +1,7 @@
 # CarePlus — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-02 21:16 UTC
+Pulled: 2026-10-05 22:23 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1019-001, H1019-006, H1019-023, H1019-065, H1019-121, H1019-123, H1019-124, H1019-130, H1019-135, H1019-136, H1019-148, H1019-150, H1019-154
 
@@ -18,12 +18,12 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Chronic Conditions | •Chronic lung disorders |
 | Premium | $0 |
+| Part B Giveback | $154 |
 | Referrals Needed? | Yes |
-| Deductible | $0 |
-| Part B Rebate | $154 |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $3,400 |
-| SSBCI Chronic Conditions | •Chronic lung disorders |
 | Inpatient Hospital | $150 days 1-7 |
 | Outpatient Hospital | $0 / $100 / $200 |
 | PCP | $0 |
@@ -32,7 +32,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | $20 |
 | Advanced Imaging (MRI, CT, PET) | $150 / $200 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
-| Dental | Comprehensive — root canal, dentures, unlimited extractions for dentures, X-rays (30% coinsurance on dentures) |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — 30% (1 upper + 1 lower /5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -41,8 +41,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $0 annual exam / $100 allowance |
-| Ambulance | $250 |
+| Vision Allowance | $100 |
+| Ambulance | $250 ground · 20% air |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -52,10 +52,11 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 25% |
 | Tier 6 | $0 |
 | OTC | $25/month CareEssentials (automatic, rollover) |
-| Grocery Card | Combined with CareEssentials if eligible |
-| Acupuncture | $20 · Medicare chronic LBP · up to 20/yr |
+| Grocery Card | Combined with OTC Card ($25/mo) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $20 · chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Chiropractic | $20; routine: $20, up to 12 visits/yr |
 | Fitness | SilverSneakers |
-| Other Cards | $25/month CareEssentials (automatic, rollover) |
 | Other | Rewards and Incentives - Go365 ® Complete eligible healthy activities, like preventive screenings and exams, and get rewarded with Go365 Advanced. |
 | Evidence of Coverage | EOC — CareBreeze Platinum POS |
 
@@ -72,12 +73,12 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Chronic Conditions | •Diabetes Mellitus •Cardiovascular disorders •Chronic heart failure |
 | Premium | $0 |
+| Part B Giveback | $156 |
 | Referrals Needed? | Yes |
-| Deductible | $0 |
-| Part B Rebate | $156 |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $3,400 |
-| SSBCI Chronic Conditions | •Diabetes Mellitus •Cardiovascular disorders •Chronic heart failure |
 | Inpatient Hospital | $150 days 1-7 |
 | Outpatient Hospital | $0 / $100 / $200 |
 | PCP | $0 |
@@ -86,7 +87,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | $20 |
 | Advanced Imaging (MRI, CT, PET) | $150 / $200 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
-| Dental | Comprehensive — root canal, dentures, unlimited extractions for dentures, X-rays (30% coinsurance on dentures) |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — 30% (1 upper + 1 lower /5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -95,8 +96,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $0 annual exam / $200 allowance |
-| Ambulance | $250 |
+| Vision Allowance | $200 |
+| Ambulance | $250 ground · 20% air |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -106,10 +107,11 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 25% |
 | Tier 6 | $0 |
 | OTC | $30/month CareEssentials (automatic, rollover) |
-| Grocery Card | Combined with CareEssentials if eligible |
-| Acupuncture | $20 · Medicare chronic LBP · up to 20/yr |
+| Grocery Card | Combined with OTC Card ($30/mo) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $20 · chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Chiropractic | $20; routine: $20, up to 12 visits/yr |
 | Fitness | SilverSneakers |
-| Other Cards | $25/month CareEssentials (automatic, rollover) |
 | Other | Go365® rewards |
 | Evidence of Coverage | EOC — CareComplete Platinum POS |
 
@@ -126,12 +128,12 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Chronic Conditions | •Diabetes Mellitus •Cardiovascular disorders •Chronic heart failure |
 | Premium | $0 |
+| Part B Giveback | $3 |
 | Referrals Needed? | Yes |
-| Deductible | $0 |
-| Part B Rebate | $3 |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $2,000 |
-| SSBCI Chronic Conditions | •Diabetes Mellitus •Cardiovascular disorders •Chronic heart failure |
 | Inpatient Hospital | $50 days 1-5 |
 | Outpatient Hospital | $0 / $50 |
 | PCP | $0 |
@@ -140,7 +142,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Urgent Care | $10 |
 | Advanced Imaging (MRI, CT, PET) | $25 / $50 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
-| Dental | Comprehensive — deep cleaning, bridges, dentures, unlimited extractions for dentures, X-rays |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — 30% (1 upper + 1 lower /5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -149,8 +151,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | No |
 | Bridges | Yes — 30% (1 proc /5 yrs) |
 | Implants | No |
-| Vision Allowance | $0 annual exam / $200 allowance |
-| Ambulance | $250 |
+| Vision Allowance | $200 |
+| Ambulance | $250 ground · 20% air |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -160,10 +162,11 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 25% |
 | Tier 6 | $0 |
 | OTC | $190/month CareEssentials (automatic, rollover) |
-| Grocery Card | Combined with CareEssentials if eligible |
-| Acupuncture | $20 · Medicare chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Grocery Card | Combined with OTC Card ($190/mo) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $20 · chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Chiropractic | $20; routine: $20, up to 12 visits/yr |
 | Fitness | SilverSneakers |
-| Other Cards | $185/month CareEssentials (automatic, rollover) |
 | Other | Go365® rewards |
 | Evidence of Coverage | EOC — CareComplete |
 
@@ -189,12 +192,12 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Chronic Conditions | •Chronic lung disorders |
 | Premium | $0 |
+| Part B Giveback | $4 |
 | Referrals Needed? | Yes |
-| Deductible | $0 |
-| Part B Rebate | $4 |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $2,000 |
-| SSBCI Chronic Conditions | •Chronic lung disorders |
 | Inpatient Hospital | $50 days 1-5 |
 | Outpatient Hospital | $0 / $50 |
 | PCP | $0 |
@@ -203,7 +206,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Urgent Care | $10 |
 | Advanced Imaging (MRI, CT, PET) | $25 / $50 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
-| Dental | Comprehensive — deep cleaning, bridges, dentures, unlimited extractions for dentures, X-rays |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — 30% (1 upper + 1 lower /5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -212,8 +215,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $0 annual exam / $100 allowance |
-| Ambulance | $250 |
+| Vision Allowance | $150 |
+| Ambulance | $250 ground · 20% air |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -223,10 +226,11 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 5 | 25% |
 | Tier 6 | $0 |
 | OTC | $195/month CareEssentials (automatic, rollover) |
-| Grocery Card | Combined with CareEssentials if eligible |
-| Acupuncture | $20 · Medicare chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Grocery Card | Combined with OTC Card ($195/mo) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $20 · chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Chiropractic | $20; routine: $20, up to 12 visits/yr |
 | Fitness | SilverSneakers |
-| Other Cards | $185/month CareEssentials (automatic, rollover) |
 | Other | Go365® rewards |
 | Evidence of Coverage | EOC — CareBreeze |
 
@@ -243,10 +247,11 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | Yes |
 | MSP Levels | QDWI, QI, QMB, SLMB |
+| Premium | $0 |
+| Part B Giveback | No |
+| Referrals Needed? | Yes |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $3,400 |
 | Inpatient Hospital | $0 |
 | Outpatient Hospital | $0 |
@@ -256,7 +261,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Urgent Care | $0 |
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 Level 1 hearing aid per ear per year |
-| Dental | Defined — periodontal maintenance, dentures, unlimited extractions for dentures |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — $0 (1 upper + 1 lower /5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -265,11 +270,11 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $115 allowance |
-| Ambulance | $200 |
+| Vision Allowance | $115 |
+| Ambulance | $200 ground / 20% air ($0 if cost-share protected) |
 | Transportation | Unlimited |
-| Companionship | not covered |
-| Custodial Care | Not covered (EOC exclusions: custodial care) |
+| Companionship | Not covered |
+| Custodial Care | Personal Home Care $0: min 3 hrs/day, up to 42 hrs/yr (in-home ADL aide); custodial care in a facility excluded |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
@@ -278,11 +283,12 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 5 | 25% |
 | Tier 6 | N/A |
 | OTC | $250/month hybrid (rollover) |
-| Grocery Card | Combined with OTC if eligible |
+| Grocery Card | Combined with OTC Card ($250/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
-| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr · $0 routine (25/yr) |
+| Acupuncture | $0 · chronic LBP · up to 20/yr · $0 routine (25/yr) |
+| Chiropractic | $0; routine: $0 up to 12 visits/yr |
 | Fitness | SilverSneakers |
-| Other Cards | CareEssentials SSBCI — 1 qualifying chronic condition |
+| Other | N/A |
 | Evidence of Coverage | EOC — CareNeeds Platinum |
 
 ---
@@ -300,8 +306,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 |---------|------------------|
 | Premium | $0 |
 | Part B Giveback | $9 |
-| Plan Deductible | $0 |
 | Referrals Needed? | Yes |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $750 |
 | Inpatient Hospital | $0 / admit |
 | Outpatient Hospital | $0 / $50 |
@@ -311,7 +317,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Urgent Care | $0 |
 | Advanced Imaging (MRI, CT, PET) | $30 / $50 |
 | Hearing Services | $0 exam · $0 Level 1 / $275 Level 2 aid |
-| Dental | Comprehensive — root canal, bridge, dentures, unlimited extractions for dentures |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — $0 (1 every 5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -320,7 +326,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Crowns | Yes — $0 (bridges-crown up to 2 /5 yrs) |
 | Bridges | Yes — $0 (1 every 5 yrs) |
 | Implants | No |
-| Vision Allowance | $450 allowance / year · or 3 pairs select eyeglasses |
+| Vision Allowance | $450 |
 | Ambulance | $0 ground · 20% air |
 | Transportation | 50 one-way trips (+ unlimited CKD/ESRD/Cancer) |
 | RX Deductible | $0 |
@@ -331,11 +337,11 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 5 | 33% |
 | Tier 6 | N/A |
 | OTC | $70/month CareEssentials (rollover) |
-| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr |
+| Grocery Card | Combined with OTC Card ($70/mo) |
+| SSBCI Chronic Conditions | Chronic Condition Care Assistance: up to $500/yr via care manager (1+ qualifying chronic condition) |
+| Acupuncture | $0 · chronic LBP · up to 20/yr |
+| Chiropractic | $0; routine: $0 up to 12 visits/yr |
 | Fitness | SilverSneakers |
-| Grocery Card | Combined with CareEssentials if eligible |
-| SSBCI Chronic Conditions | Chronic Condition Look Up |
-| Other Cards | CareEssentials SSBCI — qualifying chronic condition(s) |
 | Other | Go365® rewards |
 | Evidence of Coverage | EOC — CareOne Plus |
 
@@ -353,8 +359,9 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Premium | $0 |
+| Part B Giveback | $73.50 |
 | Referrals Needed? | Yes |
-| Part B Give Back | $73.50 |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $5,000 |
 | Inpatient Hospital | $200 days 1-8 |
 | Outpatient Hospital | $0 / $125 / $200 |
@@ -362,9 +369,9 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Specialist | $20 |
 | ER | $125 |
 | Urgent Care | $25 |
-| Advanced Imaging (MRI, CT, PET) | $125 / $200 |
-| Hearing Services | $0 exam · $575 Level 1 / $750 Level 2 per ear |
-| Dental | Defined — partial/complete dentures, unlimited extractions for dentures, root canal, deep cleaning, X-rays |
+| Advanced Imaging (MRI, CT, PET) | Non-hospital $125 · Hospital $200 |
+| Hearing Services | $0 exam · $399 Level 1 / $675 Level 2 per ear |
+| Dental | Limited |
 | Deep Cleaning | No |
 | Dentures | No |
 | Fillings | Yes — $0 (1 proc /yr) |
@@ -372,9 +379,9 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Extractions | Yes — $0 (1 proc /yr) |
 | Crowns | No |
 | Bridges | No |
-| Dental Implants | No |
-| Vision Allowance | $100 allowance |
-| Ambulance | $250 |
+| Implants | No |
+| Vision Allowance | $200 |
+| Ambulance | $250 ground · 20% air |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -384,9 +391,10 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 5 | 25% |
 | Tier 6 | N/A |
 | OTC | Not covered |
-| Acupuncture | $20 · Medicare chronic LBP · up to 20/yr |
-| Fitness | SilverSneakers |
 | Grocery Card | N/A |
+| Acupuncture | $20 · chronic LBP · up to 20/yr |
+| Chiropractic | $15; routine: $15, up to 12 visits/yr |
+| Fitness | SilverSneakers |
 | Other | Go365® rewards |
 | Evidence of Coverage | EOC — CareFree Giveback |
 
@@ -404,8 +412,9 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Premium | $0 |
+| Part B Giveback | $155 |
 | Referrals Needed? | Yes |
-| Part B Give Back | $155 |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $3,400 |
 | Inpatient Hospital | $225 days 1-7 |
 | Outpatient Hospital | $0 / $150 / $250 |
@@ -413,9 +422,9 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Specialist | $25 |
 | ER | $150 |
 | Urgent Care | $25 |
-| Advanced Imaging (MRI, CT, PET) | $200 / $250 |
-| Hearing Services | $0 exam · $575 Level 1 / $750 Level 2 per ear |
-| Dental | Comprehensive — root canal, oral surgery, dentures, unlimited extractions for dentures, X-rays |
+| Advanced Imaging (MRI, CT, PET) | Non-hospital $200 · Hospital $250 |
+| Hearing Services | $0 exam · $399 Level 1 / $675 Level 2 per ear |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — 30% (1 upper + 1 lower /5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -423,9 +432,9 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Extractions | Yes — $0 (3 proc /yr) |
 | Crowns | Yes — 30% (1 proc /yr) |
 | Bridges | No |
-| Dental Implants | No |
-| Vision Allowance | $100 allowance |
-| Ambulance | $250 |
+| Implants | No |
+| Vision Allowance | $200 |
+| Ambulance | $250 ground · 20% air |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -435,9 +444,10 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 5 | 25% |
 | Tier 6 | N/A |
 | OTC | $15/month |
-| Acupuncture | $20 · Medicare chronic LBP · up to 20/yr · $20 routine (25/yr) |
-| Fitness | SilverSneakers |
 | Grocery Card | N/A |
+| Acupuncture | $20 · chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Chiropractic | $20; routine: $20, up to 12 visits/yr |
+| Fitness | SilverSneakers |
 | Other | Go365® rewards |
 | Evidence of Coverage | EOC — CareFree Platinum |
 
@@ -456,8 +466,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 |---------|------------------|
 | Premium | $0 |
 | Part B Giveback | $10.50 |
-| Plan Deductible | $0 |
 | Referrals Needed? | No |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $2,250 |
 | Inpatient Hospital | $50 days 1-5 |
 | Outpatient Hospital | $0 / $50 / $125 |
@@ -467,7 +477,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Urgent Care | $10 |
 | Advanced Imaging (MRI, CT, PET) | $50 / $150 |
 | Hearing Services | $0 exam · $575 Level 1 / $750 Level 2 aid |
-| Dental | Defined benefits — partial/complete dentures, unlimited extractions, root canal, deep cleaning, X-rays |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — $0 (1 every 5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -476,8 +486,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $100 allowance / 1 pair |
-| Ambulance | $325 |
+| Vision Allowance | $100 |
+| Ambulance | $325 ground · 20% air |
 | Transportation | 50 one-way trips |
 | RX Deductible | $0 |
 | Tier 1 | $0 |
@@ -487,11 +497,11 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 5 | 33% |
 | Tier 6 | N/A |
 | OTC | $40/month hybrid (rollover) |
-| Acupuncture | $20 x 25 visits |
-| Fitness | SilverSneakers |
-| Grocery Card | Combined with OTC if eligible |
+| Grocery Card | Combined with OTC Card ($40/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
-| Other Cards | CareEssentials SSBCI — 2 qualifying chronic conditions |
+| Acupuncture | $20 · chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Chiropractic | $15; routine: $15, up to 12 visits/yr |
+| Fitness | SilverSneakers |
 | Other | Go365® rewards |
 | Evidence of Coverage | EOC — CareAccess |
 
@@ -508,12 +518,12 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Chronic Conditions | •Diabetes Mellitus •Cardiovascular disorders •Chronic heart failure |
 | Premium | $0 |
+| Part B Giveback | $167 |
 | Referrals Needed? | Yes |
-| Part B Rebate | $167 |
-| Deductible | $0 |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $2,000 |
-| SSBCI Chronic Conditions | •Diabetes Mellitus •Cardiovascular disorders •Chronic heart failure |
 | Inpatient Hospital | $50 days 1-5 |
 | Outpatient Hospital | $0 / $25 / $75 |
 | PCP | $0 |
@@ -522,7 +532,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Urgent Care | $10 |
 | Advanced Imaging (MRI, CT, PET) | $50 / $75 |
 | Hearing Services | $0 exam · $299 Level 1 / $575 Level 2 per ear |
-| Dental | Comprehensive — root canal, dentures, unlimited extractions for dentures, X-rays (30% coinsurance on dentures and crowns) |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — 30% (1 upper + 1 lower /5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -531,8 +541,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Crowns | Yes — 30% (2 proc /yr) |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $0 annual exam / $100 allowance |
-| Ambulance | $150 |
+| Vision Allowance | $100 |
+| Ambulance | $150 ground · 20% air |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -542,8 +552,10 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 5 | 25% |
 | Tier 6 | $0 |
 | OTC | $35/month CareEssentials (automatic, rollover) |
-| Grocery Card | Combined with CareEssentials if eligible |
-| Acupuncture | $20 · Medicare chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Grocery Card | Combined with OTC Card ($35/mo) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $20 · chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Chiropractic | $10; routine: $10, up to 12 visits/yr |
 | Fitness | SilverSneakers |
 | Other | Go365® rewards |
 | Evidence of Coverage | EOC — CareComplete Platinum |
@@ -561,12 +573,12 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Chronic Conditions | •Chronic lung disorders |
 | Premium | $0 |
+| Part B Giveback | $163 |
 | Referrals Needed? | Yes |
-| Part B Rebate | $163 |
-| Deductible | $0 |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $2,000 |
-| SSBCI Chronic Conditions | •Chronic lung disorders |
 | Inpatient Hospital | $50 days 1-5 |
 | Outpatient Hospital | $0 / $25 / $75 |
 | PCP | $0 |
@@ -575,7 +587,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Urgent Care | $10 |
 | Advanced Imaging (MRI, CT, PET) | $50 / $75 |
 | Hearing Services | $0 exam · $299 Level 1 / $575 Level 2 per ear |
-| Dental | Comprehensive — root canal, dentures, unlimited extractions for dentures, X-rays (30% coinsurance on dentures) |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — 30% (1 upper + 1 lower /5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -584,8 +596,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $0 annual exam / $350 allowance |
-| Ambulance | $150 |
+| Vision Allowance | $350 |
+| Ambulance | $150 ground · 20% air |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -595,8 +607,10 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 5 | 25% |
 | Tier 6 | $0 |
 | OTC | $45/month CareEssentials (automatic, rollover) |
-| Grocery Card | Combined with CareEssentials if eligible |
-| Acupuncture | $20 · Medicare chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Grocery Card | Combined with OTC Card ($45/mo) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $20 · chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Chiropractic | $15; routine: $15, up to 12 visits/yr |
 | Fitness | SilverSneakers |
 | Other | Go365® rewards |
 | Evidence of Coverage | EOC — CareBreeze Platinum |
@@ -614,12 +628,12 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Chronic Conditions | •Diabetes Mellitus •Cardiovascular disorders •Chronic heart failure |
 | Premium | $0 |
+| Part B Giveback | $3 |
 | Referrals Needed? | Yes |
-| Part B Rebate | $3 |
-| Deductible | $0 |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $2,000 |
-| SSBCI Chronic Conditions | •Diabetes Mellitus •Cardiovascular disorders •Chronic heart failure |
 | Inpatient Hospital | $50 days 1-5 |
 | Outpatient Hospital | $0 / $50 |
 | PCP | $0 |
@@ -628,7 +642,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Urgent Care | $10 |
 | Advanced Imaging (MRI, CT, PET) | $25 / $50 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
-| Dental | Comprehensive — deep cleaning, bridges, dentures, unlimited extractions for dentures, X-rays |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — 30% (1 upper + 1 lower /5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -637,8 +651,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Crowns | No |
 | Bridges | Yes — 30% (1 proc /5 yrs) |
 | Implants | No |
-| Vision Allowance | $0 annual exam / $200 allowance |
-| Ambulance | $250 |
+| Vision Allowance | $200 |
+| Ambulance | $250 ground · 20% air |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -648,8 +662,10 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 5 | 25% |
 | Tier 6 | $0 |
 | OTC | $190/month CareEssentials (automatic, rollover) |
-| Grocery Card | Combined with CareEssentials if eligible |
-| Acupuncture | $20 · Medicare chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Grocery Card | Combined with OTC Card ($190/mo) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $20 · chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Chiropractic | $20; routine: $20, up to 12 visits/yr |
 | Fitness | SilverSneakers |
 | Other | Go365® rewards |
 | Evidence of Coverage | EOC — CareComplete |
@@ -676,12 +692,12 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Chronic Conditions | •Chronic lung disorders |
 | Premium | $0 |
+| Part B Giveback | $4 |
 | Referrals Needed? | Yes |
-| Part B Rebate | $4 |
-| Deductible | $0 |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $2,000 |
-| SSBCI Chronic Conditions | •Chronic lung disorders |
 | Inpatient Hospital | $50 days 1-5 |
 | Outpatient Hospital | $0 / $50 |
 | PCP | $0 |
@@ -690,7 +706,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Urgent Care | $10 |
 | Advanced Imaging (MRI, CT, PET) | $25 / $50 |
 | Hearing Services | $0 exam · $499 Level 1 / $725 Level 2 per ear |
-| Dental | Comprehensive — deep cleaning, bridges, dentures, unlimited extractions for dentures, X-rays |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — 30% (1 upper + 1 lower /5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -699,8 +715,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $0 annual exam / $100 allowance |
-| Ambulance | $250 |
+| Vision Allowance | $150 |
+| Ambulance | $250 ground · 20% air |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -710,8 +726,10 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 5 | 25% |
 | Tier 6 | $0 |
 | OTC | $195/month CareEssentials (automatic, rollover) |
-| Grocery Card | Combined with CareEssentials if eligible |
-| Acupuncture | $20 · Medicare chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Grocery Card | Combined with OTC Card ($195/mo) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $20 · chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Chiropractic | $20; routine: $20, up to 12 visits/yr |
 | Fitness | SilverSneakers |
 | Other | Go365® rewards |
 | Evidence of Coverage | EOC — CareBreeze |
@@ -729,10 +747,11 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | Yes |
 | MSP Levels | QDWI, QI, QMB, SLMB |
+| Premium | $0 |
+| Part B Giveback | No |
+| Referrals Needed? | Yes |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $3,400 |
 | Inpatient Hospital | $0 |
 | Outpatient Hospital | $0 |
@@ -742,7 +761,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Urgent Care | $0 |
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 Level 1 hearing aid per ear per year |
-| Dental | Defined — periodontal maintenance, dentures, unlimited extractions for dentures |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — $0 (1 upper + 1 lower /5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -751,8 +770,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $115 allowance |
-| Ambulance | $200 |
+| Vision Allowance | $115 |
+| Ambulance | $200 ground / 20% air ($0 if cost-share protected) |
 | Transportation | Unlimited |
 | Companionship | Not covered |
 | Custodial Care | HHA: 3 hrs x day, 42 hrs x year (EOC: custodial personal care generally excluded; HHA per SOB) |
@@ -764,11 +783,12 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 5 | 25% |
 | Tier 6 | N/A |
 | OTC | $250/month hybrid (rollover) |
-| Grocery Card | Combined with OTC if eligible |
+| Grocery Card | Combined with OTC Card ($250/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
-| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr · $0 routine (25/yr) |
+| Acupuncture | $0 · chronic LBP · up to 20/yr · $0 routine (25/yr) |
+| Chiropractic | $0; routine: $0 up to 12 visits/yr |
 | Fitness | SilverSneakers |
-| Other | CareEssentials SSBCI — 1 qualifying chronic condition |
+| Other | N/A |
 | Evidence of Coverage | EOC — CareNeeds Platinum |
 
 ---
@@ -787,6 +807,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Premium | $0 |
 | Part B Giveback | $13.50 |
 | Referrals Needed? | Yes |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $500 |
 | Inpatient Hospital | $0 |
 | Outpatient Hospital | $0 |
@@ -796,7 +817,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Urgent Care | $0 |
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 exam · $575 Level 1 / $750 Level 2 aid |
-| Dental | Comprehensive — root canal, bridge, dentures, unlimited extractions, X-ray |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — $0 (1 upper + 1 lower /5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -805,8 +826,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Crowns | Yes — $0 (2 proc /yr) |
 | Bridges | Yes — $0 (1 proc /5 yrs) |
 | Implants | No |
-| Vision Allowance | $115 allowance / 1 pair |
-| Ambulance | $75 |
+| Vision Allowance | $115 |
+| Ambulance | $75 ground · 20% air |
 | Transportation | 26 one-way trips |
 | RX Deductible | $0 |
 | Tier 1 | $0 |
@@ -816,11 +837,11 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 5 | 33% |
 | Tier 6 | N/A |
 | OTC | $60/month hybrid (rollover) |
-| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr |
+| Grocery Card | Combined with OTC Card ($60/mo) |
+| SSBCI Chronic Conditions | Chronic Condition Care Assistance: up to $500/yr via care manager (1+ qualifying chronic condition) |
+| Acupuncture | $0 · chronic LBP · up to 20/yr · routine acupuncture $0 up to 25 visits/yr |
+| Chiropractic | $0; routine: $0 up to 12 visits/yr |
 | Fitness | SilverSneakers |
-| Grocery Card | Combined with OTC if eligible |
-| SSBCI Chronic Conditions | Chronic Condition Look Up |
-| Other Cards | CareEssentials SSBCI — 2 qualifying chronic conditions |
 | Other | Go365® rewards |
 | Evidence of Coverage | EOC — CareOne Plus |
 
@@ -838,8 +859,9 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Premium | $0 |
+| Part B Giveback | $178 |
 | Referrals Needed? | Yes |
-| Part B Give Back | $178 |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $3,000 |
 | Inpatient Hospital | $125 days 1-6 |
 | Outpatient Hospital | $0 / $50 / $150 |
@@ -847,9 +869,9 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Specialist | $10 |
 | ER | $150 |
 | Urgent Care | $10 |
-| Advanced Imaging (MRI, CT, PET) | $100 / $150 |
+| Advanced Imaging (MRI, CT, PET) | Non-hospital $100 · Hospital $150 |
 | Hearing Services | $0 exam · $575 Level 1 / $750 Level 2 per ear |
-| Dental | Oral surgery, dentures, unlimited extractions for dentures, X-rays |
+| Dental | Limited |
 | Deep Cleaning | No |
 | Dentures | Yes — $0 (1 upper + 1 lower /5 yrs) |
 | Fillings | Yes — $0 (6 proc /yr) |
@@ -857,9 +879,9 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Extractions | Yes — $0 (3 proc /yr) |
 | Crowns | No |
 | Bridges | No |
-| Dental Implants | No |
-| Vision Allowance | $100 allowance / 1 pair |
-| Ambulance | $150 |
+| Implants | No |
+| Vision Allowance | $100 |
+| Ambulance | $150 ground · 20% air |
 | Transportation | 26 one-way trips + unlimited $0 trips (CKD / ESRD / cancer) to plan-approved locations |
 | RX Deductible | $700 Tiers 4–5 |
 | Tier 1 | $0 |
@@ -869,9 +891,11 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 5 | 25% |
 | Tier 6 | N/A |
 | OTC | $10/month |
-| Acupuncture | $0 · Medicare chronic LBP · up to 20/yr · $0 routine (25/yr) |
-| Fitness | SilverSneakers |
 | Grocery Card | N/A |
+| SSBCI Chronic Conditions | N/A |
+| Acupuncture | $0 · chronic LBP · up to 20/yr · $0 routine (25/yr) |
+| Chiropractic | $15; routine: $15, up to 12 visits/yr |
+| Fitness | SilverSneakers |
 | Other | Go365® rewards |
 | Evidence of Coverage | EOC — CareFree Platinum |
 
@@ -891,6 +915,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Premium | $0 |
 | Part B Giveback | $10.50 |
 | Referrals Needed? | No |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $2,250 |
 | Inpatient Hospital | $50 days 1-5 |
 | Outpatient Hospital | $0 / $50 / $125 |
@@ -900,7 +925,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Urgent Care | $10 |
 | Advanced Imaging (MRI, CT, PET) | $50 / $150 |
 | Hearing Services | $0 exam · $575 Level 1 / $750 Level 2 aid |
-| Dental | Defined benefits — partial/complete dentures, unlimited extractions, root canal, deep cleaning, X-rays |
+| Dental | Preventive & Comprehensive |
 | Deep Cleaning | Yes — $0 (1 proc /yr/quadrant) |
 | Dentures | Yes — $0 (1 upper + 1 lower /5 yrs) |
 | Fillings | Yes — $0 (4 proc /yr) |
@@ -909,8 +934,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $100 allowance / 1 pair |
-| Ambulance | $325 |
+| Vision Allowance | $100 |
+| Ambulance | $325 ground · 20% air |
 | Transportation | 50 one-way trips |
 | RX Deductible | $0 |
 | Tier 1 | $0 |
@@ -920,11 +945,11 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 5 | 33% |
 | Tier 6 | N/A |
 | OTC | $40/month hybrid (rollover) |
-| Acupuncture | $20 · Medicare chronic LBP · up to 20/yr · $20 routine (25/yr) |
-| Fitness | SilverSneakers |
-| Grocery Card | Combined with OTC if eligible |
+| Grocery Card | Combined with OTC Card ($40/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
-| Other Cards | CareEssentials SSBCI — 2 qualifying chronic conditions |
+| Acupuncture | $20 · chronic LBP · up to 20/yr · $20 routine (25/yr) |
+| Chiropractic | $15; routine: $15, up to 12 visits/yr |
+| Fitness | SilverSneakers |
 | Other | Go365® rewards |
 | Evidence of Coverage | EOC — CareAccess |
 
