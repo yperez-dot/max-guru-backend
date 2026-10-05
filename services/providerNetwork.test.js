@@ -183,4 +183,17 @@ describe('lookup_provider_network batch (Padron 8 doctors)', () => {
     assert.match(out.text, /suggest exactly 2–3 plans/);
     assert.deepEqual(out.structured.questions, []);
   });
+  it('runs every doctor\'s best NPI before anyone\'s backup NPI (Howard Bush fix)', async () => {
+    const { createLimiter } = require('./providerNetwork');
+    const run = createLimiter(1);
+    const order = [];
+    const job = (tag) => () => { order.push(tag); return sleep(5); };
+    // Doctors 1..3 each enqueue NPI #1 (priority 0) then NPI #2 (priority 1), doctor by doctor.
+    await Promise.all([
+      run(job('d1-best'), 0), run(job('d1-backup'), 1),
+      run(job('d2-best'), 0), run(job('d2-backup'), 1),
+      run(job('d3-best'), 0), run(job('d3-backup'), 1),
+    ]);
+    assert.deepEqual(order, ['d1-best', 'd2-best', 'd3-best', 'd1-backup', 'd2-backup', 'd3-backup']);
+  });
 });
