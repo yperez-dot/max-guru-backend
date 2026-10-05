@@ -28,6 +28,8 @@ const {
 } = require('./humanaFindcare');
 const { formatSolisNote } = require('./solisDirectory');
 const { resolveNpiRecords, displayName, allLocationAddresses } = require('./npiRegistry');
+const { conversationAskText } = require('./planYear');
+const { batchSummaryForModel, narrowingAnswered } = require('./doctorPlanNarrow');
 const {
   querySunfireProviderList,
   inNetworkLabelsFromSunfirePlans,
@@ -300,13 +302,18 @@ function formatDoctorText({ doctorName, zip, planYear, providerResults, sunfire,
   if (timedOut) {
     out += 'Some checks were still running when the chat wait hit — they keep running and are saved, so asking again returns them without starting over.\n';
   }
-  out += 'Note: Cigna/HealthSpring directory hits are not a 2027 Miami-Dade or Broward MA enrollment option. HealthSpring has no 2027 MA plans in those counties.\n';
+  out += 'Note: Cigna/HealthSpring directory hits are not a 2027 Miami-Dade or Broward MA enrollment option. HealthSpring has no 2027 MA plans in those counties — Cigna/HealthSpring pulled out of Medicare Advantage for 2027, so never offer it as a 2027 option.\n';
   return out.slice(0, 7000);
 }
 
-function structuredFor(doctorName, providerResults, { status }) {
+function structuredFor(doctorName, providerResults, { status, sunfireLabels = [] }) {
   const firstProvider = providerResults[0];
   if (!firstProvider) return { doctorName, networks: [], status };
+  const inNetworkPlans = [...new Set([...firstProvider.inNetworkFor, ...sunfireLabels])];
+  const outOfNetworkPlans = [
+    ...(firstProvider.uhcResult?.error ? [] : (firstProvider.uhcResult?.outOfNetworkPlans || [])),
+    ...(firstProvider.humanaResult?.error ? [] : (firstProvider.humanaResult?.outOfNetworkPlans || [])),
+  ];
   const guestEntry = (label, res) => ({
     carrier: label,
     inNetwork: Boolean(res?.inNetwork),
@@ -315,12 +322,14 @@ function structuredFor(doctorName, providerResults, { status }) {
     outOfNetworkPlans: res?.outOfNetworkPlans || [],
     year: res?.year || UHC_PLAN_YEAR,
   });
-  return {
+  const out = {
     doctorName: firstProvider.name,
     requestedName: doctorName,
     npi: firstProvider.npi,
     status,
     pending: firstProvider.pending || [],
+    inNetworkPlans,
+    outOfNetworkPlans,
     networks: [
       ...FHIR_CARRIERS.map((c) => ({ carrier: c.name, inNetwork: firstProvider.inNetworkFor.includes(c.name) })),
       { carrier: DOCTORS_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.includes(DOCTORS_PLAN_LABEL) },
@@ -330,6 +339,16 @@ function structuredFor(doctorName, providerResults, { status }) {
       guestEntry(HUMANA_PLAN_LABEL, firstProvider.humanaResult),
     ],
   };
+  const carriersIn = out.networks.filter((n) => n.inNetwork).map((n) => n.carrier);
+  for (const label of sunfireLabels) {
+    const carrier = (String(label).match(/\(([^()]+)\)\s*$/) || [])[1];
+    if (carrier && !carriersIn.includes(carrier)) carriersIn.push(carrier);
+  }
+  // Cigna/HealthSpring has no 2027 MA plans (pulled out) — a Cigna directory hit is not a 2027 option.
+  const year = Number(firstProvider.uhcResult?.year || firstProvider.humanaResult?.year || UHC_PLAN_YEAR);
+  out.carriersIn = year >= 2027 ? carriersIn.filter((c) => !/cigna|healthspring/i.test(c)) : carriersIn;
+  if (year >= 2027 && out.carriersIn.length !== carriersIn.length) out.cignaDirectoryOnly = true;
+  return out;
 }
 
 function notFoundResult(doctorName) {
@@ -450,7 +469,7 @@ function buildDoctorResult(doctorName, zip, planYear, live, { timedOut }) {
     status,
     doctorName,
     text: formatDoctorText({ doctorName, zip, planYear, providerResults, sunfire: live.sunfire, timedOut: status === 'partial' }),
-    structured: structuredFor(doctorName, providerResults, { status }),
+    structured: structuredFor(doctorName, providerResults, { status, sunfireLabels: live.sunfire.labels || [] }),
   };
 }
 
@@ -500,30 +519,22 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   }
 
   const done = results.filter((r) => r.status === 'done').length;
-  const header = [
-    `Doctor network batch — ${results.length} doctors, ZIP ${common.zip || '33136'}, year ${Number(common.year) || UHC_PLAN_YEAR}.`,
-    `Finished: ${done}/${results.length}.` + (done < results.length
-      ? ` Anything marked ${NOT_CONFIRMED} did not finish before the chat wait (or was not found) — never report it as out-of-network.`
-      : ''),
-    'Summary:',
-    ...results.map((r) => {
-      const label = r.doctorName;
-      if (r.status === 'not_found') return `- ${label}: ${NOT_CONFIRMED} — no NPI match (try search_clinic_or_provider).`;
-      if (r.status === 'timeout' || r.status === 'error') return `- ${label}: ${NOT_CONFIRMED} — lookup did not finish.`;
-      const nets = (r.structured?.networks || []);
-      const inNames = nets.filter((n) => n.inNetwork).map((n) => n.carrier);
-      const suffix = r.status === 'partial' ? ` (partial — still pending: ${(r.structured?.pending || []).join(', ')})` : '';
-      return `- ${label} → ${r.structured?.doctorName || label}: ${inNames.length ? `in-network for ${inNames.join(', ')}` : 'no in-network hit in finished checks'}${suffix}.`;
-    }),
-    '',
-  ].join('\n');
-  // Per-doctor detail, trimmed so 8 doctors stay inside one tool message.
-  const perDoctorCap = Math.max(900, Math.floor(14000 / results.length));
-  const body = results.map((r) => r.text.slice(0, perDoctorCap)).join('\n---\n');
+  const doctorsStructured = results.map((r) => ({ ...r.structured, requestedName: r.doctorName, status: r.status }));
+  const askText = conversationAskText(context.messages || []);
+  const summary = batchSummaryForModel(doctorsStructured, askText, { answered: narrowingAnswered(context.messages) });
+  // Per-doctor notes only where something failed or is pending — no full plan dumps.
+  const notes = results
+    .filter((r) => r.status !== 'done' || /Could not complete|NOT CONFIRMED/.test(r.text))
+    .map((r) => {
+      const keep = r.text.split('\n').filter((l) => /^\*\*|NPI|Could not complete|NOT CONFIRMED|No providers found/.test(l));
+      return `${r.doctorName}:\n${keep.join('\n')}`.slice(0, 600);
+    });
+  const header = `Doctor network batch — ${results.length} doctors, ZIP ${common.zip || '33136'}, year ${Number(common.year) || UHC_PLAN_YEAR}. Finished: ${done}/${results.length}.` +
+    (done < results.length ? ` Anything marked ${NOT_CONFIRMED} did not finish (or no NPI match) — never report it as out-of-network.` : '');
   return {
-    text: `${header}\n${body}`.slice(0, 18000),
-    structured: { doctors: results.map((r) => r.structured), finished: done, total: results.length },
-    expand: results.map((r) => r.structured),
+    text: [header, '', summary.text, notes.length ? `\nNOTES:\n${notes.join('\n')}` : ''].join('\n').slice(0, 12000),
+    structured: { doctors: doctorsStructured, finished: done, total: results.length, questions: summary.questions },
+    expand: doctorsStructured,
     status: done === results.length ? 'done' : 'partial',
   };
 }
