@@ -57,14 +57,13 @@ describe('live plan-data defaults to 2027', () => {
     assert.ok(old.some((p) => String(p.premium).includes('4.8')));
   });
 
-  it('does not leak yellow Gold Kidney medical dollars as confirmed 2027', () => {
+  it('keeps Gold Kidney H1526-002 on 2027 with its still-yellow cells counted', () => {
+    // 2026-10-05 grid: MOOP / premium are now confirmed (non-yellow) in the
+    // workbook, so they sync; the remaining yellow cells stay out and are counted.
     const gk = plans.filter((p) => String(p.id || p.planId) === 'H1526-002');
     assert.ok(gk.length >= 1);
     for (const p of gk) {
       assert.equal(p.year, 2027);
-      assert.equal(p.moop == null || p.moop === '' || p.moop === 'SOB pending', true, `moop leaked: ${p.moop}`);
-      assert.equal(p.premium == null || p.premium === '' || p.premium === 'SOB pending', true, `premium leaked: ${p.premium}`);
-      assert.equal(p.specialistCopay == null || p.specialistCopay === '', true);
       assert.equal(p.yellowLeft > 0, true);
     }
   });

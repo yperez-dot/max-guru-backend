@@ -1,7 +1,7 @@
 # UHC — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-02 21:16 UTC
+Pulled: 2026-10-05 22:23 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1045-001, H1045-005, H1045-012, H1045-018, H1045-061, H1045-063, H5420-001, H5420-003, H5420-014, R0759-001
 
@@ -12,28 +12,29 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-012
-**Still yellow on the working grid:** 12 field(s) — not cited below.
+**Still yellow on the working grid:** 14 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $0 – $9,850 (varies by Medicaid level)
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| MSP Levels | QMB, SLMB, QI |
 | Premium | $0 |
-| Part B Rebate | No |
+| Part B Giveback | No |
 | Referrals Needed? | Yes |
-| MSP Levels | QMB, SLMB, QI (partial or QMB — not full dual). 2027 name: FL-QV4 (was FL-D001) |
+| Medical Deductible | $0 – $283 in-network |
 | Max Out of Pocket | $0 – $9,850 (varies by Medicaid level) |
 | Inpatient Hospital | $0 – $2,035 per stay · unlimited days |
-| Outpatient Hospital | $0 – 20% ASC / $0 – 20% outpatient hospital $0 colonoscopies |
+| Outpatient Hospital | OP surgery $0 – 20% · ASC $0 – 20% |
 | PCP | $0 – 20% |
 | Specialist | $0 |
 | ER | $0 – $115 |
 | Urgent Care | $0 |
-| Advanced Imaging (MRI, CT, PET) | $0 – 20% $0 mammograms |
+| Advanced Imaging (MRI, CT, PET) | $0 – 20% |
 | Hearing Services | $2,200 allowance for 2 hearing aids every 2 years (UHC Hearing) |
 | Dental | Preventive & Comprehensive — $0 copay |
-| Vision Allowance | $250 eyeglasses or contacts (routine exam $0) |
+| Vision Allowance | $250 |
 | Ambulance | $0 – 20% ground or air |
 | Transportation | $0 INN · unlimited one-way trips to plan-approved locations |
 | RX Deductible | LIS $0 No LIS $0 Tiers 1–2 · $400 Tiers 3–5 |
@@ -42,11 +43,11 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 3 | Varies by LIS level |
 | Tier 4 | Varies by LIS level |
 | Tier 5 | Varies by LIS level |
-| OTC | $240/month OTC and wellness; healthy food and utilities if member qualifies |
-| Grocery Card | Combined with OTC for qualifying members |
+| OTC | $240/month |
+| Grocery Card | Combined with OTC Card ($240/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
-| Fitness | Free gym — core and premium network |
-| Other | Rewards not covered · Medical deductible $0 – $283 in-network |
+| Fitness | Renew Active- core and premium |
+| Other | Rewards not covered |
 
 Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
 
@@ -55,8 +56,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Deep Cleaning | 2 per year |
 | Dentures | 1 every 5 years |
 | Fillings | 2 per year for 1, 2, 3, or 4 surface teeth |
-| Root Canals | yes |
-| Extractions | yes |
+| Root Canals | Yes |
+| Extractions | Yes |
 
 ---
 
@@ -65,28 +66,29 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-061
-**Still yellow on the working grid:** 12 field(s) — not cited below.
+**Still yellow on the working grid:** 14 field(s) — not cited below.
 **Premium:** $0 – $7.30 (LIS $0)
 **Part B Giveback:** No
 **MOOP:** $2,900
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| MSP Levels | QMB, SLMB, QI |
 | Premium | $0 – $7.30 (LIS $0) |
-| Part B Rebate | No |
+| Part B Giveback | No |
 | Referrals Needed? | Yes |
-| MSP Levels | QMB, SLMB, QI (partial or QMB — not full dual FBDE / QMB+ / SLMB+) |
+| Medical Deductible | $0 in-network |
 | Max Out of Pocket | $2,900 |
 | Inpatient Hospital | $0 per stay · unlimited days |
-| Outpatient Hospital | ASC $25 / Outpatient hospital $75 $0 colonoscopies |
+| Outpatient Hospital | OP surgery $75 · ASC $25 |
 | PCP | $0 |
 | Specialist | $0 |
 | ER | $150 |
 | Urgent Care | $0 |
-| Advanced Imaging (MRI, CT, PET) | $0 $0 mammograms / $0 X-rays |
+| Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $1,000 allowance for 2 hearing aids every year (UHC Hearing) |
 | Dental | Preventive & Comprehensive — $0 copay |
-| Vision Allowance | $200 eyeglasses or contacts (routine exam $0) |
+| Vision Allowance | $200 |
 | Ambulance | $350 ground or air |
 | Transportation | $0 INN · 60 one-way trips to plan-approved locations |
 | RX Deductible | LIS $0 No LIS $0 Tier 1 · $700 Tiers 2–5 |
@@ -95,11 +97,11 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 3 | Varies by LIS level |
 | Tier 4 | Varies by LIS level |
 | Tier 5 | Varies by LIS level |
-| OTC | $127/month OTC and wellness; healthy food and utilities if member qualifies |
-| Grocery Card | Combined with OTC for qualifying members |
+| OTC | $127/month |
+| Grocery Card | Combined with OTC Card ($127/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
-| Fitness | Free gym — core and premium network |
-| Other | Rewards not covered · Medical deductible $0 in-network |
+| Fitness | Renew Active- core and premium |
+| Other | Rewards not covered |
 
 Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
 
@@ -108,8 +110,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Deep Cleaning | 2 per year |
 | Dentures | 1 every 5 years |
 | Fillings | 2 per year for 1, 2, 3, or 4 surface teeth |
-| Root Canals | yes |
-| Extractions | yes |
+| Root Canals | Yes |
+| Extractions | Yes |
 
 ---
 
@@ -125,12 +127,13 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| MSP Levels | FBDE, QMB PLUS, SLMB PLUS · |
 | Premium | $0 |
-| Part B Rebate | No |
+| Part B Giveback | No |
 | Referrals Needed? | Yes |
-| MSP Levels | Full dual only — FBDE, QMB PLUS, SLMB PLUS · UHC Medicaid Wrap · Integrated SEP (2027 name: FL-Y6, H1045-063) |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $0 |
-| Inpatient Hospital | $0 unlimited days |
+| Inpatient Hospital | $0 |
 | Outpatient Hospital | $0 |
 | PCP | $0 |
 | Specialist | $0 |
@@ -139,33 +142,35 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $2,200 for 2 hearing aids every 2 years (UHC Hearing) |
 | Dental | $4,500 toward covered services · $0 copay |
-| Vision Allowance | $300 eyeglasses or contacts (routine exam $0) |
+| Vision Allowance | $300 |
 | Ambulance | $0 ground or air |
 | Transportation | $0 unlimited one-way trips INN |
+| Companionship | Not covered |
+| Custodial Care | Not covered |
 | RX Deductible | $0 through Medicaid |
 | Tier 1 | $0 through Medicaid |
 | Tier 2 | $0 through Medicaid |
 | Tier 3 | $0 through Medicaid |
 | Tier 4 | $0 through Medicaid |
 | Tier 5 | $0 through Medicaid |
-| OTC | $405/month OTC and wellness; healthy food and utilities if member qualifies |
-| Grocery Card | Combined with OTC for qualifying members |
+| OTC | $405/month |
+| Grocery Card | Combined with OTC Card ($405/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Fitness | Free gym — core and premium network |
-| Other | Rewards not covered · Joining also enrolls in UHC Medicaid Wrap |
+| Other | N/A |
 
 Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
 
 | Benefit | 2027 working grid |
 |---------|-------------------|
-| Deep Cleaning | yes |
-| Dentures | yes |
-| Fillings | yes |
-| Root Canals | yes |
-| Extractions | yes |
-| Crowns | yes |
-| Bridges | yes |
-| Implants | no |
+| Deep Cleaning | Yes |
+| Dentures | Yes |
+| Fillings | Yes |
+| Root Canals | Yes |
+| Extractions | Yes |
+| Crowns | Yes |
+| Bridges | Yes |
+| Implants | No |
 
 ---
 
@@ -174,7 +179,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1045-005
-**Still yellow on the working grid:** 12 field(s) — not cited below.
+**Still yellow on the working grid:** 10 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $30
 **MOOP:** $3,900
@@ -183,19 +188,19 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 |---------|------------------|
 | Premium | $0 |
 | Part B Giveback | $30 |
-| Plan Deductible | $0 in-network |
 | Referrals Needed? | Yes |
+| Medical Deductible | $0 in-network |
 | Max Out of Pocket | $3,900 |
 | Inpatient Hospital | $95 days 1-4 $0 after that, unlimited days |
-| Outpatient Hospital | ASC $75 / Outpatient hospital $150 $0 colonoscopies |
+| Outpatient Hospital | OP surgery $150 · ASC $75 |
 | PCP | $0 |
 | Specialist | $25 |
 | ER | $150 |
 | Urgent Care | $65 |
-| Advanced Imaging (MRI, CT, PET) | $195 $0 mammograms / $0 X-rays |
+| Advanced Imaging (MRI, CT, PET) | $195 |
 | Hearing Services | $700 allowance for 2 hearing aids every year (UHC Hearing) |
 | Dental | Preventive & Comprehensive — $0 copay |
-| Vision Allowance | $200 eyeglasses or contacts (routine exam $0) |
+| Vision Allowance | $200 |
 | Ambulance | $150 ground or air |
 | Transportation | $0 INN · 24 one-way trips to plan-approved locations |
 | RX Deductible | $0 Tiers 1–2 · $505 Tiers 3–5 |
@@ -204,9 +209,13 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 3 | 22% |
 | Tier 4 | 27% |
 | Tier 5 | 28% |
+| Tier 6 | N/A |
 | OTC | Not covered |
+| Grocery Card | N/A |
+| SSBCI Chronic Conditions | N/A |
+| Chiropractic | $20; routine: not covered/not listed |
 | Fitness | Renew Active |
-| Other Cards | Rewards not covered |
+| Other | N/A |
 
 Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
 
@@ -233,19 +242,19 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 |---------|------------------|
 | Premium | $0 |
 | Part B Giveback | $29 |
-| Plan Deductible | $0 in-network |
 | Referrals Needed? | Yes |
+| Medical Deductible | $0 in-network |
 | Max Out of Pocket | $3,900 |
 | Inpatient Hospital | $250 days 1-5 $0 after that, unlimited days |
-| Outpatient Hospital | ASC $200 / Outpatient hospital $250 $0 colonoscopies |
+| Outpatient Hospital | OP surgery $250 · ASC $200 |
 | PCP | $0 |
 | Specialist | $40 |
 | ER | $150 |
 | Urgent Care | $65 |
-| Advanced Imaging (MRI, CT, PET) | $320 $0 mammograms / $0 X-rays |
+| Advanced Imaging (MRI, CT, PET) | $320 |
 | Hearing Services | $700 allowance for 2 hearing aids every year (UHC Hearing) |
 | Dental | Preventive & Comprehensive — $0 copay |
-| Vision Allowance | $150 eyeglasses or contacts (routine exam $0) |
+| Vision Allowance | $150 |
 | Ambulance | $150 ground or air |
 | Transportation | Not covered |
 | RX Deductible | $0 Tiers 1–2 · $685 Tiers 3–5 |
@@ -255,8 +264,10 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 4 | 28% |
 | Tier 5 | 26% |
 | OTC | Not covered |
+| Grocery Card | N/A |
+| SSBCI Chronic Conditions | N/A |
 | Fitness | Renew Active |
-| Other Cards | Rewards not covered |
+| Other | N/A |
 
 Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
 
@@ -266,7 +277,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Dentures | 1 x 5 years |
 | Fillings | 2 |
 | Extractions | as needed |
-| Implants | no |
+| Implants | No |
 
 ---
 
@@ -275,20 +286,21 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 **Type:** PPO
 **Plan year:** 2027
 **CMS ID:** R0759-001
-**Still yellow on the working grid:** 17 field(s) — not cited below.
+**Still yellow on the working grid:** 18 field(s) — not cited below.
 **Part B Giveback:** N/A
 **MOOP:** $9,850
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
-| Part B Give Back | N/A |
+| Part B Giveback | N/A |
+| Referrals Needed? | No |
+| Medical Deductible | N/A in-network · $1,000 out-of-network only |
 | Max Out of Pocket | $9,850 |
-| Deductible | N/A in-network · $1,000 out-of-network only |
 | Inpatient Hospital | $485 days 1-5 $0 after that, unlimited days |
-| Outpatient | ASC $485 / Outpatient hospital $485 $0 colonoscopies |
+| Outpatient Hospital | OP surgery $485 · ASC $485 |
 | PCP | $0 |
 | Specialist | $55 · no referral required |
-| Advanced Imaging (MRI, CT, PET) | $320 radiology $0 mammograms / $30 X-rays |
+| Advanced Imaging (MRI, CT, PET) | $320 |
 | Transportation | Not covered |
 | RX Deductible | $0 Tiers 1–2 · $685 Tiers 3–5 |
 | Tier 1 | $0 |
@@ -299,16 +311,17 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | OTC | Not covered |
 | Fitness | Not covered |
 | Other | Healthy rewards up to $155 Insulin retail $35 / mail $105 · Mail 100-day T1 $0 / T2 $0 / T3 21% NON-COMMISSIONABLE · nationwide UHC Medicare National Network |
+| Evidence of Coverage | EOC pending |
 
 Out-of-network (confirmed):
 
 | Benefit | 2027 OON |
 |---------|----------|
-| Deductible | $1,000 out-of-network only |
+| Medical Deductible | $1,000 out-of-network only |
 | Transportation | Not covered |
 | OTC | Not covered |
 | Fitness | Not covered |
-| Other | Highlight listed IN-network copays; OON deductible $1,000. OUT copays still yellow until SOB. |
+| Other | Highlight listed IN-network copays; OUT copays still yellow until SOB. |
 
 ---
 
@@ -317,29 +330,29 @@ Out-of-network (confirmed):
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-018
-**Still yellow on the working grid:** 11 field(s) — not cited below.
+**Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0 (LIS $0)
 **Part B Giveback:** $101
 **MOOP:** $2,900
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Chronic Conditions | •Diabetes •Cardiovascular disorder •Chronic heart failure |
 | Premium | $0 (LIS $0) |
+| Part B Giveback | $101 |
 | Referrals Needed? | Yes |
-| Part B Rebate | $101 |
-| Deductible | $0 in-network |
+| Medical Deductible | $0 in-network |
 | Max Out of Pocket | $2,900 |
-| SSBCI Chronic Conditions | •Diabetes •Cardiovascular disorder •Chronic heart failure |
 | Inpatient Hospital | $0 per stay · unlimited days |
-| Outpatient Hospital | ASC $25 / Outpatient hospital $75 $0 colonoscopies |
+| Outpatient Hospital | OP surgery $75 · ASC $25 |
 | PCP | $0 |
 | Specialist | $0 |
 | ER | $80 |
 | Urgent Care | $25 |
-| Advanced Imaging (MRI, CT, PET) | $150 $0 mammograms / $0 X-rays |
+| Advanced Imaging (MRI, CT, PET) | $150 |
 | Hearing Services | $700 allowance for 2 hearing aids every year (UHC Hearing) |
 | Dental | Preventive & Comprehensive — $0 copay |
-| Vision Allowance | $200 eyeglasses or contacts (routine exam $0) |
+| Vision Allowance | $200 |
 | Ambulance | $120 ground or air |
 | Transportation | $0 INN · 24 one-way trips to plan-approved locations |
 | RX Deductible | $0 all tiers |
@@ -349,8 +362,10 @@ Out-of-network (confirmed):
 | Tier 4 | 27% |
 | Tier 5 | 33% |
 | OTC | $40 x month |
-| Grocery Card | Healthy food for qualifying members (combined with OTC) |
+| Grocery Card | Combined with OTC Card ($40/month) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Fitness | Free gym — core and premium network |
+| Other | N/A |
 
 Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
 
@@ -373,22 +388,22 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Chronic Conditions | •Diabetes •Cardiovascular disorder •Chronic heart failure |
 | Premium | $0 (LIS $0) |
+| Part B Giveback | $61 |
 | Referrals Needed? | Yes |
-| Part B Rebate | $61 |
-| Deductible | $0 in-network |
+| Medical Deductible | $0 in-network |
 | Max Out of Pocket | $3,400 |
-| SSBCI Chronic Conditions | •Diabetes •Cardiovascular disorder •Chronic heart failure |
 | Inpatient Hospital | $0 per stay · unlimited days |
-| Outpatient Hospital | ASC $50 / Outpatient hospital $150 $0 colonoscopies |
+| Outpatient Hospital | OP surgery $150 · ASC $50 |
 | PCP | $0 |
 | Specialist | $0 |
 | ER | $150 |
 | Urgent Care | $65 |
-| Advanced Imaging (MRI, CT, PET) | $150 $0 mammograms / $0 X-rays |
+| Advanced Imaging (MRI, CT, PET) | $150 |
 | Hearing Services | $700 allowance for 2 hearing aids every year (UHC Hearing) |
 | Dental | Preventive & Comprehensive — $0 copay |
-| Vision Allowance | $200 eyeglasses or contacts (routine exam $0) |
+| Vision Allowance | $200 |
 | Ambulance | $125 ground or air |
 | Transportation | $0 INN · 24 one-way trips to plan-approved locations |
 | RX Deductible | $0 all tiers |
@@ -397,9 +412,13 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 3 | $0 |
 | Tier 4 | 27% |
 | Tier 5 | 33% |
+| Tier 6 | N/A |
 | OTC | Not covered |
-| Grocery Card | Highlight intro: monthly OTC / healthy food credit for qualifying members (dollar amount not listed). Plan Details OTC line is Not Covered. |
+| Grocery Card | Not covered |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Chiropractic | $0; routine: not covered/not listed |
 | Fitness | Renew Active: core and premium network |
+| Other | N/A |
 
 Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
 
@@ -407,7 +426,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 |---------|-------------------|
 | Dentures | 1 x 5 years |
 | Fillings | 2 x year |
-| Implants | not covered |
+| Implants | Not covered |
 
 ---
 
@@ -416,28 +435,29 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-012
-**Still yellow on the working grid:** 11 field(s) — not cited below.
+**Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $0 – $9,850 (varies by Medicaid level)
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | Yes |
 | MSP Levels | QMB, SLMB, QI |
+| Premium | $0 |
+| Part B Giveback | No |
+| Referrals Needed? | Yes |
+| Medical Deductible | $0 – $283 in-network |
 | Max Out of Pocket | $0 – $9,850 (varies by Medicaid level) |
 | Inpatient Hospital | $0 – $2,035 per stay · unlimited days |
-| Outpatient Hospital | $0 – 20% ASC / $0 – 20% outpatient hospital $0 colonoscopies |
+| Outpatient Hospital | OP surgery $0 – 20% · ASC $0 – 20% |
 | PCP | $0 – 20% |
 | Specialist | $0 |
 | ER | $0 – $115 |
 | Urgent Care | $0 |
-| Advanced Imaging (MRI, CT, PET) | $0 – 20% $0 mammograms |
+| Advanced Imaging (MRI, CT, PET) | $0 – 20% |
 | Hearing Services | $2,200 allowance for 2 hearing aids every 2 years (UHC Hearing) |
 | Dental | Preventive & Comprehensive — $0 copay |
-| Vision Allowance | $250 eyeglasses or contacts (routine exam $0) |
+| Vision Allowance | $250 |
 | Ambulance | $0 – 20% ground or air |
 | Transportation | $0 INN · unlimited one-way trips to plan-approved locations |
 | RX Deductible | LIS $0 No LIS $0 Tiers 1–2 · $400 Tiers 3–5 |
@@ -447,12 +467,12 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 4 | Varies by LIS level |
 | Tier 5 | Varies by LIS level |
 | Tier 6 | $0 |
-| OTC | $240/month OTC and wellness; healthy food and utilities if member qualifies |
-| Grocery Card | Combined with OTC for qualifying members |
+| OTC | $240/month |
+| Grocery Card | Combined with OTC Card ($240/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | Acupuncture for chronic low back pain 12 visits in 90 days |
 | Fitness | Renew Active |
-| Other | Rewards not covered · Medical deductible $0 – $283 in-network |
+| Other | N/A |
 
 Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
 
@@ -461,8 +481,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Deep Cleaning | 2 per year |
 | Dentures | 1 every 5 years |
 | Fillings | 2 per year for 1, 2, 3, or 4 surface teeth |
-| Root Canals | yes |
-| Extractions | yes |
+| Root Canals | Yes |
+| Extractions | Yes |
 
 ---
 
@@ -471,28 +491,29 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-061
-**Still yellow on the working grid:** 10 field(s) — not cited below.
+**Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $0 – $7.30 (LIS $0)
 **Part B Giveback:** No
 **MOOP:** $2,900
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
-| Premium | $0 – $7.30 (LIS $0) |
-| Part B Rebate | No |
-| Referrals Needed? | Yes |
 | MSP Levels | QMB, SLMB, QI |
+| Premium | $0 – $7.30 (LIS $0) |
+| Part B Giveback | No |
+| Referrals Needed? | Yes |
+| Medical Deductible | $0 in-network |
 | Max Out of Pocket | $2,900 |
 | Inpatient Hospital | $0 per stay · unlimited days |
-| Outpatient Hospital | ASC $25 / Outpatient hospital $75 $0 colonoscopies |
+| Outpatient Hospital | OP surgery $75 · ASC $25 |
 | PCP | $0 |
 | Specialist | $0 |
 | ER | $150 |
 | Urgent Care | $0 |
-| Advanced Imaging (MRI, CT, PET) | $0 $0 mammograms / $0 X-rays |
+| Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $1,000 allowance for 2 hearing aids every year (UHC Hearing) |
 | Dental | Preventive & Comprehensive — $0 copay |
-| Vision Allowance | $200 eyeglasses or contacts (routine exam $0) |
+| Vision Allowance | $200 |
 | Ambulance | $350 ground or air |
 | Transportation | $0 INN · 60 one-way trips to plan-approved locations |
 | RX Deductible | LIS $0 No LIS $0 Tier 1 · $700 Tiers 2–5 |
@@ -502,12 +523,12 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 4 | Varies by LIS level |
 | Tier 5 | Varies by LIS level |
 | Tier 6 | $0 |
-| OTC | $127/month OTC and wellness; healthy food and utilities if member qualifies |
-| Grocery Card | Combined with OTC for qualifying members |
+| OTC | $127/month |
+| Grocery Card | Combined with OTC Card ($127/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | Acupuncture for chronic low back pain 12 visits in 90 days |
 | Fitness | Renew Active |
-| Other | Rewards not covered · Medical deductible $0 in-network |
+| Other | Rewards not covered |
 
 Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
 
@@ -516,8 +537,8 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Deep Cleaning | 2 per year |
 | Dentures | 1 every 5 years |
 | Fillings | 2 per year for 1, 2, 3, or 4 surface teeth |
-| Root Canals | yes |
-| Extractions | yes |
+| Root Canals | Yes |
+| Extractions | Yes |
 
 ---
 
@@ -526,17 +547,18 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1045-063
-**Still yellow on the working grid:** 8 field(s) — not cited below.
+**Still yellow on the working grid:** 10 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $0
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | Yes |
 | MSP Levels | FBDE, QMB+, SLMB+ |
+| Premium | $0 |
+| Part B Giveback | No |
+| Referrals Needed? | Yes |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $0 |
 | Inpatient Hospital | $0 unlimited days |
 | Outpatient Hospital | $0 |
@@ -547,7 +569,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $2,200 for 2 hearing aids every 2 years (UHC Hearing) |
 | Dental | $4,500 toward covered services · $0 copay |
-| Vision Allowance | $300 eyeglasses or contacts (routine exam $0) |
+| Vision Allowance | $300 |
 | Ambulance | $0 ground or air |
 | Transportation | $0 unlimited one-way trips INN |
 | Companionship | Not covered |
@@ -559,25 +581,24 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 4 | $0 through Medicaid |
 | Tier 5 | $0 through Medicaid |
 | Tier 6 | n/a |
-| OTC | $405/month OTC and wellness; healthy food and utilities if member qualifies |
-| Grocery Card | Combined with OTC for qualifying members |
+| OTC | $405/month |
+| Grocery Card | Combined with OTC Card ($405/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | Acupuncture for chronic low back pain 12 visits in 90 days |
 | Fitness | Free gym — core and premium network |
-| Other | Rewards not covered · Joining also enrolls in UHC Medicaid Wrap |
 
 Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
 
 | Benefit | 2027 working grid |
 |---------|-------------------|
-| Deep Cleaning | yes |
-| Dentures | yes |
-| Fillings | yes |
-| Root Canals | yes |
-| Extractions | yes |
-| Crowns | yes |
-| Bridges | yes |
-| Implants | no |
+| Deep Cleaning | Yes |
+| Dentures | Yes |
+| Fillings | Yes |
+| Root Canals | Yes |
+| Extractions | Yes |
+| Crowns | Yes |
+| Bridges | Yes |
+| Implants | No |
 
 ---
 
@@ -596,17 +617,18 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Premium | $0 |
 | Part B Giveback | $55 |
 | Referrals Needed? | Yes |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $2,900 |
 | Inpatient Hospital | $0 per stay · unlimited days |
-| Outpatient Hospital | ASC $25 / Outpatient hospital $75 $0 colonoscopies |
+| Outpatient Hospital | OP surgery $75 · ASC $25 |
 | PCP | $0 |
 | Specialist | $0 |
 | ER | $150 |
 | Urgent Care | $25 |
-| Advanced Imaging (MRI, CT, PET) | $150 $0 mammograms / $0 X-rays |
+| Advanced Imaging (MRI, CT, PET) | $150 |
 | Hearing Services | $700 allowance for 2 hearing aids every year (UHC Hearing) |
 | Dental | Preventive & Comprehensive — $0 copay |
-| Vision Allowance | $200 eyeglasses or contacts (routine exam $0) |
+| Vision Allowance | $200 |
 | Ambulance | $110 ground or air |
 | Transportation | $0 INN · 24 one-way trips to plan-approved locations |
 | RX Deductible | $0 all tiers |
@@ -615,8 +637,12 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 3 | $0 |
 | Tier 4 | 27% |
 | Tier 5 | 33% |
+| Tier 6 | N/A |
 | OTC | $25 x quarter |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Chiropractic | $0; routine: not covered/not listed |
 | Fitness | Renew Active — core and premium network |
+| Other | N/A |
 
 Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
 
@@ -626,9 +652,9 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Fillings | 2 per year |
 | Root Canals | 1 per year |
 | Extractions | 1 per year |
-| Crowns | no |
-| Bridges | no |
-| Implants | no |
+| Crowns | No |
+| Bridges | No |
+| Implants | No |
 
 ---
 
@@ -637,7 +663,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H5420-001
-**Still yellow on the working grid:** 12 field(s) — not cited below.
+**Still yellow on the working grid:** 11 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $50
 **MOOP:** $3,900
@@ -647,17 +673,18 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Premium | $0 |
 | Part B Giveback | $50 |
 | Referrals Needed? | Yes |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $3,900 |
 | Inpatient Hospital | $95 days 1-4 $0 after that, unlimited days |
-| Outpatient Hospital | ASC $75 / Outpatient hospital $175 $0 colonoscopies |
+| Outpatient Hospital | OP surgery $175 · ASC $75 |
 | PCP | $0 |
 | Specialist | $15 |
 | ER | $150 |
 | Urgent Care | $25 |
-| Advanced Imaging (MRI, CT, PET) | $150 $0 mammograms / $0 X-rays |
+| Advanced Imaging (MRI, CT, PET) | $150 |
 | Hearing Services | $700 allowance for 2 hearing aids every year (UHC Hearing) |
 | Dental | Preventive & Comprehensive — $0 copay |
-| Vision Allowance | $200 eyeglasses or contacts (routine exam $0) |
+| Vision Allowance | $200 |
 | Ambulance | $80 ground or air |
 | Transportation | $0 INN · 24 one-way trips to plan-approved locations |
 | RX Deductible | $0 all tiers |
@@ -666,8 +693,12 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 | Tier 3 | $25 |
 | Tier 4 | 27% |
 | Tier 5 | 33% |
+| Tier 6 | N/A |
 | OTC | $25 x quarter |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Chiropractic | $15; routine: not covered/not listed |
 | Fitness | Renew Active core and premium network |
+| Other | N/A |
 
 Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). Cite as THEI grid; SoB/EOC for CDT-level edge cases:
 
@@ -686,19 +717,20 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 **Type:** PPO
 **Plan year:** 2027
 **CMS ID:** R0759-001
-**Still yellow on the working grid:** 22 field(s) — not cited below.
+**Still yellow on the working grid:** 24 field(s) — not cited below.
 **MOOP:** $9,850
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Referrals Needed? | No |
+| Medical Deductible | N/A in-network · $1,000 out-of-network only |
 | Max Out of Pocket | $9,850 |
-| Deductible | N/A in-network · $1,000 out-of-network only |
 | Inpatient Hospital | $485 days 1-5 $0 after that, unlimited days |
-| Outpatient | ASC $485 / Outpatient hospital $485 $0 colonoscopies |
+| Outpatient Hospital | OP surgery $485 · ASC $485 |
 | PCP | $0 |
 | Specialist | $55 · no referral required |
-| Advanced Imaging (MRI, CT, PET) | $320 radiology $0 mammograms / $30 X-rays |
-| Vision Allowance | $200 every 2 years eyeglasses or contacts (routine exam $0) |
+| Advanced Imaging (MRI, CT, PET) | $320 |
+| Vision Allowance | $200 / 2 yrs |
 | Transportation | Not covered |
 | OTC | Not covered |
 | Fitness | Not covered |
@@ -708,10 +740,10 @@ Out-of-network (confirmed):
 
 | Benefit | 2027 OON |
 |---------|----------|
-| Deductible | $1,000 out-of-network only |
+| Medical Deductible | $1,000 out-of-network only |
 | Transportation | Not covered |
 | OTC | Not covered |
 | Fitness | Not covered |
-| Other | Highlight listed IN-network copays; OON deductible $1,000. OUT copays still yellow until SOB. |
+| Other | Highlight listed IN-network copays; OUT copays still yellow until SOB. |
 
 ---

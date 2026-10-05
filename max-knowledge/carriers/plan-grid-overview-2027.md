@@ -1,11 +1,11 @@
 # 2027 THEI plan grid — what Max can cite
 Source: THEI 2027 Plan Benefit Grid working copy ([Google Sheet](https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit))
-Pulled: 2026-10-02 21:16 UTC
-Sheet stamp: 4788 confirmed (non-yellow) / 640 yellow benefit cells across plan tabs.
+Pulled: 2026-10-05 22:23 UTC
+Sheet stamp: 5420 confirmed (non-yellow) / 274 yellow benefit cells across plan tabs.
 
 Color key on the sheet: **yellow** = leftover / unconfirmed (never cited as 2027 dollars). After the Oct 2026 restyle, confirmed working 2027 numbers are typically **white/uncolored** (classic light-green fills were cleared; green still counts if it returns). Max only cites non-yellow cells.
 
-Live `#plan-data` **defaults to 2027** (same confirmed-cell rule). 2026 is archived (`#plan-data-2026` / `artifacts/plan-data-2026.json`) for current-year quotes when the agent asks or toggles the year. SOB / EOC lookups follow that year: 2026-only ask → 2026 URLs; unspecified / 2027 / both years → 2027 URLs.
+Live `#plan-data` **defaults to 2027** (same confirmed-cell rule). 2026 is archived (`#plan-data-2026` / `artifacts/plan-data-2026.json`) for current-year quotes when the agent asks or toggles the year.
 
 ## Confirmed 2027 plan dollars (non-yellow)
 
@@ -20,7 +20,7 @@ Live `#plan-data` **defaults to 2027** (same confirmed-cell rule). 2026 is archi
 | HealthSun | 12 | `carriers/healthsun-plans-florida-2027` |
 | Florida Blue | 5 | `carriers/florida-blue-plans-florida-2027` |
 | Simply | 2 | `carriers/simply-plans-florida-2027` |
-| Solis | 8 | `carriers/solis-plans-florida-2027` |
+| Solis | 10 | `carriers/solis-plans-florida-2027` |
 | Wellcare | 5 | `carriers/wellcare-plans-florida-2027` |
 | Gold Kidney | 5 | `carriers/gold-kidney-plans-florida-2027` |
 
@@ -28,19 +28,10 @@ Live `#plan-data` **defaults to 2027** (same confirmed-cell rule). 2026 is archi
 
 **HealthSpring / Cigna** has **no** 2027 Medicare Advantage plans in Miami-Dade or Broward (CMS CY2027; THEI Plan Comparison Grid columns removed). Do not quote 2026 HealthSpring dollars as 2027 benefits. A live Cigna/HealthSpring directory hit is not a 2027 enrollment option in those counties. Leftover yellow/workbook cells that mention HealthSpring or Cigna for Dade/Broward 2027 are stale — ignore them. Cite `carriers/healthspring-plans-florida-2027`.
 
-## Still waiting / yellow leftover (do not quote as 2027)
+## Still waiting on the official October 1 SoB
 
-No carrier is *entirely* yellow after the Oct 2026 restyle, but leftover yellow cells remain on some columns. Blank / `pending_sob` / omitted fields must be reported as unverified — never filled from 2026.
+These carriers are on the 2027 workbook but every benefit cell is still yellow. Do **not** quote their 2026 leftover numbers as 2027. Say Max does not have that 2027 figure yet.
 
-Highest leftover yellow counts on live `#plan-data` (pulled 2026-10-02):
-
-- **Gold Kidney** H1526-002 — medical dollars (MOOP / premium / specialist) still yellow; omitted
-- **Solis** H0982-034 — nearly all cells yellow (`sourceQuality: pending_sob`)
-- **Doctors** H4140-024 (new ExtraCare) and **Wellcare** H1032-196 — large yellow leftover
-- **HealthSun** H5431-001 — large yellow leftover
-- **UHC**, **Aetna**, **Simply**, some **Devoted** / **Humana** columns still have a few yellow cells (often OTC / extras)
-
-**HealthSpring / Cigna** is not a 2027 Miami-Dade or Broward MA option — omitted from live `#plan-data`.
 
 ## New 2027 plans on the grid
 
@@ -108,6 +99,5 @@ Highest leftover yellow counts on live `#plan-data` (pulled 2026-10-02):
 
 ```bash
 curl -sL -o /tmp/thei-2027-grid.xlsx 'https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/export?format=xlsx'
-python3 scripts/sync_thei_grid_to_max.py --year 2027   # live #plan-data + 2026 archive
-python3 scripts/export_2027_grid_to_kb.py              # max-knowledge markdown
+python3 scripts/export_2027_grid_to_kb.py
 ```

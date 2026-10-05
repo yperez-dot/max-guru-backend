@@ -1,7 +1,7 @@
 # Aetna — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-02 21:16 UTC
+Pulled: 2026-10-05 22:23 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1609-018, H1609-043, H1609-073, H1609-080, H1609-093, H1609-094, H1609-103
 
@@ -12,23 +12,26 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-080
-**Still yellow on the working grid:** 8 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,900
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Chronic Conditions | •Diabetes Mellitus •Chronic Heart Failure •Cardiovascular Disorders |
 | Premium | $0 |
+| Part B Giveback | No |
 | Referrals Needed? | Yes |
-| Deductible | $0 in-network |
-| Part B Rebate | No |
+| Medical Deductible | $0 in-network |
 | Max Out of Pocket | $3,900 |
-| SSBCI Chronic Conditions | •Diabetes Mellitus •Chronic Heart Failure •Cardiovascular Disorders |
 | Inpatient Hospital | $125 days 1-5 $0 days 6-90 |
 | Outpatient Hospital | $125 |
 | PCP | $0 |
 | Specialist | $0 |
+| ER | $150 |
+| Urgent Care | $25 |
+| Advanced Imaging (MRI, CT, PET) | $0 / $125 |
 | Hearing Services | $1,000 per ear every year |
 | Dental | Preventive & Comprehensive · $2,500/yr (Liberty network $0) |
 | Deep Cleaning | 1 quadrant x 2 years |
@@ -39,18 +42,23 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | 2 / year |
 | Bridges | 2 / year |
 | Implants | No |
-| Vision Allowance | $300 every year |
+| Vision Allowance | $300 |
+| Ambulance | $200 ground · 20% air |
+| Transportation | Not covered |
 | RX Deductible | $0 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 22% |
 | Tier 4 | 25% |
 | Tier 5 | 33% |
+| Tier 6 | N/A |
 | OTC | $95/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
-| Grocery Card | Combined with Extra Benefits Card if eligible |
+| Grocery Card | Combined with OTC Card ($195/mo) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 · chronic LBP only |
+| Chiropractic | $20; routine: not covered |
 | Fitness | SilverSneakers |
-| Other Cards | Extra Benefits Card (OTC / Extra Supports if eligible) |
-| Other | LIS generic $0 / $1.65 / $5.80 · brand $0 / $5 / $14.40 |
+| Other | N/A |
 
 ---
 
@@ -59,20 +67,26 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-043
-**Still yellow on the working grid:** 11 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | Yes |
 | MSP Levels | QMB only |
+| Premium | $0 |
+| Part B Giveback | No |
+| Referrals Needed? | Yes |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $9,850 |
+| Inpatient Hospital | $0 |
+| Outpatient Hospital | $0 |
 | PCP | $0 |
 | Specialist | $0 |
+| ER | $0 |
+| Urgent Care | $0 |
+| Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $1,250 per ear every year |
 | Dental | Preventive & Comprehensive · $2,000/yr (Liberty network $0) |
 | Deep Cleaning | 1 quadrant x 2 years |
@@ -83,7 +97,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | 2 / year |
 | Bridges | 2 / year |
 | Implants | No |
-| Vision Allowance | $300 every year |
+| Vision Allowance | $300 |
+| Ambulance | $0 |
+| Transportation | Not covered |
+| Companionship | Resources For Living |
 | Custodial Care | Not covered |
 | RX Deductible | LIS $0 No LIS $700 Tiers 3–5 |
 | Tier 1 | $0 |
@@ -91,11 +108,14 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 3 | 9% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
-| OTC | $217/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
-| Grocery Card | Combined with Extra Benefits Card if eligible |
+| Tier 6 | N/A |
+| OTC | $217/month Extra Benefits Card |
+| Grocery Card | Combined with OTC Card ($217/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 · chronic LBP only |
+| Chiropractic | $0; routine: 12 visits/yr $0 |
 | Fitness | SilverSneakers |
-| Other Cards | Chiropractic: 12 visits/year Fall prevention: $150/year |
+| Other | N/A |
 
 ---
 
@@ -104,20 +124,26 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-073
-**Still yellow on the working grid:** 11 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | Yes |
 | MSP Levels | QMB+, SLMB+, FBDE (full dual) |
+| Premium | $0 |
+| Part B Giveback | No |
+| Referrals Needed? | Yes |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $9,850 |
+| Inpatient Hospital | $0 |
+| Outpatient Hospital | $0 |
 | PCP | $0 |
 | Specialist | $0 |
+| ER | $0 |
+| Urgent Care | $0 |
+| Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $1,250 per ear every year |
 | Dental | Preventive & Comprehensive · $3,500/yr (Liberty network $0) |
 | Deep Cleaning | 1 quadrant x 2 years |
@@ -128,19 +154,25 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | 2 / year |
 | Bridges | 2 / year |
 | Implants | No |
-| Vision Allowance | $400 every year |
+| Vision Allowance | $400 |
+| Ambulance | $0 |
 | Transportation | $0 unlimited one-way trips |
+| Companionship | Resources For Living |
+| Custodial Care | In-Home Support Personal Care: up to 60 hrs/yr if ADL need (care manager approval) Home Health: $0 Medicare-covered |
 | RX Deductible | LIS $0 No LIS $700 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 9% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
-| OTC | $331/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
-| Grocery Card | Combined with Extra Benefits Card if eligible |
+| Tier 6 | N/A |
+| OTC | $331/month |
+| Grocery Card | Combined with OTC Card ($331/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 (chronic low back pain only) |
+| Chiropractic | $0; routine: 24 visits/yr $0 |
 | Fitness | SilverSneakers |
-| Other Cards | Chiropractic: 24 visits/year Fall prevention: $150/year |
+| Other | N/A |
 
 ---
 
@@ -149,17 +181,18 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-103
-**Still yellow on the working grid:** 1 field(s) — not cited below.
+**Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| MSP Levels | SLMB, QDWI, QI |
 | Premium | $0 |
-| Part B Rebate | No |
+| Part B Giveback | No |
 | Referrals Needed? | Yes |
-| MSP Levels | SLMB, QDWI, QI (partial dual) — NEW 2027 |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $9,850 |
 | Inpatient Hospital | $125 days 1-5 · $0 days 6-90 |
 | Outpatient Hospital | $125 |
@@ -178,9 +211,9 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | 2 / year |
 | Bridges | 2 / year |
 | Implants | No |
-| Vision Allowance | $200 every year |
+| Vision Allowance | $200 |
 | Ambulance | $200 ground · 20% air |
-| Transportation | Not Covered |
+| Transportation | Not covered |
 | Companionship | Resources For Living® |
 | Custodial Care | Not covered |
 | RX Deductible | LIS $0 No LIS $700 Tiers 3–5 |
@@ -190,12 +223,11 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 4 | 25% |
 | Tier 5 | 25% |
 | Tier 6 | N/A |
-| OTC | $115/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
-| Grocery Card | Combined with Extra Benefits Card if eligible |
+| OTC | $115/month Extra Benefits Card |
+| Grocery Card | Combined with OTC Card ($155/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
-| Acupuncture | $0 · Medicare chronic LBP only |
+| Acupuncture | $0 · chronic LBP only |
 | Fitness | SilverSneakers |
-| Other Cards | Chiropractic: 12 visits/year Fall prevention: $150/year **NEW 2027 plan** |
 | Other | Fall prevention $150/year · Chiropractic 12 visits/year Transport not listed |
 
 ---
@@ -205,7 +237,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1609-018
-**Still yellow on the working grid:** 8 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $2,900
@@ -214,13 +246,16 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 |---------|------------------|
 | Premium | $0 |
 | Part B Giveback | No |
-| Plan Deductible | $0 |
 | Referrals Needed? | Yes |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $2,900 |
 | Inpatient Hospital | $125 days 1-5 $0 days 6-90 |
 | Outpatient Hospital | $125 |
 | PCP | $0 |
 | Specialist | $0 |
+| ER | $150 |
+| Urgent Care | $0 |
+| Advanced Imaging (MRI, CT, PET) | $0 / $125 |
 | Hearing Services | $1,000 per ear every year |
 | Dental | Preventive & Comprehensive · $3,000/yr (Liberty network $0) |
 | Deep Cleaning | 1 quadrant x 2 years |
@@ -231,18 +266,22 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | 2 / year |
 | Bridges | 2 / year |
 | Implants | No |
-| Vision Allowance | $300 every year |
+| Vision Allowance | $300 |
+| Ambulance | $150 ground · 20% air |
+| Transportation | Not covered |
 | RX Deductible | $0 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 20% |
 | Tier 4 | 30% |
 | Tier 5 | 33% |
+| Tier 6 | n/a |
 | OTC | $50 x quarter Extra Benefits Card (OTC) |
-| Fitness | SilverSneakers |
-| Grocery Card | Not included (OTC-only Extra Benefits Card) |
+| Grocery Card | N/A |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
-| Other Cards | Extra Benefits Card (OTC) |
+| Acupuncture | $0 (chronic low back pain only) |
+| Chiropractic | $20; routine: not covered |
+| Fitness | SilverSneakers |
 | Other | Resources For Living® |
 
 ---
@@ -252,23 +291,24 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-094
-**Still yellow on the working grid:** 2 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,900
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| Chronic Conditions | •Diabetes Mellitus •Chronic Heart Failure •Cardiovascular Disorders |
 | Premium | $0 |
+| Part B Giveback | No |
 | Referrals Needed? | Yes |
-| Part B Rebate | No |
-| Deductible | $0 in-network |
+| Medical Deductible | $0 in-network |
 | Max Out of Pocket | $3,900 |
-| SSBCI Chronic Conditions | •Diabetes Mellitus •Chronic Heart Failure •Cardiovascular Disorders |
 | Inpatient Hospital | $100 days 1-5 $0 days 6-90 |
 | Outpatient Hospital | $100 |
 | PCP | $0 |
 | Specialist | $0 |
+| ER | $150 |
 | Urgent Care | $0 |
 | Advanced Imaging (MRI, CT, PET) | $0 / $175 |
 | Hearing Services | $1,000 per ear every year |
@@ -281,9 +321,9 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | 2 / year |
 | Bridges | 2 / year |
 | Implants | No |
-| Vision Allowance | $300 every year |
+| Vision Allowance | $300 |
 | Ambulance | $225 ground · 20% air |
-| Transportation | Not Covered |
+| Transportation | Not covered |
 | RX Deductible | $0 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
@@ -291,9 +331,11 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 4 | 25% |
 | Tier 5 | 33% |
 | Tier 6 | N/A |
-| OTC | $93/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
-| Grocery Card | Combined with Extra Benefits Card if eligible |
-| Acupuncture | $0 · Medicare chronic LBP only |
+| OTC | $93/month Extra Benefits Card |
+| Grocery Card | Combined with OTC Card ($93/mo) |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | $0 · chronic LBP only |
+| Chiropractic | $0; routine: not covered |
 | Fitness | SilverSneakers |
 | Other | Resources For Living® |
 
@@ -304,20 +346,26 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-043
-**Still yellow on the working grid:** 9 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | Yes |
 | MSP Levels | QMB only |
+| Premium | $0 |
+| Part B Giveback | No |
+| Referrals Needed? | Yes |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $9,850 |
+| Inpatient Hospital | $0 |
+| Outpatient Hospital | $0 |
 | PCP | $0 |
 | Specialist | $0 |
+| ER | $0 |
+| Urgent Care | $0 |
+| Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $1,250 per ear every year |
 | Dental | Preventive & Comprehensive · $2,000/yr (Liberty network $0) |
 | Deep Cleaning | 1 quadrant x 2 years |
@@ -328,7 +376,9 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | 2 / year |
 | Bridges | 2 / year |
 | Implants | No |
-| Vision Allowance | $300 every year |
+| Vision Allowance | $300 |
+| Ambulance | $0 |
+| Transportation | Not covered |
 | Companionship | Resources For Living® |
 | Custodial Care | Not covered |
 | RX Deductible | LIS $0 No LIS $700 Tiers 3–5 |
@@ -337,12 +387,14 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 3 | 9% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
-| OTC | $217/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
-| Grocery Card | Combined with Extra Benefits Card if eligible |
+| Tier 6 | N/A |
+| OTC | $217/month Extra Benefits Card |
+| Grocery Card | Combined with OTC Card ($217/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
-| Acupuncture | $0 · Medicare chronic LBP only |
+| Acupuncture | $0 · chronic LBP only |
+| Chiropractic | $0; routine: 12 visits/yr $0 |
 | Fitness | SilverSneakers |
-| Other | Chiropractic: 12 visits/year Fall prevention: $150/year |
+| Other | Fall prevention: $150/year |
 
 ---
 
@@ -351,20 +403,26 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-073
-**Still yellow on the working grid:** 10 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | Yes |
 | MSP Levels | QMB+, SLMB+, FBDE |
+| Premium | $0 |
+| Part B Giveback | No |
+| Referrals Needed? | Yes |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $9,850 |
+| Inpatient Hospital | $0 |
+| Outpatient Hospital | $0 |
 | PCP | $0 |
 | Specialist | $0 |
+| ER | $0 |
+| Urgent Care | $0 |
+| Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $1,250 per ear every year |
 | Dental | Preventive & Comprehensive · $3,500/yr (Liberty network $0) |
 | Deep Cleaning | 1 quadrant x 2 years |
@@ -375,20 +433,25 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | 2 / year |
 | Bridges | 2 / year |
 | Implants | No |
-| Vision Allowance | $400 every year |
+| Vision Allowance | $400 |
+| Ambulance | $0 |
 | Transportation | $0 unlimited one-way trips |
+| Companionship | Resources For Living |
+| Custodial Care | In-Home Support Personal Care: up to 60 hrs/yr if ADL need (care manager approval) Home Health: $0 Medicare-covered |
 | RX Deductible | LIS $0 No LIS $700 Tiers 3–5 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 9% |
 | Tier 4 | 25% |
 | Tier 5 | 25% |
-| OTC | $331/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
-| Grocery Card | Combined with Extra Benefits Card if eligible |
+| Tier 6 | N/A |
+| OTC | $331/month |
+| Grocery Card | Combined with OTC Card ($331/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
-| Acupuncture | $0 · Medicare chronic LBP only |
+| Acupuncture | $0 · chronic LBP only |
+| Chiropractic | $0; routine: 24 visits/yr $0 |
 | Fitness | SilverSneakers |
-| Other | Chiropractic: 24 visits/year Fall prevention: $150/year |
+| Other | Fall prevention: $150/year |
 
 ---
 
@@ -397,17 +460,18 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-103
-**Still yellow on the working grid:** 1 field(s) — not cited below.
+**Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
-| Premium | $0 |
-| Part B Rebate | No |
-| Referrals Needed? | Yes |
 | MSP Levels | SLMB, QDWI, QI |
+| Premium | $0 |
+| Part B Giveback | No |
+| Referrals Needed? | Yes |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $9,850 |
 | Inpatient Hospital | $125 days 1-5 · $0 days 6-90 |
 | Outpatient Hospital | $125 |
@@ -426,9 +490,9 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | 2 / year |
 | Bridges | 2 / year |
 | Implants | No |
-| Vision Allowance | $200 every year |
+| Vision Allowance | $200 |
 | Ambulance | $200 ground · 20% air |
-| Transportation | Not Covered |
+| Transportation | Not covered |
 | Companionship | Resources For Living® |
 | Custodial Care | Not covered |
 | RX Deductible | LIS $0 No LIS $700 Tiers 3–5 |
@@ -438,12 +502,12 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 4 | 25% |
 | Tier 5 | 25% |
 | Tier 6 | N/A |
-| OTC | $115/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
-| Grocery Card | Combined with Extra Benefits Card if eligible |
+| OTC | $115/month Extra Benefits Card |
+| Grocery Card | Combined with OTC Card ($115/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
-| Acupuncture | $0 · Medicare chronic LBP only |
+| Acupuncture | $0 · chronic LBP only |
 | Fitness | SilverSneakers |
-| Other | Chiropractic: 12 visits/year Fall prevention: $150/year **NEW 2027 plan** |
+| Other | Fall prevention: $150/year |
 
 ---
 
@@ -452,7 +516,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1609-093
-**Still yellow on the working grid:** 8 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $2,900
@@ -462,11 +526,15 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Premium | $0 |
 | Part B Giveback | No |
 | Referrals Needed? | Yes |
+| Medical Deductible | $0 |
 | Max Out of Pocket | $2,900 |
 | Inpatient Hospital | $100 days 1-5 $0 days 6-90 |
 | Outpatient Hospital | $100 |
 | PCP | $0 |
 | Specialist | $0 |
+| ER | $150 |
+| Urgent Care | $0 |
+| Advanced Imaging (MRI, CT, PET) | Non-hospital $0 · Hospital $125 |
 | Hearing Services | $1,000 per ear every year |
 | Dental | Preventive & Comprehensive · $2,000/yr (Liberty network $0) |
 | Deep Cleaning | 1 quadrant x 2 years |
@@ -477,17 +545,22 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | 2 / year |
 | Bridges | 2 / year |
 | Implants | No |
-| Vision Allowance | $150 every year |
+| Vision Allowance | $150 |
+| Ambulance | $250 ground · 20% air |
+| Transportation | Not covered |
 | RX Deductible | $0 |
 | Tier 1 | $0 |
 | Tier 2 | $0 |
 | Tier 3 | 20% |
 | Tier 4 | 30% |
 | Tier 5 | 33% |
-| OTC | $30 x quarter Extra Benefits Card (OTC) |
-| Fitness | SilverSneakers |
+| Tier 6 | N/A |
+| OTC | $30 x quarter Extra Benefits Card |
 | Grocery Card | $25/qtr Extra Supports if qualifying chronic condition; +$30/qtr Extra Supports HVP Wallet if high-value PCP |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
-| Other Cards | LIS T1–5 generic $0/$1.65/$5.80; brand $0/$5/$14.40 |
+| Acupuncture | $0 (chronic low back pain only) |
+| Chiropractic | $20; routine: not covered |
+| Fitness | SilverSneakers |
+| Other | N/A |
 
 ---
