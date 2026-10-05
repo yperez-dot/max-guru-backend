@@ -550,6 +550,8 @@
       if (/\b(?:her|his|their)\s+(?:current\s+)?plan\s+is\s+(?:terminat|ending)\b/i.test(t)) return true;
       if (/(?:^|[^\w])plan\s+terminating\s*[:\-–]\s*\S/i.test(t)) return true;
       if (/\bterminating\s+plan\s*(?:is\s*)?[:\-–]\s*\S/i.test(t)) return true;
+      // "Current plan H5420-014 terminating 2027"
+      if (/\bcurrent\s+plan\s+[HR]\d{4}-\d{3}[A-Z]?\b[^.\n]{0,20}?\b(?:terminat|ending)/i.test(t)) return true;
     }
     return false;
   }
@@ -566,6 +568,8 @@
     const patterns = [
       /(?:plan\s+)?terminat(?:ing|es|ed|ion)\s*(?:plan)?\s*[:\-–]\s*([^\n]{3,90})/i,
       /terminating\s+plan\s+(?:is\s+)?([A-Z][^\n]{2,90})/i,
+      // "Current plan H5420-014 terminating 2027"
+      /(?:current\s+plan\s+)?\b([HR]\d{4}-\d{3}[A-Z]?)\b[^.\n]{0,20}?\bterminat/i,
     ];
     for (const re of patterns) {
       const m = String(text || "").match(re);
@@ -1064,6 +1068,26 @@
     return out;
   }
 
+  // "ERNESTO PADRON M.D" → "Dr. Ernesto Padron"; "EYE SURGERY ASSOCIATES LLC" → "Eye Surgery Associates".
+  function cleanProviderDisplayName(raw) {
+    let n = String(raw || "").replace(/\s+/g, " ").trim().replace(/^(dr|doctor)\.?\s+/i, "");
+    const parts = n.split(/[\s,]+/).filter(Boolean);
+    const CRED = /^(MD|DO|NP|PA|PAC|RN|APRN|ARNP|DDS|DMD|DPM|OD|DC|PHARMD|PHD|FNP|DNP|FACC|FACP|FACS|LLC|INC|PLLC|CORP)$/i;
+    while (parts.length > 1 && CRED.test(parts[parts.length - 1].replace(/[.\-/]/g, ""))) parts.pop();
+    n = parts.join(" ");
+    if (n === n.toUpperCase() && /[A-Z]/.test(n)) n = n.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
+    return looksLikeOrganization(n) ? n : "Dr. " + n;
+  }
+
+  /** Plan IDs the agent said are ending or to skip — never an export column. */
+  function excludedPlanIdsFromText(text) {
+    const t = String(text || "");
+    const out = new Set();
+    for (const m of t.matchAll(/\b(?:skip|exclude|drop|remove|without|not)\s+([HR]\d{4}-\d{3})/gi)) out.add(m[1].toUpperCase());
+    for (const m of t.matchAll(/([HR]\d{4}-\d{3})[A-Z]?[^.\n]{0,40}?\b(terminating|ending|going away|non-?commissionable)/gi)) out.add(m[1].toUpperCase());
+    return out;
+  }
+
   function looksLikeOrganization(name) {
     const n = String(name || "").trim();
     if (!n || /^(dr|doctor)\b\.?\s/i.test(n)) return false;
@@ -1143,7 +1167,7 @@
           (p) => statusFromProviderNetworks(p, networks, { missIsUnknown }) || NETWORK_NOT_CONFIRMED
         );
         out.push({
-          name: /^dr\.?\s/i.test(name) || /clinic|neurology|rehab|mnrs/i.test(name) ? name : "Dr. " + name,
+          name: cleanProviderDisplayName(pr.requestedName || name),
           statuses,
           byPlanId: byPlanIdFromStatuses(statuses, plans),
           networks,
@@ -1605,7 +1629,10 @@
     const extra = extras && typeof extras === "object" ? extras : {};
     const text = String(threadText || extra.threadText || "");
     const catalog = extra.catalog || extra.planCatalog || [];
-    const resolvedPlans = resolveExportPlans(plans, text, extra);
+    const excluded = excludedPlanIdsFromText(text);
+    const allResolved = resolveExportPlans(plans, text, extra);
+    const kept = allResolved.filter((p) => !excluded.has(String(p.planId || p.id || "").toUpperCase().slice(0, 9)));
+    const resolvedPlans = kept.length ? kept : allResolved;
     const clientName = extra.clientName || extractClientName(text);
     const terminatingPlan = extra.explicitTerminating
       ? sanitizeTerminatingPlan(extra.terminatingPlan || extractTerminatingPlan(text), text)
@@ -1618,7 +1645,16 @@
       [extra.doctors, fromLookups, extractDoctors(text, resolvedPlans)],
       resolvedPlans
     );
-    const fromExtras = normalizeDrugs(extra.drugs, resolvedPlans);
+    // Drug checks from any earlier turn in the session count too (the meds turn
+    // and the final plan answer are often different turns).
+    const toolDrugs = [];
+    (extra.toolResults || []).forEach((tr) => {
+      if (!tr || (tr.tool !== "lookup_formulary" && tr.tool !== "search_drug")) return;
+      const o = tr.output || {};
+      if (o.drug) toolDrugs.push(o.drug);
+      if (Array.isArray(o.drugs)) toolDrugs.push(...o.drugs);
+    });
+    const fromExtras = normalizeDrugs([...(Array.isArray(extra.drugs) ? extra.drugs : []), ...toolDrugs], resolvedPlans);
     const fromThread = extractDrugs(text, resolvedPlans);
     let drugs = fromExtras.length ? fromExtras : fromThread;
     if (fromExtras.length && fromThread.length) {
@@ -2241,6 +2277,8 @@
     requestUpdatesComparison,
     isExportOnlyAsk,
     isNarrowingReply,
+    cleanProviderDisplayName,
+    excludedPlanIdsFromText,
     dedupeComparisonPlans,
     uniquePlansByContractPbp,
     compactContractPbp,

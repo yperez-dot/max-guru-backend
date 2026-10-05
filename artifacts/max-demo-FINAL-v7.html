@@ -574,6 +574,8 @@
       if (/\b(?:her|his|their)\s+(?:current\s+)?plan\s+is\s+(?:terminat|ending)\b/i.test(t)) return true;
       if (/(?:^|[^\w])plan\s+terminating\s*[:\-–]\s*\S/i.test(t)) return true;
       if (/\bterminating\s+plan\s*(?:is\s*)?[:\-–]\s*\S/i.test(t)) return true;
+      // "Current plan H5420-014 terminating 2027"
+      if (/\bcurrent\s+plan\s+[HR]\d{4}-\d{3}[A-Z]?\b[^.\n]{0,20}?\b(?:terminat|ending)/i.test(t)) return true;
     }
     return false;
   }
@@ -590,6 +592,8 @@
     const patterns = [
       /(?:plan\s+)?terminat(?:ing|es|ed|ion)\s*(?:plan)?\s*[:\-–]\s*([^\n]{3,90})/i,
       /terminating\s+plan\s+(?:is\s+)?([A-Z][^\n]{2,90})/i,
+      // "Current plan H5420-014 terminating 2027"
+      /(?:current\s+plan\s+)?\b([HR]\d{4}-\d{3}[A-Z]?)\b[^.\n]{0,20}?\bterminat/i,
     ];
     for (const re of patterns) {
       const m = String(text || "").match(re);
@@ -1088,6 +1092,26 @@
     return out;
   }
 
+  // "ERNESTO PADRON M.D" → "Dr. Ernesto Padron"; "EYE SURGERY ASSOCIATES LLC" → "Eye Surgery Associates".
+  function cleanProviderDisplayName(raw) {
+    let n = String(raw || "").replace(/\s+/g, " ").trim().replace(/^(dr|doctor)\.?\s+/i, "");
+    const parts = n.split(/[\s,]+/).filter(Boolean);
+    const CRED = /^(MD|DO|NP|PA|PAC|RN|APRN|ARNP|DDS|DMD|DPM|OD|DC|PHARMD|PHD|FNP|DNP|FACC|FACP|FACS|LLC|INC|PLLC|CORP)$/i;
+    while (parts.length > 1 && CRED.test(parts[parts.length - 1].replace(/[.\-/]/g, ""))) parts.pop();
+    n = parts.join(" ");
+    if (n === n.toUpperCase() && /[A-Z]/.test(n)) n = n.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
+    return looksLikeOrganization(n) ? n : "Dr. " + n;
+  }
+
+  /** Plan IDs the agent said are ending or to skip — never an export column. */
+  function excludedPlanIdsFromText(text) {
+    const t = String(text || "");
+    const out = new Set();
+    for (const m of t.matchAll(/\b(?:skip|exclude|drop|remove|without|not)\s+([HR]\d{4}-\d{3})/gi)) out.add(m[1].toUpperCase());
+    for (const m of t.matchAll(/([HR]\d{4}-\d{3})[A-Z]?[^.\n]{0,40}?\b(terminating|ending|going away|non-?commissionable)/gi)) out.add(m[1].toUpperCase());
+    return out;
+  }
+
   function looksLikeOrganization(name) {
     const n = String(name || "").trim();
     if (!n || /^(dr|doctor)\b\.?\s/i.test(n)) return false;
@@ -1167,7 +1191,7 @@
           (p) => statusFromProviderNetworks(p, networks, { missIsUnknown }) || NETWORK_NOT_CONFIRMED
         );
         out.push({
-          name: /^dr\.?\s/i.test(name) || /clinic|neurology|rehab|mnrs/i.test(name) ? name : "Dr. " + name,
+          name: cleanProviderDisplayName(pr.requestedName || name),
           statuses,
           byPlanId: byPlanIdFromStatuses(statuses, plans),
           networks,
@@ -1629,7 +1653,10 @@
     const extra = extras && typeof extras === "object" ? extras : {};
     const text = String(threadText || extra.threadText || "");
     const catalog = extra.catalog || extra.planCatalog || [];
-    const resolvedPlans = resolveExportPlans(plans, text, extra);
+    const excluded = excludedPlanIdsFromText(text);
+    const allResolved = resolveExportPlans(plans, text, extra);
+    const kept = allResolved.filter((p) => !excluded.has(String(p.planId || p.id || "").toUpperCase().slice(0, 9)));
+    const resolvedPlans = kept.length ? kept : allResolved;
     const clientName = extra.clientName || extractClientName(text);
     const terminatingPlan = extra.explicitTerminating
       ? sanitizeTerminatingPlan(extra.terminatingPlan || extractTerminatingPlan(text), text)
@@ -1642,7 +1669,16 @@
       [extra.doctors, fromLookups, extractDoctors(text, resolvedPlans)],
       resolvedPlans
     );
-    const fromExtras = normalizeDrugs(extra.drugs, resolvedPlans);
+    // Drug checks from any earlier turn in the session count too (the meds turn
+    // and the final plan answer are often different turns).
+    const toolDrugs = [];
+    (extra.toolResults || []).forEach((tr) => {
+      if (!tr || (tr.tool !== "lookup_formulary" && tr.tool !== "search_drug")) return;
+      const o = tr.output || {};
+      if (o.drug) toolDrugs.push(o.drug);
+      if (Array.isArray(o.drugs)) toolDrugs.push(...o.drugs);
+    });
+    const fromExtras = normalizeDrugs([...(Array.isArray(extra.drugs) ? extra.drugs : []), ...toolDrugs], resolvedPlans);
     const fromThread = extractDrugs(text, resolvedPlans);
     let drugs = fromExtras.length ? fromExtras : fromThread;
     if (fromExtras.length && fromThread.length) {
@@ -2265,6 +2301,8 @@
     requestUpdatesComparison,
     isExportOnlyAsk,
     isNarrowingReply,
+    cleanProviderDisplayName,
+    excludedPlanIdsFromText,
     dedupeComparisonPlans,
     uniquePlansByContractPbp,
     compactContractPbp,
@@ -3637,45 +3675,80 @@ function Avatar({ size = 32, showStatus = false }) {
   );
 }
 
-// Lightweight, safe markdown-lite renderer -- handles just **bold** and
-// [text](url), which is all Max actually needs. Deliberately NOT using a full
-// markdown library + dangerouslySetInnerHTML here -- this builds real React
-// elements instead, so there's no HTML-injection surface even though the
-// content source (Claude's own responses) is trusted.
+function renderInlineMd(line, keyBase) {
+  const parts = [];
+  const pattern = /(\*\*(.+?)\*\*)|(\[([^\]]+)\]\(([^)]+)\))/g;
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+  while ((match = pattern.exec(line)) !== null) {
+    if (match.index > lastIndex) parts.push(line.slice(lastIndex, match.index));
+    if (match[1]) {
+      parts.push(<strong key={keyBase + "-" + key++}>{match[2]}</strong>);
+    } else if (match[3]) {
+      parts.push(
+        <a key={keyBase + "-" + key++} href={match[5]} target="_blank" rel="noopener noreferrer"
+           className="underline" style={{ color: "#ff1090" }}>
+          {match[4]}
+        </a>
+      );
+    }
+    lastIndex = pattern.lastIndex;
+  }
+  if (lastIndex < line.length) parts.push(line.slice(lastIndex));
+  return parts.length ? parts : line;
+}
+
+function splitTableRow(line) {
+  return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+}
+
+function renderMdTable(rows, key) {
+  const header = splitTableRow(rows[0]);
+  const body = rows.slice(1).filter((r) => !/^\s*\|?\s*:?-{2,}/.test(r)).map(splitTableRow);
+  const cellStyle = { padding: "6px 10px", borderBottom: "1px solid var(--line)", textAlign: "left", verticalAlign: "top", whiteSpace: "nowrap" };
+  return (
+    <div key={key} style={{ overflowX: "auto", margin: "6px 0" }}>
+      <table style={{ borderCollapse: "collapse", fontSize: 12.5, minWidth: "60%" }}>
+        <thead>
+          <tr>{header.map((h, i) => <th key={i} style={{ ...cellStyle, fontWeight: 700, color: "var(--plum)", whiteSpace: "normal", minWidth: i ? 120 : 0 }}>{renderInlineMd(h, key + "h" + i)}</th>)}</tr>
+        </thead>
+        <tbody>
+          {body.map((r, ri) => (
+            <tr key={ri} style={{ background: ri % 2 ? "rgba(69,32,104,0.03)" : "transparent" }}>
+              {r.map((c, ci) => <td key={ci} style={{ ...cellStyle, fontWeight: ci === 0 ? 600 : 400 }}>{renderInlineMd(c, key + "r" + ri + "c" + ci)}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// Lightweight, safe markdown-lite renderer -- **bold**, [text](url) and
+// pipe tables (Max's doctor × plan grid). Builds real React elements, no
+// dangerouslySetInnerHTML, so there's no HTML-injection surface.
 function renderMessageText(text) {
-  const lines = text.split("\n");
-  return lines.map((line, lineIdx) => {
-    const parts = [];
-    const pattern = /(\*\*(.+?)\*\*)|(\[([^\]]+)\]\(([^)]+)\))/g;
-    let lastIndex = 0;
-    let match;
-    let key = 0;
-    while ((match = pattern.exec(line)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(line.slice(lastIndex, match.index));
-      }
-      if (match[1]) {
-        parts.push(<strong key={key++}>{match[2]}</strong>);
-      } else if (match[3]) {
-        parts.push(
-          <a key={key++} href={match[5]} target="_blank" rel="noopener noreferrer"
-             className="underline" style={{ color: "#ff1090" }}>
-            {match[4]}
-          </a>
-        );
-      }
-      lastIndex = pattern.lastIndex;
+  const lines = String(text || "").split("\n");
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (/^\s*\|.*\|\s*$/.test(lines[i]) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
+      const rows = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) rows.push(lines[i++]);
+      out.push(renderMdTable(rows, "t" + i));
+      continue;
     }
-    if (lastIndex < line.length) {
-      parts.push(line.slice(lastIndex));
-    }
-    return (
-      <React.Fragment key={lineIdx}>
-        {parts.length > 0 ? parts : line}
-        {lineIdx < lines.length - 1 && <br />}
+    const line = lines[i];
+    out.push(
+      <React.Fragment key={"l" + i}>
+        {renderInlineMd(line, "l" + i)}
+        {i < lines.length - 1 && <br />}
       </React.Fragment>
     );
-  });
+    i += 1;
+  }
+  return out;
 }
 
 const SUGGESTIONS = [

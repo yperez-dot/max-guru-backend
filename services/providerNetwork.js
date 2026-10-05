@@ -27,7 +27,7 @@ const {
   formatHumanaAgentNote,
 } = require('./humanaFindcare');
 const { formatSolisNote } = require('./solisDirectory');
-const { resolveNpiRecords, displayName, allLocationAddresses } = require('./npiRegistry');
+const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery } = require('./npiRegistry');
 const { conversationAskText } = require('./planYear');
 const { batchSummaryForModel, narrowingAnswered } = require('./doctorPlanNarrow');
 const {
@@ -116,7 +116,8 @@ function normalizeNpi(value) {
 const cache = new Map();
 
 function cacheKey({ doctorName, npi, zip, year, planId }) {
-  const who = normalizeNpi(npi) || normalizeNpi(doctorName) || String(doctorName || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  // "HOWARD BUSH M.D." and "Howard Bush Cardio" share one entry.
+  const who = normalizeNpi(npi) || normalizeNpi(doctorName) || cleanDoctorQuery(doctorName).toLowerCase();
   return [who, String(zip || ''), String(year || ''), String(planId || '').toUpperCase()].join('|');
 }
 
@@ -447,7 +448,19 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
   })();
 
   const settled = full.then((result) => {
-    if (useCache && result && result.status !== 'timeout') cacheSet(key, { value: result });
+    if (useCache && result && result.status !== 'timeout') {
+      cacheSet(key, { value: result });
+      // Alias by NPI and by the official NPPES name, so a reopened workup that
+      // lists "HOWARD BUSH M.D." or passes npi= hits the same finished lookup.
+      const s0 = result.structured || {};
+      if (result.status === 'done') {
+        for (const alias of [{ npi: s0.npi }, { doctorName: s0.doctorName }]) {
+          if (!alias.npi && !alias.doctorName) continue;
+          const k = cacheKey({ ...alias, zip, year: planYear, planId: input.planId });
+          if (k !== key) cacheSet(k, { value: result });
+        }
+      }
+    }
     return result;
   }, (err) => {
     cache.delete(key);

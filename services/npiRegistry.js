@@ -58,6 +58,37 @@ function extractNpi(text) {
   return m ? m[1] : null;
 }
 
+const CRED_TOKEN_RE = /^(MD|DO|NP|PA|PAC|RN|APRN|DDS|DMD|DPM|OD|DC|PHARMD|PHD|ARNP|FNP|DNP|FACC|FACP|FACS|FAAFP|MPH|MBA|MS|JR|SR|II|III)$/i;
+const SPECIALTY_HINT_RE = /^(pcp|primary|care|cardio|cardiology|cardiologist|ortho|orthopedic|orthopedics|orthopedist|gyn|obgyn|ob|derm|dermatology|dermatologist|eye|ophthalmologist|ophthalmology|optometrist|neuro|neurologist|gi|gastro|gastroenterologist|uro|urologist|endo|endocrinologist|onc|oncologist|pulm|pulmonologist|nephro|nephrologist|podiatrist|rheum|rheumatologist|ent|psych|psychiatrist|specialist|doctor|dr)$/i;
+
+/**
+ * "HOWARD BUSH M.D.", "Dr. Howard Bush, MD, FACC", "Howard Bush Cardio" → "Howard Bush".
+ * Saved workups store NPPES display names with dotted credentials; NPPES search
+ * misses them unless the credential and specialty hints are stripped.
+ */
+function cleanDoctorQuery(name) {
+  let s = String(name || '').replace(/\s+/g, ' ').trim();
+  if (!s || /^\d{10}$/.test(s)) return s;
+  s = s.replace(/^(dr\.?|doctor|mr\.?|mrs\.?|ms\.?)\s+/i, '');
+  s = s.replace(/\(([^)]*)\)/g, ' ').replace(/\s+/g, ' ').trim();
+  const isOrg = ORG_HINT_RE.test(s);
+  const parts = s.split(/[\s,]+/).filter(Boolean);
+  while (parts.length > 1) {
+    const raw = parts[parts.length - 1];
+    const bare = raw.replace(/[.\-/]/g, '');
+    if (CRED_TOKEN_RE.test(bare) || (!isOrg && SPECIALTY_HINT_RE.test(bare))) parts.pop();
+    else break;
+  }
+  if (isOrg) {
+    while (parts.length > 1 && /^(llc|inc|pllc|pa|corp|co)\.?$/i.test(parts[parts.length - 1])) parts.pop();
+  }
+  let out = parts.join(' ');
+  if (out === out.toUpperCase() && /[A-Z]/.test(out)) {
+    out = out.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
+  }
+  return out;
+}
+
 function parseName(fullName) {
   if (!fullName || typeof fullName !== 'string') return {};
   let cleaned = fullName.trim();
@@ -306,6 +337,7 @@ async function lookupByName({ firstName, lastName, middleName, state = 'FL', zip
  */
 async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limit = DEFAULT_RETURN_LIMIT } = {}) {
   const number = extractNpi(npi) || extractNpi(doctorName);
+  doctorName = cleanDoctorQuery(doctorName);
   if (number) {
     const byNumber = await lookupByNumber(number);
     if (byNumber.length) return byNumber;
@@ -344,6 +376,7 @@ async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limi
 }
 
 module.exports = {
+  cleanDoctorQuery,
   NPI_REGISTRY_BASE,
   extractNpi,
   parseName,

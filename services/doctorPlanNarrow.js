@@ -43,6 +43,32 @@ function shortDoctor(d) {
   return String(d.requestedName || d.doctorName || '').trim();
 }
 
+/**
+ * What the agent already told Max: no Medicaid → no D-SNP; "skip H…" and the
+ * terminating plan are never candidates; "PPO only" / "HMO only" narrows type.
+ */
+function askConstraints(askText) {
+  const t = String(askText || '');
+  const noMedicaid = /\b(no|not on|without|sin|doesn'?t have|don'?t have)\s+(medicaid|msp|dual|qmb|slmb)\b|\bnot dual\b|\bmedicaid:?\s*no\b/i.test(t);
+  const hasMedicaid = !noMedicaid && /\b(full medicaid|has medicaid|have medicaid|dual eligible|full dual|qmb|slmb|\bmsp only)\b/i.test(t);
+  const skip = new Set();
+  for (const m of t.matchAll(/\b(?:skip|exclude|not|no|drop|remove|without)\s+([HR]\d{4}-\d{3}[A-Z]?)/gi)) skip.add(m[1].toUpperCase());
+  for (const m of t.matchAll(/([HR]\d{4}-\d{3}[A-Z]?)[^.\n]{0,40}?\b(terminating|ending|going away|non-?commissionable)/gi)) skip.add(m[1].toUpperCase());
+  const onlyPpo = /\b(need|needs|must be|only)\s+(a\s+)?ppo\b/i.test(t);
+  const onlyHmo = /\b(only|must be)\s+(an\s+)?hmo\b/i.test(t);
+  return { noMedicaid, hasMedicaid, skip, onlyPpo, onlyHmo };
+}
+
+function applyConstraints(matrix, c) {
+  return matrix.filter((p) => {
+    if (c.skip.has(p.planId) || [...c.skip].some((id) => p.planId.startsWith(id))) return false;
+    if (c.noMedicaid && p.type === 'dsnp') return false;
+    if (c.onlyPpo && p.type !== 'ppo') return false;
+    if (c.onlyHmo && p.type !== 'hmo') return false;
+    return true;
+  });
+}
+
 /** Plan rows: who is In / Out / not confirmed, sorted by In count. */
 function coverageMatrix(doctors) {
   const ok = (doctors || []).filter((d) => d && (d.status === 'done' || d.status === 'partial'));
@@ -115,6 +141,39 @@ function personalize(questions, askText) {
   return questions.map((q) => q.replace('Does {client} have', m ? `Do ${who} have` : 'Does the client have'));
 }
 
+function titleCase(t) {
+  const s = String(t || '').trim();
+  return s === s.toUpperCase() ? s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()) : s;
+}
+
+function shortPlanHeader(p) {
+  const name = String(p.name || '')
+    .replace(/Medicare Advantage/gi, 'MA')
+    .replace(/\((?:Regional )?(HMO-POS|HMO|PPO)(?: D-SNP)?\)/i, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return `${name} · ${p.planId}`;
+}
+
+const CELL = { in: '✅ In', out: '❌ Out', unknown: '❔' };
+
+/** Doctors down the side, plans across the top. */
+function gridTable(doctors, plans) {
+  if (!plans.length) return '';
+  const head = `| Doctor | ${plans.map(shortPlanHeader).join(' | ')} |`;
+  const sep = `|---|${plans.map(() => '---').join('|')}|`;
+  const rows = doctors.map((d) => {
+    const name = titleCase(shortDoctor(d));
+    if (d.status === 'not_found' || d.status === 'timeout' || d.status === 'error') {
+      return `| ${name} | ${plans.map(() => '❔ not confirmed').join(' | ')} |`;
+    }
+    const cells = plans.map((p) => (p.in.includes(shortDoctor(d)) ? CELL.in : p.out.includes(shortDoctor(d)) ? CELL.out : CELL.unknown));
+    return `| ${name} | ${cells.join(' | ')} |`;
+  });
+  const total = `| **Doctors in** | ${plans.map((p) => `**${p.in.length}/${doctors.length}**`).join(' | ')} |`;
+  return [head, sep, ...rows, total].join('\n');
+}
+
 function doctorLine(d) {
   const name = shortDoctor(d);
   if (d.status === 'not_found') return `- ${name}: NOT CONFIRMED — no NPI match`;
@@ -137,7 +196,8 @@ function planLine(p, total) {
  */
 function batchSummaryForModel(doctors, askText, { answered = false } = {}) {
   const total = doctors.length;
-  const matrix = coverageMatrix(doctors);
+  const constraints = askConstraints(askText);
+  const matrix = applyConstraints(coverageMatrix(doctors), constraints);
   const byType = (type) => matrix.filter((p) => p.type === type).slice(0, 4);
   const lines = [];
   lines.push('DOCTORS → carriers in network (finished checks):');
@@ -150,11 +210,24 @@ function batchSummaryForModel(doctors, askText, { answered = false } = {}) {
     lines.push(`${title}:`);
     rows.forEach((p) => lines.push(planLine(p, total)));
   }
+  const applied = [];
+  if (constraints.noMedicaid) applied.push('no Medicaid → D-SNPs removed');
+  if (constraints.skip.size) applied.push(`skipped ${[...constraints.skip].join(', ')}`);
+  if (constraints.onlyPpo) applied.push('PPO only');
+  if (constraints.onlyHmo) applied.push('HMO only');
+  if (applied.length) lines.push(`Already applied from the agent's ask: ${applied.join('; ')}. Never suggest a removed plan.`);
   lines.push('Carrier-only hits (Florida Blue, HealthSun, Devoted FHIR) are directory facts without a plan ID — not counted per plan. Cigna/HealthSpring is left out on purpose: it has NO 2027 Medicare Advantage plans (pulled out) — never mention Cigna as a 2027 option.');
   const qs = personalize(narrowingQuestions(askText, matrix, total, { answered }), askText);
   lines.push('');
+  const top = matrix.slice(0, 3);
+  if (top.length) {
+    lines.push('');
+    lines.push('DOCTOR × PLAN TABLE (top 3 after the agent\'s constraints — copy it as-is into the answer):');
+    lines.push(gridTable(doctors, top));
+  }
+  lines.push('');
   lines.push('ANSWER FORMAT (required for multi-doctor asks):');
-  lines.push('1) One line per doctor: name → carriers in network (carrier names only — NEVER list every plan ID per doctor).');
+  lines.push('1) Lead with the DOCTOR × PLAN TABLE above (markdown table; ✅ In / ❌ Out / ❔ not confirmed). No NPIs, no official NPPES names, no carrier lists, no per-doctor plan dumps. If meds were looked up, add a second table: Drug | same plan columns | "T1 $0" style cells.');
   if (qs.length) {
     lines.push('2) The info below is still missing, so ask these questions (numbered, short) and show at most 3 candidate plans with "N/total doctors in" — then STOP and wait for the answers. Do not list more plans.');
     qs.forEach((q, i) => lines.push(`   Q${i + 1}. ${q}`));
@@ -167,27 +240,25 @@ function batchSummaryForModel(doctors, askText, { answered = false } = {}) {
 /** Plain answer used when the model itself ran out of time. */
 function fallbackAnswer(doctors, askText, { answered = false } = {}) {
   const total = doctors.length;
-  const matrix = coverageMatrix(doctors);
-  const lines = ['**Doctors — carriers in network**'];
-  doctors.forEach((d) => lines.push(doctorLine(d)));
-  const candidates = [];
-  for (const type of ['hmo', 'ppo', 'dsnp']) {
-    const best = matrix.find((p) => p.type === type);
-    if (best) candidates.push(best);
-  }
-  if (candidates.length) {
+  const constraints = askConstraints(askText);
+  const matrix = applyConstraints(coverageMatrix(doctors), constraints);
+  const top = matrix.slice(0, 3);
+  const lines = [];
+  if (top.length) {
+    lines.push('**Doctors × top plans** (most of these doctors in network — a count, not a recommendation)');
     lines.push('');
-    lines.push('**Candidates — most of these doctors in network** (count, not a recommendation)');
-    candidates
-      .sort((a, b) => b.in.length - a.in.length)
-      .slice(0, 3)
-      .forEach((p) => lines.push(planLine(p, total)));
+    lines.push(gridTable(doctors, top));
+    lines.push('');
+    lines.push('✅ In · ❌ Out · ❔ not confirmed (never assume Out)');
+  } else {
+    lines.push('**Doctors — carriers in network**');
+    doctors.forEach((d) => lines.push(doctorLine(d)));
   }
   const qs = personalize(narrowingQuestions(askText, matrix, total, { answered }), askText);
   if (qs.length) {
     lines.push('');
     lines.push('**To narrow to 2–3 plans:**');
-    qs.forEach((q, i) => lines.push(`${i + 1}. ${q}`));
+    qs.forEach((q, n) => lines.push(`${n + 1}. ${q}`));
   }
   return lines.join('\n');
 }
@@ -196,8 +267,10 @@ module.exports = {
   planIdOf,
   planTypeOf,
   coverageMatrix,
+  askConstraints,
   narrowingQuestions,
   narrowingAnswered,
   batchSummaryForModel,
+  gridTable,
   fallbackAnswer,
 };

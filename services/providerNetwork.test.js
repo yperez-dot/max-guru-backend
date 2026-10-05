@@ -26,7 +26,10 @@ function npiFor(name) {
   return NPI_BY_NAME[name];
 }
 
+const { cleanDoctorQuery } = require('./npiRegistry');
+delete require.cache[require.resolve('./npiRegistry')];
 stub('npiRegistry', {
+  cleanDoctorQuery,
   resolveNpiRecords: async ({ doctorName, npi }) => {
     if (knobs.hangNpiFor.has(doctorName)) await new Promise(() => {});
     await sleep(knobs.npiMs);
@@ -195,5 +198,36 @@ describe('lookup_provider_network batch (Padron 8 doctors)', () => {
       run(job('d3-best'), 0), run(job('d3-backup'), 1),
     ]);
     assert.deepEqual(order, ['d1-best', 'd2-best', 'd3-best', 'd1-backup', 'd2-backup', 'd3-backup']);
+  });
+  it('a reopened workup name ("HOWARD BUSH M.D.") reuses the finished lookup', async () => {
+    await lookupProviderNetwork({ doctors: [{ doctorName: 'Howard Bush Cardio' }, { doctorName: 'Jorge Diaz PCP' }], zip: '33332' }, { deadlineAt: Date.now() + 2000 });
+    const before = knobs.humanaCalls;
+    const again = await lookupProviderNetwork({ doctors: [{ doctorName: 'HOWARD BUSH M.D.' }, { doctorName: 'Jorge Diaz' }], zip: '33332' }, { deadlineAt: Date.now() + 2000 });
+    assert.equal(knobs.humanaCalls, before, 'should come from cache');
+    assert.equal(again.structured.finished, 2);
+  });
+});
+
+describe('Padron narrowing constraints + grid', () => {
+  const n = require('./doctorPlanNarrow');
+  const ask = 'Maria & Gaspar Padron, ZIP 33332. Current plan H5420-014 terminating 2027. No Medicaid. HMO ok. Skip R0759-001 (non-commissionable). David Shenassa (must-keep). Meds: metformin';
+  const mk = (nm, pl, out = []) => ({ requestedName: nm, doctorName: `${nm.toUpperCase()} M.D.`, status: 'done', carriersIn: ['UHC'], inNetworkPlans: pl, outOfNetworkPlans: out });
+  const P = 'AARP Medicare Advantage from UHC FL-0031 (Regional PPO) (R0759-001)';
+  const D = 'UHC Dual Complete FL-Q1 (PPO D-SNP) (H1889-002)';
+  const H = 'UHC Preferred Medicare Advantage FL-0002 (HMO) (H1045-005)';
+  const G = 'Humana Gold Plus (H1036-065C)';
+  const T = 'UHC MedicareMax Complete Care FL-30 (H5420-014)';
+
+  it('reads No Medicaid, skipped and terminating plans from the ask', () => {
+    const c = n.askConstraints(ask);
+    assert.equal(c.noMedicaid, true);
+    assert.deepEqual([...c.skip].sort(), ['H5420-014', 'R0759-001']);
+  });
+
+  it('fallback is a doctor × plan table without D-SNP, skipped or terminating plans', () => {
+    const text = n.fallbackAnswer([mk('Ernesto Padron', [P, D, H, G, T]), mk('Howard Bush', [P, D, H], [G])], ask);
+    assert.match(text, /\| Doctor \| UHC Preferred MA FL-0002 HMO · H1045-005 \| Humana Gold Plus · H1036-065C \|/);
+    assert.match(text, /\| Howard Bush \| ✅ In \| ❌ Out \|/);
+    assert.doesNotMatch(text, /H1889-002|R0759-001|H5420-014|NPI|M\.D\./);
   });
 });
