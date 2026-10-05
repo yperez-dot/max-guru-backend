@@ -136,6 +136,11 @@ const PROVIDER_SEARCH = `query ProviderSearch(
 }`;
 
 let sessionCache = null;
+// Concurrent doctor lookups (8-doctor Padron asks) must share one session mint
+// and one ZIP/plan-definition fetch instead of each NPI repeating them.
+let sessionPromise = null;
+const zipContextCache = new Map();
+const ZIP_CONTEXT_TTL_MS = 20 * 60 * 1000;
 
 function newCookieJar() {
   return new Map();
@@ -197,8 +202,17 @@ async function mintSession(fetchImpl = fetch) {
 
 async function getSession(fetchImpl = fetch) {
   if (sessionCache && sessionCache.expiresAt > Date.now()) return sessionCache;
-  sessionCache = await mintSession(fetchImpl);
-  return sessionCache;
+  if (!sessionPromise) {
+    sessionPromise = mintSession(fetchImpl)
+      .then((session) => {
+        sessionCache = session;
+        return session;
+      })
+      .finally(() => {
+        sessionPromise = null;
+      });
+  }
+  return sessionPromise;
 }
 
 async function graphql(session, query, variables, operationName, fetchImpl = fetch) {
@@ -366,6 +380,58 @@ async function searchPlan(session, { npi, lat, lng, state, year, plan }, fetchIm
   }
 }
 
+async function fetchZipContext(session, { zip, state, year }, fetchImpl) {
+  const geo = await graphql(session, GET_LOCATION, { address: String(zip) }, 'GetLocation', fetchImpl);
+  const feature = (geo?.location?.features || [])[0];
+  const center = feature?.center || [];
+  const lng = center[0];
+  const lat = center[1];
+  if (lat == null || lng == null) return null;
+
+  const postal = await graphql(session, GET_POSTAL_POINT, { postal: String(zip) }, 'GetPostalPoint', fetchImpl);
+  const point = postal?.getPostalPoint || {};
+  const countyFips = point.county_id || null;
+  const county = point.county_proper || point.county || null;
+  const geoState = feature.stateCode || point.state || state;
+
+  const defs = await graphql(session, GET_PLAN_DEFINITIONS, {
+    lob: LOB,
+    coverageType: COVERAGE_TYPE,
+    planYear: String(year),
+    stateCode: geoState,
+    countyFipsCode: countyFips,
+    isDualYear: false,
+    isEI: false,
+    portalSource: 'guest-plan-selection',
+    source: 'guest',
+  }, 'GetPlanDefinitions', fetchImpl);
+
+  return {
+    lat,
+    lng,
+    countyFips,
+    county,
+    geoState,
+    planDetails: defs?.getPlanDefinitions?.planDetails || [],
+  };
+}
+
+/** ZIP + year context is identical for every NPI in a multi-doctor ask — share it. */
+function zipContext(session, { zip, state, year }, fetchImpl) {
+  const key = `${zip}|${state}|${year}`;
+  const hit = zipContextCache.get(key);
+  if (hit && hit.session === session && hit.expiresAt > Date.now()) return hit.promise;
+  const promise = fetchZipContext(session, { zip, state, year }, fetchImpl).then((ctx) => {
+    if (!ctx) zipContextCache.delete(key);
+    return ctx;
+  }, (err) => {
+    zipContextCache.delete(key);
+    throw err;
+  });
+  zipContextCache.set(key, { session, promise, expiresAt: Date.now() + ZIP_CONTEXT_TTL_MS });
+  return promise;
+}
+
 /**
  * Look up one NPI in UHC's public Medicare guest directory.
  * Default plan year is 2027 (AEP). Pass planIds like ['H1045-012'] to
@@ -381,34 +447,13 @@ async function queryUhcGuest(npi, {
 
   try {
     const session = await getSession(fetchImpl);
-    const geo = await graphql(session, GET_LOCATION, { address: String(zip) }, 'GetLocation', fetchImpl);
-    const feature = (geo?.location?.features || [])[0];
-    const center = feature?.center || [];
-    const lng = center[0];
-    const lat = center[1];
-    if (lat == null || lng == null) {
+    const ctx = await zipContext(session, { zip, state, year }, fetchImpl);
+    if (!ctx) {
       return emptyResult({ error: 'request_failed', year });
     }
+    const { lat, lng, county, geoState, planDetails } = ctx;
 
-    const postal = await graphql(session, GET_POSTAL_POINT, { postal: String(zip) }, 'GetPostalPoint', fetchImpl);
-    const point = postal?.getPostalPoint || {};
-    const countyFips = point.county_id || null;
-    const county = point.county_proper || point.county || null;
-    const geoState = feature.stateCode || point.state || state;
-
-    const defs = await graphql(session, GET_PLAN_DEFINITIONS, {
-      lob: LOB,
-      coverageType: COVERAGE_TYPE,
-      planYear: String(year),
-      stateCode: geoState,
-      countyFipsCode: countyFips,
-      isDualYear: false,
-      isEI: false,
-      portalSource: 'guest-plan-selection',
-      source: 'guest',
-    }, 'GetPlanDefinitions', fetchImpl);
-
-    const plans = pickPlans(defs?.getPlanDefinitions?.planDetails || [], planIds);
+    const plans = pickPlans(planDetails, planIds);
     if (!plans.length) {
       return {
         ...emptyResult({ error: null, year, county }),
@@ -463,12 +508,15 @@ async function queryUhcGuest(npi, {
     const label = err.name === 'AbortError' ? 'Timeout' : err.message;
     console.warn(`[uhcGuestSearch] ${label}`);
     sessionCache = null;
+    zipContextCache.clear();
     return emptyResult({ error: 'request_failed', year });
   }
 }
 
 function resetSessionCache() {
   sessionCache = null;
+  sessionPromise = null;
+  zipContextCache.clear();
 }
 
 /** Agent-facing lines. Failed check is never phrased as out of network. */

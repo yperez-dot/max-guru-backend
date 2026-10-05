@@ -119,6 +119,9 @@ const ZIP_GEO = {
 const DEFAULT_GEO = ZIP_GEO['33176'];
 
 let sessionCache = null;
+// Concurrent doctor lookups share one guest-token mint and one networks list per ZIP.
+let sessionPromise = null;
+const networksCache = new Map();
 
 function newCookieJar() {
   return new Map();
@@ -308,8 +311,17 @@ async function mintSession(fetchImpl = fetch) {
 
 async function getSession(fetchImpl = fetch) {
   if (sessionCache && sessionCache.expiresAt > Date.now()) return sessionCache;
-  sessionCache = await mintSession(fetchImpl);
-  return sessionCache;
+  if (!sessionPromise) {
+    sessionPromise = mintSession(fetchImpl)
+      .then((session) => {
+        sessionCache = session;
+        return session;
+      })
+      .finally(() => {
+        sessionPromise = null;
+      });
+  }
+  return sessionPromise;
 }
 
 async function apimPost(session, url, body, fetchImpl = fetch) {
@@ -331,13 +343,25 @@ async function apimPost(session, url, body, fetchImpl = fetch) {
   return data;
 }
 
-async function listFutureNetworks(session, zip, fetchImpl) {
+async function fetchFutureNetworks(session, zip, fetchImpl) {
   const data = await apimPost(session, NETWORKS_URL, {
     CustomerId: CUSTOMER_ID,
     ZipCode: String(zip),
     IsNoNetwork: false,
   }, fetchImpl);
   return data?.future || [];
+}
+
+function listFutureNetworks(session, zip, fetchImpl) {
+  const key = String(zip);
+  const hit = networksCache.get(key);
+  if (hit && hit.session === session) return hit.promise;
+  const promise = fetchFutureNetworks(session, zip, fetchImpl).catch((err) => {
+    networksCache.delete(key);
+    throw err;
+  });
+  networksCache.set(key, { session, promise });
+  return promise;
 }
 
 async function searchNetwork(session, { npi, geo, network }, fetchImpl) {
@@ -451,12 +475,15 @@ async function queryHumanaFindcare(npi, {
     const label = err.name === 'AbortError' ? 'Timeout' : err.message;
     console.warn(`[humanaFindcare] ${label}`);
     sessionCache = null;
+    networksCache.clear();
     return emptyResult({ error: 'request_failed', year, county: geo.county });
   }
 }
 
 function resetSessionCache() {
   sessionCache = null;
+  sessionPromise = null;
+  networksCache.clear();
 }
 
 function isHumanaLabel(label) {

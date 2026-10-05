@@ -102,6 +102,9 @@ async function querySunfireProviderList({
   county = '12086',
   timeoutMs = DEFAULT_TIMEOUT_MS,
   fetchImpl = fetch,
+  // Doctor-network path passes retry:false — Sunfire is secondary there, so an
+  // empty/truncated body fails fast instead of spending a second timeout.
+  retry = true,
 } = {}) {
   const jwt = process.env.SUNFIRE_JWT || '';
   const sfp = process.env.SUNFIRE_SFP || '';
@@ -158,7 +161,7 @@ async function querySunfireProviderList({
     } catch (err) {
       lastErr = err;
       const code = err.code || err.message || 'sunfire_error';
-      if (attempt === 0 && retryableSunfireError(err)) {
+      if (attempt === 0 && retry && retryableSunfireError(err)) {
         retried = true;
         console.warn(`[sunfire] provider/list ${code} — retrying once`);
         continue;

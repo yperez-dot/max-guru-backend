@@ -410,3 +410,113 @@ describe('auto SOB lookup on comparison chat', () => {
     });
   });
 });
+
+describe('Padron chat budget', () => {
+  function toolCall(id, name, args) {
+    return { id, type: 'function', function: { name, arguments: JSON.stringify(args) } };
+  }
+
+  it('runs a round of 8 doctor tool calls at the same time', async () => {
+    const { passThroughChat } = loadGrok({ provider: 'grok', key: 'test-xai-key' });
+    let round = 0;
+    let inFlight = 0;
+    let peak = 0;
+    await withMockedFetch(() => {
+      round += 1;
+      const first = round === 1;
+      return {
+        ok: true,
+        json: async () => ({
+          id: `chatcmpl-par${round}`,
+          model: 'grok-4.6',
+          choices: [{
+            message: first
+              ? { role: 'assistant', content: null, tool_calls: Array.from({ length: 8 }, (_, i) => toolCall(`c${i}`, 'lookup_provider_network', { doctorName: `Doctor ${i}`, zip: '33332' })) }
+              : { role: 'assistant', content: 'All 8 doctors checked.' },
+          }],
+        }),
+      };
+    }, async () => {
+      const started = Date.now();
+      const result = await passThroughChat({
+        system: 'You are Max.',
+        messages: [{ role: 'user', content: 'Padron 8 doctors ZIP 33332' }],
+        processToolFn: async (name, input) => {
+          inFlight += 1;
+          peak = Math.max(peak, inFlight);
+          await new Promise((r) => setTimeout(r, 150));
+          inFlight -= 1;
+          return { text: `${input.doctorName}: in network`, structured: { doctorName: input.doctorName, networks: [] } };
+        },
+      });
+      assert.equal(peak, 8);
+      assert.ok(Date.now() - started < 800);
+      assert.equal(result.deadline, undefined);
+      assert.equal(result.toolResults.length, 8);
+      assert.match(result.content[0].text, /All 8 doctors/);
+    });
+  });
+
+  it('cuts a stuck lookup at the tool deadline and still gets a model answer (no deadline banner)', async () => {
+    const { passThroughChat } = loadGrok({ provider: 'grok', key: 'test-xai-key' });
+    let round = 0;
+    const seen = [];
+    await withMockedFetch((url, body) => {
+      round += 1;
+      seen.push(body);
+      const first = round === 1;
+      return {
+        ok: true,
+        json: async () => ({
+          id: `chatcmpl-cut${round}`,
+          model: 'grok-4.6',
+          choices: [{
+            message: first
+              ? { role: 'assistant', content: null, tool_calls: [toolCall('c1', 'lookup_provider_network', { doctors: [{ doctorName: 'Howard Bush' }], zip: '33332' })] }
+              : { role: 'assistant', content: 'Howard Bush: NOT CONFIRMED. Plans: H1036-054, H5420-001.' },
+          }],
+        }),
+      };
+    }, async () => {
+      const result = await passThroughChat({
+        system: 'You are Max.',
+        messages: [{ role: 'user', content: 'Check Howard Bush ZIP 33332' }],
+        deadlineMs: 5000,
+        processToolFn: () => new Promise(() => {}), // never finishes
+      });
+      assert.equal(round, 2);
+      assert.equal(seen[1].tools, undefined, 'final call must not offer tools');
+      const toolMsg = seen[1].messages.find((m) => m.role === 'tool');
+      assert.match(toolMsg.content, /NOT CONFIRMED/);
+      assert.equal(result.deadline, undefined);
+      assert.match(result.content[0].text, /NOT CONFIRMED/);
+    });
+  });
+
+  it('builds a per-doctor fallback instead of the generic reply when the model itself times out', () => {
+    const { fallbackFromToolResults } = loadGrok({ provider: 'grok', key: 'test-xai-key' });
+    const text = fallbackFromToolResults([
+      { tool: 'lookup_provider_network', output: { requestedName: 'Jorge Diaz', doctorName: 'JORGE DIAZ', npi: '1111111111', status: 'done', networks: [{ carrier: 'Humana', inNetwork: true, plans: ['Humana Gold Plus (H1036-054)'] }] } },
+      { tool: 'lookup_provider_network', output: { requestedName: 'Howard Bush', doctorName: 'Howard Bush', status: 'timeout', networks: [] } },
+    ]);
+    assert.match(text, /Jorge Diaz \(JORGE DIAZ, NPI 1111111111\): In network — Humana \(Humana Gold Plus \(H1036-054\)\)/);
+    assert.match(text, /Howard Bush.*NOT CONFIRMED/);
+  });
+
+  it('says nothing was saved when the deadline hits before any lookup', async () => {
+    const { passThroughChat } = loadGrok({ provider: 'grok', key: 'test-xai-key' });
+    await withMockedFetch(() => { throw new Error('no model call'); }, async () => {
+      const result = await passThroughChat({ system: 'x', messages: [{ role: 'user', content: 'hi' }], deadlineMs: 1 });
+      assert.equal(result.resume.resumable, false);
+      assert.match(result.content[0].text, /nothing was saved/);
+    });
+  });
+
+  it('never lets the server deadline exceed the 120s browser wait', () => {
+    process.env.MAX_CHAT_DEADLINE_MS = '300000';
+    const grok = loadGrok({ provider: 'grok', key: 'test-xai-key' });
+    delete process.env.MAX_CHAT_DEADLINE_MS;
+    assert.ok(grok.CHAT_DEADLINE_CAP_MS < 120000);
+    assert.ok(grok.DEFAULT_CHAT_DEADLINE_MS <= grok.CHAT_DEADLINE_CAP_MS);
+  });
+});
