@@ -138,10 +138,9 @@ function fallbackFromToolResults(collected, askText = '', messages = []) {
     .filter((t) => t.tool === 'lookup_formulary' && t.output && t.output.byPlanId)
     .map((t) => t.output);
   const body = fallbackAnswer(doctors, askText, { answered: narrowingAnswered(messages), drugs });
-  const next = /To narrow to 2/.test(body)
-    ? 'Answer the questions above, or send the same ask again — finished doctor lookups come back from cache.'
-    : 'Send the same ask again — finished doctor lookups come back from cache, so Max can write the 2–3 plans.';
-  return `${body}\n\n_Max ran out of chat wait before writing the full answer. ${next}_`;
+  // The tables are built from finished lookups and are the answer — no "ran out
+  // of chat wait" footer. A doctor that didn't finish already shows ❔ in the table.
+  return body;
 }
 
 async function mapConcurrent(items, limit, worker) {
@@ -408,13 +407,19 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
   let text = answerText;
   if (deadlineHit) {
     const partial = fallbackFromToolResults(collectedToolResults, conversationAskText(messages), messages);
-    return chatResult({
+    const out = chatResult({
       lastData,
       text: partial || '',
       collectedToolResults,
       usageCalls,
       deadlineHit,
     });
+    if (partial && /\|---/.test(partial)) {
+      // A full doctor/meds table is an answer, not a timeout: keep the resume data, drop the warning banner.
+      delete out.deadline;
+      out.stop_reason = 'end_turn';
+    }
+    return out;
   }
   const toolMatch = text.match(
     /<tool_call>[\s\S]*?"name"\s*:\s*"(\w+)"[\s\S]*?(?:"arguments"|"parameters"|"input")\s*:\s*(\{[\s\S]*?\})[\s\S]*?<\/tool_call>/

@@ -540,6 +540,13 @@
       const candidate = looksLikeLabeledClientName(m[1]);
       if (candidate) found = candidate;
     }
+    // Ask that opens with the household: "Maria & Gaspar Padron, ZIP 33332 …" / "Gaspar and Maria Padron: …"
+    if (!found) {
+      const lead = String(text).match(/(?:^|\n)\s*([A-Z][a-z]+(?:\s*(?:&|and|y)\s*[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]+)\s*[,:.-]/);
+      if (lead && !/\b(Medicare|Humana|Aetna|Devoted|Compare|Current|Plan|Doctors?|Meds?)\b/.test(lead[1])) {
+        found = lead[1].replace(/\s+/g, " ").trim();
+      }
+    }
     return found;
   }
 
