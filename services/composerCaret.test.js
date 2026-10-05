@@ -15,6 +15,8 @@ function fakeEl(overrides) {
     scrollLeft: 0,
     scrollHeight: 200,
     scrollWidth: 400,
+    clientHeight: 46,
+    clientWidth: 280,
     style: { height: '46px' },
     setSelectionRange(start, end) {
       this.selectionStart = start;
@@ -25,11 +27,13 @@ function fakeEl(overrides) {
   return el;
 }
 
+const PADRON = 'My clients have UnitedHealthcare UHC MedicareMax Complete Care FL-30 (HMO D-SNP) (H5430-14-0) and this plan is being discontinued for 2027. its for maria and gaspar padron. they have the following drs and meds: Ernesto Padron PCP. look up their drs too';
+
 describe('composer caret helpers', () => {
   it('pins when focus left the caret at the start and scroll at the top', () => {
-    const el = fakeEl({ value: 'long draft about H1045-012', selectionStart: 0, selectionEnd: 0 });
+    const el = fakeEl({ value: PADRON, selectionStart: 0, selectionEnd: 0 });
     assert.equal(caret.shouldPinCaretToEnd(el), true);
-    caret.pinCaretToEndIfReset(el);
+    caret.revealComposerEnd(el);
     assert.equal(el.selectionStart, el.value.length);
     assert.equal(el.selectionEnd, el.value.length);
     assert.equal(el.scrollTop, el.scrollHeight);
@@ -37,25 +41,37 @@ describe('composer caret helpers', () => {
   });
 
   it('pins when mobile select-all left the whole draft highlighted at the top', () => {
-    const value = 'Client: Muskat\nCompare H1045-012 and H1045-061';
-    const el = fakeEl({ value, selectionStart: 0, selectionEnd: value.length });
+    const el = fakeEl({ value: PADRON, selectionStart: 0, selectionEnd: PADRON.length });
     assert.equal(caret.shouldPinCaretToEnd(el), true);
     caret.placeCaretAtEnd(el);
-    assert.equal(el.selectionStart, value.length);
-    assert.equal(el.selectionEnd, value.length);
+    assert.equal(el.selectionStart, PADRON.length);
+    assert.equal(el.selectionEnd, PADRON.length);
+  });
+
+  it('scrolls to the end when caret is already at the end but the box shows the top', () => {
+    const el = fakeEl({
+      value: PADRON,
+      selectionStart: PADRON.length,
+      selectionEnd: PADRON.length,
+      scrollTop: 0,
+      scrollLeft: 0,
+    });
+    assert.equal(caret.shouldPinCaretToEnd(el), false);
+    caret.revealComposerEnd(el);
+    assert.equal(el.selectionStart, PADRON.length);
+    assert.equal(el.scrollTop, el.scrollHeight);
   });
 
   it('does not yank a mid-message caret', () => {
-    const value = 'Client: Muskat — compare two plans';
     const el = fakeEl({
-      value,
+      value: PADRON,
       selectionStart: 8,
       selectionEnd: 8,
       scrollTop: 40,
       scrollLeft: 12,
     });
     assert.equal(caret.shouldPinCaretToEnd(el), false);
-    caret.pinCaretToEndIfReset(el);
+    caret.revealComposerEnd(el);
     assert.equal(el.selectionStart, 8);
     assert.equal(el.selectionEnd, 8);
     assert.equal(el.scrollTop, 40);
@@ -65,8 +81,14 @@ describe('composer caret helpers', () => {
   it('does not pin an empty composer', () => {
     const el = fakeEl({ value: '' });
     assert.equal(caret.shouldPinCaretToEnd(el), false);
-    caret.pinCaretToEndIfReset(el);
+    caret.revealComposerEnd(el);
     assert.equal(el.selectionStart, 0);
+  });
+
+  it('recognizes the Try again failure copy so the draft can be refilled', () => {
+    assert.equal(caret.looksLikeFailedGuruReply("I couldn't generate a response. Try again."), true);
+    assert.equal(caret.looksLikeFailedGuruReply("Couldn't reach Max. Check your connection and try again — if this keeps happening, Railway may be redeploying."), true);
+    assert.equal(caret.looksLikeFailedGuruReply('Got it — here is H1045-012 vs H1045-061.'), false);
   });
 
   it('keeps scroll and caret when resizing while editing in the middle', () => {
@@ -76,7 +98,7 @@ describe('composer caret helpers', () => {
       selectionStart: 10,
       selectionEnd: 10,
       scrollTop: 55,
-      scrollHeight: 180,
+      scrollHeight: 260,
     });
     caret.resizeComposer(el);
     assert.equal(el.selectionStart, 10);
@@ -106,8 +128,10 @@ describe('live UI wires the caret helpers', () => {
     assert.match(html, /root\.MaxComposerCaret = api/);
     assert.match(html, /<textarea/);
     assert.match(html, /data-testid="chat-composer"/);
-    assert.match(html, /MaxComposerCaret\.schedulePinCaretToEndIfReset/);
+    assert.match(html, /MaxComposerCaret\.scheduleRevealComposerEnd/);
     assert.match(html, /MaxComposerCaret\.placeCaretAtEnd/);
+    assert.match(html, /refillComposerFromFailedSend/);
+    assert.match(html, /data-testid="reuse-user-message"/);
     assert.doesNotMatch(html, /onKeyDown=\{\(e\) => e\.key === "Enter" && send\(\)\}/);
     assert.match(html, /\.max-composer-row textarea/);
   });

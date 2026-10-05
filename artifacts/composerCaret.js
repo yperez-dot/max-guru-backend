@@ -1,9 +1,10 @@
 /**
  * Chat composer caret helpers.
  * Mobile Safari/Chrome often put the caret at index 0 (and scroll at the
- * start) when a filled input/textarea is focused, remounted, or given a
- * whole new value. Pin to the end in those reset cases only — never on
- * every keystroke, so mid-message edits stay put.
+ * start) when a filled input/textarea is focused, remounted, pasted, or
+ * given a whole new value — e.g. putting a failed long ask back in the box.
+ * Pin to the end in those reset cases only — never on every keystroke, so
+ * mid-message edits stay put.
  */
 (function (root, factory) {
   const api = factory();
@@ -13,11 +14,32 @@
   "use strict";
 
   const COMPOSER_MIN_PX = 46;
-  const COMPOSER_MAX_PX = 160;
+  const COMPOSER_MAX_PX = 200;
 
   function valueOf(el) {
     if (!el || el.value == null) return "";
     return String(el.value);
+  }
+
+  function looksLikeFailedGuruReply(text) {
+    const t = String(text || "");
+    return /couldn't generate a response/i.test(t) || /couldn't reach max/i.test(t);
+  }
+
+  function caretIsAtEnd(el) {
+    if (!el) return false;
+    const value = valueOf(el);
+    if (!value) return false;
+    const start = el.selectionStart == null ? 0 : el.selectionStart;
+    const end = el.selectionEnd == null ? 0 : el.selectionEnd;
+    return start >= value.length && end >= value.length;
+  }
+
+  function endIsVisible(el) {
+    if (!el) return true;
+    const maxScrollY = Math.max(0, (el.scrollHeight || 0) - (el.clientHeight || 0));
+    const maxScrollX = Math.max(0, (el.scrollWidth || 0) - (el.clientWidth || 0));
+    return (el.scrollTop || 0) >= maxScrollY - 2 && (el.scrollLeft || 0) >= maxScrollX - 2;
   }
 
   function shouldPinCaretToEnd(el) {
@@ -50,22 +72,39 @@
     el.scrollLeft = el.scrollWidth;
   }
 
+  function revealComposerEnd(el) {
+    if (!el || !valueOf(el)) return;
+    if (shouldPinCaretToEnd(el)) {
+      placeCaretAtEnd(el);
+      return;
+    }
+    if (caretIsAtEnd(el) && !endIsVisible(el)) {
+      el.scrollTop = el.scrollHeight;
+      el.scrollLeft = el.scrollWidth;
+    }
+  }
+
   function pinCaretToEndIfReset(el) {
     if (shouldPinCaretToEnd(el)) placeCaretAtEnd(el);
   }
 
-  function schedulePinCaretToEndIfReset(el) {
+  function scheduleRevealComposerEnd(el) {
     if (!el) return;
     const run = function () {
-      pinCaretToEndIfReset(el);
+      revealComposerEnd(el);
     };
     if (typeof requestAnimationFrame === "function") {
       requestAnimationFrame(function () {
         requestAnimationFrame(run);
       });
     }
-    setTimeout(run, 0);
-    setTimeout(run, 50);
+    [0, 50, 120, 300].forEach(function (ms) {
+      setTimeout(run, ms);
+    });
+  }
+
+  function schedulePinCaretToEndIfReset(el) {
+    scheduleRevealComposerEnd(el);
   }
 
   function resizeComposer(el, opts) {
@@ -96,9 +135,14 @@
   return {
     COMPOSER_MIN_PX,
     COMPOSER_MAX_PX,
+    looksLikeFailedGuruReply,
+    caretIsAtEnd,
+    endIsVisible,
     shouldPinCaretToEnd,
     placeCaretAtEnd,
+    revealComposerEnd,
     pinCaretToEndIfReset,
+    scheduleRevealComposerEnd,
     schedulePinCaretToEndIfReset,
     resizeComposer,
   };

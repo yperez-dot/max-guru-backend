@@ -2777,9 +2777,10 @@
 /**
  * Chat composer caret helpers.
  * Mobile Safari/Chrome often put the caret at index 0 (and scroll at the
- * start) when a filled input/textarea is focused, remounted, or given a
- * whole new value. Pin to the end in those reset cases only — never on
- * every keystroke, so mid-message edits stay put.
+ * start) when a filled input/textarea is focused, remounted, pasted, or
+ * given a whole new value — e.g. putting a failed long ask back in the box.
+ * Pin to the end in those reset cases only — never on every keystroke, so
+ * mid-message edits stay put.
  */
 (function (root, factory) {
   const api = factory();
@@ -2789,11 +2790,32 @@
   "use strict";
 
   const COMPOSER_MIN_PX = 46;
-  const COMPOSER_MAX_PX = 160;
+  const COMPOSER_MAX_PX = 200;
 
   function valueOf(el) {
     if (!el || el.value == null) return "";
     return String(el.value);
+  }
+
+  function looksLikeFailedGuruReply(text) {
+    const t = String(text || "");
+    return /couldn't generate a response/i.test(t) || /couldn't reach max/i.test(t);
+  }
+
+  function caretIsAtEnd(el) {
+    if (!el) return false;
+    const value = valueOf(el);
+    if (!value) return false;
+    const start = el.selectionStart == null ? 0 : el.selectionStart;
+    const end = el.selectionEnd == null ? 0 : el.selectionEnd;
+    return start >= value.length && end >= value.length;
+  }
+
+  function endIsVisible(el) {
+    if (!el) return true;
+    const maxScrollY = Math.max(0, (el.scrollHeight || 0) - (el.clientHeight || 0));
+    const maxScrollX = Math.max(0, (el.scrollWidth || 0) - (el.clientWidth || 0));
+    return (el.scrollTop || 0) >= maxScrollY - 2 && (el.scrollLeft || 0) >= maxScrollX - 2;
   }
 
   function shouldPinCaretToEnd(el) {
@@ -2826,22 +2848,39 @@
     el.scrollLeft = el.scrollWidth;
   }
 
+  function revealComposerEnd(el) {
+    if (!el || !valueOf(el)) return;
+    if (shouldPinCaretToEnd(el)) {
+      placeCaretAtEnd(el);
+      return;
+    }
+    if (caretIsAtEnd(el) && !endIsVisible(el)) {
+      el.scrollTop = el.scrollHeight;
+      el.scrollLeft = el.scrollWidth;
+    }
+  }
+
   function pinCaretToEndIfReset(el) {
     if (shouldPinCaretToEnd(el)) placeCaretAtEnd(el);
   }
 
-  function schedulePinCaretToEndIfReset(el) {
+  function scheduleRevealComposerEnd(el) {
     if (!el) return;
     const run = function () {
-      pinCaretToEndIfReset(el);
+      revealComposerEnd(el);
     };
     if (typeof requestAnimationFrame === "function") {
       requestAnimationFrame(function () {
         requestAnimationFrame(run);
       });
     }
-    setTimeout(run, 0);
-    setTimeout(run, 50);
+    [0, 50, 120, 300].forEach(function (ms) {
+      setTimeout(run, ms);
+    });
+  }
+
+  function schedulePinCaretToEndIfReset(el) {
+    scheduleRevealComposerEnd(el);
   }
 
   function resizeComposer(el, opts) {
@@ -2872,9 +2911,14 @@
   return {
     COMPOSER_MIN_PX,
     COMPOSER_MAX_PX,
+    looksLikeFailedGuruReply,
+    caretIsAtEnd,
+    endIsVisible,
     shouldPinCaretToEnd,
     placeCaretAtEnd,
+    revealComposerEnd,
     pinCaretToEndIfReset,
+    scheduleRevealComposerEnd,
     schedulePinCaretToEndIfReset,
     resizeComposer,
   };
@@ -3675,6 +3719,8 @@ function App() {
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const pinComposerAfterRenderRef = useRef(false);
+  const inputValueRef = useRef("");
+  const pendingImagesRef = useRef([]);
   const fileInputRef = useRef(null);
   // Remembers the most recent exportable comparison even after the offer chip is dismissed
   // or later non-comparison replies push it out of the recent-message window.
@@ -3694,6 +3740,14 @@ function App() {
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  useEffect(() => {
+    inputValueRef.current = input;
+  }, [input]);
+
+  useEffect(() => {
+    pendingImagesRef.current = pendingImages;
+  }, [pendingImages]);
 
   const storeQueued = (item) => {
     queuedRef.current = item;
@@ -3748,12 +3802,34 @@ function App() {
     const el = inputRef.current;
     if (!el) return;
     el.focus();
-    if (window.MaxComposerCaret) window.MaxComposerCaret.schedulePinCaretToEndIfReset(el);
+    if (window.MaxComposerCaret) window.MaxComposerCaret.scheduleRevealComposerEnd(el);
   };
 
   const replaceComposerValue = (next) => {
     pinComposerAfterRenderRef.current = true;
     setInput(next);
+  };
+
+  const reuseUserMessage = (msg) => {
+    const text = userMessageText(msg && msg.content);
+    const urls = userMessageImages(msg && msg.content);
+    replaceComposerValue(text || "");
+    setPendingImages(urls.map((dataUrl, i) => ({
+      id: "reuse-" + Date.now() + "-" + i,
+      name: "screenshot",
+      type: "image/png",
+      size: 0,
+      dataUrl,
+    })));
+    setTimeout(() => focusComposer(), 50);
+  };
+
+  const refillComposerFromFailedSend = (text, images) => {
+    if (String(inputValueRef.current || "").trim()) return;
+    if ((pendingImagesRef.current || []).length) return;
+    replaceComposerValue(text || "");
+    if (images && images.length) setPendingImages(images);
+    setTimeout(() => focusComposer(), 50);
   };
 
   useEffect(() => {
@@ -3763,6 +3839,9 @@ function App() {
       pinComposerAfterRenderRef.current = false;
       window.MaxComposerCaret.resizeComposer(el);
       window.MaxComposerCaret.placeCaretAtEnd(el);
+      if (window.MaxComposerCaret.scheduleRevealComposerEnd) {
+        window.MaxComposerCaret.scheduleRevealComposerEnd(el);
+      }
       return;
     }
     if (!input) window.MaxComposerCaret.resizeComposer(el);
@@ -4102,6 +4181,7 @@ function App() {
     loadingRef.current = true;
     setLoading(true);
     setError(null);
+    let restoreDraft = false;
     const apiContent = images.length
       ? [
           { type: "text", text: content || "What's in this screenshot?" },
@@ -4192,6 +4272,9 @@ function App() {
       if (gen !== chatGenRef.current) return;
       sessionToolResultsRef.current = window.MaxComparisonExport.mergeToolResults(sessionToolResultsRef.current, result.toolResults);
       const reply = result.text;
+      if (window.MaxComposerCaret && window.MaxComposerCaret.looksLikeFailedGuruReply(reply)) {
+        restoreDraft = true;
+      }
       if (result.banners.length) {
         setBanners((current) => {
           const byId = new Map(current.map((banner) => [banner.id, banner]));
@@ -4286,6 +4369,7 @@ function App() {
         return;
       }
       setError("Couldn't reach Max. Check your connection and try again — if this keeps happening, Railway may be redeploying.");
+      restoreDraft = true;
     } finally {
       if (gen !== chatGenRef.current) {
         loadingRef.current = false;
@@ -4300,6 +4384,7 @@ function App() {
       }
       loadingRef.current = false;
       setLoading(false);
+      if (restoreDraft) refillComposerFromFailedSend(content, images);
     }
   };
 
@@ -4706,7 +4791,21 @@ function App() {
                     </>
                   )}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{m.time}</div>
+                <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, display: "flex", gap: 8, alignItems: "center" }}>
+                  {m.time}
+                  {m.role === "user" && (
+                    <button
+                      type="button"
+                      data-testid="reuse-user-message"
+                      onClick={() => reuseUserMessage(m)}
+                      aria-label="Put this message back in the composer"
+                      style={{
+                        fontSize: 11, fontWeight: 600, color: "var(--plum)", background: "none",
+                        border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font)",
+                      }}
+                    >Edit in box</button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -4810,14 +4909,20 @@ function App() {
                   if (window.MaxComposerCaret) window.MaxComposerCaret.resizeComposer(e.target);
                 }}
                 onFocus={(e) => {
-                  if (window.MaxComposerCaret) window.MaxComposerCaret.schedulePinCaretToEndIfReset(e.currentTarget);
+                  if (window.MaxComposerCaret) window.MaxComposerCaret.scheduleRevealComposerEnd(e.currentTarget);
                 }}
                 onKeyDown={(e) => {
                   if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
                   e.preventDefault();
                   send();
                 }}
-                onPaste={onComposerPaste}
+                onPaste={(e) => {
+                  onComposerPaste(e);
+                  const el = e.currentTarget;
+                  setTimeout(() => {
+                    if (window.MaxComposerCaret) window.MaxComposerCaret.scheduleRevealComposerEnd(el);
+                  }, 0);
+                }}
                 enterKeyHint="send"
                 aria-label="Message Max"
                 placeholder={loading ? "Type the next question — it will queue…" : "Ask Max, or paste a screenshot…"}
@@ -4825,7 +4930,7 @@ function App() {
                   flex: 1, padding: "13px 18px", borderRadius: 14,
                   border: "1px solid var(--line)", background: "rgba(255,255,255,0.9)",
                   fontSize: 14.5, outline: "none", fontFamily: "var(--font)", color: "var(--ink)",
-                  minHeight: 46, maxHeight: 160, height: 46,
+                  minHeight: 46, maxHeight: 200, height: 46,
                 }}
               />
               <button
