@@ -345,7 +345,10 @@ async function processTool(toolName, toolInput, context = {}) {
         { name: 'Devoted Health', key: 'devoted', base: 'https://fhir.devoted.com/fhir' },
       ];
       const providerResults = [];
-      for (const p of results.slice(0, 5)) {
+      // Padron-length chats: each NPI fans out to Humana/UHC/etc (~15s). Cap by remaining budget.
+      const rem = Number(context.remainingMs);
+      const npiCap = rem > 0 ? Math.max(1, Math.min(5, Math.floor(rem / 18000))) : 1;
+      for (const p of results.slice(0, npiCap)) {
         const npi = p.number;
         const pName = displayName(p) || [p.basic?.first_name, p.basic?.middle_name, p.basic?.last_name].filter(Boolean).join(' ');
         const spec = (p.taxonomies || []).find(t => t.primary)?.desc || 'Unknown';
