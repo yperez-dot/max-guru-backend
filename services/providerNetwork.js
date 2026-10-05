@@ -72,7 +72,10 @@ function createLimiter(limit) {
   const next = () => {
     if (active >= limit || !queue.length) return;
     active += 1;
-    const { fn, resolve, reject } = queue.shift();
+    // Lowest priority number first (each doctor's best NPI = 0), FIFO within a priority.
+    let pick = 0;
+    for (let i = 1; i < queue.length; i++) if (queue[i].priority < queue[pick].priority) pick = i;
+    const { fn, resolve, reject } = queue.splice(pick, 1)[0];
     Promise.resolve()
       .then(fn)
       .then(resolve, reject)
@@ -81,16 +84,16 @@ function createLimiter(limit) {
         next();
       });
   };
-  return (fn) => new Promise((resolve, reject) => {
-    queue.push({ fn, resolve, reject });
+  return (fn, priority = 0) => new Promise((resolve, reject) => {
+    queue.push({ fn, resolve, reject, priority: Number(priority) || 0 });
     next();
   });
 }
 
 const limiters = {};
-function limited(key, fn) {
+function limited(key, fn, priority = 0) {
   if (!limiters[key]) limiters[key] = createLimiter(Math.max(1, CARRIER_CONCURRENCY));
-  return limiters[key](fn);
+  return limiters[key](fn, priority);
 }
 
 /** Resolve with `promise`, or with `onTimeout()` once `deadlineAt` passes. The promise keeps running. */
@@ -179,7 +182,7 @@ function npiRecordInfo(p) {
  * Starts every carrier check for one NPI. Returns a live `state` object whose
  * fields fill in as each carrier answers, plus `done` (all settled).
  */
-function startNpiChecks(rec, { zip, planYear, guestPlanIds }) {
+function startNpiChecks(rec, { zip, planYear, guestPlanIds, rank = 0 }) {
   const state = {
     ...rec,
     fhir: undefined,
@@ -193,12 +196,12 @@ function startNpiChecks(rec, { zip, planYear, guestPlanIds }) {
   const track = (field, promise, fallback) => promise
     .then((v) => { state[field] = v; }, () => { state[field] = fallback; });
   const done = Promise.all([
-    track('fhir', limited('fhir', () => fhirHits(npi)), []),
-    track('doctorsResult', limited('doctors', () => queryDoctorsHcp(npi)), { inNetwork: false, error: 'request_failed' }),
-    track('aetnaResult', limited('aetna', () => queryAetnaPublic(npi, { zip, lastName: rec.lastName })), { inNetwork: false, plans: [], error: 'request_failed' }),
-    track('simplyResult', limited('simply', () => querySimplyFindcare(npi, { zip, lastName: rec.lastName })), { inNetwork: false, plans: [], error: 'request_failed' }),
-    track('uhcResult', limited('uhc', () => queryUhcGuest(npi, { zip, year: planYear, planIds: guestPlanIds })), { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'request_failed', year: String(planYear) }),
-    track('humanaResult', limited('humana', () => queryHumanaFindcare(npi, { zip, year: planYear, planIds: guestPlanIds })), { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'request_failed', year: String(planYear) }),
+    track('fhir', limited('fhir', () => fhirHits(npi), rank), []),
+    track('doctorsResult', limited('doctors', () => queryDoctorsHcp(npi), rank), { inNetwork: false, error: 'request_failed' }),
+    track('aetnaResult', limited('aetna', () => queryAetnaPublic(npi, { zip, lastName: rec.lastName }), rank), { inNetwork: false, plans: [], error: 'request_failed' }),
+    track('simplyResult', limited('simply', () => querySimplyFindcare(npi, { zip, lastName: rec.lastName }), rank), { inNetwork: false, plans: [], error: 'request_failed' }),
+    track('uhcResult', limited('uhc', () => queryUhcGuest(npi, { zip, year: planYear, planIds: guestPlanIds }), rank), { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'request_failed', year: String(planYear) }),
+    track('humanaResult', limited('humana', () => queryHumanaFindcare(npi, { zip, year: planYear, planIds: guestPlanIds }), rank), { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'request_failed', year: String(planYear) }),
   ]);
   return { state, done };
 }
@@ -406,7 +409,7 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
     if (!records.length) return notFoundResult(doctorName);
     const picked = records.slice(0, Math.max(1, npiCap)).map(npiRecordInfo);
     live.phase = 'carriers';
-    const runs = picked.map((rec) => startNpiChecks(rec, { zip, planYear, guestPlanIds }));
+    const runs = picked.map((rec, rank) => startNpiChecks(rec, { zip, planYear, guestPlanIds, rank }));
     live.npiStates = runs.map((r) => r.state);
 
     const sunfirePromise = (async () => {
