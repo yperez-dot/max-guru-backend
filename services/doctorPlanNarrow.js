@@ -163,27 +163,66 @@ const CELL = { in: '✅ In', out: '❌ Out', unknown: '❔' };
  * Aetna Medicare Select H1609-018 …"). Named plans are the columns — Max never
  * swaps in its own top 3 when she asked for specific plans.
  */
-function namedPlansFromAsk(askText, constraints) {
-  const lines = String(askText || '').split('\n').filter((l) => /[HR]\d{4}-\d{3}/i.test(l));
-  const last = lines[lines.length - 1] || '';
+function plansInLine(line, constraints) {
   const out = [];
   const seen = new Set();
-  const re = /(?:^|[,;:.]|\bcompare\b|\band\b|\bvs\.?\b|\bshow(?: me| m)?\b)\s*([^,;:.\n]{0,60}?)\s*\(?\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
+  const re = /(?:^|[,;:.]|\bcompare\b|\band\b|\bvs\.?\b|\bshow(?: me| m)?\b|\badd\b|\binclude\b|\bplus\b)\s*([^,;:.\n]{0,60}?)\s*\(?\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
   let m;
-  while ((m = re.exec(last)) !== null) {
+  while ((m = re.exec(line)) !== null) {
     const id = m[2].toUpperCase();
     const key = id.slice(0, 9);
     if (seen.has(key)) continue;
     if (constraints && [...constraints.skip].some((x) => x.slice(0, 9) === key)) continue;
     // "Current plan H5420-014 terminating" is context, not a column.
-    const after = last.slice(m.index + m[0].length, m.index + m[0].length + 25);
+    const after = line.slice(m.index + m[0].length, m.index + m[0].length + 25);
     if (/terminat|ending/i.test(after) || /current plan\s*$/i.test(m[1])) continue;
     seen.add(key);
-    const name = String(m[1] || '').replace(/^\s*(compare|vs\.?|and|show(?: me| m)?)\s+/i, '').replace(/\*+/g, '').replace(/\b(new 2027|plan)\b/gi, '').trim();
+    const name = String(m[1] || '')
+      .replace(/^.*\b(compare|vs\.?|and|show(?: me| m)?|add|include|plus|instead of|lets|let's)\s+/i, '')
+      .replace(/\*+/g, '').replace(/\b(new 2027|plan|instead)\b/gi, '').replace(/[·•]+\s*$/, '').trim();
     out.push({ planId: id, name: name || id });
   }
   return out;
 }
+
+const REMOVE_RE = /\b(?:remove|drop|take out|delete|no more|get rid of|without)\s+(?:the\s+)?([^,.;\n]+?)(?=\s+(?:from|and|,)|[,.;\n]|$)/gi;
+
+/**
+ * Plans the agent asked to compare, following her edits across the thread:
+ * "Compare Humana H1036-065C, Aetna H1609-018, Devoted H1290-073" then
+ * "remove devoted, add UHC H1045-005 instead" → Humana, Aetna, UHC.
+ * Named plans are the columns — Max never swaps in its own top 3.
+ */
+function namedPlansFromAsk(askText, constraints) {
+  let current = [];
+  for (const line of String(askText || '').split('\n')) {
+    if (!line.trim()) continue;
+    // Removals first ("remove devoted", "drop H1290-073").
+    let r;
+    REMOVE_RE.lastIndex = 0;
+    while ((r = REMOVE_RE.exec(line)) !== null) {
+      const target = r[1].trim().toLowerCase();
+      if (!target) continue;
+      current = current.filter((p) => {
+        const hay = `${p.name} ${p.planId} ${carrierOf(p.name)}`.toLowerCase();
+        return !(hay.includes(target) || target.includes(p.planId.toLowerCase()) || (carrierOf(target) && carrierOf(target) === carrierOf(p.name)));
+      });
+    }
+    const found = plansInLine(line, constraints);
+    if (!found.length) continue;
+    const isEdit = /\b(add|also|include|plus|instead|swap|replace|in place of)\b/i.test(line) || REMOVE_RE.test(line);
+    REMOVE_RE.lastIndex = 0;
+    if (isEdit && current.length) {
+      for (const f of found) if (!current.some((p) => p.planId.slice(0, 9) === f.planId.slice(0, 9))) current.push(f);
+    } else {
+      current = found;
+    }
+  }
+  return current;
+}
+
+// Carriers whose Florida MA plans all share one provider network.
+const SINGLE_NETWORK_CARRIERS = ['Devoted'];
 
 function carrierKey(label) {
   const c = carrierOf(label);
@@ -207,7 +246,10 @@ function namedPlanColumns(named, matrix, doctors) {
       const key = np.planId.slice(0, 9);
       if (inIds.has(key)) col.in.push(who);
       else if (outIds.has(key)) col.out.push(who);
-      else if (carrier && (d.carriersIn || []).some((c) => carrierKey(c) === carrier || c === carrier)) col.inCarrier.push(who);
+      else if (carrier && (d.carriersIn || []).some((c) => carrierKey(c) === carrier || c === carrier)) {
+        // One network for every plan (Devoted, per THEI) → a carrier hit is a plan hit.
+        (SINGLE_NETWORK_CARRIERS.includes(carrier) ? col.in : col.inCarrier).push(who);
+      }
       else col.unknown.push(who);
     }
     return col;
@@ -380,5 +422,6 @@ module.exports = {
   gridTable,
   medsTable,
   namedPlansFromAsk,
+  namedPlanColumns,
   fallbackAnswer,
 };

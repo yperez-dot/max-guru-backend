@@ -8,7 +8,7 @@
 const crypto = require('crypto');
 const { lookupDoctor, NOT_CONFIRMED } = require('./providerNetwork');
 const { lookupFormulary, toExportDrug, toExportDrugs, formatFormularyText } = require('./formularyLookup');
-const { askConstraints, coverageMatrix, gridTable, medsTable } = require('./doctorPlanNarrow');
+const { askConstraints, coverageMatrix, gridTable, medsTable, namedPlanColumns } = require('./doctorPlanNarrow');
 
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const RX_CACHE_MS = Number(process.env.MAX_RX_CACHE_MS || 24 * 60 * 60 * 1000);
@@ -225,20 +225,13 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
 
     // 4) Tables (same look as chat).
     const matrix = coverageMatrix(doctorStructs);
-    const columns = planIds.map((id) => {
-      const row = matrix.find((p) => p.planId.slice(0, 9) === id.slice(0, 9));
-      const given = input.planNames && input.planNames[id];
-      if (row) return given ? { ...row, name: given } : row;
-      return {
-        planId: id,
-        name: given || id,
-        carrier: '',
-        type: 'hmo',
-        in: [],
-        out: [],
-        unknown: doctorStructs.map((d) => d.requestedName || d.doctorName),
-      };
-    });
+    // Same column logic as chat: plan-level In/Out where a directory gives it,
+    // ✅ In* for carrier-level hits (Aetna fallback), Devoted = one network.
+    const columns = namedPlanColumns(
+      planIds.map((id) => ({ planId: id, name: (input.planNames && input.planNames[id]) || id })),
+      matrix,
+      doctorStructs,
+    ).map((c) => ({ ...c, name: (input.planNames && input.planNames[c.planId]) || c.name }));
     job.result.doctorTable = gridTable(doctorStructs, columns);
     job.result.medsTable = medsTable(drugs, columns);
     job.result.notConfirmed = doctorStructs.filter((d) => !['done', 'partial'].includes(d.status)).map((d) => d.requestedName);
