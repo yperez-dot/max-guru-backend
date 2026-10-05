@@ -16,6 +16,12 @@
         "value": "DME provider: 15% of the cost",
         "page": 9,
         "quote": "Durable medical equipment (DME) - DME provider: 15% of the cost"
+      },
+      "hearingAids": {
+        "value": "$475 copay for each Level 2 prescription hearing aid; $199 copay for each Level 1 (up to 1 per ear per year)",
+        "page": 7,
+        "pageNote": "printed page 7 of H1036054000SB27 Summary of Benefits",
+        "quote": "$199 copay for each Level 1 prescription hearing aid up to 1 per ear per year. $475 copay for each Level 2 prescription hearing aid up to 1 per ear per year."
       }
     },
     "H5420-001": {
@@ -28,6 +34,32 @@
         "value": "Days 21-100: $221",
         "page": null,
         "quote": "$221 copay per day: days 21-100"
+      },
+      "hearingAids": {
+        "value": "$700 allowance for 2 hearing aids every year",
+        "page": 4,
+        "pageNote": "PDF page 4 of 10; the PDF has no printed page number",
+        "quote": "$700 allowance for 2 hearing aids every year"
+      }
+    },
+    "H4140-023": {
+      "snfDays1to20": {
+        "value": "$0 copay per day, days 1-20",
+        "page": 15,
+        "pageNote": "printed page 15 (PDF page 16 of 28); DrSelect-SFL right column",
+        "quote": "$0 copay per day for days 1 through 20."
+      },
+      "snfDays21to100": {
+        "value": "$60 copay per day, days 21-100",
+        "page": 15,
+        "pageNote": "printed page 15 (PDF page 16 of 28); DrSelect-SFL right column",
+        "quote": "$60 copay per day for days 21 through 100."
+      },
+      "dme": {
+        "value": "0% coinsurance (CPAP, all other medical equipment); 20% coinsurance (powered wheelchairs, powered mattress systems, other electric devices)",
+        "page": 17,
+        "pageNote": "printed page 17 (PDF page 18 of 28); DrSelect-SFL right column. Do not use the left Dr Max column. H4140-022 stays on the Dr Max PDF.",
+        "quote": "0% coinsurance for covered items, including but not limited to: CPAP machines And all other medical equipment. 20% coinsurance for covered items, including but not limited to: Powered wheelchairs"
       }
     }
   }
