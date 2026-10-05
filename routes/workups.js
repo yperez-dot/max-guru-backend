@@ -4,6 +4,7 @@
  * GET    /workups/:id
  * PUT    /workups
  * PUT    /workups/:id
+ * PATCH  /workups/:id   { clientName } — rename only
  * DELETE /workups/:id
  */
 const { Router } = require('express');
@@ -57,6 +58,19 @@ function createWorkupsRouter(store) {
   router.put('/', upsert);
   router.put('/:id', upsert);
   router.post('/', upsert);
+
+  router.patch('/:id', (req, res) => {
+    const email = ownerOf(req);
+    if (!email) return res.status(401).json({ error: 'Access locked', code: 'access_required' });
+    try {
+      const workup = getStore().rename(email, req.params.id, req.body && req.body.clientName);
+      if (!workup) return res.status(404).json({ error: 'Workup not found' });
+      return res.json({ ok: true, workup });
+    } catch (err) {
+      const status = err.status && Number.isInteger(err.status) ? err.status : 400;
+      return res.status(status).json({ error: err.message || 'Could not rename workup' });
+    }
+  });
 
   router.delete('/:id', (req, res) => {
     const email = ownerOf(req);
