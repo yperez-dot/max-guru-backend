@@ -234,13 +234,34 @@ function catalogDrugs(payload) {
     .filter((d) => d.name || d.ndc);
 }
 
-function pickCatalogMatch(drugs, query) {
-  if (!drugs.length) return null;
+const BAD_FORM_RE = /\b(inject(?:ion|able)?|intravenous|\biv\b|vial|kit|powder for|for solution|irrigation|topical|ophthalmic|otic|nasal|patch|suppositor)/i;
+
+function catalogScore(drug, query) {
+  const name = String(drug.name || '').toLowerCase();
   const q = String(query || '').toLowerCase().trim();
-  const exact = drugs.find((d) => String(d.name || '').toLowerCase() === q);
-  if (exact) return exact;
-  const starts = drugs.find((d) => String(d.name || '').toLowerCase().startsWith(q));
-  return starts || drugs[0];
+  if (!name) return -100;
+  let score = 0;
+  if (name === q) score += 100;
+  const base = q.split(/\s+/)[0];
+  if (base && name.startsWith(base)) score += 10;
+  if (/\btab(let)?s?\b|oral tablet/.test(name)) score += 4;
+  if (/\bcap(sule)?s?\b/.test(name)) score += 1;
+  if (BAD_FORM_RE.test(name) && !BAD_FORM_RE.test(q)) score -= 20;
+  for (const n of q.match(/\d+(?:\.\d+)?/g) || []) if (name.includes(n)) score += 3;
+  return score;
+}
+
+/** Catalog products for a query, best match first (oral tablet over injection, matching strength). */
+function rankCatalogMatches(drugs, query) {
+  return (drugs || [])
+    .map((d, i) => ({ d, i, s: catalogScore(d, query) }))
+    .sort((a, b) => b.s - a.s || a.i - b.i)
+    .map((x) => x.d);
+}
+
+function pickCatalogMatch(drugs, query) {
+  if (!drugs || !drugs.length) return null;
+  return rankCatalogMatches(drugs, query)[0];
 }
 
 async function searchSunfireCatalog(name, fetchImpl = fetch) {
@@ -1000,12 +1021,13 @@ async function lookupFormulary(
   }
 
   const catalog = await searchSunfireCatalog(drugName || ndc, fetchImpl);
-  const match = pickCatalogMatch(catalog.drugs, drugName || ndc);
-  const resolvedName = match?.name || drugName || ndc || 'Unknown drug';
-  const resolvedNdc = ndc || match?.ndc || null;
+  const ranked = rankCatalogMatches(catalog.drugs, drugName || ndc);
+  let match = ranked[0] || null;
+  let resolvedName = match?.name || drugName || ndc || 'Unknown drug';
+  let resolvedNdc = ndc || match?.ndc || null;
 
-  const byPlanId = {};
-  const lookups = [];
+  let byPlanId = {};
+  let lookups = [];
 
   if (!uniqueIds.length) {
     return {
@@ -1022,77 +1044,112 @@ async function lookupFormulary(
     };
   }
 
-  for (const id of uniqueIds) {
-    const planObj = (plans || []).find((p) => cmsIdsMatch(p.planId || p.id, id));
-    let hit = null;
-    const reasons = [];
+  async function lookupPlans(match, resolvedName, resolvedNdc) {
+    const byPlanId = {};
+    const lookups = [];
+    for (const id of uniqueIds) {
+      const planObj = (plans || []).find((p) => cmsIdsMatch(p.planId || p.id, id));
+      let hit = null;
+      const reasons = [];
 
-    const sunfire = await lookupSunfireCoverage(
-      { drug: match || { name: resolvedName, ndc: resolvedNdc }, planId: id, year: y },
-      fetchImpl
-    );
-    if (sunfire.verified) hit = sunfire;
-    else if (sunfire.reason && sunfire.reason !== 'sunfire_creds_missing') reasons.push(sunfire.reason);
-
-    if (!hit || !hit.verified) {
-      const fhir = await lookupHumanaFhir(
-        { drugName: resolvedName, ndc: resolvedNdc, planId: id, year: y },
+      const sunfire = await lookupSunfireCoverage(
+        { drug: match || { name: resolvedName, ndc: resolvedNdc }, planId: id, year: y },
         fetchImpl
       );
-      if (fhir.verified) hit = fhir;
-      else if (fhir.reason && fhir.reason !== 'not_humana') reasons.push(fhir.reason);
-    }
+      if (sunfire.verified) hit = sunfire;
+      else if (sunfire.reason && sunfire.reason !== 'sunfire_creds_missing') reasons.push(sunfire.reason);
 
-    if (!hit || !hit.verified) {
-      const medicareFetch = fetchImpl === fetch ? medicareGovFetch : fetchImpl;
-      const mpf = await lookupMedicareGov(
-        { drugName: resolvedName, ndc: resolvedNdc, planId: id, year: y },
-        medicareFetch
-      );
-      if (mpf.verified) hit = mpf;
-      else if (mpf.reason) reasons.push(mpf.reason);
-    }
+      if (!hit || !hit.verified) {
+        const fhir = await lookupHumanaFhir(
+          { drugName: resolvedName, ndc: resolvedNdc, planId: id, year: y },
+          fetchImpl
+        );
+        if (fhir.verified) hit = fhir;
+        else if (fhir.reason && fhir.reason !== 'not_humana') reasons.push(fhir.reason);
+      }
 
-    if (!hit || !hit.verified) {
-      const consumer = await lookupConsumerFormulary(
-        { drugName: resolvedName, ndc: resolvedNdc, planId: id, year: y },
-        fetchImpl
-      );
-      if (consumer.verified) hit = consumer;
-      else if (consumer.reason && consumer.reason !== 'not_doctors' && consumer.reason !== 'no_consumer_source') {
-        reasons.push(consumer.reason);
+      if (!hit || !hit.verified) {
+        const medicareFetch = fetchImpl === fetch ? medicareGovFetch : fetchImpl;
+        const mpf = await lookupMedicareGov(
+          { drugName: resolvedName, ndc: resolvedNdc, planId: id, year: y },
+          medicareFetch
+        );
+        if (mpf.verified) hit = mpf;
+        else if (mpf.reason) reasons.push(mpf.reason);
+      }
+
+      if (!hit || !hit.verified) {
+        const consumer = await lookupConsumerFormulary(
+          { drugName: resolvedName, ndc: resolvedNdc, planId: id, year: y },
+          fetchImpl
+        );
+        if (consumer.verified) hit = consumer;
+        else if (consumer.reason && consumer.reason !== 'not_doctors' && consumer.reason !== 'no_consumer_source') {
+          reasons.push(consumer.reason);
+        }
+      }
+
+      const displayId = displayPlanId(id);
+      if (hit && hit.verified) {
+        const share =
+          costShareFromKnowledge(id, y, hit.tier) ||
+          (y === 2026 ? costShareFromPlanObject(planObj, hit.tier) : null);
+        const row = {
+          planId: displayId,
+          year: y,
+          verified: true,
+          tier: hit.tier || null,
+          coverage: hit.coverage || (hit.tier ? 'covered' : null),
+          pa: hit.pa,
+          st: hit.st,
+          ql: hit.ql,
+          costShare: share ? share.value : null,
+          costShareSource: share ? share.source : null,
+          source: hit.source,
+          reason: null,
+          formularyPlanId: hit.formularyPlanId || null,
+        };
+        byPlanId[displayId] = row;
+        lookups.push(row);
+      } else {
+        const row = {
+          ...emptyPlanResult(id, y, reasons.join('|') || (hit && hit.reason) || catalog.error || 'unverified'),
+          note: hit && hit.note ? hit.note : undefined,
+        };
+        byPlanId[displayId] = row;
+        lookups.push(row);
       }
     }
+    return { byPlanId, lookups };
+  }
 
-    const displayId = displayPlanId(id);
-    if (hit && hit.verified) {
-      const share =
-        costShareFromKnowledge(id, y, hit.tier) ||
-        (y === 2026 ? costShareFromPlanObject(planObj, hit.tier) : null);
-      const row = {
-        planId: displayId,
-        year: y,
-        verified: true,
-        tier: hit.tier || null,
-        coverage: hit.coverage || (hit.tier ? 'covered' : null),
-        pa: hit.pa,
-        st: hit.st,
-        ql: hit.ql,
-        costShare: share ? share.value : null,
-        costShareSource: share ? share.source : null,
-        source: hit.source,
-        reason: null,
-        formularyPlanId: hit.formularyPlanId || null,
-      };
-      byPlanId[displayId] = row;
-      lookups.push(row);
-    } else {
-      const row = {
-        ...emptyPlanResult(id, y, reasons.join('|') || (hit && hit.reason) || catalog.error || 'unverified'),
-        note: hit && hit.note ? hit.note : undefined,
-      };
-      byPlanId[displayId] = row;
-      lookups.push(row);
+  ({ byPlanId, lookups } = await lookupPlans(match, resolvedName, resolvedNdc));
+
+  // One odd catalog product (injection, capsule, different strength) can read
+  // "not covered" everywhere for a drug every formulary carries (levothyroxine,
+  // HCTZ). Before saying not covered, retry the next best products.
+  let retriedProduct = null;
+  let notCoveredNote = null;
+  const allNotCovered = (rows) => rows.length > 0 && rows.every((r) => r.verified && r.coverage === 'not_covered');
+  if (!ndc && allNotCovered(lookups) && !knownGenericFor(drugName)) {
+    const base = String(drugName || '').toLowerCase().split(/\s+/)[0];
+    const alternates = ranked
+      .slice(1)
+      .filter((d) => String(d.name || '').toLowerCase().startsWith(base) && d.name !== match?.name)
+      .slice(0, 2);
+    for (const alt of alternates) {
+      const tryRun = await lookupPlans(alt, alt.name, alt.ndc || null);
+      if (tryRun.lookups.some((r) => r.verified && r.coverage !== 'not_covered')) {
+        retriedProduct = { from: resolvedName, to: alt.name };
+        match = alt;
+        resolvedName = alt.name;
+        resolvedNdc = alt.ndc || null;
+        ({ byPlanId, lookups } = tryRun);
+        break;
+      }
+    }
+    if (!retriedProduct) {
+      notCoveredNote = `"${resolvedName}" read not covered on every plan, including ${alternates.length} other catalog product(s). Confirm the exact product/strength in Sunfire before telling the client — most formularies cover the common generic.`;
     }
   }
 
@@ -1109,6 +1166,8 @@ async function lookupFormulary(
     verifiedAny: lookups.some((l) => l.verified),
     suggestedGeneric: null,
     genericFollowup: null,
+    retriedProduct,
+    notCoveredNote,
   };
 
   const genericName = knownGenericFor(drugName) || knownGenericFor(resolvedName);
@@ -1158,6 +1217,12 @@ function formatFormularyText(result) {
   if (!result) return 'Formulary lookup failed.';
   const lines = [];
   lines.push(`${result.drugName}${result.ndc ? ` (NDC ${result.ndc})` : ''} — plan year ${result.year}`);
+  if (result.retriedProduct) {
+    lines.push(`Note: the first catalog product (${result.retriedProduct.from}) read not covered; re-checked as ${result.retriedProduct.to}. Quote this result.`);
+  }
+  if (result.notCoveredNote) {
+    lines.push(`UNVERIFIED NOT-COVERED: ${result.notCoveredNote} Tell the agent to confirm — do NOT state "not covered" as fact.`);
+  }
   if (!result.lookups.length) {
     lines.push('No plan IDs were passed. Catalog only — tiers are unverified until lookup_formulary is called with a contract-PBP.');
     if (result.catalog && result.catalog.length) {

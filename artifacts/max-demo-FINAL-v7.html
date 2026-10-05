@@ -4173,7 +4173,7 @@ function App() {
         }
         setMessages((prev) => prev.map((m) => (m && m.role === "offer" ? { ...m, clientName: saved.clientName || name } : m)));
       }
-      setWorkupNotice("Renamed — same name on phone and desktop.");
+      setWorkupNotice(null);
     } catch (err) {
       if (err && err.code === "access_required") {
         setUnlocked(false);
@@ -4712,9 +4712,6 @@ function App() {
             ))}
 
             <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", letterSpacing: "0.06em", textTransform: "uppercase", margin: "18px 4px 6px" }}>Client workups</div>
-            <div style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.4, margin: "0 4px 10px" }}>
-              Synced to your Max login — same list on phone and desktop. Structured facts only (not the old chat).
-            </div>
             {workupNotice && (
               <div style={{ fontSize: 11.5, color: "var(--plum)", background: "rgba(245,243,255,.9)", border: "1px solid var(--line)", borderRadius: 10, padding: "8px 10px", marginBottom: 8 }}>{workupNotice}</div>
             )}
@@ -4812,13 +4809,6 @@ function App() {
           </button>
         </header>
 
-        <div style={{
-          flex: "none", textAlign: "center", padding: "8px 16px",
-          fontSize: 11.5, fontWeight: 500, color: "var(--plum)",
-          background: "rgba(255,16,144,0.06)", borderBottom: "1px solid rgba(255,16,144,0.12)",
-        }}>
-          Internal agents only · cites the THEI grid · never ranks plans
-        </div>
 
         {/* Messages */}
         <div className="max-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 14px" : "24px 22px", display: "flex", flexDirection: "column", gap: 4 }}>

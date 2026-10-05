@@ -134,7 +134,10 @@ function fallbackFromToolResults(collected, askText = '', messages = []) {
     .filter((t) => t.tool === 'lookup_provider_network' && t.output && (t.output.doctorName || t.output.requestedName))
     .map((t) => t.output);
   if (!doctors.length) return '';
-  const body = fallbackAnswer(doctors, askText, { answered: narrowingAnswered(messages) });
+  const drugs = collected
+    .filter((t) => t.tool === 'lookup_formulary' && t.output && t.output.byPlanId)
+    .map((t) => t.output);
+  const body = fallbackAnswer(doctors, askText, { answered: narrowingAnswered(messages), drugs });
   const next = /To narrow to 2/.test(body)
     ? 'Answer the questions above, or send the same ask again — finished doctor lookups come back from cache.'
     : 'Send the same ask again — finished doctor lookups come back from cache, so Max can write the 2–3 plans.';
@@ -248,7 +251,16 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
     if (!data?.usage) return;
     usageCalls.push({ model: data.model || DEFAULT_MODEL, usage: data.usage });
   };
-  const grokTimeout = () => Math.max(500, Math.min(DEFAULT_GROK_FETCH_MS, remainingMs(deadline) - 1500));
+  // MAX_GROK_FETCH_MS caps later rounds. The FIRST round reads the whole plan
+  // grid + thread and can legitimately take >40s; cutting it there meant
+  // "timed out before any lookup ran". It may use everything up to the tool window.
+  let modelRound = 0;
+  const grokTimeout = () => {
+    const cap = modelRound === 0
+      ? Math.max(DEFAULT_GROK_FETCH_MS, toolDeadlineAt - Date.now() - 4000)
+      : DEFAULT_GROK_FETCH_MS;
+    return Math.max(500, Math.min(cap, remainingMs(deadline) - 1500));
+  };
   const toolTimeLeft = () => toolDeadlineAt - Date.now();
 
   const pushToolResult = (name, result) => {
@@ -293,6 +305,7 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
       }
       throw err;
     }
+    modelRound += 1;
     captureUsage(lastData);
     lastMessage = lastData.choices?.[0]?.message || {};
     const toolCalls = finalOnly ? [] : (lastMessage.tool_calls || []);

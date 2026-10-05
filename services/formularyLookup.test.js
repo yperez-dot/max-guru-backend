@@ -674,3 +674,25 @@ describe('lookupFormulary auto-follows generic when brand is not covered', () =>
     assert.equal(toExportDrugs(result).length, 1);
   });
 });
+
+describe('levothyroxine: odd catalog product must not read "not covered"', () => {
+  const fl = require('./formularyLookup');
+  it('ranks the oral tablet with the asked strength ahead of injection / capsule', () => {
+    const drugs = [
+      { name: 'Levothyroxine Sodium Intravenous Solution Reconstituted', ndc: '1' },
+      { name: 'Levothyroxine Sodium Oral Capsule', ndc: '2' },
+      { name: 'Levothyroxine Sodium Oral Tablet 50 MCG', ndc: '3' },
+    ];
+    assert.equal(fl.pickCatalogMatch(drugs, 'levothyroxine 50').ndc, '3');
+    assert.equal(fl.pickCatalogMatch(drugs, 'levothyroxine').ndc, '3');
+    assert.equal(fl.pickCatalogMatch([{ name: 'Hydrochlorothiazide Oral Tablet 25 MG', ndc: 'a' }, { name: 'Hydrochlorothiazide Oral Capsule 12.5 MG', ndc: 'b' }], 'hydrochlorothiazide 25').ndc, 'a');
+  });
+  it('says confirm, not "not covered", in the agent text', () => {
+    const text = fl.formatFormularyText({
+      drugName: 'Levothyroxine Sodium Oral Capsule', ndc: null, year: 2027, lookups: [{ planId: 'H1045-005', year: 2027, verified: true, coverage: 'not_covered', source: 'sunfire' }], byPlanId: {},
+      notCoveredNote: 'read not covered on every plan', catalog: [],
+    });
+    assert.match(text, /UNVERIFIED NOT-COVERED/);
+    assert.match(text, /do NOT state "not covered" as fact/);
+  });
+});

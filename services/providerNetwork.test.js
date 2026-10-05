@@ -231,3 +231,15 @@ describe('Padron narrowing constraints + grid', () => {
     assert.doesNotMatch(text, /H1889-002|R0759-001|H5420-014|NPI|M\.D\./);
   });
 });
+
+describe('named plans become the columns', () => {
+  const n = require('./doctorPlanNarrow');
+  it('uses the 3 plans she named, not Max\'s own top 3', () => {
+    const ask = 'Maria & Gaspar Padron, ZIP 33332. Current plan H5420-014 terminating 2027. No Medicaid. Meds: metformin. Compare Humana Gold Plus H1036-065C, Aetna Medicare Select H1609-018, Devoted C-SNP Enhanced H1290-073 — every doctor In/Out and the meds.';
+    const doc = { requestedName: 'Howard Bush', doctorName: 'HOWARD BUSH M.D.', status: 'done', carriersIn: ['Devoted Health', 'Aetna Medicare', 'UnitedHealthcare'], inNetworkPlans: ['AARP Medicare Advantage from UHC FL-0031 (Regional PPO) (R0759-001)'], outOfNetworkPlans: ['Humana Gold Plus (H1036-065C)'] };
+    const text = n.fallbackAnswer([doc], ask);
+    assert.match(text, /\| Doctor \| Humana Gold Plus · H1036-065C \| Aetna Medicare Select · H1609-018 \| Devoted C-SNP Enhanced · H1290-073 \|/);
+    assert.match(text, /\| Howard Bush \| ❌ Out \| ✅ In\* \| ✅ In\* \|/);
+    assert.doesNotMatch(text, /R0759|H5420-014 ·|To narrow/);
+  });
+});
