@@ -3937,6 +3937,8 @@ function App() {
     const built = window.MaxClientWorkups.buildWorkupFromExport(payload, extras);
     const prev = loadedWorkupRef.current;
     if (prev) {
+      // Renamed by the agent → keep her name, never the one re-read from the chat.
+      if (prev.nameLocked && prev.clientName) built.clientName = prev.clientName;
       if (!built.clientName) built.clientName = prev.clientName || "";
       if (!built.zip) built.zip = prev.zip || "";
       if (!built.county) built.county = prev.county || "";
@@ -4068,6 +4070,34 @@ function App() {
         return;
       }
       setWorkupNotice(err.message || "Could not open workup.");
+    }
+  };
+
+  const renameWorkup = async (id, currentName) => {
+    const next = window.prompt("Rename this tab", currentName || "");
+    if (next == null) return;
+    const name = next.trim();
+    if (!name || name === currentName) return;
+    try {
+      const data = await workupsRequest("PATCH", "/" + id, { clientName: name });
+      const saved = (data && data.workup) || {};
+      setWorkups((current) => (current || []).map((w) => (
+        w.id === id ? { ...w, clientName: saved.clientName || name, updatedAt: saved.updatedAt || w.updatedAt } : w
+      )));
+      if (currentWorkupIdRef.current === id) {
+        loadedWorkupRef.current = { ...(loadedWorkupRef.current || {}), clientName: saved.clientName || name, nameLocked: true };
+        if (lastComparisonExportRef.current) {
+          lastComparisonExportRef.current = { ...lastComparisonExportRef.current, clientName: saved.clientName || name };
+        }
+        setMessages((prev) => prev.map((m) => (m && m.role === "offer" ? { ...m, clientName: saved.clientName || name } : m)));
+      }
+      setWorkupNotice("Renamed — same name on phone and desktop.");
+    } catch (err) {
+      if (err && err.code === "access_required") {
+        setUnlocked(false);
+        return;
+      }
+      setWorkupNotice(err.message || "Could not rename workup.");
     }
   };
 
@@ -4629,6 +4659,14 @@ function App() {
                       style={{ flex: 1, padding: "6px 8px", borderRadius: 8, border: "none", background: "var(--plum)", color: "#fff", fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}
                     >
                       Open
+                    </button>
+                    <button
+                      onClick={() => void renameWorkup(w.id, w.clientName || "")}
+                      className="max-tap"
+                      title="Rename this tab"
+                      style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", color: "var(--plum)", fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}
+                    >
+                      Rename
                     </button>
                     <button
                       onClick={() => void deleteWorkup(w.id, label)}

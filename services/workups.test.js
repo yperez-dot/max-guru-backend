@@ -238,3 +238,36 @@ describe('compact resume context', () => {
     assert.ok(model.aoa.some((row) => row[0] === 'Trintellix'));
   });
 });
+
+describe('workup rename (tab menu)', () => {
+  it('renames only the name and keeps it through later autosaves', () => {
+    const { store, cleanup } = tempStore();
+    try {
+      const saved = store.upsert('agent@healthexps.com', muskatPayload());
+      const renamed = store.rename('agent@healthexps.com', saved.id, 'Muskat — Bernard & Ruth');
+      assert.equal(renamed.clientName, 'Muskat — Bernard & Ruth');
+      assert.equal(renamed.nameLocked, true);
+      assert.deepEqual(renamed.planIds, saved.planIds);
+      assert.equal(renamed.zip, saved.zip);
+
+      // Autosave from chat re-extracts "Muskat" — the typed name must win.
+      const again = store.upsert('agent@healthexps.com', { ...muskatPayload(), id: saved.id });
+      assert.equal(again.clientName, 'Muskat — Bernard & Ruth');
+      assert.equal(store.list('agent@healthexps.com')[0].clientName, 'Muskat — Bernard & Ruth');
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('rejects an empty name and unknown ids, and only touches the owner list', () => {
+    const { store, cleanup } = tempStore();
+    try {
+      const saved = store.upsert('agent@healthexps.com', muskatPayload());
+      assert.throws(() => store.rename('agent@healthexps.com', saved.id, '   '), /empty/);
+      assert.equal(store.rename('agent@healthexps.com', 'nope-nope-nope', 'X'), null);
+      assert.equal(store.rename('other@healthexps.com', saved.id, 'X'), null);
+    } finally {
+      cleanup();
+    }
+  });
+});

@@ -259,10 +259,13 @@ class WorkupStore {
       existing = list.find((w) => String(w.clientName || '').toLowerCase() === body.clientName.toLowerCase()) || null;
     }
     const id = (existing && existing.id) || body.id || newId();
+    // A name the agent typed with Rename wins over names re-extracted from the chat.
+    const nameLocked = Boolean(existing && existing.nameLocked && existing.clientName);
     const workup = {
       id,
       ownerEmail: owner,
-      clientName: body.clientName,
+      clientName: nameLocked ? existing.clientName : body.clientName,
+      nameLocked,
       zip: body.zip,
       county: body.county,
       contacts: body.contacts,
@@ -279,6 +282,24 @@ class WorkupStore {
     list.unshift(workup);
     if (list.length > this.maxPerOwner) list = list.slice(0, this.maxPerOwner);
     this.state.users[owner] = list;
+    this.writeState();
+    return workup;
+  }
+
+  /** Rename only — every other field stays as saved. */
+  rename(email, id, name) {
+    const owner = normalizeOwnerEmail(email);
+    const clientName = clip(name || '', MAX_CLIENT_NAME);
+    if (!clientName) {
+      const err = new Error('Name cannot be empty');
+      err.status = 400;
+      throw err;
+    }
+    const list = this.ownerList(owner);
+    const existing = list.find((w) => w.id === id);
+    if (!existing) return null;
+    const workup = { ...existing, clientName, nameLocked: true, updatedAt: this.now().toISOString() };
+    this.state.users[owner] = [workup, ...list.filter((w) => w.id !== id)];
     this.writeState();
     return workup;
   }
