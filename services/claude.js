@@ -26,6 +26,10 @@ const { searchClinicOrProvider } = require('./clinicSearch');
 const { discoverPlansForArea } = require('./planDiscover');
 const { lookupFormulary, formatFormularyText, toExportDrug, toExportDrugs } = require('./formularyLookup');
 const { lookupSobBenefits, formatSobLookupText, toExportSobBenefits } = require('./sobLookup');
+const {
+  querySunfireProviderList,
+  inNetworkLabelsFromSunfirePlans,
+} = require('./sunfireProvider');
 const { conversationAskText } = require('./planYear');
 
 // Sunfire plan ID → plan name/carrier map (built 2026-07-23)
@@ -254,7 +258,7 @@ const TOOLS = [
         drugName: { type: 'string', description: 'Drug name, e.g. "Trintellix" or "Atorvastatin"' },
         ndc: { type: 'string', description: 'Optional NDC' },
         planId: { type: 'string', description: 'CMS contract-PBP, e.g. "H1036-054C"' },
-        planIds: { type: 'array', items: { type: 'string' }, description: 'Multiple CMS IDs, e.g. ["H1036-054C","H1036-305"]' },
+        planIds: { type: 'array', items: { type: 'string' }, description: 'Compared / user-named CMS IDs only (typically 2–8, never the whole Florida grid)' },
         year: { type: 'number', description: 'Plan year, default 2027' },
         claimedTier: { type: 'number', description: 'Discarded. Never quoted or used.' }
       },
@@ -263,12 +267,12 @@ const TOOLS = [
   },
   {
     name: 'lookup_sob_benefit',
-    description: 'REQUIRED when the agent asks for ANY benefit that is not on the THEI Plan Comparison Grid (most-requested rows only). Do NOT call this on every comparison and do NOT look up benefits she did not ask for. Reads that plan\'s Summary of Benefits for the asked year (2026-only ask → #plan-data-2026 sobUrl; unspecified / 2027 / both years → 2027 #plan-data sobUrl). If the SOB does not have the asked benefit, read that same year\'s Evidence of Coverage (eocUrl). A 2026-only ask must not use a 2027 EOC. Quote only text the document said. Grid green cells first. Then SOB. Then EOC. Never invent a dollar amount. If it is not in either document, return unverified — never fill from the other year or memory. Pass planId/planIds plus sobUrl/eocUrl or the plan objects from PLAN DATA. Call once per comparison (all named planIds). Pass year=2026 only when the agent asked 2026 and did not also say 2027.',
+    description: 'REQUIRED when the agent asks for ANY benefit that is not on the THEI Plan Comparison Grid (most-requested rows only). Do NOT call this on every comparison and do NOT look up benefits she did not ask for. Reads that plan\'s Summary of Benefits for the asked year (2026-only ask → #plan-data-2026 sobUrl; unspecified / 2027 / both years → 2027 #plan-data sobUrl). If the SOB does not have the asked benefit, read that same year\'s Evidence of Coverage (eocUrl). A 2026-only ask must not use a 2027 EOC. Quote only text the document said. Grid green cells first. Then SOB. Then EOC. Never invent a dollar amount. If it is not in either document, return unverified — never fill from the other year or memory. Pass planId/planIds plus sobUrl/eocUrl or the plan objects from PLAN DATA. Call once per comparison. Pass ONLY the compared / user-named contract-PBPs (typically 2–8, hard cap 10). NEVER pass the entire Florida grid (H1019-*, H1045-*, H1290-*, H1036-* dump). Pass year=2026 only when the agent asked 2026 and did not also say 2027.',
     input_schema: {
       type: 'object',
       properties: {
         planId: { type: 'string', description: 'CMS contract-PBP, e.g. H1036-054C' },
-        planIds: { type: 'array', items: { type: 'string' }, description: 'All compared CMS IDs' },
+        planIds: { type: 'array', items: { type: 'string' }, description: 'Compared / user-named CMS IDs only (2–8 typical, never the whole Florida grid)' },
         sobUrl: { type: 'string', description: 'Official SOB PDF URL when looking up a single plan' },
         eocUrl: { type: 'string', description: 'Official Evidence of Coverage PDF URL when the SOB misses the asked benefit' },
         plans: {
@@ -427,57 +431,30 @@ async function processTool(toolName, toolInput, context = {}) {
       }
       if (!providerResults.length) return `Found NPIs but no network data available.`;
       // Step 3: Sunfire /v2/provider/list for WellCare, CarePlus, etc. (Humana only if Find Care failed)
-      const SUNFIRE_BASE = 'https://www.sunfirematrix.com';
-      const SUNFIRE_JWT = process.env.SUNFIRE_JWT || '';
-      const SUNFIRE_SFP = process.env.SUNFIRE_SFP || '';
       const humanaGuestOk = providerResults.some((pr) => (
         pr.humanaResult?.checks?.some((c) => c.status === 'in_network' || c.status === 'out_of_network')
       ));
-      const sunfireInNetwork = []; // resolved plan name strings
-      if (SUNFIRE_JWT && SUNFIRE_SFP && providerResults.length > 0) {
-        try {
-          const sfProviders = providerResults.map(pr => ({
-            id: pr.npi, name: pr.name, firstName: pr.name.split(' ')[0], radius: 25, primaryDoctor: true
-          }));
-          const sfRes = await fetch(`${SUNFIRE_BASE}/v2/provider/list`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${SUNFIRE_JWT}`,  // unified Bearer format
-              'Content-Type': 'application/json',
-              'Cookie': `sfp-cookie=${SUNFIRE_SFP}`,
-              'Origin': SUNFIRE_BASE,
-              'Referer': `${SUNFIRE_BASE}/app/agent/yourmedicare/`
-            },
-            body: JSON.stringify({
-              type: 'network', county: '12086', year: planYear, zip,
-              providers: sfProviders, restrictedProviderCarrierId: ''
-            }),
-            signal: AbortSignal.timeout(15000)
+      let sunfireInNetwork = [];
+      let sunfireError = null;
+      const skipSunfire = Number(context.remainingMs) > 0 && Number(context.remainingMs) < 7000;
+      if (!skipSunfire && providerResults.length > 0) {
+        const sfProviders = providerResults.map(pr => ({
+          id: pr.npi, name: pr.name, firstName: pr.name.split(' ')[0], radius: 25, primaryDoctor: true
+        }));
+        const sf = await querySunfireProviderList({
+          providers: sfProviders,
+          zip,
+          year: planYear,
+          county: '12086',
+        });
+        if (sf.ok) {
+          sunfireInNetwork = inNetworkLabelsFromSunfirePlans(sf.plans, SUNFIRE_PLAN_MAP, {
+            skipHumana: humanaGuestOk,
+            isHumanaLabel,
           });
-          if (sfRes.ok) {
-            const sfData = await sfRes.json();
-            const sfPlans = sfData.plans || [];
-            for (const plan of sfPlans) {
-              const docs = plan.doctorInformation || [];
-              const covered = docs.some(doc =>
-                doc.covered === 'Y' && (doc.locations || []).some(l => l.covered === 'Y')
-              );
-              if (!covered) continue;
-              const id = String(plan.id);
-              const mapEntry = SUNFIRE_PLAN_MAP[id];
-              let label;
-              if (mapEntry) {
-                label = mapEntry.planName
-                  ? `${mapEntry.planName} (${mapEntry.carrier})`
-                  : (mapEntry.carrier || `Plan ${id}`);
-              } else {
-                label = `Plan ID ${id}`;
-              }
-              if (humanaGuestOk && isHumanaLabel(label)) continue;
-              if (!sunfireInNetwork.includes(label)) sunfireInNetwork.push(label);
-            }
-          }
-        } catch(e) { console.log('[Sunfire lookup error]', e.message); }
+        } else if (sf.error && sf.error !== 'missing_credentials') {
+          sunfireError = sf.error;
+        }
       }
 
       let out = `Provider network results for "${doctorName}":\n\n`;
@@ -492,8 +469,10 @@ async function processTool(toolName, toolInput, context = {}) {
         if (pr.humanaResult) out += `${formatHumanaAgentNote(pr.humanaResult)}\n`;
         if (sunfireInNetwork.length > 0) {
           out += `Sunfire also listed (${sunfireInNetwork.length}; secondary, year ${planYear}):\n${sunfireInNetwork.map(p => `  - ${p}`).join('\n')}\n`;
+        } else if (sunfireError) {
+          out += `Sunfire provider lookup failed (${sunfireError}) — empty/truncated Sunfire is not UHC or Humana out-of-network. Wellcare / CarePlus: check the carrier site.\n`;
         } else {
-          out += SUNFIRE_SFP
+          out += process.env.SUNFIRE_SFP
             ? `Sunfire did not confirm additional plans for ${planYear}. Empty Sunfire is not UHC or Humana out-of-network.\n`
             : `Sunfire session unavailable (secondary only). UHC uses public guest Find a Doctor. Humana uses public Find Care. Wellcare / CarePlus still need Sunfire or the carrier site.\n`;
         }
@@ -637,6 +616,9 @@ async function processTool(toolName, toolInput, context = {}) {
         year: toolInput.year,
         askText: context.askText || conversationAskText(context.messages),
         systemText: context.system,
+        budgetMs: toolInput.budgetMs || (Number(context.remainingMs) > 0
+          ? Math.min(28000, Math.max(4000, Number(context.remainingMs) - 8000))
+          : undefined),
       });
       return {
         text: formatSobLookupText(result),

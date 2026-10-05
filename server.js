@@ -91,6 +91,7 @@ app.use('/provider-lookup', requireApiKey, requireAccessToken, providerLookupRou
 app.use('/workups', requireApiKey, requireAccessToken, workupsRouter);
 
 const MAX_CLIENT_SYSTEM_CHARS = Number(process.env.MAX_CLIENT_SYSTEM_CHARS || 400000);
+const CHAT_DEADLINE_MS = Number(process.env.MAX_CHAT_DEADLINE_MS || 70_000);
 const TOOL_USE_APPENDIX = `
 
 ADDITIONAL RUNTIME RULES (server-enforced):
@@ -159,12 +160,25 @@ app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, 
 
     const mergedSystem = `${system}\n${TOOL_USE_APPENDIX}`;
     try {
-      const data = await passThroughChat({ system: mergedSystem, messages });
+      const data = await passThroughChat({
+        system: mergedSystem,
+        messages,
+        deadlineMs: CHAT_DEADLINE_MS,
+      });
       const budgetResult = budgetGuard.recordTurn({
         provider: data.provider,
         usageCalls: data.usageCalls,
       });
       const banners = [...budgetResult.banners];
+      if (data.deadline) {
+        banners.unshift({
+          id: 'chat-deadline',
+          type: 'warning',
+          message:
+            'Max hit the chat wait while a lookup was still running. Send the same ask again — dollars stay unverified unless a SOB lookup already finished.',
+        });
+        delete data.deadline;
+      }
       if (budgetCheck.overrideActivated) {
         banners.unshift({
           id: `budget-${budgetResult.usage.day}-override`,
@@ -201,13 +215,25 @@ app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, 
   // LEGACY MODE — KB-search path (scheduled for retirement).
   try {
     const { SYSTEM_PROMPT } = require('./services/claude');
-    const data = await passThroughChat({ system: SYSTEM_PROMPT, messages });
+    const data = await passThroughChat({
+      system: SYSTEM_PROMPT,
+      messages,
+      deadlineMs: CHAT_DEADLINE_MS,
+    });
     const budgetResult = budgetGuard.recordTurn({
       provider: data.provider,
       usageCalls: data.usageCalls,
     });
     const block = (data.content || []).find((item) => item.type === 'text');
     const banners = [...budgetResult.banners];
+    if (data.deadline) {
+      banners.unshift({
+        id: 'chat-deadline',
+        type: 'warning',
+        message:
+          'Max hit the chat wait while a lookup was still running. Send the same ask again — dollars stay unverified unless a SOB lookup already finished.',
+      });
+    }
     if (budgetCheck.overrideActivated) {
       banners.unshift({
         id: `budget-${budgetResult.usage.day}-override`,

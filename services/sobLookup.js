@@ -17,6 +17,7 @@ const {
   DEFAULT_PLAN_YEAR,
   resolveDocumentYear,
   resolveDocumentUrl,
+  conversationAskText,
 } = require('./planYear');
 
 const PLAN_YEAR = DEFAULT_PLAN_YEAR;
@@ -814,6 +815,61 @@ function gridFallback(plan, wanted, year) {
   return out;
 }
 
+const DEFAULT_MAX_SOB_LOOKUP_PLANS = 8;
+const DEFAULT_AUTOTOOL_GRID_DUMP_MIN = 12;
+const KNOWN_AUTOTOOL_SOB_KEYS = new Set([
+  'skilled_nursing',
+  'skilledNursing',
+  'snf',
+  'snfDays1to20',
+  'snfDays21to100',
+  'dme',
+  'dmeHospitalBed',
+  'hearing_aids',
+  'hearingAids',
+  'chemotherapy',
+  'home_health',
+  'homeHealth',
+  'dialysis',
+  'physical_therapy',
+  'physicalTherapy',
+  'worldwide_emergency',
+  'worldwideEmergency',
+  'post_discharge_meals',
+  'postDischargeMeals',
+]);
+
+function maxSobLookupPlans() {
+  const n = Number(process.env.MAX_SOB_LOOKUP_PLANS);
+  return n > 0 ? Math.min(20, Math.floor(n)) : DEFAULT_MAX_SOB_LOOKUP_PLANS;
+}
+
+function autotoolGridDumpMin() {
+  const n = Number(process.env.MAX_SOB_GRID_DUMP_MIN);
+  return n > 0 ? Math.floor(n) : DEFAULT_AUTOTOOL_GRID_DUMP_MIN;
+}
+
+function gateSobPlanIds(planIds, { source = 'lookup' } = {}) {
+  const seen = new Set();
+  const out = [];
+  (Array.isArray(planIds) ? planIds : []).forEach((raw) => {
+    const display = String(raw || '').replace(/\s+/g, '').toUpperCase().split('/')[0];
+    if (!display) return;
+    const key = normalizePlanId(display);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(display);
+  });
+  const max = maxSobLookupPlans();
+  if (out.length > max) {
+    console.warn(
+      `[lookup_sob_benefit] oversized plan list (${out.length}) from ${source}; capping to ${max}`
+    );
+    return out.slice(0, max);
+  }
+  return out;
+}
+
 /**
  * Look up asked benefits for one or more plans. Grid green cells first,
  * then that plan's SOB. Never invent.
@@ -834,15 +890,21 @@ async function lookupSobBenefits(
     sobTextByPlanId = {},
     eocText = '',
     eocTextByPlanId = {},
+    budgetMs,
   } = {},
   fetchImpl
 ) {
   const y = resolveDocumentYear({ year, askText, systemText, plans });
   const wanted = normalizeBenefitList(benefits, query);
-  const ids = [...(planId ? [planId] : []), ...(Array.isArray(planIds) ? planIds : [])]
+  const rawIds = [...(planId ? [planId] : []), ...(Array.isArray(planIds) ? planIds : [])]
     .map((id) => String(id || '').trim())
     .filter(Boolean);
+  const ids = gateSobPlanIds(rawIds, { source: 'lookup' });
   const planList = (Array.isArray(plans) ? plans.slice() : []).map((p) => mergeWiredPlan(p, y));
+  const started = Date.now();
+  const sobBudgetMs = Number(budgetMs) > 0
+    ? Number(budgetMs)
+    : Number(process.env.MAX_SOB_LOOKUP_BUDGET_MS || 28000);
   if (ids.length && !planList.length && sobUrl) {
     planList.push(mergeWiredPlan({ planId: ids[0], sobUrl, eocUrl }, y));
   }
@@ -858,6 +920,11 @@ async function lookupSobBenefits(
   if (!planList.length && sobUrl) {
     planList.push(mergeWiredPlan({ planId: 'unknown', sobUrl, eocUrl }, y));
   }
+  const maxPlans = maxSobLookupPlans();
+  if (planList.length > maxPlans) {
+    console.warn(`[lookup_sob_benefit] oversized plan objects (${planList.length}); capping to ${maxPlans}`);
+    planList.length = maxPlans;
+  }
 
   const byPlanId = {};
   const lookups = [];
@@ -868,6 +935,26 @@ async function lookupSobBenefits(
     const planEocUrl = String(plan.eocUrl || '').trim();
     const fromGrid = gridFallback(plan, wanted, y);
     const keys = requestedFieldKeys(wanted);
+    if (Date.now() - started > sobBudgetMs) {
+      const fields = {};
+      keys.forEach((key) => {
+        fields[key] = { value: null, source: null, verified: false, reason: 'skipped_deadline' };
+      });
+      const row = {
+        planId: id,
+        year: y,
+        sobUrl: url || null,
+        eocUrl: planEocUrl || null,
+        sourceUrl: url || null,
+        sobRead: false,
+        eocRead: false,
+        reason: 'skipped_deadline',
+        fields,
+      };
+      byPlanId[id] = row;
+      lookups.push(row);
+      continue;
+    }
     keys.forEach((key) => {
       if (fromGrid[key]) return;
       const v = verifiedFor(id, key, y);
@@ -956,18 +1043,28 @@ async function lookupSobBenefits(
     lookups.push(row);
   }
 
+  const rawPlanCount = Array.isArray(plans) ? plans.length : 0;
+  const cappedFrom = rawIds.length > ids.length
+    ? rawIds.length
+    : (rawPlanCount > lookups.length ? rawPlanCount : 0);
   return {
     year: y,
     benefits: wanted,
     lookups,
     byPlanId,
     verifiedAny: lookups.some((row) => Object.values(row.fields).some((f) => f.verified && f.value)),
+    cappedFrom: cappedFrom || undefined,
   };
 }
 
 function formatSobLookupText(result) {
   if (!result) return 'SOB lookup failed.';
   const lines = [`SOB_LOOKUP year=${result.year} benefits=${(result.benefits || []).join(',')}`];
+  if (result.cappedFrom) {
+    lines.push(
+      `Capped to ${(result.lookups || []).length} of ${result.cappedFrom} plan ids — name the comparison contracts, never the whole Florida grid. Do not invent dollars for skipped plans.`
+    );
+  }
   for (const row of result.lookups || []) {
     lines.push(`${row.planId}: ${row.sobRead ? 'SOB read' : 'SOB unread'}${row.reason ? ` (${row.reason})` : ''}${row.sobUrl ? ` [SoB](${row.sobUrl})` : ''}${row.eocUrl ? ` [EOC](${row.eocUrl})` : ''}`);
     Object.entries(row.fields || {}).forEach(([key, field]) => {
@@ -1072,21 +1169,52 @@ function planIdsCoveredBySobToolResults(toolResults, fieldKeys) {
   return ids;
 }
 
+function askedKnownOffGridForAutotool(asked) {
+  if (!asked || !asked.asked) return false;
+  const hits = []
+    .concat(asked.benefits || [])
+    .concat(asked.fieldKeys || []);
+  return hits.some((key) => KNOWN_AUTOTOOL_SOB_KEYS.has(String(key || '')));
+}
+
+function comparisonPlanIdsForSob(messages) {
+  const userIds = citedPlanIdsFromText(conversationAskText(messages));
+  if (userIds.length) return gateSobPlanIds(userIds, { source: 'user' });
+  const assistants = (messages || []).filter((m) => m && m.role === 'assistant');
+  const last = assistants[assistants.length - 1];
+  if (!last) return [];
+  const asstIds = citedPlanIdsFromText(messagePlainText([last]));
+  const dumpMin = autotoolGridDumpMin();
+  if (asstIds.length >= dumpMin) {
+    console.warn(
+      `[AutoTool] refusing SOB scan of ${asstIds.length} assistant-cited plan ids (grid dump ≥ ${dumpMin})`
+    );
+    return [];
+  }
+  if (asstIds.length > maxSobLookupPlans()) {
+    console.warn(
+      `[AutoTool] assistant-cited plan list oversized (${asstIds.length}); capping to ${maxSobLookupPlans()}`
+    );
+  }
+  return gateSobPlanIds(asstIds, { source: 'assistant' });
+}
+
 function uniquePlanIdsNeedingExportSob(messages, toolResults, fieldKeys) {
   const text = messagePlainText(messages);
   const asked = askedOffGridFromText(text);
   const keys = fieldKeys && fieldKeys.length ? fieldKeys : asked.fieldKeys.length ? asked.fieldKeys : EXPORT_SOB_FIELD_KEYS;
-  const planIds = citedPlanIdsFromText(text);
+  const planIds = comparisonPlanIdsForSob(messages);
   const covered = planIdsCoveredBySobToolResults(toolResults, keys);
   return planIds.filter((id) => !covered.has(normalizePlanId(id)) && !covered.has(id));
 }
 
-// Only when the agent asked for an off-grid benefit — never on every compare.
+// Only when the agent asked for a known off-grid benefit — never on every compare,
+// never for "need doctors / meds", never the whole Florida grid.
 function shouldAutoLookupComparisonSob(messages, toolResults) {
   const text = messagePlainText(messages);
   const asked = askedOffGridFromText(text);
-  if (!asked.asked) return false;
-  const planIds = citedPlanIdsFromText(text);
+  if (!askedKnownOffGridForAutotool(asked)) return false;
+  const planIds = comparisonPlanIdsForSob(messages);
   if (!planIds.length) return false;
   return uniquePlanIdsNeedingExportSob(messages, toolResults, asked.fieldKeys).length > 0;
 }
@@ -1129,4 +1257,9 @@ module.exports = {
   planIdsCoveredBySobToolResults,
   uniquePlanIdsNeedingExportSob,
   shouldAutoLookupComparisonSob,
+  comparisonPlanIdsForSob,
+  gateSobPlanIds,
+  askedKnownOffGridForAutotool,
+  maxSobLookupPlans,
+  DEFAULT_MAX_SOB_LOOKUP_PLANS,
 };

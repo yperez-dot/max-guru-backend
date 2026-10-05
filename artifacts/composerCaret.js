@@ -23,7 +23,12 @@
 
   function looksLikeFailedGuruReply(text) {
     const t = String(text || "");
-    return /couldn't generate a response/i.test(t) || /couldn't reach max/i.test(t);
+    return (
+      /couldn't generate a response/i.test(t) ||
+      /couldn't reach max/i.test(t) ||
+      /max is still working/i.test(t) ||
+      /taking longer than the chat wait/i.test(t)
+    );
   }
 
   function caretIsAtEnd(el) {
