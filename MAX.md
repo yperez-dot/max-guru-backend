@@ -48,6 +48,7 @@ To grow the verified list: run `node scripts/sob_verify_report.js` somewhere tha
     - **Partial confirmations:** "Yavagal correct, Del Conde wrong" confirms one and rejects one; a rejected match shows "⚠️ wrong doctor — send the NPI" and is never counted.
     - **Meds in chat:** the doctor batch holds back `MAX_CHAT_MEDS_RESERVE_MS` (20s) and prices every listed med on the table plans in the same turn; results ride along as `lookup_formulary` tool results.
     - **Doctors HealthCare shared network (Yahoska, 2026-10-06):** DrMax-Dade (H4140-022) and DrSelect-SFL (H4140-023) share one network, so a Doctors directory hit counts as ✅ In for both (`SHARED_NETWORK_PLANS` in `doctorPlanNarrow.js`). Doctors C-SNP / D-SNP plans are not confirmed and stay ✅ In*.
+    - **Follow-ups re-run on the server (2026-10-06):** when the newest message asks for carriers or answers Max's numbered questions and an earlier message listed 2+ doctors, `grok.passThroughChat` runs `lookup_provider_network` itself (cached lookups, fast) before the model answers — the model had been answering from its previous reply and dropping the carrier ask. Logs: `[AutoTool/…] comparison follow-up` and `[comparison] … Carriers requested`.
     - **Wrong-doctor matches:** a matched first name that differs from the asked name ("Ian Del Conde" → Cesar A Conde, "Carlos Sosa" → Amanda C Sosa) is flagged "different name — confirm match", and that doctor's In/Out is `❔ not confirmed` until she confirms.
 
 Full chat rules: `services/claude.js` `SYSTEM_PROMPT` (also baked into the HTML UI).

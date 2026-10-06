@@ -223,6 +223,40 @@ function comparisonAskText(messages, baseText) {
   return lines.join('\n');
 }
 
+/**
+ * Is the newest agent message a comparison follow-up the server must re-run?
+ * Yes when it asks for carriers by name or answers Max's numbered narrowing
+ * questions, and an earlier message listed 2+ doctors. Returns
+ * { reason, doctors, zip } or null.
+ */
+function comparisonFollowUp(messages) {
+  const msgs = Array.isArray(messages) ? messages : [];
+  const lastUserAt = msgs.map((m) => m && m.role).lastIndexOf('user');
+  if (lastUserAt < 0) return null;
+  const latest = messageText(msgs[lastUserAt]);
+  const reasons = [];
+  const carriers = R.carriersRequested(latest);
+  if (carriers.length) reasons.push(`carriers asked: ${carriers.join(', ')}`);
+  const prevAssistant = msgs.slice(0, lastUserAt).reverse().find((m) => m && m.role === 'assistant');
+  if (prevAssistant && askedQuestions(messageText(prevAssistant)).filter(Boolean).length && Object.keys(numberedAnswers(latest)).length) {
+    reasons.push('numbered answers');
+  }
+  if (!reasons.length) return null;
+  // Doctors + ZIP from the newest user message that listed them ("Doctors: …").
+  const { parseCompareAsk } = require('./compareJobs'); // lazy: compareJobs requires this file
+  for (let i = lastUserAt; i >= 0; i -= 1) {
+    const m = msgs[i];
+    if (!m || m.role !== 'user') continue;
+    const t = messageText(m);
+    if (!/\b(?:doctors?|drs?|providers?)\s*:/i.test(t)) continue;
+    const f = parseCompareAsk(t);
+    if (f.doctors.length < 2) return null;
+    const zip = f.zip || (msgs.slice(0, lastUserAt + 1).map(messageText).join(' ').match(/\b(3\d{4})\b/) || [])[1] || '';
+    return { reason: reasons.join(' + '), doctors: f.doctors.map((d) => d.name), zip };
+  }
+  return null;
+}
+
 function lastNameOnly(d) {
   const asked = String((d && d.requestedName) || '')
     .replace(/\b(dr|md|m\.d|do|d\.o|pcp|primary|cardio\w*|neuro\w*|gyn\w*|obgyn|ortho\w*|derm\w*|uro\w*|gastro\w*|onc\w*|endo\w*|rheum\w*|pulm\w*|nephro\w*|podiat\w*|ophth\w*|optom\w*|ent|psych\w*|specialist|doctor)\b\.?/gi, ' ')
@@ -981,6 +1015,7 @@ module.exports = {
   askConstraints,
   narrowingAnswered,
   comparisonAskText,
+  comparisonFollowUp,
   numberedAnswers,
   selectComparison,
   batchSummaryForModel,

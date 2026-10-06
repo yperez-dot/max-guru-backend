@@ -1,7 +1,7 @@
 // services/grok.js — Max Medicare Guru via OpenAI-compatible chat (Grok or OpenAI)
 const { TOOLS, processTool } = require('./claude');
 const { countImagesInMessages, normalizeMessages } = require('./chatImages');
-const { fallbackAnswer, narrowingAnswered, comparisonAskText } = require('./doctorPlanNarrow');
+const { fallbackAnswer, narrowingAnswered, comparisonAskText, comparisonFollowUp } = require('./doctorPlanNarrow');
 const { conversationAskText } = require('./planYear');
 const {
   shouldAutoLookupComparisonSob,
@@ -276,6 +276,33 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
     }
     return text;
   };
+
+  // A comparison follow-up ("show me Doctors, Solis, Devoted", "1. no 2. … 3. yes") must
+  // re-run the comparison. The model sometimes answers from its own previous reply instead,
+  // which silently drops the carriers / answers — so the server runs it before the model does.
+  const followUp = comparisonFollowUp(messages);
+  if (followUp && toolTimeLeft() >= 15000) {
+    console.log(`[AutoTool/${CONFIG.provider}] comparison follow-up: ${followUp.reason}; ${followUp.doctors.length} doctors, ZIP ${followUp.zip || '?'}`);
+    const result = await raceUntil(
+      Promise.resolve().then(() => runTool('lookup_provider_network', {
+        doctors: followUp.doctors.map((doctorName) => ({ doctorName })),
+        zip: followUp.zip || undefined,
+      }, { messages, system, remainingMs: toolTimeLeft(), deadlineAt: toolDeadlineAt })).catch((e) => `lookup_provider_network error: ${e.message}`),
+      toolDeadlineAt + toolGraceMs,
+      () => '',
+    );
+    if (result) {
+      const text = pushToolResult('lookup_provider_network', result);
+      apiMessages.push({
+        role: 'user',
+        content:
+          `Server re-ran the doctor/plan comparison for the agent's latest message (${followUp.reason}). ` +
+          'This result already applies her answers and carrier choice. Copy its header, "Why these plans" line and tables as-is; ' +
+          'do not re-rank, swap plans, or reuse the previous table. Do not call lookup_provider_network again for these doctors.\n' +
+          text,
+      });
+    }
+  }
 
   for (let i = 0; i < 6; i++) {
     if (remainingMs(deadline) < minModelMs) {
