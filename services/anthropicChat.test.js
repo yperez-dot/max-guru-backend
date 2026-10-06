@@ -32,6 +32,7 @@ describe('OpenAI-shaped chat → Claude Messages API', () => {
     assert.deepEqual(body.system, [{ type: 'text', text: 'GRID', cache_control: { type: 'ephemeral' } }]);
     assert.deepEqual(body.tools[0], { name: 'search_drug', description: 'd', input_schema: { type: 'object', properties: { q: { type: 'string' } } } });
     assert.deepEqual(body.tool_choice, { type: 'auto' });
+    assert.equal('temperature' in body, false, 'current Claude models reject temperature');
     assert.deepEqual(body.messages[0].content[0].cache_control, { type: 'ephemeral' });
   });
 
