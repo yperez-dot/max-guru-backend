@@ -165,6 +165,21 @@ function matchVerdicts(names, answer) {
   return out;
 }
 
+/**
+ * "Carlos Sosa = Glenda Sosa", "Mortyko is Dr. John Mortell", "Sosa -> Glenda Sosa".
+ * Only names already on her doctor list can be replaced.
+ */
+function substitutionsIn(text, knownNames) {
+  const out = [];
+  for (const part of String(text || '').split(/[;\n]|,(?=\s*[A-Za-z][^,]*?(?:=|→|->|\bis\b))/)) {
+    const m = part.match(/^\s*(?:\d+[.)]\s*)?(?:dr\.?\s*)?([A-Za-z][A-Za-z .'-]{1,40}?)\s*(?:=|→|->|\bis actually\b|\bis really\b|\bshould be\b|\bmeans\b|\bis\b)\s*(?:dr\.?\s*)?([A-Za-z][A-Za-z .'-]{2,60}?)\s*[.!]?\s*$/i);
+    if (!m) continue;
+    const from = (knownNames || []).find((k) => sameDoctorName(k, m[1]));
+    if (from && !sameDoctorName(from, m[2])) out.push([from, m[2].trim()]);
+  }
+  return out;
+}
+
 /** Turn her reply to Max's numbered questions into plain statements the selector reads. */
 function statementsFor(question, answer) {
   const q = String(question || '');
@@ -184,6 +199,14 @@ function statementsFor(question, answer) {
   if (/Confirm the (doctor )?match/i.test(q)) {
     const names = [...q.matchAll(/(?:^|[:;]\s*)([^:;→]+?)\s*→/g)].map((m) => m[1].trim());
     return matchVerdicts(names, a);
+  }
+  if (/No exact match/i.test(q)) {
+    const asked = [...q.matchAll(/"([^"]+)"\s*—/g)].map((m) => m[1].trim());
+    const subs = substitutionsIn(a, asked);
+    if (!subs.length && asked.length === 1 && /[a-z]{3}/i.test(a) && !NO_RE.test(a)) {
+      subs.push([asked[0], a.replace(/^\s*(?:it'?s|its|is|=)\s*/i, '').replace(/^dr\.?\s*/i, '').replace(/[.]+$/, '').trim()]);
+    }
+    return subs.map(([from, to]) => `Doctor substitution: ${from} => ${to}.`);
   }
   if (/must-keep/i.test(q)) return [`Must-keep doctors: ${a}.`];
   if (/HMO OK|PPO/i.test(q)) return [/ppo/i.test(a) && !/hmo ok|either/i.test(a) ? 'Needs a PPO.' : `Network: ${a} (HMO ok).`];
@@ -241,7 +264,6 @@ function comparisonFollowUp(messages) {
   if (prevAssistant && askedQuestions(messageText(prevAssistant)).filter(Boolean).length && Object.keys(numberedAnswers(latest)).length) {
     reasons.push('numbered answers');
   }
-  if (!reasons.length) return null;
   // Doctors + ZIP from the newest user message that listed them ("Doctors: …").
   const { parseCompareAsk } = require('./compareJobs'); // lazy: compareJobs requires this file
   for (let i = lastUserAt; i >= 0; i -= 1) {
@@ -251,8 +273,19 @@ function comparisonFollowUp(messages) {
     if (!/\b(?:doctors?|drs?|providers?)\s*:/i.test(t)) continue;
     const f = parseCompareAsk(t);
     if (f.doctors.length < 2) return null;
+    let names = f.doctors.map((d) => d.name);
+    // Her corrections ("Carlos Sosa = Glenda Sosa"), in the latest message or as answers.
+    // Every correction she made after listing the doctors still applies (oldest first).
+    const later = msgs.slice(i + 1, lastUserAt + 1).filter((x) => x && x.role === 'user').map(messageText);
+    const subs = [
+      ...later.flatMap((t2) => substitutionsIn(t2, names)),
+      ...[...comparisonAskText(msgs).matchAll(/Doctor substitution: (.+?) => (.+?)\.$/gm)].map((x) => [x[1], x[2]]),
+    ];
+    if (substitutionsIn(latest, names).length) reasons.push('doctor corrections');
+    if (!reasons.length) return null;
+    for (const [from, to] of subs) names = names.map((nm) => (sameDoctorName(nm, from) ? to : nm));
     const zip = f.zip || (msgs.slice(0, lastUserAt + 1).map(messageText).join(' ').match(/\b(3\d{4})\b/) || [])[1] || '';
-    return { reason: reasons.join(' + '), doctors: f.doctors.map((d) => d.name), zip };
+    return { reason: reasons.join(' + '), doctors: [...new Set(names)], zip };
   }
   return null;
 }
@@ -477,7 +510,7 @@ function sameDoctorName(a, b) {
 function doctorLabel(d) {
   const asked = titleCase(shortDoctor(d));
   const issue = d && d.identityPending !== undefined ? d.identityPending : identityIssue(d);
-  const flag = issue === 'wrong' ? ' ⚠️ wrong doctor — send the NPI'
+  const flag = issue === 'wrong' ? ' ⚠️ wrong doctor — tell me who'
     : issue === 'mismatch' ? ' ⚠️ different name — confirm match' : issue ? ' ⚠️ confirm match' : '';
   const matched = d && d.doctorName && !['not_found', 'timeout', 'error'].includes(d.status) ? cleanName(d.doctorName) : '';
   if (!matched) return `${asked}${lastNameOnly(d) ? ' ⚠️ confirm match' : ''}`;
@@ -524,14 +557,17 @@ function gridTable(doctors, plans) {
 
 function doctorLine(d) {
   const name = shortDoctor(d);
-  if (d.status === 'not_found') return `- ${name}: NOT CONFIRMED — no NPI match`;
+  if (d.status === 'not_found') {
+    const sug = (d.suggestions || []).map((x) => `${x.name}${x.specialty ? ` (${x.specialty}${x.city ? `, ${x.city}` : ''})` : ''}`);
+    return `- ${name}: NOT CONFIRMED — no exact NPI match${sug.length ? `; closest real providers: ${sug.join('; ')} — ask which one (never ask for an NPI)` : '; no similar name — ask for the spelling or specialty/office (never ask for an NPI)'}`;
+  }
   if (d.status === 'timeout' || d.status === 'error') return `- ${name}: NOT CONFIRMED — lookup did not finish`;
   const who = d.doctorName && d.doctorName !== name ? ` (${d.doctorName}${d.npi ? `, NPI ${d.npi}` : ''})` : (d.npi ? ` (NPI ${d.npi})` : '');
   const carriers = (d.carriersIn || []).length ? d.carriersIn.join(', ') : 'no in-network hit in finished checks';
   const pending = (d.pending || []).length ? ` · still pending: ${d.pending.join(', ')}` : '';
   const failedNote = (d.failed || []).length ? ` · check failed (not a miss): ${d.failed.join(', ')}` : '';
   const issue = d.identityPending !== undefined ? d.identityPending : identityIssue(d);
-  const flag = issue === 'wrong' ? ' · ⚠️ agent says this is the wrong doctor — results not used; need the NPI'
+  const flag = issue === 'wrong' ? ' · ⚠️ agent says this is the wrong doctor — results not used; ask who it is'
     : issue === 'mismatch' ? ' · ⚠️ matched a different name — confirm before using these results'
     : issue ? ' · ⚠️ asked by last name only — confirm this is the right doctor' : '';
   return `- ${name}${who}: ${carriers}${pending}${failedNote}${flag}`;
@@ -839,14 +875,25 @@ function selectComparison(doctors, askText, opts = {}) {
     if (snpUnknownKinds.has('csnp') && elig.csnp === 'unknown') {
       qs.push('Does {client} have a C-SNP qualifying chronic condition, confirmed by diagnosis? — Yes (which one) / No. (C-SNPs stay out until confirmed.)');
     }
+    // Doctor questions (no match / wrong / confirm) share ONE numbered slot so eligibility always fits.
+    const doctorQs = [];
+    const missing = docs.filter((d) => d.status === 'not_found');
+    if (missing.length) {
+      const per = missing.map((d) => {
+        const sug = (d.suggestions || []).slice(0, 3).map((x) => `${x.name}${x.specialty ? ` (${x.specialty}${x.city ? `, ${x.city}` : ''})` : ''}`);
+        return `"${titleCase(shortDoctor(d))}"${sug.length ? ` — closest: ${sug.join('; ')}` : ' — no similar name on file (check the spelling, or give the specialty / office)'}`;
+      });
+      doctorQs.push(`No exact match for: ${per.join(' · ')}. Which doctor is it? Reply like "Carlos Sosa = Glenda Sosa". No NPI needed.`);
+    }
     const wrong = docs.filter((d) => d.identityPending === 'wrong');
     if (wrong.length) {
-      qs.push(`Send the NPI for ${wrong.map((d) => titleCase(shortDoctor(d))).join(', ')} — the match${wrong.length > 1 ? 'es' : ''} I found ${wrong.length > 1 ? 'were' : 'was'} the wrong doctor, so ${wrong.length > 1 ? 'they stay' : 'it stays'} ❔ not confirmed.`);
+      doctorQs.push(`Which doctor did you mean for ${wrong.map((d) => titleCase(shortDoctor(d))).join(', ')}? The match${wrong.length > 1 ? 'es' : ''} I found ${wrong.length > 1 ? 'were' : 'was'} the wrong person, so ${wrong.length > 1 ? 'they stay' : 'it stays'} ❔ not confirmed — give the full name, specialty or office (no NPI needed).`);
     }
     const toConfirm = docs.filter((d) => d.identityPending && d.identityPending !== 'wrong');
     if (toConfirm.length) {
-      qs.push(`Confirm the doctor match (their In/Out stays ❔ not confirmed until you do): ${toConfirm.map((d) => `${titleCase(shortDoctor(d))} → ${cleanName(d.doctorName)}${d.npi ? ` (NPI ${d.npi})` : ''}`).join('; ')}. Right doctor${toConfirm.length > 1 ? 's' : ''}? If not, send the NPI.`);
+      doctorQs.push(`Confirm the doctor match (their In/Out stays ❔ not confirmed until you do): ${toConfirm.map((d) => `${titleCase(shortDoctor(d))} → ${cleanName(d.doctorName)}${d.npi ? ` (NPI ${d.npi})` : ''}`).join('; ')}. Right doctor${toConfirm.length > 1 ? 's' : ''}? If not, tell me who (no NPI needed).`);
     }
+    if (doctorQs.length) qs.push(doctorQs.join(' Also: '));
     const top = out.columns;
     if (!answered && !carriers.length && !ASKED.mustKeep.test(ask) && n > 2 && top.length && !top.some((p) => p.in.length === n)) {
       qs.push('No single plan has all the doctors. Which doctors are must-keep? (e.g. the PCP + cardiologist)');
@@ -1017,6 +1064,7 @@ module.exports = {
   narrowingAnswered,
   comparisonAskText,
   comparisonFollowUp,
+  substitutionsIn,
   numberedAnswers,
   selectComparison,
   batchSummaryForModel,

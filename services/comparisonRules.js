@@ -32,6 +32,7 @@ B. TABLE DISPLAY
 11. SNP FLAGS: If meds suggest a possible C-SNP qualifying condition (e.g., an anticoagulant suggesting a cardiovascular condition), flag it as "Possible C-SNP eligibility — agent must confirm diagnosis." Never assume it.
 12. CARRIERS ASKED BY NAME: When the agent asks for specific carriers ("show me Doctors, Solis, Devoted", "client wants Devoted"), the columns are those carriers' best eligible plans — never swap in other carriers or keep the old top 3. If a carrier has no eligible plan in the county, say so and why.
 13. NUMBERED REPLIES ARE ANSWERS: "1. no, 2. cardiovascular disorder, 3. yes" answers Max's numbered questions in order — apply them; never re-ask what she answered.
+14. NO EXACT DOCTOR MATCH: Never ask the agent to look up an NPI. Show the closest real providers the tool found (name, specialty, city) and let her pick ("Carlos Sosa = Glenda Sosa"), or ask for the spelling / specialty / office name.
 Never invent plan rankings or eligibility. When the server tool result already contains a DOCTOR × PLAN TABLE and a "Why these plans" line, copy them as-is.
 `;
 

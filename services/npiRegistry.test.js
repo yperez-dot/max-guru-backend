@@ -195,3 +195,22 @@ describe('longer registered last names (Ian Del Conde → DEL CONDE POZZI)', () 
     } finally { global.fetch = saved; }
   });
 });
+
+describe('closest real providers when the name has no exact match', () => {
+  const { suggestSimilarProviders } = require('./npiRegistry');
+  it('Carlos Sosa → Sosa physicians near the client, no case managers or pharmacists', async () => {
+    const saved = global.fetch;
+    const rec = (npi, first, last, cred, zip, tax) => ({ number: npi, basic: { first_name: first, last_name: last, credential: cred }, addresses: [{ address_purpose: 'LOCATION', postal_code: zip, city: 'MIAMI' }], taxonomies: [{ primary: true, desc: tax }] });
+    global.fetch = async () => ({ ok: true, json: async () => ({ results: [
+      rec('1922503820', 'CARLOS', 'SOSA ROSALES', '', '33010', 'Case Management'),
+      rec('1063015568', 'DALBERT', 'SOSA', '', '33186', 'Pharmacist'),
+      rec('1962865204', 'GLENDA', 'SOSA', 'M.D.', '33176', 'Internal Medicine, Nephrology'),
+      rec('1902951742', 'ANDRES', 'SOSA', 'M.D.', '32801', 'Internal Medicine, Pulmonary Disease'),
+    ] }) });
+    try {
+      const s = await suggestSimilarProviders({ doctorName: 'Carlos Sosa', zip: '33172' });
+      assert.deepEqual(s.map((x) => x.npi), ['1962865204', '1902951742']);
+      assert.equal(s[0].name, 'Glenda Sosa, MD');
+    } finally { global.fetch = saved; }
+  });
+});

@@ -421,7 +421,62 @@ async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limi
   return results;
 }
 
+// People who treat patients (not pharmacists, dentists, techs, nurses' aides…).
+const TREATING_CRED_RE = /\b(M\.?D|D\.?O|N\.?P|APRN|ARNP|FNP|DNP|PA-?C|PA|AGACNP|ACNP|DPM|OD)\b/i;
+const NOT_TREATING_TAX_RE = /pharmac|dentist|registered nurse|massage|mechanotherap|counselor|social worker|technician|behavior|case manag|dietitian|optician/i;
+
+/**
+ * No exact match for the name she gave ("Carlos Sosa", "John Mortyko")? Offer the
+ * closest real providers instead of asking her for an NPI: same last name (or the
+ * same first 4 letters), treating providers only, nearest ZIP and same first
+ * initial first. A suggestion is never used until she picks it.
+ */
+async function suggestSimilarProviders({ doctorName = '', zip, state = 'FL', limit = 3 } = {}) {
+  const parsed = parseName(cleanDoctorQuery(doctorName));
+  if (!parsed.lastName || parsed.lastName.replace(/[^A-Za-z]/g, '').length < 3) return [];
+  const pools = [parsed.lastName];
+  if (parsed.lastName.length >= 5) pools.push(`${parsed.lastName.slice(0, 4)}*`);
+  const seen = new Set();
+  let found = [];
+  for (const last of pools) {
+    const p = new URLSearchParams({ version: '2.1', enumeration_type: 'NPI-1', state, last_name: last, limit: '200' });
+    const data = await fetchJSON(`${NPI_REGISTRY_BASE}?${p}`);
+    for (const r of data?.results || []) {
+      if (seen.has(r.number)) continue;
+      seen.add(r.number);
+      const tax = (r.taxonomies || []).map((t) => t.desc || '').join(' ');
+      if (isNonProvider(r) || NOT_TREATING_TAX_RE.test(tax)) continue;
+      if (!TREATING_CRED_RE.test(String(r.basic?.credential || '')) && !/medicine|surgery|cardio|neuro|pediatr|psychiatr|oncolog|urolog|nephrolog|pulmonar|gastro|endocrin|rheumat|dermat|ophthal|orthop|family|internal|nurse practitioner|physician assistant/i.test(tax)) continue;
+      found.push(r);
+    }
+    if (found.length) break;
+  }
+  const qz = String(zip || '').slice(0, 3);
+  const qf = String(parsed.firstName || '').toUpperCase()[0] || '';
+  const score = (r) => {
+    let s = 0;
+    const z = locationZip(r);
+    if (qz && z.slice(0, 3) === qz) s += 50;
+    if (qf && String(r.basic?.first_name || '').toUpperCase()[0] === qf) s += 30;
+    if (/\b(MD|DO)\b/i.test(String(r.basic?.credential || '').replace(/\./g, ''))) s += 10;
+    return s;
+  };
+  found = found.sort((a, b) => score(b) - score(a)).slice(0, limit);
+  return found.map((r) => {
+    const loc = (r.addresses || []).find((a) => a.address_purpose === 'LOCATION') || {};
+    const b = r.basic || {};
+    const name = [b.first_name, b.middle_name, b.last_name].filter(Boolean).join(' ').toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
+    return {
+      name: `${name}${b.credential ? `, ${String(b.credential).replace(/\./g, '')}` : ''}`,
+      npi: r.number,
+      specialty: ((r.taxonomies || []).find((t) => t.primary) || (r.taxonomies || [])[0] || {}).desc || '',
+      city: String(loc.city || '').toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()),
+    };
+  });
+}
+
 module.exports = {
+  suggestSimilarProviders,
   cleanDoctorQuery,
   NPI_REGISTRY_BASE,
   extractNpi,
