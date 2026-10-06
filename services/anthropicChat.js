@@ -5,7 +5,8 @@
 // prompt caching, and Max resends the whole plan grid every round — so this file
 // translates to the native Messages API (with prompt caching) and back.
 //
-// Railway: LLM_PROVIDER=claude · ANTHROPIC_API_KEY · optional CLAUDE_MODEL (default claude-sonnet-5-5).
+// Railway: LLM_PROVIDER=claude · ANTHROPIC_API_KEY · optional CLAUDE_MODEL (default claude-sonnet-5-5)
+// · ANTHROPIC_WORKSPACE_ID (wrkspc_…) when the key is org-level, not scoped to a workspace.
 
 const ANTHROPIC_VERSION = '2023-06-01';
 
@@ -137,7 +138,7 @@ function fromAnthropicResponse(data) {
   };
 }
 
-async function callAnthropic({ base, key, model, system, messages, tools, maxTokens, timeoutMs }) {
+async function callAnthropic({ base, key, model, system, messages, tools, maxTokens, timeoutMs, workspaceId = process.env.ANTHROPIC_WORKSPACE_ID }) {
   const body = buildAnthropicBody({ model, system, messages, tools, maxTokens });
   const res = await fetch(`${base.replace(/\/$/, '')}/messages`, {
     method: 'POST',
@@ -145,6 +146,8 @@ async function callAnthropic({ base, key, model, system, messages, tools, maxTok
       'Content-Type': 'application/json',
       'x-api-key': key,
       'anthropic-version': ANTHROPIC_VERSION,
+      // Org-level keys must name a workspace (Console → Settings → Workspaces → ID).
+      ...(workspaceId ? { 'anthropic-workspace-id': workspaceId } : {}),
     },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(timeoutMs),

@@ -34,7 +34,7 @@ Health: `GET /health` (API key required for data routes).
 | `claude` | `ANTHROPIC_API_KEY` | `CLAUDE_MODEL` (`claude-sonnet-5-5`) |
 | `openai` | `OPENAI_API_KEY` | `OPENAI_MODEL` (`gpt-4.1`) |
 
-Claude goes through the native Messages API (`services/anthropicChat.js`) with prompt caching on the system prompt and the latest turn, so repeated rounds of one chat read the plan grid at the cached rate. To roll back, set `LLM_PROVIDER=grok`. `/health` shows `provider`, `model` and `claudeConfigured`.
+Claude goes through the native Messages API (`services/anthropicChat.js`) with prompt caching on the system prompt and the latest turn, so repeated rounds of one chat read the plan grid at the cached rate. If the key is org-level (error: "must include the anthropic-workspace-id header"), also set `ANTHROPIC_WORKSPACE_ID` to the workspace ID from Console → Settings → Workspaces. To roll back, set `LLM_PROVIDER=grok`. `/health` shows `provider`, `model` and `claudeConfigured`.
 
 ## Image attach
 

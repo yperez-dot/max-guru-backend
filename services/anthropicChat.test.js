@@ -61,6 +61,7 @@ describe('Max chat loop on LLM_PROVIDER=claude', () => {
   it('calls /v1/messages with x-api-key, runs the tool, returns the final text', async () => {
     process.env.LLM_PROVIDER = 'claude';
     process.env.ANTHROPIC_API_KEY = 'sk-test';
+    process.env.ANTHROPIC_WORKSPACE_ID = 'wrkspc_test';
     delete process.env.CLAUDE_MODEL;
     delete require.cache[require.resolve('./grok')];
     const { passThroughChat, providerConfig } = require('./grok');
@@ -85,6 +86,7 @@ describe('Max chat loop on LLM_PROVIDER=claude', () => {
     assert.match(calls[0].url, /api\.anthropic\.com\/v1\/messages$/);
     assert.equal(calls[0].headers['x-api-key'], 'sk-test');
     assert.equal(calls[0].headers['anthropic-version'], '2023-06-01');
+    assert.equal(calls[0].headers['anthropic-workspace-id'], 'wrkspc_test');
     assert.deepEqual(ran, [['search_drug', { query: 'eliquis' }]]);
     const second = calls[1].body.messages;
     assert.equal(second[second.length - 1].content[0].type, 'tool_result');
