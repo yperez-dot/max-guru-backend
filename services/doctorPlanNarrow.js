@@ -59,16 +59,6 @@ function askConstraints(askText) {
   return { noMedicaid, hasMedicaid, skip, onlyPpo, onlyHmo };
 }
 
-function applyConstraints(matrix, c) {
-  return matrix.filter((p) => {
-    if (c.skip.has(p.planId) || [...c.skip].some((id) => p.planId.startsWith(id))) return false;
-    if (c.noMedicaid && p.type === 'dsnp') return false;
-    if (c.onlyPpo && p.type !== 'ppo') return false;
-    if (c.onlyHmo && p.type !== 'hmo') return false;
-    return true;
-  });
-}
-
 /** Plan rows: who is In / Out / not confirmed, sorted by In count. */
 function coverageMatrix(doctors) {
   const ok = (doctors || []).filter((d) => d && (d.status === 'done' || d.status === 'partial'));
@@ -112,33 +102,22 @@ function narrowingAnswered(messages) {
   return askedAt != null && msgs.slice(askedAt + 1).some((m) => m && m.role === 'user');
 }
 
-/** The narrowing questions still open for this ask (max 3). */
-function narrowingQuestions(askText, matrix, doctorCount, { answered = false } = {}) {
-  if (answered) return [];
-  const ask = String(askText || '');
-  const top = matrix.slice(0, 10);
-  const qs = [];
-  if (!ASKED.medicaid.test(ask) && top.some((p) => p.type === 'dsnp')) {
-    qs.push('Does {client} have Medicaid or a Medicare Savings Program (QMB/SLMB)? — Yes, full Medicaid / Yes, MSP only / No. (D-SNP plans only fit if Yes.)');
-  }
-  const allCovered = top.some((p) => p.in.length === doctorCount);
-  if (!ASKED.mustKeep.test(ask) && !allCovered && doctorCount > 2) {
-    qs.push('No single plan has all the doctors. Which doctors are must-keep? (e.g. the PCP + cardiologist)');
-  }
-  if (!ASKED.network.test(ask) && top.some((p) => p.type === 'ppo') && top.some((p) => p.type === 'hmo')) {
-    qs.push('HMO OK (referrals, in-network only), or do they need a PPO?');
-  }
-  if (qs.length < 3 && !ASKED.rx.test(ask)) {
-    qs.push('Any meds to check against the finalists? (names only)');
-  }
-  return qs.slice(0, 3);
+/** Doctor asked by last name only ("Yavagal", "Dr. Krajewski") — the NPI match needs the agent's OK. */
+function lastNameOnly(d) {
+  const asked = String((d && d.requestedName) || '')
+    .replace(/\b(dr|md|m\.d|do|d\.o|pcp|primary|cardio\w*|neuro\w*|gyn\w*|obgyn|ortho\w*|derm\w*|uro\w*|gastro\w*|onc\w*|endo\w*|rheum\w*|pulm\w*|nephro\w*|podiat\w*|ophth\w*|optom\w*|ent|psych\w*|specialist|doctor)\b\.?/gi, ' ')
+    .replace(/[^A-Za-zÀ-ÿ' -]/g, ' ')
+    .trim();
+  return Boolean(asked) && asked.split(/\s+/).filter(Boolean).length === 1;
 }
 
 function personalize(questions, askText) {
   // Use the client names when the ask has "X & Y Lastname"; otherwise "the client".
   const m = String(askText || '').match(/\b([A-Z][a-z]+)\s*(?:&|and|y)\s*([A-Z][a-z]+)\s+([A-Z][a-z]+)/);
   const who = m ? `${m[1]} and ${m[2]}` : 'the client';
-  return questions.map((q) => q.replace('Does {client} have', m ? `Do ${who} have` : 'Does the client have'));
+  return questions.map((q) => q
+    .replace('Does {client} have', m ? `Do ${who} have` : 'Does the client have')
+    .replace(/\{client\}/g, who));
 }
 
 function titleCase(t) {
@@ -157,7 +136,7 @@ function shortPlanHeader(p) {
   return !name || name.toUpperCase() === p.planId.toUpperCase() ? p.planId : `${name} · ${p.planId}`;
 }
 
-const CELL = { in: '✅ In', out: '❌ Out', unknown: '❔' };
+const CELL = { in: '✅ In', inCarrier: '✅ In*', out: '❌ Out' };
 
 /** Doctors down the side, plans across the top. */
 /**
@@ -258,23 +237,89 @@ function namedPlanColumns(named, matrix, doctors) {
   });
 }
 
+// ─── Doctor/Drug Comparison Table Rules (services/comparisonRules.js) ───────
+
+const R = require('./comparisonRules');
+
+// Pending-lookup labels that cover each carrier (providerNetwork `pending`).
+const PENDING_FOR = {
+  UnitedHealthcare: /uhc|united/i,
+  Humana: /humana/i,
+  Aetna: /aetna/i,
+  Simply: /simply/i,
+  'Doctors HealthCare': /doctors/i,
+  Devoted: /fhir|devoted/i,
+  'Florida Blue': /fhir|blue/i,
+  HealthSun: /fhir|healthsun/i,
+  Wellcare: /sunfire|wellcare/i,
+  CarePlus: /sunfire|careplus/i,
+};
+// No live directory check exists for these (Solis = county PDF only).
+const NO_LIVE_DIRECTORY = ['Solis'];
+
+/** Rule 9: "❔ unchecked" = never checked, "❔ not confirmed" = checked, no result. */
+function unknownCell(d, carrier) {
+  const status = d && d.status;
+  if (status === 'timeout' || status === 'error') return R.UNCHECKED;
+  if (status === 'not_found') return R.NOT_CONFIRMED_CELL;
+  if (!carrier || NO_LIVE_DIRECTORY.includes(carrier)) return R.UNCHECKED;
+  const re = PENDING_FOR[carrier];
+  if (re && (d.pending || []).some((p) => re.test(String(p)))) return R.UNCHECKED;
+  return R.NOT_CONFIRMED_CELL;
+}
+
+function cleanName(n) {
+  return titleCase(String(n || ''))
+    .replace(/,?\s*\b(m\.?\s?d|d\.?\s?o|md|do|pa-?c|aprn|arnp|np|dpm|od|phd|facc|facp|facs)\b\.?/gi, '')
+    .replace(/[\s,]+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Rule 10: the doctor as matched — full name + specialty/NPI; last-name-only asks get a confirm flag. */
+function doctorLabel(d) {
+  const asked = titleCase(shortDoctor(d));
+  const flag = lastNameOnly(d) ? ' ⚠️ confirm match' : '';
+  const matched = d && d.doctorName && !['not_found', 'timeout', 'error'].includes(d.status) ? cleanName(d.doctorName) : '';
+  if (!matched) return `${asked}${flag}`;
+  const askedWords = asked.toLowerCase().split(/[^a-zà-ÿ']+/).filter((w) => w.length > 1);
+  const same = askedWords.length > 0 && askedWords.every((w) => matched.toLowerCase().includes(w)) && !flag;
+  const name = same ? matched : `${matched} (asked: ${asked})`;
+  const spec = d.specialty ? ` · ${titleCase(d.specialty)}` : '';
+  const npi = d.npi ? ` · NPI ${d.npi}` : '';
+  return `${name}${spec}${npi}${flag}`;
+}
+
+function countsOf(p, n) {
+  const inN = p.in.length;
+  const outN = p.out.length;
+  const star = (p.inCarrier || []).length;
+  return { inN, outN, star, unchecked: n - inN - outN };
+}
+
+/** Rule 6: "X in · Y out · Z unchecked" (✅ In* counts as unchecked at plan level). */
+function countText(p, n) {
+  const c = countsOf(p, n);
+  return `${c.inN} in · ${c.outN} out · ${c.unchecked} unchecked${c.star ? ` (${c.star} ✅ In*)` : ''}`;
+}
+
+/** Doctors down the side, plans across the top. */
 function gridTable(doctors, plans) {
   if (!plans.length) return '';
+  const n = doctors.length;
   const head = `| Doctor | ${plans.map(shortPlanHeader).join(' | ')} |`;
   const sep = `|---|${plans.map(() => '---').join('|')}|`;
   const rows = doctors.map((d) => {
-    const name = titleCase(shortDoctor(d));
-    if (d.status === 'not_found' || d.status === 'timeout' || d.status === 'error') {
-      return `| ${name} | ${plans.map(() => '❔ not confirmed').join(' | ')} |`;
-    }
+    const who = shortDoctor(d);
     const cells = plans.map((p) => (
-      p.in.includes(shortDoctor(d)) ? CELL.in
-        : (p.inCarrier || []).includes(shortDoctor(d)) ? '✅ In*'
-          : p.out.includes(shortDoctor(d)) ? CELL.out : CELL.unknown
+      p.in.includes(who) ? CELL.in
+        : (p.inCarrier || []).includes(who) ? CELL.inCarrier
+          : p.out.includes(who) ? CELL.out
+            : unknownCell(d, p.carrier || carrierKey(p.name))
     ));
-    return `| ${name} | ${cells.join(' | ')} |`;
+    return `| ${doctorLabel(d)} | ${cells.join(' | ')} |`;
   });
-  const total = `| **Doctors in** | ${plans.map((p) => `**${p.in.length + (p.inCarrier || []).length}/${doctors.length}**`).join(' | ')} |`;
+  const total = `| **Doctors** | ${plans.map((p) => `**${countText(p, n)}**`).join(' | ')} |`;
   return [head, sep, ...rows, total].join('\n');
 }
 
@@ -285,130 +330,404 @@ function doctorLine(d) {
   const who = d.doctorName && d.doctorName !== name ? ` (${d.doctorName}${d.npi ? `, NPI ${d.npi}` : ''})` : (d.npi ? ` (NPI ${d.npi})` : '');
   const carriers = (d.carriersIn || []).length ? d.carriersIn.join(', ') : 'no in-network hit in finished checks';
   const pending = (d.pending || []).length ? ` · still pending: ${d.pending.join(', ')}` : '';
-  return `- ${name}${who}: ${carriers}${pending}`;
+  const flag = lastNameOnly(d) ? ' · ⚠️ asked by last name only — confirm this is the right doctor' : '';
+  return `- ${name}${who}: ${carriers}${pending}${flag}`;
 }
 
-function planLine(p, total) {
-  const out = p.out.length ? ` · Out: ${p.out.join(', ')}` : '';
-  const unk = p.unknown.length ? ` · not confirmed: ${p.unknown.join(', ')}` : '';
-  return `- ${p.name} (${p.planId}) — ${p.in.length}/${total} doctors in${out}${unk}`;
+function drugNameOf(r) {
+  return String((r && (r.drugName || (r.drug && r.drug.name))) || '').trim();
+}
+
+function drugRowFor(r, planId) {
+  const byId = (r && (r.byPlanId || (r.drug && r.drug.byPlanId))) || {};
+  const key = Object.keys(byId).find((k) => k.toUpperCase().slice(0, 9) === String(planId).toUpperCase().slice(0, 9));
+  return key ? byId[key] : null;
+}
+
+/** Rule 3 (3rd key): sum of exact verified copays; null when any drug is unpriced / unchecked. */
+function drugCostFor(planId, drugs) {
+  if (!drugs || !drugs.length) return null;
+  let total = 0;
+  for (const r of drugs) {
+    const row = drugRowFor(r, planId);
+    if (!row || !row.verified || row.coverage === 'not_covered') return null;
+    const usd = R.exactDollars(row.costShare);
+    if (usd == null) return null;
+    total += usd;
+  }
+  return total;
+}
+
+function cmpKnown(a, b) {
+  return a == null || b == null ? 0 : a - b;
+}
+
+function signatureOf(p) {
+  const s = (xs) => [...(xs || [])].sort().join(',');
+  return `${p.carrier}|in:${s(p.in)}|out:${s(p.out)}|star:${s(p.inCarrier)}`;
+}
+
+function sameNetworkDiff(a, b) {
+  const ga = a.grid || {};
+  const gb = b.grid || {};
+  const parts = [];
+  if (ga.premium && gb.premium && ga.premium !== gb.premium) parts.push(`premium ${ga.premium} vs ${gb.premium}`);
+  if (ga.moop && gb.moop && ga.moop !== gb.moop) parts.push(`MOOP ${ga.moop} vs ${gb.moop}`);
+  if (ga.type && gb.type && ga.type !== gb.type) parts.push(`${ga.type} vs ${gb.type}`);
+  return parts.length ? parts.join('; ') : 'same premium, MOOP and plan type on the grid';
+}
+
+function gridRowFor(planId, county) {
+  const key = String(planId || '').toUpperCase().slice(0, 9);
+  const rows = R.gridPlansForCounty(county);
+  return rows.find((g) => String(g.planId || g.id || '').toUpperCase().slice(0, 9) === key)
+    || R.gridPlansForCounty('').find((g) => String(g.planId || g.id || '').toUpperCase().slice(0, 9) === key)
+    || null;
+}
+
+function bump(map, reason) {
+  if (reason) map.set(reason, (map.get(reason) || 0) + 1);
 }
 
 /**
- * Compact text for the model (tool result) — carriers per doctor, top plans by
- * coverage per plan type, and the questions to ask before narrowing.
+ * Doctor/Drug Comparison Table Rules, end to end:
+ * eligibility filter → county pool from the THEI grid → doctor results for every
+ * eligible plan → rank (in ↓, out ↑, drug cost ↑, premium ↑) → >half unchecked to
+ * "Could not verify" → same-network twins out of the top 3 → "Why these plans".
+ *
+ * opts.named: plan list to use as the columns (compare mode); default = plans
+ * named in the ask. opts.drugs: lookup_formulary results already finished.
  */
-function batchSummaryForModel(doctors, askText, { answered = false } = {}) {
+function selectComparison(doctors, askText, opts = {}) {
+  const docs = Array.isArray(doctors) ? doctors : [];
+  const n = docs.length;
+  const drugs = (opts.drugs || []).filter(Boolean);
+  const answered = Boolean(opts.answered);
+  const ask = String(askText || '');
+  const constraints = askConstraints(ask);
+  const elig = R.eligibilityFromAsk(`${ask}\n${opts.eligibilityText || ''}`);
+  if (constraints.noMedicaid) { elig.medicaid = 'none'; elig.levels = []; }
+  const county = R.countyFromAsk(ask);
+  const matrix = coverageMatrix(docs);
+  const named = Array.isArray(opts.named) ? opts.named : namedPlansFromAsk(ask, constraints);
+  // Looked-up names first ("Atorvastatin Calcium"), then anything listed but not looked up yet.
+  const meds = [];
+  for (const m of [...drugs.map(drugNameOf), ...(opts.meds || []), ...R.medsFromAsk(ask)]) {
+    const name = String(m || '').trim();
+    if (name && !meds.some((x) => R.sameDrug(x, name))) meds.push(name);
+  }
+
+  const decorate = (cols) => cols.map((c) => {
+    const grid = gridRowFor(c.planId, county);
+    const bareId = /^[HR]\d{4}-\d{3}[A-Z]?$/i.test(String(c.name || '').trim());
+    const gridName = grid ? String(grid.planName || '') : '';
+    const name = grid && bareId && gridName ? (carrierKey(gridName) ? gridName : `${grid.carrier || ''} ${gridName}`.trim()) : c.name;
+    const like = grid || { name: c.name };
+    return { ...c, name, grid, snp: R.snpKind(like), premium: grid ? R.exactDollars(grid.premium) : null, drugCost: drugCostFor(c.planId, drugs) };
+  });
+
+  const out = {
+    named: named.length > 0,
+    county,
+    eligibility: elig,
+    columns: [],
+    ranked: [],
+    couldNotVerify: [],
+    couldNotVerifyCount: 0,
+    sameNetwork: [],
+    excluded: [],
+    poolSize: 0,
+    whyLine: '',
+    header: '',
+    flags: [],
+    questions: [],
+    meds,
+    medsToCheck: { drugs: [], planIds: [] },
+  };
+
+  let csnpInPlay = false;
+  let snpUnknownKinds = new Set();
+
+  if (named.length) {
+    const cols = decorate(namedPlanColumns(named, matrix, docs));
+    out.columns = cols;
+    out.poolSize = cols.length;
+    out.header = '**Doctors × your plans**';
+    out.whyLine = `Why these plans: the ${cols.length} plan${cols.length === 1 ? '' : 's'} you named — no plans added or swapped.`;
+    for (const c of cols) {
+      const e = R.planEligibility(c.grid || { name: c.name }, elig);
+      if (c.snp === 'csnp') csnpInPlay = true;
+      if (e.status !== 'eligible') out.flags.push(`⚠️ ${shortPlanHeader(c)}: ${e.reason} — you named it, so it stays; confirm eligibility before enrolling.`);
+    }
+  } else if (n > 0) {
+    const gridRows = R.gridPlansForCounty(county);
+    const pool = gridRows.length
+      ? gridRows.map((g) => {
+        const planId = String(g.planId || g.id).toUpperCase();
+        const row = matrix.find((m) => m.planId.slice(0, 9) === planId.slice(0, 9));
+        // Carrier word first so carrierKey() finds it; header prefers the lookup's plan label.
+        const gridName = String(g.planName || planId);
+        return { planId, name: row ? row.name : (carrierKey(gridName) ? gridName : `${g.carrier || ''} ${gridName}`.trim()), grid: g };
+      })
+      : matrix.map((m) => ({ planId: m.planId, name: m.name, grid: null }));
+    const excluded = new Map();
+    const eligible = [];
+    for (const p of pool) {
+      const key = p.planId.slice(0, 9);
+      if ([...constraints.skip].some((id) => id.slice(0, 9) === key)) { bump(excluded, 'plans you skipped / terminating'); continue; }
+      const like = p.grid || { name: p.name };
+      const net = R.networkType(like);
+      if (constraints.onlyPpo && net !== 'ppo') { bump(excluded, 'HMOs — you said PPO only'); continue; }
+      if (constraints.onlyHmo && net !== 'hmo') { bump(excluded, 'PPOs — you said HMO only'); continue; }
+      const kind = R.snpKind(like);
+      if (kind === 'csnp') csnpInPlay = true;
+      const e = R.planEligibility(like, elig);
+      if (e.status !== 'eligible') {
+        if (e.status === 'unknown') snpUnknownKinds.add(kind);
+        bump(excluded, e.reason);
+        continue;
+      }
+      eligible.push(p);
+    }
+    // Plans a lookup returned that are not on this county's grid are never candidates (rule 2) — say so.
+    if (gridRows.length) {
+      const poolKeys = new Set(pool.map((p) => p.planId.slice(0, 9)));
+      matrix.filter((m) => !poolKeys.has(m.planId.slice(0, 9))).forEach(() => bump(excluded, `plans a lookup returned that are not on the THEI ${county || 'Miami-Dade/Broward'} grid`));
+    }
+    out.excluded = [...excluded.entries()].map(([reason, count]) => ({ reason, count }));
+    out.poolSize = eligible.length;
+
+    const cols = decorate(namedPlanColumns(eligible.map((p) => ({ planId: p.planId, name: p.name })), matrix, docs))
+      .map((c) => {
+        const k = countsOf(c, n);
+        return { ...c, counts: k, verifiable: k.unchecked * 2 <= n };
+      });
+    const ranked = cols.filter((c) => c.verifiable).sort((a, b) => (
+      b.counts.inN - a.counts.inN
+      || a.counts.outN - b.counts.outN
+      || cmpKnown(a.drugCost, b.drugCost)
+      || cmpKnown(a.premium, b.premium)
+      || a.planId.localeCompare(b.planId)
+    ));
+    out.ranked = ranked;
+    const cnv = cols.filter((c) => !c.verifiable);
+    out.couldNotVerifyCount = cnv.length;
+    out.couldNotVerify = cnv
+      .filter((c) => c.counts.inN + c.counts.star > 0)
+      .sort((a, b) => (b.counts.inN + b.counts.star) - (a.counts.inN + a.counts.star) || a.planId.localeCompare(b.planId));
+
+    // Compare mode prices meds on a shortlist first; the table only draws from it (rule 8).
+    const only = Array.isArray(opts.onlyPlanIds) ? new Set(opts.onlyPlanIds.map((id) => String(id).toUpperCase())) : null;
+    for (const c of ranked) {
+      if (out.columns.length >= 3) break;
+      if (only && !only.has(c.planId)) continue;
+      const twin = c.carrier ? out.columns.find((t) => signatureOf(t) === signatureOf(c)) : null;
+      if (twin) out.sameNetwork.push({ plan: c, twin, diff: sameNetworkDiff(c, twin) });
+      else out.columns.push(c);
+    }
+
+    const where = gridRows.length
+      ? (county || 'Miami-Dade + Broward (no ZIP/county given)')
+      : `${county || 'the lookup results'} (THEI grid unavailable — only plans a doctor lookup returned)`;
+    const excludedText = out.excluded.length ? out.excluded.map((x) => `${x.reason} (${x.count})`).join('; ') : 'none';
+    out.whyLine = `Why these plans: ${out.poolSize} eligible plans checked in ${where}. ${R.RANK_ORDER} Excluded: ${excludedText}.`;
+    const majority = out.columns.some((c) => c.counts.inN * 2 > n);
+    out.header = majority
+      ? '**Doctors × top plans** (most of these doctors in network — a count, not a recommendation)'
+      : '**Doctors × top plans** (best confirmed match shown first — a count, not a recommendation)';
+  }
+
+  // Rule 11 — meds can suggest a C-SNP condition; never assume it.
+  if (csnpInPlay && elig.csnp !== 'confirmed') {
+    for (const h of R.csnpHintsFromMeds(meds)) {
+      out.flags.push(`⚠️ ${titleCase(h.drug)} (${h.why}) → possible ${h.condition}. ${R.POSSIBLE_CSNP}`);
+    }
+  }
+
+  // Rule 8 — every listed med on every table plan before anything is asked.
+  const tableIds = out.columns.map((c) => c.planId);
+  if (tableIds.length && meds.length) {
+    const missingDrugs = meds.filter((m) => {
+      const r = drugs.find((x) => R.sameDrug(drugNameOf(x), m));
+      return !r || tableIds.some((id) => !drugRowFor(r, id));
+    });
+    out.medsToCheck = { drugs: missingDrugs, planIds: tableIds };
+  }
+
+  // Questions (max 3): eligibility first (rule 1), then identity (rule 10), then the rest.
+  if (!answered && !out.named) {
+    const qs = [];
+    const dualUnknown = snpUnknownKinds.has('dsnp') || snpUnknownKinds.has('qmb');
+    if (dualUnknown && elig.medicaid === 'msp' && !elig.levels.length) {
+      qs.push('Which MSP level does {client} have — QMB, SLMB, or QI? (D-SNP and QMB-only plans stay out until it is confirmed.)');
+    } else if (dualUnknown && elig.medicaid === 'unknown') {
+      qs.push('Does {client} have Medicaid or a Medicare Savings Program? — Yes, full Medicaid / Yes, MSP only (QMB, SLMB, QI) / No. (D-SNP and QMB-only plans stay out until confirmed.)');
+    }
+    if (snpUnknownKinds.has('csnp') && elig.csnp === 'unknown') {
+      qs.push('Does {client} have a C-SNP qualifying chronic condition, confirmed by diagnosis? — Yes (which one) / No. (C-SNPs stay out until confirmed.)');
+    }
+    const toConfirm = docs.filter((d) => lastNameOnly(d) && d.doctorName && !['not_found', 'timeout', 'error'].includes(d.status));
+    if (toConfirm.length) {
+      qs.push(`Confirm the doctor match before I rely on it: ${toConfirm.map((d) => `${titleCase(shortDoctor(d))} → ${cleanName(d.doctorName)}${d.npi ? ` (NPI ${d.npi})` : ''}`).join('; ')}. Right doctor${toConfirm.length > 1 ? 's' : ''}?`);
+    }
+    const top = out.columns;
+    if (!ASKED.mustKeep.test(ask) && n > 2 && top.length && !top.some((p) => p.in.length === n)) {
+      qs.push('No single plan has all the doctors. Which doctors are must-keep? (e.g. the PCP + cardiologist)');
+    }
+    if (!ASKED.network.test(ask) && top.some((p) => R.networkType(p.grid || { name: p.name }) === 'ppo') && top.some((p) => R.networkType(p.grid || { name: p.name }) === 'hmo')) {
+      qs.push('HMO OK (referrals, in-network only), or do they need a PPO?');
+    }
+    if (!meds.length && !ASKED.rx.test(ask)) {
+      qs.push('Any meds to check against the finalists? (names only)');
+    }
+    out.questions = personalize(qs.slice(0, 3), ask);
+  }
+  return out;
+}
+
+function planLine(p, total) {
+  const outs = p.out.length ? ` · Out: ${p.out.join(', ')}` : '';
+  const unk = p.unknown.length ? ` · unchecked/not confirmed: ${p.unknown.join(', ')}` : '';
+  return `- ${p.name} (${p.planId}) — ${countText(p, total)}${outs}${unk}`;
+}
+
+function extrasLines(sel) {
+  const lines = [];
+  if (sel.couldNotVerifyCount) {
+    const names = sel.couldNotVerify.slice(0, 3).map((c) => `${shortPlanHeader(c)} (${countText(c, c.in.length + c.out.length + c.unknown.length + (c.inCarrier || []).length)})`);
+    lines.push(`**Could not verify** (${sel.couldNotVerifyCount} eligible plan${sel.couldNotVerifyCount === 1 ? '' : 's'} with over half the doctors unchecked — not ranked)${names.length ? `: ${names.join('; ')}` : ''}`);
+  }
+  if (sel.sameNetwork.length) {
+    lines.push('**Same network as above**');
+    sel.sameNetwork.forEach((s) => lines.push(`- ${shortPlanHeader(s.plan)} — same doctor results as ${shortPlanHeader(s.twin)}; differs: ${s.diff}`));
+  }
+  return lines;
+}
+
+/**
+ * Compact text for the model (tool result): carriers per doctor, the rule-built
+ * table to copy as-is, and what to do next.
+ */
+function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] } = {}) {
   const total = doctors.length;
-  const constraints = askConstraints(askText);
-  const matrix = applyConstraints(coverageMatrix(doctors), constraints);
-  const byType = (type) => matrix.filter((p) => p.type === type).slice(0, 4);
+  const sel = selectComparison(doctors, askText, { answered, drugs });
   const lines = [];
   lines.push('DOCTORS → carriers in network (finished checks):');
   doctors.forEach((d) => lines.push(doctorLine(d)));
   lines.push('');
-  lines.push(`PLAN COVERAGE — doctors in network per 2027 plan (objective count, not a ranking; top per type, ${matrix.length} plans total):`);
-  for (const [type, title] of [['hmo', 'HMO / HMO-POS'], ['ppo', 'PPO'], ['dsnp', 'D-SNP (needs Medicaid/MSP)']]) {
-    const rows = byType(type);
-    if (!rows.length) continue;
-    lines.push(`${title}:`);
-    rows.forEach((p) => lines.push(planLine(p, total)));
-  }
-  const applied = [];
-  if (constraints.noMedicaid) applied.push('no Medicaid → D-SNPs removed');
-  if (constraints.skip.size) applied.push(`skipped ${[...constraints.skip].join(', ')}`);
-  if (constraints.onlyPpo) applied.push('PPO only');
-  if (constraints.onlyHmo) applied.push('HMO only');
-  if (applied.length) lines.push(`Already applied from the agent's ask: ${applied.join('; ')}. Never suggest a removed plan.`);
-  lines.push('Carrier-only hits (Florida Blue, HealthSun, Devoted FHIR) are directory facts without a plan ID — not counted per plan. Cigna/HealthSpring is left out on purpose: it has NO 2027 Medicare Advantage plans (pulled out) — never mention Cigna as a 2027 option.');
-  const named = namedPlansFromAsk(askText, constraints);
-  const qs = named.length ? [] : personalize(narrowingQuestions(askText, matrix, total, { answered }), askText);
-  lines.push('');
-  const top = named.length ? namedPlanColumns(named, matrix, doctors) : matrix.slice(0, 3);
-  if (top.length) {
+  lines.push('Carrier-only hits (Florida Blue, HealthSun, Devoted FHIR) are directory facts without a plan ID. Cigna/HealthSpring is left out on purpose: it has NO 2027 Medicare Advantage plans (pulled out) — never mention Cigna as a 2027 option.');
+  if (sel.columns.length) {
     lines.push('');
-    lines.push(named.length
-      ? 'DOCTOR × PLAN TABLE (the plans the agent named — use exactly these columns; copy it as-is). ✅ In* = in the carrier\'s network, plan-level not confirmed:'
-      : 'DOCTOR × PLAN TABLE (top 3 after the agent\'s constraints — copy it as-is into the answer):');
-    lines.push(gridTable(doctors, top));
+    lines.push(sel.named
+      ? 'DOCTOR × PLAN TABLE (the plans the agent named — use exactly these columns; copy it as-is):'
+      : 'DOCTOR × PLAN TABLE (selected by the Doctor/Drug Comparison Table Rules — copy the header, the "Why these plans" line and the table as-is):');
+    lines.push(sel.header);
+    lines.push(sel.whyLine);
+    lines.push('');
+    lines.push(gridTable(doctors, sel.columns));
+    lines.push(R.LEGEND + (sel.columns.some((p) => (p.inCarrier || []).length) ? ` · ${R.IN_STAR_LEGEND}` : ''));
+    lines.push('Top plans by count:');
+    sel.columns.forEach((p) => lines.push(planLine(p, total)));
+    extrasLines(sel).forEach((l) => lines.push(l));
+  } else if (sel.whyLine) {
+    lines.push('');
+    lines.push(sel.whyLine);
+    lines.push(`No eligible plan has a verifiable doctor result yet${sel.couldNotVerifyCount ? ` (${sel.couldNotVerifyCount} could not be verified)` : ''}. Do not invent a top 3.`);
+    extrasLines(sel).forEach((l) => lines.push(l));
   }
+  sel.flags.forEach((f) => lines.push(f));
   lines.push('');
-  lines.push('ANSWER FORMAT (required for multi-doctor asks):');
-  lines.push('1) Lead with the DOCTOR × PLAN TABLE above (markdown table; ✅ In / ❌ Out / ❔ not confirmed). No NPIs, no official NPPES names, no carrier lists, no per-doctor plan dumps. If meds were looked up, add a second table: Drug | same plan columns | "T1 $0" style cells.');
-  if (qs.length) {
-    lines.push('2) The info below is still missing, so ask these questions (numbered, short) and show at most 3 candidate plans with "N/total doctors in" — then STOP and wait for the answers. Do not list more plans.');
-    qs.forEach((q, i) => lines.push(`   Q${i + 1}. ${q}`));
-  } else if (named.length) {
-    lines.push('2) The agent named the plans — compare exactly those (doctors table, then meds table). Do not add or swap plans and do not ask narrowing questions.');
-  } else {
-    lines.push('2) The agent already answered the narrowing questions — suggest exactly 2–3 plans that fit those answers, each with In / Out / NOT CONFIRMED for every doctor. No other plans.');
+  lines.push('ANSWER FORMAT (required for multi-doctor asks — Doctor/Drug Comparison Table Rules):');
+  lines.push('1) Lead with the header, the "Why these plans" line and the DOCTOR × PLAN TABLE above, exactly as given (cells ✅ In / ❌ Out / ❔ unchecked / ❔ not confirmed — never a bare ❔; count row "X in · Y out · Z unchecked" — never "X/N"). Doctor names as matched in the table. Then "Could not verify" / "Same network as above" / ⚠️ flags if present. Never re-rank or swap plans.');
+  if (sel.medsToCheck.drugs.length) {
+    lines.push(`2) MEDS ALREADY GIVEN — before answering, call lookup_formulary once per drug (${sel.medsToCheck.drugs.join(', ')}) with planIds [${sel.medsToCheck.planIds.join(', ')}] (every table plan). Then add the meds table (Drug | same plan columns | "T1 $0" cells; ❔ unchecked / ❔ not confirmed for unknowns). Never ask for meds that are already listed.`);
+  } else if (sel.meds.length) {
+    lines.push('2) Meds are already checked on every table plan — add the meds table (Drug | same plan columns | "T1 $0" cells). Never ask for meds again.');
   }
-  return { text: lines.join('\n'), matrix, questions: qs };
+  if (sel.questions.length) {
+    lines.push('3) Still missing — ask these (numbered, short), then STOP and wait. Do not list more plans and do not add SNP plans until eligibility is confirmed.');
+    sel.questions.forEach((q, i) => lines.push(`   Q${i + 1}. ${q}`));
+  } else if (sel.named) {
+    lines.push('3) The agent named the plans — compare exactly those. Do not add or swap plans and do not ask narrowing questions.');
+  } else if (answered) {
+    lines.push('3) The agent already answered the narrowing questions — present the table above (2–3 plans) with every doctor In / Out / unchecked / not confirmed. No other plans.');
+  }
+  return { text: lines.join('\n'), matrix: sel.ranked, questions: sel.questions, selection: sel };
 }
 
 function drugCell(row, unsureNotCovered) {
-  if (!row) return '❔';
+  if (!row) return R.UNCHECKED;
   if (row.verified && row.coverage === 'not_covered') return unsureNotCovered ? '⚠️ confirm' : '❌ not covered';
   if (row.verified && row.tier) return `T${row.tier}${row.costShare ? ` ${row.costShare}` : ''}${row.pa ? ' · PA' : ''}`;
-  return '❔';
+  return R.NOT_CONFIRMED_CELL;
 }
 
-/** Drug rows under the same plan columns. `drugs` = lookup_formulary structured outputs. */
-function medsTable(drugResults, plans) {
-  if (!drugResults.length || !plans.length) return '';
-  const head = `| Drug | ${plans.map(shortPlanHeader).join(' | ')} |`;
-  const sep = `|---|${plans.map(() => '---').join('|')}|`;
+/** Drug rows under the same plan columns. `drugs` = lookup_formulary outputs; `knownMeds` = listed but not looked up yet. */
+function medsTable(drugResults, plans, knownMeds = []) {
+  if (!plans.length) return '';
   const rows = [];
   const seen = new Set();
-  for (const r of drugResults) {
-    const name = String(r.drugName || (r.drug && r.drug.name) || '').trim();
+  for (const r of drugResults || []) {
+    const name = drugNameOf(r);
     if (!name || seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
-    const byId = r.byPlanId || (r.drug && r.drug.byPlanId) || {};
-    const cells = plans.map((p) => {
-      const key = Object.keys(byId).find((k) => k.toUpperCase().slice(0, 9) === p.planId.slice(0, 9));
-      return drugCell(key ? byId[key] : null, Boolean(r.notCoveredNote));
-    });
+    const cells = plans.map((p) => drugCell(drugRowFor(r, p.planId), Boolean(r.notCoveredNote)));
     rows.push(`| ${titleCase(name)} | ${cells.join(' | ')} |`);
   }
-  return rows.length ? [head, sep, ...rows].join('\n') : '';
+  for (const m of knownMeds || []) {
+    const name = String(m || '').trim();
+    if (!name || [...seen].some((x) => R.sameDrug(x, name))) continue;
+    seen.add(name.toLowerCase());
+    rows.push(`| ${titleCase(name)} | ${plans.map(() => R.UNCHECKED).join(' | ')} |`);
+  }
+  if (!rows.length) return '';
+  const head = `| Drug | ${plans.map(shortPlanHeader).join(' | ')} |`;
+  const sep = `|---|${plans.map(() => '---').join('|')}|`;
+  return [head, sep, ...rows].join('\n');
 }
 
 /** Plain answer used when the model itself ran out of time. */
 function fallbackAnswer(doctors, askText, { answered = false, drugs = [] } = {}) {
-  const total = doctors.length;
-  const constraints = askConstraints(askText);
-  const matrix = applyConstraints(coverageMatrix(doctors), constraints);
-  const named = namedPlansFromAsk(askText, constraints);
-  const top = named.length ? namedPlanColumns(named, matrix, doctors) : matrix.slice(0, 3);
+  const sel = selectComparison(doctors, askText, { answered, drugs });
+  const top = sel.columns;
   const lines = [];
   if (top.length) {
-    lines.push(named.length
-      ? '**Doctors × your plans**'
-      : '**Doctors × top plans** (most of these doctors in network — a count, not a recommendation)');
+    lines.push(sel.header);
+    lines.push(sel.whyLine);
     lines.push('');
     lines.push(gridTable(doctors, top));
     lines.push('');
     const anyCarrier = top.some((p) => (p.inCarrier || []).length);
-    lines.push('✅ In · ❌ Out · ❔ not confirmed (never assume Out)' + (anyCarrier ? ' · ✅ In* = in the carrier network; confirm this specific plan in the carrier directory' : ''));
-    const meds = medsTable(drugs, top);
+    lines.push(R.LEGEND + (anyCarrier ? ` · ${R.IN_STAR_LEGEND}` : ''));
+    const extras = extrasLines(sel);
+    if (extras.length) { lines.push(''); extras.forEach((l) => lines.push(l)); }
+    const meds = medsTable(drugs, top, sel.meds);
     if (meds) {
       lines.push('');
       lines.push('**Meds**');
       lines.push('');
       lines.push(meds);
       lines.push('');
-      lines.push('T = tier · ⚠️ confirm = read not covered, check the exact product in Sunfire · ❔ not checked / not confirmed');
+      lines.push(R.MEDS_LEGEND);
+      if (sel.medsToCheck.drugs.length) {
+        lines.push(`Not checked yet on every plan: ${sel.medsToCheck.drugs.map(titleCase).join(', ')} — send the same ask again to finish the lookup.`);
+      }
     }
   } else {
+    if (sel.whyLine) lines.push(sel.whyLine, '');
     lines.push('**Doctors — carriers in network**');
     doctors.forEach((d) => lines.push(doctorLine(d)));
+    const extras = extrasLines(sel);
+    if (extras.length) { lines.push(''); extras.forEach((l) => lines.push(l)); }
   }
-  const qs = named.length ? [] : personalize(narrowingQuestions(askText, matrix, total, { answered }), askText);
-  if (qs.length) {
+  if (sel.flags.length) {
+    lines.push('');
+    sel.flags.forEach((f) => lines.push(f));
+  }
+  if (sel.questions.length) {
     lines.push('');
     lines.push('**To narrow to 2–3 plans:**');
-    qs.forEach((q, n) => lines.push(`${n + 1}. ${q}`));
+    sel.questions.forEach((q, i) => lines.push(`${i + 1}. ${q}`));
   }
   return lines.join('\n');
 }
@@ -418,12 +737,14 @@ module.exports = {
   planTypeOf,
   coverageMatrix,
   askConstraints,
-  narrowingQuestions,
   narrowingAnswered,
+  selectComparison,
   batchSummaryForModel,
   gridTable,
   medsTable,
   namedPlansFromAsk,
   namedPlanColumns,
   fallbackAnswer,
+  doctorLabel,
+  countText,
 };

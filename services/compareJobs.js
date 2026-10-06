@@ -8,7 +8,11 @@
 const crypto = require('crypto');
 const { lookupDoctor, NOT_CONFIRMED } = require('./providerNetwork');
 const { lookupFormulary, toExportDrug, toExportDrugs, formatFormularyText } = require('./formularyLookup');
-const { askConstraints, coverageMatrix, gridTable, medsTable, namedPlanColumns } = require('./doctorPlanNarrow');
+const { askConstraints, gridTable, medsTable, selectComparison } = require('./doctorPlanNarrow');
+const { eligibilityFromAsk, LEGEND, MEDS_LEGEND, IN_STAR_LEGEND } = require('./comparisonRules');
+
+// Candidates priced before the final top 3, so drug cost can break ties (rule 3).
+const RX_SHORTLIST = Number(process.env.MAX_COMPARE_RX_SHORTLIST || 6);
 
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const RX_CACHE_MS = Number(process.env.MAX_RX_CACHE_MS || 24 * 60 * 60 * 1000);
@@ -75,6 +79,8 @@ function parseCompareAsk(text) {
     plans: plans.slice(0, MAX_PLANS),
     terminatingPlan,
     noMedicaid: constraints.noMedicaid,
+    // Medicaid / MSP level / C-SNP condition exactly as the agent stated them (never inferred).
+    eligibility: eligibilityFromAsk(t),
     skip: [...skip].filter((id) => id !== terminatingPlan),
     year: /\b2026\b/.test(t) && !/\b2027\b/.test(t) ? 2026 : 2027,
   };
@@ -129,6 +135,27 @@ function publicJob(job) {
   };
 }
 
+const LEVELS = ['FBDE', 'QMB+', 'SLMB+', 'QMB', 'SLMB', 'QI', 'QDWI'];
+
+function normalizeEligibility(e, noMedicaid) {
+  const src = e && typeof e === 'object' ? e : {};
+  const medicaid = noMedicaid ? 'none' : (['full', 'msp', 'none'].includes(src.medicaid) ? src.medicaid : 'unknown');
+  const levels = medicaid === 'none' ? [] : (Array.isArray(src.levels) ? src.levels : []).map((l) => String(l).toUpperCase()).filter((l) => LEVELS.includes(l));
+  const csnp = ['confirmed', 'none'].includes(src.csnp) ? src.csnp : 'unknown';
+  return { medicaid, levels, csnp };
+}
+
+/** Agent-stated eligibility as plain words the selector reads back. */
+function eligibilityText(e) {
+  const parts = [];
+  if (e.medicaid === 'none') parts.push('No Medicaid.');
+  if (e.medicaid === 'full') parts.push(`Full Medicaid${e.levels.length ? ` (${e.levels.join(', ')})` : ''}.`);
+  if (e.medicaid === 'msp') parts.push(e.levels.length ? `MSP only: ${e.levels.join(', ')}.` : 'MSP only.');
+  if (e.csnp === 'confirmed') parts.push('C-SNP eligible.');
+  if (e.csnp === 'none') parts.push('No C-SNP qualifying condition.');
+  return parts.join(' ');
+}
+
 function normalizeInput(raw) {
   const src = raw && typeof raw === 'object' ? raw : {};
   const list = (v) => (Array.isArray(v) ? v : splitList(v));
@@ -146,6 +173,7 @@ function normalizeInput(raw) {
     plans,
     terminatingPlan: String(src.terminatingPlan || '').trim().toUpperCase(),
     noMedicaid: Boolean(src.noMedicaid),
+    eligibility: normalizeEligibility(src.eligibility, Boolean(src.noMedicaid)),
     skip: list(src.skip).map((s) => String(s).toUpperCase()),
     year: Number(src.year) === 2026 ? 2026 : 2027,
     planNames: src.planNames && typeof src.planNames === 'object'
@@ -161,6 +189,7 @@ function askTextFor(input) {
   if (input.zip) parts.push(`ZIP ${input.zip}`);
   if (input.terminatingPlan) parts.push(`Current plan ${input.terminatingPlan} terminating ${input.year}.`);
   if (input.noMedicaid) parts.push('No Medicaid.');
+  else if (input.eligibility) parts.push(eligibilityText(input.eligibility));
   for (const id of input.skip) parts.push(`Skip ${id}.`);
   if (input.plans.length) parts.push(`Compare ${input.plans.join(', ')}.`);
   return parts.join(' ');
@@ -169,7 +198,6 @@ function askTextFor(input) {
 async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFormularyCached } = {}) {
   const input = job.input;
   const askText = askTextFor(input);
-  const constraints = askConstraints(askText);
   try {
     // 1) Doctors — all at once; progress ticks as each one finishes.
     job.status = 'doctors';
@@ -186,27 +214,25 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     }));
     job.result.doctors = doctorStructs;
 
-    // 2) Plans — the agent's named plans, else the top 3 by doctors in network.
-    let planIds = input.plans.slice();
-    let planSource = 'named';
-    if (!planIds.length) {
-      planSource = 'top_doctor_coverage';
-      const m = coverageMatrix(doctorStructs).filter((p) => (
-        !constraints.skip.has(p.planId) && !(constraints.noMedicaid && p.type === 'dsnp')
-      ));
-      planIds = m.slice(0, 3).map((p) => p.planId);
+    // 2) + 3) Plans and meds — Doctor/Drug Comparison Table Rules (doctorPlanNarrow.selectComparison).
+    // Named plans stay the columns. Otherwise: eligible county pool → rank → top 3, with
+    // every listed med priced on the shortlist first so drug cost can break ties and every
+    // table plan already has its meds checked (rules 3 + 8).
+    const named = input.plans.map((id) => ({ planId: id, name: (input.planNames && input.planNames[id]) || id }));
+    const planSource = named.length ? 'named' : 'top_doctor_coverage';
+    let rxPlanIds = named.map((p) => p.planId);
+    if (!named.length) {
+      const first = selectComparison(doctorStructs, askText, { named: [], meds: input.meds });
+      rxPlanIds = first.ranked.slice(0, RX_SHORTLIST).map((c) => c.planId);
     }
-    job.result.planIds = planIds;
-    job.result.planSource = planSource;
 
-    // 3) Meds — every drug at once (bounded), against the final plans.
     job.status = 'meds';
-    job.progress.meds.total = planIds.length ? input.meds.length : 0;
+    job.progress.meds.total = rxPlanIds.length ? input.meds.length : 0;
     const drugResults = new Array(input.meds.length);
-    if (planIds.length && input.meds.length) {
+    if (rxPlanIds.length && input.meds.length) {
       await mapPool(input.meds, DRUG_CONCURRENCY, async (drugName, i) => {
         try {
-          drugResults[i] = await lookupRx({ drugName, planIds, year: input.year });
+          drugResults[i] = await lookupRx({ drugName, planIds: rxPlanIds, year: input.year });
         } catch (e) {
           drugResults[i] = { drugName, error: e.message, lookups: [], byPlanId: {} };
         }
@@ -214,6 +240,15 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
       });
     }
     const drugs = drugResults.filter(Boolean);
+
+    const sel = selectComparison(doctorStructs, askText, {
+      named, meds: input.meds, drugs, onlyPlanIds: named.length ? undefined : rxPlanIds,
+    });
+    // Compare-mode headers use the grid marketing names the UI sent.
+    const columns = sel.columns.map((c) => ({ ...c, name: (input.planNames && input.planNames[c.planId]) || c.name }));
+    const planIds = columns.map((c) => c.planId);
+    job.result.planIds = planIds;
+    job.result.planSource = planSource;
     job.result.drugs = drugs.map((r) => ({
       drugName: r.drugName,
       byPlanId: r.byPlanId || {},
@@ -223,17 +258,20 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
       text: r.lookups ? formatFormularyText(r).slice(0, 1500) : `${r.drugName}: lookup failed (${r.error || 'unknown'})`,
     }));
 
-    // 4) Tables (same look as chat).
-    const matrix = coverageMatrix(doctorStructs);
-    // Same column logic as chat: plan-level In/Out where a directory gives it,
-    // ✅ In* for carrier-level hits (Aetna fallback), Devoted = one network.
-    const columns = namedPlanColumns(
-      planIds.map((id) => ({ planId: id, name: (input.planNames && input.planNames[id]) || id })),
-      matrix,
-      doctorStructs,
-    ).map((c) => ({ ...c, name: (input.planNames && input.planNames[c.planId]) || c.name }));
+    // 4) Tables (same look as chat) + the rule lines the UI shows above / below them.
+    job.result.header = sel.header;
+    job.result.whyLine = sel.whyLine;
     job.result.doctorTable = gridTable(doctorStructs, columns);
-    job.result.medsTable = medsTable(drugs, columns);
+    job.result.medsTable = medsTable(drugs, columns, input.meds);
+    job.result.legend = LEGEND + (columns.some((p) => (p.inCarrier || []).length) ? ` · ${IN_STAR_LEGEND}` : '');
+    job.result.medsLegend = MEDS_LEGEND;
+    job.result.couldNotVerify = {
+      count: sel.couldNotVerifyCount,
+      plans: sel.couldNotVerify.slice(0, 3).map((c) => ({ planId: c.planId, name: c.name })),
+    };
+    job.result.sameNetwork = sel.sameNetwork.map((x) => ({ planId: x.plan.planId, name: x.plan.name, sameAs: x.twin.planId, diff: x.diff }));
+    job.result.flags = sel.flags;
+    job.result.questions = sel.questions;
     job.result.notConfirmed = doctorStructs.filter((d) => !['done', 'partial'].includes(d.status)).map((d) => d.requestedName);
     // toolResults in the shape the Excel/PDF export already reads.
     job.result.toolResults = [

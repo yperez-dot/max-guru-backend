@@ -499,9 +499,11 @@ describe('Padron chat budget', () => {
       { tool: 'lookup_provider_network', output: { requestedName: 'Jorge Diaz', doctorName: 'JORGE DIAZ', npi: '1111111111', status: 'done', carriersIn: ['Humana'], inNetworkPlans: ['Humana Gold Plus (H1036-065C)', 'Humana Dual Select (H1036-077)'], outOfNetworkPlans: [] } },
       { tool: 'lookup_provider_network', output: { requestedName: 'Howard Bush', doctorName: 'Howard Bush', status: 'timeout', networks: [] } },
     ], 'Maria & Gaspar Padron, ZIP 33332. Check these doctors and suggest 2-3 2027 plans');
-    assert.match(text, /\| Jorge Diaz \| ✅ In/);
-    assert.match(text, /\| Howard Bush \| ❔ not confirmed/);
-    assert.match(text, /\*\*1\/2\*\*/);
+    assert.match(text, /\| Jorge Diaz · NPI 1111111111 \| ✅ In/);
+    assert.match(text, /\| Howard Bush \| ❔ unchecked/);
+    assert.match(text, /\*\*1 in · 0 out · 1 unchecked\*\*/);
+    assert.match(text, /^Why these plans: \d+ eligible plans checked in Broward\./m);
+    assert.doesNotMatch(text, /\*\*\d+\/\d+\*\*/);
     assert.match(text, /Do Maria and Gaspar have Medicaid/);
     assert.doesNotMatch(text, /H1036-065C.*H1036-077.*H1036-065C/s);
   });
