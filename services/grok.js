@@ -1,5 +1,6 @@
-// services/grok.js — Max Medicare Guru via OpenAI-compatible chat (Grok or OpenAI)
+// services/grok.js — Max Medicare Guru via OpenAI-compatible chat (Grok, OpenAI or Claude)
 const { TOOLS, processTool } = require('./claude');
+const { callAnthropic } = require('./anthropicChat');
 const { countImagesInMessages, normalizeMessages } = require('./chatImages');
 const { fallbackAnswer, narrowingAnswered, comparisonAskText, comparisonFollowUp } = require('./doctorPlanNarrow');
 const { conversationAskText } = require('./planYear');
@@ -17,6 +18,8 @@ const {
  * Provider selection (Railway Variables):
  *   LLM_PROVIDER=openai  → OPENAI_API_KEY (+ optional OPENAI_MODEL, OPENAI_API_BASE)
  *   LLM_PROVIDER=grok    → XAI_API_KEY     (+ optional GROK_MODEL, XAI_API_BASE)  [default]
+ *   LLM_PROVIDER=claude  → ANTHROPIC_API_KEY (+ optional CLAUDE_MODEL, ANTHROPIC_API_BASE)
+ *                          native Messages API with prompt caching (services/anthropicChat.js)
  */
 function providerConfig() {
   const provider = String(process.env.LLM_PROVIDER || 'grok').toLowerCase();
@@ -28,6 +31,16 @@ function providerConfig() {
       keyEnv: 'OPENAI_API_KEY',
       key: process.env.OPENAI_API_KEY,
       label: 'OpenAI',
+    };
+  }
+  if (provider === 'claude' || provider === 'anthropic') {
+    return {
+      provider: 'claude',
+      base: process.env.ANTHROPIC_API_BASE || 'https://api.anthropic.com/v1',
+      model: process.env.CLAUDE_MODEL || 'claude-sonnet-5-5',
+      keyEnv: 'ANTHROPIC_API_KEY',
+      key: process.env.ANTHROPIC_API_KEY,
+      label: 'Claude',
     };
   }
   return {
@@ -194,6 +207,9 @@ async function callChatCompletions({ system, messages, tools, maxTokens, timeout
   );
 
   const ms = Math.max(1000, Number(timeoutMs) || DEFAULT_GROK_FETCH_MS);
+  if (CONFIG.provider === 'claude') {
+    return callAnthropic({ base: CONFIG.base, key, model: DEFAULT_MODEL, system, messages, tools, maxTokens: body.max_tokens, timeoutMs: ms });
+  }
   const res = await fetch(`${CONFIG.base}/chat/completions`, {
     method: 'POST',
     headers: {

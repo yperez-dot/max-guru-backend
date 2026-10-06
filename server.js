@@ -60,6 +60,7 @@ app.get('/health', (req, res) => {
     llmConfigured: Boolean(cfg.key),
     xaiConfigured: Boolean(process.env.XAI_API_KEY),
     openaiConfigured: Boolean(process.env.OPENAI_API_KEY),
+    claudeConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
     sepRefresh: getSepRefreshStatus(),
     ts: new Date().toISOString(),
   });

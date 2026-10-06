@@ -19,6 +19,10 @@ const MODEL_RATES = [
     longCachedInput: 1,
     longOutput: 12,
   },
+  // Claude (per million tokens, checked 2026-10-06). Cache writes (1.25× input) are counted at input rate.
+  { provider: 'claude', model: /^claude-sonnet-5/i, input: 2, cachedInput: 0.2, output: 10 },
+  { provider: 'claude', model: /^claude-opus-5/i, input: 4, cachedInput: 0.2, output: 20 },
+  { provider: 'claude', model: /^claude-haiku-4/i, input: 1, cachedInput: 0.1, output: 5 },
   {
     provider: 'openai',
     model: /^gpt-4\.1(?:$|-)/i,
