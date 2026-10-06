@@ -33,6 +33,7 @@ const {
 const { conversationAskText } = require('./planYear');
 const { lookupProviderNetwork } = require('./providerNetwork');
 const { askConstraints } = require('./doctorPlanNarrow');
+const { COMPARISON_TABLE_RULES } = require('./comparisonRules');
 
 // Sunfire plan ID → plan name/carrier map (built 2026-07-23)
 let SUNFIRE_PLAN_MAP = {};
@@ -141,7 +142,8 @@ For crowns / bridges / implants / dentures / fillings / root canals / extraction
 
 20. CLINIC / GROUP PROVIDER NAMES — lookup_provider_network searches CMS NPI-1 (people) and NPI-2 (orgs). If a clinic/group name misses or the agent only has a DBA (e.g. "Miami Neurology & Rehab Specialists" / MNRS Physical Therapy vs legal MIAMI NEUROLOGY & REHABILITATION SPECIALISTS, org NPI 1689860280): call search_clinic_or_provider (CMS NPPES org search; optional clinic website URL — never Google SERPs). Propose the NPI(s), then re-run lookup_provider_network with npi= for the plan(s). True In/Out is NPI + carrier Find Care / FHIR / guest directory only. Never invent In/Out from a clinic "insurances accepted" marketing page. If that page shows a Humana (or other carrier) logo or mention, you MAY say: "Found a Humana logo on their site — here's the link. I recommend you call and confirm." That is a lead, not verified network status. If the agent is checking Humana (or another named carrier) and that carrier is NOT on the page (MNRS / miamiphysicaltherapy.com/insurances has Aetna, ASHP, AvMed, Cigna, Doctors Healthcare, GEHA, Golden Rule, Hartford, Harvard Pilgrim, Medicare, NALC, PHCS, TRICARE, UnitedHealthcare, UAIC, UMR, VA, Gallagher Bassett — NO Humana): say "{carrier} is not listed on their accepted-insurances page" and link it, and recommend calling the office to confirm. Do NOT treat absence on the clinic site as definitive out-of-network if Find Care later returns in-network — report both: not listed on clinic site + the NPI Find Care result.
 
-ALWAYS search the KB before answering Hub/ops questions. Search by SEP code, county, topic, or document key.`;
+ALWAYS search the KB before answering Hub/ops questions. Search by SEP code, county, topic, or document key.
+${COMPARISON_TABLE_RULES}`;
 
 // Tool definitions for function-calling
 const TOOLS = [

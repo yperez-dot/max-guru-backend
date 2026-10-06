@@ -44,7 +44,7 @@ stub('doctorsHcp', { queryDoctorsHcp: async () => { await sleep(knobs.carrierMs)
 stub('aetnaPublicSearch', { queryAetnaPublic: async () => { await sleep(knobs.carrierMs); return { inNetwork: false, plans: [] }; }, CARRIER_LABEL: 'Aetna' });
 stub('simplyFindcare', { querySimplyFindcare: async () => { await sleep(knobs.carrierMs); return { inNetwork: false, plans: [] }; }, CARRIER_LABEL: 'Simply' });
 stub('uhcGuestSearch', {
-  queryUhcGuest: async () => { await sleep(knobs.carrierMs); return { inNetwork: true, plans: ['UHC Dual Complete (H5420-001)'], outOfNetworkPlans: [], year: '2027' }; },
+  queryUhcGuest: async () => { await sleep(knobs.carrierMs); return { inNetwork: true, plans: ['UHC Preferred MA FL-0002 (HMO) (H1045-005)'], outOfNetworkPlans: [], year: '2027' }; },
   CARRIER_LABEL: 'UnitedHealthcare',
   PLAN_YEAR: '2027',
   formatUhcAgentNote: () => 'UHC note',
@@ -58,7 +58,7 @@ stub('humanaFindcare', {
     } else {
       await sleep(knobs.carrierMs);
     }
-    return { inNetwork: true, plans: ['Humana Gold Plus (H1036-054)'], outOfNetworkPlans: [], checks: [{ status: 'in_network' }], year: '2027' };
+    return { inNetwork: true, plans: ['Humana Gold Plus (H1036-065C)'], outOfNetworkPlans: [], checks: [{ status: 'in_network' }], year: '2027' };
   },
   CARRIER_LABEL: 'Humana',
   isHumanaLabel: (l) => /humana/i.test(l),
@@ -167,8 +167,10 @@ describe('lookup_provider_network batch (Padron 8 doctors)', () => {
         { deadlineAt: Date.now() + 3000, messages: [{ role: 'user', content: 'Maria & Gaspar Padron, ZIP 33332. Check these doctors In/Out and suggest 2-3 2027 plans' }] },
       );
       for (const d of out.expand) assert.ok(!d.carriersIn.includes('Cigna'), 'Cigna must not be a 2027 option');
-      assert.doesNotMatch(out.text.split('PLAN COVERAGE')[0], /Cigna/);
-      assert.match(out.text, /Humana Gold Plus \(H1036-054\) — 8\/8 doctors in/);
+      assert.doesNotMatch(out.text.split('Carrier-only hits')[0], /Cigna/);
+      assert.match(out.text, /Humana Gold Plus \(H1036-065C\) — 8 in · 0 out · 0 unchecked/);
+      assert.match(out.text, /Why these plans: \d+ eligible plans checked in Broward\./);
+      assert.doesNotMatch(out.text.split('Why these plans')[1], /\b\d+\/8\b/, 'plan counts are "X in · Y out · Z unchecked", never "X/8"');
       assert.match(out.text, /Do Maria and Gaspar have Medicaid/);
       assert.match(out.text, /HMO OK|meds/i);
       assert.ok(out.text.length < 6000, `tool text should be compact, was ${out.text.length}`);
@@ -183,7 +185,7 @@ describe('lookup_provider_network batch (Padron 8 doctors)', () => {
       { role: 'user', content: '1 no 2 Ernesto and Howard 3 HMO ok' },
     ];
     const out = await lookupProviderNetwork({ doctors: [{ doctorName: 'Ernesto Padron' }, { doctorName: 'Howard Bush' }], zip: '33332' }, { deadlineAt: Date.now() + 2000, messages });
-    assert.match(out.text, /suggest exactly 2–3 plans/);
+    assert.match(out.text, /already answered the narrowing questions — present the table above \(2–3 plans\)/);
     assert.deepEqual(out.structured.questions, []);
   });
   it('runs every doctor\'s best NPI before anyone\'s backup NPI (Howard Bush fix)', async () => {
@@ -257,6 +259,6 @@ describe('follow-up plan edits + Devoted single network', () => {
   });
   it('a Devoted directory hit is ✅ In for the Devoted plan (one network for all plans)', () => {
     const doc = { requestedName: 'Howard Bush', status: 'done', carriersIn: ['Devoted Health'], inNetworkPlans: [], outOfNetworkPlans: [] };
-    assert.match(n.fallbackAnswer([doc], first), /\| Howard Bush \| ❔ \| ❔ \| ✅ In \|/);
+    assert.match(n.fallbackAnswer([doc], first), /\| Howard Bush \| ❔ not confirmed \| ❔ not confirmed \| ✅ In \|/);
   });
 });

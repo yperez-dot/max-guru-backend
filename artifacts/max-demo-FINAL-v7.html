@@ -3926,6 +3926,8 @@ function ComparePanel({ isMobile, onSaveWorkup, onClose }) {
         plans: (f.plans || []).join(", "),
         terminatingPlan: f.terminatingPlan || "",
         noMedicaid: Boolean(f.noMedicaid),
+        // Medicaid / MSP level / C-SNP condition as the agent stated them (comparison rule 1).
+        eligibility: f.eligibility || null,
         year: f.year || 2027,
       });
       setJob(null);
@@ -3959,6 +3961,7 @@ function ComparePanel({ isMobile, onSaveWorkup, onClose }) {
       plans: linesOf(f.plans),
       terminatingPlan: f.terminatingPlan,
       noMedicaid: f.noMedicaid,
+      eligibility: f.eligibility || undefined,
       year: f.year,
       // Marketing names from the grid so table headers read "Humana Gold Plus · H1036-065C".
       planNames: Object.fromEntries(findComparisonPlans(linesOf(f.plans).join(" ") + " " + (f.year || 2027))
@@ -4053,14 +4056,38 @@ function ComparePanel({ isMobile, onSaveWorkup, onClose }) {
             {job.status === "error" && <div style={{ color: "#9B1C3C", fontSize: 13 }}>Comparison failed: {job.error}</div>}
             {result && (
               <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--ink)" }}>
-                {result.planSource === "top_doctor_coverage" && (
-                  <div style={{ fontSize: 12.5, color: "var(--muted)", margin: "6px 0" }}>No plans named — columns are the plans with the most of these doctors in network (a count, not a recommendation).</div>
+                {result.header && <div style={{ margin: "6px 0 2px" }}>{renderMessageText(result.header)}</div>}
+                {result.whyLine && (
+                  <div style={{ fontSize: 12.5, color: "var(--muted)", margin: "2px 0 6px" }}>{result.whyLine}</div>
                 )}
-                {result.doctorTable ? <>{renderMessageText("**Doctors**\n\n" + result.doctorTable)}</> : <div>No plan found with these doctors in network.</div>}
-                {result.medsTable && <div style={{ marginTop: 10 }}>{renderMessageText("**Meds**\n\n" + result.medsTable)}</div>}
+                {result.doctorTable ? <>{renderMessageText("**Doctors**\n\n" + result.doctorTable)}</> : <div>No eligible plan has a verifiable doctor result yet — see "Could not verify" and the questions below.</div>}
                 <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
-                  ✅ In · ❌ Out · ❔ not confirmed (never assume Out) · T = tier · ⚠️ confirm = check the exact product in Sunfire
+                  {result.legend || "✅ In · ❌ Out · ❔ unchecked = never checked · ❔ not confirmed = checked, no result (never assume Out)"}
                 </div>
+                {result.couldNotVerify && result.couldNotVerify.count > 0 && (
+                  <div style={{ fontSize: 12.5, marginTop: 6 }}>
+                    <b>Could not verify</b> ({result.couldNotVerify.count} eligible plan{result.couldNotVerify.count === 1 ? "" : "s"} with over half the doctors unchecked — not ranked){(result.couldNotVerify.plans || []).length ? ": " + result.couldNotVerify.plans.map((p) => p.name + " · " + p.planId).join("; ") : ""}
+                  </div>
+                )}
+                {(result.sameNetwork || []).length > 0 && (
+                  <div style={{ fontSize: 12.5, marginTop: 6 }}>
+                    <b>Same network as above</b>
+                    {result.sameNetwork.map((x) => <div key={x.planId}>- {x.name} · {x.planId} — same doctor results as {x.sameAs}; differs: {x.diff}</div>)}
+                  </div>
+                )}
+                {result.medsTable && <div style={{ marginTop: 10 }}>{renderMessageText("**Meds**\n\n" + result.medsTable)}</div>}
+                {result.medsTable && (
+                  <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
+                    {result.medsLegend || "T = tier · ⚠️ confirm = read not covered, check the exact product in Sunfire · ❔ unchecked = never checked · ❔ not confirmed = checked, no result"}
+                  </div>
+                )}
+                {(result.flags || []).map((f, i) => <div key={"flag" + i} style={{ fontSize: 12.5, color: "#92400e", marginTop: 6 }}>{f}</div>)}
+                {(result.questions || []).length > 0 && (
+                  <div style={{ fontSize: 12.5, marginTop: 8 }}>
+                    <b>Before this narrows to 2–3 plans:</b>
+                    {result.questions.map((q, i) => <div key={"q" + i}>{i + 1}. {q}</div>)}
+                  </div>
+                )}
                 {(result.notConfirmed || []).length > 0 && (
                   <div style={{ fontSize: 12.5, color: "#92400e", marginTop: 6 }}>No NPI match: {result.notConfirmed.join(", ")} — try the NPI or practice name.</div>
                 )}
