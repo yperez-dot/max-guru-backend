@@ -26,9 +26,19 @@ npm start              # :3002
 
 Health: `GET /health` (API key required for data routes).
 
+## Model provider (Railway Variables)
+
+| `LLM_PROVIDER` | Key | Model var (default) |
+|---|---|---|
+| `grok` (default) | `XAI_API_KEY` | `GROK_MODEL` (`grok-4.6`) |
+| `claude` | `ANTHROPIC_API_KEY` | `CLAUDE_MODEL` (`claude-sonnet-5-5`) |
+| `openai` | `OPENAI_API_KEY` | `OPENAI_MODEL` (`gpt-4.1`) |
+
+Claude goes through the native Messages API (`services/anthropicChat.js`) with prompt caching on the system prompt and the latest turn, so repeated rounds of one chat read the plan grid at the cached rate. To roll back, set `LLM_PROVIDER=grok`. `/health` shows `provider`, `model` and `claudeConfigured`.
+
 ## Image attach
 
-Paste a screenshot into the composer or use the paperclip. Max accepts **PNG / JPEG / WebP** up to **4MB each** (up to 4 per message), shows thumbnails before send, and can send text + images in one turn. `/chat` forwards those data URLs to Grok vision (or OpenAI if `LLM_PROVIDER=openai`). Images stay in memory for that request only — they are not written to disk. They do count toward the daily spend estimate. While a reply is in flight the composer stays enabled: Send queues the next question (and any new images) and auto-sends it when Max finishes — it does not cancel the current turn.
+Paste a screenshot into the composer or use the paperclip. Max accepts **PNG / JPEG / WebP** up to **4MB each** (up to 4 per message), shows thumbnails before send, and can send text + images in one turn. `/chat` forwards those data URLs to Grok vision (or OpenAI / Claude per `LLM_PROVIDER`). Images stay in memory for that request only — they are not written to disk. They do count toward the daily spend estimate. While a reply is in flight the composer stays enabled: Send queues the next question (and any new images) and auto-sends it when Max finishes — it does not cancel the current turn.
 
 ## Daily cost guard
 
