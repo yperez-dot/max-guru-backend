@@ -85,6 +85,21 @@ app.post('/admin/refresh-seps', requireApiKey, requireAccessToken, async (req, r
   res.status(status).json(result);
 });
 
+// GET /admin/directory-check?npi=1043665177 — what Railway itself gets back from the
+// Doctors HealthCare and FHIR (Devoted, FL Blue, HealthSun) directories for one NPI.
+app.get('/admin/directory-check', requireApiKey, requireAccessToken, async (req, res) => {
+  const npi = String(req.query.npi || '').replace(/\D/g, '');
+  if (!/^\d{10}$/.test(npi)) return res.status(400).json({ error: 'npi must be 10 digits' });
+  const { probeDoctors } = require('./services/doctorsHcp');
+  const { fhirCheck } = require('./services/providerNetwork');
+  const started = Date.now();
+  const [doctors, fhir] = await Promise.all([
+    probeDoctors(npi).catch((e) => ({ error: e.message })),
+    fhirCheck(npi).catch((e) => ({ error: e.message })),
+  ]);
+  res.json({ npi, ms: Date.now() - started, doctors, fhir });
+});
+
 // POST /provider-lookup { doctorName, zip, state? }
 app.use('/drug-search', requireApiKey, requireAccessToken, drugLookupRouter);
 app.use('/formulary-lookup', requireApiKey, requireAccessToken, formularyLookupRouter);

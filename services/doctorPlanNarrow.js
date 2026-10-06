@@ -436,6 +436,9 @@ function namedPlanColumns(named, matrix, doctors) {
         // One network for every plan (Devoted) or for these plans (Doctors DrMax/DrSelect) → a carrier hit is a plan hit.
         (carrierHitIsPlanHit(carrier, np.planId) ? col.in : col.inCarrier).push(who);
       }
+      // One-network directory (Devoted; Doctors DrMax/DrSelect) finished and did not list
+      // this NPI → Out. A failed or pending check stays ❔ unchecked (never assume Out).
+      else if (carrier && carrierHitIsPlanHit(carrier, np.planId) && directoryFinished(d, carrier)) col.out.push(who);
       else col.unknown.push(who);
     }
     return col;
@@ -453,14 +456,23 @@ const PENDING_FOR = {
   Aetna: /aetna/i,
   Simply: /simply/i,
   'Doctors HealthCare': /doctors/i,
-  Devoted: /fhir|devoted/i,
-  'Florida Blue': /fhir|blue/i,
-  HealthSun: /fhir|healthsun/i,
+  Devoted: /devoted/i,
+  'Florida Blue': /blue/i,
+  HealthSun: /healthsun/i,
   Wellcare: /sunfire|wellcare/i,
   CarePlus: /sunfire|careplus/i,
 };
 // No live directory check exists for these (Solis = county PDF only).
 const NO_LIVE_DIRECTORY = ['Solis'];
+
+/** The carrier's live directory answered for this doctor (not pending, not failed, identity confirmed). */
+function directoryFinished(d, carrier) {
+  if (!d || d.identityPending) return false;
+  if (d.status !== 'done' && d.status !== 'partial') return false;
+  const re = PENDING_FOR[carrier];
+  if (!re || NO_LIVE_DIRECTORY.includes(carrier)) return false;
+  return ![...(d.pending || []), ...(d.failed || [])].some((p) => re.test(String(p)));
+}
 
 /** Rule 9: "❔ unchecked" = never checked, "❔ not confirmed" = checked, no result. */
 function unknownCell(d, carrier) {
@@ -725,6 +737,7 @@ function selectComparison(doctors, askText, opts = {}) {
       if (c.snp === 'csnp') csnpInPlay = true;
       if (e.status !== 'eligible') out.flags.push(`⚠️ ${shortPlanHeader(c)}: ${e.reason} — you named it, so it stays; confirm eligibility before enrolling.`);
     }
+    if (n > 0 && cols.some((c) => c.carrier === 'Solis')) out.flags.push('⚠️ Solis has no live directory check (county PDF only) — Solis doctor cells stay ❔ unchecked until verified in the Solis provider PDF.');
   } else if (n > 0 || carriers.length) {
     const gridRows = R.gridPlansForCounty(county);
     const pool = gridRows.length
@@ -826,6 +839,8 @@ function selectComparison(doctors, askText, opts = {}) {
     for (const c of (carriers.length ? [] : ranked)) {
       if (out.columns.length >= 3) break;
       if (only && !only.has(c.planId)) continue;
+      // A plan with no doctor In never fills a top-3 slot while another plan has one In.
+      if (n > 0 && c.counts.inN + c.counts.star === 0 && ranked.some((r) => r.counts.inN + r.counts.star > 0)) continue;
       const twin = c.carrier ? out.columns.find((t) => signatureOf(t) === signatureOf(c)) : null;
       if (twin) out.sameNetwork.push({ plan: c, twin, diff: sameNetworkDiff(c, twin) });
       else out.columns.push(c);

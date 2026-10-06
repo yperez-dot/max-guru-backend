@@ -61,6 +61,8 @@ const CACHE_TTL_MS = Number(process.env.MAX_PROVIDER_CACHE_MS || 30 * 60 * 1000)
 const DEFAULT_BUDGET_MS = 60_000;
 
 const NOT_CONFIRMED = 'NOT CONFIRMED';
+// Log every directory answer (status + hit count) — set MAX_DIRECTORY_DEBUG=1 on Railway.
+const DIRECTORY_DEBUG = /^(1|true|yes)$/i.test(String(process.env.MAX_DIRECTORY_DEBUG || ''));
 
 function sunfireEnabled() {
   return String(process.env.MAX_SUNFIRE_PROVIDER_LOOKUP || 'on').toLowerCase() !== 'off';
@@ -150,21 +152,40 @@ function clearProviderCache() {
 
 // ─── per-NPI carrier fan-out ────────────────────────────────────────────────
 
-async function fhirHits(npi) {
+/**
+ * FHIR directory check for one NPI. Returns { hits, failed }: a carrier that
+ * answered 200 with zero entries is a real miss; a carrier that errored or timed
+ * out is `failed` (shown ❔ unchecked, never Out).
+ */
+async function fhirCheck(npi) {
   const hits = [];
+  const failed = [];
   await Promise.all(FHIR_CARRIERS.map(async (carrier) => {
     try {
       const url = carrier.extra
         ? `${carrier.base}/PractitionerRole?practitioner.identifier=${npi}&${carrier.extra}`
         : `${carrier.base}/PractitionerRole?practitioner.identifier=${npi}`;
       const r = await fetch(url, { headers: { Accept: 'application/fhir+json' }, signal: AbortSignal.timeout(8000) });
-      if (r.ok) {
-        const fd = await r.json();
-        if ((fd.total || 0) > 0 || (fd.entry || []).length > 0) hits.push(carrier.name);
+      if (!r.ok) {
+        console.warn(`[fhir] ${carrier.key} HTTP ${r.status} npi=${npi}`);
+        failed.push(carrier.name);
+        return;
       }
-    } catch (_) { /* skip carrier */ }
+      const fd = await r.json();
+      const n = Math.max(Number(fd.total) || 0, (fd.entry || []).length);
+      if (DIRECTORY_DEBUG) console.log(`[fhir] ${carrier.key} 200 entries=${n} npi=${npi}`);
+      if (n > 0) hits.push(carrier.name);
+    } catch (err) {
+      console.warn(`[fhir] ${carrier.key} ${err.name === 'TimeoutError' || err.name === 'AbortError' ? 'Timeout' : err.message} npi=${npi}`);
+      failed.push(carrier.name);
+    }
   }));
-  return FHIR_CARRIERS.map((c) => c.name).filter((name) => hits.includes(name));
+  const order = FHIR_CARRIERS.map((c) => c.name);
+  return { hits: order.filter((n) => hits.includes(n)), failed: order.filter((n) => failed.includes(n)) };
+}
+
+async function fhirHits(npi) {
+  return (await fhirCheck(npi)).hits;
 }
 
 function npiRecordInfo(p) {
@@ -192,6 +213,7 @@ function startNpiChecks(rec, { zip, planYear, guestPlanIds, rank = 0 }) {
   const state = {
     ...rec,
     fhir: undefined,
+    fhirFailed: [],
     doctorsResult: undefined,
     aetnaResult: undefined,
     simplyResult: undefined,
@@ -202,7 +224,10 @@ function startNpiChecks(rec, { zip, planYear, guestPlanIds, rank = 0 }) {
   const track = (field, promise, fallback) => promise
     .then((v) => { state[field] = v; }, () => { state[field] = fallback; });
   const done = Promise.all([
-    track('fhir', limited('fhir', () => fhirHits(npi), rank), []),
+    limited('fhir', () => fhirCheck(npi), rank).then(
+      (v) => { state.fhirFailed = v.failed; state.fhir = v.hits; },
+      () => { state.fhirFailed = FHIR_CARRIERS.map((c) => c.name); state.fhir = []; },
+    ),
     track('doctorsResult', limited('doctors', () => queryDoctorsHcp(npi), rank), { inNetwork: false, error: 'request_failed' }),
     track('aetnaResult', limited('aetna', () => queryAetnaPublic(npi, { zip, lastName: rec.lastName, year: planYear }), rank), { inNetwork: false, plans: [], error: 'request_failed' }),
     track('simplyResult', limited('simply', () => querySimplyFindcare(npi, { zip, lastName: rec.lastName }), rank), { inNetwork: false, plans: [], error: 'request_failed' }),
@@ -247,6 +272,8 @@ function summarizeNpi(state, planYear) {
   }
 
   const lookupErrors = [];
+  // FHIR carriers that errored are failed checks (❔ unchecked), not misses.
+  for (const name of state.fhirFailed || []) lookupErrors.push(`${name} (FHIR)`);
   if (doctorsResult.error) lookupErrors.push('Doctors HealthCare Plans');
   if (aetnaResult.error) lookupErrors.push('Aetna guest search');
   if (simplyResult.error) lookupErrors.push('Simply Find Care');
@@ -344,7 +371,12 @@ function structuredFor(doctorName, providerResults, { status, sunfireLabels = []
     inNetworkPlans,
     outOfNetworkPlans,
     networks: [
-      ...FHIR_CARRIERS.map((c) => ({ carrier: c.name, inNetwork: firstProvider.inNetworkFor.includes(c.name) })),
+      ...FHIR_CARRIERS.map((c) => ({
+        carrier: c.name,
+        inNetwork: firstProvider.inNetworkFor.includes(c.name),
+        status: (firstProvider.lookupErrors || []).includes(`${c.name} (FHIR)`) ? 'failed'
+          : (firstProvider.pending || []).some((p) => /^FHIR/.test(p)) ? 'pending' : 'checked',
+      })),
       { carrier: DOCTORS_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.includes(DOCTORS_PLAN_LABEL), status: (firstProvider.lookupErrors || []).includes('Doctors HealthCare Plans') ? 'failed' : 'checked' },
       { carrier: AETNA_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.some((p) => /aetna/i.test(p)) },
       { carrier: SIMPLY_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.some((p) => /simply/i.test(p)) },
@@ -600,6 +632,8 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
 
 module.exports = {
   lookupProviderNetwork,
+  fhirCheck,
+  FHIR_CARRIERS,
   lookupDoctor,
   normalizeDoctorList,
   clearProviderCache,

@@ -1671,6 +1671,21 @@ Earlier: all four In network on UHC H5420-001.
       assert.equal(person.statuses[0], 'Not confirmed');
     });
 
+    it('Doctors DrMax-Dade / Devoted: a finished directory miss for a person is Out (matches chat table); failed/pending stays Not confirmed', () => {
+      const plans = loadPlans().filter((p) => /^H4140-022|^H1290-001/.test(String(p.planId || p.id || '').toUpperCase()));
+      assert.equal(plans.length, 2);
+      const lookup = (name, status) => ({ doctorName: name, networks: [
+        { carrier: 'Doctors HealthCare Plans', inNetwork: false, status },
+        { carrier: 'Devoted Health', inNetwork: false, status },
+      ] });
+      const [checked, failed, pending] = ['checked', 'failed', 'pending'].map((st, i) => exp.doctorsFromProviderLookups([lookup(`Dileep Yavagal${i}`, st)], plans)[0]);
+      assert.deepEqual(checked.statuses, ['Out of network', 'Out of network']);
+      assert.ok(failed.statuses.every((x) => x !== 'Out of network'));
+      assert.ok(pending.statuses.every((x) => x !== 'Out of network'));
+      const clinic = exp.doctorsFromProviderLookups([lookup('Miami Neurology & Rehab', 'checked')], plans)[0];
+      assert.ok(clinic.statuses.every((x) => x !== 'Out of network'));
+    });
+
     it('a clinic the agent says is out of network stays Out of network', () => {
       const plans = doctorsPlans();
       const id = exp.displayContractPbp(plans[0]);

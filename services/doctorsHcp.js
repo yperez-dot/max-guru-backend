@@ -15,6 +15,7 @@ const DOCTORS_SEARCH_URL = 'https://providersearch.doctorshcp.com/ProviderSearch
 const FETCH_TIMEOUT_MS = 12_000;
 const PLAN_LABEL = 'Doctors HealthCare Plans';
 const SEARCH_TYPES = ['pcp', 'spe'];
+const DIRECTORY_DEBUG = /^(1|true|yes)$/i.test(String(process.env.MAX_DIRECTORY_DEBUG || ''));
 
 function buildSearchBody({ providerType, npi, zip = '', hospitalNpi = '' }) {
   return {
@@ -90,7 +91,16 @@ async function postSearchOnce(body) {
       return { ok: false, status: res.status, hits: [] };
     }
     const data = await res.json();
-    return { ok: true, hits: Array.isArray(data) ? data : [] };
+    // Anything but a JSON list (HTML block page, error object) is a failed check, not a miss.
+    if (!Array.isArray(data)) {
+      console.warn(`[doctorsHcp] 200 non-list reply type=${body.ProviderType} npi=${body.ProviderNPI}`);
+      return { ok: false, status: 200, hits: [] };
+    }
+    if (DIRECTORY_DEBUG) {
+      const match = data.filter((h) => String(h.providerNpi ?? '') === String(body.ProviderNPI)).length;
+      console.log(`[doctorsHcp] 200 type=${body.ProviderType} npi=${body.ProviderNPI} rows=${data.length} match=${match}`);
+    }
+    return { ok: true, hits: data };
   } catch (err) {
     const label = err.name === 'AbortError' ? 'Timeout' : err.message;
     console.warn(`[doctorsHcp] ${label} type=${body.ProviderType}`);
@@ -139,7 +149,18 @@ async function queryDoctorsHcp(npi) {
   };
 }
 
+/** Raw answer per list for one NPI — for /admin/directory-check (what Railway actually gets). */
+async function probeDoctors(npi) {
+  const out = [];
+  for (const providerType of SEARCH_TYPES) {
+    const r = await postSearchOnce(buildSearchBody({ providerType, npi, zip: '' }));
+    out.push({ list: providerType, ok: r.ok, status: r.status || (r.ok ? 200 : null), rows: r.hits.length, match: r.hits.filter((h) => npiMatches(h, npi)).length });
+  }
+  return out;
+}
+
 module.exports = {
+  probeDoctors,
   PLAN_LABEL,
   DOCTORS_SEARCH_URL,
   SEARCH_TYPES,
