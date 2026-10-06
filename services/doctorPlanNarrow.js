@@ -135,6 +135,36 @@ function askedQuestions(text) {
 const NO_RE = /^\s*(no|nope|none|n\/a|na|ninguno|ninguna|no tiene)\b/i;
 const YES_RE = /^\s*(yes|yep|yeah|si|sí|correct|right|confirmed|ok|those are|they are)\b|\bcorrect\b/i;
 
+const NEG_RE = /\b(wrong|incorrect|not (the )?(right|correct|same)|isn'?t|aren'?t|different|no)\b/i;
+
+/**
+ * "yes" confirms every listed match; "Yavagal and Krajewski correct, Del Conde and
+ * Sosa wrong" confirms two and rejects two. A name she does not mention stays open.
+ */
+function matchVerdicts(names, answer) {
+  const a = String(answer || '');
+  const clauses = a.split(/[,;.]|\bbut\b/i).map((c) => c.trim()).filter(Boolean);
+  const key = (nm) => plainWords(nm).slice(-1)[0] || '';
+  const ok = [];
+  const bad = [];
+  let anyNamed = false;
+  for (const nm of names) {
+    const k = key(nm);
+    const clause = k ? clauses.find((c) => plainWords(c).includes(k)) : null;
+    if (!clause) continue;
+    anyNamed = true;
+    (NEG_RE.test(clause) ? bad : ok).push(nm);
+  }
+  if (!anyNamed) {
+    if (NO_RE.test(a) || /\b(wrong|incorrect)\b/i.test(a)) bad.push(...names);
+    else if (YES_RE.test(a)) ok.push(...names);
+  }
+  const out = [];
+  if (ok.length) out.push(`Doctor matches confirmed: ${ok.join(', ')}.`);
+  if (bad.length) out.push(`Doctor matches wrong: ${bad.join(', ')}.`);
+  return out;
+}
+
 /** Turn her reply to Max's numbered questions into plain statements the selector reads. */
 function statementsFor(question, answer) {
   const q = String(question || '');
@@ -153,8 +183,7 @@ function statementsFor(question, answer) {
   }
   if (/Confirm the (doctor )?match/i.test(q)) {
     const names = [...q.matchAll(/(?:^|[:;]\s*)([^:;→]+?)\s*→/g)].map((m) => m[1].trim());
-    if (YES_RE.test(a) && !NO_RE.test(a)) return names.length ? [`Doctor matches confirmed: ${names.join(', ')}.`] : [];
-    return [];
+    return matchVerdicts(names, a);
   }
   if (/must-keep/i.test(q)) return [`Must-keep doctors: ${a}.`];
   if (/HMO OK|PPO/i.test(q)) return [/ppo/i.test(a) && !/hmo ok|either/i.test(a) ? 'Needs a PPO.' : `Network: ${a} (HMO ok).`];
@@ -401,7 +430,8 @@ function sameDoctorName(a, b) {
 function doctorLabel(d) {
   const asked = titleCase(shortDoctor(d));
   const issue = d && d.identityPending !== undefined ? d.identityPending : identityIssue(d);
-  const flag = issue === 'mismatch' ? ' ⚠️ different name — confirm match' : issue ? ' ⚠️ confirm match' : '';
+  const flag = issue === 'wrong' ? ' ⚠️ wrong doctor — send the NPI'
+    : issue === 'mismatch' ? ' ⚠️ different name — confirm match' : issue ? ' ⚠️ confirm match' : '';
   const matched = d && d.doctorName && !['not_found', 'timeout', 'error'].includes(d.status) ? cleanName(d.doctorName) : '';
   if (!matched) return `${asked}${lastNameOnly(d) ? ' ⚠️ confirm match' : ''}`;
   const askedWords = plainWords(asked);
@@ -453,7 +483,8 @@ function doctorLine(d) {
   const carriers = (d.carriersIn || []).length ? d.carriersIn.join(', ') : 'no in-network hit in finished checks';
   const pending = (d.pending || []).length ? ` · still pending: ${d.pending.join(', ')}` : '';
   const issue = d.identityPending !== undefined ? d.identityPending : identityIssue(d);
-  const flag = issue === 'mismatch' ? ' · ⚠️ matched a different name — confirm before using these results'
+  const flag = issue === 'wrong' ? ' · ⚠️ agent says this is the wrong doctor — results not used; need the NPI'
+    : issue === 'mismatch' ? ' · ⚠️ matched a different name — confirm before using these results'
     : issue ? ' · ⚠️ asked by last name only — confirm this is the right doctor' : '';
   return `- ${name}${who}: ${carriers}${pending}${flag}`;
 }
@@ -527,9 +558,16 @@ function selectComparison(doctors, askText, opts = {}) {
   // Rule 10: until she confirms a doctor match, its In/Out results do not count.
   const confirmedMatches = [...ask0.matchAll(/Doctor matches confirmed:\s*([^\n]+)/gi)]
     .flatMap((m) => m[1].split(/[,;]/)).map((x) => x.replace(/\.$/, '').trim()).filter(Boolean);
+  const wrongMatches = [...ask0.matchAll(/Doctor matches wrong:\s*([^\n]+)/gi)]
+    .flatMap((m) => m[1].split(/[,;]/)).map((x) => x.replace(/\.$/, '').trim()).filter(Boolean);
   const docs = (Array.isArray(doctors) ? doctors : []).map((d) => {
+    const who = shortDoctor(d);
+    // Her latest word wins: a wrong match is never counted, even if an older reply said yes.
+    if (d.doctorName && wrongMatches.some((nm) => sameDoctorName(nm, who))) {
+      return { ...d, identityPending: 'wrong', inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] };
+    }
     const issue = identityIssue(d);
-    if (!issue || confirmedMatches.some((nm) => sameDoctorName(nm, shortDoctor(d)))) return { ...d, identityPending: '' };
+    if (!issue || confirmedMatches.some((nm) => sameDoctorName(nm, who))) return { ...d, identityPending: '' };
     return { ...d, identityPending: issue, inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] };
   });
   const n = docs.length;
@@ -753,7 +791,11 @@ function selectComparison(doctors, askText, opts = {}) {
     if (snpUnknownKinds.has('csnp') && elig.csnp === 'unknown') {
       qs.push('Does {client} have a C-SNP qualifying chronic condition, confirmed by diagnosis? — Yes (which one) / No. (C-SNPs stay out until confirmed.)');
     }
-    const toConfirm = docs.filter((d) => d.identityPending);
+    const wrong = docs.filter((d) => d.identityPending === 'wrong');
+    if (wrong.length) {
+      qs.push(`Send the NPI for ${wrong.map((d) => titleCase(shortDoctor(d))).join(', ')} — the match${wrong.length > 1 ? 'es' : ''} I found ${wrong.length > 1 ? 'were' : 'was'} the wrong doctor, so ${wrong.length > 1 ? 'they stay' : 'it stays'} ❔ not confirmed.`);
+    }
+    const toConfirm = docs.filter((d) => d.identityPending && d.identityPending !== 'wrong');
     if (toConfirm.length) {
       qs.push(`Confirm the doctor match (their In/Out stays ❔ not confirmed until you do): ${toConfirm.map((d) => `${titleCase(shortDoctor(d))} → ${cleanName(d.doctorName)}${d.npi ? ` (NPI ${d.npi})` : ''}`).join('; ')}. Right doctor${toConfirm.length > 1 ? 's' : ''}? If not, send the NPI.`);
     }

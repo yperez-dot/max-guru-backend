@@ -267,6 +267,9 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
     if (result && typeof result === 'object' && Array.isArray(result.expand) && result.expand.length) {
       // Batch doctor lookup → one entry per doctor so Export Excel/PDF sees each one.
       for (const item of result.expand) collectedToolResults.push({ tool: name, output: item });
+      for (const extra of result.extraToolResults || []) {
+        if (extra && extra.tool && extra.output) collectedToolResults.push(extra);
+      }
     } else {
       const structured = result && typeof result === 'object' && result.structured ? result.structured : { text };
       collectedToolResults.push({ tool: name, output: structured });

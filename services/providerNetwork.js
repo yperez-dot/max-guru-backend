@@ -29,7 +29,10 @@ const {
 const { formatSolisNote } = require('./solisDirectory');
 const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery } = require('./npiRegistry');
 const { conversationAskText } = require('./planYear');
-const { batchSummaryForModel, narrowingAnswered, comparisonAskText } = require('./doctorPlanNarrow');
+const { batchSummaryForModel, narrowingAnswered, comparisonAskText, selectComparison } = require('./doctorPlanNarrow');
+const { medsFromAsk } = require('./comparisonRules');
+// Time held back from the doctor checks so listed meds still get priced in the same chat turn.
+const MEDS_RESERVE_MS = Number(process.env.MAX_CHAT_MEDS_RESERVE_MS || 20_000);
 const {
   querySunfireProviderList,
   inNetworkLabelsFromSunfirePlans,
@@ -526,9 +529,14 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   }
   const common = { zip: toolInput.zip, state: toolInput.state, year: toolInput.year, planId: toolInput.planId };
   const npiCap = doctors.length > 1 ? BATCH_NPI_CAP : SINGLE_NPI_CAP;
+  const askText = doctors.length > 1 ? comparisonAskText(context.messages || [], conversationAskText(context.messages || [])) : '';
+  // Rule 8: meds she already listed are priced here, in the same turn — not left for a
+  // later model round that the chat wait never reaches.
+  const meds = doctors.length > 1 ? medsFromAsk(askText) : [];
+  const doctorDeadline = meds.length && deadlineAt - Date.now() > MEDS_RESERVE_MS + 15_000 ? deadlineAt - MEDS_RESERVE_MS : deadlineAt;
   const results = await Promise.all(doctors.map((d) => lookupDoctor(
     { ...common, ...d, planId: d.planId || common.planId },
-    { deadlineAt, npiCap }
+    { deadlineAt: doctorDeadline, npiCap }
   )));
 
   if (doctors.length === 1) {
@@ -538,8 +546,21 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
 
   const done = results.filter((r) => r.status === 'done').length;
   const doctorsStructured = results.map((r) => ({ ...r.structured, requestedName: r.doctorName, status: r.status }));
-  const askText = comparisonAskText(context.messages || [], conversationAskText(context.messages || []));
-  const summary = batchSummaryForModel(doctorsStructured, askText, { answered: narrowingAnswered(context.messages) });
+  const answered = narrowingAnswered(context.messages);
+  let drugs = [];
+  if (meds.length) {
+    const planIds = selectComparison(doctorsStructured, askText, { answered }).columns.map((c) => c.planId);
+    if (planIds.length) {
+      const { lookupFormularyCached } = require('./compareJobs'); // lazy: compareJobs requires this file
+      const year = Number(common.year) || Number(UHC_PLAN_YEAR) || 2027;
+      drugs = (await Promise.all(meds.map((drugName) => raceDeadline(
+        lookupFormularyCached({ drugName, planIds, year }).catch(() => null),
+        deadlineAt,
+        () => null,
+      )))).filter(Boolean);
+    }
+  }
+  const summary = batchSummaryForModel(doctorsStructured, askText, { answered, drugs });
   // Per-doctor notes only where something failed or is pending — no full plan dumps.
   const notes = results
     .filter((r) => r.status !== 'done' || /Could not complete|NOT CONFIRMED/.test(r.text))
@@ -553,6 +574,11 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
     text: [header, '', summary.text, notes.length ? `\nNOTES:\n${notes.join('\n')}` : ''].join('\n').slice(0, 12000),
     structured: { doctors: doctorsStructured, finished: done, total: results.length, questions: summary.questions },
     expand: doctorsStructured,
+    // Priced meds ride along as their own tool results (fallback tables + Excel/PDF export read them).
+    extraToolResults: drugs.map((r) => {
+      const { toExportDrug, toExportDrugs } = require('./formularyLookup');
+      return { tool: 'lookup_formulary', output: { ...r, drug: toExportDrug(r), drugs: toExportDrugs(r) } };
+    }),
     status: done === results.length ? 'done' : 'partial',
   };
 }

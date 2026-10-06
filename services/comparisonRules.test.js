@@ -248,3 +248,25 @@ describe('agent follow-ups (2026-10-06 replay: carriers by name, numbered answer
     assert.doesNotMatch(t, /Carriers requested/);
   });
 });
+
+describe('partial doctor-match answers', () => {
+  const q = '**To narrow to 2–3 plans:**\n1. Does the client have Medicaid or a Medicare Savings Program? — Yes / No.\n2. Confirm the doctor match (their In/Out stays ❔ not confirmed until you do): Ian Del Conde → Cesar A Conde (NPI 1932159043); Yavagal → Dileep Rajhavendra Yavagal (NPI 1689661217). Right doctors? If not, send the NPI.';
+  const ask = (a) => n.comparisonAskText([{ role: 'user', content: 'Client ZIP 33172. Doctors: Ian Del Conde, Yavagal.' }, { role: 'assistant', content: q }, { role: 'user', content: a }]);
+
+  it('"Yavagal correct, Del Conde wrong" confirms one and rejects one — a blanket yes is not assumed', () => {
+    const t = ask('1. no 2. Yavagal correct, Del Conde wrong');
+    assert.match(t, /^Doctor matches confirmed: Yavagal\.$/m);
+    assert.match(t, /^Doctor matches wrong: Ian Del Conde\.$/m);
+  });
+
+  it('a rejected match is never counted and Max asks for the NPI', () => {
+    const A = 'UHC MedicareMax MA FL-0028 (HMO) (H5420-001)';
+    const docs = [doc('Ian Del Conde', 'CESAR A CONDE', '1932159043', [A], []), doc('Yavagal', 'DILEEP RAJHAVENDRA YAVAGAL', '1689661217', [A], [])];
+    const sel = n.selectComparison(docs, ask('1. no 2. Yavagal correct, Del Conde wrong'), { answered: true });
+    const conde = sel.doctors.find((d) => d.requestedName === 'Ian Del Conde');
+    assert.equal(conde.identityPending, 'wrong');
+    assert.match(n.doctorLabel(conde), /⚠️ wrong doctor — send the NPI$/);
+    assert.ok(sel.questions.some((x) => /^Send the NPI for Ian Del Conde — the match I found was the wrong doctor/.test(x)));
+    assert.doesNotMatch(n.doctorLabel(sel.doctors[1]), /⚠️/);
+  });
+});

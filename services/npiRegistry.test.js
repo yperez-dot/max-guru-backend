@@ -130,3 +130,49 @@ describe2('cleanDoctorQuery (reopened workup names)', () => {
     assert2.equal(cleanDoctorQuery('1417108895'), '1417108895');
   });
 });
+
+describe('doctor match never swaps in a different person (2026-10-06 live bugs)', () => {
+  const { resolveNpiRecords } = require('./npiRegistry');
+  const person = (npi, first, middle, last, cred, zip, tax = 'Internal Medicine') => ({
+    number: npi,
+    basic: { first_name: first, middle_name: middle, last_name: last, credential: cred },
+    addresses: [{ address_purpose: 'LOCATION', postal_code: `${zip}0000` }],
+    taxonomies: [{ primary: true, desc: tax }],
+  });
+  // Fake NPPES: answers by last_name (+ first_name when sent).
+  const DIR = [
+    person('1932159043', 'CESAR', 'A', 'CONDE', 'MD', '33172'),
+    person('1111111111', 'IAN', '', 'DEL CONDE', 'MD', '33176'),
+    person('1073390662', 'AMANDA', 'C', 'SOSA', 'RBT', '33172', 'Behavior Technician'),
+    person('2222222222', 'MARIA', '', 'SOSA', 'MD', '33172'),
+  ];
+  async function withNppes(fn) {
+    const saved = global.fetch;
+    global.fetch = async (url) => {
+      const q = new URL(url).searchParams;
+      const last = (q.get('last_name') || '').toUpperCase();
+      const first = (q.get('first_name') || '').toUpperCase();
+      const results = DIR.filter((r) => r.basic.last_name === last && (!first || r.basic.first_name === first));
+      return { ok: true, json: async () => ({ results: q.get('enumeration_type') === 'NPI-2' ? [] : results }) };
+    };
+    try { return await fn(); } finally { global.fetch = saved; }
+  }
+
+  it('"Ian Del Conde" → Ian Del Conde, not Cesar A Conde', async () => {
+    const r = await withNppes(() => resolveNpiRecords({ doctorName: 'Ian Del Conde', zip: '33172' }));
+    assert.equal(r[0].number, '1111111111');
+  });
+
+  it('"Carlos Sosa" with no Carlos Sosa on file → no match (never Amanda Sosa, RBT, or Maria Sosa)', async () => {
+    const r = await withNppes(() => resolveNpiRecords({ doctorName: 'Carlos Sosa', zip: '33172' }));
+    assert.deepEqual(r.map((x) => x.number), []);
+  });
+
+  it('first name outranks ZIP; non-providers drop out', () => {
+    const ranked = rankResults([
+      person('1', 'AMANDA', '', 'SOSA', 'RBT', '33172', 'Behavior Technician'),
+      person('2', 'CARLOS', '', 'SOSA', 'MD', '33010'),
+    ], { zip: '33172', firstName: 'Carlos' });
+    assert.equal(ranked[0].number, '2');
+  });
+});

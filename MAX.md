@@ -44,6 +44,9 @@ To grow the verified list: run `node scripts/sob_verify_report.js` somewhere tha
     - Listed meds are never asked for again — the tool result tells the model to call `lookup_formulary` with every table planId.
     - **Carriers by name (2026-10-06):** "show me Doctors, Solis, Devoted" / "client wants Devoted" → the columns are those carriers' best eligible plans (top 3 when she names one). `comparisonAskText()` turns the newest carrier ask into `Carriers requested: …`; a later plan-ID ask switches back.
     - **Numbered replies:** "1. no, 2. cardiovascular disorder, 3. yes" are mapped to Max's numbered questions (No Medicaid / C-SNP condition confirmed / doctor matches confirmed). Eligibility and doctor-match questions stay open until answered.
+    - **Doctor search (2026-10-06):** `npiRegistry.resolveNpiRecords` tries compound last names first ("Ian Del Conde" → last name "Del Conde"), ranks first name above ZIP, drops non-providers (RBT, counselors, techs), and never falls back to a different first name — no match ("send the NPI") beats a wrong doctor.
+    - **Partial confirmations:** "Yavagal correct, Del Conde wrong" confirms one and rejects one; a rejected match shows "⚠️ wrong doctor — send the NPI" and is never counted.
+    - **Meds in chat:** the doctor batch holds back `MAX_CHAT_MEDS_RESERVE_MS` (20s) and prices every listed med on the table plans in the same turn; results ride along as `lookup_formulary` tool results.
     - **Wrong-doctor matches:** a matched first name that differs from the asked name ("Ian Del Conde" → Cesar A Conde, "Carlos Sosa" → Amanda C Sosa) is flagged "different name — confirm match", and that doctor's In/Out is `❔ not confirmed` until she confirms.
 
 Full chat rules: `services/claude.js` `SYSTEM_PROMPT` (also baked into the HTML UI).

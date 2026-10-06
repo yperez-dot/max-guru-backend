@@ -73,6 +73,16 @@ stub('sunfireProvider', {
   inNetworkLabelsFromSunfirePlans: () => [],
 });
 
+knobs.rxCalls = [];
+stub('compareJobs', {
+  lookupFormularyCached: async ({ drugName, planIds }) => {
+    knobs.rxCalls.push({ drugName, planIds });
+    const byPlanId = {};
+    for (const id of planIds) byPlanId[id] = { planId: id, verified: true, tier: 1, coverage: 'covered', costShare: '$0' };
+    return { drugName, lookups: Object.values(byPlanId), byPlanId };
+  },
+});
+
 const originalFetch = global.fetch;
 global.fetch = async () => ({ ok: false, json: async () => ({}) }); // FHIR misses
 
@@ -263,5 +273,21 @@ describe('follow-up plan edits + Devoted single network', () => {
   it('a Devoted directory hit is ✅ In for the Devoted plan (one network for all plans)', () => {
     const doc = { requestedName: 'Howard Bush', status: 'done', carriersIn: ['Devoted Health'], inNetworkPlans: [], outOfNetworkPlans: [] };
     assert.match(n.fallbackAnswer([doc], first), /\| Howard Bush \| ❔ not confirmed \| ❔ not confirmed \| ✅ In \|/);
+  });
+});
+
+describe('chat batch prices listed meds in the same turn (rule 8)', () => {
+  it('runs every listed med on every table plan and hands the results to the fallback/export', async () => {
+    clearProviderCache();
+    knobs.rxCalls = [];
+    const messages = [{ role: 'user', content: 'Client ZIP 33332. No Medicaid. Doctors: Ernesto Padron, Howard Bush. Meds: Eliquis, metformin. Suggest 2-3 plans' }];
+    const out = await lookupProviderNetwork({ doctors: [{ doctorName: 'Ernesto Padron' }, { doctorName: 'Howard Bush' }], zip: '33332' }, { deadlineAt: Date.now() + 5000, messages });
+    assert.deepEqual(knobs.rxCalls.map((c) => c.drugName).sort(), ['Eliquis', 'metformin']);
+    const tableIds = knobs.rxCalls[0].planIds;
+    assert.ok(tableIds.includes('H1036-065C') && tableIds.includes('H1045-005'));
+    assert.equal(out.extraToolResults.length, 2);
+    assert.equal(out.extraToolResults[0].tool, 'lookup_formulary');
+    assert.match(out.text, /Meds are already checked on every table plan/);
+    assert.doesNotMatch(out.text, /MEDS ALREADY GIVEN — before answering/);
   });
 });
