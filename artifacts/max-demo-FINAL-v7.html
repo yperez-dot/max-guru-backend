@@ -1177,7 +1177,7 @@
       if (blobHasPlanId(inBlob, plan)) return NETWORK_IN;
       if (blobHasPlanId(outBlob, plan)) return NETWORK_OUT;
       if (!carrierMatchesPlan(net.carrier, plan)) continue;
-      if (net.status === "failed") {
+      if (net.status === "failed" || net.status === "pending") {
         fallback = fallback || NETWORK_NEED_MORE;
         continue;
       }
@@ -1185,10 +1185,11 @@
       // network: Devoted (all plans) and Doctors DrMax-Dade / DrSelect-SFL (Yahoska,
       // 2026-10-06). Same rule as the chat table (doctorPlanNarrow.carrierHitIsPlanHit).
       if (net.inNetwork === true && !(net.plans && net.plans.length) && carrierHitIsPlanHit(net.carrier, plan)) return NETWORK_IN;
-      // Everything else is not an Out: a directory that does not list the doctor, or an
-      // In for a DIFFERENT plan of the same carrier, stays "Not confirmed". Only an explicit
-      // out-of-network plan list (outBlob above) or something the agent says means Out.
-      void missIsUnknown;
+      // One-network directory (Devoted; Doctors DrMax/DrSelect) that answered and did not
+      // list the doctor → Out. Same rule as the chat table (doctorPlanNarrow.directoryFinished).
+      if (net.inNetwork === false && net.status === "checked" && !missIsUnknown && carrierHitIsPlanHit(net.carrier, plan)) return NETWORK_OUT;
+      // Everything else is not an Out: an In for a DIFFERENT plan of the same carrier, a
+      // carrier-level miss on a plan with its own network, or a clinic/org stays "Not confirmed".
     }
     return fallback;
   }

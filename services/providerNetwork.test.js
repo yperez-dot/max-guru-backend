@@ -84,7 +84,7 @@ stub('compareJobs', {
 });
 
 const originalFetch = global.fetch;
-global.fetch = async () => ({ ok: false, json: async () => ({}) }); // FHIR misses
+global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ total: 0, entry: [] }) }); // FHIR misses (answered, not listed)
 
 const { lookupProviderNetwork, clearProviderCache, normalizeDoctorList } = require('./providerNetwork');
 
