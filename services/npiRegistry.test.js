@@ -176,3 +176,22 @@ describe('doctor match never swaps in a different person (2026-10-06 live bugs)'
     assert.equal(ranked[0].number, '2');
   });
 });
+
+describe('longer registered last names (Ian Del Conde → DEL CONDE POZZI)', () => {
+  const { resolveNpiRecords } = require('./npiRegistry');
+  it('finds Ian Del Conde Pozzi with a trailing-wildcard last name', async () => {
+    const saved = global.fetch;
+    global.fetch = async (url) => {
+      const q = new URL(url).searchParams;
+      const last = (q.get('last_name') || '').toUpperCase();
+      const first = (q.get('first_name') || '').toUpperCase();
+      const rec = { number: '1649309139', basic: { first_name: 'IAN', last_name: 'DEL CONDE POZZI', credential: 'MD' }, addresses: [], taxonomies: [{ primary: true, desc: 'Cardiovascular Disease' }] };
+      const hit = q.get('enumeration_type') === 'NPI-1' && first === 'IAN' && last === 'DEL CONDE*';
+      return { ok: true, json: async () => ({ results: hit ? [rec] : [] }) };
+    };
+    try {
+      const r = await resolveNpiRecords({ doctorName: 'Ian Del Conde', zip: '33172' });
+      assert.equal(r[0] && r[0].number, '1649309139');
+    } finally { global.fetch = saved; }
+  });
+});

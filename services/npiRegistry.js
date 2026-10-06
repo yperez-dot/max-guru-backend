@@ -394,6 +394,19 @@ async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limi
     results = await lookupByName({ ...attempt, zip, state, limit });
     if (results.length) return results;
   }
+  // Longer registered last names: "Ian Del Conde" is NPPES "DEL CONDE POZZI". NPPES takes a
+  // trailing * after 2+ letters; the first name still has to agree.
+  if (parsed.firstName) {
+    const stems = [];
+    if (tokens.length >= 3) stems.push(tokens.slice(1).join(' '));
+    if (parsed.lastName) stems.push(parsed.lastName);
+    for (const stem of [...new Set(stems)]) {
+      if (stem.replace(/[^A-Za-z]/g, '').length < 2) continue;
+      const wild = await lookupByName({ firstName: tokens[0], lastName: `${stem}*`, zip, state, limit: CMS_PAGE_LIMIT });
+      const keep = wild.filter((r) => firstNameAgrees(r, tokens[0])).slice(0, limit);
+      if (keep.length) return keep;
+    }
+  }
   // Last name only — but only people whose first name agrees with hers. A different
   // first name is a different person: better "no NPI match, send the NPI" than a wrong doctor.
   if (parsed.lastName && parsed.firstName) {
