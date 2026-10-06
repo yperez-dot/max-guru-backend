@@ -88,11 +88,11 @@ function toAnthropicTools(tools) {
  * the same every round of a turn) and the latest message (each tool round reuses the
  * conversation so far).
  */
-function buildAnthropicBody({ model, system, messages, tools, maxTokens, temperature = 0.3 }) {
+function buildAnthropicBody({ model, system, messages, tools, maxTokens }) {
+  // No `temperature`: current Claude models reject it ("deprecated for this model", live 2026-10-06).
   const body = {
     model,
     max_tokens: maxTokens || 8000,
-    temperature,
     messages: toAnthropicMessages(messages),
   };
   if (system) body.system = [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }];
