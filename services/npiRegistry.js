@@ -135,9 +135,9 @@ function looksLikeOrganization(name) {
   if (/^\d{10}$/.test(s)) return false;
   if (/\b(MD|DO|NP|ARNP|APRN)\b/i.test(s) && !ORG_HINT_RE.test(s)) return false;
   if (/^[A-Za-z][A-Za-z'.-]+,\s+[A-Za-z]/.test(s) && !ORG_HINT_RE.test(s)) return false;
-  if (ORG_HINT_RE.test(s)) return true;
-  const words = s.split(/\s+/).filter(Boolean);
-  return words.length >= 4;
+  // Only a clinic word (or &) makes it a clinic. Four plain words is a person with two
+  // surnames ("Carlos Alberto Sosa Rosales"), not a company — live bug 2026-10-06.
+  return ORG_HINT_RE.test(s);
 }
 
 function orgQueryVariants(name) {
@@ -416,7 +416,17 @@ async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limi
   }
 
   if (!orgFirst && doctorName) {
-    return lookupByOrganizationName({ organizationName: doctorName, zip, state, limit });
+    const orgs = await lookupByOrganizationName({ organizationName: doctorName, zip, state, limit });
+    // A person's name only matches a clinic that carries their surname ("Sosa"), never one
+    // that shares first names ("CARLOS ALBERTO ALSINA MORFA APRN CORP" ≠ Carlos Alberto Sosa Rosales).
+    const surnames = tokens.slice(tokens.length >= 4 ? 2 : 1)
+      .map((t) => t.toUpperCase().replace(/[^A-Z]/g, ''))
+      .filter((t) => t.length >= 3 && !SURNAME_PARTICLES.has(t.toLowerCase()));
+    if (!surnames.length) return orgs;
+    return orgs.filter((r) => {
+      const words = orgTokenSet(r?.basic?.organization_name);
+      return surnames.some((t) => words.has(t));
+    });
   }
   return results;
 }

@@ -168,6 +168,27 @@ describe('doctor match never swaps in a different person (2026-10-06 live bugs)'
     assert.deepEqual(r.map((x) => x.number), []);
   });
 
+  it('"Carlos Alberto Sosa Rosales" is a person, never "CARLOS ALBERTO ALSINA MORFA APRN CORP" (live 2026-10-06)', async () => {
+    assert.equal(looksLikeOrganization('Carlos Alberto Sosa Rosales'), false);
+    assert.equal(looksLikeOrganization('Juan Diego Cedeno'), false);
+    assert.equal(looksLikeOrganization('Miami Neurology & Rehab Specialists'), true);
+    const corp = { number: '1619560547', enumeration_type: 'NPI-2', basic: { organization_name: 'CARLOS ALBERTO ALSINA MORFA APRN CORP' }, addresses: [{ address_purpose: 'LOCATION', postal_code: '331740000' }], taxonomies: [{ primary: true, desc: 'Clinic/Center' }] };
+    const sosaClinic = { ...corp, number: '3333333333', basic: { organization_name: 'SOSA FAMILY MEDICAL CENTER' } };
+    const saved = global.fetch;
+    let orgs = [corp];
+    global.fetch = async (url) => {
+      const q = new URL(url).searchParams;
+      return { ok: true, json: async () => ({ results: q.get('enumeration_type') === 'NPI-2' ? orgs : [] }) };
+    };
+    try {
+      const r = await resolveNpiRecords({ doctorName: 'Carlos Alberto Sosa Rosales', zip: '33172' });
+      assert.deepEqual(r.map((x) => x.number), []);
+      orgs = [corp, sosaClinic];
+      const r2 = await resolveNpiRecords({ doctorName: 'Carlos Alberto Sosa Rosales', zip: '33172' });
+      assert.deepEqual(r2.map((x) => x.number), ['3333333333']);
+    } finally { global.fetch = saved; }
+  });
+
   it('first name outranks ZIP; non-providers drop out', () => {
     const ranked = rankResults([
       person('1', 'AMANDA', '', 'SOSA', 'RBT', '33172', 'Behavior Technician'),
