@@ -63,7 +63,8 @@ describe('the bug-report client (fallback reply)', () => {
   });
 
   it('rule 6: counts are "X in · Y out · Z unchecked", never X/7', () => {
-    assert.match(text, /\| \*\*Doctors\*\* \| \*\*3 in · 3 out · 1 unchecked\*\* \|/);
+    // Yavagal / Krajewski are unconfirmed last-name matches → not counted until she confirms.
+    assert.match(text, /\| \*\*Doctors\*\* \| \*\*2 in · 2 out · 3 unchecked\*\* \|/);
     assert.doesNotMatch(text, /\b\d\/7\b/);
   });
 
@@ -81,10 +82,10 @@ describe('the bug-report client (fallback reply)', () => {
   });
 
   it('rule 10: doctors as matched (full name + NPI); last-name-only asks flagged and confirmed', () => {
-    assert.match(text, /\| Dileep R Yavagal \(asked: Yavagal\) · NPI 1000000005 ⚠️ confirm match \| ✅ In \|/);
+    assert.match(text, /\| Dileep R Yavagal \(asked: Yavagal\) · NPI 1000000005 ⚠️ confirm match \| ❔ not confirmed \|/);
     assert.match(text, /Ian Del Conde · NPI 1000000001/);
     assert.doesNotMatch(text, /M\.D\./);
-    assert.match(text, /Confirm the doctor match before I rely on it: Yavagal → Dileep R Yavagal \(NPI 1000000005\); Krajewski → Karol Krajewski/);
+    assert.match(text, /Confirm the doctor match \(their In\/Out stays ❔ not confirmed until you do\): Yavagal → Dileep R Yavagal \(NPI 1000000005\); Krajewski → Karol Krajewski/);
   });
 
   it('rule 11: Eliquis flags possible C-SNP eligibility, never assumed', () => {
@@ -192,5 +193,58 @@ describe('model tool result (chat path)', () => {
     assert.match(text, /Why these plans: \d+ eligible plans checked in Miami-Dade/);
     assert.match(text, /MEDS ALREADY GIVEN — before answering, call lookup_formulary once per drug \(Eliquis, atorvastatin, chlorthalidone\) with planIds \[H5420-001[^\]]*\]/);
     assert.doesNotMatch(text, /Any meds to check/);
+  });
+});
+
+describe('agent follow-ups (2026-10-06 replay: carriers by name, numbered answers, wrong matches)', () => {
+  const A = 'UHC MedicareMax MA FL-0028 (HMO) (H5420-001)';
+  const U = 'UHC Preferred MA FL-0001 (HMO) (H1045-001)';
+  const docs = [
+    doc('Ian Del Conde', 'CESAR A CONDE', '1932159043', [A, U], [], { carriersIn: ['Doctors HealthCare Plans'] }),
+    doc('Juan D Cedeno', 'JUAN DIEGO CEDENO', '1043665177', [A], [U], { carriersIn: ['Doctors HealthCare Plans', 'Devoted Health'] }),
+    doc('Carlos Sosa', 'AMANDA C SOSA RBT', '1073390662', [], [A, U]),
+    doc('Yavagal', 'DILEEP RAJHAVENDRA YAVAGAL', '1689661217', [A], [U], { carriersIn: ['Devoted Health'] }),
+  ];
+  const firstAsk = 'Client ZIP 33172. Doctors: Ian Del Conde, Juan D Cedeno, Carlos Sosa, Yavagal. Meds: Eliquis. Suggest 2-3 2027 plans.';
+  const maxQs = '**To narrow to 2–3 plans:**\n1. Does the client have Medicaid or a Medicare Savings Program? — Yes, full Medicaid / Yes, MSP only (QMB, SLMB, QI) / No.\n2. Does the client have a C-SNP qualifying chronic condition, confirmed by diagnosis? — Yes (which one) / No.\n3. Confirm the doctor match before I rely on it: Yavagal → Dileep Rajhavendra Yavagal (NPI 1689661217). Right doctors?';
+  const reply = '1. no, 2. eliquis cardiovascular disorder. 3. yes those are are correct. so lets instea of these plans show Me doctors health, solis, devoted';
+  const msgs = [{ role: 'user', content: firstAsk }, { role: 'assistant', content: maxQs }, { role: 'user', content: reply }];
+
+  it('reads her numbered replies and the carrier ask', () => {
+    const t = n.comparisonAskText(msgs);
+    assert.match(t, /^No Medicaid\.$/m);
+    assert.match(t, /^C-SNP qualifying condition confirmed: eliquis cardiovascular disorder\.$/m);
+    assert.match(t, /^Doctor matches confirmed: Yavagal\.$/m);
+    assert.match(t, /^Carriers requested: Doctors HealthCare, Solis, Devoted\.$/m);
+    assert.deepEqual(R.carriersRequested('client wants doctos health and solis and cevoted'), ['Doctors HealthCare', 'Solis', 'Devoted']);
+    assert.deepEqual(R.carriersRequested('Doctors: Juan Cedeno, Carlos Sosa. Suggest plans'), [], 'a doctor list is not a carrier ask');
+  });
+
+  it('columns are the carriers she asked for — one best eligible plan each', () => {
+    const text = n.fallbackAnswer(docs, n.comparisonAskText(msgs), { answered: n.narrowingAnswered(msgs) });
+    const header = text.split('\n').find((l) => l.startsWith('| Doctor |'));
+    assert.match(header, /\| Doctors [^|]*H4140-\d{3}[^|]*\| Solis [^|]*H0982-\d{3}[^|]*\| Devoted [^|]*H1290-\d{3}[^|]*\|$/);
+    assert.doesNotMatch(header, /UHC|Humana/);
+    assert.match(text, /^Why these plans: you asked for Doctors HealthCare, Solis, Devoted — best eligible plan per carrier/m);
+    assert.match(text, /D-SNPs — no Medicaid\/MSP/);
+    assert.doesNotMatch(text, /Medicaid or a Medicare Savings Program\?|C-SNP qualifying chronic condition, confirmed/, 'answered — not asked again');
+    assert.match(text, /Solis has no live directory check/);
+  });
+
+  it('a different first name is flagged, not counted, and asked about; a confirmed match counts', () => {
+    const sel = n.selectComparison(docs, n.comparisonAskText(msgs), { answered: true });
+    const label = (req) => n.doctorLabel(sel.doctors.find((d) => d.requestedName === req));
+    assert.match(label('Ian Del Conde'), /^Cesar A Conde \(asked: Ian Del Conde\) · NPI 1932159043 ⚠️ different name — confirm match$/);
+    assert.match(label('Carlos Sosa'), /Amanda C Sosa Rbt \(asked: Carlos Sosa\).*⚠️ different name/);
+    assert.doesNotMatch(label('Yavagal'), /⚠️/, 'she confirmed Yavagal');
+    assert.match(sel.questions[0], /Confirm the doctor match .*Ian Del Conde → Cesar A Conde \(NPI 1932159043\); Carlos Sosa → Amanda C Sosa Rbt.*If not, send the NPI\./);
+    const table = n.gridTable(sel.doctors, sel.columns);
+    assert.match(table, /\| Cesar A Conde [^\n]*\| ❔ not confirmed \| ❔ not confirmed \| ❔ not confirmed \|/);
+    assert.match(table, /\| Dileep Rajhavendra Yavagal [^|]*\| [^|]*\| [^|]*\| ✅ In \|/, 'Devoted single network counts once confirmed');
+  });
+
+  it('newest ask wins: plan IDs after a carrier ask switch back to the named plans', () => {
+    const t = n.comparisonAskText([...msgs, { role: 'assistant', content: 'ok' }, { role: 'user', content: 'compare H5420-001 and H1045-001 instead' }]);
+    assert.doesNotMatch(t, /Carriers requested/);
   });
 });

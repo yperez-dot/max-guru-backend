@@ -42,6 +42,9 @@ To grow the verified list: run `node scripts/sob_verify_report.js` somewhere tha
     - Pool = every eligible plan on the THEI grid for the client's county (ZIP → county), not just plans a lookup returned. Rank: doctors in ↓ → out ↑ → verified drug cost ↑ → grid premium ↑. Over half the doctors unchecked → "Could not verify". Same carrier + identical doctor results → "Same network as above".
     - "Why these plans" line above every table; counts `X in · Y out · Z unchecked`; cells `❔ unchecked` / `❔ not confirmed` (never bare); doctors shown as matched name + NPI; last-name-only asks get "⚠️ confirm match" + a question.
     - Listed meds are never asked for again — the tool result tells the model to call `lookup_formulary` with every table planId.
+    - **Carriers by name (2026-10-06):** "show me Doctors, Solis, Devoted" / "client wants Devoted" → the columns are those carriers' best eligible plans (top 3 when she names one). `comparisonAskText()` turns the newest carrier ask into `Carriers requested: …`; a later plan-ID ask switches back.
+    - **Numbered replies:** "1. no, 2. cardiovascular disorder, 3. yes" are mapped to Max's numbered questions (No Medicaid / C-SNP condition confirmed / doctor matches confirmed). Eligibility and doctor-match questions stay open until answered.
+    - **Wrong-doctor matches:** a matched first name that differs from the asked name ("Ian Del Conde" → Cesar A Conde, "Carlos Sosa" → Amanda C Sosa) is flagged "different name — confirm match", and that doctor's In/Out is `❔ not confirmed` until she confirms.
 
 Full chat rules: `services/claude.js` `SYSTEM_PROMPT` (also baked into the HTML UI).
 

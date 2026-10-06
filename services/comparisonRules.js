@@ -30,6 +30,8 @@ B. TABLE DISPLAY
 9. UNIFORM UNKNOWN MARKER: Every unknown cell displays "❔ unchecked" (never checked) or "❔ not confirmed" (checked, no result). Never a bare icon. Doctor and drug legends must use identical wording.
 10. PROVIDER IDENTITY: Display each doctor as full name + specialty or NPI as matched. If only a last name was provided, confirm the match with the agent before running network checks.
 11. SNP FLAGS: If meds suggest a possible C-SNP qualifying condition (e.g., an anticoagulant suggesting a cardiovascular condition), flag it as "Possible C-SNP eligibility — agent must confirm diagnosis." Never assume it.
+12. CARRIERS ASKED BY NAME: When the agent asks for specific carriers ("show me Doctors, Solis, Devoted", "client wants Devoted"), the columns are those carriers' best eligible plans — never swap in other carriers or keep the old top 3. If a carrier has no eligible plan in the county, say so and why.
+13. NUMBERED REPLIES ARE ANSWERS: "1. no, 2. cardiovascular disorder, 3. yes" answers Max's numbered questions in order — apply them; never re-ask what she answered.
 Never invent plan rankings or eligibility. When the server tool result already contains a DOCTOR × PLAN TABLE and a "Why these plans" line, copy them as-is.
 `;
 
@@ -252,6 +254,45 @@ function medsFromAsk(askText) {
   return out;
 }
 
+// ─── carriers the agent asks for by name ("show me Doctors, Solis, Devoted") ──
+
+const CARRIER_WORDS = [
+  ['Doctors HealthCare', /\bdoc?to?r?s?'?\s*(?:health\s*care|healthcare|health|hc|plans?)\b|\bdrmax\b|\bdrselect\b/i],
+  ['Solis', /\bsol[iy]s\b/i],
+  ['Devoted', /\b[cd]evoted\b|\bdevote\b/i],
+  ['Humana', /\bhumana\b/i],
+  ['Aetna', /\baetna\b/i],
+  ['UnitedHealthcare', /\buhc\b|\bunited\s*health|\baarp\b|\bmedicaremax\b/i],
+  ['Simply', /\bsimply\b/i],
+  ['Wellcare', /\bwell\s*care\b/i],
+  ['CarePlus', /\bcare\s*plus\b/i],
+  ['Florida Blue', /\bflorida blue\b|\bfl blue\b|\bbluemedicare\b/i],
+  ['HealthSun', /\bhealth\s*sun\b/i],
+];
+const REQUEST_VERBS = /\b(show|compare|instead|use|switch|swap|look at|what about|how about|wants?|prefers?|only|give me|pull|run|check|try|those|these)\b/i;
+
+/**
+ * Carriers the agent asked to see, from ONE message ("lets instead of these plans
+ * show me doctors health, solis, devoted"). [] when the message is not a carrier ask.
+ * Doctor lists ("Doctors: …") and pasted plan names with IDs are not carrier asks.
+ */
+function carriersRequested(message) {
+  const t = String(message || '')
+    .replace(/\b(?:doctors?|drs?|providers?)\s*:[^\n]*/gi, ' ')
+    .replace(/[^,;.\n]{0,70}\b[HR]\d{4}-\d{3}[A-Z]?\b/gi, ' ');
+  if (!REQUEST_VERBS.test(t)) return [];
+  return CARRIER_WORDS.filter(([, re]) => re.test(t)).map(([name]) => name);
+}
+
+/** Same carrier names the plan code uses (carrierKey in doctorPlanNarrow). */
+function carrierOfPlan(planLike) {
+  const p = planLike || {};
+  const t = `${p.carrier || ''} ${p.planName || p.name || ''}`;
+  for (const [name, re] of CARRIER_WORDS) if (re.test(t)) return name;
+  if (/\bdoctors\b/i.test(t)) return 'Doctors HealthCare';
+  return '';
+}
+
 // ─── money helpers (only exact grid / lookup dollars; ranges and blanks stay unknown) ─
 
 function exactDollars(v) {
@@ -284,4 +325,7 @@ module.exports = {
   medsFromAsk,
   sameDrug,
   exactDollars,
+  CARRIER_WORDS,
+  carriersRequested,
+  carrierOfPlan,
 };

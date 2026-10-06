@@ -103,6 +103,97 @@ function narrowingAnswered(messages) {
 }
 
 /** Doctor asked by last name only ("Yavagal", "Dr. Krajewski") — the NPI match needs the agent's OK. */
+function messageText(m) {
+  if (!m) return '';
+  if (typeof m.content === 'string') return m.content;
+  if (Array.isArray(m.content)) return m.content.map((p) => (typeof p === 'string' ? p : (p && p.text) || '')).join('\n');
+  return '';
+}
+
+/** "1. no, 2. eliquis cardiovascular disorder. 3. yes" → { 1: 'no', 2: 'eliquis …', 3: 'yes' } */
+function numberedAnswers(text) {
+  const t = ` ${String(text || '')}`;
+  const marks = [...t.matchAll(/(?:^|[\s,;(])(?:q|#)?([1-9])\s*[.):-]?\s+(?=\S)/gi)];
+  const out = {};
+  marks.forEach((m, i) => {
+    const start = m.index + m[0].length;
+    const end = i + 1 < marks.length ? marks[i + 1].index : t.length;
+    const k = Number(m[1]);
+    if (!out[k]) out[k] = t.slice(start, end).replace(/^[\s,;.]+|[\s,;.]+$/g, '');
+  });
+  return out;
+}
+
+/** The numbered questions in Max's last narrowing message, in order. */
+function askedQuestions(text) {
+  const t = String(text || '');
+  const qs = [];
+  for (const m of t.matchAll(/(?:^|\n|\s)(?:Q)?([1-9])[.)]\s+([^\n]*?)(?=(?:\s(?:Q)?[1-9][.)]\s)|\n|$)/g)) qs[Number(m[1])] = m[2];
+  return qs;
+}
+
+const NO_RE = /^\s*(no|nope|none|n\/a|na|ninguno|ninguna|no tiene)\b/i;
+const YES_RE = /^\s*(yes|yep|yeah|si|sí|correct|right|confirmed|ok|those are|they are)\b|\bcorrect\b/i;
+
+/** Turn her reply to Max's numbered questions into plain statements the selector reads. */
+function statementsFor(question, answer) {
+  const q = String(question || '');
+  const a = String(answer || '').trim();
+  if (!a) return [];
+  if (/Medicaid or a Medicare Savings Program/i.test(q)) {
+    if (NO_RE.test(a)) return ['No Medicaid.'];
+    if (/full/i.test(a)) return [`Full Medicaid. ${a}.`];
+    if (/msp|qmb|slmb|\bqi\b|qdwi|partial/i.test(a)) return [`MSP only: ${a}.`];
+    return [];
+  }
+  if (/Which MSP level/i.test(q)) return [`MSP only: ${a}.`];
+  if (/C-SNP qualifying/i.test(q)) {
+    if (NO_RE.test(a)) return ['No C-SNP qualifying condition.'];
+    return [`C-SNP qualifying condition confirmed: ${a}.`];
+  }
+  if (/Confirm the (doctor )?match/i.test(q)) {
+    const names = [...q.matchAll(/(?:^|[:;]\s*)([^:;→]+?)\s*→/g)].map((m) => m[1].trim());
+    if (YES_RE.test(a) && !NO_RE.test(a)) return names.length ? [`Doctor matches confirmed: ${names.join(', ')}.`] : [];
+    return [];
+  }
+  if (/must-keep/i.test(q)) return [`Must-keep doctors: ${a}.`];
+  if (/HMO OK|PPO/i.test(q)) return [/ppo/i.test(a) && !/hmo ok|either/i.test(a) ? 'Needs a PPO.' : `Network: ${a} (HMO ok).`];
+  if (/meds/i.test(q)) return NO_RE.test(a) ? ['No meds.'] : [`Meds: ${a}`];
+  return [];
+}
+
+/**
+ * The ask text the comparison reads: her recent messages, plus
+ *  - her numbered replies to Max's questions turned into statements
+ *    ("1. no" → "No Medicaid.", "3. yes" → "Doctor matches confirmed: …"),
+ *  - the carriers she asked to see ("show me doctors health, solis, devoted"),
+ *    newest request wins over older plan IDs.
+ */
+function comparisonAskText(messages, baseText) {
+  const msgs = Array.isArray(messages) ? messages : [];
+  const lines = [String(baseText != null ? baseText : msgs.filter((m) => m && m.role === 'user').slice(-4).map(messageText).join('\n'))];
+  for (let i = 0; i < msgs.length; i += 1) {
+    const m = msgs[i];
+    if (!m || m.role !== 'assistant') continue;
+    const qs = askedQuestions(messageText(m));
+    if (!qs.length) continue;
+    const reply = msgs.slice(i + 1).find((x) => x && x.role === 'user');
+    if (!reply) continue;
+    const answers = numberedAnswers(messageText(reply));
+    qs.forEach((q, k) => { if (q && answers[k]) statementsFor(q, answers[k]).forEach((st) => lines.push(st)); });
+  }
+  // Newest user message that asks for carriers or names plan IDs decides the columns.
+  for (let i = msgs.length - 1; i >= 0; i -= 1) {
+    const m = msgs[i];
+    if (!m || m.role !== 'user') continue;
+    const t = messageText(m);
+    const carriers = R.carriersRequested(t);
+    if (carriers.length) { lines.push(`Carriers requested: ${carriers.join(', ')}.`); break; }
+    if (/\b[HR]\d{4}-\d{3}[A-Z]?\b/i.test(t) && /\b(compare|show|add|instead|vs)\b/i.test(t)) break;
+  }
+  return lines.join('\n');
+}
+
 function lastNameOnly(d) {
   const asked = String((d && d.requestedName) || '')
     .replace(/\b(dr|md|m\.d|do|d\.o|pcp|primary|cardio\w*|neuro\w*|gyn\w*|obgyn|ortho\w*|derm\w*|uro\w*|gastro\w*|onc\w*|endo\w*|rheum\w*|pulm\w*|nephro\w*|podiat\w*|ophth\w*|optom\w*|ent|psych\w*|specialist|doctor)\b\.?/gi, ' ')
@@ -260,6 +351,8 @@ const NO_LIVE_DIRECTORY = ['Solis'];
 /** Rule 9: "❔ unchecked" = never checked, "❔ not confirmed" = checked, no result. */
 function unknownCell(d, carrier) {
   const status = d && d.status;
+  // A match she has not confirmed is never counted In or Out (rule 10).
+  if (d && d.identityPending) return R.NOT_CONFIRMED_CELL;
   if (status === 'timeout' || status === 'error') return R.UNCHECKED;
   if (status === 'not_found') return R.NOT_CONFIRMED_CELL;
   if (!carrier || NO_LIVE_DIRECTORY.includes(carrier)) return R.UNCHECKED;
@@ -276,14 +369,43 @@ function cleanName(n) {
     .trim();
 }
 
-/** Rule 10: the doctor as matched — full name + specialty/NPI; last-name-only asks get a confirm flag. */
+const ROLE_WORDS_RE = /\b(dr|md|m\.d|do|d\.o|pcp|primary|cardio\w*|neuro\w*|gyn\w*|obgyn|ortho\w*|derm\w*|uro\w*|gastro\w*|onc\w*|endo\w*|rheum\w*|pulm\w*|nephro\w*|podiat\w*|ophth\w*|optom\w*|ent|psych\w*|specialist|doctor)\b\.?/gi;
+
+function plainWords(t) {
+  return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(ROLE_WORDS_RE, ' ').split(/[^a-z']+/).filter((w) => w.length > 1);
+}
+
+/**
+ * Rule 10: is the NPI match the doctor she asked for?
+ * 'last_name' — asked by last name only; 'mismatch' — the matched first name is a
+ * different person ("Ian Del Conde" → Cesar A Conde, "Carlos Sosa" → Amanda C Sosa);
+ * '' — fine (or nothing was matched).
+ */
+function identityIssue(d) {
+  if (!d || !d.doctorName || !['done', 'partial'].includes(d.status)) return '';
+  if (lastNameOnly(d)) return 'last_name';
+  const asked = plainWords(shortDoctor(d));
+  const matched = plainWords(d.doctorName);
+  if (asked.length >= 2 && !matched.includes(asked[0])) return 'mismatch';
+  return '';
+}
+
+function sameDoctorName(a, b) {
+  const x = plainWords(a).join(' ');
+  const y = plainWords(b).join(' ');
+  return Boolean(x) && (x === y || x.includes(y) || y.includes(x));
+}
+
+/** Rule 10: the doctor as matched — full name + specialty/NPI; unconfirmed matches flagged. */
 function doctorLabel(d) {
   const asked = titleCase(shortDoctor(d));
-  const flag = lastNameOnly(d) ? ' ⚠️ confirm match' : '';
+  const issue = d && d.identityPending !== undefined ? d.identityPending : identityIssue(d);
+  const flag = issue === 'mismatch' ? ' ⚠️ different name — confirm match' : issue ? ' ⚠️ confirm match' : '';
   const matched = d && d.doctorName && !['not_found', 'timeout', 'error'].includes(d.status) ? cleanName(d.doctorName) : '';
-  if (!matched) return `${asked}${flag}`;
-  const askedWords = asked.toLowerCase().split(/[^a-zà-ÿ']+/).filter((w) => w.length > 1);
-  const same = askedWords.length > 0 && askedWords.every((w) => matched.toLowerCase().includes(w)) && !flag;
+  if (!matched) return `${asked}${lastNameOnly(d) ? ' ⚠️ confirm match' : ''}`;
+  const askedWords = plainWords(asked);
+  const same = askedWords.length > 0 && askedWords.every((w) => plainWords(matched).includes(w)) && !lastNameOnly(d);
   const name = same ? matched : `${matched} (asked: ${asked})`;
   const spec = d.specialty ? ` · ${titleCase(d.specialty)}` : '';
   const npi = d.npi ? ` · NPI ${d.npi}` : '';
@@ -330,7 +452,9 @@ function doctorLine(d) {
   const who = d.doctorName && d.doctorName !== name ? ` (${d.doctorName}${d.npi ? `, NPI ${d.npi}` : ''})` : (d.npi ? ` (NPI ${d.npi})` : '');
   const carriers = (d.carriersIn || []).length ? d.carriersIn.join(', ') : 'no in-network hit in finished checks';
   const pending = (d.pending || []).length ? ` · still pending: ${d.pending.join(', ')}` : '';
-  const flag = lastNameOnly(d) ? ' · ⚠️ asked by last name only — confirm this is the right doctor' : '';
+  const issue = d.identityPending !== undefined ? d.identityPending : identityIssue(d);
+  const flag = issue === 'mismatch' ? ' · ⚠️ matched a different name — confirm before using these results'
+    : issue ? ' · ⚠️ asked by last name only — confirm this is the right doctor' : '';
   return `- ${name}${who}: ${carriers}${pending}${flag}`;
 }
 
@@ -399,8 +523,21 @@ function bump(map, reason) {
  * named in the ask. opts.drugs: lookup_formulary results already finished.
  */
 function selectComparison(doctors, askText, opts = {}) {
-  const docs = Array.isArray(doctors) ? doctors : [];
+  const ask0 = String(askText || '');
+  // Rule 10: until she confirms a doctor match, its In/Out results do not count.
+  const confirmedMatches = [...ask0.matchAll(/Doctor matches confirmed:\s*([^\n]+)/gi)]
+    .flatMap((m) => m[1].split(/[,;]/)).map((x) => x.replace(/\.$/, '').trim()).filter(Boolean);
+  const docs = (Array.isArray(doctors) ? doctors : []).map((d) => {
+    const issue = identityIssue(d);
+    if (!issue || confirmedMatches.some((nm) => sameDoctorName(nm, shortDoctor(d)))) return { ...d, identityPending: '' };
+    return { ...d, identityPending: issue, inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] };
+  });
   const n = docs.length;
+  // "Carriers requested: Doctors HealthCare, Solis, Devoted" (comparisonAskText) — newest wins.
+  const carrierAsks = [...ask0.matchAll(/Carriers requested:\s*([^\n.]+)/gi)];
+  const carriers = carrierAsks.length
+    ? carrierAsks[carrierAsks.length - 1][1].split(',').map((c) => c.trim()).filter(Boolean)
+    : [];
   const drugs = (opts.drugs || []).filter(Boolean);
   const answered = Boolean(opts.answered);
   const ask = String(askText || '');
@@ -409,7 +546,7 @@ function selectComparison(doctors, askText, opts = {}) {
   if (constraints.noMedicaid) { elig.medicaid = 'none'; elig.levels = []; }
   const county = R.countyFromAsk(ask);
   const matrix = coverageMatrix(docs);
-  const named = Array.isArray(opts.named) ? opts.named : namedPlansFromAsk(ask, constraints);
+  const named = Array.isArray(opts.named) ? opts.named : (carriers.length ? [] : namedPlansFromAsk(ask, constraints));
   // Looked-up names first ("Atorvastatin Calcium"), then anything listed but not looked up yet.
   const meds = [];
   for (const m of [...drugs.map(drugNameOf), ...(opts.meds || []), ...R.medsFromAsk(ask)]) {
@@ -428,6 +565,8 @@ function selectComparison(doctors, askText, opts = {}) {
 
   const out = {
     named: named.length > 0,
+    carriers,
+    doctors: docs,
     county,
     eligibility: elig,
     columns: [],
@@ -459,7 +598,7 @@ function selectComparison(doctors, askText, opts = {}) {
       if (c.snp === 'csnp') csnpInPlay = true;
       if (e.status !== 'eligible') out.flags.push(`⚠️ ${shortPlanHeader(c)}: ${e.reason} — you named it, so it stays; confirm eligibility before enrolling.`);
     }
-  } else if (n > 0) {
+  } else if (n > 0 || carriers.length) {
     const gridRows = R.gridPlansForCounty(county);
     const pool = gridRows.length
       ? gridRows.map((g) => {
@@ -472,8 +611,12 @@ function selectComparison(doctors, askText, opts = {}) {
       : matrix.map((m) => ({ planId: m.planId, name: m.name, grid: null }));
     const excluded = new Map();
     const eligible = [];
+    const carrierExcluded = new Map(); // carrier → Map(reason → count)
     for (const p of pool) {
       const key = p.planId.slice(0, 9);
+      const planCarrier = R.carrierOfPlan(p.grid || { name: p.name });
+      // She asked for specific carriers: other carriers are out of scope, not "excluded".
+      if (carriers.length && !carriers.includes(planCarrier)) continue;
       if ([...constraints.skip].some((id) => id.slice(0, 9) === key)) { bump(excluded, 'plans you skipped / terminating'); continue; }
       const like = p.grid || { name: p.name };
       const net = R.networkType(like);
@@ -485,6 +628,10 @@ function selectComparison(doctors, askText, opts = {}) {
       if (e.status !== 'eligible') {
         if (e.status === 'unknown') snpUnknownKinds.add(kind);
         bump(excluded, e.reason);
+        if (carriers.length) {
+          if (!carrierExcluded.has(planCarrier)) carrierExcluded.set(planCarrier, new Map());
+          bump(carrierExcluded.get(planCarrier), e.reason);
+        }
         continue;
       }
       eligible.push(p);
@@ -516,9 +663,40 @@ function selectComparison(doctors, askText, opts = {}) {
       .filter((c) => c.counts.inN + c.counts.star > 0)
       .sort((a, b) => (b.counts.inN + b.counts.star) - (a.counts.inN + a.counts.star) || a.planId.localeCompare(b.planId));
 
+    if (carriers.length) {
+      // She asked for these carriers: show them — the best eligible plan per carrier
+      // (top 3 of one carrier when she named one). Never swapped for other carriers.
+      const byCarrier = (c) => cols.filter((x) => R.carrierOfPlan(x.grid || { name: x.name }) === c).sort((a, b) => (
+        b.counts.inN - a.counts.inN
+        || b.counts.star - a.counts.star
+        || a.counts.outN - b.counts.outN
+        || cmpKnown(a.drugCost, b.drugCost)
+        || cmpKnown(a.premium, b.premium)
+        || a.planId.localeCompare(b.planId)
+      ));
+      const perCarrier = carriers.length === 1 ? 3 : 1;
+      for (const c of carriers) {
+        const picks = byCarrier(c).slice(0, perCarrier);
+        out.columns.push(...picks);
+        if (!picks.length) {
+          const why = carrierExcluded.get(c);
+          out.flags.push(`⚠️ ${c}: no eligible plan in ${county || 'Miami-Dade/Broward'}${why ? ` — ${[...why.entries()].map(([r, k]) => `${r} (${k})`).join('; ')}` : ' on the THEI grid'}.`);
+        }
+      }
+      out.columns.filter((c) => !c.verifiable).forEach((c) => out.flags.push(`⚠️ ${shortPlanHeader(c)}: over half the doctors unchecked for this plan — shown because you asked for ${R.carrierOfPlan(c.grid || { name: c.name })}; verify in the carrier directory.`));
+      if (carriers.includes('Solis')) out.flags.push('⚠️ Solis has no live directory check (county PDF only) — Solis doctor cells stay ❔ unchecked until verified in the Solis provider PDF.');
+      const where = county || 'Miami-Dade + Broward (no ZIP/county given)';
+      const excludedText = out.excluded.length ? out.excluded.map((x) => `${x.reason} (${x.count})`).join('; ') : 'none';
+      out.whyLine = `Why these plans: you asked for ${carriers.join(', ')} — ${perCarrier === 1 ? 'best eligible plan per carrier' : `top ${perCarrier} eligible ${carriers[0]} plans`} from ${out.poolSize} eligible ${carriers.join(' / ')} plans in ${where}. ${R.RANK_ORDER} Excluded: ${excludedText}.`;
+      out.header = `**Doctors × ${carriers.join(', ')}** (the carriers you asked for — a count, not a recommendation)`;
+      out.ranked = cols.filter((c) => out.columns.includes(c));
+      out.couldNotVerify = [];
+      out.couldNotVerifyCount = 0;
+    }
+
     // Compare mode prices meds on a shortlist first; the table only draws from it (rule 8).
     const only = Array.isArray(opts.onlyPlanIds) ? new Set(opts.onlyPlanIds.map((id) => String(id).toUpperCase())) : null;
-    for (const c of ranked) {
+    for (const c of (carriers.length ? [] : ranked)) {
       if (out.columns.length >= 3) break;
       if (only && !only.has(c.planId)) continue;
       const twin = c.carrier ? out.columns.find((t) => signatureOf(t) === signatureOf(c)) : null;
@@ -526,6 +704,7 @@ function selectComparison(doctors, askText, opts = {}) {
       else out.columns.push(c);
     }
 
+    if (!carriers.length) {
     const where = gridRows.length
       ? (county || 'Miami-Dade + Broward (no ZIP/county given)')
       : `${county || 'the lookup results'} (THEI grid unavailable — only plans a doctor lookup returned)`;
@@ -535,6 +714,12 @@ function selectComparison(doctors, askText, opts = {}) {
     out.header = majority
       ? '**Doctors × top plans** (most of these doctors in network — a count, not a recommendation)'
       : '**Doctors × top plans** (best confirmed match shown first — a count, not a recommendation)';
+    }
+  }
+
+  // C-SNP plans in the table: the condition list is per plan — say so, never assume.
+  if (elig.csnp === 'confirmed') {
+    out.columns.filter((c) => c.snp === 'csnp').forEach((c) => out.flags.push(`⚠️ ${shortPlanHeader(c)} is a C-SNP — confirm the client's diagnosis is on this plan's qualifying-condition list before enrolling.`));
   }
 
   // Rule 11 — meds can suggest a C-SNP condition; never assume it.
@@ -555,7 +740,9 @@ function selectComparison(doctors, askText, opts = {}) {
   }
 
   // Questions (max 3): eligibility first (rule 1), then identity (rule 10), then the rest.
-  if (!answered && !out.named) {
+  // Eligibility and identity are asked even after a reply — while they are open, SNP plans
+  // stay out and unconfirmed doctors do not count, so they must never go quiet.
+  if (!out.named) {
     const qs = [];
     const dualUnknown = snpUnknownKinds.has('dsnp') || snpUnknownKinds.has('qmb');
     if (dualUnknown && elig.medicaid === 'msp' && !elig.levels.length) {
@@ -566,18 +753,18 @@ function selectComparison(doctors, askText, opts = {}) {
     if (snpUnknownKinds.has('csnp') && elig.csnp === 'unknown') {
       qs.push('Does {client} have a C-SNP qualifying chronic condition, confirmed by diagnosis? — Yes (which one) / No. (C-SNPs stay out until confirmed.)');
     }
-    const toConfirm = docs.filter((d) => lastNameOnly(d) && d.doctorName && !['not_found', 'timeout', 'error'].includes(d.status));
+    const toConfirm = docs.filter((d) => d.identityPending);
     if (toConfirm.length) {
-      qs.push(`Confirm the doctor match before I rely on it: ${toConfirm.map((d) => `${titleCase(shortDoctor(d))} → ${cleanName(d.doctorName)}${d.npi ? ` (NPI ${d.npi})` : ''}`).join('; ')}. Right doctor${toConfirm.length > 1 ? 's' : ''}?`);
+      qs.push(`Confirm the doctor match (their In/Out stays ❔ not confirmed until you do): ${toConfirm.map((d) => `${titleCase(shortDoctor(d))} → ${cleanName(d.doctorName)}${d.npi ? ` (NPI ${d.npi})` : ''}`).join('; ')}. Right doctor${toConfirm.length > 1 ? 's' : ''}? If not, send the NPI.`);
     }
     const top = out.columns;
-    if (!ASKED.mustKeep.test(ask) && n > 2 && top.length && !top.some((p) => p.in.length === n)) {
+    if (!answered && !carriers.length && !ASKED.mustKeep.test(ask) && n > 2 && top.length && !top.some((p) => p.in.length === n)) {
       qs.push('No single plan has all the doctors. Which doctors are must-keep? (e.g. the PCP + cardiologist)');
     }
-    if (!ASKED.network.test(ask) && top.some((p) => R.networkType(p.grid || { name: p.name }) === 'ppo') && top.some((p) => R.networkType(p.grid || { name: p.name }) === 'hmo')) {
+    if (!answered && !ASKED.network.test(ask) && top.some((p) => R.networkType(p.grid || { name: p.name }) === 'ppo') && top.some((p) => R.networkType(p.grid || { name: p.name }) === 'hmo')) {
       qs.push('HMO OK (referrals, in-network only), or do they need a PPO?');
     }
-    if (!meds.length && !ASKED.rx.test(ask)) {
+    if (!answered && !meds.length && !ASKED.rx.test(ask)) {
       qs.push('Any meds to check against the finalists? (names only)');
     }
     out.questions = personalize(qs.slice(0, 3), ask);
@@ -613,7 +800,7 @@ function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] }
   const sel = selectComparison(doctors, askText, { answered, drugs });
   const lines = [];
   lines.push('DOCTORS → carriers in network (finished checks):');
-  doctors.forEach((d) => lines.push(doctorLine(d)));
+  sel.doctors.forEach((d) => lines.push(doctorLine(d)));
   lines.push('');
   lines.push('Carrier-only hits (Florida Blue, HealthSun, Devoted FHIR) are directory facts without a plan ID. Cigna/HealthSpring is left out on purpose: it has NO 2027 Medicare Advantage plans (pulled out) — never mention Cigna as a 2027 option.');
   if (sel.columns.length) {
@@ -624,7 +811,7 @@ function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] }
     lines.push(sel.header);
     lines.push(sel.whyLine);
     lines.push('');
-    lines.push(gridTable(doctors, sel.columns));
+    lines.push(gridTable(sel.doctors, sel.columns));
     lines.push(R.LEGEND + (sel.columns.some((p) => (p.inCarrier || []).length) ? ` · ${R.IN_STAR_LEGEND}` : ''));
     lines.push('Top plans by count:');
     sel.columns.forEach((p) => lines.push(planLine(p, total)));
@@ -695,7 +882,7 @@ function fallbackAnswer(doctors, askText, { answered = false, drugs = [] } = {})
     lines.push(sel.header);
     lines.push(sel.whyLine);
     lines.push('');
-    lines.push(gridTable(doctors, top));
+    lines.push(gridTable(sel.doctors, top));
     lines.push('');
     const anyCarrier = top.some((p) => (p.inCarrier || []).length);
     lines.push(R.LEGEND + (anyCarrier ? ` · ${R.IN_STAR_LEGEND}` : ''));
@@ -738,6 +925,8 @@ module.exports = {
   coverageMatrix,
   askConstraints,
   narrowingAnswered,
+  comparisonAskText,
+  numberedAnswers,
   selectComparison,
   batchSummaryForModel,
   gridTable,

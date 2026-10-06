@@ -185,8 +185,11 @@ describe('lookup_provider_network batch (Padron 8 doctors)', () => {
       { role: 'user', content: '1 no 2 Ernesto and Howard 3 HMO ok' },
     ];
     const out = await lookupProviderNetwork({ doctors: [{ doctorName: 'Ernesto Padron' }, { doctorName: 'Howard Bush' }], zip: '33332' }, { deadlineAt: Date.now() + 2000, messages });
-    assert.match(out.text, /already answered the narrowing questions — present the table above \(2–3 plans\)/);
-    assert.deepEqual(out.structured.questions, []);
+    // "1 no" → No Medicaid; must-keep and HMO answered. Only the C-SNP eligibility question (rule 1) stays open.
+    assert.doesNotMatch(out.text, /Medicaid or a Medicare Savings Program\?|must-keep\?|HMO OK/);
+    assert.match(out.text, /D-SNPs — no Medicaid\/MSP/);
+    assert.equal(out.structured.questions.length, 1);
+    assert.match(out.structured.questions[0], /C-SNP qualifying chronic condition/);
   });
   it('runs every doctor\'s best NPI before anyone\'s backup NPI (Howard Bush fix)', async () => {
     const { createLimiter } = require('./providerNetwork');

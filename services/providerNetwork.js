@@ -29,7 +29,7 @@ const {
 const { formatSolisNote } = require('./solisDirectory');
 const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery } = require('./npiRegistry');
 const { conversationAskText } = require('./planYear');
-const { batchSummaryForModel, narrowingAnswered } = require('./doctorPlanNarrow');
+const { batchSummaryForModel, narrowingAnswered, comparisonAskText } = require('./doctorPlanNarrow');
 const {
   querySunfireProviderList,
   inNetworkLabelsFromSunfirePlans,
@@ -538,7 +538,7 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
 
   const done = results.filter((r) => r.status === 'done').length;
   const doctorsStructured = results.map((r) => ({ ...r.structured, requestedName: r.doctorName, status: r.status }));
-  const askText = conversationAskText(context.messages || []);
+  const askText = comparisonAskText(context.messages || [], conversationAskText(context.messages || []));
   const summary = batchSummaryForModel(doctorsStructured, askText, { answered: narrowingAnswered(context.messages) });
   // Per-doctor notes only where something failed or is pending — no full plan dumps.
   const notes = results
