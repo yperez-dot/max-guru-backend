@@ -211,6 +211,8 @@
       if (!phrase || GRID_TOPIC_RE.test(phrase)) continue;
       if (KNOWN_OFF_GRID.some((item) => item.re.test(phrase))) continue;
       if (/^(the|a|an|this|that|her|his|their|plan|plans|benefit|benefits|for|on)$/i.test(phrase)) continue;
+      // "need the client's full name", "need the NPI", "need more info" — not a benefit.
+      if (/\b(client|name|npi|doctor|doctors|info|information|answer|confirm|title|plan|plans|meds?)\b/i.test(phrase)) continue;
       const key = slugBenefitKey(phrase);
       if (!key || seen[key]) continue;
       add({
@@ -1152,6 +1154,19 @@
     });
   }
 
+  const SHARED_NETWORK_PLAN_IDS = { doctors: ["H4140-022", "H4140-023", "H4140-001", "H4140-012"] };
+
+  function carrierHitIsPlanHit(carrierLabel, plan) {
+    const c = String(carrierLabel || "").toLowerCase();
+    if (!carrierMatchesPlan(carrierLabel, plan)) return false;
+    if (/devoted/.test(c)) return true;
+    if (/doctors/.test(c)) {
+      const id = String((plan && (plan.planId || plan.id)) || "").toUpperCase().slice(0, 9);
+      return SHARED_NETWORK_PLAN_IDS.doctors.indexOf(id) >= 0;
+    }
+    return false;
+  }
+
   function statusFromProviderNetworks(plan, networks, opts) {
     let fallback = "";
     const missIsUnknown = Boolean(opts && opts.missIsUnknown);
@@ -1166,16 +1181,14 @@
         fallback = fallback || NETWORK_NEED_MORE;
         continue;
       }
-      // Carrier-level hit only when this lookup did not name PBPs (Doctors HCP).
-      if (net.inNetwork === true && !(net.plans && net.plans.length)) return NETWORK_IN;
-      // A clinic that a directory simply does not list is "not found", not Out. An explicit
-      // out-of-network plan list (outBlob above) or something the agent says still means Out.
-      if (net.inNetwork === false && net.status !== "failed" && /doctors/i.test(net.carrier || "") && !missIsUnknown) {
-        return NETWORK_OUT;
-      }
-      if (net.inNetwork === true) fallback = fallback || NETWORK_IN;
-      // Miss / empty session / other PBPs only — not an explicit OON. Leave
-      // unknown so a verified In network on this plan id is not overwritten.
+      // A carrier-level hit (no plan IDs) only counts as In where every plan shares one
+      // network: Devoted (all plans) and Doctors DrMax-Dade / DrSelect-SFL (Yahoska,
+      // 2026-10-06). Same rule as the chat table (doctorPlanNarrow.carrierHitIsPlanHit).
+      if (net.inNetwork === true && !(net.plans && net.plans.length) && carrierHitIsPlanHit(net.carrier, plan)) return NETWORK_IN;
+      // Everything else is not an Out: a directory that does not list the doctor, or an
+      // In for a DIFFERENT plan of the same carrier, stays "Not confirmed". Only an explicit
+      // out-of-network plan list (outBlob above) or something the agent says means Out.
+      void missIsUnknown;
     }
     return fallback;
   }
@@ -1226,7 +1239,8 @@
     }
     const parts = s.split(/\s+/).filter(Boolean);
     const last = (parts[parts.length - 1] || "").toLowerCase().replace(/[^a-z]/g, "");
-    const first = (parts[0] || "").toLowerCase().replace(/[^a-z]/g, "");
+    // "Dr. Krajewski" has no first name — not first initial "k".
+    const first = parts.length > 1 ? (parts[0] || "").toLowerCase().replace(/[^a-z]/g, "") : "";
     return { first, last };
   }
 
@@ -1255,6 +1269,10 @@
   }
 
   function mergeStatusPair(prev, incoming) {
+    // Two sources disagree (one In, one Out) → never pick one silently.
+    if ((prev === NETWORK_IN && incoming === NETWORK_OUT) || (prev === NETWORK_OUT && incoming === NETWORK_IN)) {
+      return NETWORK_NEED_MORE;
+    }
     if (prev === NETWORK_IN || prev === NETWORK_OUT) return prev;
     if (incoming === NETWORK_IN || incoming === NETWORK_OUT) return incoming;
     if (prev === NETWORK_NEED_MORE || incoming === NETWORK_NEED_MORE) {
@@ -1267,7 +1285,19 @@
     const byKey = new Map();
     (lists || []).forEach((list) => {
       normalizeDoctors(list, plans).forEach((doc) => {
-        const key = doctorIdentityKey(doc.name) || doc.name.toLowerCase();
+        let key = doctorIdentityKey(doc.name) || doc.name.toLowerCase();
+        // "Dr. Krajewski" (last name only) and "Dr. Eduardo Krajewski" are one doctor
+        // when exactly one full-name row shares that last name.
+        if (/^person:[a-z]+$/.test(key)) {
+          const full = [...byKey.keys()].filter((k) => k.indexOf(key + ":") === 0);
+          if (full.length === 1) key = full[0];
+        } else if (/^person:[a-z]+:[a-z]$/.test(key)) {
+          const bare = key.replace(/:[a-z]$/, "");
+          if (byKey.has(bare) && ![...byKey.keys()].some((k) => k !== key && k.indexOf(bare + ":") === 0)) {
+            byKey.set(key, byKey.get(bare));
+            byKey.delete(bare);
+          }
+        }
         const prev = byKey.get(key);
         if (!prev) {
           byKey.set(key, doc);
@@ -2217,6 +2247,14 @@
     return lastUser;
   }
 
+  const CARRIER_ASK_RE = /\bdoc?to?r?s?'?\s*(?:health\s*care|healthcare|health|hc)\b|\bsol[iy]s\b|\b[cd]evoted\b|\bhumana\b|\baetna\b|\buhc\b|\bunited\s*health|\bsimply\b|\bwell\s*care\b|\bcare\s*plus\b|\bflorida blue\b|\bhealth\s*sun\b/i;
+  const PLAN_SET_VERB_RE = /\b(show|compare|instead|use|switch|swap|look at|what about|how about|wants?|prefers?|only|give me|pull|run|try)\b/i;
+
+  function switchesPlanSet(latest) {
+    const t = String(latest || "").replace(/\b(?:doctors?|drs?|providers?)\s*:[^\n]*/gi, " ");
+    return /\binstead of (?:these|those|the) plans\b/i.test(t) || (PLAN_SET_VERB_RE.test(t) && CARRIER_ASK_RE.test(t));
+  }
+
   function resolveExportPlans(plans, threadText, extra) {
     const meta = extra && typeof extra === "object" ? extra : {};
     const catalog = meta.catalog || meta.planCatalog || [];
@@ -2226,6 +2264,11 @@
     const county = /\bbroward\b/i.test(text + " " + latest) && !/miami/i.test(text + " " + latest) ? "Broward" : "Miami-Dade";
     const pick = (id) => pickCatalogPlan(pool, id, county) || pickCatalogPlan(pool, id);
     const latestIds = citedPlanIdsFromText(latest);
+    // "show me Doctors, Solis, Devoted" / "instead of these plans …" replaces the columns:
+    // export exactly the plans the latest answer showed, never older plans from the thread.
+    if (!latestIds.length && (plans || []).length && switchesPlanSet(latest)) {
+      return uniquePlansByContractPbp(canonicalize2027ComparisonPlans(plans, latest || text, pool));
+    }
     if (latestIds.length >= 2) {
       return uniquePlansByContractPbp(
         canonicalize2027ComparisonPlans(latestIds.map(pick).filter(Boolean), latest, pool)

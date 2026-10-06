@@ -1658,7 +1658,7 @@ Earlier: all four In network on UHC H5420-001.
       networks: [{ carrier: 'Doctors HealthCare Plans', inNetwork: false, status: 'ok' }],
     });
 
-    it('a clinic the directory does not list is Not confirmed; a person miss is still Out', () => {
+    it('a directory miss is Not confirmed for clinics and people alike (same as the chat table — never assume Out)', () => {
       const plans = doctorsPlans();
       assert.equal(plans.length, 1);
       const docs = exp.doctorsFromProviderLookups(
@@ -1668,7 +1668,7 @@ Earlier: all four In network on UHC H5420-001.
       const clinic = docs.find((d) => /miami neurology/i.test(d.name));
       const person = docs.find((d) => /margolesky/i.test(d.name));
       assert.equal(clinic.statuses[0], 'Not confirmed');
-      assert.equal(person.statuses[0], 'Out of network');
+      assert.equal(person.statuses[0], 'Not confirmed');
     });
 
     it('a clinic the agent says is out of network stays Out of network', () => {
@@ -1732,5 +1732,50 @@ describe('unverified not-covered in the Excel', () => {
     const p = exp.buildExportPayload([{ planId: 'H1036-065C', carrier: 'Humana', planName: 'Gold Plus' }, { planId: 'H1045-005', carrier: 'UHC', planName: 'Preferred MA' }], 'Compare H1036-065C, H1045-005', { drugs: [d] });
     assert.equal(exp.formatDrugCell(p.drugs[0].byPlanId['H1036-065C'], p.plans[0]), 'Confirm in Sunfire');
     assert.equal(exp.formatDrugCell({ verified: true, coverage: 'not_covered' }, p.plans[0]), 'Not covered');
+  });
+});
+
+describe('export matches the chat table (2026-10-06 Doctors/Solis/Devoted export)', () => {
+  const plan = (planId, carrier, planName) => ({ planId, id: planId, carrier, planName, county: 'Miami-Dade' });
+  const humana054 = plan('H1036-054C', 'Humana', 'Humana Gold Plus');
+  const humana305 = plan('H1036-305', 'Humana', 'Humana Gold Plus Giveback');
+  const drMax = plan('H4140-022', 'Doctors', 'Doctors DrMax-Dade');
+  const drCsnp = plan('H4140-024', 'Doctors', 'Doctors DrExtraCare');
+  const devoted = plan('H1290-001', 'Devoted', 'Devoted CORE 001');
+
+  it('In for one Humana plan is not In for every Humana plan', () => {
+    const docs = exp.doctorsFromProviderLookups([{ doctorName: 'EDUARDO KRAJEWSKI', networks: [{ carrier: 'Humana Find Care', inNetwork: true, plans: ['Humana Gold Plus Giveback (H1036-305)'] }] }], [humana054, humana305]);
+    assert.deepEqual(docs[0].statuses, ['Not confirmed', 'In network']);
+  });
+
+  it('a Doctors directory hit is In for DrMax-Dade only, Devoted for every plan', () => {
+    const docs = exp.doctorsFromProviderLookups([{ doctorName: 'JUAN DIEGO CEDENO', networks: [
+      { carrier: 'Doctors HealthCare Plans', inNetwork: true, plans: [] },
+      { carrier: 'Devoted Health', inNetwork: true },
+    ] }], [drMax, drCsnp, devoted]);
+    assert.deepEqual(docs[0].statuses, ['In network', 'Not confirmed', 'In network']);
+  });
+
+  it('"Krajewski" and "Eduardo Krajewski" are one row; In vs Out becomes Need more info', () => {
+    const merged = exp.mergeDoctorLists([
+      [{ name: 'Dr. Krajewski', byPlanId: { 'H1036-054C': 'Out of network' } }],
+      [{ name: 'Dr. Eduardo Krajewski', byPlanId: { 'H1036-054C': 'In network' } }],
+    ], [humana054]);
+    assert.equal(merged.length, 1);
+    assert.match(merged[0].statuses[0], /need more info/i);
+  });
+
+  it('"show me Doctors Health, Solis, Devoted" exports only the plans that answer showed', () => {
+    const thread = 'Compare H1036-054C, H1035-017, H1036-305 … Doctors DrMax-Dade H4140-022, Solis Wellness H0982-016, Devoted CORE 001 H1290-001';
+    const out = exp.resolveExportPlans([drMax, plan('H0982-016', 'Solis', 'Solis Wellness'), devoted], thread, {
+      latestUserText: '1. no 2. cardiovascular disorder 3. Yavagal and Krajewski correct. Show me Doctors Health, Solis, Devoted',
+      rememberedPlans: [humana054, humana305],
+    });
+    assert.deepEqual(out.map((p) => p.planId), ['H4140-022', 'H0982-016', 'H1290-001']);
+  });
+
+  it('Max asking for the client name is not an off-grid benefit row', () => {
+    const asked = exp.askedOffGridBenefits('Want the Excel/PDF? Click Export (need the client\u2019s full name for the title). I need the client\'s full name.');
+    assert.equal(asked.asked, false);
   });
 });
