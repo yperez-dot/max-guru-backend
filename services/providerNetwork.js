@@ -27,7 +27,7 @@ const {
   formatHumanaAgentNote,
 } = require('./humanaFindcare');
 const { formatSolisNote } = require('./solisDirectory');
-const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery } = require('./npiRegistry');
+const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery, suggestSimilarProviders } = require('./npiRegistry');
 const { conversationAskText } = require('./planYear');
 const { batchSummaryForModel, narrowingAnswered, comparisonAskText, selectComparison } = require('./doctorPlanNarrow');
 const { medsFromAsk } = require('./comparisonRules');
@@ -364,12 +364,15 @@ function structuredFor(doctorName, providerResults, { status, sunfireLabels = []
   return out;
 }
 
-function notFoundResult(doctorName) {
+function notFoundResult(doctorName, suggestions = []) {
+  const close = suggestions.length
+    ? ` Closest real providers: ${suggestions.map((x, i) => `${i + 1}) ${x.name}${x.specialty ? ` — ${x.specialty}` : ''}${x.city ? `, ${x.city}` : ''}`).join('; ')}. Ask the agent which one it is (she answers with the name). Never ask her to look up an NPI.`
+    : ' No similar name either — ask the agent to check the spelling or give the specialty / office name. Never ask her to look up an NPI.';
   return {
     status: 'not_found',
     doctorName,
-    text: `No providers found matching "${doctorName}" in Florida (NPI-1 person or NPI-2 clinic). If this is a clinic/group/DBA, call search_clinic_or_provider, then re-run lookup_provider_network with the NPI. Do not invent In/Out from a clinic insurances-accepted webpage.`,
-    structured: { doctorName, networks: [], status: 'not_found' },
+    text: `No providers found matching "${doctorName}" in Florida (NPI-1 person or NPI-2 clinic).${close} If this is a clinic/group/DBA, call search_clinic_or_provider. Do not invent In/Out from a clinic insurances-accepted webpage.`,
+    structured: { doctorName, networks: [], status: 'not_found', suggestions },
   };
 }
 
@@ -416,7 +419,11 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
       npi: input.npi,
       limit: 5,
     });
-    if (!records.length) return notFoundResult(doctorName);
+    if (!records.length) {
+      // Offer the closest real doctors instead of asking the agent for an NPI.
+      const suggestions = await suggestSimilarProviders({ doctorName, zip, state: input.state || 'FL' }).catch(() => []);
+      return notFoundResult(doctorName, suggestions);
+    }
     const picked = records.slice(0, Math.max(1, npiCap)).map(npiRecordInfo);
     live.phase = 'carriers';
     const runs = picked.map((rec, rank) => startNpiChecks(rec, { zip, planYear, guestPlanIds, rank }));

@@ -195,3 +195,57 @@ describe('longer registered last names (Ian Del Conde → DEL CONDE POZZI)', () 
     } finally { global.fetch = saved; }
   });
 });
+
+describe('closest real providers when the name has no exact match', () => {
+  const { suggestSimilarProviders } = require('./npiRegistry');
+  it('Carlos Sosa → Sosa physicians near the client, no case managers or pharmacists', async () => {
+    const saved = global.fetch;
+    const rec = (npi, first, last, cred, zip, tax) => ({ number: npi, basic: { first_name: first, last_name: last, credential: cred }, addresses: [{ address_purpose: 'LOCATION', postal_code: zip, city: 'MIAMI' }], taxonomies: [{ primary: true, desc: tax }] });
+    global.fetch = async () => ({ ok: true, json: async () => ({ results: [
+      rec('1922503820', 'CARLOS', 'SOSA ROSALES', '', '33010', 'Case Management'),
+      rec('1063015568', 'DALBERT', 'SOSA', '', '33186', 'Pharmacist'),
+      rec('1962865204', 'GLENDA', 'SOSA', 'M.D.', '33176', 'Internal Medicine, Nephrology'),
+      rec('1902951742', 'ANDRES', 'SOSA', 'M.D.', '32801', 'Internal Medicine, Pulmonary Disease'),
+    ] }) });
+    try {
+      const s = await suggestSimilarProviders({ doctorName: 'Carlos Sosa', zip: '33172' });
+      assert.deepEqual(s.map((x) => x.npi), ['1962865204', '1902951742']);
+      assert.equal(s[0].name, 'Glenda Sosa, MD');
+    } finally { global.fetch = saved; }
+  });
+});
+
+describe('spelling-tolerant suggestions', () => {
+  const { suggestSimilarProviders, spellingDistance } = require('./npiRegistry');
+  it('a swapped letter is one typo', () => {
+    assert.equal(spellingDistance('Mortyko', 'Morytko'), 1);
+    assert.equal(spellingDistance('Sosa', 'Sosa'), 0);
+  });
+  it('"John Mortyko" finds John A Morytko, MD and marks it as a spelling fix', async () => {
+    const saved = global.fetch;
+    const rec = (npi, first, middle, last, cred, zip, tax) => ({ number: npi, basic: { first_name: first, middle_name: middle, last_name: last, credential: cred }, addresses: [{ address_purpose: 'LOCATION', postal_code: zip, city: 'MIAMI' }], taxonomies: [{ primary: true, desc: tax }] });
+    global.fetch = async (url) => {
+      const q = new URL(url).searchParams;
+      const last = (q.get('last_name') || '').toUpperCase();
+      const first = (q.get('first_name') || '').toUpperCase();
+      const dir = [
+        rec('1356385736', 'JOHN', 'A', 'MORYTKO', 'MD', '33156', 'Internal Medicine, Cardiovascular Disease'),
+        rec('1609315225', 'JOHN', '', 'MORTENSEN', 'BCaBA', '32073', 'Behavior Analyst'),
+        rec('5555555555', 'MARIA', '', 'MORALES', 'MD', '33172', 'Family Medicine'),
+      ];
+      const hit = dir.filter((r) => {
+        const L = r.basic.last_name;
+        const okLast = last.endsWith('*') ? L.startsWith(last.slice(0, -1)) : L === last;
+        return okLast && (!first || r.basic.first_name === first);
+      });
+      return { ok: true, json: async () => ({ results: hit }) };
+    };
+    try {
+      const s = await suggestSimilarProviders({ doctorName: 'John Mortyko', zip: '33172' });
+      assert.equal(s[0].npi, '1356385736');
+      assert.equal(s[0].spelling, true);
+      assert.ok(!s.some((x) => x.npi === '1609315225'), 'behavior analyst is not a doctor');
+      assert.ok(!s.some((x) => x.npi === '5555555555'), 'Maria Morales is not a misspelling of John Mortyko');
+    } finally { global.fetch = saved; }
+  });
+});

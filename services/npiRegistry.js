@@ -421,7 +421,96 @@ async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limi
   return results;
 }
 
+// People who treat patients (not pharmacists, dentists, techs, nurses' aides…).
+const TREATING_CRED_RE = /\b(M\.?D|D\.?O|N\.?P|APRN|ARNP|FNP|DNP|PA-?C|PA|AGACNP|ACNP|DPM|OD)\b/i;
+const NOT_TREATING_TAX_RE = /pharmac|dentist|registered nurse|massage|mechanotherap|counselor|social worker|technician|behavior|case manag|dietitian|optician/i;
+
+/** Edit distance with adjacent swaps counting as one typo ("Mortyko" ↔ "Morytko" = 1). */
+function spellingDistance(a, b) {
+  const x = String(a || '').toLowerCase().replace(/[^a-z]/g, '');
+  const y = String(b || '').toLowerCase().replace(/[^a-z]/g, '');
+  const d = Array.from({ length: x.length + 1 }, (_, i) => [i, ...Array(y.length).fill(0)]);
+  for (let j = 1; j <= y.length; j += 1) d[0][j] = j;
+  for (let i = 1; i <= x.length; i += 1) {
+    for (let j = 1; j <= y.length; j += 1) {
+      const cost = x[i - 1] === y[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && x[i - 1] === y[j - 2] && x[i - 2] === y[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  }
+  return d[x.length][y.length];
+}
+
+function isTreating(r) {
+  const tax = (r.taxonomies || []).map((t) => t.desc || '').join(' ');
+  if (isNonProvider(r) || NOT_TREATING_TAX_RE.test(tax)) return false;
+  return TREATING_CRED_RE.test(String(r.basic?.credential || ''))
+    || /medicine|surgery|cardio|neuro|pediatr|psychiatr|oncolog|urolog|nephrolog|pulmonar|gastro|endocrin|rheumat|dermat|ophthal|orthop|family|internal|nurse practitioner|physician assistant/i.test(tax);
+}
+
+/**
+ * No exact match for the name she gave? Find the closest real treating providers
+ * instead of asking her for an NPI — including likely misspellings:
+ * "John Mortyko" → John A Morytko, MD (one swapped letter). Candidates come from
+ * the same last name, the same first name + first 3 letters, and the first 4
+ * letters; they rank by spelling distance, same first name, nearest ZIP.
+ * `spelling: true` marks a different spelling of the last name. A suggestion is
+ * never used until she picks it.
+ */
+async function suggestSimilarProviders({ doctorName = '', zip, state = 'FL', limit = 3 } = {}) {
+  const parsed = parseName(cleanDoctorQuery(doctorName));
+  const last = String(parsed.lastName || '');
+  if (last.replace(/[^A-Za-z]/g, '').length < 3) return [];
+  const first = String(parsed.firstName || '');
+  const queries = [{ last_name: last }];
+  if (first) queries.push({ first_name: first, last_name: `${last.slice(0, 3)}*` });
+  if (last.length >= 5) queries.push({ last_name: `${last.slice(0, 4)}*` });
+  if (first && last.length >= 4) queries.push({ first_name: first, last_name: `${last.slice(0, 2)}*` });
+  const seen = new Set();
+  const found = [];
+  for (const q of queries) {
+    const p = new URLSearchParams({ version: '2.1', enumeration_type: 'NPI-1', state, limit: '200', ...q });
+    const data = await fetchJSON(`${NPI_REGISTRY_BASE}?${p}`);
+    for (const r of data?.results || []) {
+      if (seen.has(r.number) || !isTreating(r)) continue;
+      seen.add(r.number);
+      found.push(r);
+    }
+  }
+  const maxTypos = Math.max(2, Math.floor(last.replace(/[^A-Za-z]/g, '').length / 3));
+  const qz = String(zip || '').slice(0, 3);
+  const qf = first.toUpperCase();
+  const scored = found.map((r) => {
+    const candLast = String(r.basic?.last_name || '');
+    const dist = Math.min(spellingDistance(last, candLast), spellingDistance(last, candLast.split(/[\s-]+/)[0]));
+    const fn = String(r.basic?.first_name || '').toUpperCase();
+    let s = 100 - dist * 30;
+    if (qf && fn === qf) s += 60;
+    else if (qf && fn[0] === qf[0]) s += 20;
+    if (qz && locationZip(r).slice(0, 3) === qz) s += 25;
+    if (/\b(MD|DO)\b/i.test(String(r.basic?.credential || '').replace(/\./g, ''))) s += 5;
+    return { r, dist, s };
+  }).filter((x) => x.dist <= maxTypos)
+    // A different spelling only counts when the first name also agrees (or there is none).
+    .filter((x) => x.dist === 0 || !qf || String(x.r.basic?.first_name || '').toUpperCase()[0] === qf[0]);
+  scored.sort((a, b) => b.s - a.s);
+  return scored.slice(0, limit).map(({ r, dist }) => {
+    const loc = (r.addresses || []).find((a) => a.address_purpose === 'LOCATION') || {};
+    const b = r.basic || {};
+    const name = [b.first_name, b.middle_name, b.last_name].filter(Boolean).join(' ').toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
+    return {
+      name: `${name}${b.credential ? `, ${String(b.credential).replace(/\./g, '')}` : ''}`,
+      npi: r.number,
+      specialty: ((r.taxonomies || []).find((t) => t.primary) || (r.taxonomies || [])[0] || {}).desc || '',
+      city: String(loc.city || '').toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()),
+      spelling: dist > 0,
+    };
+  });
+}
+
 module.exports = {
+  suggestSimilarProviders,
+  spellingDistance,
   cleanDoctorQuery,
   NPI_REGISTRY_BASE,
   extractNpi,

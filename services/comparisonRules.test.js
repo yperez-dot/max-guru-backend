@@ -237,7 +237,7 @@ describe('agent follow-ups (2026-10-06 replay: carriers by name, numbered answer
     assert.match(label('Ian Del Conde'), /^Cesar A Conde \(asked: Ian Del Conde\) · NPI 1932159043 ⚠️ different name — confirm match$/);
     assert.match(label('Carlos Sosa'), /Amanda C Sosa Rbt \(asked: Carlos Sosa\).*⚠️ different name/);
     assert.doesNotMatch(label('Yavagal'), /⚠️/, 'she confirmed Yavagal');
-    assert.match(sel.questions[0], /Confirm the doctor match .*Ian Del Conde → Cesar A Conde \(NPI 1932159043\); Carlos Sosa → Amanda C Sosa Rbt.*If not, send the NPI\./);
+    assert.match(sel.questions[0], /Confirm the doctor match .*Ian Del Conde → Cesar A Conde \(NPI 1932159043\); Carlos Sosa → Amanda C Sosa Rbt.*If not, tell me who \(no NPI needed\)\./);
     const table = n.gridTable(sel.doctors, sel.columns);
     assert.match(table, /\| Cesar A Conde [^\n]*\| ❔ not confirmed \| ❔ not confirmed \| ❔ not confirmed \|/);
     assert.match(table, /\| Dileep Rajhavendra Yavagal [^|]*\| [^|]*\| [^|]*\| ✅ In \|/, 'Devoted single network counts once confirmed');
@@ -259,14 +259,14 @@ describe('partial doctor-match answers', () => {
     assert.match(t, /^Doctor matches wrong: Ian Del Conde\.$/m);
   });
 
-  it('a rejected match is never counted and Max asks for the NPI', () => {
+  it('a rejected match is never counted and Max asks who it is (no NPI needed)', () => {
     const A = 'UHC MedicareMax MA FL-0028 (HMO) (H5420-001)';
     const docs = [doc('Ian Del Conde', 'CESAR A CONDE', '1932159043', [A], []), doc('Yavagal', 'DILEEP RAJHAVENDRA YAVAGAL', '1689661217', [A], [])];
     const sel = n.selectComparison(docs, ask('1. no 2. Yavagal correct, Del Conde wrong'), { answered: true });
     const conde = sel.doctors.find((d) => d.requestedName === 'Ian Del Conde');
     assert.equal(conde.identityPending, 'wrong');
-    assert.match(n.doctorLabel(conde), /⚠️ wrong doctor — send the NPI$/);
-    assert.ok(sel.questions.some((x) => /^Send the NPI for Ian Del Conde — the match I found was the wrong doctor/.test(x)));
+    assert.match(n.doctorLabel(conde), /⚠️ wrong doctor — tell me who$/);
+    assert.ok(sel.questions.some((x) => /^Which doctor did you mean for Ian Del Conde\? The match I found was the wrong person.*no NPI needed/.test(x)));
     assert.doesNotMatch(n.doctorLabel(sel.doctors[1]), /⚠️/);
   });
 });
@@ -288,5 +288,51 @@ describe('a failed carrier check is ❔ unchecked, never a miss', () => {
     const d = doc('Mirel Sanchez', 'MIREL SANCHEZ', '1740401322', [], [], { failed: ['Doctors HealthCare Plans'] });
     const cols = n.namedPlanColumns([{ planId: 'H4140-022', name: 'Doctors DrMax-Dade' }], [], [d]);
     assert.match(n.gridTable([d], cols), /\| Mirel Sanchez · NPI 1740401322 \| ❔ unchecked \|/);
+  });
+});
+
+describe('no exact doctor match → closest real doctors, never "send the NPI"', () => {
+  const missing = { requestedName: 'Carlos Sosa', status: 'not_found', networks: [], suggestions: [
+    { name: 'Glenda Sosa, MD', npi: '1962865204', specialty: 'Internal Medicine, Nephrology', city: 'Miami' },
+    { name: 'Andres Fernando Sosa, MD', npi: '1902951742', specialty: 'Internal Medicine, Pulmonary Disease', city: 'Miami' },
+  ] };
+  const ghost = { requestedName: 'John Mortyko', status: 'not_found', networks: [], suggestions: [] };
+
+  it('asks which doctor, listing the closest real ones — no NPI request', () => {
+    const sel = n.selectComparison([missing, ghost, doc('Juan D Cedeno', 'JUAN DIEGO CEDENO', '1043665177', [], [])], 'Client ZIP 33172. No Medicaid. No C-SNP. Doctors: Carlos Sosa, John Mortyko, Juan D Cedeno.', { answered: true });
+    const q = sel.questions.find((x) => /No exact match/.test(x));
+    assert.match(q, /"Carlos Sosa" — closest: Glenda Sosa, MD \(Internal Medicine, Nephrology, Miami\); Andres Fernando Sosa, MD/);
+    assert.match(q, /"John Mortyko" — no similar name on file \(check the spelling, or give the specialty \/ office\)/);
+    assert.match(q, /like "Carlos Sosa = Dr\. Full Name"\. No NPI needed\.$/);
+    assert.doesNotMatch(sel.questions.join(' '), /send (me )?the NPI|if you have NPIs/i);
+  });
+
+  it('"Carlos Sosa = Glenda Sosa" re-runs the comparison with the real doctor', () => {
+    const msgs = [
+      { role: 'user', content: 'Client ZIP 33172. Doctors: Ian Del Conde, Carlos Sosa, John Mortyko. Meds: Eliquis.' },
+      { role: 'assistant', content: '**To narrow to 2–3 plans:**\n1. No exact match for: "Carlos Sosa" — closest: Glenda Sosa, MD (Nephrology, Miami) · "John Mortyko" — no similar name on file. Which doctor is it? Reply like "Carlos Sosa = Glenda Sosa". No NPI needed.' },
+      { role: 'user', content: 'Carlos Sosa = Glenda Sosa' },
+    ];
+    assert.deepEqual(n.comparisonFollowUp(msgs).doctors, ['Ian Del Conde', 'Glenda Sosa', 'John Mortyko']);
+    const later = [...msgs, { role: 'assistant', content: 'table' }, { role: 'user', content: 'Show me Doctors Health, Solis, Devoted' }];
+    assert.deepEqual(n.comparisonFollowUp(later).doctors, ['Ian Del Conde', 'Glenda Sosa', 'John Mortyko'], 'the correction sticks on later turns');
+  });
+});
+
+describe('misspelled doctor → "did you mean?" (John Mortyko → John A Morytko, MD)', () => {
+  const typo = { requestedName: 'John Mortyko', status: 'not_found', networks: [], suggestions: [
+    { name: 'John A Morytko, MD', npi: '1356385736', specialty: 'Internal Medicine, Cardiovascular Disease', city: 'Miami', spelling: true },
+  ] };
+  it('asks "did you mean" with the real doctor and accepts a plain "yes"', () => {
+    const sel = n.selectComparison([typo, doc('Juan D Cedeno', 'JUAN DIEGO CEDENO', '1043665177', [], [])], 'ZIP 33172. No Medicaid. No C-SNP.', { answered: true });
+    const q = sel.questions.find((x) => /No exact match/.test(x));
+    assert.match(q, /"John Mortyko" — did you mean John A Morytko, MD \(Internal Medicine, Cardiovascular Disease, Miami\)\? \(looks like a spelling difference\)/);
+    assert.match(q, /Reply "yes" to use the spelling I found/);
+    const msgs = [
+      { role: 'user', content: 'Client ZIP 33172. Doctors: Juan D Cedeno, John Mortyko. Meds: Eliquis.' },
+      { role: 'assistant', content: `**To narrow to 2–3 plans:**\n1. ${q}` },
+      { role: 'user', content: '1. yes' },
+    ];
+    assert.deepEqual(n.comparisonFollowUp(msgs).doctors, ['Juan D Cedeno', 'John A Morytko']);
   });
 });
