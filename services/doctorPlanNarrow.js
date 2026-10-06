@@ -324,6 +324,19 @@ function namedPlansFromAsk(askText, constraints) {
 
 // Carriers whose Florida MA plans all share one provider network.
 const SINGLE_NETWORK_CARRIERS = ['Devoted'];
+// Plans that share one carrier network, so a directory hit counts as plan-level In.
+// Doctors HealthCare: DrMax-Dade (H4140-022) and DrSelect-SFL (H4140-023) share one
+// network — confirmed by Yahoska 2026-10-06. 001/012 are the same products' prior IDs.
+// Doctors' C-SNP / D-SNP plans are NOT confirmed and stay ✅ In*.
+const SHARED_NETWORK_PLANS = {
+  'Doctors HealthCare': ['H4140-022', 'H4140-023', 'H4140-001', 'H4140-012'],
+};
+
+function carrierHitIsPlanHit(carrier, planId) {
+  if (SINGLE_NETWORK_CARRIERS.includes(carrier)) return true;
+  const ids = SHARED_NETWORK_PLANS[carrier];
+  return Boolean(ids && ids.includes(String(planId || '').toUpperCase().slice(0, 9)));
+}
 
 function carrierKey(label) {
   const c = carrierOf(label);
@@ -348,8 +361,8 @@ function namedPlanColumns(named, matrix, doctors) {
       if (inIds.has(key)) col.in.push(who);
       else if (outIds.has(key)) col.out.push(who);
       else if (carrier && (d.carriersIn || []).some((c) => carrierKey(c) === carrier || c === carrier)) {
-        // One network for every plan (Devoted, per THEI) → a carrier hit is a plan hit.
-        (SINGLE_NETWORK_CARRIERS.includes(carrier) ? col.in : col.inCarrier).push(who);
+        // One network for every plan (Devoted) or for these plans (Doctors DrMax/DrSelect) → a carrier hit is a plan hit.
+        (carrierHitIsPlanHit(carrier, np.planId) ? col.in : col.inCarrier).push(who);
       }
       else col.unknown.push(who);
     }
