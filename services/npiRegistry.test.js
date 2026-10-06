@@ -189,6 +189,12 @@ describe('doctor match never swaps in a different person (2026-10-06 live bugs)'
     } finally { global.fetch = saved; }
   });
 
+  it('a case manager is never the doctor she named (Carlos Alberto Sosa Rosales, NPI 1922503820)', () => {
+    const { isNonProvider } = require('./npiRegistry');
+    assert.equal(isNonProvider({ basic: { first_name: 'CARLOS', last_name: 'SOSA ROSALES' }, taxonomies: [{ primary: true, desc: 'Case Management' }] }), true);
+    assert.equal(isNonProvider(person('5', 'JOHN', 'A', 'MORYTKO', 'MD', '33136', 'Cardiovascular Disease')), false);
+  });
+
   it('first name outranks ZIP; non-providers drop out', () => {
     const ranked = rankResults([
       person('1', 'AMANDA', '', 'SOSA', 'RBT', '33172', 'Behavior Technician'),
