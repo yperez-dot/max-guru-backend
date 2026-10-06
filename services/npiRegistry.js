@@ -279,6 +279,21 @@ async function lookupByOrganizationName({
   return rankOrgResults([...byNumber.values()], { zip, city, organizationName }).slice(0, limit);
 }
 
+// Not a treating doctor: behavior techs, counselors, aides. Never the doctor an agent named.
+const NON_PROVIDER_CRED_RE = /\b(RBT|BCBA|BCABA|LMHC|LCSW|LMFT|CNA|HHA|CMA|EMT|RT|CPHT|PHARM\s*TECH)\b/i;
+const NON_PROVIDER_TAXONOMY_RE = /behavior technician|behavior analyst|counselor|social worker|technician|aide|assistant, home health|marriage|doula|massage/i;
+
+function isNonProvider(result) {
+  const b = result?.basic || {};
+  const tax = (result?.taxonomies || []).map((t) => t.desc || '').join(' ');
+  return NON_PROVIDER_CRED_RE.test(String(b.credential || '')) || NON_PROVIDER_TAXONOMY_RE.test(tax);
+}
+
+/**
+ * Name first, place second: the doctor she named beats a different person who
+ * happens to practice in the client's ZIP ("Carlos Sosa" must never resolve to
+ * Amanda C Sosa, RBT, because Amanda's office is closer).
+ */
 function rankScore(result, { zip, firstName, middleName } = {}) {
   let s = 0;
   const z = locationZip(result);
@@ -286,15 +301,30 @@ function rankScore(result, { zip, firstName, middleName } = {}) {
   if (qz && z === qz) s += 100;
   else if (qz && z.slice(0, 3) === qz.slice(0, 3)) s += 25;
   const b = result?.basic || {};
-  if (firstName && String(b.first_name || '').toUpperCase() === String(firstName).toUpperCase()) s += 20;
+  const fn = String(b.first_name || '').toUpperCase();
+  const qf = String(firstName || '').toUpperCase();
+  if (qf && fn === qf) s += 150;
+  else if (qf && fn && fn[0] === qf[0]) s += 30;
   const mid = String(middleName || '').replace(/\./g, '').trim();
   if (mid && String(b.middle_name || '').toUpperCase().startsWith(mid.toUpperCase())) s += 40;
   if (/\b(MD|DO)\b/i.test(b.credential || '')) s += 15;
+  if (isNonProvider(result)) s -= 200;
   return s;
 }
 
 function rankResults(results, query) {
   return [...results].sort((a, b) => rankScore(b, query) - rankScore(a, query));
+}
+
+/** Same person she named? First name (or its initial / a middle name) must agree. */
+function firstNameAgrees(result, firstName) {
+  const qf = String(firstName || '').toUpperCase().replace(/\./g, '');
+  if (!qf) return true;
+  const b = result?.basic || {};
+  const fn = String(b.first_name || '').toUpperCase();
+  const mn = String(b.middle_name || '').toUpperCase();
+  if (qf.length === 1) return fn.startsWith(qf) || mn.startsWith(qf);
+  return fn === qf || mn === qf || fn.startsWith(qf) || qf.startsWith(fn) && fn.length >= 3;
 }
 
 async function lookupByNumber(npi) {
@@ -315,20 +345,12 @@ async function lookupByName({ firstName, lastName, middleName, state = 'FL', zip
   });
   if (firstName) p.set('first_name', firstName);
   const data = await fetchJSON(`${NPI_REGISTRY_BASE}?${p}`);
-  let results = data?.results || [];
-  if (!results.length && firstName) {
-    const p2 = new URLSearchParams({
-      version: '2.1',
-      enumeration_type: 'NPI-1',
-      state,
-      last_name: lastName,
-      limit: String(CMS_PAGE_LIMIT),
-    });
-    const data2 = await fetchJSON(`${NPI_REGISTRY_BASE}?${p2}`);
-    results = data2?.results || [];
-  }
+  const results = (data?.results || []).filter((r) => !isNonProvider(r));
   return rankResults(results, { zip, firstName, middleName }).slice(0, limit);
 }
+
+// "Ian Del Conde", "Maria De La Cruz", "Juan Dos Santos" — the particle belongs to the last name.
+const SURNAME_PARTICLES = new Set(['de', 'del', 'della', 'dela', 'la', 'las', 'los', 'da', 'das', 'do', 'dos', 'di', 'du', 'van', 'von', 'der', 'den', 'le', 'st', 'san', 'santa', 'mac', 'y']);
 
 /**
  * Resolve CMS NPI-1 and NPI-2 records from a pasted NPI and/or a name.
@@ -350,24 +372,35 @@ async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limi
   }
 
   const parsed = parseName(doctorName);
-  let results = await lookupByName({ ...parsed, zip, state, limit });
-  if (results.length) return results;
-
   const tokens = [parsed.firstName, parsed.middleName, parsed.lastName].filter(Boolean).join(' ').split(/\s+/).filter(Boolean);
+  const attempts = [];
   if (tokens.length >= 3) {
-    const attempts = [
-      { firstName: tokens[0], lastName: tokens.slice(1).join(' ') },
-      { firstName: tokens[0], lastName: tokens.slice(-2).join(' ') },
-    ];
-    for (const attempt of attempts) {
-      results = await lookupByName({ ...attempt, zip, state, limit });
-      if (results.length) return results;
-    }
+    // Particle in the middle ("Ian Del Conde") → compound last name first.
+    const particleAt = tokens.findIndex((t, i) => i > 0 && i < tokens.length - 1 && SURNAME_PARTICLES.has(t.toLowerCase()));
+    if (particleAt > 0) attempts.push({ firstName: tokens[0], middleName: tokens.slice(1, particleAt).join(' '), lastName: tokens.slice(particleAt).join(' ') });
   }
+  attempts.push(parsed);
+  if (tokens.length >= 3) {
+    attempts.push({ firstName: tokens[0], lastName: tokens.slice(1).join(' ') });
+    attempts.push({ firstName: tokens[0], lastName: tokens.slice(-2).join(' ') });
+    attempts.push({ firstName: tokens[0], lastName: tokens.slice(-2).join('-') });
+  }
+  const seen = new Set();
+  let results = [];
+  for (const attempt of attempts) {
+    const key = `${attempt.firstName || ''}|${attempt.lastName || ''}`.toLowerCase();
+    if (!attempt.lastName || seen.has(key)) continue;
+    seen.add(key);
+    results = await lookupByName({ ...attempt, zip, state, limit });
+    if (results.length) return results;
+  }
+  // Last name only — but only people whose first name agrees with hers. A different
+  // first name is a different person: better "no NPI match, send the NPI" than a wrong doctor.
   if (parsed.lastName && parsed.firstName) {
-    results = await lookupByName({ lastName: parsed.lastName, zip, state, limit });
+    const lastOnly = await lookupByName({ lastName: parsed.lastName, zip, state, limit: CMS_PAGE_LIMIT });
+    results = lastOnly.filter((r) => firstNameAgrees(r, parsed.firstName)).slice(0, limit);
+    if (results.length) return results;
   }
-  if (results.length) return results;
 
   if (!orgFirst && doctorName) {
     return lookupByOrganizationName({ organizationName: doctorName, zip, state, limit });
@@ -384,6 +417,8 @@ module.exports = {
   allLocationAddresses,
   rankScore,
   rankResults,
+  isNonProvider,
+  firstNameAgrees,
   lookupByNumber,
   lookupByName,
   lookupByOrganizationName,
