@@ -1,7 +1,7 @@
 // services/grok.js — Max Medicare Guru via OpenAI-compatible chat (Grok or OpenAI)
 const { TOOLS, processTool } = require('./claude');
 const { countImagesInMessages, normalizeMessages } = require('./chatImages');
-const { fallbackAnswer, narrowingAnswered } = require('./doctorPlanNarrow');
+const { fallbackAnswer, narrowingAnswered, comparisonAskText } = require('./doctorPlanNarrow');
 const { conversationAskText } = require('./planYear');
 const {
   shouldAutoLookupComparisonSob,
@@ -406,7 +406,7 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
 
   let text = answerText;
   if (deadlineHit) {
-    const partial = fallbackFromToolResults(collectedToolResults, conversationAskText(messages), messages);
+    const partial = fallbackFromToolResults(collectedToolResults, comparisonAskText(messages, conversationAskText(messages)), messages);
     const out = chatResult({
       lastData,
       text: partial || '',
@@ -464,7 +464,7 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
       text = typeof lastMessage.content === 'string' ? lastMessage.content : '';
     } catch (err) {
       if (!(err && (err.name === 'TimeoutError' || err.name === 'AbortError'))) throw err;
-      return chatResult({ lastData, text: fallbackFromToolResults(collectedToolResults, conversationAskText(messages), messages), collectedToolResults, usageCalls, deadlineHit: true });
+      return chatResult({ lastData, text: fallbackFromToolResults(collectedToolResults, comparisonAskText(messages, conversationAskText(messages)), messages), collectedToolResults, usageCalls, deadlineHit: true });
     }
   }
 
