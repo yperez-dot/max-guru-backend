@@ -1,5 +1,5 @@
 # Carrier Provider & Drug Lookup URLs — 2026–2027
-Last updated: 2026-10-02
+Last updated: 2026-10-06 (directory audit — 2027 links checked live)
 Use these links when an agent needs to check if a provider is in-network or if a drug is covered.
 
 > **Note:** Some tools require the member to log in for plan-specific results. Guest/public searches show general network info. Always confirm with the carrier for plan-specific network status.
@@ -8,7 +8,7 @@ Use these links when an agent needs to check if a provider is in-network or if a
 
 ## Aetna (H1609)
 - **Provider Lookup:** https://www.aetna.com/medicare/find-provider.html
-  - _Guest search — Continue as guest → Individual Medicare. No member login. Max queries this API (taxonomy by NPI, then MA search + plan list)._
+  - _Guest search — Continue as guest → Individual Medicare. Pick plan year **2027** in the year dropdown. No member login. Max queries this API (taxonomy by NPI, then MA search + plan list)._
 - **Drug/Formulary Lookup:** https://www.aetna.com/medicare/prescription-drugs.html
   - _Tip: Members can also log in at AetnaMedicare.com for plan-specific drug search._
 
@@ -16,7 +16,7 @@ Use these links when an agent needs to check if a provider is in-network or if a
 
 ## CarePlus (H1019)
 - **Provider Lookup:** https://www.careplushealthplans.com/members/member-resources/provider-directories
-  - _Includes 2026 South Florida, Miami-Dade, Broward, and Palm Beach PDFs; interactive search via MyCarePlus portal._
+  - _**2027 PDFs (AEP):** Miami-Dade https://assets.humana.com/is/content/humana/H1019FLHM01JG27pdf · Broward https://assets.humana.com/is/content/humana/H1019FLHM01CG27pdf · Palm Beach https://assets.humana.com/is/content/humana/H1019FLHM01IG27pdf. 2026 PDFs are on the same page. Max checks CarePlus doctors only through Sunfire._
 - **Drug/Formulary Lookup:** https://www.careplushealthplans.com/medicare/medicare-advantage-plans/prescription-drugs-list
   - _Lists 2026 Prescription Drug Guides (comprehensive formulary PDFs by plan)._
 
@@ -25,14 +25,15 @@ Use these links when an agent needs to check if a provider is in-network or if a
 ## Devoted Health (H1290)
 - **Provider Lookup:** https://www.devoted.com/search-providers
 - **Drug/Formulary Lookup:** https://www.devoted.com/search-formulary
-  - _Both tools are public-facing and require ZIP code; no login needed._
+  - _Both tools are public-facing and require ZIP code; no login needed. Max checks Devoted doctors live through Devoted's public FHIR directory (one network for every Devoted plan)._
 
 ---
 
 ## Doctors Healthcare Plans (H4140)
 - **Provider Lookup (live search):** https://providersearch.doctorshcp.com
   - _Max queries this by NPI (PCP + specialist). Not on THEI Sunfire. API does not return a CMS plan ID — a hit means the NPI is in the Doctors directory._
-- **Provider Lookup (SoB / directory landing):** https://www.doctorshcp.com/2026Providers/
+- **Provider Lookup (2027 directory page):** https://www.doctorshcp.com/2027providers/
+  - _The old `/2026Providers/` page now returns 404. DrMax-Dade (H4140-022) and DrSelect-SFL (H4140-023) share one network (Yahoska, 2026-10-06)._
 - **Drug/Formulary Lookup (2027 PDF — Max uses this):** https://www.doctorshcp.com/wp-content/uploads/2027_FORMULARY.pdf
   - _Landing: https://www.doctorshcp.com/2027druglist/. Shared H4140 list (tier + PA/ST/QL). 2027 PBP remap: H4140-001→022, H4140-012→023, H4140-004→024. Do not use the member portal or the page search widget._
 - **Drug/Formulary Lookup (2026 archive):** https://www.doctorshcp.com/2026druglist/
@@ -49,7 +50,7 @@ Use these links when an agent needs to check if a provider is in-network or if a
 
 ## Gold Kidney Health Plans (H1526)
 - **Provider Lookup:** https://www.goldkidney.com/provider-search
-  - _Specialized ESRD/kidney-focused HMO-POS C-SNP; provider search embedded on page._
+  - _Specialized ESRD/kidney-focused HMO-POS C-SNP. "SEARCH NOW" opens their provider portal; no PDF — printed directory by mail from Member Services (844) 294-6535. Max cannot search Gold Kidney itself._
 - **Drug/Formulary Lookup:** https://goldkidney.com/covered-drugs
   - _Full 2026 formulary searchable online; downloadable PDF also available._
 
@@ -65,7 +66,8 @@ Use these links when an agent needs to check if a provider is in-network or if a
 
 ## HealthSun / Elevance (H5431)
 - **Provider Lookup:** https://healthsun.com/provider-directory/
-  - _Not on THEI Sunfire. Max uses HealthSun’s public FHIR directory (Aaneel) with payer-id. Empty FHIR = not in network._
+  - _**2027 directories on this page:** "2027 Provider and Pharmacy Directory" and "2027 Dual Special Needs Population Provider and Pharmacy Directory" (both updated 09/04/2026). The PDF file names change with each update — link the page, not the PDF._
+  - _Not on THEI Sunfire. Max uses HealthSun’s public FHIR directory (Aaneel) with payer-id. A FHIR hit is carrier-level (✅ In*); an empty FHIR result means not listed — confirm with HealthSun, never call it Out._
 - **Drug/Formulary Lookup:** https://directorysearch.healthsun.com/
   - _HealthSun Formulary Search tool; also accessible via the HealthSun homepage._
 
@@ -89,10 +91,14 @@ Use these links when an agent needs to check if a provider is in-network or if a
 ---
 
 ## Solis Health Plans (H0982)
-- **Provider Lookup:** https://solishealthplans.com/2026/find-a-provider
-  - _Not on THEI Sunfire. Interactive search on the page is a placeholder. Use the county PDFs: Miami-Dade `ProvDirecMD_All_Current`, Broward & Palm Beach `ProvDirecBDPB_All_Current`, Central FL `ProvDirecCFL_All_Current` on `soliscdrapi.azurewebsites.net/doc/`. Max cannot NPI-search those PDFs._
-- **Drug/Formulary Lookup:** https://solishealthplans.com/2026/pharmacy
-  - _2026 formulary (Drug List) available as PDF download; no interactive online search tool. Call (833) 516-0475 for drug coverage questions._
+- **Provider Lookup (2027):** https://solishealthplans.com/2027/find-a-provider
+  - _Live name / ZIP search on the page (new). When probed 2026-10-06 it was slow (30s+) and often errored — retry, or use the PDFs._
+  - _**2027 county PDFs:** Miami-Dade https://soliscdrapi.azurewebsites.net/doc/ProvDirecMD_All_Next · Broward & Palm Beach https://soliscdrapi.azurewebsites.net/doc/ProvDirecBDPB_All_Next · Central FL https://soliscdrapi.azurewebsites.net/doc/ProvDirecCFL_All_Next. The links download a PDF (Chrome may show a blank/error tab — check Downloads)._
+  - _2026 = same names ending `_Current` (2026 page: https://solishealthplans.com/2026/find-a-provider)._
+  - _2027 SOB / EOC pattern: `SB{PBP}_ENG_Next` / `EOC{PBP}_ENG_Next` (e.g. H0982-016 → SB016_ENG_Next)._
+  - _Not on THEI Sunfire. Max cannot search Solis doctors itself; cells stay ❔ unchecked._
+- **Drug/Formulary Lookup:** https://solishealthplans.com/2027/pharmacy (2027) · https://solishealthplans.com/2026/pharmacy (2026)
+  - _Drug List is a PDF download; no interactive online search tool. Call (833) 516-0475 for drug coverage questions._
 
 ---
 
@@ -100,7 +106,7 @@ Use these links when an agent needs to check if a provider is in-network or if a
 _(Administered by Preferred Care Network / PCN Health)_
 - **Provider Lookup (Max):** same UHC guest Find a Doctor as Preferred / AARP — https://findcare.guest.uhc.com/guest-plan-selection/browse (2027, no login).
 - **Provider Lookup (PCN PDFs):** https://www.pcnhealth.com/en/provider-facility
-  - _Medical, Behavioral Health, Pharmacy, Optometry, and Dental directories for MedicareMax plans._
+  - _2027 PDFs for MedicareMax FL-0028, FL-0029 and Complete Care FL-30 (checked 2026-10-06), plus Behavioral Health, Pharmacy, Optometry and Dental._
 - **Drug/Formulary Lookup:** https://www.pcnhealth.com/en/members/pharmacy-rx
   - _Formulary (Drug List) PDFs downloadable by plan (FL-0028, Complete Care FL-30, Dual Complete D-SNP)._
 
@@ -118,7 +124,7 @@ _(Administered by Preferred Care Network / PCN Health)_
 
 ## WellCare / Sunshine Health (H1032)
 - **Provider Lookup:** https://www.wellcare.com/en/fap
-  - _"Find a Provider" tool; select Medicare Advantage plan type to search Florida network._
+  - _"Find a Provider" tool; select Medicare Advantage plan type to search Florida network. Page showed no 2027 option when checked 2026-10-06 — confirm the plan year in the tool. Max checks Wellcare only through Sunfire._
 - **Drug/Formulary Lookup:** https://www.wellcare.com/en/florida/members/medicare-advantage/pharmacy/drug-list-formulary
   - _Florida MA member formulary page with drug search tool and downloadable 2026 drug list. Pharmacy PA questions: 1-855-538-0454._
 
