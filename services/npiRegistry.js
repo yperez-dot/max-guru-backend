@@ -281,7 +281,8 @@ async function lookupByOrganizationName({
 
 // Not a treating doctor: behavior techs, counselors, aides. Never the doctor an agent named.
 const NON_PROVIDER_CRED_RE = /\b(RBT|BCBA|BCABA|LMHC|LCSW|LMFT|CNA|HHA|CMA|EMT|RT|CPHT|PHARM\s*TECH)\b/i;
-const NON_PROVIDER_TAXONOMY_RE = /behavior technician|behavior analyst|counselor|social worker|technician|aide|assistant, home health|marriage|doula|massage/i;
+// Case managers too: "Carlos Alberto Sosa Rosales" (NPI 1922503820) is a case manager, not the client's doctor (2026-10-06).
+const NON_PROVIDER_TAXONOMY_RE = /behavior technician|behavior analyst|counselor|social worker|technician|aide|assistant, home health|marriage|doula|massage|case manag/i;
 
 function isNonProvider(result) {
   const b = result?.basic || {};
