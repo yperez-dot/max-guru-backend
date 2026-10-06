@@ -55,7 +55,22 @@ function formatMatch(hit) {
   };
 }
 
+const RETRY_STATUS = new Set([404, 408, 429, 500, 502, 503, 504]);
+const RETRY_DELAY_MS = Number(process.env.MAX_DOCTORS_HCP_RETRY_MS || 1500);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * The Doctors API answers bursts with HTTP 404 (probed 2026-10-06: back-to-back
+ * calls 404, the same call 2.5s apart returns 200). One retry after a pause.
+ */
 async function postSearch(body) {
+  const first = await postSearchOnce(body);
+  if (first.ok || !RETRY_STATUS.has(first.status || 0)) return first;
+  await sleep(RETRY_DELAY_MS);
+  return postSearchOnce(body);
+}
+
+async function postSearchOnce(body) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -72,7 +87,7 @@ async function postSearch(body) {
     });
     if (!res.ok) {
       console.warn(`[doctorsHcp] HTTP ${res.status} type=${body.ProviderType}`);
-      return { ok: false, hits: [] };
+      return { ok: false, status: res.status, hits: [] };
     }
     const data = await res.json();
     return { ok: true, hits: Array.isArray(data) ? data : [] };
@@ -94,11 +109,13 @@ async function queryDoctorsHcp(npi) {
     return { inNetwork: false, matches: [], error: 'missing_npi', planLabel: PLAN_LABEL };
   }
 
-  const results = await Promise.all(
-    SEARCH_TYPES.map((providerType) =>
-      postSearch(buildSearchBody({ providerType, npi, zip: '' }))
-    )
-  );
+  // One after the other (PCP, then specialist) — parallel bursts get 404s.
+  const results = [];
+  for (const providerType of SEARCH_TYPES) {
+    const r = await postSearch(buildSearchBody({ providerType, npi, zip: '' }));
+    results.push(r);
+    if (r.hits.some((hit) => npiMatches(hit, npi))) break; // found — no need for the other list
+  }
 
   const seen = new Set();
   const matches = [];
@@ -112,11 +129,12 @@ async function queryDoctorsHcp(npi) {
     }
   }
 
-  const anyOk = results.some((r) => r.ok);
+  // A miss only counts as "checked" when every list answered; a failed list is not a miss.
+  const allOk = results.every((r) => r.ok);
   return {
     inNetwork: matches.length > 0,
     matches,
-    error: anyOk ? null : 'request_failed',
+    error: matches.length || allOk ? null : 'request_failed',
     planLabel: PLAN_LABEL,
   };
 }

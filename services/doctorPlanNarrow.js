@@ -433,7 +433,7 @@ function unknownCell(d, carrier) {
   if (status === 'not_found') return R.NOT_CONFIRMED_CELL;
   if (!carrier || NO_LIVE_DIRECTORY.includes(carrier)) return R.UNCHECKED;
   const re = PENDING_FOR[carrier];
-  if (re && (d.pending || []).some((p) => re.test(String(p)))) return R.UNCHECKED;
+  if (re && [...(d.pending || []), ...(d.failed || [])].some((p) => re.test(String(p)))) return R.UNCHECKED;
   return R.NOT_CONFIRMED_CELL;
 }
 
@@ -529,11 +529,12 @@ function doctorLine(d) {
   const who = d.doctorName && d.doctorName !== name ? ` (${d.doctorName}${d.npi ? `, NPI ${d.npi}` : ''})` : (d.npi ? ` (NPI ${d.npi})` : '');
   const carriers = (d.carriersIn || []).length ? d.carriersIn.join(', ') : 'no in-network hit in finished checks';
   const pending = (d.pending || []).length ? ` · still pending: ${d.pending.join(', ')}` : '';
+  const failedNote = (d.failed || []).length ? ` · check failed (not a miss): ${d.failed.join(', ')}` : '';
   const issue = d.identityPending !== undefined ? d.identityPending : identityIssue(d);
   const flag = issue === 'wrong' ? ' · ⚠️ agent says this is the wrong doctor — results not used; need the NPI'
     : issue === 'mismatch' ? ' · ⚠️ matched a different name — confirm before using these results'
     : issue ? ' · ⚠️ asked by last name only — confirm this is the right doctor' : '';
-  return `- ${name}${who}: ${carriers}${pending}${flag}`;
+  return `- ${name}${who}: ${carriers}${pending}${failedNote}${flag}`;
 }
 
 function drugNameOf(r) {

@@ -282,3 +282,11 @@ describe('Doctors HealthCare shared network (Yahoska, 2026-10-06)', () => {
     assert.deepEqual(cols.map((c) => [c.in.length, c.inCarrier.length]), [[1, 0], [1, 0], [0, 1]]);
   });
 });
+
+describe('a failed carrier check is ❔ unchecked, never a miss', () => {
+  it('Doctors API failed → Doctors cells unchecked', () => {
+    const d = doc('Mirel Sanchez', 'MIREL SANCHEZ', '1740401322', [], [], { failed: ['Doctors HealthCare Plans'] });
+    const cols = n.namedPlanColumns([{ planId: 'H4140-022', name: 'Doctors DrMax-Dade' }], [], [d]);
+    assert.match(n.gridTable([d], cols), /\| Mirel Sanchez · NPI 1740401322 \| ❔ unchecked \|/);
+  });
+});

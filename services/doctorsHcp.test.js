@@ -58,3 +58,33 @@ describe('doctorsHcp NPI match', () => {
     assert.equal(PLAN_LABEL, 'Doctors HealthCare Plans');
   });
 });
+
+describe('Doctors API bursts (2026-10-06: back-to-back calls 404, spaced calls 200)', () => {
+  process.env.MAX_DOCTORS_HCP_RETRY_MS = '5';
+  async function withFetch(handler, fn) {
+    const saved = global.fetch;
+    const calls = [];
+    global.fetch = async (url, opts) => { const b = JSON.parse(opts.body); calls.push(b.ProviderType); return handler(b, calls.length); };
+    try { return await fn(calls); } finally { global.fetch = saved; }
+  }
+  const { queryDoctorsHcp } = require('./doctorsHcp');
+  const ok = (hits) => ({ ok: true, status: 200, json: async () => hits });
+  const nf = { ok: false, status: 404, json: async () => ({}) };
+
+  it('retries a 404 and finds the doctor (Cedeno, Urology)', async () => {
+    await withFetch((b, n) => (n === 1 ? nf : ok(b.ProviderType === 'pcp' ? [] : [{ providerNpi: '1043665177', providerSpecialties: 'UROLOGY' }])), async (calls) => {
+      const r = await queryDoctorsHcp('1043665177');
+      assert.equal(r.inNetwork, true);
+      assert.equal(r.error, null);
+      assert.deepEqual(calls, ['pcp', 'pcp', 'spe'], 'PCP then specialist, one at a time');
+    });
+  });
+
+  it('a list that keeps failing is an error, not a miss', async () => {
+    await withFetch((b) => (b.ProviderType === 'spe' ? nf : ok([])), async () => {
+      const r = await queryDoctorsHcp('1740401322');
+      assert.equal(r.inNetwork, false);
+      assert.equal(r.error, 'request_failed');
+    });
+  });
+});

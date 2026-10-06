@@ -94,8 +94,10 @@ function createLimiter(limit) {
 }
 
 const limiters = {};
+// Doctors HealthCare rejects bursts (HTTP 404) — keep its calls to a trickle.
+const PER_CARRIER_CONCURRENCY = { doctors: Number(process.env.MAX_DOCTORS_HCP_CONCURRENCY || 2) };
 function limited(key, fn, priority = 0) {
-  if (!limiters[key]) limiters[key] = createLimiter(Math.max(1, CARRIER_CONCURRENCY));
+  if (!limiters[key]) limiters[key] = createLimiter(Math.max(1, PER_CARRIER_CONCURRENCY[key] || CARRIER_CONCURRENCY));
   return limiters[key](fn, priority);
 }
 
@@ -337,11 +339,13 @@ function structuredFor(doctorName, providerResults, { status, sunfireLabels = []
     npi: firstProvider.npi,
     status,
     pending: firstProvider.pending || [],
+    // Carrier checks that ran but failed (HTTP error) — shown as ❔ unchecked, never a miss.
+    failed: (firstProvider.lookupErrors || []).filter((l) => !(firstProvider.pending || []).includes(l)),
     inNetworkPlans,
     outOfNetworkPlans,
     networks: [
       ...FHIR_CARRIERS.map((c) => ({ carrier: c.name, inNetwork: firstProvider.inNetworkFor.includes(c.name) })),
-      { carrier: DOCTORS_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.includes(DOCTORS_PLAN_LABEL) },
+      { carrier: DOCTORS_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.includes(DOCTORS_PLAN_LABEL), status: (firstProvider.lookupErrors || []).includes('Doctors HealthCare Plans') ? 'failed' : 'checked' },
       { carrier: AETNA_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.some((p) => /aetna/i.test(p)) },
       { carrier: SIMPLY_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.some((p) => /simply/i.test(p)) },
       guestEntry(UHC_PLAN_LABEL, firstProvider.uhcResult),
