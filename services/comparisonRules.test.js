@@ -303,7 +303,7 @@ describe('no exact doctor match → closest real doctors, never "send the NPI"',
     const q = sel.questions.find((x) => /No exact match/.test(x));
     assert.match(q, /"Carlos Sosa" — closest: Glenda Sosa, MD \(Internal Medicine, Nephrology, Miami\); Andres Fernando Sosa, MD/);
     assert.match(q, /"John Mortyko" — no similar name on file \(check the spelling, or give the specialty \/ office\)/);
-    assert.match(q, /No NPI needed\.$/);
+    assert.match(q, /like "Carlos Sosa = Dr\. Full Name"\. No NPI needed\.$/);
     assert.doesNotMatch(sel.questions.join(' '), /send (me )?the NPI|if you have NPIs/i);
   });
 
@@ -316,5 +316,23 @@ describe('no exact doctor match → closest real doctors, never "send the NPI"',
     assert.deepEqual(n.comparisonFollowUp(msgs).doctors, ['Ian Del Conde', 'Glenda Sosa', 'John Mortyko']);
     const later = [...msgs, { role: 'assistant', content: 'table' }, { role: 'user', content: 'Show me Doctors Health, Solis, Devoted' }];
     assert.deepEqual(n.comparisonFollowUp(later).doctors, ['Ian Del Conde', 'Glenda Sosa', 'John Mortyko'], 'the correction sticks on later turns');
+  });
+});
+
+describe('misspelled doctor → "did you mean?" (John Mortyko → John A Morytko, MD)', () => {
+  const typo = { requestedName: 'John Mortyko', status: 'not_found', networks: [], suggestions: [
+    { name: 'John A Morytko, MD', npi: '1356385736', specialty: 'Internal Medicine, Cardiovascular Disease', city: 'Miami', spelling: true },
+  ] };
+  it('asks "did you mean" with the real doctor and accepts a plain "yes"', () => {
+    const sel = n.selectComparison([typo, doc('Juan D Cedeno', 'JUAN DIEGO CEDENO', '1043665177', [], [])], 'ZIP 33172. No Medicaid. No C-SNP.', { answered: true });
+    const q = sel.questions.find((x) => /No exact match/.test(x));
+    assert.match(q, /"John Mortyko" — did you mean John A Morytko, MD \(Internal Medicine, Cardiovascular Disease, Miami\)\? \(looks like a spelling difference\)/);
+    assert.match(q, /Reply "yes" to use the spelling I found/);
+    const msgs = [
+      { role: 'user', content: 'Client ZIP 33172. Doctors: Juan D Cedeno, John Mortyko. Meds: Eliquis.' },
+      { role: 'assistant', content: `**To narrow to 2–3 plans:**\n1. ${q}` },
+      { role: 'user', content: '1. yes' },
+    ];
+    assert.deepEqual(n.comparisonFollowUp(msgs).doctors, ['Juan D Cedeno', 'John A Morytko']);
   });
 });

@@ -203,6 +203,11 @@ function statementsFor(question, answer) {
   if (/No exact match/i.test(q)) {
     const asked = [...q.matchAll(/"([^"]+)"\s*—/g)].map((m) => m[1].trim());
     const subs = substitutionsIn(a, asked);
+    // "yes" → take every "did you mean …?" spelling fix offered in the question.
+    if (!subs.length && YES_RE.test(a) && !NO_RE.test(a)) {
+      for (const m of q.matchAll(/"([^"]+)"\s*—\s*did you mean ([^(?]+?)(?:,\s*[A-Z.]{2,8})?\s*(?:\(|\?)/g)) subs.push([m[1].trim(), m[2].trim()]);
+      if (subs.length) return subs.map(([from, to]) => `Doctor substitution: ${from} => ${to}.`);
+    }
     if (!subs.length && asked.length === 1 && /[a-z]{3}/i.test(a) && !NO_RE.test(a)) {
       subs.push([asked[0], a.replace(/^\s*(?:it'?s|its|is|=)\s*/i, '').replace(/^dr\.?\s*/i, '').replace(/[.]+$/, '').trim()]);
     }
@@ -879,11 +884,20 @@ function selectComparison(doctors, askText, opts = {}) {
     const doctorQs = [];
     const missing = docs.filter((d) => d.status === 'not_found');
     if (missing.length) {
+      const fmt = (x) => `${x.name}${x.specialty ? ` (${x.specialty}${x.city ? `, ${x.city}` : ''})` : ''}`;
       const per = missing.map((d) => {
-        const sug = (d.suggestions || []).slice(0, 3).map((x) => `${x.name}${x.specialty ? ` (${x.specialty}${x.city ? `, ${x.city}` : ''})` : ''}`);
-        return `"${titleCase(shortDoctor(d))}"${sug.length ? ` — closest: ${sug.join('; ')}` : ' — no similar name on file (check the spelling, or give the specialty / office)'}`;
+        const sug = (d.suggestions || []).slice(0, 3);
+        const asked = `"${titleCase(shortDoctor(d))}"`;
+        // Likely typo ("Mortyko" → Morytko): ask about that one doctor first.
+        if (sug[0] && sug[0].spelling) {
+          const others = sug.slice(1).map(fmt);
+          return `${asked} — did you mean ${fmt(sug[0])}? (looks like a spelling difference)${others.length ? ` Other close names: ${others.join('; ')}` : ''}`;
+        }
+        return `${asked}${sug.length ? ` — closest: ${sug.map(fmt).join('; ')}` : ' — no similar name on file (check the spelling, or give the specialty / office)'}`;
       });
-      doctorQs.push(`No exact match for: ${per.join(' · ')}. Which doctor is it? Reply like "Carlos Sosa = Glenda Sosa". No NPI needed.`);
+      const anyTypo = missing.some((d) => d.suggestions && d.suggestions[0] && d.suggestions[0].spelling);
+      const example = `${titleCase(shortDoctor(missing[0]))} = Dr. Full Name`;
+      doctorQs.push(`No exact match for: ${per.join(' · ')}. ${anyTypo ? 'Reply "yes" to use the spelling I found, or give the right name' : 'Which doctor is it? Reply'} like "${example}". No NPI needed.`);
     }
     const wrong = docs.filter((d) => d.identityPending === 'wrong');
     if (wrong.length) {
