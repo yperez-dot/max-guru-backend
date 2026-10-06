@@ -533,6 +533,10 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   // Rule 8: meds she already listed are priced here, in the same turn — not left for a
   // later model round that the chat wait never reaches.
   const meds = doctors.length > 1 ? medsFromAsk(askText) : [];
+  if (doctors.length > 1) {
+    const carriersLine = (askText.match(/Carriers requested:[^\n]*/g) || []).pop();
+    console.log(`[comparison] ${doctors.length} doctors · ${meds.length} meds · ${carriersLine || 'no carrier ask'}`);
+  }
   const doctorDeadline = meds.length && deadlineAt - Date.now() > MEDS_RESERVE_MS + 15_000 ? deadlineAt - MEDS_RESERVE_MS : deadlineAt;
   const results = await Promise.all(doctors.map((d) => lookupDoctor(
     { ...common, ...d, planId: d.planId || common.planId },

@@ -508,6 +508,40 @@ describe('Padron chat budget', () => {
     assert.doesNotMatch(text, /H1036-065C.*H1036-077.*H1036-065C/s);
   });
 
+  it('re-runs the comparison itself when the latest message asks for carriers (model cannot skip it)', async () => {
+    const { passThroughChat } = loadGrok({ provider: 'grok', key: 'test-xai-key' });
+    const toolCalls = [];
+    await withMockedFetch((url, body) => ({
+      ok: true,
+      json: async () => ({ id: 'x', model: 'grok-4.6', choices: [{ message: { role: 'assistant', content: 'ok' } }], _seen: body }),
+    }), async (calls) => {
+      await passThroughChat({
+        system: 'You are Max.',
+        messages: [
+          { role: 'user', content: 'Client ZIP 33172. Doctors: Ian Del Conde, Juan D Cedeno. Meds: Eliquis. Suggest 2-3 2027 plans.' },
+          { role: 'assistant', content: 'Doctors × top plans …' },
+          { role: 'user', content: 'Show me Doctors Health, Solis, Devoted' },
+        ],
+        deadlineMs: 60000,
+        processToolFn: async (name, input) => { toolCalls.push({ name, input }); return { text: 'CARRIER TABLE', structured: {} }; },
+      });
+      assert.equal(toolCalls[0].name, 'lookup_provider_network');
+      assert.deepEqual(toolCalls[0].input.doctors.map((d) => d.doctorName), ['Ian Del Conde', 'Juan D Cedeno']);
+      assert.equal(toolCalls[0].input.zip, '33172');
+      const sent = calls[0].body.messages.map((m) => (typeof m.content === 'string' ? m.content : '')).join('\n');
+      assert.match(sent, /Server re-ran the doctor\/plan comparison[\s\S]*CARRIER TABLE/);
+    });
+  });
+
+  it('does not re-run anything for an ordinary question', async () => {
+    const { passThroughChat } = loadGrok({ provider: 'grok', key: 'test-xai-key' });
+    const toolCalls = [];
+    await withMockedFetch(() => ({ ok: true, json: async () => ({ id: 'x', model: 'grok-4.6', choices: [{ message: { role: 'assistant', content: 'ok' } }] }) }), async () => {
+      await passThroughChat({ system: 'x', messages: [{ role: 'user', content: 'What is IRMAA?' }], deadlineMs: 60000, processToolFn: async (name) => { toolCalls.push(name); return 'x'; } });
+    });
+    assert.deepEqual(toolCalls, []);
+  });
+
   it('says nothing was saved when the deadline hits before any lookup', async () => {
     const { passThroughChat } = loadGrok({ provider: 'grok', key: 'test-xai-key' });
     await withMockedFetch(() => { throw new Error('no model call'); }, async () => {
