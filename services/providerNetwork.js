@@ -306,7 +306,7 @@ function formatDoctorText({ doctorName, zip, planYear, providerResults, sunfire,
     if (realErrors.length) {
       out += `Could not complete: ${realErrors.join(', ')} — that is not the same as out-of-network. Hand the agent the guest URL.\n`;
     }
-    out += `${formatSolisNote(zip)}\n`;
+    out += `${formatSolisNote(zip, planYear)}\n`;
     out += '\n';
   }
   if (timedOut) {

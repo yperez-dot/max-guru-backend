@@ -19,20 +19,21 @@ Member-facing directory: https://healthsun.com/provider-directory/
 
 ## Doctors HealthCare Plans (H4140)
 
-No public FHIR. Live search is https://providersearch.doctorshcp.com (POST `/ProviderSearch` by NPI, PCP + specialist). Max queries this the same way. A hit means the NPI is in the Doctors directory — the API does not name a CMS plan ID (DrMax / DrSelect / DrElite share the directory).
+No public FHIR. Live search is https://providersearch.doctorshcp.com (POST `/ProviderSearch` by NPI, PCP + specialist). Max queries this the same way. A hit means the NPI is in the Doctors directory — the API does not name a CMS plan ID. DrMax-Dade (H4140-022) and DrSelect-SFL (H4140-023) share one network (Yahoska, 2026-10-06), so a hit counts as In for both. The API rejects bursts with HTTP 404 — Max searches one list at a time and retries.
 
-Older SoB link https://www.doctorshcp.com/2026Providers/ still works for humans.
+2027 directory page for humans: https://www.doctorshcp.com/2027providers/ (the old `/2026Providers/` page returns 404).
 
 ## Solis Health Plans (H0982)
 
-No live provider API. The find-a-provider page is a placeholder; directories are county PDFs:
+Not on Sunfire and Max cannot search Solis doctors itself. For humans (checked 2026-10-06):
 
-- Miami-Dade: https://soliscdrapi.azurewebsites.net/doc/ProvDirecMD_All_Current
-- Broward & Palm Beach: https://soliscdrapi.azurewebsites.net/doc/ProvDirecBDPB_All_Current
-- Central Florida: https://soliscdrapi.azurewebsites.net/doc/ProvDirecCFL_All_Current
-- Hub page: https://solishealthplans.com/2026/find-a-provider
+- 2027 find-a-provider (live name / ZIP search, slow and sometimes erroring): https://solishealthplans.com/2027/find-a-provider
+- 2027 Miami-Dade PDF: https://soliscdrapi.azurewebsites.net/doc/ProvDirecMD_All_Next
+- 2027 Broward & Palm Beach PDF: https://soliscdrapi.azurewebsites.net/doc/ProvDirecBDPB_All_Next
+- 2027 Central Florida PDF: https://soliscdrapi.azurewebsites.net/doc/ProvDirecCFL_All_Next
+- 2026: same file names ending `_Current`; page https://solishealthplans.com/2026/find-a-provider
 
-When an agent asks about Solis + a doctor, say Max cannot search Solis live and point them at the county PDF. Do not invent an in-network / out-of-network answer from training.
+The PDF links start a download (Chrome can show a blank or error tab — check Downloads). When an agent asks about Solis + a doctor, say Max cannot search Solis live and point them at the 2027 search page or county PDF. Do not invent an in-network / out-of-network answer from training.
 
 ## NPI search (all carriers)
 
