@@ -228,7 +228,7 @@ describe('agent follow-ups (2026-10-06 replay: carriers by name, numbered answer
     assert.match(text, /^Why these plans: you asked for Doctors HealthCare, Solis, Devoted — best eligible plan per carrier/m);
     assert.match(text, /D-SNPs — no Medicaid\/MSP/);
     assert.doesNotMatch(text, /Medicaid or a Medicare Savings Program\?|C-SNP qualifying chronic condition, confirmed/, 'answered — not asked again');
-    assert.match(text, /Solis has no live directory check/);
+    assert.match(text, /Solis: checked by name against the 2027 Solis county provider directory/);
   });
 
   it('a different first name is flagged, not counted, and asked about; a confirmed match counts', () => {

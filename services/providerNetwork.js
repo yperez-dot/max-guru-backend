@@ -26,7 +26,19 @@ const {
   isHumanaLabel,
   formatHumanaAgentNote,
 } = require('./humanaFindcare');
-const { formatSolisNote } = require('./solisDirectory');
+const solisDirectory = require('./solisDirectory');
+const { formatSolisNote } = solisDirectory;
+const SOLIS_COUNTY = solisDirectory.COUNTY_LABEL || {};
+const SOLIS_LABEL = 'Solis Health Plans';
+const SOLIS_UNAVAILABLE = { status: 'unavailable', inNetwork: false, matches: [] };
+function solisFor(rec, zip, planYear) {
+  if (Number(planYear) === 2026 || typeof solisDirectory.solisCheck !== 'function') return SOLIS_UNAVAILABLE;
+  try {
+    return solisDirectory.solisCheck({ firstName: rec.firstName, middleName: rec.middleName, lastName: rec.lastName, zip });
+  } catch (_) {
+    return SOLIS_UNAVAILABLE;
+  }
+}
 const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery, suggestSimilarProviders } = require('./npiRegistry');
 const { conversationAskText } = require('./planYear');
 const { batchSummaryForModel, narrowingAnswered, comparisonAskText, selectComparison } = require('./doctorPlanNarrow');
@@ -202,6 +214,8 @@ function npiRecordInfo(p) {
     specialty: spec,
     address,
     lastName: p.basic?.last_name || p.basic?.organization_name || '',
+    firstName: p.basic?.first_name || '',
+    middleName: p.basic?.middle_name || '',
   };
 }
 
@@ -212,6 +226,8 @@ function npiRecordInfo(p) {
 function startNpiChecks(rec, { zip, planYear, guestPlanIds, rank = 0 }) {
   const state = {
     ...rec,
+    // Solis: name match against the 2027 county directory index (local file, instant).
+    solisResult: solisFor(rec, zip, planYear),
     fhir: undefined,
     fhirFailed: [],
     doctorsResult: undefined,
@@ -259,6 +275,8 @@ function summarizeNpi(state, planYear) {
   const humanaResult = pick('humanaResult', 'Humana Find Care');
 
   if (doctorsResult.inNetwork && !inNetworkFor.includes(DOCTORS_PLAN_LABEL)) inNetworkFor.push(DOCTORS_PLAN_LABEL);
+  const solisResult = state.solisResult || SOLIS_UNAVAILABLE;
+  if (solisResult.inNetwork && !inNetworkFor.includes(SOLIS_LABEL)) inNetworkFor.push(SOLIS_LABEL);
   for (const [res, fallbackLabel] of [[aetnaResult, AETNA_PLAN_LABEL], [simplyResult, SIMPLY_PLAN_LABEL]]) {
     if (!res.error && res.inNetwork) {
       for (const plan of res.plans || []) if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
@@ -297,6 +315,7 @@ function summarizeNpi(state, planYear) {
     aetnaResult,
     uhcResult,
     humanaResult,
+    solisResult,
   };
 }
 
@@ -333,7 +352,14 @@ function formatDoctorText({ doctorName, zip, planYear, providerResults, sunfire,
     if (realErrors.length) {
       out += `Could not complete: ${realErrors.join(', ')} — that is not the same as out-of-network. Hand the agent the guest URL.\n`;
     }
-    out += `${formatSolisNote(zip, planYear)}\n`;
+    const sr = pr.solisResult;
+    if (sr && sr.inNetwork) {
+      out += `Solis 2027 directory: LISTED as ${sr.matches.map((m) => `${m.name} (${SOLIS_COUNTY[m.county] || m.county} PDF p. ${m.pages.join(', ')})`).join('; ')} — name match (the PDF has no NPIs).\n`;
+    } else if (sr && sr.status === 'checked') {
+      out += `Solis 2027 directory (${String(sr.county).split('+').map((k) => SOLIS_COUNTY[k] || k).join(' + ')}, current as of ${sr.asOf || 'Oct 2026'}): NOT listed — Out for Solis plans.\n`;
+    } else {
+      out += `${formatSolisNote(zip, planYear)}\n`;
+    }
     out += '\n';
   }
   if (timedOut) {
@@ -377,6 +403,12 @@ function structuredFor(doctorName, providerResults, { status, sunfireLabels = []
         status: (firstProvider.lookupErrors || []).includes(`${c.name} (FHIR)`) ? 'failed'
           : (firstProvider.pending || []).some((p) => /^FHIR/.test(p)) ? 'pending' : 'checked',
       })),
+      {
+        carrier: SOLIS_LABEL,
+        inNetwork: firstProvider.inNetworkFor.includes(SOLIS_LABEL),
+        status: firstProvider.solisResult && (firstProvider.solisResult.status === 'checked' || firstProvider.solisResult.inNetwork) ? 'checked' : 'failed',
+        directoryMatches: (firstProvider.solisResult && firstProvider.solisResult.matches) || [],
+      },
       { carrier: DOCTORS_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.includes(DOCTORS_PLAN_LABEL), status: (firstProvider.lookupErrors || []).includes('Doctors HealthCare Plans') ? 'failed' : 'checked' },
       { carrier: AETNA_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.some((p) => /aetna/i.test(p)) },
       { carrier: SIMPLY_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.some((p) => /simply/i.test(p)) },

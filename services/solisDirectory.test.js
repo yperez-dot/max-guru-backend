@@ -39,3 +39,30 @@ describe('solisDirectory zip → county PDF', () => {
     assert.ok(Object.values(DIRECTORIES).every((d) => d.url.startsWith('https://')));
   });
 });
+
+describe('Solis 2027 directory index (name match)', () => {
+  const { solisCheck } = require('./solisDirectory');
+  it('Krajewski is listed in Miami-Dade (p. 93)', () => {
+    const r = solisCheck({ firstName: 'EDUARDO', lastName: 'KRAJEWSKI', zip: '33172' });
+    assert.equal(r.status, 'checked');
+    assert.equal(r.inNetwork, true);
+    assert.deepEqual(r.matches[0].pages, [93]);
+  });
+  it('Morytko, Cedeno, Del Conde Pozzi, Yavagal are not listed in Miami-Dade → checked miss', () => {
+    for (const [f, l] of [['JOHN', 'MORYTKO'], ['JUAN', 'CEDENO'], ['IAN', 'DEL CONDE POZZI'], ['DILEEP', 'YAVAGAL']]) {
+      const r = solisCheck({ firstName: f, lastName: l, zip: '33172' });
+      assert.equal(r.status, 'checked', l);
+      assert.equal(r.inNetwork, false, l);
+    }
+  });
+  it('compound / hyphenated surnames and middle names match; a different first name does not', () => {
+    assert.equal(solisCheck({ firstName: 'MAYTE', lastName: 'RUIZ-SANTIAGO', zip: '33172' }).inNetwork, true);
+    assert.equal(solisCheck({ firstName: 'ANDREA', middleName: 'MELO', lastName: 'SOSA', zip: '33172' }).inNetwork, true);
+    assert.equal(solisCheck({ firstName: 'CARLOS', lastName: 'SOSA', zip: '33172' }).inNetwork, false);
+  });
+  it('unknown county: a miss is not a check (unavailable), a hit still counts', () => {
+    assert.equal(solisCheck({ firstName: 'JOHN', lastName: 'MORYTKO', zip: '' }).status, 'unavailable');
+    assert.equal(solisCheck({ firstName: 'EDUARDO', lastName: 'KRAJEWSKI', zip: '' }).inNetwork, true);
+  });
+});
+

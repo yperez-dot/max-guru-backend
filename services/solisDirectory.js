@@ -11,7 +11,8 @@
  * county PDFs on soliscdrapi.azurewebsites.net (probed 2026-09-02). NPIs are
  * not in the PDF as plain text, so Max cannot search them per lookup.
  *
- * Honest result: not searchable live — hand the agent the right county PDF.
+ * Updated 2026-10-06 (later): the 2027 county PDFs' alphabetical indexes are now built
+ * into data/solis-directory-2027.json and searched by name (solisCheck below).
  */
 
 const FIND_A_PROVIDER = 'https://solishealthplans.com/2027/find-a-provider';
@@ -84,7 +85,97 @@ function formatSolisNote(zip, year = 2027) {
   return `Solis (H0982) is not on Sunfire and Max cannot search it live. Check the ${note.year} directory: ${links}. Find-a-provider (${note.year}, has a name/ZIP search — can be slow): ${note.findAProviderUrl}`;
 }
 
+// ─── 2027 directory index (scripts/build_solis_index.py → data/solis-directory-2027.json) ───
+//
+// The county PDFs end with an alphabetical index "LAST, FIRST CRED ... page". No NPIs, so
+// the match is by name: same first name (or the NPPES middle name she goes by) and the
+// same surname — "SOSA MELO" matches NPPES "SOSA MELO" or "SOSA" + middle "MELO".
+// A finished check with no match is Out, because the directory lists every network provider.
+
+let INDEX = null;
+function loadIndex() {
+  if (INDEX) return INDEX;
+  try {
+    INDEX = require('../data/solis-directory-2027.json');
+  } catch (_) {
+    INDEX = { counties: {} };
+  }
+  return INDEX;
+}
+
+const PARTICLES = new Set(['DE', 'DEL', 'LA', 'LAS', 'LOS', 'DA', 'DI', 'DOS', 'VAN', 'VON', 'Y', 'MC', 'MAC']);
+
+function words(s) {
+  return String(s || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function surnameWords(s) {
+  return words(s).filter((w) => !PARTICLES.has(w) && w.length >= 2);
+}
+
+/** Which index(es) cover this ZIP: Miami-Dade, Broward & Palm Beach, or (unknown) both South FL. */
+function countiesForZip(zip) {
+  let county = '';
+  try { county = require('./comparisonRules').countyForZip(zip); } catch (_) { county = ''; }
+  if (county === 'Miami-Dade') return { keys: ['miamiDade'], known: true };
+  if (county === 'Broward') return { keys: ['browardPalmBeach'], known: true };
+  const fips = fipsForZip(zip);
+  if (fips === '12086') return { keys: ['miamiDade'], known: true };
+  if (fips === '12011' || fips === '12099') return { keys: ['browardPalmBeach'], known: true };
+  return { keys: ['miamiDade', 'browardPalmBeach'], known: false };
+}
+
+function samePerson(entry, { first, middle, last }) {
+  const eLast = surnameWords(entry.last);
+  const dLast = surnameWords(last);
+  const dMiddle = surnameWords(middle);
+  if (!eLast.length || !dLast.length) return false;
+  // Surname: the directory's surname words are all in hers (+ middle), or hers are all in the directory's.
+  const hers = new Set([...dLast, ...dMiddle]);
+  const surnameOk = eLast.every((w) => hers.has(w)) || dLast.every((w) => eLast.includes(w));
+  if (!surnameOk) return false;
+  const eFirst = words(entry.first)[0];
+  const firsts = [words(first)[0], words(middle)[0]].filter(Boolean);
+  return Boolean(eFirst) && firsts.includes(eFirst);
+}
+
+/**
+ * Solis 2027 directory check for one doctor (as matched in NPPES).
+ * → { status: 'checked'|'unavailable', inNetwork, matches: [{name, pages, county}], county, asOf }
+ * 'unavailable' (no index / county not covered) is never a miss.
+ */
+function solisCheck({ firstName, middleName, lastName, zip } = {}) {
+  const idx = loadIndex();
+  const { keys, known } = countiesForZip(zip);
+  const covered = keys.filter((k) => idx.counties && idx.counties[k]);
+  if (!covered.length || !lastName || !firstName) {
+    return { status: 'unavailable', inNetwork: false, matches: [], county: keys.join('+') };
+  }
+  const matches = [];
+  for (const k of covered) {
+    for (const e of idx.counties[k].people || []) {
+      if (samePerson(e, { first: firstName, middle: middleName, last: lastName })) {
+        matches.push({ name: `${e.last}, ${e.first}${e.cred ? ` ${e.cred}` : ''}`, pages: e.pages, county: k });
+      }
+    }
+  }
+  const asOf = idx.counties[covered[0]].asOf || null;
+  // Unknown county: a hit is still a hit, but a miss in "both" is not proof — unchecked.
+  if (!matches.length && !known) return { status: 'unavailable', inNetwork: false, matches, county: covered.join('+'), asOf };
+  return { status: 'checked', inNetwork: matches.length > 0, matches, county: covered.join('+'), asOf };
+}
+
+const COUNTY_LABEL = { miamiDade: 'Miami-Dade', browardPalmBeach: 'Broward & Palm Beach', centralFl: 'Central Florida' };
+
 module.exports = {
+  solisCheck,
+  countiesForZip,
+  COUNTY_LABEL,
   FIND_A_PROVIDER,
   FIND_A_PROVIDER_2026,
   DIRECTORIES,

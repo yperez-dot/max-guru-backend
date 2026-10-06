@@ -25,7 +25,7 @@ No public FHIR. Live search is https://providersearch.doctorshcp.com (POST `/Pro
 
 ## Solis Health Plans (H0982)
 
-Not on Sunfire and Max cannot search Solis doctors itself. For humans (checked 2026-10-06):
+Not on Sunfire. **Max checks Solis itself (2026-10-06):** the 2027 county directory PDFs' alphabetical indexes are built into `data/solis-directory-2027.json` (Miami-Dade 1,827 · Broward & Palm Beach 2,246 · Central FL 3,790 providers, current as of Oct 1, 2026). Match is by name (first name + surname — the PDFs have no NPIs); a listed doctor shows the PDF page (e.g. Krajewski, Eduardo MD — Miami-Dade p. 93). Not listed in the client's county = Out; county unknown = unchecked. Rebuild monthly with `scripts/build_solis_index.py`. Solis's own live search API returned HTTP 500 on 2026-10-06. For humans:
 
 - 2027 find-a-provider (live name / ZIP search, slow and sometimes erroring): https://solishealthplans.com/2027/find-a-provider
 - 2027 Miami-Dade PDF: https://soliscdrapi.azurewebsites.net/doc/ProvDirecMD_All_Next
@@ -33,7 +33,7 @@ Not on Sunfire and Max cannot search Solis doctors itself. For humans (checked 2
 - 2027 Central Florida PDF: https://soliscdrapi.azurewebsites.net/doc/ProvDirecCFL_All_Next
 - 2026: same file names ending `_Current`; page https://solishealthplans.com/2026/find-a-provider
 
-The PDF links start a download (Chrome can show a blank or error tab — check Downloads). When an agent asks about Solis + a doctor, say Max cannot search Solis live and point them at the 2027 search page or county PDF. Do not invent an in-network / out-of-network answer from training.
+The PDF links start a download (Chrome can show a blank or error tab — check Downloads). When an agent asks about Solis + a doctor, use the lookup result (name match against the 2027 PDF index) and give the PDF page for a listed doctor. Do not invent an in-network / out-of-network answer from training.
 
 ## NPI search (all carriers)
 

@@ -1686,6 +1686,15 @@ Earlier: all four In network on UHC H5420-001.
       assert.ok(clinic.statuses.every((x) => x !== 'Out of network'));
     });
 
+    it('Solis: a name-index listing is In; a checked miss is Out; no check stays Not confirmed', () => {
+      const plans = loadPlans().filter((p) => /^H0982-016/.test(String(p.planId || p.id || '').toUpperCase()));
+      assert.equal(plans.length, 1);
+      const run = (inNetwork, status) => exp.doctorsFromProviderLookups([{ doctorName: 'Eduardo Krajewski', networks: [{ carrier: 'Solis Health Plans', inNetwork, status }] }], plans)[0].statuses[0];
+      assert.notEqual(run(true, 'checked'), 'Out of network');
+      assert.equal(run(false, 'checked'), 'Out of network');
+      assert.notEqual(run(false, 'failed'), 'Out of network');
+    });
+
     it('a clinic the agent says is out of network stays Out of network', () => {
       const plans = doctorsPlans();
       const id = exp.displayContractPbp(plans[0]);
