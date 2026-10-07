@@ -6038,67 +6038,6 @@
     "year": 2026
   },
   {
-    "id": "H0982-022",
-    "carrier": "Solis",
-    "planName": "Healthy Living",
-    "planId": "H0982-022",
-    "county": "Broward",
-    "type": "HMO",
-    "premium": "$0",
-    "moop": "$2,900",
-    "referral": "Yes",
-    "dental": "$3,500 · (can spend how they'd like)",
-    "otc": "$115 x month",
-    "vision": "$250",
-    "transportation": "$0 x 24 one way",
-    "fitness": "Silver & Fit",
-    "hearing": "$1,500 x both ears x year",
-    "tags": {
-      "dental": true,
-      "otc": true,
-      "foodCard": true,
-      "referral": true
-    },
-    "pros": [
-      "High OTC allowance",
-      "Food card",
-      "$1,000 flex card for dental/vision/hearing",
-      "In-home support"
-    ],
-    "cons": [
-      "Limited network"
-    ],
-    "comment": "More limited than larger competitors",
-    "sourceQuality": "kb; SoB Phase2:sobUrl; SoB Phase2:partBGiveback",
-    "mspLevels": "",
-    "chronicConditions": "Chronic Conditions List",
-    "dualLevel": {
-      "full": false,
-      "partial": false
-    },
-    "sobUrl": "https://soliscdrapi.azurewebsites.net/doc/SB007_Eng_Current",
-    "groceryCardDetail": "$50 x month\nIf eligible",
-    "outpatientHospital": 50,
-    "erCopay": 90,
-    "advancedImaging": "$0 / $75",
-    "dentalDeepCleaning": "included in allowance",
-    "dentalDentures": "\" \"",
-    "dentalFillings": "\" \"",
-    "dentalRootCanals": "\" \"",
-    "dentalExtractions": "\" \"",
-    "dentalCrowns": "\" \"",
-    "dentalBridges": "\" \"",
-    "dentalImplants": "Yes",
-    "ambulance": 75,
-    "tier3": 15,
-    "tier4": 70,
-    "tier5": 0.33,
-    "acupuncture": "$0\n12 visits within 90 days",
-    "other": "•Papa Pals ( in home support & companionship)\n24 hours x year \n•Generic Viagra & Cialis 8 x month",
-    "partBGiveback": 0,
-    "year": 2026
-  },
-  {
     "id": "H5420-003-FL-0029",
     "carrier": "UHC",
     "planName": "MedicareMax",
