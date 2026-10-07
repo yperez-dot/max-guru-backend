@@ -6,6 +6,7 @@
  */
 const { Router } = require('express');
 const { parseCompareAsk, createJob, getJob, publicJob } = require('../services/compareJobs');
+const { extractIntake } = require('../services/intakeExtract');
 
 function createCompareRouter(deps) {
   const router = Router();
@@ -14,6 +15,16 @@ function createCompareRouter(deps) {
     const text = String((req.body && req.body.text) || '');
     if (!text.trim()) return res.status(400).json({ error: 'Paste the client ask first.' });
     return res.json({ ok: true, fields: parseCompareAsk(text) });
+  });
+
+  router.post('/extract', async (req, res) => {
+    try {
+      const out = await (deps.extractIntake || extractIntake)((req.body && req.body.images) || []);
+      if (!out.found) return res.status(422).json({ error: 'I could not read client info in that image. Try a clearer screenshot, or paste the text.' });
+      return res.json({ ok: true, text: out.text });
+    } catch (err) {
+      return res.status(err.status || 502).json({ error: err.status ? err.message : 'Could not read that image right now. Paste the text instead.' });
+    }
   });
 
   router.post('/jobs', (req, res) => {
