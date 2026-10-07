@@ -105,6 +105,39 @@ async function lookupFormularyCached({ drugName, planIds, year }) {
 
 const jobs = new Map();
 
+// At most MAX_CONCURRENT comparisons run at once, across everyone. Carrier sites
+// (Doctors, Devoted, UHC) are slow and throttle bursts, so extra clients wait their turn
+// as status 'queued' with a position, and start automatically as a slot frees up.
+const MAX_CONCURRENT = Math.max(1, Number(process.env.MAX_COMPARE_CONCURRENCY || 2));
+let activeRuns = 0;
+const waiting = [];
+
+function pumpQueue() {
+  while (activeRuns < MAX_CONCURRENT && waiting.length) {
+    const { job, deps } = waiting.shift();
+    if (job.status !== 'queued') continue;
+    activeRuns += 1;
+    runJob(job, deps)
+      .catch((e) => { job.status = 'error'; job.error = e.message; job.finishedAt = Date.now(); })
+      .finally(() => { activeRuns -= 1; pumpQueue(); });
+  }
+}
+
+function enqueueJob(job, deps) {
+  waiting.push({ job, deps });
+  pumpQueue();
+}
+
+function queuePosition(job) {
+  if (job.status !== 'queued') return 0;
+  const i = waiting.findIndex((w) => w.job === job);
+  return i < 0 ? 0 : i + 1;
+}
+
+function queueState() {
+  return { active: activeRuns, waiting: waiting.length, limit: MAX_CONCURRENT };
+}
+
 function sweep() {
   const now = Date.now();
   for (const [id, job] of jobs) if (now - job.createdAt > JOB_TTL_MS) jobs.delete(id);
@@ -126,6 +159,7 @@ function publicJob(job) {
   return {
     id: job.id,
     status: job.status,
+    queuePosition: queuePosition(job),
     error: job.error || null,
     input: job.input,
     progress: job.progress,
@@ -311,7 +345,7 @@ function createJob(rawInput, owner, deps) {
     result: {},
   };
   jobs.set(job.id, job);
-  setImmediate(() => { void runJob(job, deps); });
+  enqueueJob(job, deps);
   return job;
 }
 
@@ -329,6 +363,7 @@ module.exports = {
   getJob,
   publicJob,
   runJob,
+  queueState,
   lookupFormularyCached,
   NOT_CONFIRMED,
 };

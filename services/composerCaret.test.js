@@ -171,3 +171,19 @@ describe('Show benefits is offered once', () => {
     assert.match(html, /String\(userMessageText\(x\.content\) \|\| ""\)\.trim\(\) === "Show benefits for these plans"/);
   });
 });
+
+describe('Client queue panel', () => {
+  it('replaces the single Compare form with a queue; each finished client saves as its own new workup', () => {
+    const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
+    assert.match(html, /function QueuePanel\(/);
+    assert.match(html, /data-testid="queue-add"/);
+    assert.match(html, /data-testid="queue-row"/);
+    assert.match(html, /data-testid="queue-open"/);
+    assert.doesNotMatch(html, /function ComparePanel\(/);
+    // new workup, never an update of the one that is open
+    const fn = html.slice(html.indexOf('const saveAsWorkup'), html.indexOf('const refresh = async'));
+    assert.match(fn, /id: ""/);
+    assert.match(fn, /delete body\.id/);
+    assert.match(fn, /workupsRequest\("PUT", "", body\)/);
+  });
+});
