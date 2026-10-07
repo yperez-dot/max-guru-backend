@@ -79,3 +79,26 @@ describe('compare mode: job', () => {
     assert.equal(getJob(job.id, 'b@x.com'), null);
   });
 });
+
+describe('comparison queue: 2 at a time', () => {
+  it('runs two jobs, holds the third as queued #1, then starts it when a slot frees', async () => {
+    const { queueState, publicJob } = require('./compareJobs');
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    const slowDoctor = async (d) => { await gate; return fakeDoctor([])(d); };
+    const deps = { lookupOneDoctor: slowDoctor, lookupRx: fakeRx };
+    const mk = (name) => createJob({ zip: '33332', clientName: name, doctors: ['A Doc'], meds: [] }, 'q@x.com', deps);
+    const [a, b, c] = [mk('A'), mk('B'), mk('C')];
+    await new Promise((r) => setTimeout(r, 20));
+    assert.equal(a.status, 'doctors');
+    assert.equal(b.status, 'doctors');
+    assert.equal(c.status, 'queued');
+    assert.equal(publicJob(c).queuePosition, 1);
+    assert.equal(queueState().active, 2);
+    release();
+    for (let i = 0; i < 100 && c.status !== 'done'; i += 1) await new Promise((r) => setTimeout(r, 20));
+    assert.equal(c.status, 'done');
+    assert.equal(publicJob(c).queuePosition, 0);
+    assert.equal(queueState().active, 0);
+  });
+});

@@ -3943,164 +3943,70 @@ function ProgressRow({ label, done, total }) {
   );
 }
 
-function ComparePanel({ isMobile, onSaveWorkup, onClose }) {
-  const [askText, setAskText] = useState("");
-  const [fields, setFields] = useState(null);
-  const [job, setJob] = useState(null);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const pollRef = useRef(null);
+const QUEUE_STORE_KEY = "max_queue_v1";
+const queueLabel = { fontSize: 11.5, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "12px 0 4px" };
+const queueBox = { width: "100%", boxSizing: "border-box", padding: "9px 11px", borderRadius: 10, border: "1px solid var(--line)", fontFamily: "var(--font)", fontSize: 13.5, background: "#fff", color: "var(--ink)" };
+const queueBtn = (primary) => ({ padding: "10px 16px", borderRadius: 10, border: primary ? "none" : "1px solid var(--line)", background: primary ? "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)" : "#fff", color: primary ? "#fff" : "var(--plum)", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "var(--font)" });
 
-  useEffect(() => () => { if (pollRef.current) clearTimeout(pollRef.current); }, []);
+function loadQueueStore() {
+  try {
+    const v = JSON.parse(localStorage.getItem(QUEUE_STORE_KEY) || "[]");
+    return Array.isArray(v) ? v.slice(0, 12) : [];
+  } catch (_) { return []; }
+}
+function saveQueueStore(entries) {
+  try {
+    localStorage.setItem(QUEUE_STORE_KEY, JSON.stringify(entries.map((e) => ({
+      key: e.key, jobId: e.jobId, fields: e.fields, name: e.name, status: e.status, workupId: e.workupId || null,
+    }))));
+  } catch (_) {}
+}
 
-  const label = { fontSize: 11.5, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "12px 0 4px" };
-  const box = { width: "100%", boxSizing: "border-box", padding: "9px 11px", borderRadius: 10, border: "1px solid var(--line)", fontFamily: "var(--font)", fontSize: 13.5, background: "#fff", color: "var(--ink)" };
-  const btn = (primary) => ({ padding: "10px 16px", borderRadius: 10, border: primary ? "none" : "1px solid var(--line)", background: primary ? "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)" : "#fff", color: primary ? "#fff" : "var(--plum)", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "var(--font)" });
-
-  const readAsk = async () => {
-    setError("");
-    setBusy(true);
-    try {
-      const data = await compareRequest("POST", "/parse", { text: askText });
-      const f = data.fields || {};
-      setFields({
-        clientName: f.clientName || "",
-        zip: f.zip || "",
-        doctors: (f.doctors || []).map((d) => d.name + (d.mustKeep ? " *" : "")).join("\n"),
-        meds: (f.meds || []).join("\n"),
-        plans: (f.plans || []).join(", "),
-        terminatingPlan: f.terminatingPlan || "",
-        noMedicaid: Boolean(f.noMedicaid),
-        // Medicaid / MSP level / C-SNP condition as the agent stated them (comparison rule 1).
-        eligibility: f.eligibility || null,
-        year: f.year || 2027,
-      });
-      setJob(null);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
+function buildQueueJobBody(f) {
+  return {
+    clientName: f.clientName,
+    zip: f.zip,
+    doctors: linesOf(f.doctors).map((n) => ({ name: n.replace(/\s*\*$/, ""), mustKeep: /\*$/.test(n) })),
+    meds: linesOf(f.meds),
+    plans: linesOf(f.plans),
+    terminatingPlan: f.terminatingPlan,
+    noMedicaid: f.noMedicaid,
+    eligibility: f.eligibility || undefined,
+    year: f.year,
+    planNames: Object.fromEntries(findComparisonPlans(linesOf(f.plans).join(" ") + " " + (f.year || 2027))
+      .map((p) => [String(p.planId || p.id || "").toUpperCase(), [p.carrier, p.planName].filter(Boolean).join(" ")])),
   };
+}
 
-  const poll = async (id) => {
-    try {
-      const data = await compareRequest("GET", "/jobs/" + id);
-      setJob(data.job);
-      if (data.job.status !== "done" && data.job.status !== "error") {
-        pollRef.current = setTimeout(() => poll(id), 1500);
-      }
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+const queueExportPlans = (e) => findComparisonPlans(((e.job && e.job.result && e.job.result.planIds) || []).join(" ") + " " + (e.fields.year || 2027));
+const queueExportExtras = (e) => ({
+  toolResults: (e.job.result.toolResults) || [],
+  drugs: (e.job.result.drugs || []).flatMap((d) => d.export || []),
+  clientName: e.fields.clientName,
+  explicitTerminating: Boolean(e.fields.terminatingPlan),
+  terminatingPlan: e.fields.terminatingPlan,
+});
+const queueHistory = (e) => [{ role: "user", content: compareAskText(e.fields) }];
 
-  const run = async () => {
-    setError("");
-    const f = fields;
-    const body = {
-      clientName: f.clientName,
-      zip: f.zip,
-      doctors: linesOf(f.doctors).map((n) => ({ name: n.replace(/\s*\*$/, ""), mustKeep: /\*$/.test(n) })),
-      meds: linesOf(f.meds),
-      plans: linesOf(f.plans),
-      terminatingPlan: f.terminatingPlan,
-      noMedicaid: f.noMedicaid,
-      eligibility: f.eligibility || undefined,
-      year: f.year,
-      // Marketing names from the grid so table headers read "Humana Gold Plus · H1036-065C".
-      planNames: Object.fromEntries(findComparisonPlans(linesOf(f.plans).join(" ") + " " + (f.year || 2027))
-        .map((p) => [String(p.planId || p.id || "").toUpperCase(), [p.carrier, p.planName].filter(Boolean).join(" ")])),
-    };
-    try {
-      const data = await compareRequest("POST", "/jobs", body);
-      setJob(data.job);
-      poll(data.job.id);
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+function queueStatus(e) {
+  const j = e.job;
+  if (e.status === "expired") return { text: "Expired — add it again", tone: "warn" };
+  if (!j) return { text: "Loading…", tone: "idle" };
+  if (j.status === "error") return { text: "Failed", tone: "bad" };
+  if (j.status === "done") {
+    const r = j.result || {};
+    const needs = (r.questions || []).length + (r.notConfirmed || []).length;
+    return needs ? { text: "Done — needs you", tone: "warn" } : { text: "Done", tone: "good" };
+  }
+  if (j.status === "queued") return { text: "Waiting — #" + (j.queuePosition || 1), tone: "idle" };
+  if (j.status === "doctors") return { text: "Doctors " + j.progress.doctors.done + "/" + j.progress.doctors.total, tone: "run" };
+  return { text: "Meds " + j.progress.meds.done + "/" + j.progress.meds.total, tone: "run" };
+}
 
-  const result = job && job.status === "done" ? job.result : null;
-  const exportPlans = () => {
-    const ids = (result && result.planIds) || [];
-    return findComparisonPlans(ids.join(" ") + " " + (fields.year || 2027));
-  };
-  const exportExtras = () => ({
-    toolResults: result.toolResults || [],
-    drugs: (result.drugs || []).flatMap((d) => d.export || []),
-    clientName: fields.clientName,
-    explicitTerminating: Boolean(fields.terminatingPlan),
-    terminatingPlan: fields.terminatingPlan,
-  });
-  const history = () => [{ role: "user", content: compareAskText(fields) }];
-  const doExport = async (kind) => {
-    const plans = exportPlans();
-    if (!plans.length) { setError("Those plan IDs aren't in the " + (fields.year || 2027) + " grid, so Excel/PDF can't build benefit rows. The tables above are still correct."); return; }
-    await runComparisonExport(kind, history(), plans, exportExtras());
-  };
-  const save = async () => {
-    const plans = exportPlans();
-    if (plans.length < 2) return;
-    const payload = await hydrateExportSobBenefits(collectComparisonExport(history(), plans, exportExtras()));
-    await onSaveWorkup(payload);
-  };
-
-  // Workups save on their own (no Save button anywhere in Max): once per finished run.
-  const savedJobRef = useRef(null);
-  useEffect(() => {
-    if (!result || !job || savedJobRef.current === job.id) return;
-    savedJobRef.current = job.id;
-    if (exportPlans().length >= 2) void save().catch(() => {});
-  }, [result, job]);
-
-  const running = job && job.status !== "done" && job.status !== "error";
+function CompareResult({ result, onExport }) {
+  const btn = queueBtn;
   return (
-    <div className="max-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 14px" : "24px 22px" }}>
-      <div style={{ maxWidth: 980, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 20, color: "var(--plum)" }}>Client comparison</div>
-          <button onClick={onClose} style={btn(false)}>Back to chat</button>
-        </div>
-
-        <div style={label}>1 · Paste the client ask</div>
-        <textarea value={askText} onChange={(e) => setAskText(e.target.value)} rows={4} style={box}
-          placeholder="Maria & Gaspar Padron, ZIP 33332. Current plan H5420-014 terminating 2027. No Medicaid. Doctors: … Meds: … Compare H1036-065C, H1609-018 …" />
-        <div style={{ marginTop: 8 }}>
-          <button onClick={readAsk} disabled={busy || !askText.trim()} style={btn(true)}>{busy ? "Reading…" : "Read it"}</button>
-        </div>
-
-        {fields && (
-          <div style={{ marginTop: 16, padding: 14, borderRadius: 14, border: "1px solid var(--line)", background: "rgba(255,255,255,0.75)" }}>
-            <div style={{ ...label, marginTop: 0 }}>2 · Check the fields</div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr 1fr", gap: 10 }}>
-              <div><div style={label}>Client</div><input style={box} value={fields.clientName} onChange={(e) => setFields({ ...fields, clientName: e.target.value })} /></div>
-              <div><div style={label}>ZIP</div><input style={box} value={fields.zip} onChange={(e) => setFields({ ...fields, zip: e.target.value })} /></div>
-              <div><div style={label}>Terminating plan</div><input style={box} value={fields.terminatingPlan} onChange={(e) => setFields({ ...fields, terminatingPlan: e.target.value })} /></div>
-            </div>
-            <div style={label}>Plans to compare (blank = Max picks the 3 with the most doctors in)</div>
-            <input style={box} value={fields.plans} onChange={(e) => setFields({ ...fields, plans: e.target.value })} placeholder="H1036-065C, H1609-018, H1290-073" />
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
-              <div><div style={label}>Doctors (one per line · * = must-keep)</div><textarea rows={8} style={box} value={fields.doctors} onChange={(e) => setFields({ ...fields, doctors: e.target.value })} /></div>
-              <div><div style={label}>Meds (one per line)</div><textarea rows={8} style={box} value={fields.meds} onChange={(e) => setFields({ ...fields, meds: e.target.value })} /></div>
-            </div>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, fontSize: 13, color: "var(--ink)" }}>
-              <input type="checkbox" checked={fields.noMedicaid} onChange={(e) => setFields({ ...fields, noMedicaid: e.target.checked })} />
-              No Medicaid / MSP (leave out D-SNPs)
-            </label>
-            <div style={{ marginTop: 12 }}>
-              <button onClick={run} disabled={running} style={btn(true)}>{running ? "Running…" : "Run comparison"}</button>
-            </div>
-          </div>
-        )}
-
-        {job && (
-          <div style={{ marginTop: 16, padding: 14, borderRadius: 14, border: "1px solid var(--line)", background: "rgba(255,255,255,0.85)" }}>
-            <ProgressRow label="Doctors" done={job.progress.doctors.done} total={job.progress.doctors.total} />
-            <ProgressRow label="Meds" done={job.progress.meds.done} total={job.progress.meds.total} />
-            {job.status === "error" && <div style={{ color: "#9B1C3C", fontSize: 13 }}>Comparison failed: {job.error}</div>}
-            {result && (
-              <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--ink)" }}>
+    <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--ink)" }}>
                 {result.header && <div style={{ margin: "6px 0 2px" }}>{renderMessageText(result.header)}</div>}
                 {result.whyLine && (
                   <div style={{ fontSize: 12.5, color: "var(--muted)", margin: "2px 0 6px" }}>{result.whyLine}</div>
@@ -4137,14 +4043,165 @@ function ComparePanel({ isMobile, onSaveWorkup, onClose }) {
                   <div style={{ fontSize: 12.5, color: "#92400e", marginTop: 6 }}>No NPI match: {result.notConfirmed.join(", ")} — try the NPI or practice name.</div>
                 )}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
-                  <button onClick={() => void doExport("excel")} style={btn(true)}>Export Excel</button>
-                  <button onClick={() => void doExport("pdf")} style={btn(false)}>Export PDF</button>
+                  <button onClick={() => void onExport("excel")} style={btn(true)}>Export Excel</button>
+                  <button onClick={() => void onExport("pdf")} style={btn(false)}>Export PDF</button>
                 </div>
               </div>
-            )}
-          </div>
-        )}
+  );
+}
+
+// Client queue: paste a client, tap Add, paste the next. The server runs 2 at a time; each finished
+// client is saved as its own workup (never over the open one). Jobs live on the server, so closing the tab is fine.
+function QueuePanel({ isMobile, onWorkupSaved, onClose }) {
+  const [text, setText] = useState("");
+  const [entries, setEntries] = useState(() => loadQueueStore().map((e) => ({ ...e, job: null })));
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [openKey, setOpenKey] = useState(null);
+  const entriesRef = useRef(entries);
+  const savedRef = useRef(new Set());
+  const label = queueLabel; const box = queueBox; const btn = queueBtn;
+
+  const update = (key, patch) => setEntries((cur) => {
+    const next = cur.map((e) => (e.key === key ? { ...e, ...(typeof patch === "function" ? patch(e) : patch) } : e));
+    entriesRef.current = next;
+    saveQueueStore(next);
+    return next;
+  });
+
+  const saveAsWorkup = async (entry) => {
+    if (savedRef.current.has(entry.key) || entry.workupId) return;
+    const plans = queueExportPlans(entry);
+    if (plans.length < 2) return;
+    savedRef.current.add(entry.key);
+    try {
+      const payload = await hydrateExportSobBenefits(collectComparisonExport(queueHistory(entry), plans, queueExportExtras(entry)));
+      const body = window.MaxClientWorkups.buildWorkupFromExport(payload, {
+        id: "",
+        threadText: compareAskText(entry.fields),
+        clientName: entry.fields.clientName,
+        zip: entry.fields.zip,
+        terminatingPlan: entry.fields.terminatingPlan,
+      });
+      delete body.id;
+      const data = await workupsRequest("PUT", "", body);
+      update(entry.key, { workupId: data.workup.id });
+      if (onWorkupSaved) onWorkupSaved(data.workup);
+    } catch (_) {
+      savedRef.current.delete(entry.key);
+    }
+  };
+
+  const refresh = async (entry) => {
+    try {
+      const data = await compareRequest("GET", "/jobs/" + entry.jobId);
+      const job = data.job;
+      update(entry.key, { job, status: job.status });
+      if (job.status === "done") void saveAsWorkup({ ...entry, job });
+    } catch (err) {
+      if (/not found|expired/i.test(String(err.message))) update(entry.key, { status: "expired" });
+    }
+  };
+
+  // Poll anything unfinished (and fetch finished results once after a refresh).
+  useEffect(() => {
+    entriesRef.current.filter((e) => !e.job && e.status !== "expired").forEach((e) => { void refresh(e); });
+    const timer = setInterval(() => {
+      entriesRef.current
+        .filter((e) => e.status !== "expired" && e.status !== "error" && !(e.job && e.job.status === "done"))
+        .forEach((e) => { void refresh(e); });
+    }, 2500);
+    return () => clearInterval(timer);
+  }, []);
+
+  const add = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      const data = await compareRequest("POST", "/parse", { text });
+      const f = data.fields || {};
+      const fields = {
+        clientName: f.clientName || "",
+        zip: f.zip || "",
+        doctors: (f.doctors || []).map((d) => d.name + (d.mustKeep ? " *" : "")).join("\n"),
+        meds: (f.meds || []).join("\n"),
+        plans: (f.plans || []).join(", "),
+        terminatingPlan: f.terminatingPlan || "",
+        noMedicaid: Boolean(f.noMedicaid),
+        eligibility: f.eligibility || null,
+        year: f.year || 2027,
+      };
+      if (!fields.zip) throw new Error("I didn't find a ZIP in that. Add the client's ZIP and tap Add again.");
+      if (!linesOf(fields.doctors).length && !linesOf(fields.meds).length) throw new Error("I didn't find any doctors or meds in that. Add at least one and tap Add again.");
+      const created = await compareRequest("POST", "/jobs", buildQueueJobBody(fields));
+      const entry = { key: created.job.id, jobId: created.job.id, fields, name: fields.clientName || "Client", status: created.job.status, job: created.job, workupId: null };
+      setEntries((cur) => { const next = [...cur, entry].slice(-12); entriesRef.current = next; saveQueueStore(next); return next; });
+      setText("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = (key) => setEntries((cur) => { const next = cur.filter((e) => e.key !== key); entriesRef.current = next; saveQueueStore(next); return next; });
+
+  const doExport = async (entry, kind) => {
+    const plans = queueExportPlans(entry);
+    if (!plans.length) { setError("Those plan IDs aren't in the " + (entry.fields.year || 2027) + " grid, so Excel/PDF can't build benefit rows. The tables are still correct."); return; }
+    await runComparisonExport(kind, queueHistory(entry), plans, queueExportExtras(entry));
+  };
+
+  const tone = { idle: "var(--muted)", run: "var(--plum)", good: "#166534", warn: "#92400e", bad: "#9B1C3C" };
+  return (
+    <div className="max-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 14px" : "24px 22px" }}>
+      <div style={{ maxWidth: 980, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 20, color: "var(--plum)" }}>Client queue</div>
+          <button onClick={onClose} style={btn(false)}>Back to chat</button>
+        </div>
+
+        <div style={label}>Paste a client, then Add</div>
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} style={box}
+          placeholder="Maria & Gaspar Padron, ZIP 33332. Current plan H5420-014 terminating 2027. No Medicaid. Doctors: … Meds: … Compare H1036-065C, H1609-018 …" />
+        <div style={{ marginTop: 8, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <button data-testid="queue-add" onClick={add} disabled={busy || !text.trim()} style={btn(true)}>{busy ? "Adding…" : "Add to queue"}</button>
+          <span style={{ fontSize: 12, color: "var(--muted)" }}>2 run at a time. Each client is saved as its own workup when it finishes.</span>
+        </div>
         {error && <div style={{ marginTop: 12, fontSize: 12.5, color: "#9B1C3C", background: "rgba(255,230,236,0.9)", border: "1px solid rgba(155,28,60,0.2)", borderRadius: 12, padding: "10px 12px" }}>{error}</div>}
+
+        <div style={{ marginTop: 18 }}>
+          {entries.length === 0 && <div style={{ fontSize: 13, color: "var(--muted)" }}>No clients yet. Add one above.</div>}
+          {entries.map((e) => {
+            const st = queueStatus(e);
+            const isOpen = openKey === e.key;
+            return (
+              <div key={e.key} data-testid="queue-row" style={{ marginBottom: 10, borderRadius: 14, border: "1px solid var(--line)", background: "rgba(255,255,255,0.85)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", flexWrap: "wrap" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", flex: "1 1 140px", minWidth: 0 }}>{e.name || "Client"}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: tone[st.tone] }}>{st.text}</div>
+                  {e.job && e.job.status === "done" && (
+                    <button data-testid="queue-open" onClick={() => setOpenKey(isOpen ? null : e.key)} style={{ ...btn(false), padding: "6px 12px" }}>{isOpen ? "Close" : "Open"}</button>
+                  )}
+                  <button onClick={() => remove(e.key)} aria-label="Remove from list" style={{ ...btn(false), padding: "6px 10px" }}>✕</button>
+                </div>
+                {e.job && (e.job.status === "doctors" || e.job.status === "meds") && (
+                  <div style={{ padding: "0 12px 10px" }}>
+                    <ProgressRow label="Doctors" done={e.job.progress.doctors.done} total={e.job.progress.doctors.total} />
+                    <ProgressRow label="Meds" done={e.job.progress.meds.done} total={e.job.progress.meds.total} />
+                  </div>
+                )}
+                {e.job && e.job.status === "error" && <div style={{ padding: "0 12px 10px", color: "#9B1C3C", fontSize: 13 }}>Comparison failed: {e.job.error}</div>}
+                {e.workupId && <div style={{ padding: "0 12px 8px", fontSize: 12, color: "var(--muted)" }}>Saved as its own workup in the sidebar.</div>}
+                {isOpen && e.job && e.job.status === "done" && (
+                  <div style={{ padding: "0 12px 12px" }}>
+                    <CompareResult result={e.job.result} onExport={(kind) => doExport(e, kind)} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -5218,10 +5275,21 @@ function App() {
 
 
         {compareOpen ? (
-          <ComparePanel
+          <QueuePanel
             isMobile={isMobile}
             onClose={() => setCompareOpen(false)}
-            onSaveWorkup={(payload) => saveWorkup(payload, { silent: false })}
+            onWorkupSaved={(workup) => setWorkups((current) => {
+              const summary = {
+                id: workup.id,
+                clientName: workup.clientName,
+                zip: workup.zip,
+                county: workup.county,
+                planIds: workup.planIds,
+                planLabels: (workup.plans || []).map((p) => `${p.carrier || ""} ${p.planName || ""}`.trim() + ` (${p.planId})`),
+                updatedAt: workup.updatedAt,
+              };
+              return [summary, ...(current || []).filter((w) => w.id !== workup.id)];
+            })}
           />
         ) : (<>
         {/* Messages */}
