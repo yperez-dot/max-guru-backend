@@ -285,6 +285,35 @@ const CARRIER_WORDS = [
 ];
 const REQUEST_VERBS = /\b(show|compare|instead|use|switch|swap|look at|what about|how about|wants?|prefers?|only|give me|pull|run|check|try|those|these)\b/i;
 
+// "HUMANA WONT WORK", "not Humana", "other than Humana", "instead of Humana" — a carrier
+// she rules out. Words right after the carrier name, or right before it.
+const REJECT_AFTER_RE = /^[^.!?\n]{0,25}?\b(?:won'?t|wont|will\s+not|doesn'?t|does\s+not|didn'?t|did\s+not|isn'?t|is\s+not|aren'?t|are\s+not|can'?t|cannot|not\s+going\s+to)\s+(?:\w+\s+)?(?:work|do|cut|be|cover|take|accept|help|fit|an?\s+option)\b|^\W*(?:is|are)?\s*(?:out|no\s+good|a\s+no|not\s+an?\s+option|off\s+the\s+table)\b/i;
+const REJECT_BEFORE_RE = /\b(?:no|not|other\s+than|besides|except|instead\s+of|anything\s+but|skip|drop|forget|without|no\s+more|rather\s+than)\s+(?:the\s+)?$/i;
+
+/** Carriers she rules out in ONE message ("YIKES, HUMANA WONT WORK THEN") → ['Humana']. */
+function carriersRejected(message) {
+  const t = String(message || '').replace(/\b(?:doctors?|drs?|providers?)\s*:[^\n]*/gi, ' ');
+  const out = [];
+  for (const [name, re] of CARRIER_WORDS) {
+    const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : `${re.flags}g`);
+    for (const m of t.matchAll(g)) {
+      const start = m.index;
+      const end = start + m[0].length;
+      if (REJECT_AFTER_RE.test(t.slice(end, end + 50)) || REJECT_BEFORE_RE.test(t.slice(Math.max(0, start - 25), start))) {
+        if (!out.includes(name)) out.push(name);
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+/** "check on another plan", "a different carrier", "something else" — she wants other carriers' plans. */
+const OTHER_CARRIER_RE = /\b(?:an)?other\s+(?:plans?|carriers?|compan(?:y|ies)|insurances?|insurers?|options?|networks?)\b|\bdifferent\s+(?:plans?|carriers?|compan(?:y|ies)|insurances?|insurers?|options?|networks?)\b|\bsomething\s+else\b|\bsomewhere\s+else\b/i;
+function wantsOtherCarrier(message) {
+  return OTHER_CARRIER_RE.test(String(message || '').replace(/\b(?:doctors?|drs?|providers?)\s*:[^\n]*/gi, ' '));
+}
+
 /**
  * Carriers the agent asked to see, from ONE message ("lets instead of these plans
  * show me doctors health, solis, devoted"). [] when the message is not a carrier ask.
@@ -301,7 +330,9 @@ function carriersRequested(message) {
     // in a list ("Humana, HealthSun and Doctors (DrSelect H4140-023)") is — so stop at and/with/&.
     .replace(/(?:(?!\band\b|\bwith\b|&)[^,;.\n]){0,70}\b[HR]\d{4}-\d{3}[A-Z]?\b[^,;.\n]{0,60}/gi, ' ');
   if (!REQUEST_VERBS.test(t)) return [];
-  return CARRIER_WORDS.filter(([, re]) => re.test(t)).map(([name]) => name);
+  // "HUMANA WONT WORK THEN. check on another plan" rules Humana out — it is not a Humana ask.
+  const rejected = carriersRejected(message);
+  return CARRIER_WORDS.filter(([name, re]) => re.test(t) && !rejected.includes(name)).map(([name]) => name);
 }
 
 /** Same carrier names the plan code uses (carrierKey in doctorPlanNarrow). */
@@ -348,5 +379,7 @@ module.exports = {
   exactDollars,
   CARRIER_WORDS,
   carriersRequested,
+  carriersRejected,
+  wantsOtherCarrier,
   carrierOfPlan,
 };

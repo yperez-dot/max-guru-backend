@@ -431,7 +431,9 @@ async function queryHumanaFindcare(npi, {
   try {
     const session = await getSession(fetchImpl);
     const future = await listFutureNetworks(session, geo.zip, fetchImpl);
-    const networks = pickTheiNetworks(future, { county: geo.county, planIds });
+    let networks = pickTheiNetworks(future, { county: geo.county, planIds });
+    // None of the asked IDs is a Humana plan (a UHC-only planId): check every THEI Humana network.
+    if (!networks.length && planIds.length) networks = pickTheiNetworks(future, { county: geo.county, planIds: [] });
     if (!networks.length) {
       return {
         ...emptyResult({ error: null, year, county: geo.county }),

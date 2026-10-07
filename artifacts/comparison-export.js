@@ -591,8 +591,32 @@
     return looksLikePersonName(cleaned) ? cleaned : "";
   }
 
+  // Names that belong to doctors in the text: "Dr. X", the "Doctors:" list, and lines that carry a
+  // specialty / NPI ("Cheryl L Case-Diaz (PCP)"). A client name is never one of them
+  // (Maura's workup was saved as "Cheryl Case" — 2026-10-07).
+  const DOCTOR_LINE_RE = /\b(?:pcp|primary\s+care|cardiolog\w*|dermatolog\w*|neurolog\w*|ophthalmolog\w*|gyn\w*|ob\/?gyn|oncolog\w*|urolog\w*|orthop\w*|gastro\w*|endocrin\w*|rheumat\w*|pulmon\w*|nephrolog\w*|podiatr\w*|psychiatr\w*|specialist|npi|m\.?d\.?|d\.?o\.?|aprn|arnp|np)\b/i;
+  function doctorNamesIn(text) {
+    const out = [];
+    const t = String(text || "");
+    for (const m of t.matchAll(/\bDr\.?\s+([A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){0,3})/g)) out.push(m[1]);
+    for (const m of t.matchAll(/\b(?:doctors?|drs?|providers?)\s*:\s*([^\n]+)/gi)) {
+      m[1].split(/[,;]|\band\b/).forEach((x) => out.push(x));
+    }
+    t.split(/\n/).forEach((line) => { if (DOCTOR_LINE_RE.test(line)) out.push(line); });
+    return out.map((x) => String(x).toLowerCase());
+  }
+  function isDoctorName(candidate, doctorNames) {
+    const words = String(candidate || "").toLowerCase().split(/[\s-]+/).filter((w) => w.length > 1);
+    if (!words.length) return false;
+    return doctorNames.some((d) => {
+      const dw = d.split(/[^a-z']+/);
+      return words.every((w) => dw.includes(w));
+    });
+  }
+
   function extractClientName(text) {
     if (!text) return "";
+    const doctorNames = doctorNamesIn(text);
     // Do not use the /i flag: it makes [A-Z] match lowercase and grabs "for both plans".
     const name = "([A-Z][a-zA-Z'-]+(?:\\s+[A-Z][a-zA-Z'-]+){1,3})";
     const patterns = [
@@ -605,7 +629,7 @@
       let m;
       while ((m = re.exec(text))) {
         const candidate = m[1].replace(/\s+/g, " ").trim();
-        if (looksLikePersonName(candidate)) found = candidate;
+        if (looksLikePersonName(candidate) && !isDoctorName(candidate, doctorNames)) found = candidate;
       }
     }
     // Labeled household / last name — colon or "is", including Client's / Clients.
@@ -618,8 +642,9 @@
     }
     // Ask that opens with the household: "Maria & Gaspar Padron, ZIP 33332 …" / "Gaspar and Maria Padron: …"
     if (!found) {
-      const lead = String(text).match(/(?:^|\n)\s*([A-Z][a-z]+(?:\s*(?:&|and|y)\s*[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]+)\s*[,:.-]/);
-      if (lead && !/\b(Medicare|Humana|Aetna|Devoted|Compare|Current|Plan|Doctors?|Meds?)\b/.test(lead[1])) {
+      // The surname ends at a real delimiter — "Case-Diaz" is never cut to "Case" at its hyphen.
+      const lead = String(text).match(/(?:^|\n)\s*([A-Z][a-z]+(?:\s*(?:&|and|y)\s*[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]*[A-Za-z])\s*(?:[,:.]|\s-\s)/);
+      if (lead && !/\b(Medicare|Humana|Aetna|Devoted|Compare|Current|Plan|Doctors?|Meds?)\b/.test(lead[1]) && !isDoctorName(lead[1], doctorNames)) {
         found = lead[1].replace(/\s+/g, " ").trim();
       }
     }

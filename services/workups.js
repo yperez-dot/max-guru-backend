@@ -19,6 +19,10 @@ const MAX_PLANS = 6;
 const MAX_COMPARE_RESULT_CHARS = 60000;
 const MAX_DOCTORS = 20;
 const MAX_MEDS = 30;
+const MAX_HISTORY = 10;
+
+// Words that are never a medication ("Cheryl Diaz PCP" once saved "PCP" as a med — Maura, 2026-10-07).
+const NON_MED_RE = /^(?:pcp|primary(?:\s+care)?|cardiolog\w*|dermatolog\w*|neurolog\w*|ophthalmolog\w*|gyn\w*|ob\/?gyn|specialist|doctors?|drs?\.?|both|none|n\/a|na|no|yes|meds?|medications?|unknown)$/i;
 
 const NETWORK_BUCKETS = new Set(['IN', 'OUT', 'NOT CONFIRMED', 'NEED MORE INFO']);
 
@@ -88,7 +92,12 @@ function slimDoctors(doctors, plans) {
         if (bucket && planIds[i]) byPlanId[planIds[i]] = bucket;
       });
     }
-    out.push({ name, byPlanId });
+    const npi = /^\d{10}$/.test(String(d.npi || '').trim()) ? String(d.npi).trim() : '';
+    const role = clip(d.role || d.specialty || '', 40);
+    const row = { name, byPlanId };
+    if (npi) row.npi = npi;
+    if (role) row.role = role;
+    out.push(row);
     if (out.length >= MAX_DOCTORS) break;
   }
   return out;
@@ -100,7 +109,7 @@ function slimMedications(drugs) {
   for (const d of drugs) {
     if (!d || typeof d !== 'object') continue;
     const name = clip(d.name || d.drug || d.drugName || '', 48);
-    if (!name) continue;
+    if (!name || NON_MED_RE.test(name)) continue;
     const map = d.byPlanId || d.statusByPlanId || {};
     const byPlanId = {};
     Object.keys(map || {}).forEach((id) => {
@@ -119,8 +128,12 @@ function slimMedications(drugs) {
         source: incoming.source ? clip(incoming.source, 40) : null,
       };
     });
-    if (!Object.keys(byPlanId).length) continue;
-    out.push({ name, byPlanId });
+    // Every med she listed is kept, verified tier or not — an unverified med used to be
+    // dropped, so a re-save lost 5 of Enrique Soley's 6 meds (2026-10-07).
+    const row = { name, byPlanId };
+    const dose = clip(d.dose || d.strength || '', 40);
+    if (dose) row.dose = dose;
+    out.push(row);
     if (out.length >= MAX_MEDS) break;
   }
   return out;
@@ -171,7 +184,109 @@ function normalizeWorkupInput(input) {
     medications: slimMedications(src.medications || src.drugs),
     needs: slimNeeds(src.needs),
     terminatingPlan: clip(src.terminatingPlan || '', MAX_TERMINATING),
+    currentPlanIds: [...new Set((Array.isArray(src.currentPlanIds) ? src.currentPlanIds : [])
+      .map((x) => String(x || '').toUpperCase().trim())
+      .filter((x) => /^[HR]\d{4}-\d{3}[A-Z]?$/.test(x)))].slice(0, 3),
     compareResult: slimCompareResult(src.compareResult),
+  };
+}
+
+function nameKey(name) {
+  return String(name || '').toLowerCase()
+    .replace(/\bdr\.?\s+/g, '')
+    .replace(/,?\s+\b(md|do|np|pa|aprn|dpm|od|dds|dmd)\b\.?/g, '')
+    .replace(/[^a-z\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function medKey(name) {
+  const first = String(name || '').toLowerCase().replace(/[^a-z0-9\s/-]/g, ' ').trim().split(/[\s/-]+/)[0] || '';
+  return first;
+}
+
+/** Same doctor: same NPI, or same name once "Dr." / credentials are dropped. */
+function sameDoctorRow(a, b) {
+  if (a.npi && b.npi) return a.npi === b.npi;
+  return nameKey(a.name) === nameKey(b.name);
+}
+
+/** Never drop a saved doctor: incoming results win per plan, older plans' results stay. */
+function mergeDoctors(existing, incoming) {
+  const out = (existing || []).map((d) => ({ ...d, byPlanId: { ...(d.byPlanId || {}) } }));
+  for (const d of incoming || []) {
+    const hit = out.find((x) => sameDoctorRow(x, d));
+    if (!hit) { out.push({ ...d, byPlanId: { ...(d.byPlanId || {}) } }); continue; }
+    Object.assign(hit.byPlanId, d.byPlanId || {});
+    if (d.npi && !hit.npi) hit.npi = d.npi;
+    if (d.role && !hit.role) hit.role = d.role;
+    // The longer spelling is usually the fuller name ("Dr. Cheryl L Case-Diaz" over "Cheryl Diaz").
+    if (String(d.name).length > String(hit.name).length && nameKey(d.name) !== nameKey(hit.name)) hit.name = d.name;
+  }
+  return out.slice(0, MAX_DOCTORS);
+}
+
+/** Never drop a saved med: same drug (first word) merges, verified tiers per plan win. */
+function mergeMedications(existing, incoming) {
+  const out = (existing || []).filter((m) => !NON_MED_RE.test(String(m.name || ''))).map((m) => ({ ...m, byPlanId: { ...(m.byPlanId || {}) } }));
+  for (const m of incoming || []) {
+    const hit = out.find((x) => medKey(x.name) && medKey(x.name) === medKey(m.name));
+    if (!hit) { out.push({ ...m, byPlanId: { ...(m.byPlanId || {}) } }); continue; }
+    Object.assign(hit.byPlanId, m.byPlanId || {});
+    if (m.dose && !hit.dose) hit.dose = m.dose;
+  }
+  return out.slice(0, MAX_MEDS);
+}
+
+function compareResultWeight(cr) {
+  if (!cr || typeof cr !== 'object') return 0;
+  const docs = Array.isArray(cr.doctors) ? cr.doctors.length : Number(cr.doctorCount) || 0;
+  const drugs = Array.isArray(cr.drugs) ? cr.drugs.filter((d) => d && !NON_MED_RE.test(String(d.drugName || d.name || ''))).length : 0;
+  return docs * 10 + drugs;
+}
+
+/** Two different people? ("Enrique Soley" saved onto "Maura …"'s id.) First names must agree. */
+function differentClient(a, b) {
+  const first = (n) => String(n || '').toLowerCase().replace(/[^a-z\s&]/g, ' ').trim().split(/\s+/).filter((w) => w && !['mr', 'mrs', 'ms', 'and', '&', 'the'].includes(w));
+  const x = first(a);
+  const y = first(b);
+  if (!x.length || !y.length) return false;
+  // "Maura Soley" vs "Enrique Soley": same surname, different client. A one-word name ("Muskat")
+  // is compared by any shared word.
+  if (x.length >= 2 && y.length >= 2) {
+    const firsts = (n) => String(n || '').toLowerCase().split(/\s*(?:&|\band\b|\by\b)\s*/).map((part) => first(part)[0]).filter(Boolean);
+    const fx = firsts(a);
+    const fy = firsts(b);
+    return !fx.some((w) => fy.includes(w));
+  }
+  return !x.some((w) => y.includes(w));
+}
+
+/** "Cheryl Case" saved as the client name was really doctor Cheryl L Case-Diaz — fixable, not a different client. */
+function nameIsADoctor(name, doctors) {
+  const words = nameKey(name).split(/[\s-]+/).filter((w) => w.length > 1);
+  if (words.length < 2) return false;
+  return (doctors || []).some((d) => {
+    const dw = nameKey(d.name).split(/[\s-]+/);
+    return words.every((w) => dw.includes(w));
+  });
+}
+
+function historyEntry(w) {
+  if (!w) return null;
+  const cr = w.compareResult && typeof w.compareResult === 'object' ? { ...w.compareResult } : null;
+  if (cr) delete cr.toolResults; // biggest part, rebuilt by a re-run
+  return {
+    savedAt: w.updatedAt || null,
+    clientName: w.clientName || '',
+    zip: w.zip || '',
+    county: w.county || '',
+    plans: w.plans || [],
+    planIds: w.planIds || [],
+    doctors: w.doctors || [],
+    medications: w.medications || [],
+    needs: w.needs || [],
+    compareResult: cr,
   };
 }
 
@@ -269,29 +384,43 @@ class WorkupStore {
     let list = this.ownerList(owner).slice();
     let existing = null;
     if (body.id) existing = list.find((w) => w.id === body.id) || null;
+    // Another client's facts saved onto this id (the chat still pointed at the workup opened
+    // before): save them as their own workup, never over this one (Maura / Enrique Soley, 2026-10-07).
+    if (existing && body.clientName && differentClient(existing.clientName, body.clientName)
+      && !nameIsADoctor(existing.clientName, [...(existing.doctors || []), ...body.doctors])) {
+      existing = null;
+      body.id = '';
+    }
     if (!existing && !body.id && body.clientName) {
       existing = list.find((w) => String(w.clientName || '').toLowerCase() === body.clientName.toLowerCase()) || null;
     }
     const id = (existing && existing.id) || body.id || newId();
     // A name the agent typed with Rename wins over names re-extracted from the chat.
     const nameLocked = Boolean(existing && existing.nameLocked && existing.clientName);
+    const prev = existing || {};
+    // Saves MERGE: a thin re-save (a chat that only mentioned one plan or one drug) never
+    // drops saved doctors, meds, plans, ZIP or a fuller comparison result.
+    const keepCompare = body.compareResult && prev.compareResult && compareResultWeight(body.compareResult) < compareResultWeight(prev.compareResult);
     const workup = {
       id,
       ownerEmail: owner,
-      clientName: nameLocked ? existing.clientName : body.clientName,
+      clientName: nameLocked ? prev.clientName : (body.clientName || prev.clientName || ''),
       nameLocked,
-      zip: body.zip,
-      county: body.county,
-      contacts: body.contacts,
-      plans: body.plans,
-      planIds: body.planIds,
-      doctors: body.doctors,
-      medications: body.medications,
-      needs: body.needs,
-      terminatingPlan: body.terminatingPlan,
-      // Keep an earlier saved result when a re-save (chat export) has none.
-      compareResult: body.compareResult || (existing && existing.compareResult) || null,
-      createdAt: (existing && existing.createdAt) || nowIso,
+      zip: body.zip || prev.zip || '',
+      county: body.county || prev.county || '',
+      contacts: body.contacts || prev.contacts || '',
+      plans: body.plans.length ? body.plans : (prev.plans || []),
+      planIds: body.plans.length ? body.planIds : (prev.planIds || []),
+      doctors: mergeDoctors(prev.doctors, body.doctors),
+      medications: mergeMedications(prev.medications, body.medications),
+      needs: slimNeeds([...(prev.needs || []), ...body.needs]),
+      terminatingPlan: body.terminatingPlan || prev.terminatingPlan || '',
+      currentPlanIds: body.currentPlanIds.length ? body.currentPlanIds : (prev.currentPlanIds || []),
+      // Keep an earlier saved result when a re-save has none, or a thinner one.
+      compareResult: keepCompare ? prev.compareResult : (body.compareResult || prev.compareResult || null),
+      // Every earlier version, newest first, so a bad save can be undone.
+      history: existing ? [historyEntry(existing), ...(existing.history || [])].filter(Boolean).slice(0, MAX_HISTORY) : [],
+      createdAt: prev.createdAt || nowIso,
       updatedAt: nowIso,
     };
     list = list.filter((w) => w.id !== id);
@@ -340,6 +469,9 @@ module.exports = {
   createWorkupStore,
   normalizeWorkupInput,
   normalizeNetworkBucket,
+  mergeDoctors,
+  mergeMedications,
+  differentClient,
   slimMedications,
   toSummary,
   DEFAULT_MAX_PER_OWNER,
