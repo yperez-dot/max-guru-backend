@@ -488,6 +488,23 @@ function solisFlag(docs) {
 }
 
 /** Where the CarePlus cells came from: the 2027 county PDF index (partial list), by name. */
+// Carriers with no directory Max can search: tell her exactly where to check by hand.
+const MANUAL_CHECK = [
+  { re: /wellcare/i, label: 'Wellcare', note: 'no 2027 Wellcare directory is published yet — check wellcare.com/en/fap (pick the 2027 plan year) once it appears' },
+  { re: /gold kidney|\bH1526\b/i, label: 'Gold Kidney', note: 'no PDF directory — search providerportal.goldkidney.com, or call Member Services (844) 294-6535 for a printed directory' },
+];
+function manualCheckNotes(cols) {
+  const seen = new Set();
+  const out = [];
+  for (const c of cols || []) {
+    const hay = `${c.carrier || ''} ${c.name || ''} ${c.planId || ''}`;
+    for (const m of MANUAL_CHECK) {
+      if (!seen.has(m.label) && m.re.test(hay)) { seen.add(m.label); out.push(`${m.label}: ${m.note}`); }
+    }
+  }
+  return out.length ? `⚠️ Check by hand — ${out.join('; ')}.` : '';
+}
+
 function careplusFlag(docs) {
   const listed = [];
   let unchecked = 0;
@@ -1031,6 +1048,8 @@ function extrasLines(sel) {
   if (sel.couldNotVerifyCount) {
     const names = sel.couldNotVerify.slice(0, 3).map((c) => `${shortPlanHeader(c)} (${countText(c, c.in.length + c.out.length + c.unknown.length + (c.inCarrier || []).length)})`);
     lines.push(`**Could not verify** (${sel.couldNotVerifyCount} eligible plan${sel.couldNotVerifyCount === 1 ? '' : 's'} with over half the doctors unchecked — not ranked)${names.length ? `: ${names.join('; ')}` : ''}`);
+    const manual = manualCheckNotes(sel.couldNotVerify);
+    if (manual) lines.push(manual);
   }
   return lines;
 }
@@ -1165,6 +1184,7 @@ function fallbackAnswer(doctors, askText, { answered = false, drugs = [] } = {})
 }
 
 module.exports = {
+  manualCheckNotes,
   planIdOf,
   planTypeOf,
   coverageMatrix,
