@@ -198,3 +198,24 @@ describe('compare mode: no doctors entered', () => {
     assert.equal(job.result.doctorCount, 0);
   });
 });
+
+describe('compare mode: current plan + named carriers (Cleusa Wiesenthal, 2026-10-07)', () => {
+  const ASK = 'Cleusa Wiesenthal, 33324. Current plan: Humana Gold Plus H1036-065C (HMO) (H1036-065-0). Compare her current plan with Solis, CarePlus, Doctors and UHC Preferred. Doctors: Dr. Rundeep Singh Gadh (PCP), Dr. Amir Torshizi (PCP), Dr. Rusheena Bartlett (podiatrist). No meds. Medicaid, MSP and C-SNP condition not confirmed, so leave SNP plans out for now.';
+
+  it('one column for H1036-065C / H1036-065-0 (same contract-PBP) and the carriers are captured', () => {
+    const f = parseCompareAsk(ASK);
+    assert.deepEqual(f.plans, ['H1036-065C']);
+    assert.deepEqual([...f.carriers].sort(), ['CarePlus', 'Doctors HealthCare', 'Solis', 'UnitedHealthcare']);
+  });
+
+  it('her current plan leads, then one core plan per carrier (Doctors, Solis, UHC Preferred, CarePlus 001 + 148)', async () => {
+    const job = {
+      input: normalizeInput(parseCompareAsk(ASK)),
+      progress: { doctors: { done: 0, total: 3 }, meds: { done: 0, total: 0 } },
+      result: {},
+    };
+    await runJob(job, { lookupOneDoctor: fakeDoctor([]), lookupRx: fakeRx });
+    assert.equal(job.status, 'done');
+    assert.deepEqual(job.result.planIds, ['H1036-065C', 'H4140-023', 'H0982-007', 'H1045-005', 'H1019-001', 'H1019-148']);
+  });
+});

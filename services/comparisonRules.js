@@ -260,7 +260,7 @@ function medsFromAsk(askText) {
 // ─── carriers the agent asks for by name ("show me Doctors, Solis, Devoted") ──
 
 const CARRIER_WORDS = [
-  ['Doctors HealthCare', /\bdoc?to?r?s?'?\s*(?:health\s*care|healthcare|health|hc|plans?)\b|\bdrmax\b|\bdrselect\b/i],
+  ['Doctors HealthCare', /\bdoc?to?r?s?'?\s*(?:health\s*care|healthcare|health|hc|plans?)\b|\bdrmax\b|\bdrselect\b|(?:[,&]|\band\b|\bwith\b)\s*doctors\b(?!\s*:)(?!\s+(?:i|are|is|who|names?|lists?|here|below))|\bdoctors\s*,\s*(?:solis|care\s*plus|uhc|humana|devoted|aetna|simply|wellcare)/i],
   ['Solis', /\bsol[iy]s\b/i],
   ['Devoted', /\b[cd]evoted\b|\bdevote\b/i],
   ['Humana', /\bhumana\b/i],
