@@ -279,8 +279,15 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
   };
   const toolTimeLeft = () => toolDeadlineAt - Date.now();
 
+  // Batch doctor lookups return the server table on result.structured.rendered, but only the
+  // per-doctor `expand` items land in collectedToolResults — keep the table here so the reply
+  // always leads with it (Maura, 2026-10-07 5:20 PM: the model's markdown list went out instead).
+  let lastRendered = '';
   const pushToolResult = (name, result) => {
     const text = resolveToolResult(result);
+    if (name === 'lookup_provider_network' && result && typeof result === 'object' && result.structured && result.structured.rendered) {
+      lastRendered = result.structured.rendered;
+    }
     if (result && typeof result === 'object' && Array.isArray(result.expand) && result.expand.length) {
       // Batch doctor lookup → one entry per doctor so Export Excel/PDF sees each one.
       for (const item of result.expand) collectedToolResults.push({ tool: name, output: item });
@@ -519,7 +526,8 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
   // every time); the model's own bullets or re-drawn tables are dropped.
   const rendered = [...collectedToolResults].reverse()
     .find((t) => t && t.tool === 'lookup_provider_network' && t.output && t.output.rendered);
-  if (rendered) text = enforceRenderedTable(text, rendered.output.rendered);
+  const table = lastRendered || (rendered && rendered.output.rendered) || '';
+  if (table) text = enforceRenderedTable(text, table);
   return chatResult({ lastData, text, collectedToolResults, usageCalls, deadlineHit: false });
 }
 

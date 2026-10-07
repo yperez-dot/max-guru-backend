@@ -571,9 +571,12 @@ function plansInLine(line, constraints) {
     if (constraints && [...constraints.skip].some((x) => x.slice(0, 9) === key)) continue;
     // "Current plan H5420-014 terminating" is context, not a column.
     const after = line.slice(m.index + m[0].length, m.index + m[0].length + 25);
-    if (/terminat|ending/i.test(after) || /current plan\s*$/i.test(m[1])) continue;
+    // "Show her current plan H1045-001, Aetna …" asks for it as a column (Maura, 2026-10-07 5:20 PM).
+    const showsCurrent = /\b(?:show|include|compare|add|keep|with)\b[^.;]{0,20}current plan\s*$/i.test(line.slice(Math.max(0, m.index - 40), m.index + m[0].length - m[2].length).replace(/\(\s*$/, ''));
+    if (/terminat|ending/i.test(after) || (/current plan\s*$/i.test(m[1]) && !showsCurrent)) continue;
     seen.add(key);
     const name = String(m[1] || '')
+      .replace(/^\s*[-•*]\s+/, '')
       .replace(/^.*\b(compare|vs\.?|and|show(?: me| m)?|add|include|plus|instead of|lets|let's)\s+/i, '')
       .replace(/\*+/g, '').replace(/\b(new 2027|plan|instead)\b/gi, '').replace(/[·•]+\s*$/, '').trim();
     out.push({ planId: id, name: name || id });
@@ -604,7 +607,26 @@ function namedPlansFromAsk(askText, constraints) {
         return !(hay.includes(target) || target.includes(p.planId.toLowerCase()) || (carrierOf(target) && carrierOf(target) === carrierOf(p.name)));
       });
     }
-    const found = plansInLine(line, constraints);
+    // IDs she drops in this line ("Drop MedicareMax H5420-001") never come back as columns.
+    const dropped = new Set();
+    for (const r2 of line.matchAll(/\b(?:remove|drop|take out|delete|no more|get rid of|without)\s+([^.;\n]*)/gi)) {
+      const target = r2[1].split(/[,]|\b(?:and\s+)?(?:add|instead|but|then|show|keep|include|plus|with)\b/i)[0];
+      for (const idm of target.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)) dropped.add(idm[1].toUpperCase().slice(0, 9));
+    }
+    // "Show her current plan H1045-001, Aetna H1609-093 and H1036-054C in the table": that list IS the set.
+    const showAt = [...line.matchAll(/\b(?:show|compare)\b(?=[^.]*\b[HR]\d{4}-\d{3})/gi)].pop();
+    if (showAt) {
+      const shown = plansInLine(line.slice(showAt.index), constraints).filter((f) => !dropped.has(f.planId.slice(0, 9)));
+      if (shown.length >= 2) {
+        current = shown.map((f) => {
+          if (f.name.split(/\s+/).length >= 3 && f.name !== f.planId) return f;
+          const row = R.gridPlansForCounty('').find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === f.planId.slice(0, 9));
+          return row ? { ...f, name: carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim() } : f;
+        });
+        continue;
+      }
+    }
+    const found = plansInLine(line, constraints).filter((f) => !dropped.has(f.planId.slice(0, 9)));
     if (!found.length) continue;
     const isEdit = /\b(add|also|include|plus|instead|swap|replace|in place of)\b/i.test(line) || REMOVE_RE.test(line);
     REMOVE_RE.lastIndex = 0;
@@ -693,6 +715,9 @@ function namedPlanColumns(named, matrix, doctors) {
       else if (carrier && carrierHitIsPlanHit(carrier, np.planId) && !PARTIAL_DIRECTORY_CARRIERS.includes(carrier) && directoryFinished(d, carrier)) col.out.push(who);
       // Partial-list directory (CarePlus) answered and did not list this doctor: checked, not confirmed — not unchecked.
       else if (carrier && PARTIAL_DIRECTORY_CARRIERS.includes(carrier) && directoryFinished(d, carrier)) { col.unknown.push(who); col.notConfirmed.push(who); }
+      // UHC's directory is plan-level and complete: it finished, listed this doctor on no UHC plan and
+      // answered "not listed" for UHC plans → ❌ Not in network (not listed), not "not confirmed".
+      else if (carrier === 'UnitedHealthcare' && uhcUnlisted(d)) col.out.push(who);
       else col.unknown.push(who);
     }
     return col;
@@ -780,6 +805,14 @@ function solisChecked(d) {
 /** CarePlus is a local name index too (partial list): checked only when a county index answered. */
 function careplusChecked(d) {
   return (d.networks || []).some((x) => /careplus/i.test(String(x.carrier)) && x.status === 'checked');
+}
+
+/** UHC finished, the doctor is on no UHC plan, and UHC returned plan-level "not listed" answers. */
+function uhcUnlisted(d) {
+  if (!directoryFinished(d, 'UnitedHealthcare')) return false;
+  const uhc = (x) => carrierKey(String(x || '')) === 'UnitedHealthcare';
+  if ((d.carriersIn || []).some(uhc) || (d.inNetworkPlans || []).some(uhc)) return false;
+  return (d.outOfNetworkPlans || []).some(uhc);
 }
 
 function directoryFinished(d, carrier) {
@@ -1576,7 +1609,7 @@ function enforceRenderedTable(replyText, rendered) {
   if (reply.includes(rendered)) return reply;
   const rowNames = [...rendered.matchAll(/^\| ([^|]+?) \|/gm)].map((m) => m[1].trim())
     .filter((n) => !/^(Doctor|Drug|Med|\*\*Doctors\*\*|---)/i.test(n))
-    .map((n) => n.replace(/\*|\(.*$/g, '').trim().split(/\s+/).pop().toLowerCase()).filter((w) => w.length >= 3);
+    .map((n) => n.replace(/\s*·\s*NPI\b.*$/i, '').replace(/\*|\(.*$/g, '').trim().split(/\s+/).pop().toLowerCase()).filter((w) => w.length >= 3);
   const statusWord = /\b(in[-\s]?network|not in network|out(?:\s+of\s+network)?|not confirmed|unchecked|not listed|in\*?|tier|covered)\b|✅|❌|❔/i;
   const notes = reply.split('\n').filter((l) => {
     const t = l.trim();
@@ -1584,9 +1617,15 @@ function enforceRenderedTable(replyText, rendered) {
     if (/^\|/.test(t)) return false;
     if (/^(\*\*)?(Doctors ×|Doctors x|Why these plans|Meds\b|Doctor network|DOCTOR × PLAN)/i.test(t)) return false;
     if (/^(✅ In|T = tier)/.test(t)) return false;
-    if (/^[-•*]|^\d+[.)]\s/.test(t) && (rowNames.some((w) => t.toLowerCase().includes(w)) || statusWord.test(t)) && !/\?\s*$/.test(t)) return false;
+    if (/\?\s*$/.test(t)) return true;
+    // The model's own per-doctor / per-plan restatement (bullets, "**Plan (ID):** …" lines, plan
+    // headers) and any "fell back to saved results" story never ride under the server table.
+    if (/saved (?:in\/out )?results|fell back|re-?ran (?:a|the) comparison|server (?:re-?ran|comparison)/i.test(t)) return false;
+    const mentionsRow = rowNames.some((w) => t.toLowerCase().includes(w)) || /\b[HR]\d{4}-\d{3}/i.test(t);
+    if (/^[-•*]|^\d+[.)]\s/.test(t) && (mentionsRow || statusWord.test(t))) return false;
+    if (mentionsRow && (statusWord.test(t) || /^\**[^a-z]*\b[HR]\d{4}-\d{3}[^|]{0,60}:?\**:?$/i.test(t) || t.length <= 90)) return false;
     return true;
-  }).slice(0, 6);
+  }).slice(0, 4);
   return notes.length ? `${rendered}\n\n${notes.join('\n')}` : rendered;
 }
 

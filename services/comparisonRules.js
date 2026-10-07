@@ -350,6 +350,12 @@ function carriersRejected(message) {
     for (const m of t.matchAll(g)) {
       const start = m.index;
       const end = start + m[0].length;
+      // "Drop MedicareMax H5420-001" / "remove Humana Gold Plus" / "drop DrMax" names ONE plan, not the
+      // carrier: a plan drop, never "another carrier" (Maura, 2026-10-07 5:20 PM: UHC was excluded and
+      // her current UHC plan H1045-001 left the table).
+      const clauseAfter = t.slice(end).split(/[.;!?\n]/)[0].slice(0, 60);
+      if (/^(?:medicaremax|drmax|drselect)$/i.test(m[0].trim()) || /\b[HR]\d{4}-\d{3}/i.test(clauseAfter)
+        || /^\s+(?:gold\s+plus|medicare\s+\w+|preferred|choice|select|complete|core|giveback|value|max|plus|care\s*\w*)\b/i.test(clauseAfter)) continue;
       if (REJECT_AFTER_RE.test(t.slice(end, end + 50)) || REJECT_BEFORE_RE.test(t.slice(Math.max(0, start - 25), start))) {
         if (!out.includes(name)) out.push(name);
         break;
