@@ -1829,3 +1829,35 @@ describe('export doctor list ignores scraped junk', () => {
     assert.deepEqual(merged.map((d) => d.name), ['Dr. Ashwin Mehta']);
   });
 });
+
+describe('off-grid benefit detection ignores non-benefits', () => {
+  it('"need a PPO" and "the official October 1 SoB" are not benefits', () => {
+    const r = exp.askedOffGridBenefits('Is an HMO OK, or does she need a PPO? Does it cover the Official October 1 SoB?');
+    assert.deepEqual(r.benefits, []);
+  });
+});
+
+describe('off-grid benefit detection: negations and acknowledgements', () => {
+  it('"dont add SNFs. i dont need those" and "Understood" add no benefits', () => {
+    const r = exp.askedOffGridBenefits("dont add SNFs. i dont need those. Understood. Per your note, I don't need dialysis either.");
+    assert.ok(!r.benefits.some((b) => /those|understood|ppo|sob/i.test(b)), JSON.stringify(r.benefits));
+  });
+  it('a real ask still works', () => {
+    assert.ok(exp.askedOffGridBenefits('what is the copay for chiropractic').benefits.length >= 1);
+  });
+});
+
+describe('negated benefit asks are off', () => {
+  it('"dont add SNFs" does not request SNF; "show SNF days" does', () => {
+    assert.equal(exp.askedOffGridBenefits("dont add SNFs. i dont need that").benefits.includes('skilled_nursing'), false);
+    assert.equal(exp.askedOffGridBenefits('what is the SNF copay for these plans').benefits.includes('skilled_nursing'), true);
+  });
+});
+
+describe('export doctor names stop at the end of a sentence', () => {
+  it('"Dr. Mehta. Two questions" is not a doctor, "Dr. Jorge G. Ruiz" is', () => {
+    const plans = [{ planId: 'H1045-005', planName: 'UHC Preferred' }];
+    const names = exp.extractDoctors('Dr. Jorge G. Ruiz is In. Is that the right Dr. Mehta. Two questions: 1. meds?', plans).map((d) => d.name);
+    assert.deepEqual(names, ['Dr. Jorge G. Ruiz']);
+  });
+});

@@ -361,3 +361,14 @@ describe('minimum 2 plans', () => {
     assert.doesNotMatch(text, /Same network as above/);
   });
 });
+
+describe('carriersRequested: her client\'s current plan is not a carrier ask', () => {
+  const R2 = require('./comparisonRules');
+  const assert2 = require('node:assert/strict');
+  it('current plan + "something better" asks for no carrier', () => {
+    assert2.deepEqual(R2.carriersRequested("Marilyn Butler, 33076. Current plan H1045-005 UHC Preferred MA FL-0002. She wants to see if there's something better."), []);
+  });
+  it('a real carrier ask still counts', () => {
+    assert2.deepEqual(R2.carriersRequested('show me humana and aetna'), ['Humana', 'Aetna']);
+  });
+});

@@ -282,7 +282,9 @@ const REQUEST_VERBS = /\b(show|compare|instead|use|switch|swap|look at|what abou
 function carriersRequested(message) {
   const t = String(message || '')
     .replace(/\b(?:doctors?|drs?|providers?)\s*:[^\n]*/gi, ' ')
-    .replace(/[^,;.\n]{0,70}\b[HR]\d{4}-\d{3}[A-Z]?\b/gi, ' ');
+    // "Current plan H1045-005 UHC Preferred MA FL-0002" names her client's plan, it is not a carrier ask.
+    .replace(/\b(?:current(?:ly)?|has|is on|on)\s+(?:plan\s*)?(?:is\s*)?:?\s*[^.;\n]*\b[HR]\d{4}-\d{3}[A-Z]?\b[^.;\n]*/gi, ' ')
+    .replace(/[^,;.\n]{0,70}\b[HR]\d{4}-\d{3}[A-Z]?\b[^,;.\n]{0,60}/gi, ' ');
   if (!REQUEST_VERBS.test(t)) return [];
   return CARRIER_WORDS.filter(([, re]) => re.test(t)).map(([name]) => name);
 }

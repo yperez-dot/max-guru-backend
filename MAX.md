@@ -384,3 +384,11 @@ Write it in this file (or `max-knowledge/` if the **chatbot** must cite it). Nex
 - 2026-10-07 Alerts: chat lines starting with ⚠️ (amber) or 🚫/⛔/❌ (red) render as a highlighted alert box; the server prompt tells Max to put important alerts first as their own ⚠️ line. Saved-workup context lists doctor names alone (status only in [saved: …]); lookups strip pasted status text so 'Ashwin Mehta: H1045-005 IN' can no longer be searched as a name.
 
 - 2026-10-07 (export doctor list): XLSX Doctors section had junk rows ("Dr. Name: H1045-005 IN", "Dr. H1036-065c Not Confirmed", "Dr. Sarkell. Dr. Aguiar") scraped from chat text. comparison-export.js `cleanDoctorName` now cuts at ":", strips trailing IN/OUT/Not Confirmed, drops plan-ID and "Dr. … Dr." names (applied in findDoctorNames and normalizeDoctors).
+
+- 2026-10-07 (current plan ≠ carrier ask): a paste like "Current plan H1045-005 UHC Preferred MA FL-0002. She wants something better." was read as "only UnitedHealthcare" (carriersRequested saw "UHC"). comparisonRules.carriersRequested now ignores the client's current-plan phrase and the plan name after any plan ID. Alternatives span all carriers; UHC MedicareMax (H5420-003) is a valid alternative.
+
+- 2026-10-07 (HMO default): comparisons now exclude PPOs unless the ask mentions PPO / "any network" (doctorPlanNarrow.askConstraints). Named/pinned plans (her client's current plan) still show even if PPO.
+
+- 2026-10-07 (phantom benefits "aPpo", "theOfficialOctober1Sob"): comparison-export.askedOffGridBenefits' generic regex treated "need a PPO" / "the Official October 1 SoB" in thread text as off-grid benefits. Now strips leading articles and skips PPO/HMO/SoB/EOC/official/month/document words.
+
+- 2026-10-07 (benefits detector): askedOffGridBenefits now treats "dont add SNFs" / "i dont need those" as OFF (negation look-behind) and ignores "thoseUnderstood"-style phrases. The model still chooses what lookup_sob_benefit to call; this only fixes the thread-text detector the export/lookup use.

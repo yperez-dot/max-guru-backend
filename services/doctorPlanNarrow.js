@@ -55,7 +55,9 @@ function askConstraints(askText) {
   for (const m of t.matchAll(/\b(?:skip|exclude|not|no|drop|remove|without)\s+([HR]\d{4}-\d{3}[A-Z]?)/gi)) skip.add(m[1].toUpperCase());
   for (const m of t.matchAll(/([HR]\d{4}-\d{3}[A-Z]?)[^.\n]{0,40}?\b(terminating|ending|going away|non-?commissionable)/gi)) skip.add(m[1].toUpperCase());
   const onlyPpo = /\b(need|needs|must be|only)\s+(a\s+)?ppo\b/i.test(t);
-  const onlyHmo = /\b(only|must be)\s+(an\s+)?hmo\b/i.test(t);
+  // HMO is the default: PPOs stay out unless she says PPO (Yahoska 2026-10-07: "lets not include ppos unless we specify").
+  const wantsPpo = /\bppo\b|\bany network\b|\beither is fine\b/i.test(t);
+  const onlyHmo = /\b(only|must be)\s+(an\s+)?hmo\b/i.test(t) || (!wantsPpo && !onlyPpo);
   return { noMedicaid, hasMedicaid, skip, onlyPpo, onlyHmo };
 }
 
@@ -845,7 +847,7 @@ function selectComparison(doctors, askText, opts = {}) {
       const like = p.grid || { name: p.name };
       const net = R.networkType(like);
       if (constraints.onlyPpo && net !== 'ppo') { bump(excluded, 'HMOs — you said PPO only'); continue; }
-      if (constraints.onlyHmo && net !== 'hmo') { bump(excluded, 'PPOs — you said HMO only'); continue; }
+      if (constraints.onlyHmo && net !== 'hmo') { bump(excluded, 'PPOs — HMO plans only unless you ask for PPO'); continue; }
       const kind = R.snpKind(like);
       if (kind === 'csnp') csnpInPlay = true;
       const e = R.planEligibility(like, elig);
