@@ -10,6 +10,7 @@ const {
   firstCoverageHit,
   sunfireIdForPlan,
   pickCatalogMatch,
+  drugCatalogQuery,
   humanaPlanYearMatch,
   isHumanaCms,
   cmsContractParts,
@@ -75,6 +76,13 @@ describe('formulary id / tier helpers', () => {
       'atorvastatin'
     );
     assert.equal(hit.ndc, '2');
+  });
+
+  it('strips strength/form for catalog search queries', () => {
+    assert.equal(drugCatalogQuery('pregabalin 200 mg'), 'pregabalin');
+    assert.equal(drugCatalogQuery('Pregabalin 200mg capsule'), 'Pregabalin');
+    assert.equal(drugCatalogQuery('Lyrica 200 mg'), 'Lyrica');
+    assert.equal(drugCatalogQuery('atorvastatin'), 'atorvastatin');
   });
 });
 
