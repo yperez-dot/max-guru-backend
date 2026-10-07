@@ -1004,7 +1004,13 @@ function selectComparison(doctors, askText, opts = {}) {
         // Carrier ask + her current plan: the current plan leads, unless that carrier column already shows it.
         if (carriers.length && out.columns.some((c) => c.planId.slice(0, 9) === id.slice(0, 9))) continue;
         const found = cols.find((c) => c.planId.slice(0, 9) === id.slice(0, 9));
-        const col = found || decorate(namedPlanColumns([{ planId: id, name: id }], matrix, docs)).map((c) => {
+        // Name the pinned plan from the grid first: a bare ID has no carrier in it, and a column
+        // with no carrier matches no doctor, so every cell came back unchecked (Yahoska, 2026-10-07).
+        const pinRow = gridRowFor(id, county);
+        const pinName = pinRow
+          ? (carrierKey(String(pinRow.planName || '')) ? String(pinRow.planName) : `${pinRow.carrier || ''} ${pinRow.planName || ''}`.trim())
+          : id;
+        const col = found || decorate(namedPlanColumns([{ planId: id, name: pinName || id }], matrix, docs)).map((c) => {
           const k = countsOf(c, n);
           return { ...c, counts: k, verifiable: k.reallyUnchecked * 2 <= n };
         })[0];
