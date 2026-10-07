@@ -2040,8 +2040,17 @@
       const header = (model.kinds[r] || []).includes("header");
       const wrapped = row.some((cell) => String(cell || "").includes("\n"));
       if (header) return { hpt: 36 };
-      if (wrapped) return { hpt: 32 };
       if (r === 0 && model.title) return { hpt: 24 };
+      // Cells wrap now, so give each row enough lines for its longest cell (column ≈ 34 characters wide).
+      const lines = row.reduce((mx, cell, c) => {
+        const perLine = c === 0 ? 26 : 34;
+        const n = String(cell == null ? "" : cell)
+          .split("\n")
+          .reduce((sum, part) => sum + Math.max(1, Math.ceil(part.length / perLine)), 0);
+        return Math.max(mx, n);
+      }, 1);
+      if (lines > 1) return { hpt: Math.min(15 * lines + 4, 150) };
+      void wrapped;
       return { hpt: 18 };
     });
     ws["!rows"] = rowHeights;
@@ -2058,6 +2067,30 @@
       if (!addr || !ws[addr]) return;
       ws[addr].s = model.styles[key];
     });
+    applyGridAndCenter(ws, model);
+  }
+
+  // Thin grid lines on every table cell and centered text (Yahoska 2026-10-07). The client-name title row stays as is.
+  function applyGridAndCenter(ws, model) {
+    if (typeof XLSX === "undefined" || !XLSX.utils) return;
+    const cols = (model.headers || []).length;
+    const edge = { style: "thin", color: { rgb: "9A9A9A" } };
+    model.aoa.forEach((row, r) => {
+      if ((model.kinds[r] || [])[0] === "title") return;
+      for (let c = 0; c < cols; c++) {
+        const addr = XLSX.utils.encode_cell({ r, c });
+        if (!ws[addr]) ws[addr] = { t: "s", v: "" };
+        const prev = ws[addr].s || {};
+        ws[addr].s = Object.assign({}, prev, {
+          border: { top: edge, bottom: edge, left: edge, right: edge },
+          alignment: Object.assign({}, prev.alignment, { horizontal: "center", vertical: "center", wrapText: true }),
+        });
+      }
+    });
+    const ref = XLSX.utils.decode_range(ws["!ref"] || "A1");
+    ref.e.c = Math.max(ref.e.c, cols - 1);
+    ref.e.r = Math.max(ref.e.r, model.aoa.length - 1);
+    ws["!ref"] = XLSX.utils.encode_range(ref);
   }
 
   function getXlsx() {
@@ -2351,6 +2384,7 @@
     EXPORT_SOB_BENEFITS,
     askedOffGridBenefits,
     askedExportSobBenefits,
+    applySheetExtras,
     conversationUserText,
     sobFieldValue,
     anySobField,
