@@ -4052,7 +4052,7 @@ function CompareResult({ result, onExport }) {
 
 // Client queue: paste a client, tap Add, paste the next. The server runs 2 at a time; each finished
 // client is saved as its own workup (never over the open one). Jobs live on the server, so closing the tab is fine.
-function QueuePanel({ isMobile, onWorkupSaved, onClose }) {
+function QueuePanel({ isMobile, onWorkupSaved, onOpenWorkup, onClose }) {
   const [text, setText] = useState("");
   const [entries, setEntries] = useState(() => loadQueueStore().map((e) => ({ ...e, job: null })));
   const [error, setError] = useState("");
@@ -4072,7 +4072,6 @@ function QueuePanel({ isMobile, onWorkupSaved, onClose }) {
   const saveAsWorkup = async (entry) => {
     if (savedRef.current.has(entry.key) || entry.workupId) return;
     const plans = queueExportPlans(entry);
-    if (plans.length < 2) return;
     savedRef.current.add(entry.key);
     try {
       const payload = await hydrateExportSobBenefits(collectComparisonExport(queueHistory(entry), plans, queueExportExtras(entry)));
@@ -4089,6 +4088,7 @@ function QueuePanel({ isMobile, onWorkupSaved, onClose }) {
       if (onWorkupSaved) onWorkupSaved(data.workup);
     } catch (_) {
       savedRef.current.delete(entry.key);
+      update(entry.key, { saveNote: "Couldn't save this one as a workup. Tap Open and use Export." });
     }
   };
 
@@ -4181,7 +4181,7 @@ function QueuePanel({ isMobile, onWorkupSaved, onClose }) {
                   <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", flex: "1 1 140px", minWidth: 0 }}>{e.name || "Client"}</div>
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: tone[st.tone] }}>{st.text}</div>
                   {e.job && e.job.status === "done" && (
-                    <button data-testid="queue-open" onClick={() => setOpenKey(isOpen ? null : e.key)} style={{ ...btn(false), padding: "6px 12px" }}>{isOpen ? "Close" : "Open"}</button>
+                    <button data-testid="queue-open" onClick={() => { if (e.workupId && onOpenWorkup) void onOpenWorkup(e.workupId); else setOpenKey(isOpen ? null : e.key); }} style={{ ...btn(false), padding: "6px 12px" }}>{!e.workupId && isOpen ? "Close" : "Open"}</button>
                   )}
                   <button onClick={() => remove(e.key)} aria-label="Remove from list" style={{ ...btn(false), padding: "6px 10px" }}>✕</button>
                 </div>
@@ -4192,7 +4192,8 @@ function QueuePanel({ isMobile, onWorkupSaved, onClose }) {
                   </div>
                 )}
                 {e.job && e.job.status === "error" && <div style={{ padding: "0 12px 10px", color: "#9B1C3C", fontSize: 13 }}>Comparison failed: {e.job.error}</div>}
-                {e.workupId && <div style={{ padding: "0 12px 8px", fontSize: 12, color: "var(--muted)" }}>Saved as its own workup in the sidebar.</div>}
+                {!e.workupId && e.saveNote && <div style={{ padding: "0 12px 8px", fontSize: 12, color: "#8A4B00" }}>{e.saveNote}</div>}
+                {e.workupId && <div style={{ padding: "0 12px 8px", fontSize: 12, color: "var(--muted)" }}>Saved as its own workup. Tap Open to work on it.</div>}
                 {isOpen && e.job && e.job.status === "done" && (
                   <div style={{ padding: "0 12px 12px" }}>
                     <CompareResult result={e.job.result} onExport={(kind) => doExport(e, kind)} />
@@ -5278,6 +5279,7 @@ function App() {
           <QueuePanel
             isMobile={isMobile}
             onClose={() => setCompareOpen(false)}
+            onOpenWorkup={async (id) => { setCompareOpen(false); await openWorkup(id); }}
             onWorkupSaved={(workup) => setWorkups((current) => {
               const summary = {
                 id: workup.id,
