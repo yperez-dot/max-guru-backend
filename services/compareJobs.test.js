@@ -170,3 +170,19 @@ describe('current plan + "is there something better?"', () => {
     assert.equal(job.result.planSource, 'named');
   });
 });
+
+describe('compare mode: client names — couples and family names', () => {
+  const name = (t) => parseCompareAsk(t).clientName;
+  it('accepts a family name alone, a couple, and titles', () => {
+    assert.equal(name('Mazzeos, 33178. Dr. Ana Lee. Eliquis'), 'Mazzeos');
+    assert.equal(name('The Mazzeos 33178'), 'Mazzeos');
+    assert.equal(name('sharon and george mazzeo, 33178. Ana Lee, Carlos Ruiz'), 'Sharon and George Mazzeo');
+    assert.equal(name('Sharon & George Mazzeo 33178'), 'Sharon & George Mazzeo');
+    assert.equal(name('Mr. and Mrs. Mazzeo, 33178'), 'Mr. and Mrs. Mazzeo');
+    assert.equal(name('Mazzeo family, 33178'), 'Mazzeo');
+  });
+  it('still rejects pastes that start with a label or command', () => {
+    assert.equal(name('Doctors: Ana Lee 33178'), '');
+    assert.equal(name('Compare H1036-065C 33178'), '');
+  });
+});
