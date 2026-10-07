@@ -450,6 +450,8 @@ function corePlanIdsFor(carrier, county) {
   // Doctors HealthCare: every HMO-tab plan is core (Yahoska 2026-10-07: "both core plans … they're both good") —
   // DrMax-Dade H4140-022 + DrSelect-SFL H4140-023 in Miami-Dade; Broward's grid has DrSelect only.
   if (carrier === 'Doctors HealthCare') return [...new Set(ids)];
+  // UHC core: "UHC Preferred" (Yahoska, 2026-10-07) = UHC Preferred MA FL-0002 H1045-005 when the county grid has it.
+  if (carrier === 'UnitedHealthcare' && ids.includes('H1045-005')) return ['H1045-005'];
   // CarePlus core (Yahoska 2026-10-07): CareOne Plus H1019-001 + CareAccess H1019-148 "for now" — not all four.
   if (carrier === 'CarePlus') {
     const core = ['H1019-001', 'H1019-148'].filter((id) => ids.includes(id));
@@ -997,8 +999,10 @@ function selectComparison(doctors, askText, opts = {}) {
     // Her client's current plan(s) ("is there something better?"): always the first column(s), then the best of the county.
     const pinIds = [...(Array.isArray(opts.pinPlanIds) ? opts.pinPlanIds : []), ...pinFromAsk].map((id) => String(id).toUpperCase());
     const pinnedCols = [];
-    if (pinIds.length && !carriers.length) {
+    if (pinIds.length) {
       for (const id of pinIds) {
+        // Carrier ask + her current plan: the current plan leads, unless that carrier column already shows it.
+        if (carriers.length && out.columns.some((c) => c.planId.slice(0, 9) === id.slice(0, 9))) continue;
         const found = cols.find((c) => c.planId.slice(0, 9) === id.slice(0, 9));
         const col = found || decorate(namedPlanColumns([{ planId: id, name: id }], matrix, docs)).map((c) => {
           const k = countsOf(c, n);
@@ -1008,7 +1012,7 @@ function selectComparison(doctors, askText, opts = {}) {
         if (e.status !== 'eligible') out.flags.push(`⚠️ ${shortPlanHeader(col)}: ${e.reason} — it is the client's current plan, so it stays; confirm eligibility before enrolling.`);
         if (!col.verifiable) out.flags.push(`⚠️ ${shortPlanHeader(col)}: over half the doctors unchecked — shown because it is the client's current plan; verify in the carrier directory.`);
         pinnedCols.push(col);
-        out.columns.push(col);
+        if (carriers.length) out.columns.splice(pinnedCols.length - 1, 0, col); else out.columns.push(col);
       }
     }
     const isPinned = (c) => pinnedCols.some((p) => p.planId === c.planId);
