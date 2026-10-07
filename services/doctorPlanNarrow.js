@@ -450,6 +450,11 @@ function corePlanIdsFor(carrier, county) {
   // Doctors HealthCare: every HMO-tab plan is core (Yahoska 2026-10-07: "both core plans … they're both good") —
   // DrMax-Dade H4140-022 + DrSelect-SFL H4140-023 in Miami-Dade; Broward's grid has DrSelect only.
   if (carrier === 'Doctors HealthCare') return [...new Set(ids)];
+  // CarePlus core (Yahoska 2026-10-07): CareOne Plus H1019-001 + CareAccess H1019-148 "for now" — not all four.
+  if (carrier === 'CarePlus') {
+    const core = ['H1019-001', 'H1019-148'].filter((id) => ids.includes(id));
+    if (core.length) return core;
+  }
   return ids.length ? [ids[0]] : [];
 }
 const isHmoTab = (c) => String((c.grid && c.grid.type) || '').toUpperCase() === 'HMO';
@@ -1283,6 +1288,7 @@ function fallbackAnswer(doctors, askText, { answered = false, drugs = [] } = {})
 }
 
 module.exports = {
+  corePlanIdsFor,
   manualCheckNotes,
   planIdOf,
   planTypeOf,
