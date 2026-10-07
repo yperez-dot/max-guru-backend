@@ -410,3 +410,7 @@ Write it in this file (or `max-knowledge/` if the **chatbot** must cite it). Nex
 - 2026-10-07: Doctors directory logged only "fetch failed" on Railway (network-level, not an HTTP status). doctorsHcp now logs the underlying cause code (ENOTFOUND / ECONNRESET / ETIMEDOUT / cert) so we can tell blocked-IP from DNS/TLS from site-down.
 
 - 2026-10-07: Doctors HealthCare 2027 directory PDFs (they print NPIs) are now in `data/doctors-directory-2027.json` (Miami-Dade, Broward, Hillsborough/Pasco, Orange/Osceola/Seminole; current as of Oct 1, 2026; Polk still to add). `queryDoctorsHcp` checks the PDF index first (exact NPI, answers In without the live site, which Railway can't reach: "fetch failed"); an NPI not in the PDFs still falls through to the live search. Rebuild: `python3 scripts/build_doctors_index.py miamiDade=… broward=… tampa=… orlando=… [polk=…]`. A PDF miss is NOT Out (the live site is the only other check).
+
+- 2026-10-07: Yahoska: Doctors HealthCare shares ONE network across ALL its plans (not just DrMax/DrSelect). A Doctors directory hit is plan-level In for every H4140 plan (In, not In*); a finished directory that doesn't list the NPI is Out for all of them.
+
+- 2026-10-07: Yahoska: Simply has NO core (non-SNP) plans in Miami-Dade or Broward — only a D-SNP. A failed Simply Find Care check is no longer listed as an unchecked carrier in provider-lookup output; do not offer Simply columns for HMO/core comparisons, and only talk about Simply when the client is a dual/D-SNP.

@@ -309,7 +309,8 @@ function summarizeNpi(state, planYear) {
   for (const name of state.fhirFailed || []) lookupErrors.push(`${name} (FHIR)`);
   if (doctorsResult.error) lookupErrors.push('Doctors HealthCare Plans');
   if (aetnaResult.error) lookupErrors.push('Aetna guest search');
-  if (simplyResult.error) lookupErrors.push('Simply Find Care');
+  // Simply has no core plan in Miami-Dade/Broward (only a D-SNP), so a failed Simply check is not worth
+  // surfacing as an "unchecked" carrier (Yahoska, 2026-10-07). The result still rides along for D-SNP asks.
   if (uhcResult.error) lookupErrors.push('UHC guest Find a Doctor');
   if (humanaResult.error) lookupErrors.push('Humana Find Care');
   const checkedGuest = ['FL Blue', 'Cigna', 'HealthSun', 'Devoted', 'Doctors'];
