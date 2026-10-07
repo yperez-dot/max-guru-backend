@@ -22,6 +22,9 @@ const MAX_DOCTORS = 15;
 const MAX_MEDS = 20;
 const MAX_PLANS = 4;
 
+// "wondering if there's something better", "other options", "alternatives" → keep her plan as a column AND shop the county.
+const ALTERNATIVES_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\bother\s+(?:options?|plans?)\b|\balternatives?\b|\bsee\s+what\s+else\b|\bwhat\s+else\b|\bshop(?:ping)?\s+around\b|\bcompare\s+(?:it\s+)?(?:to|against|with)\s+others?\b|\bsomething\s+else\b/i;
+
 const PLAN_ID_RE = /\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
 
 // ─── parse ──────────────────────────────────────────────────────────────────
@@ -141,6 +144,7 @@ function parseCompareAsk(text) {
     meds,
     plans: plans.slice(0, MAX_PLANS),
     terminatingPlan,
+    wantsAlternatives: ALTERNATIVES_RE.test(t),
     noMedicaid: constraints.noMedicaid,
     // Medicaid / MSP level / C-SNP condition exactly as the agent stated them (never inferred).
     eligibility: eligibilityFromAsk(t),
@@ -270,6 +274,7 @@ function normalizeInput(raw) {
     plans,
     terminatingPlan: String(src.terminatingPlan || '').trim().toUpperCase(),
     noMedicaid: Boolean(src.noMedicaid),
+    wantsAlternatives: Boolean(src.wantsAlternatives),
     eligibility: normalizeEligibility(src.eligibility, Boolean(src.noMedicaid)),
     skip: list(src.skip).map((s) => String(s).toUpperCase()),
     year: Number(src.year) === 2026 ? 2026 : 2027,
@@ -316,11 +321,13 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     // every listed med priced on the shortlist first so drug cost can break ties and every
     // table plan already has its meds checked (rules 3 + 8).
     const named = input.plans.map((id) => ({ planId: id, name: (input.planNames && input.planNames[id]) || id }));
-    const planSource = named.length ? 'named' : 'top_doctor_coverage';
+    // Her plan(s) + "is there something better?": keep them as the first column and shop the county for the rest.
+    const pinned = named.length && input.wantsAlternatives ? named.map((p) => p.planId) : [];
+    const planSource = pinned.length ? 'current_plus_alternatives' : named.length ? 'named' : 'top_doctor_coverage';
     let rxPlanIds = named.map((p) => p.planId);
-    if (!named.length) {
+    if (!named.length || pinned.length) {
       const first = selectComparison(doctorStructs, askText, { named: [], meds: input.meds });
-      rxPlanIds = first.ranked.slice(0, RX_SHORTLIST).map((c) => c.planId);
+      rxPlanIds = [...new Set([...pinned, ...first.ranked.slice(0, RX_SHORTLIST).map((c) => c.planId)])];
     }
 
     job.status = 'meds';
@@ -338,9 +345,9 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     }
     const drugs = drugResults.filter(Boolean);
 
-    const sel = selectComparison(doctorStructs, askText, {
-      named, meds: input.meds, drugs, onlyPlanIds: named.length ? undefined : rxPlanIds,
-    });
+    const sel = selectComparison(doctorStructs, askText, pinned.length
+      ? { named: [], meds: input.meds, drugs, onlyPlanIds: rxPlanIds, pinPlanIds: pinned }
+      : { named, meds: input.meds, drugs, onlyPlanIds: named.length ? undefined : rxPlanIds });
     // Compare-mode headers use the grid marketing names the UI sent.
     const columns = sel.columns.map((c) => ({ ...c, name: (input.planNames && input.planNames[c.planId]) || c.name }));
     const planIds = columns.map((c) => c.planId);

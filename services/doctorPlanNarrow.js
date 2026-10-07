@@ -911,8 +911,27 @@ function selectComparison(doctors, askText, opts = {}) {
 
     // Compare mode prices meds on a shortlist first; the table only draws from it (rule 8).
     const only = Array.isArray(opts.onlyPlanIds) ? new Set(opts.onlyPlanIds.map((id) => String(id).toUpperCase())) : null;
+    // Her client's current plan(s) ("is there something better?"): always the first column(s), then the best of the county.
+    const pinIds = (Array.isArray(opts.pinPlanIds) ? opts.pinPlanIds : []).map((id) => String(id).toUpperCase());
+    const pinnedCols = [];
+    if (pinIds.length && !carriers.length) {
+      for (const id of pinIds) {
+        const found = cols.find((c) => c.planId.slice(0, 9) === id.slice(0, 9));
+        const col = found || decorate(namedPlanColumns([{ planId: id, name: id }], matrix, docs)).map((c) => {
+          const k = countsOf(c, n);
+          return { ...c, counts: k, verifiable: k.reallyUnchecked * 2 <= n };
+        })[0];
+        const e = R.planEligibility(col.grid || { name: col.name }, elig);
+        if (e.status !== 'eligible') out.flags.push(`⚠️ ${shortPlanHeader(col)}: ${e.reason} — it is the client's current plan, so it stays; confirm eligibility before enrolling.`);
+        if (!col.verifiable) out.flags.push(`⚠️ ${shortPlanHeader(col)}: over half the doctors unchecked — shown because it is the client's current plan; verify in the carrier directory.`);
+        pinnedCols.push(col);
+        out.columns.push(col);
+      }
+    }
+    const isPinned = (c) => pinnedCols.some((p) => p.planId === c.planId);
     for (const c of (carriers.length ? [] : ranked)) {
       if (out.columns.length >= 3) break;
+      if (isPinned(c)) continue;
       if (only && !only.has(c.planId)) continue;
       // A plan with no doctor In never fills a top-3 slot while another plan has one In.
       if (n > 0 && c.counts.inN + c.counts.star === 0 && ranked.some((r) => r.counts.inN + r.counts.star > 0)) continue;
@@ -947,7 +966,9 @@ function selectComparison(doctors, askText, opts = {}) {
       ? (county || 'Miami-Dade + Broward (no ZIP/county given)')
       : `${county || 'the lookup results'} (THEI grid unavailable — only plans a doctor lookup returned)`;
     const excludedText = out.excluded.length ? out.excluded.map((x) => `${x.reason} (${x.count})`).join('; ') : 'none';
-    out.whyLine = `Why these plans: ${out.poolSize} eligible plans checked in ${where}. ${R.RANK_ORDER} Excluded: ${excludedText}.`;
+    out.whyLine = pinnedCols.length
+      ? `Why these plans: the client's current plan (${pinnedCols.map((c) => c.planId).join(', ')}) first, then the best of ${out.poolSize} eligible plans checked in ${where}. ${R.RANK_ORDER} Excluded: ${excludedText}.`
+      : `Why these plans: ${out.poolSize} eligible plans checked in ${where}. ${R.RANK_ORDER} Excluded: ${excludedText}.`;
     const majority = out.columns.some((c) => c.counts.inN * 2 > n);
     const anyIn = out.columns.some((c) => c.counts.inN + c.counts.star > 0);
     out.header = (n > 0 && !anyIn)
