@@ -3836,12 +3836,13 @@ function splitTableRow(line) {
 function renderMdTable(rows, key) {
   const header = splitTableRow(rows[0]);
   const body = rows.slice(1).filter((r) => !/^\s*\|?\s*:?-{2,}/.test(r)).map(splitTableRow);
-  const cellStyle = { padding: "6px 10px", borderBottom: "1px solid var(--line)", textAlign: "left", verticalAlign: "top", whiteSpace: "nowrap" };
+  // Phone: the name column wraps (name + NPI stay one line each) so every plan column fits without side-scrolling.
+  const cellStyle = { padding: "6px 6px", borderBottom: "1px solid var(--line)", textAlign: "left", verticalAlign: "top", whiteSpace: "normal", overflowWrap: "anywhere" };
   return (
     <div key={key} style={{ overflowX: "auto", margin: "6px 0" }}>
-      <table style={{ borderCollapse: "collapse", fontSize: 12.5, minWidth: "60%" }}>
+      <table style={{ borderCollapse: "collapse", fontSize: 12, width: "100%" }}>
         <thead>
-          <tr>{header.map((h, i) => <th key={i} style={{ ...cellStyle, fontWeight: 700, color: "var(--plum)", whiteSpace: "normal", minWidth: i ? 120 : 0 }}>{renderInlineMd(h, key + "h" + i)}</th>)}</tr>
+          <tr>{header.map((h, i) => <th key={i} style={{ ...cellStyle, fontWeight: 700, color: "var(--plum)", whiteSpace: "normal", fontSize: 11.5, minWidth: i ? 62 : 84 }}>{renderInlineMd(h, key + "h" + i)}</th>)}</tr>
         </thead>
         <tbody>
           {body.map((r, ri) => (

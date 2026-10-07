@@ -154,3 +154,13 @@ describe('Show benefits button', () => {
     assert.match(html, /send\("Show benefits for these plans"\)/);
   });
 });
+
+describe('Comparison tables fit a phone', () => {
+  it('table cells wrap and the table is full width, so plan columns are not pushed off-screen', () => {
+    const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
+    const fn = html.slice(html.indexOf('function renderMdTable'), html.indexOf('// Lightweight, safe markdown-lite'));
+    assert.doesNotMatch(fn, /whiteSpace: "nowrap"/);
+    assert.match(fn, /width: "100%"/);
+    assert.doesNotMatch(fn, /minWidth: i \? 120/);
+  });
+});

@@ -346,3 +346,9 @@ describe('short first reply + Show benefits', () => {
     assert.match(text, /NO new lookups/);
   });
 });
+
+describe('no noise from carriers outside the table', () => {
+  it('rules forbid lookup-failure notes for carriers that are not columns', () => {
+    assert.match(require('./comparisonRules').COMPARISON_TABLE_RULES, /not a column in the table/);
+  });
+});
