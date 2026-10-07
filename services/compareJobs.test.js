@@ -186,3 +186,15 @@ describe('compare mode: client names — couples and family names', () => {
     assert.equal(name('Compare H1036-065C 33178'), '');
   });
 });
+
+describe('compare mode: no doctors entered', () => {
+  it('result.doctorCount is 0 so the UI can say no doctors were entered', async () => {
+    const job = {
+      input: normalizeInput({ ...parseCompareAsk('Martin Wiesenthal, 33324. Meds: amlodipine, lisinopril. Compare Humana Gold Plus H1036-065C, Aetna Medicare Select H1609-018.') }),
+      progress: { doctors: { done: 0, total: 0 }, meds: { done: 0, total: 2 } },
+      result: {},
+    };
+    await runJob(job, { lookupOneDoctor: fakeDoctor([]), lookupRx: fakeRx });
+    assert.equal(job.result.doctorCount, 0);
+  });
+});
