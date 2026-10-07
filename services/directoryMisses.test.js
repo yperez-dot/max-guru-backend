@@ -75,7 +75,7 @@ describe('Doctors API reply that is not a list', () => {
 
   it('is a failed check (unchecked), not a miss', async () => {
     global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ message: 'blocked' }) });
-    const r = await queryDoctorsHcp('1043665177');
+    const r = await queryDoctorsHcp('1000000004');
     assert.equal(r.inNetwork, false);
     assert.equal(r.error, 'request_failed');
   });

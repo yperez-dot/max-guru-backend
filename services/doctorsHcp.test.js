@@ -6,6 +6,8 @@ const {
   buildSearchBody,
   npiMatches,
   formatMatch,
+  doctorsPdfCheck,
+  queryDoctorsHcp,
 } = require('./doctorsHcp');
 
 describe('doctorsHcp search body', () => {
@@ -72,8 +74,8 @@ describe('Doctors API bursts (2026-10-06: back-to-back calls 404, spaced calls 2
   const nf = { ok: false, status: 404, json: async () => ({}) };
 
   it('retries a 404 and finds the doctor (Cedeno, Urology)', async () => {
-    await withFetch((b, n) => (n === 1 ? nf : ok(b.ProviderType === 'pcp' ? [] : [{ providerNpi: '1043665177', providerSpecialties: 'UROLOGY' }])), async (calls) => {
-      const r = await queryDoctorsHcp('1043665177');
+    await withFetch((b, n) => (n === 1 ? nf : ok(b.ProviderType === 'pcp' ? [] : [{ providerNpi: '1000000004', providerSpecialties: 'UROLOGY' }])), async (calls) => {
+      const r = await queryDoctorsHcp('1000000004');
       assert.equal(r.inNetwork, true);
       assert.equal(r.error, null);
       assert.deepEqual(calls, ['pcp', 'pcp', 'spe'], 'PCP then specialist, one at a time');
@@ -86,5 +88,30 @@ describe('Doctors API bursts (2026-10-06: back-to-back calls 404, spaced calls 2
       assert.equal(r.inNetwork, false);
       assert.equal(r.error, 'request_failed');
     });
+  });
+});
+
+describe('doctorsHcp 2027 PDF index', () => {
+  it('finds Dr. Gadh (NPI 1407095615) in the Broward directory', () => {
+    const hits = doctorsPdfCheck('1407095615');
+    assert.ok(hits.some((h) => h.county === 'broward' && h.page > 0));
+  });
+
+  it('returns nothing for an NPI that is not listed', () => {
+    assert.deepEqual(doctorsPdfCheck('1000000000'), []);
+    assert.deepEqual(doctorsPdfCheck(''), []);
+  });
+
+  it('queryDoctorsHcp answers In from the PDF without calling the live site', async () => {
+    const realFetch = global.fetch;
+    global.fetch = () => { throw new Error('live site should not be called'); };
+    try {
+      const r = await queryDoctorsHcp('1407095615');
+      assert.equal(r.inNetwork, true);
+      assert.equal(r.error, null);
+      assert.match(r.matches[0].address, /Broward p\. \d+/);
+    } finally {
+      global.fetch = realFetch;
+    }
   });
 });
