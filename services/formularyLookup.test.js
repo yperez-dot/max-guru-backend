@@ -871,3 +871,18 @@ describe('tier cost-share formatting (HealthSun bare numbers, 2026-10-07)', () =
     assert.equal(formatCostShare(null), null);
   });
 });
+
+describe('Solis tier cost-shares come from the grid when the KB has none (2026-10-07)', () => {
+  const { lookupFormulary } = require('./formularyLookup');
+  it('Solis drugs show a copay, not a bare tier', async () => {
+    const r = await lookupFormulary({ drugName: 'Orgovyx', planIds: ['H0982-007'], year: 2027 });
+    const row = r.byPlanId['H0982-007'];
+    assert.equal(row.tier, 5);
+    assert.equal(row.costShare, '33%');
+    assert.equal(row.costShareSource, 'thei_grid');
+  });
+  it('a $0 tier still renders as $0', async () => {
+    const r = await lookupFormulary({ drugName: 'tamsulosin', planIds: ['H0982-007'], year: 2027 });
+    assert.equal(r.byPlanId['H0982-007'].costShare, '$0');
+  });
+});

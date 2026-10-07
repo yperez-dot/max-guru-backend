@@ -1059,6 +1059,22 @@ function costShareFromKnowledge(planId, year, tier) {
   return null;
 }
 
+/** Tier cost-share straight from the THEI plan grid row for that year. */
+function costShareFromGrid(planId, year, tier) {
+  if (!tier) return null;
+  try {
+    const R = require('./comparisonRules');
+    const grid = R.loadGrid(Number(year) || PLAN_YEAR);
+    const rows = Array.isArray(grid) ? grid : (grid && (grid.plans || grid.rows || Object.values(grid))) || [];
+    const row = rows.find((p) => cmsIdsMatch(p.planId || p.id, planId));
+    if (!row) return null;
+    const value = formatCostShare(row[`tier${tier}`]);
+    return value ? { value, source: 'thei_grid' } : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 function costShareFromPlanObject(plan, tier) {
   if (!plan || !tier) return null;
   const key = `tier${tier}`;
@@ -1227,9 +1243,12 @@ async function lookupFormulary(
 
       const displayId = displayPlanId(id);
       if (hit && hit.verified) {
+        // The 2027 KB only carries tier tables for some carriers (Solis has none), but the
+        // THEI grid row does — fall back to it instead of showing a bare "T1" (Yahoska, 2026-10-07).
         const share =
           costShareFromKnowledge(id, y, hit.tier) ||
-          (y === 2026 ? costShareFromPlanObject(planObj, hit.tier) : null);
+          costShareFromPlanObject(planObj, hit.tier) ||
+          costShareFromGrid(id, y, hit.tier);
         const row = {
           planId: displayId,
           year: y,
