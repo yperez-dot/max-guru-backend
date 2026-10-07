@@ -210,15 +210,67 @@ function firstCoverageHit(payload) {
   return null;
 }
 
-function sunfireIdForPlan(planId, map = SUNFIRE_PLAN_MAP) {
+/**
+ * Sunfire plan-year of a map entry. Sunfire IDs are year-prefixed ("262355" = 2026,
+ * "272355" = 2027); an explicit `year` on the entry wins when the builder recorded one.
+ */
+function sunfireEntryYear(sunfireId, entry) {
+  const explicit = Number((entry && entry.year) || 0);
+  if (explicit > 2000) return explicit;
+  const m = String(sunfireId || '').match(/^(\d{2})/);
+  return m ? 2000 + Number(m[1]) : null;
+}
+
+/**
+ * Map a CMS contract-PBP to its Sunfire plan id for that plan year.
+ *
+ * Matching used to search for the CMS id inside the marketing name, which only works for
+ * carriers that print it (Humana). UHC, Aetna, Solis and Doctors never resolved, so Sunfire
+ * was skipped for them entirely. Every entry carries `hRaw` (the contract) — match on that
+ * plus the PBP instead, and fall back to the name only when the entry has no pbp recorded
+ * (Yahoska, 2026-10-07).
+ *
+ * Returns null when the map holds no entry for that plan IN THAT YEAR — the caller must not
+ * fall back to another year's id, or a 2027 comparison quotes 2026 tiers.
+ */
+function sunfireIdForPlan(planId, map = SUNFIRE_PLAN_MAP, year = null) {
   const parsed = parseCmsId(planId);
   if (!parsed) return null;
-  const entries = Object.entries(map || {});
+  const wantYear = Number(year) || null;
+  const pbp = parsed.base.split('-')[1];
+  const entries = Object.entries(map || {}).filter(
+    ([id, e]) => !wantYear || sunfireEntryYear(id, e) === wantYear
+  );
+
+  const contractHits = entries.filter(
+    ([, e]) => String(e.hRaw || '').toUpperCase() === parsed.base.split('-')[0]
+  );
+  // Contract + PBP is the real key. `pbp` is what the builder records; older hand-made
+  // entries have none, so the marketing name is still read as a fallback.
+  const byPbp = contractHits.filter(([, e]) => {
+    const entryPbp = String(e.pbp || '').padStart(3, '0');
+    if (entryPbp && entryPbp !== '000') return entryPbp === pbp;
+    const name = String(e.planName || '').toUpperCase();
+    return name.includes(parsed.full) || name.includes(parsed.base);
+  });
+  const exact = byPbp.find(([, e]) => {
+    const name = String(e.planName || '').toUpperCase();
+    return !parsed.letter || !name || name.includes(parsed.full);
+  });
+  if (exact) return exact[0];
+  if (byPbp.length) return byPbp[0][0];
+
+  // Last resort: the old name search, still scoped to the asked year.
   const fullHit = entries.find(([, e]) => String(e.planName || '').toUpperCase().includes(parsed.full));
   if (fullHit) return fullHit[0];
   const baseHits = entries.filter(([, e]) => String(e.planName || '').toUpperCase().includes(parsed.base));
-  if (baseHits.length === 1) return baseHits[0][0];
   return baseHits[0] ? baseHits[0][0] : null;
+}
+
+/** Does the map hold any entry for this plan year at all? */
+function sunfireMapHasYear(year, map = SUNFIRE_PLAN_MAP) {
+  const y = Number(year) || 0;
+  return Object.entries(map || {}).some(([id, e]) => sunfireEntryYear(id, e) === y);
 }
 
 function catalogDrugs(payload) {
@@ -347,7 +399,10 @@ async function searchSunfireCatalog(name, fetchImpl = fetch) {
     fetchImpl
   );
   if (!res.ok) {
-    return { drugs: [], error: res.error || `sunfire_search_http_${res.status}`, status: res.status };
+    // 401/403 means the Railway SUNFIRE_JWT expired — say so, do not let it look like
+    // "drug not found" and silently fall back for the rest of AEP (Yahoska, 2026-10-07).
+    const authFail = res.status === 401 || res.status === 403;
+    return { drugs: [], error: authFail ? 'sunfire_session_expired' : (res.error || `sunfire_search_http_${res.status}`), status: res.status };
   }
   return { drugs: catalogDrugs(res.json), error: null, status: res.status };
 }
@@ -357,7 +412,17 @@ async function lookupSunfireCoverage({ drug, planId, year, sunfirePlanId }, fetc
     return { verified: false, reason: 'sunfire_creds_missing', attempted: [] };
   }
   const y = Number(year) || PLAN_YEAR;
-  const sfId = sunfirePlanId || sunfireIdForPlan(planId);
+  // A Sunfire id from another plan year would answer with that year's tiers. Refuse it and
+  // say why, instead of silently quoting 2026 numbers on a 2027 comparison.
+  // Scoped to the asked year: an id from another plan year would answer with that year's
+  // tiers. When the plan is unmapped the plan-scoped probes are simply skipped — the
+  // drug-level ones still run — and the reason says which, instead of a bare "no tier".
+  const sfId = sunfirePlanId || sunfireIdForPlan(planId, SUNFIRE_PLAN_MAP, y);
+  const unmappedReason = sfId
+    ? null
+    : sunfireMapHasYear(y)
+      ? 'sunfire_plan_not_mapped'
+      : `sunfire_no_${y}_plan_ids`;
   const prefix = encodeURIComponent(String(drug?.name || '').toLowerCase().slice(0, 20));
   const drugId = drug?.id;
   const attempted = [];
@@ -438,7 +503,7 @@ async function lookupSunfireCoverage({ drug, planId, year, sunfirePlanId }, fetc
     }
   }
 
-  return { verified: false, reason: 'sunfire_no_tier', sunfirePlanId: sfId || null, attempted };
+  return { verified: false, reason: unmappedReason || 'sunfire_no_tier', sunfirePlanId: sfId || null, attempted };
 }
 
 function fhirExtension(resource, fragment) {
@@ -1555,6 +1620,8 @@ function toExportDrugs(result) {
 }
 
 module.exports = {
+  sunfireEntryYear,
+  sunfireMapHasYear,
   formatCostShare,
   PLAN_YEAR,
   SUNFIRE_BASE,
