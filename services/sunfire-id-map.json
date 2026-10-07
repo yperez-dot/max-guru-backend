@@ -680,6 +680,13 @@
     "carrier": "UnitedHealthcare",
     "year": 2027
   },
+  "270434": {
+    "hRaw": "H1045",
+    "pbp": "005",
+    "planName": "UHC Preferred Medicare Advantage FL-0002 (HMO)",
+    "carrier": "UnitedHealthcare",
+    "year": 2027
+  },
   "270435": {
     "hRaw": "H1045",
     "pbp": "012",
@@ -736,6 +743,13 @@
     "carrier": "UnitedHealthcare",
     "year": 2027
   },
+  "271043": {
+    "hRaw": "H5420",
+    "pbp": "003",
+    "planName": "UHC MedicareMax Medicare Advantage FL-0029 (HMO)",
+    "carrier": "UnitedHealthcare",
+    "year": 2027
+  },
   "271044": {
     "hRaw": "H5420",
     "pbp": "014",
@@ -778,6 +792,13 @@
     "carrier": "UnitedHealthcare",
     "year": 2027
   },
+  "271262": {
+    "hRaw": "H1609",
+    "pbp": "018",
+    "planName": "Aetna Medicare Select (HMO)",
+    "carrier": "Aetna Inc.",
+    "year": 2027
+  },
   "271269": {
     "hRaw": "H1609",
     "pbp": "043",
@@ -789,6 +810,13 @@
     "hRaw": "H1609",
     "pbp": "073",
     "planName": "Aetna Medicare Full Dual Select (HMO D-SNP) H1609-073",
+    "carrier": "Aetna Inc.",
+    "year": 2027
+  },
+  "271290": {
+    "hRaw": "H1609",
+    "pbp": "080",
+    "planName": "Aetna Medicare Chronic Care (HMO C-SNP)",
     "carrier": "Aetna Inc.",
     "year": 2027
   },
@@ -813,6 +841,13 @@
     "carrier": "Aetna Inc.",
     "year": 2027
   },
+  "271676": {
+    "hRaw": "H5521",
+    "pbp": "306",
+    "planName": "Aetna Medicare Eagle Giveback (PPO) H5521-306",
+    "carrier": "Aetna Inc.",
+    "year": 2027
+  },
   "271854": {
     "hRaw": "S5601",
     "pbp": "022",
@@ -827,10 +862,24 @@
     "carrier": "Devoted Health",
     "year": 2027
   },
+  "271875": {
+    "hRaw": "H1290",
+    "pbp": "002",
+    "planName": "DEVOTED CORE 002 FL (HMO)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
   "271878": {
     "hRaw": "H1290",
     "pbp": "013",
     "planName": "DEVOTED GIVEBACK 013 FL (HMO)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271879": {
+    "hRaw": "H1290",
+    "pbp": "014",
+    "planName": "DEVOTED GIVEBACK 014 FL (HMO)",
     "carrier": "Devoted Health",
     "year": 2027
   },
@@ -841,7 +890,21 @@
     "carrier": "Devoted Health",
     "year": 2027
   },
+  "271883": {
+    "hRaw": "H1290",
+    "pbp": "020",
+    "planName": "DEVOTED DUAL 020 FL (HMO D-SNP)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
   "271898": {
+    "hRaw": "H1290",
+    "pbp": "037",
+    "planName": "DEVOTED CORE 037 FL (HMO)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271899": {
     "hRaw": "H1290",
     "pbp": "037",
     "planName": "DEVOTED CORE 037 FL (HMO)",
@@ -852,6 +915,20 @@
     "hRaw": "H1290",
     "pbp": "053",
     "planName": "DEVOTED DUAL QMB 053 FL (HMO D-SNP)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271918": {
+    "hRaw": "H1290",
+    "pbp": "054",
+    "planName": "DEVOTED DUAL QMB 054 FL (HMO D-SNP)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271920": {
+    "hRaw": "H1290",
+    "pbp": "056",
+    "planName": "DEVOTED CORE 056 FL (HMO)",
     "carrier": "Devoted Health",
     "year": 2027
   },
@@ -869,10 +946,31 @@
     "carrier": "Devoted Health",
     "year": 2027
   },
+  "271937": {
+    "hRaw": "H1290",
+    "pbp": "073",
+    "planName": "DEVOTED C-SNP ENHANCED 073 FL (HMO C-SNP)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271939": {
+    "hRaw": "H1290",
+    "pbp": "077",
+    "planName": "DEVOTED DUAL FULL 077 FL (HMO D-SNP)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
   "271940": {
     "hRaw": "H1290",
     "pbp": "078",
     "planName": "DEVOTED DUAL FULL 078 FL (HMO D-SNP)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271946": {
+    "hRaw": "H1290",
+    "pbp": "084",
+    "planName": "DEVOTED C-SNP PLUS 084 FL (HMO C-SNP)",
     "carrier": "Devoted Health",
     "year": 2027
   },
@@ -890,6 +988,13 @@
     "carrier": "Devoted Health",
     "year": 2027
   },
+  "271973": {
+    "hRaw": "H1290",
+    "pbp": "117",
+    "planName": "DEVOTED GIVEBACK EXTRAS 117 FL (HMO)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
   "272780": {
     "hRaw": "H1035",
     "pbp": "017",
@@ -897,10 +1002,31 @@
     "carrier": "Florida Blue",
     "year": 2027
   },
+  "272781": {
+    "hRaw": "H1035",
+    "pbp": "019",
+    "planName": "BlueMedicare Classic (HMO)",
+    "carrier": "Florida Blue",
+    "year": 2027
+  },
+  "272785": {
+    "hRaw": "H1035",
+    "pbp": "025",
+    "planName": "BlueMedicare Premier (HMO)",
+    "carrier": "Florida Blue",
+    "year": 2027
+  },
   "272803": {
     "hRaw": "H5434",
     "pbp": "002",
     "planName": "BlueMedicare Select (PPO)",
+    "carrier": "Florida Blue",
+    "year": 2027
+  },
+  "272807": {
+    "hRaw": "H5434",
+    "pbp": "026",
+    "planName": "BlueMedicare Value (PPO)",
     "carrier": "Florida Blue",
     "year": 2027
   },
@@ -914,6 +1040,13 @@
   "272824": {
     "hRaw": "H6378",
     "pbp": "001",
+    "planName": "AmeriHealth Caritas VIP Care (HMO D-SNP)",
+    "carrier": "AmeriHealth Caritas",
+    "year": 2027
+  },
+  "272825": {
+    "hRaw": "H6378",
+    "pbp": "002",
     "planName": "AmeriHealth Caritas VIP Care (HMO D-SNP)",
     "carrier": "AmeriHealth Caritas",
     "year": 2027
@@ -988,6 +1121,13 @@
     "carrier": "WellCare Health Plans, Inc.",
     "year": 2027
   },
+  "273788": {
+    "hRaw": "H1019",
+    "pbp": "001",
+    "planName": "CareOne Plus (HMO-POS)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
   "273789": {
     "hRaw": "H1019",
     "pbp": "006",
@@ -999,6 +1139,13 @@
     "hRaw": "H1019",
     "pbp": "023",
     "planName": "CareNeeds Platinum (HMO D-SNP)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273793": {
+    "hRaw": "H1019",
+    "pbp": "065",
+    "planName": "CareFree Giveback (HMO)",
     "carrier": "Humana Inc.",
     "year": 2027
   },
@@ -1016,10 +1163,31 @@
     "carrier": "Humana Inc.",
     "year": 2027
   },
+  "273805": {
+    "hRaw": "H1019",
+    "pbp": "124",
+    "planName": "CareBreeze Platinum (HMO-POS C-SNP)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273806": {
+    "hRaw": "H1019",
+    "pbp": "130",
+    "planName": "CareComplete Platinum (HMO-POS C-SNP)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
   "273807": {
     "hRaw": "H1019",
     "pbp": "132",
     "planName": "CareSalute (HMO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273809": {
+    "hRaw": "H1019",
+    "pbp": "135",
+    "planName": "CareFree Platinum Giveback (HMO-POS)",
     "carrier": "Humana Inc.",
     "year": 2027
   },
@@ -1056,6 +1224,14 @@
     "pbp": "054",
     "letter": "C",
     "planName": "Humana Gold Plus H1036-054C (HMO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273830": {
+    "hRaw": "H1036",
+    "pbp": "065",
+    "letter": "C",
+    "planName": "Humana Gold Plus H1036-065C (HMO)",
     "carrier": "Humana Inc.",
     "year": 2027
   },
@@ -1227,6 +1403,27 @@
     "carrier": "Humana Inc.",
     "year": 2027
   },
+  "275032": {
+    "hRaw": "H5427",
+    "pbp": "078",
+    "planName": "Freedom Medi-Medi Partial (HMO D-SNP)",
+    "carrier": "Freedom Health  Inc.",
+    "year": 2027
+  },
+  "275033": {
+    "hRaw": "H5427",
+    "pbp": "082",
+    "planName": "Freedom VIP Savings (HMO C-SNP)",
+    "carrier": "Freedom Health  Inc.",
+    "year": 2027
+  },
+  "275034": {
+    "hRaw": "H5427",
+    "pbp": "083",
+    "planName": "Freedom VIP Savings COPD (HMO C-SNP)",
+    "carrier": "Freedom Health  Inc.",
+    "year": 2027
+  },
   "275051": {
     "hRaw": "H5431",
     "pbp": "001",
@@ -1241,9 +1438,23 @@
     "carrier": "HealthSun Health Plans, Inc",
     "year": 2027
   },
+  "275053": {
+    "hRaw": "H5431",
+    "pbp": "012",
+    "planName": "HealthSun HealthAdvantage Plan (HMO)",
+    "carrier": "HealthSun Health Plans, Inc",
+    "year": 2027
+  },
   "275055": {
     "hRaw": "H5431",
     "pbp": "017",
+    "planName": "HealthSun HealthAdvantage Plus (HMO)",
+    "carrier": "HealthSun Health Plans, Inc",
+    "year": 2027
+  },
+  "275056": {
+    "hRaw": "H5431",
+    "pbp": "018",
     "planName": "HealthSun HealthAdvantage Plus (HMO)",
     "carrier": "HealthSun Health Plans, Inc",
     "year": 2027
@@ -1276,10 +1487,45 @@
     "carrier": "Anthem Inc.",
     "year": 2027
   },
+  "275065": {
+    "hRaw": "H5594",
+    "pbp": "001",
+    "planName": "Optimum Gold Rewards Plan (HMO)",
+    "carrier": "Optimum HealthCare  Inc.",
+    "year": 2027
+  },
+  "275066": {
+    "hRaw": "H5594",
+    "pbp": "002",
+    "planName": "Optimum Platinum Plan (HMO)",
+    "carrier": "Optimum HealthCare  Inc.",
+    "year": 2027
+  },
+  "275067": {
+    "hRaw": "H5594",
+    "pbp": "016",
+    "planName": "Optimum Emerald Partial (HMO D-SNP)",
+    "carrier": "Optimum HealthCare  Inc.",
+    "year": 2027
+  },
+  "275348": {
+    "hRaw": "H1526",
+    "pbp": "001",
+    "planName": "Gold Heart & Diabetes (HMO-POS C-SNP)",
+    "carrier": "Gold Kidney Health Plan",
+    "year": 2027
+  },
   "275349": {
     "hRaw": "H1526",
     "pbp": "002",
     "planName": "Gold Heart & Diabetes Complete (HMO-POS C-SNP)",
+    "carrier": "Gold Kidney Health Plan",
+    "year": 2027
+  },
+  "275350": {
+    "hRaw": "H1526",
+    "pbp": "003",
+    "planName": "Gold Dialysis & Kidney (HMO-POS C-SNP)",
     "carrier": "Gold Kidney Health Plan",
     "year": 2027
   },
@@ -1294,6 +1540,20 @@
     "hRaw": "H1526",
     "pbp": "009",
     "planName": "Gold Dialysis & Kidney (HMO-POS C-SNP)",
+    "carrier": "Gold Kidney Health Plan",
+    "year": 2027
+  },
+  "275354": {
+    "hRaw": "H1526",
+    "pbp": "011",
+    "planName": "Gold Dialysis Premier (HMO-POS C-SNP)",
+    "carrier": "Gold Kidney Health Plan",
+    "year": 2027
+  },
+  "275355": {
+    "hRaw": "H1526",
+    "pbp": "012",
+    "planName": "Gold Heart & Diabetes Plus (HMO-POS C-SNP)",
     "carrier": "Gold Kidney Health Plan",
     "year": 2027
   },
@@ -2257,6 +2517,20 @@
     "carrier": "Humana",
     "year": 2027
   },
+  "27000362": {
+    "hRaw": "H1036",
+    "pbp": "801",
+    "planName": "CITY OF NEW YORK HMO  076 / 517",
+    "carrier": "Humana",
+    "year": 2027
+  },
+  "27000363": {
+    "hRaw": "H1036",
+    "pbp": "806",
+    "planName": "CITY OF NEW YORK HMO  076 / 517",
+    "carrier": "Humana",
+    "year": 2027
+  },
   "27000375": {
     "hRaw": "H5216",
     "pbp": "805",
@@ -2317,6 +2591,13 @@
     "hRaw": "H1036",
     "pbp": "806",
     "planName": "CITY OF NEW YORK HMO  076 / 517",
+    "carrier": "Humana",
+    "year": 2027
+  },
+  "27000490": {
+    "hRaw": "H1036",
+    "pbp": "801",
+    "planName": "EMBLEMHEALTH HMO  076 / 516",
     "carrier": "Humana",
     "year": 2027
   },

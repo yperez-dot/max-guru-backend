@@ -522,22 +522,27 @@ Resolves for 2027 where nothing did before: UHC `H1045-001` → 270433, Aetna `H
 271301, Humana `H1036-054C` → 273828, HealthSun `H5431-001` → 275051, CarePlus `H1019-006`
 → 273789.
 
-**Open discrepancy — needs Yahoska's eye, NOT changed here.** Several plans the THEI 2027 grid
-uses are absent from Sunfire's own 2027 book for this ZIP:
+**The earlier "open discrepancy" is RESOLVED: it was county scope.** Sunfire's 2027 book is
+per-service-area, and the Miami-Dade list simply does not contain Broward's PBPs. Adding the
+Broward `2027?…` capture (205 records, ZIP Broward) supplied exactly the plans that looked
+missing — the THEI grid was right throughout:
 
-| THEI 2027 grid | In Sunfire's 2027 list? | Sunfire 2027 has instead |
+| Plan | Sunfire 2027 id | County |
 |---|---|---|
-| UHC Preferred FL-0002 `H1045-005` | no | `H1045-001`, 012, 018, 061, 063 |
-| HealthSun HealthAdvantage `H5431-012` | no | `H5431-001`, 006, 017, 019, 021, 026 |
-| CarePlus CareOne Plus `H1019-001` | no | `H1019-006`, 023, 121, 123, 132, 136, 148, 150, 154 |
-| Solis `H0982-007` | no (whole contract absent) | — |
-| Doctors `H4140-022` / `-023` | no (whole contract absent) | — |
+| UHC Preferred FL-0002 `H1045-005` | 270434 | Broward |
+| UHC Preferred FL-0001 `H1045-001` | 270433 | Miami-Dade |
+| HealthSun HealthAdvantage `H5431-012` | 275053 | Broward |
+| CarePlus CareOne Plus `H1019-001` | 273788 | Broward |
+| CarePlus CareAccess `H1019-148` | 273817 | Broward |
+| CarePlus CareOne Plus `H1019-006` | 273789 | Miami-Dade |
+| Humana Gold Plus `H1036-065C` | 273830 | Broward |
 
-Those same PBPs (`H1045-005`, `H5431-012`, `H1019-001`, `H0982-007`) DO appear in the
-"26"-prefixed captures. So either the grid's 2027 rows carry some 2026 PBPs, or Sunfire's 2027
-book is scoped differently (county, or carriers not yet loaded for AEP). Until it is settled,
-those plans get no Sunfire tier for 2027 and fall through to medicare.gov / the carrier PDF
-indexes — which is the safe failure, not a wrong tier. Solis and Doctors were never in
-Sunfire's book anyway and keep using their PDF indexes.
+`services/sunfire-id-map.json` now holds **537 entries — 234 dated 2027 (both counties) plus
+the 303 legacy undated ones**. Solis (H0982) and Doctors (H4140) remain absent from Sunfire's
+book in both counties, as they always have been; their tiers come from the carrier-PDF
+indexes.
 
-To extend: capture the `2027?…` row again from a Broward quote and re-run with `--merge`.
+Note for future captures: the same product can have a different PBP in each county
+("Solis Healthy Living Plan" is `H0982-022` in one service area and `H0982-007` in another),
+so a plan missing from the map usually means that county has not been captured yet — not that
+the plan or the grid is wrong.
