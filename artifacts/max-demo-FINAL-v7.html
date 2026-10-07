@@ -207,8 +207,10 @@
       /\b(?:need|needs|what's|whats|what is|does (?:it|this|the plan) cover|cover(?:age|ed)?(?: for)?|copay(?: for)?|cost (?:of|for)|how much (?:is|for))\s+([a-z][a-z0-9\s\-\/]{2,50})/gi;
     let m;
     while ((m = genericRe.exec(src))) {
-      const phrase = m[1].replace(/\s+/g, " ").trim().replace(/[?.!,;:]+$/, "");
+      const phrase = m[1].replace(/\s+/g, " ").trim().replace(/[?.!,;:]+$/, "").replace(/^(?:a|an|the|her|his|their)\s+/i, "");
       if (!phrase || GRID_TOPIC_RE.test(phrase)) continue;
+      // "does she need a PPO?" / "cover the official October 1 SoB" are not benefits (they became "aPpo" rows).
+      if (/\b(ppo|hmo|pos|sob|eoc|pdf|snp|medicaid|msp|official|october|january|document|summary|directory)\b/i.test(phrase)) continue;
       if (KNOWN_OFF_GRID.some((item) => item.re.test(phrase))) continue;
       if (/^(the|a|an|this|that|her|his|their|plan|plans|benefit|benefits|for|on)$/i.test(phrase)) continue;
       // "need the client's full name", "need the NPI", "need more info" — not a benefit.

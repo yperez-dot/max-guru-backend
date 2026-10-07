@@ -1829,3 +1829,10 @@ describe('export doctor list ignores scraped junk', () => {
     assert.deepEqual(merged.map((d) => d.name), ['Dr. Ashwin Mehta']);
   });
 });
+
+describe('off-grid benefit detection ignores non-benefits', () => {
+  it('"need a PPO" and "the official October 1 SoB" are not benefits', () => {
+    const r = exp.askedOffGridBenefits('Is an HMO OK, or does she need a PPO? Does it cover the Official October 1 SoB?');
+    assert.deepEqual(r.benefits, []);
+  });
+});
