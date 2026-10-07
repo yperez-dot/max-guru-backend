@@ -4054,6 +4054,8 @@ function CompareResult({ result, onExport }) {
 // client is saved as its own workup (never over the open one). Jobs live on the server, so closing the tab is fine.
 function QueuePanel({ isMobile, onWorkupSaved, onOpenWorkup, onClose }) {
   const [text, setText] = useState("");
+  const [medicaidPick, setMedicaidPick] = useState("");
+  const [csnpPick, setCsnpPick] = useState("");
   const [entries, setEntries] = useState(() => loadQueueStore().map((e) => ({ ...e, job: null })));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -4119,7 +4121,8 @@ function QueuePanel({ isMobile, onWorkupSaved, onOpenWorkup, onClose }) {
     setError("");
     setBusy(true);
     try {
-      const data = await compareRequest("POST", "/parse", { text });
+      const askText = [text.trim(), medicaidPick, csnpPick].filter(Boolean).join(". ");
+      const data = await compareRequest("POST", "/parse", { text: askText });
       const f = data.fields || {};
       const fields = {
         clientName: f.clientName || "",
@@ -4138,6 +4141,8 @@ function QueuePanel({ isMobile, onWorkupSaved, onOpenWorkup, onClose }) {
       const entry = { key: created.job.id, jobId: created.job.id, fields, name: fields.clientName || "Client", status: created.job.status, job: created.job, workupId: null };
       setEntries((cur) => { const next = [...cur, entry].slice(-12); entriesRef.current = next; saveQueueStore(next); return next; });
       setText("");
+      setMedicaidPick("");
+      setCsnpPick("");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -4165,6 +4170,30 @@ function QueuePanel({ isMobile, onWorkupSaved, onOpenWorkup, onClose }) {
         <div style={label}>Paste a client, then Add</div>
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} style={box}
           placeholder="Please enter your client's name and ZIP, plus any doctors, meds, or anything else you have." />
+        <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
+          <div>
+            <div style={label}>Medicaid or Medicare Savings Program?</div>
+            <select data-testid="queue-medicaid" value={medicaidPick} onChange={(e) => setMedicaidPick(e.target.value)} style={box}>
+              <option value="">Not sure yet (Max will ask)</option>
+              <option value="No Medicaid">No Medicaid / no MSP</option>
+              <option value="Full Medicaid">Full Medicaid</option>
+              <option value="Medicaid: QMB">MSP: QMB</option>
+              <option value="Medicaid: SLMB">MSP: SLMB</option>
+              <option value="Medicaid: QI">MSP: QI</option>
+            </select>
+          </div>
+          <div>
+            <div style={label}>Chronic condition for a C-SNP (confirmed by diagnosis)?</div>
+            <select data-testid="queue-csnp" value={csnpPick} onChange={(e) => setCsnpPick(e.target.value)} style={box}>
+              <option value="">Not sure yet (Max will ask)</option>
+              <option value="No C-SNP">No qualifying condition</option>
+              <option value="has diabetes">Yes: diabetes</option>
+              <option value="has CHF">Yes: heart failure / CHF</option>
+              <option value="has COPD">Yes: COPD / chronic lung</option>
+              <option value="C-SNP: yes">Yes: other qualifying condition</option>
+            </select>
+          </div>
+        </div>
         <div style={{ marginTop: 8, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <button data-testid="queue-add" onClick={add} disabled={busy || !text.trim()} style={btn(true)}>{busy ? "Adding…" : "Add to queue"}</button>
           <span style={{ fontSize: 12, color: "var(--muted)" }}>2 run at a time. Each client is saved as its own workup when it finishes.</span>
