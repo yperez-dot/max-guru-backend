@@ -142,3 +142,31 @@ describe('parseCompareAsk — unlabeled doctors with Dr. and unlabeled meds', ()
     assert.equal(b.doctors.length, 2);
   });
 });
+
+describe('current plan + "is there something better?"', () => {
+  const ASK = 'Marilyn Butler. 33332. Ashwin Mehta, Vivian Aguiar. no meds. no medicaid. for 2026 they have UHC Preferred FL-0002 (H1045-5-0). theyre wondering if theres something better. add their 2027 plan to the comparison too';
+  it('parse flags the intent', () => {
+    assert.equal(parseCompareAsk(ASK).wantsAlternatives, true);
+    assert.equal(parseCompareAsk('Maria Gonzalez, 33178. Ana Lee. Compare H1045-005, H1036-065C').wantsAlternatives, false);
+  });
+  const mkJob = (extra) => ({
+    input: normalizeInput({ zip: '33332', noMedicaid: true, doctors: ['A Doc', 'B Doc'], plans: ['H1045-005'], ...extra }),
+    progress: { doctors: { done: 0, total: 2 }, meds: { done: 0, total: 0 } },
+    result: {},
+  });
+  const plansIn = ['UHC Preferred Medicare Advantage FL-0002 (HMO) (H1045-005)', 'Humana Gold Plus (HMO) (H1036-065C)', 'Aetna Medicare Select (HMO) (H1609-018)'];
+  it('keeps her plan as the first column and adds the best other plans', async () => {
+    const job = mkJob({ wantsAlternatives: true });
+    await runJob(job, { lookupOneDoctor: fakeDoctor(plansIn), lookupRx: fakeRx });
+    assert.equal(job.result.planSource, 'current_plus_alternatives');
+    assert.equal(job.result.planIds[0], 'H1045-005');
+    assert.ok(job.result.planIds.length >= 2, `got ${job.result.planIds}`);
+    assert.match(job.result.whyLine, /current plan \(H1045-005\) first/);
+  });
+  it('without the intent, a named plan stays the only column', async () => {
+    const job = mkJob({});
+    await runJob(job, { lookupOneDoctor: fakeDoctor(plansIn), lookupRx: fakeRx });
+    assert.deepEqual(job.result.planIds, ['H1045-005']);
+    assert.equal(job.result.planSource, 'named');
+  });
+});
