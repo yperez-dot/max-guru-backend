@@ -2379,6 +2379,24 @@
     return conversationPlainText((messages || []).filter((m) => m && m.role === "user"), userMessageTextFn);
   }
 
+  /** Max's reply still ends with questions for the agent ("Questions:\n1. …?", "Before this narrows to 2–3 plans:") — not the time to offer benefits. */
+  function hasOpenQuestions(text) {
+    const t = String(text || "").trim();
+    if (!t) return false;
+    if (/\bBefore this narrows\b/i.test(t)) return true;
+    const m = t.match(/(?:^|\n)\s*(?:Questions?|Two questions|Three questions)\s*:?\s*\n([\s\S]*)$/i);
+    if (m && /(?:^|\n)\s*1[.)]\s+\S[^\n]*\?/.test(m[1])) return true;
+    // A reply that ends in a numbered list where any of the trailing items asks something
+    // ("Two things would let me finish:\n1. Do you want …?\n2. Is X = Y? Also, does …").
+    const lines = t.split("\n").map((l) => l.trim()).filter(Boolean);
+    const tail = [];
+    for (let i = lines.length - 1; i >= 0 && tail.length < 5; i -= 1) {
+      if (!/^\d[.)]\s+/.test(lines[i]) && !(tail.length && /^[-–•]|^[a-z(]/.test(lines[i]))) break;
+      tail.push(lines[i]);
+    }
+    return tail.some((l) => /^\d[.)]\s+/.test(l) && /\?/.test(l));
+  }
+
   function conversationPlainText(messages, userMessageTextFn) {
     const toText =
       typeof userMessageTextFn === "function"
@@ -2410,6 +2428,7 @@
     askedExportSobBenefits,
     applySheetExtras,
     conversationUserText,
+    hasOpenQuestions,
     sobFieldValue,
     anySobField,
     mergeSobBenefitMaps,
@@ -5731,7 +5750,8 @@ function App() {
                 <div className="max-export-scroll" style={{ padding: "12px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(255,255,255,0.88)", color: "var(--ink)", fontSize: 14.5, lineHeight: 1.5, border: "1px solid var(--line)", maxWidth: "100%" }}>
                   <div style={{ marginBottom: 10 }}>Want this comparison as Excel or PDF?</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {!messages.slice(0, i).some((x) => x && x.role === "user" && String(userMessageText(x.content) || "").trim() === "Show benefits for these plans") && (
+                    {!messages.slice(0, i).some((x) => x && x.role === "user" && String(userMessageText(x.content) || "").trim() === "Show benefits for these plans") &&
+                      !(() => { const prev = [...messages.slice(0, i)].reverse().find((x) => x && x.role === "assistant"); return Boolean(prev && window.MaxComparisonExport.hasOpenQuestions(userMessageText(prev.content))); })() && (
                     <button data-testid="show-benefits" onClick={() => send("Show benefits for these plans")}
                       style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
                       Show benefits

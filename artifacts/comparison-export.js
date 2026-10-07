@@ -2355,6 +2355,24 @@
     return conversationPlainText((messages || []).filter((m) => m && m.role === "user"), userMessageTextFn);
   }
 
+  /** Max's reply still ends with questions for the agent ("Questions:\n1. …?", "Before this narrows to 2–3 plans:") — not the time to offer benefits. */
+  function hasOpenQuestions(text) {
+    const t = String(text || "").trim();
+    if (!t) return false;
+    if (/\bBefore this narrows\b/i.test(t)) return true;
+    const m = t.match(/(?:^|\n)\s*(?:Questions?|Two questions|Three questions)\s*:?\s*\n([\s\S]*)$/i);
+    if (m && /(?:^|\n)\s*1[.)]\s+\S[^\n]*\?/.test(m[1])) return true;
+    // A reply that ends in a numbered list where any of the trailing items asks something
+    // ("Two things would let me finish:\n1. Do you want …?\n2. Is X = Y? Also, does …").
+    const lines = t.split("\n").map((l) => l.trim()).filter(Boolean);
+    const tail = [];
+    for (let i = lines.length - 1; i >= 0 && tail.length < 5; i -= 1) {
+      if (!/^\d[.)]\s+/.test(lines[i]) && !(tail.length && /^[-–•]|^[a-z(]/.test(lines[i]))) break;
+      tail.push(lines[i]);
+    }
+    return tail.some((l) => /^\d[.)]\s+/.test(l) && /\?/.test(l));
+  }
+
   function conversationPlainText(messages, userMessageTextFn) {
     const toText =
       typeof userMessageTextFn === "function"
@@ -2386,6 +2404,7 @@
     askedExportSobBenefits,
     applySheetExtras,
     conversationUserText,
+    hasOpenQuestions,
     sobFieldValue,
     anySobField,
     mergeSobBenefitMaps,
