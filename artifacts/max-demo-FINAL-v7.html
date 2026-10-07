@@ -4293,6 +4293,32 @@ function wsSidebarStatus(ws) {
 
 function ClientWsCard({ ws, onSubmit, onAnswer, onToggleMust, onExport, onCancel }) {
   const [text, setText] = useState("");
+  const [reading, setReading] = useState(false);
+  const [readErr, setReadErr] = useState("");
+  const shotInputRef = useRef(null);
+  // Screenshot → text for the box. She reviews/edits it (adds the name and ZIP) before Continue; nothing runs here.
+  const readScreenshots = async (fileList) => {
+    const files = [...(fileList || [])].filter(Boolean).slice(0, 4);
+    if (!files.length) return;
+    setReadErr("");
+    const images = [];
+    for (const file of files) {
+      const type = file.type === "image/jpg" ? "image/jpeg" : file.type;
+      if (!ALLOWED_ATTACH_TYPES.includes(type)) { setReadErr(attachTypeError() + " (PDF and Word files are not supported yet — paste the text.)"); return; }
+      if (file.size > MAX_ATTACH_BYTES) { setReadErr(attachSizeError()); return; }
+      try { images.push(await readFileAsDataUrl(file)); } catch (_) { setReadErr("Could not read that image."); return; }
+    }
+    setReading(true);
+    try {
+      const data = await compareRequest("POST", "/extract", { images });
+      setText((prev) => (String(prev || "").trim() ? String(prev).replace(/\s+$/, "") + "\n" + data.text : data.text));
+    } catch (e) {
+      setReadErr(e.message || "Could not read that image.");
+    } finally {
+      setReading(false);
+      if (shotInputRef.current) shotInputRef.current.value = "";
+    }
+  };
   if (!ws) return null;
   const a = ws.answers || {};
   const stage = ws.stage;
@@ -4316,10 +4342,18 @@ function ClientWsCard({ ws, onSubmit, onAnswer, onToggleMust, onExport, onCancel
           <div style={{ fontWeight: 700, marginBottom: 4 }}>New client</div>
           <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>Paste the client's name and ZIP, plus any doctors, meds, or anything else you have.</div>
           <textarea data-testid="ws-text" value={text} onChange={(e) => setText(e.target.value)} rows={5} style={box}
+            onPaste={(e) => {
+              const imgs = [...(e.clipboardData?.files || [])].filter((f) => String(f.type || "").startsWith("image/"));
+              if (imgs.length) { e.preventDefault(); void readScreenshots(imgs); }
+            }}
             placeholder="Please enter your client's name and ZIP, plus any doctors, meds, or anything else you have." />
           {ws.error && <div style={{ marginTop: 8, fontSize: 12.5, color: "#9B1C3C" }}>{ws.error}</div>}
-          <div style={{ marginTop: 8 }}>
-            <button data-testid="ws-continue" disabled={ws.busy || !text.trim()} onClick={() => onSubmit(text)} style={queueBtn(true)}>{ws.busy ? "Setting up…" : "Continue"}</button>
+          {readErr && <div data-testid="ws-upload-error" style={{ marginTop: 8, fontSize: 12.5, color: "#9B1C3C" }}>{readErr}</div>}
+          <input ref={shotInputRef} data-testid="ws-upload-input" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden onChange={(e) => void readScreenshots(e.target.files)} />
+          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <button data-testid="ws-continue" disabled={ws.busy || reading || !text.trim()} onClick={() => onSubmit(text)} style={queueBtn(true)}>{ws.busy ? "Setting up…" : "Continue"}</button>
+            <button data-testid="ws-upload" type="button" disabled={ws.busy || reading} onClick={() => shotInputRef.current && shotInputRef.current.click()} style={queueBtn(false)}>{reading ? "Reading screenshot…" : "Upload screenshot"}</button>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>PNG, JPEG or WebP — or paste a screenshot into the box. Check the text, add the name and ZIP, then Continue.</span>
           </div>
         </>)}
         {stage !== "paste" && (<>

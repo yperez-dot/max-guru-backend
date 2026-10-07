@@ -527,6 +527,7 @@ async function chat(messages, systemPrompt) {
 }
 
 module.exports = {
+  callChatCompletions,
   passThroughChat,
   chat,
   normalizeMessages,
