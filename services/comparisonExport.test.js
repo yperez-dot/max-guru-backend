@@ -1924,3 +1924,15 @@ describe('Max replies never request benefit rows', () => {
     assert.ok(!labels.includes('Chemotherapy') && !labels.includes('Home Health'));
   });
 });
+
+describe('no "Show benefits" offer while Max is still asking questions', () => {
+  it('detects an open question block', () => {
+    assert.equal(exp.hasOpenQuestions('Counts per plan: x\n\nQuestions:\n1. Is Rusheen Bartlett = Rusheena Bartlett, D.P.M.?\n2. Does she have Medicaid?'), true);
+    assert.equal(exp.hasOpenQuestions('Before this narrows to 2–3 plans:\n1. Do they have a C-SNP condition? — Yes / No.'), true);
+    assert.equal(exp.hasOpenQuestions('...\n1. Is that right?\n2. Which doctors are must-keep?'), true);
+  });
+  it('a finished answer is not open', () => {
+    assert.equal(exp.hasOpenQuestions('Here is the comparison. UHC is In for all four doctors. Anything else you want me to check?'), false);
+    assert.equal(exp.hasOpenQuestions('Got it — here is the side-by-side export. Click Excel or PDF below.'), false);
+  });
+});
