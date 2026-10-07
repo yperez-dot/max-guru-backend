@@ -501,7 +501,7 @@ describe('Padron chat budget', () => {
     ], 'Maria & Gaspar Padron, ZIP 33332. Check these doctors and suggest 2-3 2027 plans');
     assert.match(text, /\| Jorge Diaz · NPI 1111111111 \| ✅ In/);
     assert.match(text, /\| Howard Bush \| ❔ unchecked/);
-    assert.match(text, /\*\*1 in · 0 out · 1 unchecked\*\*/);
+    assert.match(text, /\*\*1 in · 0 not in network · 1 unchecked\*\*/);
     assert.match(text, /^Why these plans: \d+ eligible plans checked in Broward\./m);
     assert.doesNotMatch(text, /\*\*\d+\/\d+\*\*/);
     assert.match(text, /Do Maria and Gaspar have Medicaid/);

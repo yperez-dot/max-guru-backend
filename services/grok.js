@@ -2,7 +2,7 @@
 const { TOOLS, processTool } = require('./claude');
 const { callAnthropic } = require('./anthropicChat');
 const { countImagesInMessages, normalizeMessages } = require('./chatImages');
-const { fallbackAnswer, narrowingAnswered, comparisonAskText, comparisonFollowUp } = require('./doctorPlanNarrow');
+const { fallbackAnswer, narrowingAnswered, comparisonAskText, comparisonFollowUp, enforceRenderedTable } = require('./doctorPlanNarrow');
 const { conversationAskText } = require('./planYear');
 const {
   shouldAutoLookupComparisonSob,
@@ -515,6 +515,11 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
     }
   }
 
+  // Doctor/med network answers always use the server-rendered table (same layout, same cells
+  // every time); the model's own bullets or re-drawn tables are dropped.
+  const rendered = [...collectedToolResults].reverse()
+    .find((t) => t && t.tool === 'lookup_provider_network' && t.output && t.output.rendered);
+  if (rendered) text = enforceRenderedTable(text, rendered.output.rendered);
   return chatResult({ lastData, text, collectedToolResults, usageCalls, deadlineHit: false });
 }
 

@@ -24,7 +24,7 @@ A. PLAN SELECTION (run before building any table)
 5. "WHY THESE PLANS" LINE (required, above every table): "Why these plans: [N] eligible plans checked in [county]. Ranked by doctors in → fewest out → drug cost → premium. Excluded: [plan types excluded + reason, e.g., 'D-SNPs — Medicaid not confirmed']."
 
 B. TABLE DISPLAY
-6. COUNT FORMAT: Never show "X/7". Always show "X in · Y out · Z unchecked" per plan.
+6. COUNT FORMAT: Never show "X/7". Always show "X in · Y not in network · Z unchecked" per plan (add "· N not confirmed" when any). A doctor checked in the carrier's directory and not listed for that plan is "❌ Not in network (not listed)" — say "Not listed in [carrier]'s directory for this plan"; never suggest the doctor may still be in. The carrier's public directory is the same one members and brokers use.
 7. HEADER ACCURACY: Do not describe results as "most doctors in network" unless a plan has more than half confirmed In. Otherwise use: "Doctors × top plans (best confirmed match shown first — a count, not a recommendation)."
 8. RUN ALL KNOWN DATA BEFORE ASKING: If meds or doctors were already provided, check them against EVERY plan in the table before displaying (one lookup_formulary call per drug with ALL table planIds). Never ask the agent for data already present in the conversation. Only ask for meds if none were given.
 9. UNIFORM UNKNOWN MARKER: Every unknown cell displays "❔ unchecked" (never checked) or "❔ not confirmed" (checked, no result). Never a bare icon. Doctor and drug legends must use identical wording.
@@ -35,14 +35,20 @@ B. TABLE DISPLAY
 14. NO EXACT DOCTOR MATCH: Never ask the agent to look up an NPI. Show the closest real providers the tool found (name, specialty, city) and let her pick ("Carlos Sosa = Glenda Sosa"), or ask for the spelling / specialty / office name.
 15. SHORT FIRST REPLY (she skims long replies): the first reply to a comparison is ONLY the header, "Why these plans", the doctor table, the meds table, at most TWO notes (SNP eligibility first), and at most TWO questions (the one that blocks the work first). No benefits / grid snapshot, no "Sources:" line for grid or lookup data, and no note that repeats what a table already shows. Never mention a lookup failure for a carrier that is not a column in the table (e.g. Simply FindCare when Simply is not compared). Benefits go in a second reply only when she taps "Show benefits" or asks for them.
 16. SHOW BENEFITS REQUEST: when she asks "Show benefits for these plans", answer with NO new lookups and NO repeat of the doctor or meds tables: one short block per plan already compared (marketing name + contract-PBP; premium, Part B giveback, MOOP, specialist, ER, dental, vision, OTC) from the THEI 2027 grid, non-yellow cells only. End with one line: full benefits are in the Excel / PDF export.
+17. THE GRID IS THE SOURCE OF TRUTH: plan names and plan IDs from the THEI 2027 grid are verified. Never retract them or call them "unverified".
+18. AGENT-REQUESTED SNPs: when the agent asks to run / include C-SNPs (or D-SNPs) for a condition, treat the condition (or Medicaid) as agent-confirmed for that run — she confirms eligibility at enrollment. Never refuse; run her doctors and meds on those plans.
+19. DIRECTORY SOURCES: never explain how a directory was searched (guest / member / login) in a reply. A doctor checked and not listed is "Not listed in [carrier]'s directory for this plan".
 Never invent plan rankings or eligibility. When the server tool result already contains a DOCTOR × PLAN TABLE and a "Why these plans" line, copy them as-is.
 `;
 
 const UNCHECKED = '❔ unchecked';
+// Checked in the carrier's official directory (the same directory members and brokers use) and not
+// listed for this plan. Never shown for a failed or skipped check.
+const NOT_LISTED_CELL = '❌ Not in network (not listed)';
 const NOT_CONFIRMED_CELL = '❔ not confirmed';
 // Same unknown wording in the doctor and drug legends (rule 9).
 const UNKNOWN_LEGEND = '❔ unchecked = never checked · ❔ not confirmed = checked, no result';
-const LEGEND = `✅ In · ❌ Out · ${UNKNOWN_LEGEND} (never assume Out)`;
+const LEGEND = `✅ In · ${NOT_LISTED_CELL} = checked in the carrier's directory, not listed for this plan · ${UNKNOWN_LEGEND} (never assume not in network unless checked)`;
 const IN_STAR_LEGEND = '✅ In* = in the carrier network; confirm this specific plan in the carrier directory';
 const MEDS_LEGEND = `T = tier · ⚠️ confirm = read not covered, check the exact product in Sunfire · ${UNKNOWN_LEGEND}`;
 const RANK_ORDER = 'Ranked by doctors in → fewest out → drug cost → premium.';
@@ -157,6 +163,30 @@ function levelsIn(text) {
  * medicaid: 'full' | 'msp' | 'none' | 'unknown'; levels: client's stated MSP/dual levels;
  * csnp: 'confirmed' | 'none' | 'unknown'.
  */
+// "run her drs on the csnps with cardiovascular disorders" / "include the D-SNPs": the agent asks for
+// those plans by name — she confirms the condition / Medicaid at enrollment, so for this run it counts
+// as agent-confirmed (Maura Soley, 2026-10-07: Max refused with "no qualifying condition is confirmed").
+const CSNP_RUN_RE = /^Run C-SNPs\b|\b(?:run|include|check|show|use|add|try|look\s*at|compare|price|pull)\b[^.\n]{0,40}\bc-?snps?\b|\bc-?snps?\b[^.\n?]{0,20}\b(?:with|for)\s+(?:her|his|the|a)?\s*[a-z][^?]*$/i;
+const DSNP_RUN_RE = /\b(?:run|include|check|show|use|add|try|look\s*at|compare|price|pull)\b[^.\n]{0,40}\bd-?snps?\b/i;
+const CONDITION_WORDS = [
+  ['heart', /\b(cardio\w*|heart|chf|afib|a-?fib|atrial|arrhythm\w*|coronary|cad|vascular|hypertension|cardiac)\b/i, /heart|cardi|coronary|arrhythm|vascular|afib/i],
+  ['diabetes', /\bdiabet\w*\b/i, /diabet/i],
+  ['lung', /\b(copd|lung|asthma|pulmonary|respiratory)\b/i, /lung|copd|asthma|pulmon|respir/i],
+  ['kidney', /\b(kidney|renal|esrd|ckd|dialysis)\b/i, /kidney|renal|esrd|dialysis/i],
+  ['dementia', /\b(dementia|alzheimer\w*)\b/i, /dementia|alzheimer/i],
+];
+function csnpRunAsk(text) {
+  const t = String(text || '');
+  return CSNP_RUN_RE.test(t) && !/\b(no|not|without|exclude|skip)\s+(?:the\s+)?c-?snps?\b/i.test(t);
+}
+function dsnpRunAsk(text) {
+  const t = String(text || '');
+  return DSNP_RUN_RE.test(t) && !/\b(no|not|without|exclude|skip)\s+(?:the\s+)?d-?snps?\b/i.test(t);
+}
+function conditionsIn(text) {
+  return CONDITION_WORDS.filter(([, re]) => re.test(String(text || ''))).map(([k]) => k);
+}
+
 function eligibilityFromAsk(askText) {
   // Plan names carry these words too ("Aetna Medicare QMB Only Select H1609-043",
   // "Dual Complete") — strip plan references so a named plan never reads as the
@@ -179,7 +209,19 @@ function eligibilityFromAsk(askText) {
   if (/\b(no|not|without|none)\s+(c-?snp|chronic condition|qualifying (chronic )?condition)s?\b|\bc-?snp\s*[:=-]?\s*no\b|\bnot c-?snp eligible\b/i.test(t)) csnp = 'none';
   else if (/\bc-?snp\s*(eligible|qualif\w*|[:=-]\s*yes|ok)\b|\bqualifies for (a )?c-?snp\b|\b(chronic condition|qualifying condition|diagnos\w+)\s*[:=-]?\s*(confirmed|yes)\b|\b(has|diagnosed with|dx(?: of)?:?)\s+(diabetes|chf|heart failure|copd|esrd|afib|atrial fibrillation|cardiovascular|coronary artery disease|cad|chronic lung|dementia|ckd)\b/i.test(t)) csnp = 'confirmed';
 
-  return { medicaid, levels, csnp };
+  const out = { medicaid, levels, csnp };
+  if (csnpRunAsk(askText) && csnp !== 'none') {
+    out.csnp = 'confirmed';
+    out.csnpAgentConfirmed = true;
+    out.csnpOnly = true;
+    out.conditions = conditionsIn(askText);
+  }
+  if (dsnpRunAsk(askText) && medicaid === 'unknown') {
+    out.medicaid = 'full';
+    out.levels = ['FBDE'];
+    out.dsnpAgentConfirmed = true;
+  }
+  return out;
 }
 
 /**
@@ -191,7 +233,16 @@ function planEligibility(planLike, elig) {
   const kind = snpKind(planLike);
   if (!kind) return { status: 'eligible', kind };
   if (kind === 'csnp') {
-    if (elig.csnp === 'confirmed') return { status: 'eligible', kind };
+    if (elig.csnp === 'confirmed') {
+      // Her condition decides which C-SNPs fit (grid "chronicConditions"); a plan with no list stays in.
+      const conds = Array.isArray(elig.conditions) ? elig.conditions : [];
+      const list = String(planLike.chronicConditions || '');
+      if (conds.length && list) {
+        const fits = CONDITION_WORDS.filter(([k]) => conds.includes(k)).some(([, , planRe]) => planRe.test(list));
+        if (!fits) return { status: 'excluded', kind, reason: `C-SNPs — not for ${conds.join(' / ')}` };
+      }
+      return { status: 'eligible', kind };
+    }
     return { status: elig.csnp === 'none' ? 'excluded' : 'unknown', kind, reason: elig.csnp === 'none' ? 'C-SNPs — no qualifying condition' : 'C-SNPs — qualifying condition not confirmed' };
   }
   // D-SNP / QMB-only: need a stated dual level that this plan's MSP Levels accept.
@@ -288,7 +339,7 @@ const REQUEST_VERBS = /\b(show|compare|instead|use|switch|swap|look at|what abou
 // "HUMANA WONT WORK", "not Humana", "other than Humana", "instead of Humana" — a carrier
 // she rules out. Words right after the carrier name, or right before it.
 const REJECT_AFTER_RE = /^[^.!?\n]{0,25}?\b(?:won'?t|wont|will\s+not|doesn'?t|does\s+not|didn'?t|did\s+not|isn'?t|is\s+not|aren'?t|are\s+not|can'?t|cannot|not\s+going\s+to)\s+(?:\w+\s+)?(?:work|do|cut|be|cover|take|accept|help|fit|an?\s+option)\b|^\W*(?:is|are)?\s*(?:out|no\s+good|a\s+no|not\s+an?\s+option|off\s+the\s+table)\b/i;
-const REJECT_BEFORE_RE = /\b(?:no|not|other\s+than|besides|except|instead\s+of|anything\s+but|skip|drop|forget|without|no\s+more|rather\s+than)\s+(?:the\s+)?$/i;
+const REJECT_BEFORE_RE = /\b(?:no|not|other\s+than|besides|except|excluding|exclude|leave\s+out|remove|instead\s+of|anything\s+but|skip|drop|forget|without|no\s+more|rather\s+than)\s+(?:the\s+|all\s+)?$/i;
 
 /** Carriers she rules out in ONE message ("YIKES, HUMANA WONT WORK THEN") → ['Humana']. */
 function carriersRejected(message) {
@@ -353,6 +404,10 @@ function exactDollars(v) {
 }
 
 module.exports = {
+  csnpRunAsk,
+  dsnpRunAsk,
+  conditionsIn,
+  NOT_LISTED_CELL,
   COMPARISON_TABLE_RULES,
   UNCHECKED,
   NOT_CONFIRMED_CELL,

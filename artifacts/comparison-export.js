@@ -253,7 +253,7 @@
     return (plans || []).some(isDualOrDsnpPlan);
   }
   const NETWORK_IN = "In network";
-  const NETWORK_OUT = "Out of network";
+  const NETWORK_OUT = "Not in network (not listed)";
   const NETWORK_NOT_CONFIRMED = "Not confirmed";
   const NETWORK_NEED_MORE = "Need more info";
   const GENERIC_ONLY_NOTE = "*Brand not covered — these three plans cover the generic only.";
@@ -722,6 +722,8 @@
     if (!s) return "";
     if (/need\s*more\s*info/i.test(s)) return NETWORK_NEED_MORE;
     if (/not\s*confirmed/i.test(s)) return NETWORK_NOT_CONFIRMED;
+    // "❌ Not in network (not listed)" contains "in network" — read it as Out before the In test.
+    if (/\bnot\s+(?:in[-\s]?network|listed)\b/i.test(s)) return NETWORK_OUT;
     if (/^(in[-\s]?network|inn|in|true|yes|✅)$/i.test(s) || /^IN$/i.test(s) || /\bin[-\s]?network\b/i.test(s)) {
       return NETWORK_IN;
     }
@@ -805,13 +807,13 @@
   function statusTokens(window) {
     const tokens = [];
     const re =
-      /need\s*more\s*info|not\s*confirmed|failed\s*check|out(?:\s+of)?[-\s]?network|in[-\s]?network|\bOON\b|\bINN\b|✅|❌/gi;
+      /need\s*more\s*info|not\s*confirmed|failed\s*check|not\s+in[-\s]?network(?:\s*\(not\s+listed\))?|not\s+listed|out(?:\s+of)?[-\s]?network|in[-\s]?network|\bOON\b|\bINN\b|✅|❌/gi;
     let t;
     while ((t = re.exec(window))) {
       const raw = t[0];
       if (/need\s*more\s*info|failed\s*check/i.test(raw)) tokens.push(NETWORK_NEED_MORE);
       else if (/not\s*confirmed/i.test(raw)) tokens.push(NETWORK_NOT_CONFIRMED);
-      else tokens.push(/out|oon|❌/i.test(raw) ? NETWORK_OUT : NETWORK_IN);
+      else tokens.push(/out|oon|❌|^not\s/i.test(raw) ? NETWORK_OUT : NETWORK_IN);
     }
     return tokens;
   }
@@ -2666,6 +2668,80 @@
     return wantsComparisonExport(text);
   }
 
+  // "Find the plans that cover the most of her doctors … then the Excel" is a search, not an
+  // export: only a message that is mainly an export request may skip the model and re-export the
+  // last plans (Maura Soley, 2026-10-07). Everything else runs the full chat; export chips follow.
+  const EXPORT_WORK_RE = /\b(find|search|look\s*(?:up|for)|lookup|compare|comparing|suggest|recommend|rank|ranked|ranking|top\s+\d|best|cover(?:s|ing)?|which\s+plans?|what\s+plans?|check|run|show\s+(?:me\s+)?(?:the\s+)?(?:top|best|plans?|other)|include|exclude|instead|switch|swap|add|remove|drop)\b/i;
+  function isExportShortcutAsk(text) {
+    const t = String(text || "");
+    if (!wantsComparisonExport(t)) return false;
+    if (citedPlanIdsFromText(t).length > 0) return false;
+    if (CARRIER_ASK_RE.test(t)) return false; // names a carrier → new plans, not a re-export
+    // Strip the export words themselves ("export this to excel", "side by side pdf") before
+    // looking for any other work in the message.
+    const rest = t
+      .replace(/\b(?:then\s+)?(?:the\s+)?(?:excel|xlsx|spreadsheet|pdf|export(?:\s+(?:this|it|that|to|as|in))?|side[-\s]?by[-\s]?side|download|file|sheet)\b/gi, " ")
+      .replace(/\b(?:please|pls|can you|could you|give me|send|make|create|generate|and|or|the|a|an|me|it|this|that|of|for|to|as|in|with|now|thanks?|ok(?:ay)?)\b/gi, " ")
+      .replace(/[^A-Za-z0-9]+/g, " ")
+      .trim();
+    if (EXPORT_WORK_RE.test(t.replace(/\bexport\s+(?:this|it|that)\b/gi, " "))) return false;
+    // Long messages carry more than an export ask (doctors, meds, a ZIP …).
+    return rest.split(/\s+/).filter(Boolean).length <= 6;
+  }
+
+  /** "UHC Preferred Care Preferred MA (H1045-001)" — never "UHC UHC …" when the plan name already starts with the carrier. */
+  function planChatLabel(p) {
+    const carrier = String((p && p.carrier) || "").trim();
+    const name = String((p && (p.planName || p.name)) || "").trim();
+    const id = String((p && (p.planId || p.id)) || "").trim();
+    const first = (x) => x.toLowerCase().split(/\s+/)[0] || "";
+    const carrierShown = !carrier || !name || name.toLowerCase().startsWith(carrier.toLowerCase()) || first(name) === first(carrier) ? "" : carrier + " ";
+    return (carrierShown + name).trim() + (id ? " (" + id + ")" : "");
+  }
+
+  // "Show benefits for these plans": every column, looked up by contract-PBP across the WHOLE grid
+  // (the client's county copy first), never just the county slice or the ranked subset — H1045-001
+  // (her current plan) came back missing on the first try (Maura, 2026-10-07).
+  function benefitPlansFor(ids, pool, county) {
+    const norm = (x) => String(x || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+    const rows = Array.isArray(pool) ? pool : [];
+    const out = [];
+    (Array.isArray(ids) ? ids : []).forEach((raw) => {
+      const id = String((raw && (raw.planId || raw.id)) || raw || "");
+      const key = norm(id);
+      if (!key || out.some((p) => norm(p.planId || p.id) === key)) return;
+      const hits = rows.filter((p) => norm(p.planId || p.id) === key);
+      const mine = county ? hits.filter((p) => p.county === county) : [];
+      const row = mine[0] || hits[0];
+      if (row) out.push(row);
+      else out.push({ planId: id.toUpperCase().slice(0, 9), planName: (raw && raw.planName) || "", carrier: (raw && raw.carrier) || "", missing: true });
+    });
+    return out;
+  }
+
+  const BENEFIT_ROWS = [
+    ["Premium", "premium"], ["Part B giveback", "partBGiveback"], ["MOOP", "moop"], ["PCP", "pcpCopay"],
+    ["Specialist", "specialistCopay"], ["ER", "erCopay"], ["Urgent care", "urgentCareCopay"],
+    ["Inpatient", "inpatientHospital"], ["Dental", "dental"], ["Vision", "vision"], ["Hearing", "hearing"],
+    ["OTC", "otc"], ["Food / grocery card", "groceryCardDetail"], ["Referral", "referral"],
+  ];
+
+  /** One side-by-side benefit table for every column (same rows for all plans), from the grid. */
+  function benefitsTable(plans, county) {
+    const cols = (Array.isArray(plans) ? plans : []).filter(Boolean);
+    if (!cols.length) return "";
+    const cell = (v) => String(v == null || v === "" ? "—" : v).replace(/\s*\n\s*/g, " · ").replace(/\|/g, "/");
+    const head = "| Benefit | " + cols.map((p) => planChatLabel(p).replace(/\|/g, "/")).join(" | ") + " |";
+    const sep = "|---|" + cols.map(() => "---").join("|") + "|";
+    const rows = BENEFIT_ROWS.map(([label, key]) => "| " + label + " | " + cols.map((p) => (p.missing ? "not on the grid" : cell(p[key]))).join(" | ") + " |");
+    const notes = [];
+    const away = county ? cols.filter((p) => !p.missing && p.county && p.county !== county) : [];
+    if (away.length) notes.push("⚠️ Not offered in " + county + ": " + away.map((p) => (p.planId || p.id) + " (" + p.county + " grid)").join(", ") + ".");
+    const missing = cols.filter((p) => p.missing);
+    if (missing.length) notes.push("⚠️ Not on the 2027 grid: " + missing.map((p) => p.planId).join(", ") + ".");
+    return ["**Benefits — THEI 2027 grid**", "", head, sep].concat(rows, notes.length ? [""].concat(notes) : [], ["", "Full benefits are in the Excel / PDF export."]).join("\n");
+  }
+
   // Lookup results (doctors, formulary, SOB benefits like SNF / DME / hearing aids) arrive on
   // whatever turn Max ran them, often NOT the turn that cites 2+ plan IDs. The UI keeps every
   // result for the whole chat with this helper so the export can still use them.
@@ -2691,9 +2767,17 @@
 
   // Max listing candidates and asking narrowing questions (Medicaid / must-keep /
   // HMO vs PPO) is not a finished comparison — no export offer, no autosave.
+  // A reply that draws a doctor / med / benefit × plan table is a finished comparison: the export chips
+  // always follow it, even when it also asks a question (Maura, 2026-10-07: Aetna grid had no chips).
+  function hasComparisonTable(text) {
+    const t = String(text || "");
+    return /^\s*\|\s*\**(Doctor|Drug|Med|Medication|Benefit)s?\**\s*\|/im.test(t) && /\b[HR]\d{4}-\d{3}/i.test(t);
+  }
+
   function isNarrowingReply(text) {
     const t = String(text || "");
     if (!/\?/.test(t)) return false;
+    if (hasComparisonTable(t)) return false;
     return /medicaid or (an? )?(msp|medicare savings)|must-keep|hmo ok,? or do they need a ppo|once i have (those|these|your answers)|to narrow (it )?(down |to 2)/i.test(t);
   }
 
@@ -2934,6 +3018,9 @@
     requestUpdatesComparison,
     isExportOnlyAsk,
     isNarrowingReply,
+    hasComparisonTable,
+    benefitPlansFor,
+    benefitsTable,
     cleanProviderDisplayName,
     excludedPlanIdsFromText,
     dedupeComparisonPlans,
@@ -2981,6 +3068,8 @@
     exportComparisonToExcel,
     exportComparisonToPdf,
     wantsComparisonExport,
+    isExportShortcutAsk,
+    planChatLabel,
     wantsExcelExport,
     conversationPlainText,
     mergeToolResults,

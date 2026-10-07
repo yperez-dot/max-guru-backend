@@ -102,10 +102,10 @@ describe('Gail export: one row per doctor, only names she typed', () => {
 });
 
 describe('Gail export: a plan never checked is never Out', () => {
-  it('"❌ Out on both: Menendez" right after Rincon does not paint Rincon Out (old H1045-018 cell)', () => {
+  it('"❌ Not in network (not listed) on both: Menendez" right after Rincon does not paint Rincon Out (old H1045-018 cell)', () => {
     const plans = [pick('H1045-018'), pick('H5420-001'), pick('H1036-121'), pick('H1290-085')];
     const docs = exp.extractDoctors(
-      'Yes, Dr. Natalia Rincon Buendia (Neurology, NPI 1902300361) is In on Humana — re-checked.\n❌ Out on both: Coren Maria Menendez (PCP).',
+      'Yes, Dr. Natalia Rincon Buendia (Neurology, NPI 1902300361) is In on Humana — re-checked.\n❌ Not in network (not listed) on both: Coren Maria Menendez (PCP).',
       plans
     );
     const rincon = docs.find((d) => /rincon/i.test(d.name));

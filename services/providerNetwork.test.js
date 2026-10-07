@@ -178,12 +178,12 @@ describe('lookup_provider_network batch (Padron 8 doctors)', () => {
       );
       for (const d of out.expand) assert.ok(!d.carriersIn.includes('Cigna'), 'Cigna must not be a 2027 option');
       assert.doesNotMatch(out.text.split('Carrier-only hits')[0], /Cigna/);
-      assert.match(out.text, /Humana Gold Plus \(H1036-065C\) — 8 in · 0 out · 0 unchecked/);
+      assert.match(out.text, /Humana Gold Plus \(H1036-065C\) — 8 in · 0 not in network · 0 unchecked/);
       assert.match(out.text, /Why these plans: \d+ eligible plans checked in Broward\./);
       assert.doesNotMatch(out.text.split('Why these plans')[1], /\b\d+\/8\b/, 'plan counts are "X in · Y out · Z unchecked", never "X/8"');
       assert.match(out.text, /Do Maria and Gaspar have Medicaid/);
       assert.match(out.text, /HMO OK|meds/i);
-      assert.ok(out.text.length < 6000, `tool text should be compact, was ${out.text.length}`);
+      assert.ok(out.text.length < 7000, `tool text should be compact (cells read "❌ Not in network (not listed)"), was ${out.text.length}`);
     } finally {
       global.fetch = async () => ({ ok: false, json: async () => ({}) });
     }
@@ -242,7 +242,7 @@ describe('Padron narrowing constraints + grid', () => {
   it('fallback is a doctor × plan table without D-SNP, skipped or terminating plans', () => {
     const text = n.fallbackAnswer([mk('Ernesto Padron', [P, D, H, G, T]), mk('Howard Bush', [P, D, H], [G])], ask);
     assert.match(text, /\| Doctor \| UHC Preferred MA FL-0002 HMO · H1045-005 \| Humana Gold Plus · H1036-065C \|/);
-    assert.match(text, /\| Howard Bush \| ✅ In \| ❌ Out \|/);
+    assert.match(text, /\| Howard Bush \| ✅ In \| ❌ Not in network \(not listed\) \|/);
     assert.doesNotMatch(text, /H1889-002|R0759-001|H5420-014|NPI|M\.D\./);
   });
 });
@@ -254,7 +254,7 @@ describe('named plans become the columns', () => {
     const doc = { requestedName: 'Howard Bush', doctorName: 'HOWARD BUSH M.D.', status: 'done', carriersIn: ['Devoted Health', 'Aetna Medicare', 'UnitedHealthcare'], inNetworkPlans: ['AARP Medicare Advantage from UHC FL-0031 (Regional PPO) (R0759-001)'], outOfNetworkPlans: ['Humana Gold Plus (H1036-065C)'] };
     const text = n.fallbackAnswer([doc], ask);
     assert.match(text, /\| Doctor \| Humana Gold Plus · H1036-065C \| Aetna Medicare Select · H1609-018 \| Devoted C-SNP Enhanced · H1290-073 \|/);
-    assert.match(text, /\| Howard Bush \| ❌ Out \| ✅ In\* \| ✅ In \|/);
+    assert.match(text, /\| Howard Bush \| ❌ Not in network \(not listed\) \| ✅ In\* \| ✅ In \|/);
     assert.doesNotMatch(text, /R0759|H5420-014 ·|To narrow/);
   });
 });

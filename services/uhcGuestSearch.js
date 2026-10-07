@@ -364,7 +364,7 @@ async function searchPlan(session, { npi, lat, lng, state, year, plan }, fetchIm
       cmsId: cmsId(key),
       planName: plan.planName,
       planIdentifier: key,
-      status: hit ? 'in_network' : (unreliableMiss(key) ? 'not_listed' : 'out_of_network'),
+      status: hit ? 'in_network' : 'out_of_network',
       error: null,
       match: hit ? formatMatch(hit) : null,
     };
@@ -481,7 +481,6 @@ async function queryUhcGuest(npi, {
     const inChecks = checks.filter((c) => c.status === 'in_network');
     const outChecks = checks.filter((c) => c.status === 'out_of_network');
     const failed = checks.filter((c) => c.status === 'failed');
-    const notListed = checks.filter((c) => c.status === 'not_listed');
     const allFailed = failed.length === checks.length;
 
     const matches = [];
@@ -507,7 +506,6 @@ async function queryUhcGuest(npi, {
       sourceUrl: GUEST_SEARCH_URL,
       publicUrl: PUBLIC_FIND_A_DOCTOR,
       failedPlans: failed.map((c) => formatPlanLabel(c)),
-      notListedPlans: notListed.map((c) => formatPlanLabel(c)),
     };
   } catch (err) {
     const label = err.name === 'AbortError' ? 'Timeout' : err.message;
@@ -524,21 +522,10 @@ function resetSessionCache() {
   zipContextCache.clear();
 }
 
-/**
- * Contracts whose guest-directory miss is not a reliable Out. H1045 is Preferred Care Partners
- * (UHC-owned, Miami-Dade/Broward): the guest API maps it to COSMOS / reciprocity 115 for 2026 and
- * 2027, yet 4 of 5 doctors Maura Soley actively sees on H1045-001 come back unlisted (2026-10-07).
- * A miss there reads "not confirmed", never a hard Out.
- */
-const UNRELIABLE_MISS_CONTRACTS = ['H1045'];
-function unreliableMiss(planKey) {
-  return UNRELIABLE_MISS_CONTRACTS.includes(String(planKey || '').slice(0, 5).toUpperCase());
-}
-
 /** Agent-facing lines. Failed check is never phrased as out of network. */
 function formatUhcAgentNote(result) {
   if (!result) return '';
-  const lines = [`UHC guest Find a Doctor (${result.year || PLAN_YEAR}, no member login):`];
+  const lines = [`UHC Find a Doctor (${result.year || PLAN_YEAR}):`];
   if (result.error && !result.checks?.length) {
     lines.push('Failed check — could not finish the public UHC directory. That is not out of network.');
     lines.push(`Next step: ${result.publicUrl || PUBLIC_FIND_A_DOCTOR} (Continue as guest → Medicare) or ${GUEST_SEARCH_URL}.`);
@@ -548,15 +535,12 @@ function formatUhcAgentNote(result) {
     lines.push(`In network: ${result.plans.join('; ')}`);
   }
   if (result.outOfNetworkPlans?.length) {
-    lines.push(`Out of network: ${result.outOfNetworkPlans.join('; ')}`);
+    lines.push(`Not listed in UnitedHealthcare's directory for this plan — not in network: ${result.outOfNetworkPlans.join('; ')}`);
   }
   if (result.failedPlans?.length) {
     lines.push(`Failed check (not OON): ${result.failedPlans.join('; ')}`);
   }
-  if (result.notListedPlans?.length) {
-    lines.push(`Not listed — NOT CONFIRMED, never Out (Preferred Care Partners plan; the guest directory misses doctors members see — verify on mypreferredcare.com or call the plan): ${result.notListedPlans.join('; ')}`);
-  }
-  if (!result.plans?.length && !result.outOfNetworkPlans?.length && !result.failedPlans?.length && !result.notListedPlans?.length) {
+  if (!result.plans?.length && !result.outOfNetworkPlans?.length && !result.failedPlans?.length) {
     lines.push('No THEI UHC plans were checked. Failed check — not out of network.');
   }
   lines.push(`Source: ${result.sourceUrl || GUEST_SEARCH_URL}`);
@@ -583,5 +567,4 @@ module.exports = {
   queryUhcGuest,
   resetSessionCache,
   formatUhcAgentNote,
-  unreliableMiss,
 };

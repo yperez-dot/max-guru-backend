@@ -59,7 +59,7 @@ function extractNpi(text) {
 }
 
 const CRED_TOKEN_RE = /^(MD|DO|NP|PA|PAC|RN|APRN|DDS|DMD|DPM|OD|DC|PHARMD|PHD|ARNP|FNP|DNP|FACC|FACP|FACS|FAAFP|MPH|MBA|MS|JR|SR|II|III)$/i;
-const SPECIALTY_HINT_RE = /^(pcp|primary|care|cardio|cardiology|cardiologist|ortho|orthopedic|orthopedics|orthopedist|gyn|obgyn|ob|derm|dermatology|dermatologist|eye|ophthalmologist|ophthalmology|optometrist|neuro|neurologist|gi|gastro|gastroenterologist|uro|urologist|endo|endocrinologist|onc|oncologist|pulm|pulmonologist|nephro|nephrologist|podiatrist|rheum|rheumatologist|ent|psych|psychiatrist|specialist|doctor|dr)$/i;
+const SPECIALTY_HINT_RE = /^(gynecologist|gynecology|gynecologic|obgyn|internist|internal|family|medicine|physician|allergist|hematologist|surgeon|pcp|primary|care|cardio|cardiology|cardiologist|ortho|orthopedic|orthopedics|orthopedist|gyn|obgyn|ob|derm|dermatology|dermatologist|eye|ophthalmologist|ophthalmology|optometrist|neuro|neurologist|gi|gastro|gastroenterologist|uro|urologist|endo|endocrinologist|onc|oncologist|pulm|pulmonologist|nephro|nephrologist|podiatrist|rheum|rheumatologist|ent|psych|psychiatrist|specialist|doctor|dr)$/i;
 
 /**
  * "HOWARD BUSH M.D.", "Dr. Howard Bush, MD, FACC", "Howard Bush Cardio" → "Howard Bush".

@@ -73,6 +73,7 @@
     }
     if (/need\s*more\s*info/i.test(s)) return NETWORK_NEED_MORE;
     if (/not\s*confirmed/i.test(s)) return NETWORK_NOT_CONFIRMED;
+    if (/\bnot\s+(?:in[-\s]?network|listed)\b/i.test(s)) return NETWORK_OUT;
     if (/^(in[-\s]?network|inn|in|true|yes)$/i.test(s) || /\bin[-\s]?network\b/i.test(s)) return NETWORK_IN;
     if (/^(out(?:\s+of)?[-\s]?network|oon|out|false|no)$/i.test(s) || /\bout(?:\s+of)?[-\s]?network\b/i.test(s)) {
       return NETWORK_OUT;

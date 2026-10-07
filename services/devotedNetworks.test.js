@@ -83,7 +83,7 @@ describe('export + chat table use the plan-level Devoted answer', () => {
     const header = t.split('\n').find((l) => /H1290-085/.test(l) && /\|/.test(l)).split('|').map((c) => c.trim()).filter(Boolean);
     const at085 = header.findIndex((h) => /H1290-085/.test(h));
     const at001 = header.findIndex((h) => /H1290-001/.test(h));
-    assert.match(cells[at085], /Out/);
+    assert.match(cells[at085], /Not in network \(not listed\)/);
     assert.match(cells[at001], /In/);
   });
 });
