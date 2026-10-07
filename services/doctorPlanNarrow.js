@@ -396,7 +396,13 @@ function namedPlansFromAsk(askText, constraints) {
 
 // The carrier's core (flagship, non-SNP) plan: when she compares that carrier it always leads, even if its
 // doctors could not be confirmed — a carrier comparison that skips the core plan is not useful (Yahoska 2026-10-07).
-const CORE_PLANS = { Humana: ['H1036-065'] };
+// Core = the plans on the THEI grid's HMO tabs ("Dade - HMO", "BWD - HMO"); the first-listed HMO plan of the carrier
+// leads (Humana → Gold Plus H1036-054C Dade / H1036-065C Broward). SNP and PPO tabs are not core.
+function corePlanIdsFor(carrier, county) {
+  const rows = R.gridPlansForCounty(county).filter((g) => String(g.type || '').toUpperCase() === 'HMO' && R.carrierOfPlan(g) === carrier);
+  return rows.length ? [String(rows[0].planId || rows[0].id).toUpperCase().slice(0, 9)] : [];
+}
+const isHmoTab = (c) => String((c.grid && c.grid.type) || '').toUpperCase() === 'HMO';
 
 // Carriers whose Florida MA plans all share one provider network.
 // Solis: one HMO network per county directory — a listing covers every Solis plan there.
@@ -894,8 +900,11 @@ function selectComparison(doctors, askText, opts = {}) {
       ));
       const perCarrier = carriers.length === 1 ? 3 : 1;
       for (const c of carriers) {
+        // HMO-tab (core) plans first, then the rest; each group keeps the usual ranking.
         let ranked_ = byCarrier(c);
-        const coreCol = ranked_.find((x) => (CORE_PLANS[c] || []).includes(x.planId.slice(0, 9)));
+        ranked_ = [...ranked_.filter(isHmoTab), ...ranked_.filter((x) => !isHmoTab(x))];
+        const coreIds = corePlanIdsFor(c, county);
+        const coreCol = ranked_.find((x) => coreIds.includes(x.planId.slice(0, 9)));
         if (coreCol) {
           ranked_ = [coreCol, ...ranked_.filter((x) => x !== coreCol)];
           if (!coreCol.verifiable) out.flags.unshift(`⚠️ ${shortPlanHeader(coreCol)}: ${c}'s core plan leads, but its doctors could not be confirmed (the directory returned no plan-level result) — check it in the carrier's Find Care / directory.`);

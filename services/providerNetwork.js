@@ -484,6 +484,14 @@ function pendingResult(doctorName, why) {
  * Look up one doctor. Resolves by `deadlineAt` at the latest — with whatever
  * finished — and lets the unfinished work continue into the cache.
  */
+/** Sunfire county FIPS for the client's ZIP (was hardcoded Miami-Dade, so Broward clients were searched in the wrong county). */
+function sunfireCountyForZip(zip) {
+  try {
+    if (require('./comparisonRules').countyForZip(zip) === 'Broward') return '12011';
+  } catch (_) { /* default below */ }
+  return '12086';
+}
+
 async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCache = true } = {}) {
   const doctorName = String(input.doctorName || input.name || input.npi || '').trim();
   const zip = String(input.zip || '33136');
@@ -533,7 +541,7 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
         providers: picked.map((pr) => ({ id: pr.npi, name: pr.name, firstName: pr.name.split(' ')[0], radius: 25, primaryDoctor: true })),
         zip,
         year: planYear,
-        county: '12086',
+        county: sunfireCountyForZip(zip),
         timeoutMs: Math.max(1000, Math.min(SUNFIRE_TIMEOUT_MS, until - Date.now())),
         retry: false,
       });

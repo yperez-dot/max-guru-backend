@@ -206,3 +206,13 @@ describe('queryHumanaFindcare mocked path', () => {
     assert.ok(result.outOfNetworkPlans.some((p) => /H7617-145/.test(p)));
   });
 });
+
+describe('Humana county from ZIP (Broward 330xx)', () => {
+  const { countyForZip, THEI_HUMANA_NETWORKS_FOR_TEST } = require('./humanaFindcare');
+  it('Coral Springs 33076 and Tamarac 33321 are Broward, so Broward-only H1036-065C is checked', () => {
+    assert.equal(countyForZip('33076'), 'broward');
+    assert.equal(countyForZip('33321'), 'broward');
+    assert.equal(countyForZip('33178'), 'miami-dade');
+    assert.equal(countyForZip('33010'), 'miami-dade');
+  });
+});
