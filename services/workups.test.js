@@ -283,3 +283,20 @@ describe('compareResult', () => {
     cleanup();
   });
 });
+
+describe('saved workup context keeps doctor names clean', () => {
+  const { compactWorkupContext } = workupsUi;
+  const { stripSavedStatus: cleanDoctorQuery } = require('./providerNetwork');
+  it('lists names alone, and puts saved results in a separate [saved: …] block', () => {
+    const text = compactWorkupContext({ clientName: 'Marilyn Butler', doctors: [{ name: 'Ashwin Mehta', byPlanId: { 'H1045-005': 'IN' } }, { name: 'Jorge G. Ruiz', byPlanId: {} }] });
+    assert.match(text, /Doctors \(names only[^)]*\): Ashwin Mehta; Jorge G\. Ruiz/);
+    assert.match(text, /- Ashwin Mehta \[saved: H1045-005 IN\]/);
+    assert.doesNotMatch(text, /Ashwin Mehta: H1045-005/);
+  });
+  it('a pasted saved-result line still looks up just the name', () => {
+    assert.equal(cleanDoctorQuery('Ashwin Mehta: H1045-005 IN'), 'Ashwin Mehta');
+    assert.equal(cleanDoctorQuery('- Ruiz: H1036-305 OUT'), 'Ruiz');
+    assert.equal(cleanDoctorQuery('Jorge G. Ruiz [saved: H1045-005 IN]'), 'Jorge G. Ruiz');
+    assert.equal(cleanDoctorQuery('Jorge G. Ruiz'), 'Jorge G. Ruiz');
+  });
+});

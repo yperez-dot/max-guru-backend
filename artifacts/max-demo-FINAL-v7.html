@@ -2312,7 +2312,7 @@
             return String(content || "");
           };
     return (messages || [])
-      .filter((m) => m && m.role !== "offer" && m.role !== "workup" && m.role !== "queueResult" && m.role !== "clientWs")
+      .filter((m) => m && m.role !== "offer" && m.role !== "workup")
       .map((m) => toText(m.content))
       .filter(Boolean)
       .join("\n");
@@ -2759,11 +2759,16 @@
     }
     const doctors = w.doctors || [];
     if (doctors.length) {
-      lines.push("Doctors:");
-      doctors.forEach((d) => {
-        const bits = Object.keys(d.byPlanId || {}).map((id) => id + " " + d.byPlanId[id]);
-        lines.push("- " + d.name + (bits.length ? ": " + bits.join("; ") : ""));
-      });
+      // Names alone first: when a lookup is needed, pass ONLY these names (never the status text next to them).
+      lines.push("Doctors (names only — pass exactly these names to lookup_provider_network): " + doctors.map((d) => d.name).join("; "));
+      const saved = doctors.filter((d) => Object.keys(d.byPlanId || {}).length);
+      if (saved.length) {
+        lines.push("Saved In/Out results (reference only — the text after the name is a result, NOT part of the doctor's name):");
+        saved.forEach((d) => {
+          const bits = Object.keys(d.byPlanId || {}).map((id) => id + " " + d.byPlanId[id]);
+          lines.push("- " + d.name + " [saved: " + bits.join("; ") + "]");
+        });
+      }
     }
     const meds = w.medications || [];
     if (meds.length) {
@@ -3931,16 +3936,37 @@ function renderMessageText(text) {
       continue;
     }
     const line = lines[i];
+    // Important alerts ("⚠️ …", "🚫 …") stand out as a callout box with the icon, so they are not missed in a long reply.
+    if (MSG_ALERT_RE.test(line)) {
+      const block = [];
+      while (i < lines.length && MSG_ALERT_RE.test(lines[i])) block.push(lines[i++]);
+      const severe = /^\s*(?:🚫|⛔|🛑|❌)/.test(block[0]);
+      out.push(
+        <div key={"a" + i} data-testid="msg-alert" role="alert" style={{
+          display: "flex", gap: 10, alignItems: "flex-start", margin: "8px 0", padding: "10px 12px", borderRadius: 10,
+          background: severe ? "#fdecef" : "#fff4dc", borderLeft: "5px solid " + (severe ? "#d6264a" : "#f0a000"), color: "#3a2a12",
+        }}>
+          <span style={{ fontSize: 20, lineHeight: "22px", flexShrink: 0 }}>{severe ? "🚫" : "⚠️"}</span>
+          <div style={{ fontWeight: 600, minWidth: 0, overflowWrap: "anywhere" }}>
+            {block.map((b, bi) => (
+              <div key={bi} style={{ marginTop: bi ? 4 : 0 }}>{renderInlineMd(b.replace(MSG_ALERT_RE, ""), "al" + i + "-" + bi)}</div>
+            ))}
+          </div>
+        </div>
+      );
+      continue;
+    }
     out.push(
       <React.Fragment key={"l" + i}>
         {renderInlineMd(line, "l" + i)}
-        {i < lines.length - 1 && <br />}
+        {i < lines.length - 1 && !MSG_ALERT_RE.test(lines[i + 1] || "") && <br />}
       </React.Fragment>
     );
     i += 1;
   }
   return out;
 }
+const MSG_ALERT_RE = /^\s*(?:⚠️|⚠|🚫|⛔|🛑|❗|❌)\s*/;
 
 const SUGGESTIONS = [
   { label: "HMO vs PPO", prompt: "What's the difference between HMO and PPO?" },

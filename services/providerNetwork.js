@@ -492,8 +492,21 @@ function sunfireCountyForZip(zip) {
   return '12086';
 }
 
+/**
+ * "Ashwin Mehta: H1045-005 IN" (a saved-workup line pasted whole into a lookup) → "Ashwin Mehta".
+ * The status after the name is a saved result, never part of the name.
+ */
+function stripSavedStatus(raw) {
+  return String(raw || '')
+    .replace(/^[\s\-•*]+/, '')
+    .replace(/\s*\[saved[^\]]*\]\s*$/i, '')
+    .replace(/\s*[:\-–—]\s*[HR]\d{4}-\d{3}[A-Z]?\b.*$/i, '')
+    .replace(/\s+\b(?:in|out|in\*|not confirmed)\b\s*$/i, '')
+    .trim();
+}
+
 async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCache = true } = {}) {
-  const doctorName = String(input.doctorName || input.name || input.npi || '').trim();
+  const doctorName = stripSavedStatus(input.doctorName || input.name || input.npi || '');
   const zip = String(input.zip || '33136');
   const planYear = Number(input.year) || Number(UHC_PLAN_YEAR);
   const guestPlanIds = input.planId ? [String(input.planId)] : [];
@@ -702,6 +715,7 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
 }
 
 module.exports = {
+  stripSavedStatus,
   lookupProviderNetwork,
   fhirCheck,
   FHIR_CARRIERS,
