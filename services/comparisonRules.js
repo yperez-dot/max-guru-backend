@@ -20,7 +20,7 @@ A. PLAN SELECTION (run before building any table)
    If either is unknown, ask the agent BEFORE selecting plans. Exclude any D-SNP, QMB-only, or C-SNP plan the client is not confirmed eligible for.
 2. SELECTION POOL: Select from ALL eligible plans in the client's county in the plan grid, not only plans returned by a single provider lookup. Run the network check for every listed doctor against every eligible plan before ranking.
 3. RANKING ORDER: 1st most doctors confirmed In; 2nd fewest doctors confirmed Out; 3rd lowest total estimated drug cost for the client's listed meds; 4th lowest premium. A plan with more than half its doctor cells unchecked cannot be placed in the top 3 — list it separately under "Could not verify."
-4. NETWORK DIVERSITY: If two plans share the same carrier network and produce identical doctor results, show only the better one in the top 3 and list the other under "Same network as above" with one line on how it differs (e.g., premium, benefits, SNP type).
+4. NETWORK DIVERSITY: If two plans share the same carrier network and produce identical doctor results, prefer a plan on a different network for the top 3. Never print a "Same network as above" list. A comparison always shows at least 2 plans: if only one network is available, show the best two plans anyway.
 5. "WHY THESE PLANS" LINE (required, above every table): "Why these plans: [N] eligible plans checked in [county]. Ranked by doctors in → fewest out → drug cost → premium. Excluded: [plan types excluded + reason, e.g., 'D-SNPs — Medicaid not confirmed']."
 
 B. TABLE DISPLAY

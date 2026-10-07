@@ -100,12 +100,12 @@ describe('the bug-report client (fallback reply)', () => {
 });
 
 describe('once eligibility is confirmed', () => {
-  it('rule 4: the same-network UHC C-SNP twin drops to "Same network as above" with its differences', () => {
+  it('rule 4 + min 2: with only one network available the twin still gets its own column; no "Same network" list', () => {
     const text = n.fallbackAnswer(DOCTORS, `${ASK}. Full Medicaid. Has AFib, C-SNP eligible.`, { drugs: DRUGS });
     const header = text.split('\n').find((l) => l.startsWith('| Doctor |'));
     assert.match(header, /H5420-001/);
-    assert.doesNotMatch(header, /H5420-014/);
-    assert.match(text, /\*\*Same network as above\*\*\n- UHC MedicareMax Complete Care FL-30 .*H5420-014 — same doctor results as .*H5420-001; differs: .*C-SNP vs HMO/);
+    assert.match(header, /H5420-014/);
+    assert.doesNotMatch(text, /Same network as above/);
     assert.doesNotMatch(text, /Possible C-SNP eligibility/, 'no flag once the condition is confirmed');
   });
 
@@ -350,5 +350,14 @@ describe('short first reply + Show benefits', () => {
 describe('no noise from carriers outside the table', () => {
   it('rules forbid lookup-failure notes for carriers that are not columns', () => {
     assert.match(require('./comparisonRules').COMPARISON_TABLE_RULES, /not a column in the table/);
+  });
+});
+
+describe('minimum 2 plans', () => {
+  it('a comparison never shows fewer than 2 plans, and never prints a "Same network" list', () => {
+    const text = n.fallbackAnswer(DOCTORS, `${ASK}. No Medicaid.`, { drugs: DRUGS });
+    const header = text.split('\n').find((l) => l.startsWith('| Doctor |'));
+    assert.ok((header.match(/ · [HR]\d{4}-\d{3}/g) || []).length >= 2, header);
+    assert.doesNotMatch(text, /Same network as above/);
   });
 });

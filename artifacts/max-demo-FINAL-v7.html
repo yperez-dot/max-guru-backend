@@ -4005,12 +4005,6 @@ function CompareResult({ result, onExport }) {
                     <b>Could not verify</b> ({result.couldNotVerify.count} eligible plan{result.couldNotVerify.count === 1 ? "" : "s"} with over half the doctors unchecked — not ranked){(result.couldNotVerify.plans || []).length ? ": " + result.couldNotVerify.plans.map((p) => p.name + " · " + p.planId).join("; ") : ""}
                   </div>
                 )}
-                {(result.sameNetwork || []).length > 0 && (
-                  <div style={{ fontSize: 12.5, marginTop: 6 }}>
-                    <b>Same network as above</b>
-                    {result.sameNetwork.map((x) => <div key={x.planId}>- {x.name} · {x.planId} — same doctor results as {x.sameAs}; differs: {x.diff}</div>)}
-                  </div>
-                )}
                 {result.medsTable && <div style={{ marginTop: 10 }}>{renderMessageText("**Meds**\n\n" + result.medsTable)}</div>}
                 {result.medsTable && (
                   <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
@@ -4060,7 +4054,7 @@ function saveWsStore(map) {
     Object.keys(map).slice(-30).forEach((k) => {
       const w = map[k];
       if (!w || k === "new") return;
-      out[k] = { id: w.id, stage: w.stage, rawText: w.rawText, fields: w.fields, answers: w.answers, jobId: w.jobId, name: w.name, workupId: w.workupId, error: w.error };
+      out[k] = { id: w.id, stage: w.stage, rawText: w.rawText, fields: w.fields, answers: w.answers, jobId: w.jobId, name: w.name, workupId: w.workupId, error: w.error, seen: w.seen };
     });
     localStorage.setItem(WS_STORE_KEY, JSON.stringify(out));
   } catch (_) {}
@@ -4088,6 +4082,23 @@ function WsChoices({ title, options, value, onPick, testid }) {
 
 const wsDoctorList = (f) => linesOf((f && f.doctors) || "").map((d) => d.replace(/\s*\*$/, ""));
 const wsNeedsMust = (f) => linesOf((f && f.doctors) || "").length > 0 && !linesOf(f.doctors).some((d) => /\*$/.test(d));
+
+// Sidebar status for a client workspace: { text, tone, fresh } or null when it has no comparison state.
+function wsSidebarStatus(ws) {
+  if (!ws || !ws.stage || ws.stage === "paste") return null;
+  if (ws.stage === "questions") return { text: "Needs your answers", tone: "warn" };
+  if (ws.stage === "starting") return { text: "Starting…", tone: "idle" };
+  if (ws.stage === "running") {
+    const j = ws.job;
+    if (!j) return { text: "Starting…", tone: "idle" };
+    if (j.status === "queued") return { text: "Waiting — #" + (j.queuePosition || 1), tone: "idle" };
+    if (j.status === "doctors") return { text: "Checking doctors " + j.progress.doctors.done + "/" + j.progress.doctors.total, tone: "idle" };
+    return { text: "Checking meds " + j.progress.meds.done + "/" + j.progress.meds.total, tone: "idle" };
+  }
+  if (ws.stage === "error") return { text: "Needs attention", tone: "bad" };
+  if (ws.stage === "done") return ws.seen ? { text: "Done", tone: "seen" } : { text: "Ready ✓", tone: "ready", fresh: true };
+  return null;
+}
 
 function ClientWsCard({ ws, onSubmit, onAnswer, onToggleMust, onExport, onCancel }) {
   const [text, setText] = useState("");
@@ -4127,7 +4138,7 @@ function ClientWsCard({ ws, onSubmit, onAnswer, onToggleMust, onExport, onCancel
           {linesOf(f.plans).length > 0 && <div style={{ fontSize: 13, marginTop: 2 }}><b>Plans:</b> {linesOf(f.plans).join(", ")}</div>}
         </>)}
         {stage === "questions" && (<>
-          <div style={{ marginTop: 10, fontSize: 13, color: "var(--muted)" }}>Two quick answers before I compare plans. Plans that need these stay out until they're confirmed.</div>
+          <div style={{ marginTop: 10, fontSize: 13, color: "var(--muted)" }}>A few quick answers before I compare plans. Plans that need them stay out until they're confirmed.</div>
           <WsChoices testid="ws-medicaid" title="1. Does the client have Medicaid or a Medicare Savings Program?" options={WS_MEDICAID} value={a.medicaid} onPick={(idx) => onAnswer("medicaid", idx)} />
           <WsChoices testid="ws-csnp" title="2. Does the client have a C-SNP qualifying chronic condition, confirmed by diagnosis?" options={WS_CSNP} value={a.csnp} onPick={(idx) => onAnswer("csnp", idx)} />
           {wsNeedsMust(f) && (
@@ -4578,6 +4589,7 @@ function App() {
       const wsHere = wsMapRef.current[workup.id];
       if (wsHere && wsHere.stage) {
         if (wsHere.stage === "done" && !(wsHere.job && wsHere.job.result) && workup.compareResult) setWs(workup.id, { result: workup.compareResult });
+        if (wsHere.stage === "done" && !wsHere.seen) setWs(workup.id, { seen: true });
         next.push({ role: "clientWs", wsId: workup.id, time: nowLabel() });
       } else if (workup.compareResult) {
         next.push({ role: "queueResult", result: workup.compareResult, time: nowLabel() });
@@ -4754,7 +4766,7 @@ function App() {
       const data = await workupsRequest("PUT", "/" + id, body);
       addWorkupSummary(data.workup);
     } catch (_) { /* results still show here; export works from this card */ }
-    setWs(id, { stage: "done", job });
+    setWs(id, { stage: "done", job, seen: currentWorkupIdRef.current === id });
     if (currentWorkupIdRef.current === id) {
       // refresh the open workspace's plan list card
       try { const fresh = await workupsRequest("GET", "/" + id); loadedWorkupRef.current = fresh.workup; setMessages((prev) => prev.map((m) => (m && m.role === "workup" ? { ...m, workup: fresh.workup } : m))); } catch (_) {}
@@ -4778,6 +4790,11 @@ function App() {
       wsBusyRef.current.delete(id);
     }
   };
+
+  useEffect(() => {
+    const ready = Object.values(wsMap).filter((w) => w && w.stage === "done" && !w.seen).length;
+    try { document.title = (ready ? "(" + ready + " ready) " : "") + "Max — THEI Medicare Guru"; } catch (_) {}
+  }, [wsMap]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -5322,12 +5339,17 @@ function App() {
             {workups.map((w) => {
               const label = window.MaxClientWorkups.workupListLabel(w);
               const active = currentWorkupId === w.id;
+              const wsStat = wsSidebarStatus(wsMap[w.id]);
               return (
                 <div key={w.id} data-testid="workup-row" className="max-workup-row" style={{
                   marginBottom: 8, padding: "10px 10px 8px", borderRadius: 12,
-                  border: active ? "1px solid var(--plum)" : "1px solid var(--line)",
-                  background: active ? "rgba(69,32,104,0.06)" : "rgba(255,255,255,0.7)",
+                  border: active ? "1px solid var(--plum)" : (wsStat && wsStat.fresh ? "1px solid #2F9E57" : "1px solid var(--line)"),
+                  background: active ? "rgba(69,32,104,0.06)" : (wsStat && wsStat.fresh ? "#fff" : (wsStat && (wsStat.tone === "idle" || wsStat.tone === "warn") ? "rgba(236,232,240,0.7)" : "rgba(255,255,255,0.7)")),
+                  opacity: wsStat && wsStat.tone === "idle" && !active ? 0.75 : 1,
                 }}>
+                  {wsStat && (
+                    <div data-testid="workup-status" style={{ fontSize: 11, fontWeight: 700, marginBottom: 3, color: wsStat.tone === "ready" ? "#166534" : wsStat.tone === "warn" ? "#92400e" : wsStat.tone === "bad" ? "#9B1C3C" : "var(--muted)" }}>{wsStat.text}</div>
+                  )}
                   <div className="max-workup-label" style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", lineHeight: 1.3 }}>{label}</div>
                   <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3 }}>
                     {window.MaxClientWorkups.formatUpdatedAt(w.updatedAt)}
@@ -5399,14 +5421,9 @@ function App() {
               Online · {PLANS.length} plans · {planYear}
             </div>
           </div>
-          <button data-testid="new-client-header" onClick={startNewClient} className="max-tap" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 700, color: "var(--plum)", flexShrink: 0 }}>
+          {isMobile && <button data-testid="new-client-header" onClick={startNewClient} className="max-tap" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 700, color: "var(--plum)", flexShrink: 0 }}>
             New client
-          </button>
-          {!isMobile && (
-            <button onClick={startNewChat} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 600, color: "var(--plum)" }}>
-              New chat
-            </button>
-          )}
+          </button>}
           <button onClick={lockMax} title="Lock Max" className="max-header-btn max-tap" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 600, color: "var(--muted)", flexShrink: 0 }}>
             Lock
           </button>

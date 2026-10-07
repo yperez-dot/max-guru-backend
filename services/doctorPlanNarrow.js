@@ -871,6 +871,27 @@ function selectComparison(doctors, askText, opts = {}) {
       else out.columns.push(c);
     }
 
+    // Rule: a comparison always shows at least 2 plans (she can't compare one). A plan set aside as a
+    // same-network twin gets its own column when it is needed to reach 2; then any other ranked plan;
+    // last, any eligible plan — flagged when its doctors are mostly unchecked.
+    if (out.columns.length < 2) {
+      const used = new Set(out.columns.map((c) => c.planId));
+      const allowed = (c) => !used.has(c.planId) && (!only || only.has(c.planId));
+      const take = (c) => { out.columns.push(c); used.add(c.planId); };
+      for (const sn of [...out.sameNetwork]) {
+        if (out.columns.length >= 2) break;
+        if (allowed(sn.plan)) take(sn.plan);
+      }
+      out.sameNetwork = out.sameNetwork.filter((sn) => !used.has(sn.plan.planId));
+      for (const c of ranked) { if (out.columns.length >= 2) break; if (allowed(c)) take(c); }
+      const rest = cols.filter(allowed).sort((x, y) => (y.counts.inN + y.counts.star) - (x.counts.inN + x.counts.star) || x.counts.outN - y.counts.outN || x.planId.localeCompare(y.planId));
+      for (const c of rest) {
+        if (out.columns.length >= 2) break;
+        take(c);
+        if (!c.verifiable) out.flags.push(`⚠️ ${shortPlanHeader(c)}: over half the doctors unchecked — shown so the comparison has at least 2 plans; verify in the carrier directory.`);
+      }
+    }
+
     if (!carriers.length) {
     const where = gridRows.length
       ? (county || 'Miami-Dade + Broward (no ZIP/county given)')
@@ -878,7 +899,10 @@ function selectComparison(doctors, askText, opts = {}) {
     const excludedText = out.excluded.length ? out.excluded.map((x) => `${x.reason} (${x.count})`).join('; ') : 'none';
     out.whyLine = `Why these plans: ${out.poolSize} eligible plans checked in ${where}. ${R.RANK_ORDER} Excluded: ${excludedText}.`;
     const majority = out.columns.some((c) => c.counts.inN * 2 > n);
-    out.header = majority
+    const anyIn = out.columns.some((c) => c.counts.inN + c.counts.star > 0);
+    out.header = (n > 0 && !anyIn)
+      ? '**Doctors × plans** (none of these doctors confirmed in network on the plans checked — shown by lowest drug cost, then premium; not a recommendation)'
+      : majority
       ? '**Doctors × top plans** (most of these doctors in network — a count, not a recommendation)'
       : '**Doctors × top plans** (best confirmed match shown first — a count, not a recommendation)';
     }
@@ -975,10 +999,6 @@ function extrasLines(sel) {
     const names = sel.couldNotVerify.slice(0, 3).map((c) => `${shortPlanHeader(c)} (${countText(c, c.in.length + c.out.length + c.unknown.length + (c.inCarrier || []).length)})`);
     lines.push(`**Could not verify** (${sel.couldNotVerifyCount} eligible plan${sel.couldNotVerifyCount === 1 ? '' : 's'} with over half the doctors unchecked — not ranked)${names.length ? `: ${names.join('; ')}` : ''}`);
   }
-  if (sel.sameNetwork.length) {
-    lines.push('**Same network as above**');
-    sel.sameNetwork.forEach((s) => lines.push(`- ${shortPlanHeader(s.plan)} — same doctor results as ${shortPlanHeader(s.twin)}; differs: ${s.diff}`));
-  }
   return lines;
 }
 
@@ -1016,7 +1036,7 @@ function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] }
   sel.flags.forEach((f) => lines.push(f));
   lines.push('');
   lines.push('ANSWER FORMAT (required for multi-doctor asks — Doctor/Drug Comparison Table Rules):');
-  lines.push('1) Lead with the header, the "Why these plans" line and the DOCTOR × PLAN TABLE above, exactly as given (cells ✅ In / ❌ Out / ❔ unchecked / ❔ not confirmed — never a bare ❔; count row "X in · Y out · Z unchecked" — never "X/N"). Doctor names as matched in the table. Then "Could not verify" / "Same network as above" / ⚠️ flags if present. Never re-rank or swap plans.');
+  lines.push('1) Lead with the header, the "Why these plans" line and the DOCTOR × PLAN TABLE above, exactly as given (cells ✅ In / ❌ Out / ❔ unchecked / ❔ not confirmed — never a bare ❔; count row "X in · Y out · Z unchecked" — never "X/N"). Doctor names as matched in the table. Then "Could not verify" / ⚠️ flags if present. Never add a "Same network as above" list. Never re-rank or swap plans.');
   if (sel.medsToCheck.drugs.length) {
     lines.push(`2) MEDS ALREADY GIVEN — before answering, call lookup_formulary once per drug (${sel.medsToCheck.drugs.join(', ')}) with planIds [${sel.medsToCheck.planIds.join(', ')}] (every table plan). Then add the meds table (Drug | same plan columns | "T1 $0" cells; ❔ unchecked / ❔ not confirmed for unknowns). Never ask for meds that are already listed.`);
   } else if (sel.meds.length) {
