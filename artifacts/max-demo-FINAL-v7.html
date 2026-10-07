@@ -3836,12 +3836,13 @@ function splitTableRow(line) {
 function renderMdTable(rows, key) {
   const header = splitTableRow(rows[0]);
   const body = rows.slice(1).filter((r) => !/^\s*\|?\s*:?-{2,}/.test(r)).map(splitTableRow);
-  const cellStyle = { padding: "6px 10px", borderBottom: "1px solid var(--line)", textAlign: "left", verticalAlign: "top", whiteSpace: "nowrap" };
+  // Phone: the name column wraps (name + NPI stay one line each) so every plan column fits without side-scrolling.
+  const cellStyle = { padding: "6px 6px", borderBottom: "1px solid var(--line)", textAlign: "left", verticalAlign: "top", whiteSpace: "normal", overflowWrap: "anywhere" };
   return (
     <div key={key} style={{ overflowX: "auto", margin: "6px 0" }}>
-      <table style={{ borderCollapse: "collapse", fontSize: 12.5, minWidth: "60%" }}>
+      <table style={{ borderCollapse: "collapse", fontSize: 12, width: "100%" }}>
         <thead>
-          <tr>{header.map((h, i) => <th key={i} style={{ ...cellStyle, fontWeight: 700, color: "var(--plum)", whiteSpace: "normal", minWidth: i ? 120 : 0 }}>{renderInlineMd(h, key + "h" + i)}</th>)}</tr>
+          <tr>{header.map((h, i) => <th key={i} style={{ ...cellStyle, fontWeight: 700, color: "var(--plum)", whiteSpace: "normal", fontSize: 11.5, minWidth: i ? 62 : 84 }}>{renderInlineMd(h, key + "h" + i)}</th>)}</tr>
         </thead>
         <tbody>
           {body.map((r, ri) => (
@@ -5301,10 +5302,12 @@ function App() {
                 <div className="max-export-scroll" style={{ padding: "12px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(255,255,255,0.88)", color: "var(--ink)", fontSize: 14.5, lineHeight: 1.5, border: "1px solid var(--line)", maxWidth: "100%" }}>
                   <div style={{ marginBottom: 10 }}>Want this comparison as Excel or PDF?</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {!messages.slice(0, i).some((x) => x && x.role === "user" && String(userMessageText(x.content) || "").trim() === "Show benefits for these plans") && (
                     <button data-testid="show-benefits" onClick={() => send("Show benefits for these plans")}
                       style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
                       Show benefits
                     </button>
+                    )}
                     <button onClick={() => { void runComparisonExport("excel", messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", sobBenefits: m.sobBenefits || {}, toolResults: sessionToolResultsRef.current, rememberedPlans: m.plans || [] }).then(() => setMessages(prev => prev.filter((_,j) => j !== i))); }}
                       style={{ padding: "8px 14px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)", color: "white", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
                       Export Excel
