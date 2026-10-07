@@ -826,12 +826,23 @@ function directoryFinished(d, carrier) {
   if (!d || d.identityPending) return false;
   if (carrier === 'Solis' && !solisChecked(d)) return false;
   if (carrier === 'CarePlus' && !careplusChecked(d)) return false;
+  if (!carrierCheckRan(d, carrier)) return false;
   if (d.status !== 'done' && d.status !== 'partial') return false;
   // The directory index answered even if the live FHIR call did not.
   if (carrier === 'HealthSun' && healthsunChecked(d)) return true;
   const re = PENDING_FOR[carrier];
   if (!re || NO_LIVE_DIRECTORY.includes(carrier)) return false;
   return ![...(d.pending || []), ...(d.failed || [])].some((p) => re.test(String(p)));
+}
+
+// Carriers whose network entry says whether a lookup actually ran (providerNetwork.structuredFor).
+const RAN_CHECK_CARRIERS = { Aetna: /aetna/i, Simply: /simply/i, Wellcare: /wellcare/i };
+/** Aetna / Simply / Wellcare: true only when this doctor's lookup for that carrier actually ran. */
+function carrierCheckRan(d, carrier) {
+  const re = RAN_CHECK_CARRIERS[carrier];
+  if (!re) return true;
+  const net = (d.networks || []).find((x) => re.test(String(x.carrier)));
+  return Boolean(net && (net.status === 'checked' || net.status === 'in_network' || net.inNetwork));
 }
 
 /** Rule 9: "❔ unchecked" = never checked, "❔ not confirmed" = checked, no result. */
@@ -844,6 +855,8 @@ function unknownCell(d, carrier) {
   if (!carrier || NO_LIVE_DIRECTORY.includes(carrier)) return R.UNCHECKED;
   if (carrier === 'Solis' && !solisChecked(d)) return R.UNCHECKED;
   if (carrier === 'CarePlus' && !careplusChecked(d)) return R.UNCHECKED;
+  // No lookup ran for this carrier (skipped, no directory, never started) → unchecked, not "not confirmed".
+  if (!carrierCheckRan(d, carrier)) return R.UNCHECKED;
   const re = PENDING_FOR[carrier];
   if (re && [...(d.pending || []), ...(d.failed || [])].some((p) => re.test(String(p)))) return R.UNCHECKED;
   return R.NOT_CONFIRMED_CELL;

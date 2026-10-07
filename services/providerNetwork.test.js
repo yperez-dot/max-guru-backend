@@ -272,7 +272,8 @@ describe('follow-up plan edits + Devoted single network', () => {
   });
   it('a Devoted directory hit is ✅ In for the Devoted plan (one network for all plans)', () => {
     const doc = { requestedName: 'Howard Bush', status: 'done', carriersIn: ['Devoted Health'], inNetworkPlans: [], outOfNetworkPlans: [] };
-    assert.match(n.fallbackAnswer([doc], first), /\| Howard Bush \| ❔ not confirmed \| ❔ not confirmed \| ✅ In \|/);
+    // No Aetna lookup ran for this doctor (no Aetna network entry) → ❔ unchecked, not "not confirmed".
+    assert.match(n.fallbackAnswer([doc], first), /\| Howard Bush \| ❔ not confirmed \| ❔ unchecked \| ✅ In \|/);
   });
 });
 
