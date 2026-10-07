@@ -1016,6 +1016,23 @@ function costSharePlanCandidates(planId, year) {
   return [...new Set(out.map((id) => String(id).toUpperCase()))];
 }
 
+/**
+ * Grid / KB tier cost-shares arrive in mixed shapes: "$0", "33%", but also bare "0", "5",
+ * "0.33" (HealthSun's rows), which rendered as "T1 0" and "T5 0.33" (Yahoska, 2026-10-07).
+ * A bare decimal under 1 is a coinsurance rate; any other bare number is dollars.
+ */
+function formatCostShare(raw) {
+  if (raw === undefined || raw === null) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  if (/[$%]/.test(s)) return s;
+  if (!/^\d*\.?\d+$/.test(s)) return s;
+  const num = Number(s);
+  if (!Number.isFinite(num)) return s;
+  if (num > 0 && num < 1) return `${Math.round(num * 1000) / 10}%`;
+  return `$${s.replace(/^\./, '0.')}`;
+}
+
 function costShareFromKnowledge(planId, year, tier) {
   if (!tier || Number(year) !== 2027) return null;
   const parsed = parseCmsId(planId);
@@ -1035,7 +1052,7 @@ function costShareFromKnowledge(planId, year, tier) {
       if (!m) continue;
       const value = m[1].trim();
       if (!value) continue;
-      return { value, source: 'kb_2027', knowledgeKey: key };
+      return { value: formatCostShare(value), source: 'kb_2027', knowledgeKey: key };
     }
   }
   return null;
@@ -1046,11 +1063,7 @@ function costShareFromPlanObject(plan, tier) {
   const key = `tier${tier}`;
   const raw = plan[key];
   if (raw === undefined || raw === null || raw === '') return null;
-  if (typeof raw === 'number') {
-    if (raw > 0 && raw < 1) return { value: `${Math.round(raw * 1000) / 10}%`, source: 'plan_data' };
-    return { value: `$${raw}`, source: 'plan_data' };
-  }
-  return { value: String(raw).trim(), source: 'plan_data' };
+  return { value: formatCostShare(raw), source: 'plan_data' };
 }
 
 function emptyPlanResult(planId, year, reason) {
@@ -1430,6 +1443,7 @@ function toExportDrugs(result) {
 }
 
 module.exports = {
+  formatCostShare,
   PLAN_YEAR,
   SUNFIRE_BASE,
   HUMANA_FHIR,

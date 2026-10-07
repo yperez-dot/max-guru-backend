@@ -4047,7 +4047,7 @@ function renderMessageText(text) {
       const severe = /^\s*(?:🚫|⛔|🛑|❌)/.test(block[0]);
       out.push(
         <div key={"a" + i} data-testid="msg-alert" role="alert" style={{
-          display: "flex", gap: 10, alignItems: "flex-start", margin: "8px 0", padding: "10px 12px", borderRadius: 10,
+          display: "flex", gap: 10, alignItems: "flex-start", margin: "8px 0 16px", padding: "10px 12px", borderRadius: 10,
           background: severe ? "#fdecef" : "#fff4dc", borderLeft: "5px solid " + (severe ? "#d6264a" : "#f0a000"), color: "#3a2a12",
         }}>
           <span style={{ fontSize: 20, lineHeight: "22px", flexShrink: 0 }}>{severe ? "🚫" : "⚠️"}</span>
