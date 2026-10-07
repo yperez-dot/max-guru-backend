@@ -47,6 +47,9 @@ function shortDoctor(d) {
  * What the agent already told Max: no Medicaid → no D-SNP; "skip H…" and the
  * terminating plan are never candidates; "PPO only" / "HMO only" narrows type.
  */
+/** "other plans comparable to what she has", "something better", "alternatives", "what else" — shop around from her current plan. */
+const WANTS_ALTERNATIVES_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\b(?:any\s+)?other\s+(?:options?|plans?)\b|\balternatives?\b|\bwhat\s+else\b|\bsee\s+what\s+else\b|\bshop(?:ping)?\s+around\b|\bsomething\s+else\b|\b(?:comparable|similar)\s+(?:to|plans?|options?)\b|\bplans?\s+(?:comparable|similar)\b/i;
+
 function askConstraints(askText) {
   const t = String(askText || '');
   const noMedicaid = /\b(no|not on|without|sin|doesn'?t have|don'?t have)\s+(medicaid|msp|dual|qmb|slmb)\b|\bnot dual\b|\bmedicaid:?\s*no\b/i.test(t);
@@ -241,6 +244,20 @@ function comparisonAskText(messages, baseText) {
     const answers = numberedAnswers(messageText(reply));
     qs.forEach((q, k) => { if (q && answers[k]) statementsFor(q, answers[k]).forEach((st) => lines.push(st)); });
   }
+  // "any other plans comparable to what she has?" — her saved/named plan is the CURRENT plan; add alternatives around it.
+  for (let i = msgs.length - 1; i >= 0; i -= 1) {
+    const m = msgs[i];
+    if (!m || m.role !== 'user') continue;
+    if (WANTS_ALTERNATIVES_RE.test(messageText(m))) {
+      lines.push('Wants alternatives to the named plan(s).');
+      const wk = workupFacts(msgs);
+      if (wk && wk.plans.length && !/\b[HR]\d{4}-\d{3}[A-Z]?\b/i.test(messageText(m))) {
+        lines.push(`Her current plan: ${wk.plans.join(', ')}.`);
+        if (wk.zip) lines.push(`ZIP ${wk.zip}.`);
+      }
+    }
+    break;
+  }
   // Newest user message that asks for carriers or names plan IDs decides the columns.
   for (let i = msgs.length - 1; i >= 0; i -= 1) {
     const m = msgs[i];
@@ -259,6 +276,22 @@ function comparisonAskText(messages, baseText) {
  * questions, and an earlier message listed 2+ doctors. Returns
  * { reason, doctors, zip } or null.
  */
+/** Names / ZIP / plan IDs from the saved-workup context message the UI sends ("Loaded client workup …"). */
+function workupFacts(msgs) {
+  for (let i = msgs.length - 1; i >= 0; i -= 1) {
+    const t = messageText(msgs[i]);
+    if (!/Doctors \(names only/.test(t) && !/^Plans:/m.test(t)) continue;
+    if (!/structured facts only/i.test(t)) continue;
+    const docLine = (t.match(/^Doctors \(names only[^)]*\):\s*(.+)$/m) || [])[1] || '';
+    const doctors = docLine.split(';').map((x) => x.replace(/\s*\*\s*$/, '').trim()).filter(Boolean);
+    const plansBlock = (t.match(/^Plans:\s*\n((?:- .*\n?)+)/m) || [])[1] || '';
+    const plans = [...plansBlock.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
+    const zip = ((t.match(/^ZIP\/county:\s*(\d{5})/m) || [])[1]) || '';
+    return { doctors, plans, zip };
+  }
+  return null;
+}
+
 function comparisonFollowUp(messages) {
   const msgs = Array.isArray(messages) ? messages : [];
   const lastUserAt = msgs.map((m) => m && m.role).lastIndexOf('user');
@@ -267,6 +300,13 @@ function comparisonFollowUp(messages) {
   const reasons = [];
   const carriers = R.carriersRequested(latest);
   if (carriers.length) reasons.push(`carriers asked: ${carriers.join(', ')}`);
+  if (WANTS_ALTERNATIVES_RE.test(latest)) {
+    const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
+    if (wk && wk.doctors.length >= 1 && wk.plans.length) {
+      reasons.push('alternatives to her saved plan');
+      return { reason: reasons.join(' + '), doctors: wk.doctors, zip: wk.zip };
+    }
+  }
   const prevAssistant = msgs.slice(0, lastUserAt).reverse().find((m) => m && m.role === 'assistant');
   if (prevAssistant && askedQuestions(messageText(prevAssistant)).filter(Boolean).length && Object.keys(numberedAnswers(latest)).length) {
     reasons.push('numbered answers');
@@ -770,7 +810,12 @@ function selectComparison(doctors, askText, opts = {}) {
   if (constraints.noMedicaid) { elig.medicaid = 'none'; elig.levels = []; }
   const county = R.countyFromAsk(ask);
   const matrix = coverageMatrix(docs);
-  const named = Array.isArray(opts.named) ? opts.named : (carriers.length ? [] : namedPlansFromAsk(ask, constraints));
+  let named = Array.isArray(opts.named) ? opts.named : (carriers.length ? [] : namedPlansFromAsk(ask, constraints));
+  let pinFromAsk = [];
+  if (!Array.isArray(opts.named) && !carriers.length && /Wants alternatives to the named plan\(s\)\./.test(ask) && named.length) {
+    pinFromAsk = named.map((p) => p.planId);
+    named = [];
+  }
   // Looked-up names first ("Atorvastatin Calcium"), then anything listed but not looked up yet.
   const meds = [];
   for (const m of [...drugs.map(drugNameOf), ...(opts.meds || []), ...R.medsFromAsk(ask)]) {
@@ -933,7 +978,7 @@ function selectComparison(doctors, askText, opts = {}) {
     // Compare mode prices meds on a shortlist first; the table only draws from it (rule 8).
     const only = Array.isArray(opts.onlyPlanIds) ? new Set(opts.onlyPlanIds.map((id) => String(id).toUpperCase())) : null;
     // Her client's current plan(s) ("is there something better?"): always the first column(s), then the best of the county.
-    const pinIds = (Array.isArray(opts.pinPlanIds) ? opts.pinPlanIds : []).map((id) => String(id).toUpperCase());
+    const pinIds = [...(Array.isArray(opts.pinPlanIds) ? opts.pinPlanIds : []), ...pinFromAsk].map((id) => String(id).toUpperCase());
     const pinnedCols = [];
     if (pinIds.length && !carriers.length) {
       for (const id of pinIds) {
