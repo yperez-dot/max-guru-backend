@@ -1853,3 +1853,11 @@ describe('negated benefit asks are off', () => {
     assert.equal(exp.askedOffGridBenefits('what is the SNF copay for these plans').benefits.includes('skilled_nursing'), true);
   });
 });
+
+describe('export doctor names stop at the end of a sentence', () => {
+  it('"Dr. Mehta. Two questions" is not a doctor, "Dr. Jorge G. Ruiz" is', () => {
+    const plans = [{ planId: 'H1045-005', planName: 'UHC Preferred' }];
+    const names = exp.extractDoctors('Dr. Jorge G. Ruiz is In. Is that the right Dr. Mehta. Two questions: 1. meds?', plans).map((d) => d.name);
+    assert.deepEqual(names, ['Dr. Jorge G. Ruiz']);
+  });
+});

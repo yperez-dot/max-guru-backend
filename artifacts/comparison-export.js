@@ -633,6 +633,14 @@
     name = name.replace(/\s*\[saved:[^\]]*\]/gi, "").replace(/\s*:.*$/, "").trim();
     name = name.replace(/\s+(?:in|out|in[-\s]?network|out(?:\s+of)?[-\s]?network|not\s+confirmed|need\s+more\s+info)$/i, "").trim();
     if (!name) return "";
+    // "Mehta. Two questions" — a sentence ended; keep only what came before it (initials like "Jorge G. Ruiz" stay).
+    if (/\.\s+Dr\.?\b/i.test(name) || /\bDr\.?\s+Dr\b/i.test(name)) return "";
+    {
+      const lead = (name.match(/^(?:Dr\.?|Doctor)\s+/i) || [""])[0];
+      const body = name.slice(lead.length).replace(/(?<!\b[A-Za-z])(?<!\b(?:Jr|Sr|Mr|Ms|Mrs))\.\s+[A-Z].*$/, "").trim();
+      name = (lead + body).trim();
+    }
+    if (!name) return "";
     if (/\b[HRS]\d{4}\s*-\s*\d{3}/i.test(name)) return "";
     if (/\.\s+Dr\.?\b/i.test(name) || /\bDr\.?\s+Dr\b/i.test(name)) return "";
     if (/\b(?:not\s+confirmed|out\s+of\s+network|in\s+network|need\s+more\s+info)\b/i.test(name)) return "";
