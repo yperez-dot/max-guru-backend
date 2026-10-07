@@ -4194,6 +4194,24 @@ function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [copiedMsgIdx, setCopiedMsgIdx] = useState(null);
+  const copyReply = async (e, idx, fallback) => {
+    // Copy what she sees (tables paste tab-separated into Excel / email), else the raw reply text.
+    const bubble = e.currentTarget.closest(".max-fade")?.querySelector(".max-export-scroll");
+    const text = ((bubble && bubble.innerText) || (typeof fallback === "string" ? fallback : "")).trim();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (_) {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove();
+      } catch (_2) { return; }
+    }
+    setCopiedMsgIdx(idx);
+    setTimeout(() => setCopiedMsgIdx((cur) => (cur === idx ? null : cur)), 1600);
+  };
   const [workups, setWorkups] = useState([]);
   const [workupsLoading, setWorkupsLoading] = useState(false);
   const [workupNotice, setWorkupNotice] = useState(null);
@@ -5329,6 +5347,18 @@ function App() {
                 </div>
                 <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, display: "flex", gap: 8, alignItems: "center" }}>
                   {m.time}
+                  {m.role === "assistant" && (
+                    <button
+                      type="button"
+                      data-testid="copy-reply"
+                      onClick={(e) => copyReply(e, i, m.content)}
+                      aria-label="Copy this reply as text"
+                      style={{
+                        fontSize: 11, fontWeight: 600, color: "var(--plum)", background: "none",
+                        border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font)",
+                      }}
+                    >{copiedMsgIdx === i ? "Copied ✓" : "Copy text"}</button>
+                  )}
                   {m.role === "user" && (
                     <button
                       type="button"

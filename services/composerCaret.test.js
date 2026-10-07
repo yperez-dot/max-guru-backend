@@ -137,3 +137,12 @@ describe('live UI wires the caret helpers', () => {
     assert.match(html, /\.max-composer-row textarea/);
   });
 });
+
+describe('Copy text button on Max replies', () => {
+  it('assistant bubbles get a Copy text button that copies the rendered reply', () => {
+    const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
+    assert.match(html, /data-testid="copy-reply"/);
+    assert.match(html, /copyReply\(e, i, m\.content\)/);
+    assert.match(html, /navigator\.clipboard\.writeText\(text\)/);
+  });
+});
