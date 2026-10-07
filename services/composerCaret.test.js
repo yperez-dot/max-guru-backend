@@ -164,3 +164,10 @@ describe('Comparison tables fit a phone', () => {
     assert.doesNotMatch(fn, /minWidth: i \? 120/);
   });
 });
+
+describe('Show benefits is offered once', () => {
+  it('the button hides after Show benefits was already asked', () => {
+    const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
+    assert.match(html, /String\(userMessageText\(x\.content\) \|\| ""\)\.trim\(\) === "Show benefits for these plans"/);
+  });
+});
