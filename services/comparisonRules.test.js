@@ -239,8 +239,9 @@ describe('agent follow-ups (2026-10-06 replay: carriers by name, numbered answer
     assert.doesNotMatch(label('Yavagal'), /⚠️/, 'she confirmed Yavagal');
     assert.match(sel.questions[0], /Confirm the doctor match .*Ian Del Conde → Cesar A Conde \(NPI 1932159043\); Carlos Sosa → Amanda C Sosa Rbt.*If not, tell me who \(no NPI needed\)\./);
     const table = n.gridTable(sel.doctors, sel.columns);
-    assert.match(table, /\| Cesar A Conde [^\n]*\| ❔ not confirmed \| ❔ not confirmed \| ❔ not confirmed \|/);
-    assert.match(table, /\| Dileep Rajhavendra Yavagal [^|]*\| [^|]*\| [^|]*\| ✅ In \|/, 'Devoted single network counts once confirmed');
+    // Doctors HealthCare shows both core plans (DrMax-Dade + DrSelect-SFL), then Solis, then Devoted.
+    assert.match(table, /\| Cesar A Conde [^\n]*\| ❔ not confirmed \| ❔ not confirmed \| ❔ not confirmed \| ❔ not confirmed \|/);
+    assert.match(table, /\| Dileep Rajhavendra Yavagal [^|]*\| [^|]*\| [^|]*\| [^|]*\| ✅ In \|/, 'Devoted single network counts once confirmed');
   });
 
   it('newest ask wins: plan IDs after a carrier ask switch back to the named plans', () => {
