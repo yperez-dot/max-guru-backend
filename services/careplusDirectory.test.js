@@ -141,3 +141,17 @@ describe('her current plan stays in the comparison after she answers Max\'s ques
     assert.ok(sel.columns.length >= 2);
   });
 });
+
+describe('Doctors HealthCare: both core plans lead', () => {
+  const { selectComparison } = require('./doctorPlanNarrow');
+  const mk = (n) => ({ requestedName: n, doctorName: n, status: 'done', pending: [], failed: [], networks: [], carriersIn: ['Doctors HealthCare'], inNetworkPlans: ['Doctors DrSelect-SFL (HMO) (H4140-023)'], outOfNetworkPlans: [] });
+  it('Miami-Dade: DrMax-Dade H4140-022 and DrSelect-SFL H4140-023 both show', () => {
+    const sel = selectComparison(['A One', 'B Two'].map(mk), 'Maria Perez ZIP 33178. No Medicaid. Carriers requested: Doctors HealthCare.', {});
+    const ids = sel.columns.map((c) => c.planId.slice(0, 9));
+    assert.ok(ids.includes('H4140-022') && ids.includes('H4140-023'), ids.join(','));
+  });
+  it('Broward: DrSelect-SFL H4140-023 is the only HMO core plan and leads', () => {
+    const sel = selectComparison(['A One', 'B Two'].map(mk), 'Maria Perez ZIP 33324. No Medicaid. Carriers requested: Doctors HealthCare.', {});
+    assert.equal(sel.columns[0].planId.slice(0, 9), 'H4140-023');
+  });
+});
