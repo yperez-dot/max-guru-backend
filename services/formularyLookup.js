@@ -211,14 +211,16 @@ function firstCoverageHit(payload) {
 }
 
 /**
- * Sunfire plan-year of a map entry. Sunfire IDs are year-prefixed ("262355" = 2026,
- * "272355" = 2027); an explicit `year` on the entry wins when the builder recorded one.
+ * Plan year of a map entry, or null when it is not recorded.
+ *
+ * Do NOT infer the year from the id prefix. Sunfire ids are opaque sequence numbers: captures
+ * from different plan years both contain ids beginning "26", and two captures that share 250
+ * ids disagree on none of them. The year is a property of the endpoint the list came from
+ * (`.../2026?…` vs `.../2027?…`), which only the builder knows (Yahoska, 2026-10-07).
  */
 function sunfireEntryYear(sunfireId, entry) {
   const explicit = Number((entry && entry.year) || 0);
-  if (explicit > 2000) return explicit;
-  const m = String(sunfireId || '').match(/^(\d{2})/);
-  return m ? 2000 + Number(m[1]) : null;
+  return explicit > 2000 ? explicit : null;
 }
 
 /**
@@ -238,9 +240,12 @@ function sunfireIdForPlan(planId, map = SUNFIRE_PLAN_MAP, year = null) {
   if (!parsed) return null;
   const wantYear = Number(year) || null;
   const pbp = parsed.base.split('-')[1];
-  const entries = Object.entries(map || {}).filter(
-    ([id, e]) => !wantYear || sunfireEntryYear(id, e) === wantYear
-  );
+  // Entries recorded for the asked year are used first. Legacy entries carry no year at all,
+  // so they are a last resort rather than a silent match for whatever year was asked.
+  const all = Object.entries(map || {});
+  const dated = all.filter(([id, e]) => sunfireEntryYear(id, e) === wantYear);
+  const undated = all.filter(([id, e]) => sunfireEntryYear(id, e) === null);
+  const entries = !wantYear ? all : dated.length ? dated : undated;
 
   const contractHits = entries.filter(
     ([, e]) => String(e.hRaw || '').toUpperCase() === parsed.base.split('-')[0]
@@ -271,6 +276,12 @@ function sunfireIdForPlan(planId, map = SUNFIRE_PLAN_MAP, year = null) {
 function sunfireMapHasYear(year, map = SUNFIRE_PLAN_MAP) {
   const y = Number(year) || 0;
   return Object.entries(map || {}).some(([id, e]) => sunfireEntryYear(id, e) === y);
+}
+
+/** True when the map records no plan year at all (the legacy hand-made file). */
+function sunfireMapIsUndated(map = SUNFIRE_PLAN_MAP) {
+  const v = Object.values(map || {});
+  return v.length > 0 && v.every((e) => !(Number(e && e.year) > 2000));
 }
 
 function catalogDrugs(payload) {
@@ -1620,6 +1631,7 @@ function toExportDrugs(result) {
 }
 
 module.exports = {
+  sunfireMapIsUndated,
   sunfireEntryYear,
   sunfireMapHasYear,
   formatCostShare,

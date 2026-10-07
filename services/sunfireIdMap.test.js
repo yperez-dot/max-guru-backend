@@ -29,10 +29,19 @@ describe('Sunfire plan-id mapping (Yahoska, 2026-10-07)', () => {
     assert.equal(sunfireIdForPlan('H1036-054C', MAP_2027, 2027), '272355');
   });
 
-  it('never returns another plan year’s id', () => {
+  it('never returns a DATED entry from another plan year', () => {
     assert.equal(sunfireIdForPlan('H1045-001', MAP_2027, 2026), null);
-    assert.equal(sunfireIdForPlan('H1036-054C', MAP_2026, 2027), null);
+    assert.equal(sunfireIdForPlan('H1036-054C', MAP_2027, 2026), null);
+  });
+
+  it('undated legacy entries are a last resort, not a year match', () => {
+    // The committed map records no year, so it must keep working for every year rather than
+    // going dark — but a dated entry for the asked year always wins over it.
     assert.equal(sunfireIdForPlan('H1036-054C', MAP_2026, 2026), '262355');
+    assert.equal(sunfireIdForPlan('H1036-054C', MAP_2026, 2027), '262355');
+    const mixed = { ...MAP_2026, 273828: { hRaw: 'H1036', pbp: '054', planName: 'Humana Gold Plus (HMO)', year: 2027 } };
+    assert.equal(sunfireIdForPlan('H1036-054C', mixed, 2027), '273828');
+    assert.equal(sunfireIdForPlan('H1036-054C', mixed, 2026), '262355');
   });
 
   it('does not confuse two PBPs on the same contract', () => {
@@ -54,16 +63,17 @@ describe('Sunfire plan-id mapping (Yahoska, 2026-10-07)', () => {
     assert.equal(sunfireIdForPlan('not-a-plan', MAP_2027, 2027), null);
   });
 
-  it('reads the plan year from the id prefix or the entry', () => {
-    assert.equal(sunfireEntryYear('272355', {}), 2027);
-    assert.equal(sunfireEntryYear('262355', {}), 2026);
-    assert.equal(sunfireEntryYear('272355', { year: 2026 }), 2026);
+  it('reads the plan year only from the entry, never the id prefix', () => {
+    // Sunfire ids are opaque: captures from different years both contain "26" ids.
+    assert.equal(sunfireEntryYear('272355', {}), null);
+    assert.equal(sunfireEntryYear('262355', {}), null);
+    assert.equal(sunfireEntryYear('262355', { year: 2027 }), 2027);
   });
 
   it('sunfireMapHasYear reports which years the map covers', () => {
     assert.equal(sunfireMapHasYear(2027, MAP_2027), true);
     assert.equal(sunfireMapHasYear(2026, MAP_2027), false);
-    assert.equal(sunfireMapHasYear(2026, MAP_2026), true);
+    assert.equal(sunfireMapHasYear(2026, MAP_2026), false); // legacy entries record no year
   });
 });
 
