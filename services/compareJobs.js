@@ -62,7 +62,7 @@ function unlabeledDoctors(t, zip) {
   if (!zip) return '';
   const at = t.indexOf(zip);
   if (at < 0) return '';
-  let rest = t.slice(at + zip.length).replace(/^[\s.,;:\-–—]+/, '');
+  let rest = t.slice(at + zip.length).replace(/^[\s.,;:\-–—]+/, '').replace(/\b(?:Drs?|Dras?|Doc)\.\s+(?=[A-Za-z])/gi, '');
   rest = rest.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Za-z])|\n\s*\n/)[0];
   const items = rest.split(/\n|,|;|\band\b(?=\s+[A-Z])/).map((x) => x.replace(/^[\s\-•*\d.)]+/, '').replace(/[\s.]+$/, '').trim()).filter(Boolean);
   const looksLikeName = (x) => {
@@ -73,6 +73,27 @@ function unlabeledDoctors(t, zip) {
   const good = items.filter(looksLikeName);
   if (!good.length || good.length * 2 < items.length) return '';
   return good.join('\n');
+}
+
+const NOT_MED_RE = /^(?:no|none|not|medicaid|plan|plans|compare|they|their|for|add|has|have|she|he|c-?snp|d-?snp|zip|current|currently|wondering|looking|want|wants|need|needs|please|msp|qmb|slmb|diabetes|chf|copd)\b/i;
+
+/** Meds typed as a plain list after the ZIP/doctors: "… Carlos Ruiz. Eliquis, metformin 500mg. No medicaid." */
+function unlabeledMeds(t, zip, doctors) {
+  if (!zip) return '';
+  const at = t.indexOf(zip);
+  if (at < 0) return '';
+  const rest = t.slice(at + zip.length).replace(/^[\s.,;:\-–—]+/, '').replace(/\b(?:Drs?|Dras?|Doc)\.\s+(?=[A-Za-z])/gi, '');
+  const docNames = new Set((doctors || []).map((d) => d.name.toLowerCase()));
+  for (const sentence of rest.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Za-z])|\n/)) {
+    const body = sentence.replace(/^\s*(?:takes?|taking|on|meds?|rx)\s*:?\s+/i, '').replace(/[\s.]+$/, '');
+    const items = body.split(/,|;|\band\b/i).map((x) => x.trim()).filter(Boolean);
+    if (!items.length || items.length > 15) continue;
+    if (items.some((x) => docNames.has(x.toLowerCase()))) continue;
+    const allNames = items.every((x) => /^[A-Z][a-z'’-]+(?:\s+[A-Z]\.?)?(?:\s+[A-Z][a-z'’-]+)+$/.test(x));
+    if (allNames) continue;
+    if (items.every((x) => !NOT_MED_RE.test(x) && /^[A-Za-z][A-Za-z0-9\-]*(?:\s+(?:\d+(?:\.\d+)?\s?(?:mg|mcg|ml|units?|iu)|er|xr|sr|hcl|[a-z]+))?(?:\s+\d+\s?(?:mg|mcg|ml))?$/.test(x) && x.split(/\s+/).length <= 3)) return items.join('\n');
+  }
+  return '';
 }
 
 /** "Maria & Gaspar Padron, ZIP 33332 … Doctors: … Meds: … Compare H… " → fields. */
@@ -97,6 +118,7 @@ function parseCompareAsk(text) {
   doctorsText = doctorsText.replace(/\b(?:Drs?|Dras?|Doc)\.?\s+(?=[A-Za-z])/gi, '');
   doctorsText = cut(doctorsText);
   medsText = cut(medsText);
+  if (!medsText) medsText = unlabeledMeds(t, zip, splitList(doctorsText).map((name) => ({ name })));
 
   const doctors = splitList(doctorsText).map((name) => {
     const mustKeep = /must[- ]?keep/i.test(name);

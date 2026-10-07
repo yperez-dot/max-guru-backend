@@ -127,3 +127,18 @@ describe('parseCompareAsk — free-form paste', () => {
     assert.equal(parseCompareAsk('Marilyn Angus butler. 33076. Ashwin Mehta, Vivian Aguiar. no meds').clientName, 'Marilyn Angus Butler');
   });
 });
+
+describe('parseCompareAsk — unlabeled doctors with Dr. and unlabeled meds', () => {
+  it('reads "Dr." doctors and a plain meds sentence after the ZIP', () => {
+    const f = parseCompareAsk('Maria Gonzalez, 33178. Dr. Jorge Perez, Ana Lee, Carlos Ruiz. Eliquis, metformin.');
+    assert.deepEqual(f.doctors.map((d) => d.name), ['Jorge Perez', 'Ana Lee', 'Carlos Ruiz']);
+    assert.deepEqual(f.meds, ['Eliquis', 'metformin']);
+  });
+  it('keeps doses and does not mistake "no meds / no medicaid" or doctor names for meds', () => {
+    const a = parseCompareAsk('Test Client, 33178. Niraj Mehta, Jose L Ruiz. Eliquis, metformin 500mg. No medicaid.');
+    assert.deepEqual(a.meds, ['Eliquis', 'metformin 500mg']);
+    const b = parseCompareAsk('Marilyn Butler. 33076. Ashwin Mehta, Vivian Aguiar. no meds. no medicaid.');
+    assert.deepEqual(b.meds, []);
+    assert.equal(b.doctors.length, 2);
+  });
+});
