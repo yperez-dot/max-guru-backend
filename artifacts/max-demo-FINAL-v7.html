@@ -4083,6 +4083,7 @@ function QueuePanel({ isMobile, onWorkupSaved, onOpenWorkup, onClose }) {
         terminatingPlan: entry.fields.terminatingPlan,
       });
       delete body.id;
+      if (entry.job && entry.job.result) body.compareResult = entry.job.result;
       const data = await workupsRequest("PUT", "", body);
       update(entry.key, { workupId: data.workup.id });
       if (onWorkupSaved) onWorkupSaved(data.workup);
@@ -4602,7 +4603,8 @@ function App() {
           time: nowLabel(),
         });
       }
-      if (extra && extra.result) next.push({ role: "queueResult", result: extra.result, time: nowLabel() });
+      const savedResult = (extra && extra.result) || workup.compareResult;
+      if (savedResult) next.push({ role: "queueResult", result: savedResult, time: nowLabel() });
       messagesRef.current = next;
       setMessages(next);
       setWorkupNotice(null);

@@ -16,6 +16,7 @@ const MAX_TERMINATING = 90;
 const MAX_NEEDS = 8;
 const MAX_NEED_LEN = 120;
 const MAX_PLANS = 6;
+const MAX_COMPARE_RESULT_CHARS = 60000;
 const MAX_DOCTORS = 20;
 const MAX_MEDS = 30;
 
@@ -141,6 +142,18 @@ function slimNeeds(needs) {
   return out;
 }
 
+/** Queue comparison result (doctor/med tables, questions) kept so the workup reopens with it. */
+function slimCompareResult(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  try {
+    const text = JSON.stringify(raw);
+    if (text.length > MAX_COMPARE_RESULT_CHARS) return null;
+    return JSON.parse(text);
+  } catch (_) {
+    return null;
+  }
+}
+
 function normalizeWorkupInput(input) {
   const src = input && typeof input === 'object' ? input : {};
   const plans = (Array.isArray(src.plans) ? src.plans : []).map(slimPlan).filter(Boolean).slice(0, MAX_PLANS);
@@ -158,6 +171,7 @@ function normalizeWorkupInput(input) {
     medications: slimMedications(src.medications || src.drugs),
     needs: slimNeeds(src.needs),
     terminatingPlan: clip(src.terminatingPlan || '', MAX_TERMINATING),
+    compareResult: slimCompareResult(src.compareResult),
   };
 }
 
@@ -275,6 +289,8 @@ class WorkupStore {
       medications: body.medications,
       needs: body.needs,
       terminatingPlan: body.terminatingPlan,
+      // Keep an earlier saved result when a re-save (chat export) has none.
+      compareResult: body.compareResult || (existing && existing.compareResult) || null,
       createdAt: (existing && existing.createdAt) || nowIso,
       updatedAt: nowIso,
     };

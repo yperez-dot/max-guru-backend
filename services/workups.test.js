@@ -271,3 +271,15 @@ describe('workup rename (tab menu)', () => {
     }
   });
 });
+
+describe('compareResult', () => {
+  it('is kept on save and survives a later re-save without one', () => {
+    const { store, cleanup } = tempStore();
+    const w = store.upsert('a@b.com', { clientName: 'Ana Perez', plans: [], compareResult: { doctorTable: '| a |', questions: ['q1'] } });
+    assert.deepEqual(w.compareResult.questions, ['q1']);
+    const again = store.upsert('a@b.com', { id: w.id, clientName: 'Ana Perez', plans: [] });
+    assert.deepEqual(again.compareResult.questions, ['q1']);
+    assert.equal(store.get('a@b.com', w.id).compareResult.doctorTable, '| a |');
+    cleanup();
+  });
+});
