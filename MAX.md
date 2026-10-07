@@ -414,3 +414,5 @@ Write it in this file (or `max-knowledge/` if the **chatbot** must cite it). Nex
 - 2026-10-07: Yahoska: Doctors HealthCare shares ONE network across ALL its plans (not just DrMax/DrSelect). A Doctors directory hit is plan-level In for every H4140 plan (In, not In*); a finished directory that doesn't list the NPI is Out for all of them.
 
 - 2026-10-07: Yahoska: Simply has NO core (non-SNP) plans in Miami-Dade or Broward — only a D-SNP. A failed Simply Find Care check is no longer listed as an unchecked carrier in provider-lookup output; do not offer Simply columns for HMO/core comparisons, and only talk about Simply when the client is a dual/D-SNP.
+
+- 2026-10-07: Yahoska: when she says "CarePlus" in a comparison, use the core plans CareOne Plus (H1019-001, HMO-POS) + CareAccess (H1019-148) "for now" — not all four CarePlus plans. Miami-Dade's grid only has H1019-148, so that county gets one. Others (CareFree Platinum H1019-135, CareFree Giveback H1019-065) only when she names them.

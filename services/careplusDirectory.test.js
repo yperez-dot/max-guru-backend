@@ -1,7 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const { careplusCheck, countyKeyForZip } = require('./careplusDirectory');
-const { namedPlanColumns } = require('./doctorPlanNarrow');
+const { namedPlanColumns, corePlanIdsFor } = require('./doctorPlanNarrow');
 
 describe('CarePlus 2027 directory index', () => {
   it('lists a doctor who is in the Miami-Dade index (name match, pages)', () => {
@@ -153,5 +153,14 @@ describe('Doctors HealthCare: both core plans lead', () => {
   it('Broward: DrSelect-SFL H4140-023 is the only HMO core plan and leads', () => {
     const sel = selectComparison(['A One', 'B Two'].map(mk), 'Maria Perez ZIP 33324. No Medicaid. Carriers requested: Doctors HealthCare.', {});
     assert.equal(sel.columns[0].planId.slice(0, 9), 'H4140-023');
+  });
+});
+
+describe('CarePlus core plans (Yahoska, 2026-10-07)', () => {
+  it('Broward: CareOne Plus H1019-001 + CareAccess H1019-148, not all four', () => {
+    assert.deepEqual(corePlanIdsFor('CarePlus', 'Broward'), ['H1019-001', 'H1019-148']);
+  });
+  it('Miami-Dade: only the core plans the grid offers there', () => {
+    assert.deepEqual(corePlanIdsFor('CarePlus', 'Miami-Dade'), ['H1019-148']);
   });
 });
