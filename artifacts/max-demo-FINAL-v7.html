@@ -1159,7 +1159,7 @@
   function carrierHitIsPlanHit(carrierLabel, plan) {
     const c = String(carrierLabel || "").toLowerCase();
     if (!carrierMatchesPlan(carrierLabel, plan)) return false;
-    if (/devoted/.test(c)) return true;
+    if (/devoted|solis/.test(c)) return true; // one network per carrier (Solis: per county directory)
     if (/doctors/.test(c)) {
       const id = String((plan && (plan.planId || plan.id)) || "").toUpperCase().slice(0, 9);
       return SHARED_NETWORK_PLAN_IDS.doctors.indexOf(id) >= 0;

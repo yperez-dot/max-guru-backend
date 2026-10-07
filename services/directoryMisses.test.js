@@ -88,9 +88,21 @@ describe('Doctors API reply that is not a list', () => {
   });
 });
 
-describe('named Solis plan', () => {
-  it('says why Solis cells stay unchecked', () => {
-    const t = n.batchSummaryForModel([doc('Dileep Yavagal', [])], ASK, {}).text;
-    assert.match(t, /Solis has no live directory check/);
+describe('named Solis plan (2027 county directory index)', () => {
+  const solisNet = (inNetwork, status = 'checked', matches = []) => ({ networks: [{ carrier: 'Solis Health Plans', inNetwork, status, directoryMatches: matches }] });
+  it('listed → ✅ In with the PDF page in the flag; checked and not listed → ❌ Out', () => {
+    const t = n.batchSummaryForModel([
+      doc('Eduardo Krajewski', ['Doctors HealthCare Plans', 'Solis Health Plans'], solisNet(true, 'checked', [{ name: 'KRAJEWSKI, EDUARDO MD', pages: [93], county: 'miamiDade' }])),
+      doc('Dileep Yavagal', [], solisNet(false)),
+    ], ASK, {}).text;
+    assert.equal(rowOf(t, 'Eduardo Krajewski')[3], '✅ In');
+    assert.equal(rowOf(t, 'Dileep Yavagal')[3], '❌ Out');
+    assert.match(t, /Eduardo Krajewski = KRAJEWSKI, EDUARDO MD \(p\. 93\)/);
+  });
+  it('no Solis check (county not covered / older lookup) stays ❔ unchecked, never Out', () => {
+    const t = n.batchSummaryForModel([doc('Dileep Yavagal', [], solisNet(false, 'failed'))], ASK, {}).text;
+    assert.equal(rowOf(t, 'Dileep Yavagal')[3], '❔ unchecked');
+    const t2 = n.batchSummaryForModel([doc('Dileep Yavagal', [])], ASK, {}).text;
+    assert.equal(rowOf(t2, 'Dileep Yavagal')[3], '❔ unchecked');
   });
 });
