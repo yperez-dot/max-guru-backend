@@ -234,3 +234,26 @@ describe('compare mode: an NPI typed next to a doctor name (Yahoska, 2026-10-07)
     assert.equal(d[1].mustKeep, true);
   });
 });
+
+describe('compare mode: pinned current plans keep their doctor results (Martin, 2026-10-07)', () => {
+  const ASK = 'Martin Wiesenthal, 33324. Current plan: Solis Healthy Living H0982-007. Also compare Humana, HealthSun and Doctors DrSelect-SFL H4140-023. Doctors: Daniel Ead (urologist), Bruce Kava (urologist). Meds: lisinopril.';
+  it('a carrier ask does not blank the named plans’ columns', async () => {
+    const job = {
+      input: normalizeInput(parseCompareAsk(ASK)),
+      progress: { doctors: { done: 0, total: 2 }, meds: { done: 0, total: 0 } },
+      result: {},
+    };
+    const fake = async ({ doctorName }) => ({
+      status: 'done',
+      structured: {
+        doctorName, npi: '1', networks: [], inNetworkPlans: [], outOfNetworkPlans: [],
+        carriersIn: /Ead/i.test(doctorName) ? ['Solis', 'Doctors HealthCare Plans'] : [],
+      },
+    });
+    await runJob(job, { lookupOneDoctor: fake, lookupRx: fakeRx });
+    assert.deepEqual(job.result.planIds, ['H0982-007', 'H4140-023', 'H1036-065C', 'H5431-012']);
+    const row = job.result.doctorTable.split('\n').find((l) => /Daniel Ead/.test(l));
+    assert.match(row, /Daniel Ead[^|]*\|\s*✅ In\s*\|\s*✅ In\s*\|/);
+    assert.match(job.result.doctorTable, /Solis Healthy Living · H0982-007/);
+  });
+});
