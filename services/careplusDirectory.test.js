@@ -119,3 +119,25 @@ describe('saved workup + "other plans comparable to what she has?"', () => {
     assert.ok(sel.columns.length >= 2, 'alternatives added');
   });
 });
+
+describe('her current plan stays in the comparison after she answers Max\'s questions', () => {
+  const { selectComparison, comparisonAskText } = require('./doctorPlanNarrow');
+  it('alternatives ask in an earlier message still pins the plan she typed', () => {
+    const msgs = [
+      { role: 'user', content: 'Sharon and George Mazzeo, 33324. Current plan H5431-021 HealthSun VitalCare. Are there any other plans comparable to what they have?\nDoctors: A One, B Two.' },
+      { role: 'assistant', content: 'Questions:\n1. Do they have Medicaid?\n2. Which doctors are must-keep?' },
+      { role: 'user', content: '1. no 2. Waldron' },
+      { role: 'assistant', content: 'ok' },
+      { role: 'user', content: 'show me the meds too' },
+      { role: 'user', content: 'and dental' },
+      { role: 'user', content: 'thanks' },
+    ];
+    const ask = comparisonAskText(msgs);
+    assert.match(ask, /Wants alternatives to the named plan/);
+    assert.match(ask, /Her current plan: H5431-021/);
+    const mk = (n) => ({ requestedName: n, doctorName: n, status: 'done', pending: [], failed: [], networks: [], carriersIn: [], inNetworkPlans: [], outOfNetworkPlans: [] });
+    const sel = selectComparison(['A One', 'B Two'].map(mk), ask, {});
+    assert.equal(sel.columns[0].planId, 'H5431-021', sel.columns.map((c) => c.planId).join(','));
+    assert.ok(sel.columns.length >= 2);
+  });
+});

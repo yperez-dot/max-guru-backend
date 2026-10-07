@@ -245,17 +245,20 @@ function comparisonAskText(messages, baseText) {
     qs.forEach((q, k) => { if (q && answers[k]) statementsFor(q, answers[k]).forEach((st) => lines.push(st)); });
   }
   // "any other plans comparable to what she has?" — her saved/named plan is the CURRENT plan; add alternatives around it.
+  // It stays true for the whole thread: answering Max's follow-up questions must not drop her current plan.
   for (let i = msgs.length - 1; i >= 0; i -= 1) {
     const m = msgs[i];
     if (!m || m.role !== 'user') continue;
-    if (WANTS_ALTERNATIVES_RE.test(messageText(m))) {
-      lines.push('Wants alternatives to the named plan(s).');
-      const wk = workupFacts(msgs);
-      if (wk && wk.plans.length && !/\b[HR]\d{4}-\d{3}[A-Z]?\b/i.test(messageText(m))) {
-        lines.push(`Her current plan: ${wk.plans.join(', ')}.`);
-        if (wk.zip) lines.push(`ZIP ${wk.zip}.`);
-      }
-    }
+    const mt = messageText(m);
+    if (!WANTS_ALTERNATIVES_RE.test(mt)) continue;
+    lines.push('Wants alternatives to the named plan(s).');
+    // Plan IDs she typed with that ask — unless the recent messages already carry them.
+    const idsHere = [...new Set([...mt.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase()))];
+    const wk = workupFacts(msgs);
+    const current = idsHere.length ? idsHere : (wk ? wk.plans : []);
+    // First, so any plan she names later in the thread (a swap / add) still wins over it.
+    if (current.length) lines.unshift(`Her current plan: ${current.join(', ')}.`);
+    if (wk && wk.zip && !/\b3\d{4}\b/.test(lines.join('\n'))) lines.push(`ZIP ${wk.zip}.`);
     break;
   }
   // Newest user message that asks for carriers or names plan IDs decides the columns.
@@ -329,6 +332,7 @@ function comparisonFollowUp(messages) {
       ...[...comparisonAskText(msgs).matchAll(/Doctor substitution: (.+?) => (.+?)\.$/gm)].map((x) => [x[1], x[2]]),
     ];
     if (substitutionsIn(latest, names).length) reasons.push('doctor corrections');
+    if (WANTS_ALTERNATIVES_RE.test(latest) && /\b[HR]\d{4}-\d{3}[A-Z]?\b/i.test(latest)) reasons.push('alternatives to her current plan');
     if (!reasons.length) return null;
     for (const [from, to] of subs) names = names.map((nm) => (sameDoctorName(nm, from) ? to : nm));
     const zip = f.zip || (msgs.slice(0, lastUserAt + 1).map(messageText).join(' ').match(/\b(3\d{4})\b/) || [])[1] || '';
