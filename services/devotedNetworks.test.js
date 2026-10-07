@@ -47,9 +47,9 @@ describe('fhirCheck returns the doctor\'s Devoted networks', () => {
   it('reads network refs across pages', async () => {
     global.fetch = async (url) => {
       const u = String(url);
-      if (/devoted/.test(u) && /page=2/.test(u)) return { ok: true, status: 200, json: async () => ({ entry: [role(D.FL_HMO_DSNP.ref)] }) };
-      if (/devoted/.test(u)) return { ok: true, status: 200, json: async () => ({ total: 2, entry: [role(FL_PPO)], link: [{ relation: 'next', url: 'https://fhir.devoted.com/fhir/PractitionerRole?page=2' }] }) };
-      return { ok: true, status: 200, json: async () => ({ total: 0, entry: [] }) };
+      if (/devoted/.test(u) && /page=2/.test(u)) return { ok: true, status: 200, json: async () => ({ resourceType: 'Bundle', entry: [role(D.FL_HMO_DSNP.ref)] }) };
+      if (/devoted/.test(u)) return { ok: true, status: 200, json: async () => ({ resourceType: 'Bundle', total: 2, entry: [role(FL_PPO)], link: [{ relation: 'next', url: 'https://fhir.devoted.com/fhir/PractitionerRole?page=2' }] }) };
+      return { ok: true, status: 200, json: async () => ({ resourceType: 'Bundle', total: 0, entry: [] }) };
     };
     const r = await fhirCheck('1699977884');
     assert.deepEqual(r.hits, ['Devoted Health']);

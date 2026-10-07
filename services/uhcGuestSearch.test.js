@@ -196,6 +196,21 @@ describe('queryUhcGuest mocked path', () => {
     assert.ok(result.outOfNetworkPlans[0].includes('H1045-012'));
   });
 
+  // A 200 whose body is not a provider list must read ❔ unchecked, never ❌ Out (audit, 2026-10-07).
+  for (const [label, body] of [['providerSearch: null', { providerSearch: null }], ['no providerSearch', {}], ['providers not a list', { providerSearch: { providers: null } }]]) {
+    it(`a 200 with ${label} is a failed check, not out of network`, async () => {
+      const fetchImpl = mockFetch({
+        GetLocation: { location: { features: [{ center: ['-80.36', '25.68'], stateCode: 'FL' }] } },
+        GetPostalPoint: { getPostalPoint: { county_proper: 'Miami-Dade', county_id: '12086', state: 'FL' } },
+        GetPlanDefinitions: { getPlanDefinitions: { planDetails: [MAX_028] } },
+        ProviderSearch: body,
+      });
+      const result = await queryUhcGuest('1306409339', { zip: '33176', planIds: ['H5420-001'] }, fetchImpl);
+      assert.equal(result.checks[0].status, 'failed');
+      assert.deepEqual(result.outOfNetworkPlans, []);
+    });
+  }
+
   it('does not treat a GraphQL failure as out of network', async () => {
     const fetchImpl = mockFetch({
       GetLocation: { location: { features: [{ center: ['-80.36', '25.68'], stateCode: 'FL' }] } },

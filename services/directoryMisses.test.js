@@ -58,14 +58,68 @@ describe('fhirCheck tells a miss from a failure', () => {
 
   it('200 + entries → hit · 200 + none → miss · HTTP error / throw → failed', async () => {
     global.fetch = async (url) => {
-      if (/devoted/.test(url)) return { ok: true, status: 200, json: async () => ({ entry: [{}, {}] }) };
+      if (/devoted/.test(url)) return { ok: true, status: 200, json: async () => ({ resourceType: 'Bundle', entry: [{}, {}] }) };
       if (/bcbsfl/.test(url)) return { ok: false, status: 503, json: async () => ({}) };
       if (/cigna/.test(url)) throw new Error('socket hang up');
-      return { ok: true, status: 200, json: async () => ({ total: 0, entry: [] }) };
+      return { ok: true, status: 200, json: async () => ({ resourceType: 'Bundle', total: 0, entry: [] }) };
     };
     const r = await fhirCheck('1043665177');
     assert.deepEqual(r.hits, ['Devoted Health']);
     assert.deepEqual(r.failed, ['Florida Blue', 'Cigna']);
+  });
+});
+
+describe('FHIR: a 200 that is not a Bundle, and clinic NPIs (audit, 2026-10-07)', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  // OperationOutcome is FHIR's own way of reporting a server error at HTTP 200.
+  for (const [label, body] of [
+    ['an OperationOutcome', { resourceType: 'OperationOutcome', issue: [{ severity: 'error' }] }],
+    ['a bare array', []],
+    ['an empty object', {}],
+  ]) {
+    it(`Devoted answering 200 with ${label} is failed (❔ unchecked), not a miss`, async () => {
+      global.fetch = async (url) => (/devoted/.test(url)
+        ? { ok: true, status: 200, json: async () => body }
+        : { ok: true, status: 200, json: async () => ({ resourceType: 'Bundle', total: 0, entry: [] }) });
+      const r = await fhirCheck('1043665177');
+      assert.ok(r.failed.includes('Devoted Health'), `failed was ${JSON.stringify(r.failed)}`);
+      assert.ok(!r.hits.includes('Devoted Health'));
+    });
+  }
+
+  it('a clinic (NPI-2) with an empty PractitionerRole answer is failed, not a miss', async () => {
+    global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ resourceType: 'Bundle', total: 0, entry: [] }) });
+    const r = await fhirCheck('1689860280', { isOrg: true });
+    assert.deepEqual(r.hits, []);
+    assert.ok(r.failed.includes('Devoted Health'));
+  });
+
+  it('a clinic that DOES come back listed keeps its hit', async () => {
+    global.fetch = async (url) => (/devoted/.test(url)
+      ? { ok: true, status: 200, json: async () => ({ resourceType: 'Bundle', total: 1, entry: [{}] }) }
+      : { ok: true, status: 200, json: async () => ({ resourceType: 'Bundle', total: 0, entry: [] }) });
+    const r = await fhirCheck('1689860280', { isOrg: true });
+    assert.ok(r.hits.includes('Devoted Health'));
+  });
+
+  it('a person (NPI-1) with an empty answer is still a real miss', async () => {
+    global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ resourceType: 'Bundle', total: 0, entry: [] }) });
+    const r = await fhirCheck('1043665177');
+    assert.deepEqual(r.hits, []);
+    assert.deepEqual(r.failed, []);
+  });
+});
+
+describe('NPPES records know a clinic from a person', () => {
+  const { npiRecordInfo } = require('./providerNetwork');
+  it('NPI-2 is a clinic; NPI-1 is a person', () => {
+    assert.equal(npiRecordInfo({ number: '1689860280', enumeration_type: 'NPI-2', basic: { organization_name: 'MIAMI NEUROLOGY & REHABILITATION SPECIALISTS' } }).isOrg, true);
+    assert.equal(npiRecordInfo({ number: '1407095615', enumeration_type: 'NPI-1', basic: { first_name: 'RUNDEEP', last_name: 'GADH' } }).isOrg, false);
+  });
+  it('an org name with no first name reads as a clinic even without enumeration_type', () => {
+    assert.equal(npiRecordInfo({ number: '1', basic: { organization_name: 'SAGE DENTAL GROUP' } }).isOrg, true);
   });
 });
 

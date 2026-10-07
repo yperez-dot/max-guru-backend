@@ -546,3 +546,30 @@ Note for future captures: the same product can have a different PBP in each coun
 ("Solis Healthy Living Plan" is `H0982-022` in one service area and `H0982-007` in another),
 so a plan missing from the map usually means that county has not been captured yet — not that
 the plan or the grid is wrong.
+
+## 2026-10-07 — A failed directory check can no longer read as ❌ Out
+
+From the evening audit. The cardinal rule is that a FAILED check renders ❔ unchecked and never
+❌ Out, because a false Out steers a client away from a plan their doctor is actually in. Four
+places broke it — each treated a 200 that was not a real answer as a clean miss:
+
+| Where | What slipped through | Now |
+|---|---|---|
+| Humana Find Care (`humanaFindcare.js`, `searchNetwork`) | 200 with an HTML/WAF block page, `[]`, `{}`, or no `results` list | throws → `status: 'failed'` |
+| UHC guest search (`uhcGuestSearch.js`, `searchPlan`) | 200 with `providerSearch: null`, `{}`, or `providers` not a list | throws → `status: 'failed'` |
+| FHIR / Devoted (`providerNetwork.js`, `fhirCheck`) | 200 with an `OperationOutcome` (FHIR's own error-at-200), `[]` or `{}` | must be `resourceType: 'Bundle'`, else `failed` |
+| Clinics on FHIR (`fhirCheck` + `npiRecordInfo`) | an NPI-2 queried as `PractitionerRole?practitioner.identifier=` is empty *by construction* | `rec.isOrg` → an empty answer is `failed`; a hit is still kept |
+
+Devoted is single-network, so a false FHIR miss there read Out on every Devoted plan — the
+worst case of the four. `npiRecordInfo` now sets `isOrg` (NPI-2, or an organization name with
+no first name).
+
+Tests: 3 new cases each for Humana and UHC, 5 for FHIR/clinics, 2 for clinic detection —
+every new case was confirmed to FAIL on the old code before the fix. Existing FHIR test stubs
+gained `resourceType: 'Bundle'`; they were unrealistic without it (every real FHIR search
+reply is a Bundle).
+
+Not in this change (lower risk, still open): Solis reporting In from the wrong county when the
+ZIP cannot be routed, Solis's Central Florida index never being searched, the Doctors PDF index
+matching across all four counties, and Wellcare/Simply/Aetna showing "not confirmed" when
+nothing was checked.
