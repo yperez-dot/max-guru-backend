@@ -53,7 +53,7 @@ function solisFor(rec, zip, planYear) {
 }
 const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery, suggestSimilarProviders } = require('./npiRegistry');
 const { conversationAskText } = require('./planYear');
-const { batchSummaryForModel, narrowingAnswered, comparisonAskText, selectComparison } = require('./doctorPlanNarrow');
+const { batchSummaryForModel, narrowingAnswered, comparisonAskText, selectComparison, renderedAnswer } = require('./doctorPlanNarrow');
 const { medsFromAsk } = require('./comparisonRules');
 // Time held back from the doctor checks so listed meds still get priced in the same chat turn.
 const MEDS_RESERVE_MS = Number(process.env.MAX_CHAT_MEDS_RESERVE_MS || 20_000);
@@ -173,6 +173,9 @@ function planIdsFrom(...values) {
  * column reads "not confirmed" (Maura, 2026-10-07). No planId at all = check every plan.
  */
 function guestPlanIdsFor(toolIds, askText) {
+  // A ranking / "run her drs on the C-SNPs" ask needs every county plan checked plan-level — a
+  // tool planId naming one plan would leave the C-SNP columns carrier-level only (Maura, 2026-10-07).
+  if (/^Rank all eligible plans\.$/m.test(String(askText || ''))) return [];
   const ids = planIdsFrom(toolIds);
   if (!ids.length) return [];
   return planIdsFrom(ids, askText);
@@ -737,8 +740,49 @@ function normalizeDoctorList(toolInput) {
  * Returns { text, structured, expand } — `expand` holds one structured entry per
  * doctor so the UI export sees each doctor like a separate tool call.
  */
+/**
+ * NPIs saved on the loaded workup ("Doctor NPIs (pass npi= …): Dr. Barbara Martinez (PCP) NPI 1649435041; …").
+ * A doctor list typed in chat ("Barbara Martinez-Escobar PCP") used to replace them, so the
+ * name-only search failed and every cell read not confirmed (Maura Soley, 2026-10-07).
+ */
+function savedDoctorNpis(messages) {
+  const out = [];
+  for (const m of messages || []) {
+    if (!m || m.role !== 'user') continue;
+    const t = typeof m.content === 'string' ? m.content : Array.isArray(m.content) ? m.content.map((x) => (x && x.text) || '').join('\n') : '';
+    const line = (t.match(/^Doctor NPIs[^:]*:\s*(.+)$/m) || [])[1];
+    if (!line) continue;
+    for (const part of line.split(';')) {
+      const mm = part.match(/^\s*(.+?)\s*(?:\([^)]*\))?\s+NPI\s+(\d{10})\s*$/);
+      if (mm) out.push({ name: mm[1], npi: mm[2] });
+    }
+  }
+  return out;
+}
+
+/** First name + one surname part agree (hyphenated / two-part surnames; role words and "Dr." stripped). */
+function savedNpiFor(name, saved) {
+  const words = (x) => cleanDoctorQuery(String(x || '').replace(/^dr\.?\s+/i, '')).toLowerCase().split(/[\s,]+/).filter(Boolean);
+  const w = words(name);
+  if (w.length < 2) return '';
+  const surname = (arr) => arr.slice(1).flatMap((x) => x.split('-')).filter((x) => x.length >= 3);
+  const hits = saved.filter((s) => {
+    const sw = words(s.name);
+    if (sw.length < 2 || sw[0] !== w[0]) return false;
+    const a = surname(w);
+    return surname(sw).some((x) => a.includes(x));
+  });
+  const npis = [...new Set(hits.map((h) => h.npi))];
+  return npis.length === 1 ? npis[0] : '';
+}
+
 async function lookupProviderNetwork(toolInput = {}, context = {}) {
-  const doctors = normalizeDoctorList(toolInput);
+  const saved = savedDoctorNpis(context.messages);
+  const doctors = normalizeDoctorList(toolInput).map((d) => {
+    if (d.npi || !saved.length) return d;
+    const npi = savedNpiFor(d.doctorName, saved);
+    return npi ? { ...d, npi } : d;
+  });
   const deadlineAt = Number(context.deadlineAt) > 0
     ? Number(context.deadlineAt)
     : Date.now() + (Number(context.remainingMs) > 0 ? Math.max(3000, Number(context.remainingMs) - 5000) : DEFAULT_BUDGET_MS);
@@ -747,11 +791,19 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   }
   const common = { zip: toolInput.zip, state: toolInput.state, year: toolInput.year, planId: toolInput.planId };
   const npiCap = doctors.length > 1 ? BATCH_NPI_CAP : SINGLE_NPI_CAP;
-  const askText = doctors.length > 1 ? comparisonAskText(context.messages || [], conversationAskText(context.messages || [])) : '';
+  // One doctor checked against a named plan / carrier / ranking is still a table (same layout as many).
+  const latestUser = [...(context.messages || [])].reverse().find((m) => m && m.role === 'user');
+  const latestText = latestUser ? (typeof latestUser.content === 'string' ? latestUser.content : JSON.stringify(latestUser.content || '')) : '';
+  const tableMode = doctors.length > 1 || /\b[HR]\d{4}-\d{3}/i.test(latestText) || Boolean(toolInput.planId) || (Array.isArray(toolInput.planIds) && toolInput.planIds.length > 0);
+  let askText = tableMode ? comparisonAskText(context.messages || [], conversationAskText(context.messages || [])) : '';
+  // Her county decides which grid plans can be columns: the tool's ZIP fills in when the ask text has none
+  // (an unknown county let Broward-only H1609-018 into a ZIP 33018 grid — Maura, 2026-10-07).
+  const toolZip = String(toolInput.zip || doctors.map((d) => d.zip).find(Boolean) || '').match(/\b3\d{4}\b/);
+  if (askText && toolZip && !require('./comparisonRules').countyFromAsk(askText)) askText += `\nZIP ${toolZip[0]}.`;
   const planAskText = askText || comparisonAskText(context.messages || [], conversationAskText(context.messages || []));
   // Rule 8: meds she already listed are priced here, in the same turn — not left for a
   // later model round that the chat wait never reaches.
-  const meds = doctors.length > 1 ? medsFromAsk(askText) : [];
+  const meds = tableMode ? medsFromAsk(askText) : [];
   if (doctors.length > 1) {
     const carriersLine = (askText.match(/Carriers requested:[^\n]*/g) || []).pop();
     console.log(`[comparison] ${doctors.length} doctors · ${meds.length} meds · ${carriersLine || 'no carrier ask'}`);
@@ -762,7 +814,7 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
     { deadlineAt: doctorDeadline, npiCap }
   )));
 
-  if (doctors.length === 1) {
+  if (!tableMode) {
     const r = results[0];
     return { text: r.text, structured: r.structured, status: r.status };
   }
@@ -795,7 +847,7 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
     (done < results.length ? ` Anything marked ${NOT_CONFIRMED} did not finish (or no NPI match) — never report it as out-of-network.` : '');
   return {
     text: [header, '', summary.text, notes.length ? `\nNOTES:\n${notes.join('\n')}` : ''].join('\n').slice(0, 12000),
-    structured: { doctors: doctorsStructured, finished: done, total: results.length, questions: summary.questions },
+    structured: { doctors: doctorsStructured, finished: done, total: results.length, questions: summary.questions, rendered: renderedAnswer(doctorsStructured, askText, { answered, drugs }) },
     expand: doctorsStructured,
     // Priced meds ride along as their own tool results (fallback tables + Excel/PDF export read them).
     extraToolResults: drugs.map((r) => {
@@ -807,6 +859,8 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
 }
 
 module.exports = {
+  savedDoctorNpis,
+  savedNpiFor,
   stripSavedStatus,
   planIdsFrom,
   guestPlanIdsFor,

@@ -50,6 +50,7 @@ function normalizeNetworkBucket(raw) {
   if (NETWORK_BUCKETS.has(upper)) return upper;
   if (/need\s*more\s*info/i.test(s)) return 'NEED MORE INFO';
   if (/not\s*confirmed/i.test(s)) return 'NOT CONFIRMED';
+  if (/\bnot\s+(?:in[-\s]?network|listed)\b/i.test(s)) return 'OUT';
   if (/^(in[-\s]?network|inn|in|true|yes)$/i.test(s) || /\bin[-\s]?network\b/i.test(s)) return 'IN';
   if (/^(out(?:\s+of)?[-\s]?network|oon|out|false|no)$/i.test(s) || /\bout(?:\s+of)?[-\s]?network\b/i.test(s)) {
     return 'OUT';

@@ -10,7 +10,7 @@ const assert = require('node:assert/strict');
 const R = require('./comparisonRules');
 const N = require('./doctorPlanNarrow');
 const { planIdsFrom, guestPlanIdsFor } = require('./providerNetwork');
-const { queryUhcGuest, resetSessionCache, formatUhcAgentNote, unreliableMiss } = require('./uhcGuestSearch');
+const { queryUhcGuest, resetSessionCache, formatUhcAgentNote } = require('./uhcGuestSearch');
 
 describe('UHC guest check scope (bug 1)', () => {
   it('planIdsFrom reads every ID in a comma list / array, not just the first', () => {
@@ -61,15 +61,13 @@ describe('UHC guest check scope (bug 1)', () => {
     assert.equal(r.inNetwork, true);
   });
 
-  it('a Preferred Care Partners (H1045) miss is not confirmed, never Out', async () => {
+  it('a checked H1045 plan with no listing reads "Not listed in UnitedHealthcare\'s directory for this plan"', async () => {
     const r = await queryUhcGuest('1720196454', { zip: '33018', planIds: ['H1045-001'] }, fetchImpl);
     assert.equal(r.inNetwork, false);
-    assert.deepEqual(r.outOfNetworkPlans, []);
-    assert.equal(r.notListedPlans.length, 1);
+    assert.equal(r.outOfNetworkPlans.length, 1, 'the guest directory is the member directory — a checked miss is not in network');
     const note = formatUhcAgentNote(r);
-    assert.match(note, /NOT CONFIRMED, never Out/);
-    assert.doesNotMatch(note, /Out of network:/);
-    assert.equal(unreliableMiss('H5420-001-000'), false, 'other UHC contracts keep a hard Out');
+    assert.match(note, /Not listed in UnitedHealthcare's directory for this plan — not in network: .*H1045-001/);
+    assert.doesNotMatch(note, /misses|members see/i);
   });
 });
 

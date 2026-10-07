@@ -184,7 +184,7 @@ describe('queryUhcGuest mocked path', () => {
     assert.ok(result.outOfNetworkPlans[0].includes('H5420-001'));
   });
 
-  it('an empty search on a Preferred Care Partners (H1045) plan is not listed — not confirmed, not Out', async () => {
+  it('an empty search on a Preferred Care Partners (H1045) plan is a plain not in network (same directory members use)', async () => {
     const fetchImpl = mockFetch({
       GetLocation: { location: { features: [{ center: ['-80.36', '25.68'], stateCode: 'FL' }] } },
       GetPostalPoint: { getPostalPoint: { county_proper: 'Miami-Dade', county_id: '12086', state: 'FL' } },
@@ -192,9 +192,8 @@ describe('queryUhcGuest mocked path', () => {
       ProviderSearch: { providerSearch: { providers: [] } },
     });
     const result = await queryUhcGuest('1306409339', { zip: '33176', planIds: ['H1045-012'] }, fetchImpl);
-    assert.equal(result.checks[0].status, 'not_listed');
-    assert.deepEqual(result.outOfNetworkPlans, []);
-    assert.ok(result.notListedPlans[0].includes('H1045-012'));
+    assert.equal(result.checks[0].status, 'out_of_network');
+    assert.ok(result.outOfNetworkPlans[0].includes('H1045-012'));
   });
 
   it('does not treat a GraphQL failure as out of network', async () => {
@@ -237,6 +236,6 @@ describe('queryUhcGuest mocked path', () => {
     });
     const result = await queryUhcGuest('1598792707', { zip: '33176', planIds: ['H1045-012'] }, fetchImpl);
     assert.equal(result.inNetwork, false);
-    assert.equal(result.checks[0].status, 'not_listed');
+    assert.equal(result.checks[0].status, 'out_of_network');
   });
 });

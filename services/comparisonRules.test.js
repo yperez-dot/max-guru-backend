@@ -65,7 +65,7 @@ describe('the bug-report client (fallback reply)', () => {
   it('rule 6: counts are "X in · Y out · Z unchecked / not confirmed", never X/7', () => {
     // Yavagal / Krajewski are unconfirmed last-name matches → not counted until she confirms.
     // Their cells read "❔ not confirmed", so the count row says not confirmed too (Enrique Soley, 2026-10-07).
-    assert.match(text, /\| \*\*Doctors\*\* \| \*\*2 in · 2 out · 3 not confirmed\*\* \|/);
+    assert.match(text, /\| \*\*Doctors\*\* \| \*\*2 in · 2 not in network · 3 not confirmed\*\* \|/);
     assert.doesNotMatch(text, /\b\d\/7\b/);
   });
 

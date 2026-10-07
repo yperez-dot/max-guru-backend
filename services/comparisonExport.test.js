@@ -108,7 +108,7 @@ describe('thread extractors', () => {
     const docs = exp.extractDoctors(SAMPLE_THREAD, plans);
     assert.equal(docs.length, 3);
     const byName = Object.fromEntries(docs.map((d) => [d.name, d.statuses]));
-    assert.deepEqual(byName['Dr. Adam Wanner'], ['Out of network', 'Out of network']);
+    assert.deepEqual(byName['Dr. Adam Wanner'], ['Not in network (not listed)', 'Not in network (not listed)']);
     assert.deepEqual(byName['Dr. Anila Veerani'], ['In network', 'In network']);
     assert.deepEqual(byName['Dr. Bonny Castro'], ['In network', 'In network']);
   });
@@ -255,7 +255,7 @@ describe('Arias-like sheet model from live plan-data', () => {
     assert.ok(msp.slice(1).some((c) => c && c !== 'Not listed'));
 
     const wanner = model.aoa.find((row) => row[0] === 'Dr. Adam Wanner');
-    assert.deepEqual(wanner.slice(1), ['Out of network', 'Out of network']);
+    assert.deepEqual(wanner.slice(1), ['Not in network (not listed)', 'Not in network (not listed)']);
 
     const premium = model.aoa.find((row) => row[0] === 'Premium');
     assert.equal(premium[1], exp.formatBenefitValue(a.premium, 'premium'));
@@ -480,7 +480,7 @@ describe('export doctors section + no carrier-as-drug', () => {
     const model = exp.buildComparisonModel(payload);
     assert.equal(model.aoa.some((row) => row[0] === 'Doctors'), true);
     const roca = model.aoa.find((row) => row[0] === 'Dr. Alejandro Roca');
-    assert.deepEqual(roca.slice(1), ['Out of network', 'In network', 'In network']);
+    assert.deepEqual(roca.slice(1), ['Not in network (not listed)', 'In network', 'In network']);
     const neeta = model.aoa.find((row) => /Erinjeri/i.test(row[0]));
     assert.ok(neeta);
     assert.deepEqual(neeta.slice(1), ['In network', 'In network', 'In network']);
@@ -982,11 +982,11 @@ describe('Muskat 2027 locked export', () => {
     assert.equal(labels.includes('MSP Levels'), false, 'non-dual Muskat comp omits MSP Levels');
 
     const roca = model.aoa.find((row) => row[0] === 'Dr. Alejandro Roca');
-    assert.deepEqual(roca.slice(1), ['Out of network', 'In network', 'In network']);
+    assert.deepEqual(roca.slice(1), ['Not in network (not listed)', 'In network', 'In network']);
     const kaiser = model.aoa.find((row) => row[0] === 'Dr. Charles J. Kaiser');
-    assert.deepEqual(kaiser.slice(1), ['Out of network', 'In network', 'In network']);
+    assert.deepEqual(kaiser.slice(1), ['Not in network (not listed)', 'In network', 'In network']);
     const trattler = model.aoa.find((row) => row[0] === 'Dr. William Trattler');
-    assert.deepEqual(trattler.slice(1), ['Out of network', 'In network', 'In network']);
+    assert.deepEqual(trattler.slice(1), ['Not in network (not listed)', 'In network', 'In network']);
     const neeta = model.aoa.find((row) => row[0] === 'Dr. Neeta Jane Erinjeri');
     assert.deepEqual(neeta.slice(1), ['In network', 'In network', 'In network']);
 
@@ -1375,7 +1375,7 @@ describe('One column per distinct contract-PBP (follow-up hardening)', () => {
     const model = exp.buildComparisonModel({ plans: eight, clientName: 'Test Client', doctors: [{ name: 'Dr. Test', statuses }] });
     assert.deepEqual(ids(model.payload.plans), ['H1036-054C', 'H4140-023', 'H5420-001']);
     const row = model.aoa.find((r) => r[0] === 'Dr. Test');
-    assert.deepEqual(row.slice(1), ['Out of network', 'In network', 'In network']);
+    assert.deepEqual(row.slice(1), ['Not in network (not listed)', 'In network', 'In network']);
   });
 
   it('prefers a real In/Out over a Not confirmed copy when folding duplicate columns', () => {
@@ -1384,7 +1384,7 @@ describe('One column per distinct contract-PBP (follow-up hardening)', () => {
     const statuses = ['In network', 'Not confirmed', 'Out of network', 'In network'];
     const model = exp.buildComparisonModel({ plans: stacked, clientName: 'Test Client', doctors: [{ name: 'Dr. Fold', statuses }] });
     const row = model.aoa.find((r) => r[0] === 'Dr. Fold');
-    assert.deepEqual(row.slice(1), ['In network', 'Out of network', 'In network']);
+    assert.deepEqual(row.slice(1), ['In network', 'Not in network (not listed)', 'In network']);
   });
 
   it('keepCurrentComparisonPlans: a cited 001 replaces a stale remembered 014', () => {
@@ -1502,9 +1502,9 @@ Earlier: all four In network on UHC H5420-001.
     const roca = model.aoa.find((row) => /roca/i.test(row[0]));
     const kaiser = model.aoa.find((row) => /kaiser/i.test(row[0]));
     const erinjeri = model.aoa.find((row) => /erinjeri/i.test(row[0]));
-    assert.deepEqual(trattler.slice(1), ['Out of network', 'In network', 'In network']);
-    assert.deepEqual(roca.slice(1), ['Out of network', 'In network', 'In network']);
-    assert.deepEqual(kaiser.slice(1), ['Out of network', 'In network', 'In network']);
+    assert.deepEqual(trattler.slice(1), ['Not in network (not listed)', 'In network', 'In network']);
+    assert.deepEqual(roca.slice(1), ['Not in network (not listed)', 'In network', 'In network']);
+    assert.deepEqual(kaiser.slice(1), ['Not in network (not listed)', 'In network', 'In network']);
     assert.deepEqual(erinjeri.slice(1), ['In network', 'In network', 'In network']);
     assert.equal(trattler.includes('Not confirmed'), false);
   });
@@ -1538,7 +1538,7 @@ Earlier: all four In network on UHC H5420-001.
     };
     const model = exp.buildComparisonModel(offer);
     const row = model.aoa.find((r) => /trattler/i.test(r[0]));
-    assert.deepEqual(row.slice(1), ['Out of network', 'In network', 'In network']);
+    assert.deepEqual(row.slice(1), ['Not in network (not listed)', 'In network', 'In network']);
   });
 
   describe('SOB rows, dental counts, session tool results', () => {
@@ -1683,20 +1683,20 @@ Earlier: all four In network on UHC H5420-001.
         { carrier: 'Devoted Health', inNetwork: false, status },
       ] });
       const [checked, failed, pending] = ['checked', 'failed', 'pending'].map((st, i) => exp.doctorsFromProviderLookups([lookup(`Dileep Yavagal${i}`, st)], plans)[0]);
-      assert.deepEqual(checked.statuses, ['Out of network', 'Out of network']);
-      assert.ok(failed.statuses.every((x) => x !== 'Out of network'));
-      assert.ok(pending.statuses.every((x) => x !== 'Out of network'));
+      assert.deepEqual(checked.statuses, ['Not in network (not listed)', 'Not in network (not listed)']);
+      assert.ok(failed.statuses.every((x) => x !== 'Not in network (not listed)'));
+      assert.ok(pending.statuses.every((x) => x !== 'Not in network (not listed)'));
       const clinic = exp.doctorsFromProviderLookups([lookup('Miami Neurology & Rehab', 'checked')], plans)[0];
-      assert.ok(clinic.statuses.every((x) => x !== 'Out of network'));
+      assert.ok(clinic.statuses.every((x) => x !== 'Not in network (not listed)'));
     });
 
     it('Solis: a name-index listing is In; a checked miss is Out; no check stays Not confirmed', () => {
       const plans = loadPlans().filter((p) => /^H0982-016/.test(String(p.planId || p.id || '').toUpperCase()));
       assert.equal(plans.length, 1);
       const run = (inNetwork, status) => exp.doctorsFromProviderLookups([{ doctorName: 'Eduardo Krajewski', networks: [{ carrier: 'Solis Health Plans', inNetwork, status }] }], plans)[0].statuses[0];
-      assert.notEqual(run(true, 'checked'), 'Out of network');
-      assert.equal(run(false, 'checked'), 'Out of network');
-      assert.notEqual(run(false, 'failed'), 'Out of network');
+      assert.notEqual(run(true, 'checked'), 'Not in network (not listed)');
+      assert.equal(run(false, 'checked'), 'Not in network (not listed)');
+      assert.notEqual(run(false, 'failed'), 'Not in network (not listed)');
     });
 
     it('a clinic the agent says is out of network stays Out of network', () => {
@@ -1707,7 +1707,7 @@ Earlier: all four In network on UHC H5420-001.
         doctors: [{ name: 'Miami Neurology & Rehab', byPlanId: { [id]: 'Out of network' } }],
       });
       const clinic = payload.doctors.find((d) => /miami neurology/i.test(d.name));
-      assert.equal(clinic.statuses[0], 'Out of network');
+      assert.equal(clinic.statuses[0], 'Not in network (not listed)');
     });
 
     it('a clinic the carrier lists as out of network stays Out of network', () => {
@@ -1717,7 +1717,7 @@ Earlier: all four In network on UHC H5420-001.
         [{ doctorName: 'Miami Neurology & Rehab', networks: [{ carrier: 'Doctors HealthCare Plans', inNetwork: false, outOfNetworkPlans: [id] }] }],
         plans
       );
-      assert.equal(docs[0].statuses[0], 'Out of network');
+      assert.equal(docs[0].statuses[0], 'Not in network (not listed)');
     });
   });
 });

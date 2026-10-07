@@ -502,7 +502,7 @@ function isHumanaLabel(label) {
 /** Agent-facing lines. Failed check is never phrased as out of network. */
 function formatHumanaAgentNote(result) {
   if (!result) return '';
-  const lines = [`Humana Find Care guest (${result.year || PLAN_YEAR}, no member login):`];
+  const lines = [`Humana Find Care (${result.year || PLAN_YEAR}):`];
   if (result.error && !result.checks?.length) {
     lines.push('Failed check — could not finish the public Humana directory. That is not out of network.');
     lines.push(`Next step: ${result.publicUrl || PUBLIC_FIND_CARE} (Search as a guest → Medicare → 2027 network).`);
@@ -512,7 +512,7 @@ function formatHumanaAgentNote(result) {
     lines.push(`In network: ${result.plans.join('; ')}`);
   }
   if (result.outOfNetworkPlans?.length) {
-    lines.push(`Out of network: ${result.outOfNetworkPlans.join('; ')}`);
+    lines.push(`Not listed in Humana's directory for this plan — not in network: ${result.outOfNetworkPlans.join('; ')}`);
   }
   if (result.failedPlans?.length) {
     lines.push(`Failed check (not OON): ${result.failedPlans.join('; ')}`);

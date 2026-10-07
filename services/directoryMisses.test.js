@@ -1,4 +1,4 @@
-// Doctors HealthCare + Devoted: a finished directory check that does not list the NPI is ❌ Out;
+// Doctors HealthCare + Devoted: a finished directory check that does not list the NPI is ❌ Not in network (not listed);
 // a failed or pending check stays ❔ unchecked. Live bug 2026-10-06: all 7 doctors showed
 // "❔ not confirmed" on Doctors + Devoted although 4 / 3 of them are listed.
 const { describe, it, afterEach } = require('node:test');
@@ -15,13 +15,13 @@ const doc = (name, carriersIn, extra = {}) => ({
 const rowOf = (text, name) => text.split('\n').find((l) => l.startsWith(`| ${name}`)).split('|').map((c) => c.trim()).slice(1, -1);
 
 describe('Doctors + Devoted cells', () => {
-  it('listed → ✅ In; finished and not listed → ❌ Out', () => {
+  it('listed → ✅ In; finished and not listed → ❌ Not in network (not listed)', () => {
     const t = n.batchSummaryForModel([
       doc('Juan Diego Cedeno', ['Doctors HealthCare Plans', 'Devoted Health']),
       doc('Dileep Yavagal', []),
     ], ASK, {}).text;
-    assert.deepEqual(rowOf(t, 'Juan Diego Cedeno').slice(1), ['❌ Out', '✅ In', '❔ unchecked', '✅ In']);
-    assert.deepEqual(rowOf(t, 'Dileep Yavagal').slice(1), ['❌ Out', '❌ Out', '❔ unchecked', '❌ Out']);
+    assert.deepEqual(rowOf(t, 'Juan Diego Cedeno').slice(1), ['❌ Not in network (not listed)', '✅ In', '❔ unchecked', '✅ In']);
+    assert.deepEqual(rowOf(t, 'Dileep Yavagal').slice(1), ['❌ Not in network (not listed)', '❌ Not in network (not listed)', '❔ unchecked', '❌ Not in network (not listed)']);
   });
 
   it('a failed Devoted FHIR call or failed Doctors list stays ❔ unchecked, never Out', () => {
@@ -35,7 +35,7 @@ describe('Doctors + Devoted cells', () => {
 
   it('a Florida Blue FHIR failure does not blank the Devoted cell', () => {
     const t = n.batchSummaryForModel([doc('Dileep Yavagal', [], { failed: ['Florida Blue (FHIR)'] })], ASK, {}).text;
-    assert.equal(rowOf(t, 'Dileep Yavagal')[4], '❌ Out');
+    assert.equal(rowOf(t, 'Dileep Yavagal')[4], '❌ Not in network (not listed)');
   });
 
   it('a pending check or an unconfirmed doctor match is never Out', () => {
@@ -48,7 +48,7 @@ describe('Doctors + Devoted cells', () => {
     const ask = 'Compare Doctors HealthCare Plan C-SNP H4140-015 and Devoted CORE H1290-001 for these doctors';
     const t = n.batchSummaryForModel([doc('Dileep Yavagal', [])], ask, {}).text;
     const cells = rowOf(t, 'Dileep Yavagal');
-    assert.ok(/Out/.test(cells[1]), `Doctors C-SNP cell was ${cells[1]}`);
+    assert.ok(/Not in network \(not listed\)/.test(cells[1]), `Doctors C-SNP cell was ${cells[1]}`);
   });
 });
 
@@ -90,13 +90,13 @@ describe('Doctors API reply that is not a list', () => {
 
 describe('named Solis plan (2027 county directory index)', () => {
   const solisNet = (inNetwork, status = 'checked', matches = []) => ({ networks: [{ carrier: 'Solis Health Plans', inNetwork, status, directoryMatches: matches }] });
-  it('listed → ✅ In with the PDF page in the flag; checked and not listed → ❌ Out', () => {
+  it('listed → ✅ In with the PDF page in the flag; checked and not listed → ❌ Not in network (not listed)', () => {
     const t = n.batchSummaryForModel([
       doc('Eduardo Krajewski', ['Doctors HealthCare Plans', 'Solis Health Plans'], solisNet(true, 'checked', [{ name: 'KRAJEWSKI, EDUARDO MD', pages: [93], county: 'miamiDade' }])),
       doc('Dileep Yavagal', [], solisNet(false)),
     ], ASK, {}).text;
     assert.equal(rowOf(t, 'Eduardo Krajewski')[3], '✅ In');
-    assert.equal(rowOf(t, 'Dileep Yavagal')[3], '❌ Out');
+    assert.equal(rowOf(t, 'Dileep Yavagal')[3], '❌ Not in network (not listed)');
     assert.match(t, /Eduardo Krajewski = KRAJEWSKI, EDUARDO MD \(p\. 93\)/);
   });
   it('no Solis check (county not covered / older lookup) stays ❔ unchecked, never Out', () => {
