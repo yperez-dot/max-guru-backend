@@ -386,3 +386,5 @@ Write it in this file (or `max-knowledge/` if the **chatbot** must cite it). Nex
 - 2026-10-07 (export doctor list): XLSX Doctors section had junk rows ("Dr. Name: H1045-005 IN", "Dr. H1036-065c Not Confirmed", "Dr. Sarkell. Dr. Aguiar") scraped from chat text. comparison-export.js `cleanDoctorName` now cuts at ":", strips trailing IN/OUT/Not Confirmed, drops plan-ID and "Dr. … Dr." names (applied in findDoctorNames and normalizeDoctors).
 
 - 2026-10-07 (current plan ≠ carrier ask): a paste like "Current plan H1045-005 UHC Preferred MA FL-0002. She wants something better." was read as "only UnitedHealthcare" (carriersRequested saw "UHC"). comparisonRules.carriersRequested now ignores the client's current-plan phrase and the plan name after any plan ID. Alternatives span all carriers; UHC MedicareMax (H5420-003) is a valid alternative.
+
+- 2026-10-07 (HMO default): comparisons now exclude PPOs unless the ask mentions PPO / "any network" (doctorPlanNarrow.askConstraints). Named/pinned plans (her client's current plan) still show even if PPO.

@@ -75,3 +75,16 @@ describe('core plan always leads a carrier comparison', () => {
     assert.ok(sel.flags.some((f) => /core plan leads/.test(f)));
   });
 });
+
+describe('HMO is the default; PPOs only when asked', () => {
+  const { askConstraints } = require('./doctorPlanNarrow');
+  const assert3 = require('node:assert/strict');
+  it('no PPO mention → HMO only', () => {
+    assert3.equal(askConstraints('Marilyn Butler, 33076. Doctors: Dr. A B, Dr. C D').onlyHmo, true);
+  });
+  it('PPO mentioned → PPOs allowed', () => {
+    assert3.equal(askConstraints('include PPO options too').onlyHmo, false);
+    assert3.equal(askConstraints('she needs a PPO').onlyPpo, true);
+    assert3.equal(askConstraints('she needs a PPO').onlyHmo, false);
+  });
+});
