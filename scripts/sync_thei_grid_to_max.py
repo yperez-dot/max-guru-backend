@@ -102,8 +102,11 @@ LABEL_MAP = {
     "acupuncture": "acupuncture",
     "fitness": "fitness",
     "grocery card": "groceryCardDetail",
+    # Row 2 on the C-SNP tabs: the plan's qualifying conditions (the real list).
     "chronic conditions": "chronicConditions",
-    "ssbci chronic conditions": "chronicConditions",
+    # Lower SSBCI row is a separate benefit row (usually a "Chronic Condition
+    # Look Up" link). It must not overwrite the C-SNP qualifying list above.
+    "ssbci chronic conditions": "ssbciChronicConditions",
     "custodial care": "custodialCare",
     "other": "other",
     "msp levels": "mspLevels",
@@ -491,6 +494,8 @@ def parse_grid_2027(xlsx: Path) -> list[dict]:
                         fields["other"] = f"{fields['other']}\n{val}"
                     else:
                         fields[key] = val
+                    if key == "ssbciChronicConditions" and cell.hyperlink and cell.hyperlink.target:
+                        fields["ssbciChronicConditionsUrl"] = str(cell.hyperlink.target).strip()
                 elif is_yellow(cell):
                     yellow_left += 1
                     # Yellow dental procedure with a clear frequency — keep (existing helper rule)
