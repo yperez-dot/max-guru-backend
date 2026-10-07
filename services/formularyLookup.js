@@ -868,8 +868,9 @@ function conceptProductTraits(name) {
 }
 
 /**
- * The asked strength exists for no product of this ingredient (pregabalin "20 mg" — a typo for
- * 200 mg). Returns the nearest real strengths (×10 / ÷10 typos first), or null when it exists.
+ * The asked strength matches none of the products this lookup returned (pregabalin "20 mg" — likely
+ * 200 mg). Only those products were checked, so this is "couldn't match", never "does not exist".
+ * Returns the closest strengths found (×10 / ÷10 typos first), or null when it matches.
  */
 function missingStrengthCheck(query, concepts) {
   const hints = queryProductHints(query);
@@ -894,7 +895,7 @@ function missingStrengthCheck(query, concepts) {
   return { asked: fmt(asked), nearest: nearest.map(fmt), available: same.map(fmt) };
 }
 
-/** Query with the strength removed — the drug-level fallback for a strength that does not exist. */
+/** Query with the strength removed — the drug-level fallback for a strength that could not be matched. */
 function withoutStrength(query) {
   return String(query || '').replace(/(\d+(?:\.\d+)?)\s*(mg|mcg|g|unit|units|meq|%)\b/gi, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -1598,8 +1599,10 @@ function medicareGovQueryName(rawQuery, resolvedName) {
 
 function strengthNoteText(drugName, note) {
   if (!note) return '';
-  const near = note.nearest.length ? ` Likely ${note.nearest[0]}${note.nearest.length > 1 ? ` (nearest real strengths: ${note.nearest.join(', ')})` : ''}.` : '';
-  return `STRENGTH NOT FOUND: ${String(drugName || 'this drug').replace(/\s*\d.*$/, '')} ${note.asked} does not exist.${near} Coverage below is confirmed at the drug level, not for ${note.asked} — ask the agent to confirm the strength.`;
+  // Only the products this lookup returned were checked, so never say a strength "does not exist".
+  const name = String(drugName || 'this drug').replace(/\s*\d.*$/, '').toLowerCase();
+  const near = note.nearest.length ? ` Closest strengths found: ${note.nearest.join(', ')}.` : '';
+  return `STRENGTH NOT MATCHED: Couldn't match ${name} ${note.asked} on medicare.gov — confirm it.${near} The tier below is drug-level only, not confirmed for ${note.asked}.`;
 }
 
 function flagLine(label, value) {
@@ -1618,7 +1621,7 @@ function formatPlanLookupLine(drugName, row) {
       row.pa === true ? 'pa=yes' : row.pa === false ? 'pa=no' : null,
       row.st === true ? 'st=yes' : row.st === false ? 'st=no' : null,
       row.source ? `source=${row.source}` : null,
-      row.strengthNote ? `strength=${row.strengthNote.asked.replace(/\s+/g, '')}_not_found_likely_${(row.strengthNote.nearest[0] || '?').replace(/\s+/g, '')}` : null,
+      row.strengthNote ? `tier_scope=drug_level strength=${row.strengthNote.asked.replace(/\s+/g, '')}_unmatched_confirm${row.strengthNote.nearest[0] ? ` closest=${row.strengthNote.nearest[0].replace(/\s+/g, '')}` : ''}` : null,
     ]
       .filter(Boolean)
       .join(' ');
@@ -1665,7 +1668,9 @@ function formatFormularyText(result) {
             ? `${row.costShare} (${row.costShareSource})`
             : 'cost-share not on file in THEI 2027 grid/KB';
       lines.push(
-        `${row.planId}: verified Tier ${row.tier} · ${cost}${flags ? ` · ${flags}` : ''} · source ${row.source}`
+        row.strengthNote
+          ? `${row.planId}: Tier ${row.tier} at drug level (not confirmed for ${row.strengthNote.asked}) · ${cost}${flags ? ` · ${flags}` : ''} · source ${row.source}`
+          : `${row.planId}: verified Tier ${row.tier} · ${cost}${flags ? ` · ${flags}` : ''} · source ${row.source}`
       );
     } else if (row.verified && row.coverage === 'not_covered') {
       lines.push(`${row.planId}: verified not covered (${row.source}).`);

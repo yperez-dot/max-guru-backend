@@ -65,7 +65,7 @@ describe('pregabalin on Humana H1036-065C 2027 (Katy, 2026-10-07)', () => {
     assert.ok(costCalls.includes('13668036330')); // the empty ones were asked first
   });
 
-  it('"pregabalin 20 mg" (no such strength) confirms at drug level and flags the likely 200 mg typo', async () => {
+  it('"pregabalin 20 mg" (strength not matched) confirms at drug level and flags it as unmatched (closest 200 mg)', async () => {
     const { fetchImpl } = makeFetch();
     const hit = await F.lookupMedicareGov({ drugName: 'pregabalin 20 mg', planId: 'H1036-065C', year: 2027 }, fetchImpl);
     assert.equal(hit.verified, true);
@@ -80,9 +80,11 @@ describe('pregabalin on Humana H1036-065C 2027 (Katy, 2026-10-07)', () => {
 
   it('the strength note reaches the model text', () => {
     const text = F.formatFormularyText({ drugName: 'Pregabalin', year: 2027, lookups: [{ planId: 'H1036-065C', year: 2027, verified: true, tier: 3, coverage: 'covered', costShare: '$5', costShareSource: 'kb_2027', source: 'medicare_gov', strengthNote: { asked: '20 mg', nearest: ['200 mg', '25 mg'], available: [] } }] });
-    assert.match(text, /STRENGTH NOT FOUND: Pregabalin 20 mg does not exist\. Likely 200 mg/);
-    assert.match(text, /confirmed at the drug level, not for 20 mg/);
-    assert.match(text, /verified_tier=3 .*strength=20mg_not_found_likely_200mg/);
+    assert.match(text, /STRENGTH NOT MATCHED: Couldn't match pregabalin 20 mg on medicare\.gov — confirm it\. Closest strengths found: 200 mg, 25 mg\./);
+    assert.match(text, /The tier below is drug-level only, not confirmed for 20 mg\./);
+    assert.match(text, /H1036-065C: Tier 3 at drug level \(not confirmed for 20 mg\)/);
+    assert.match(text, /verified_tier=3 .*tier_scope=drug_level strength=20mg_unmatched_confirm closest=200mg/);
+    assert.doesNotMatch(text, /does not exist|not found|verified Tier 3/i);
   });
 
   it('a real strength never gets the typo flag', () => {
