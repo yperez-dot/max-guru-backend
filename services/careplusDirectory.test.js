@@ -63,3 +63,15 @@ describe('manual-check notes for carriers with no directory', () => {
     assert.equal(manualCheckNotes([{ carrier: 'Humana', name: 'Humana Gold Plus', planId: 'H1036-054' }]), '');
   });
 });
+
+describe('core plan always leads a carrier comparison', () => {
+  const { selectComparison } = require('./doctorPlanNarrow');
+  it('Humana Gold Plus H1036-065C is first even when no doctor is confirmed on it', () => {
+    const mk = (name, inP, outP) => ({ requestedName: name, doctorName: name, status: 'done', pending: [], failed: [], networks: [], carriersIn: ['Humana'], inNetworkPlans: inP, outOfNetworkPlans: outP });
+    const docs = ['A One', 'B Two'].map((n) => mk(n, ['Humana Gold Plus Giveback (HMO) (H1036-305)'], ['HumanaChoice (PPO) (H7617-107)']));
+    const sel = selectComparison(docs, 'Maria Perez ZIP 33076. No Medicaid. Carriers requested: Humana.', {});
+    assert.equal(sel.columns[0].planId.slice(0, 9), 'H1036-065', sel.columns.map((c) => c.planId).join(','));
+    assert.ok(sel.columns.length >= 2);
+    assert.ok(sel.flags.some((f) => /core plan leads/.test(f)));
+  });
+});

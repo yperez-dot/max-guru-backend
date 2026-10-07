@@ -202,6 +202,13 @@ function formatPlanLabel(plan) {
 function countyForZip(zip) {
   const geo = ZIP_GEO[String(zip || '').slice(0, 5)];
   if (geo) return geo.county;
+  // THEI's county-by-ZIP table first: 330xx is Broward for Coral Springs (33065-33077), Tamarac, Margate…
+  // — the old "333/334 prefix" guess called 33076 Miami-Dade, which hid Broward-only plans like H1036-065C.
+  try {
+    const c = require('./comparisonRules').countyForZip(zip);
+    if (c === 'Broward') return COUNTY_BROWARD;
+    if (c === 'Miami-Dade') return COUNTY_MIAMI_DADE;
+  } catch (_) { /* fall through */ }
   const prefix = String(zip || '').slice(0, 3);
   if (prefix === '333' || prefix === '334') return COUNTY_BROWARD;
   return COUNTY_MIAMI_DADE;
