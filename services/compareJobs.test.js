@@ -111,3 +111,19 @@ describe('Dr. titles', () => { it('keeps full doctor names written with a Dr. ti
   assert.deepEqual(ask.doctors.map((d) => d.name), ['Jorge Perez (primary care)', 'Maria Sanchez (orthopedics)']);
   assert.deepEqual(ask.meds, ['Xarelto 20mg', 'Jardiance 10mg']);
 }); });
+
+describe('parseCompareAsk — free-form paste', () => {
+  const PASTE = 'Marilyn and Angus butler. 33076.   Ashwin Mehta, Vivian Aguiar, Jorge G. Ruiz, Nathan Boire, Jose Guzman, Barry Sarkell, Marc Bosem, Jordan Elman. no meds. no medicaid. for 2026 they have UHC Preferred Medicare Advantage FL-0002 (HMO) (H1045-5-0). theyre wondering if theres something better. add their 2027 plan to the comparison too';
+  it('reads a lowercase surname, unlabeled doctors, middle initials and short plan ids', () => {
+    const f = parseCompareAsk(PASTE);
+    assert.equal(f.clientName, 'Marilyn and Angus Butler');
+    assert.equal(f.zip, '33076');
+    assert.deepEqual(f.doctors.map((d) => d.name), ['Ashwin Mehta', 'Vivian Aguiar', 'Jorge G. Ruiz', 'Nathan Boire', 'Jose Guzman', 'Barry Sarkell', 'Marc Bosem', 'Jordan Elman']);
+    assert.deepEqual(f.meds, []);
+    assert.deepEqual(f.plans, ['H1045-005']);
+    assert.equal(f.noMedicaid, true);
+  });
+  it('"Marilyn Angus butler." keeps the full name', () => {
+    assert.equal(parseCompareAsk('Marilyn Angus butler. 33076. Ashwin Mehta, Vivian Aguiar. no meds').clientName, 'Marilyn Angus Butler');
+  });
+});
