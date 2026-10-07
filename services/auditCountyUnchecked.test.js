@@ -66,11 +66,58 @@ describe('Doctors HealthCare PDF index: county-scoped', () => {
     try {
       const r = await D.queryDoctorsHcp(tampaOnly, { zip: '33018' });
       assert.equal(r.inNetwork, false);
-      assert.equal(r.error, null);
+      // A listing outside her area is not In — and not proof of Out: a failed check (❔ unchecked).
+      assert.equal(r.error, 'other_county_only');
       assert.equal(r.source, 'pdf');
       assert.match(r.otherCountyOnly[0], /Hillsborough\/Pasco p\. \d+/);
       assert.equal(calls, 0);
     } finally { global.fetch = original; }
+  });
+
+  // Miami-Dade and Broward are ONE pool: the SFL plans cover both, and each county PDF lists only
+  // doctors whose offices are in that county (Yahoska, 2026-10-07 — Gadh in Plantation read Out
+  // for a Miami-Dade client).
+  const brOnly = Object.keys(idx.broward.npis).find((n) => !idx.miamiDade.npis[n] && !idx.tampa.npis[n] && !idx.orlando.npis[n]);
+  const fail = async () => { throw new Error('live site must not decide this'); };
+
+  it('a Broward-only doctor is In for a Miami-Dade client', async () => {
+    const original = global.fetch;
+    global.fetch = fail;
+    try {
+      const r = await D.queryDoctorsHcp(brOnly, { zip: '33172' });
+      assert.equal(r.inNetwork, true);
+      assert.equal(r.error, null);
+    } finally { global.fetch = original; }
+  });
+
+  it('a Miami-Dade-only doctor is In for a Broward client', async () => {
+    const original = global.fetch;
+    global.fetch = fail;
+    try {
+      const r = await D.queryDoctorsHcp(mdOnly, { zip: '33324' });
+      assert.equal(r.inNetwork, true);
+    } finally { global.fetch = original; }
+  });
+
+  it('Dr. Rundeep Gadh (Broward PDF) is In for a Miami-Dade client', async () => {
+    const original = global.fetch;
+    global.fetch = fail;
+    try {
+      assert.equal((await D.queryDoctorsHcp('1407095615', { zip: '33172' })).inNetwork, true);
+    } finally { global.fetch = original; }
+  });
+
+  it('a doctor listed only outside her area renders ❔ unchecked in the table, never ❌ Out', () => {
+    const N = require('./doctorPlanNarrow');
+    const d = {
+      doctorName: 'Tampa Doctor', requestedName: 'Tampa Doctor', npi: tampaOnly, status: 'done',
+      pending: [], failed: ['Doctors HealthCare Plans'], inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [],
+      networks: [{ carrier: 'Doctors HealthCare Plans', inNetwork: false, status: 'failed' }],
+    };
+    const [col] = N.namedPlanColumns([{ planId: 'H4140-023', name: 'Doctors DrSelect-SFL' }], [], [d]);
+    assert.equal(col.out.length, 0);
+    assert.equal(col.in.length, 0);
+    assert.equal(col.unknown.length, 1);
   });
 
   it('the same NPI is In for a Tampa client, with the PDF page', async () => {

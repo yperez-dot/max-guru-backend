@@ -35,6 +35,8 @@ const INDEX_COUNTIES = {
   polk: ['Polk'],
 };
 
+const SOUTH_FLORIDA_POOL = ['miamiDade', 'broward'];
+
 /** Index keys for HER county (from the ZIP); [] when the county is unknown or has no Doctors PDF. */
 function doctorsIndexKeysForZip(zip) {
   const idx = loadIndex();
@@ -44,6 +46,12 @@ function doctorsIndexKeysForZip(zip) {
     for (const [k, list] of Object.entries(INDEX_COUNTIES)) {
       if (list.includes(c) && idx && idx.counties && idx.counties[k] && !keys.includes(k)) keys.push(k);
     }
+  }
+  // Miami-Dade and Broward are ONE pool: DrSelect-SFL / DrMax are South Florida plans, and each
+  // county PDF lists only doctors whose offices are in that county. A Miami-Dade client seeing a
+  // Plantation doctor is In — searching only her county's PDF read him ❌ Out (Yahoska, 2026-10-07).
+  if (keys.some((k) => SOUTH_FLORIDA_POOL.includes(k))) {
+    for (const k of SOUTH_FLORIDA_POOL) if (idx && idx.counties && idx.counties[k] && !keys.includes(k)) keys.push(k);
   }
   return keys;
 }
@@ -185,12 +193,13 @@ async function queryDoctorsHcp(npi, { zip } = {}) {
   const scoped = zip ? doctorsPdfScoped(npi, zip) : null;
   const pdfHits = scoped ? scoped.hits : doctorsPdfCheck(npi);
   if (scoped && scoped.searched && !pdfHits.length && scoped.otherCounty.length) {
-    // Her county's directory was searched and does not list this NPI; another county's does.
-    // The live site cannot tell counties apart, so this is the answer: not listed for her county.
+    // Listed only in a county outside her pool (e.g. Tampa for a Miami-Dade client). That is not
+    // an In for her — but it is not proof of Out either, so it is a failed check: ❔ unchecked,
+    // never ❌ Out. The live site cannot tell counties apart, so it is not asked.
     return {
       inNetwork: false,
       matches: [],
-      error: null,
+      error: 'other_county_only',
       source: 'pdf',
       otherCountyOnly: scoped.otherCounty.map((h) => `${h.label} p. ${h.page}`),
       planLabel: PLAN_LABEL,

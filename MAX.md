@@ -599,3 +599,22 @@ Solis and CarePlus — it is a name index.
 
 Martin (Broward 33324): Daniel Ead p. 222 and Matthew Soff p. 70 are listed; Dr. Rundeep Gadh
 is NOT (the only Gadh in the book is Rajdeep S.); Kava, Torshizi, Bartlett not listed.
+
+## 2026-10-07 — #160 follow-up: Doctors HealthCare county scope (Miami-Dade + Broward = one pool)
+
+#160 scoped the Doctors HealthCare PDF index to the client's county. That stopped a Tampa or
+Orlando listing from reading In for a Miami-Dade client, but it overcorrected. Each county PDF
+lists only doctors whose OFFICES are in that county, while DrSelect-SFL and DrMax are South
+Florida plans covering both counties. So a Miami-Dade client seeing Dr. Rundeep Gadh (Plantation,
+Broward PDF) read **❌ Out on DrSelect-SFL**, a false Out (reproduced in the table cell).
+
+Fixed in `services/doctorsHcp.js`:
+- **Miami-Dade and Broward are one pool** (`SOUTH_FLORIDA_POOL`). A client in either county is
+  checked against both PDFs.
+- **Listed only outside her area** (e.g. Tampa for Miami-Dade) → `error: 'other_county_only'`,
+  which is a failed check: **❔ unchecked, never Out**. Max's text says where the listing was and
+  to confirm with Doctors HealthCare (`providerNetwork.js`).
+
+Tests in `services/auditCountyUnchecked.test.js`: Broward-only doctor is In for a Miami-Dade
+client and vice versa; Gadh is In for Miami-Dade; a Tampa-only doctor's DrSelect-SFL cell is
+unchecked, not Out. The 4 new or changed cases fail on #160 as first pushed and pass now.

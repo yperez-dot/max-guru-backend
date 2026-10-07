@@ -507,6 +507,10 @@ function formatDoctorText({ doctorName, zip, planYear, providerResults, sunfire,
     } else {
       out += 'CarePlus: no 2027 directory index for this county yet — check CarePlusHealthPlans.com/FindCare.\n';
     }
+    const dr = pr.doctorsResult;
+    if (dr && dr.error === 'other_county_only' && (dr.otherCountyOnly || []).length) {
+      out += `Doctors HealthCare 2027 directory: listed only outside the client's area (${dr.otherCountyOnly.join('; ')}) — UNCHECKED for her plans, not Out. Confirm with Doctors HealthCare.\n`;
+    }
     const hr = pr.healthsunResult;
     if (hr && hr.inNetwork) {
       out += `HealthSun 2027 directory: LISTED as ${hr.matches.map((m) => `${m.name} (${HEALTHSUN_COUNTY[m.county] || m.county} PDF p. ${m.pages.join(', ')})`).join('; ')} — name match (the PDF has no NPIs).\n`;
