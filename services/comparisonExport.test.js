@@ -632,6 +632,7 @@ describe('SOB-only extra benefit rows', () => {
     const model = exp.buildComparisonModel({
       plans,
       clientName: 'Mr. and Mrs. Muskat',
+      threadText: 'Need SNF days 1-20 and a hospital-grade bed.',
       sobBenefits: filled,
       skipMuskatLock: true,
     });
@@ -1567,6 +1568,7 @@ Earlier: all four In network on UHC H5420-001.
       const model = exp.buildComparisonModel({
         plans: [doctors],
         clientName: 'Carol Wong',
+        threadText: 'show SNF days, DME hospital bed and hearing aids',
         sobBenefits: {
           'H4140-023': {
             dme: {
@@ -1590,6 +1592,7 @@ Earlier: all four In network on UHC H5420-001.
       const model = exp.buildComparisonModel({
         plans,
         clientName: 'Carol Wong',
+        threadText: 'show SNF days, DME hospital bed and hearing aids',
         sobBenefits: {
           [id0]: {
             snfDays1to20: { value: '$0 copay' },
@@ -1621,6 +1624,7 @@ Earlier: all four In network on UHC H5420-001.
       const model = exp.buildComparisonModel({
         plans,
         clientName: 'Carol Wong',
+        threadText: 'show SNF days, DME hospital bed and hearing aids',
         sobBenefits: {
           [id0]: {
             hearingAids: { value: 'scription hearing · aid up to 1 per ear per year. · • $475 copay…' },
@@ -1886,5 +1890,37 @@ describe('Excel sheet has grid lines and centered text', () => {
       assert.equal(ws['A1'].s.border, undefined); // client-name title row untouched
       assert.ok(ws['!rows'].every((r) => r.hpt >= 18));
     } finally { delete global.XLSX; }
+  });
+});
+
+describe('export rows: only what she asked for', () => {
+  it('"left SNF out" / "no dialysis" request nothing', () => {
+    const r = exp.askedOffGridBenefits("Per your note, I've left SNF out. i dont need hearing aids or dialysis");
+    assert.deepEqual(r.fieldKeys, []);
+  });
+  it('lookup values alone do not add SNF/DME/Hearing Aids rows to the sheet', () => {
+    const plans = loadPlans().filter((p) => p.planId === 'H1045-005').slice(0, 1);
+    assert.ok(plans.length);
+    const model = exp.buildSheetModel
+      ? exp.buildSheetModel(exp.buildExportPayload(plans, 'Marilyn Butler compare H1045-005', { sobBenefits: { 'H1045-005': { snfDays1to20: '$0', hearingAids: '$700' } } }))
+      : null;
+    if (!model) return;
+    const labels = JSON.stringify(model.aoa || model.rows || model);
+    assert.ok(!/Skilled Nursing|Hearing Aids/.test(labels), 'unasked SNF/hearing-aid rows must not appear');
+  });
+});
+
+describe('Max replies never request benefit rows', () => {
+  it('buildExportPayload.askText is user-only; "like chemo, home health" in a Max reply adds no rows', () => {
+    const plans = loadPlans().filter((p) => p.county === 'Miami-Dade').slice(0, 2);
+    const history = [
+      { role: 'user', content: 'compare these for Marilyn Butler' },
+      { role: 'assistant', content: 'Tell me a benefit to add, like chemo, home health, DME, or a hospital bed.' },
+    ];
+    const userOnly = exp.conversationUserText(history);
+    assert.ok(!/chemo/i.test(userOnly));
+    const model = exp.buildComparisonModel({ plans, clientName: 'Marilyn Butler', threadText: 'chemo home health', askText: userOnly });
+    const labels = model.aoa.map((r) => r[0]);
+    assert.ok(!labels.includes('Chemotherapy') && !labels.includes('Home Health'));
   });
 });

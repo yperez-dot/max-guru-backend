@@ -200,14 +200,18 @@
         rows.push(r);
       });
     };
-    const NEG_BEFORE = /(?:don'?t|dont|do not|doesn'?t|does not|never|no|not|without|skip|leave out|remove|drop)\s+(?:\w+\s+){0,2}$/i;
+    const NEG_BEFORE = /(?:don'?t|dont|do not|doesn'?t|does not|never|no|not|without|skip|leave out|remove|drop)\s+[^.!?\n,;]{0,40}$/i;
     KNOWN_OFF_GRID.forEach((item) => {
       // "dont add SNFs" / "no dialysis" turns the benefit off; only a non-negated mention counts.
       const re = new RegExp(item.re.source, item.re.flags.replace("g", "") + "g");
       let hit;
       let live = false;
       while ((hit = re.exec(src))) {
-        if (!NEG_BEFORE.test(src.slice(Math.max(0, hit.index - 30), hit.index))) { live = true; break; }
+        const before = src.slice(Math.max(0, hit.index - 30), hit.index);
+        const after = src.slice(hit.index + hit[0].length, hit.index + hit[0].length + 14);
+        // "dont add SNFs", "left SNF out", "no dialysis", "SNF not needed" turn the benefit off.
+        const negated = NEG_BEFORE.test(before) || /(?:left|leave|leaving|skip|skipped|drop|dropped|removed?)\s+(?:\w+\s+){0,2}$/i.test(before) || /^s?\s*(?:out\b|off\b|not needed|isn'?t needed)/i.test(after);
+        if (!negated) { live = true; break; }
         if (hit[0] === "") re.lastIndex += 1;
       }
       if (live) add(item);
@@ -1777,8 +1781,10 @@
       zip: extra.zip || "",
       county: extra.county || "",
       threadText: text,
+      // What SHE typed (not Max's replies): the only text that can ask for an extra benefit row.
+      askText: extra.askText != null ? String(extra.askText) : text,
       sobBenefits: extra.sobBenefits || extra.sobExtras || {},
-      askedExportSob: extra.askedExportSob === true || askedExportSobBenefits(text),
+      askedExportSob: extra.askedExportSob === true || askedExportSobBenefits(extra.askText != null ? extra.askText : text),
     };
     if (drugs.some((d) => d.brandNotCovered || /\*$/.test(d.name || "") || d.genericOf)) {
       payload.genericOnlyNote = GENERIC_ONLY_NOTE;
@@ -1942,11 +1948,13 @@
     if (doctors.length || drugs.length) pushPlanHeaders();
 
     const sobBenefits = payload.sobBenefits || {};
-    const askedInfo = askedOffGridBenefits(payload.threadText);
+    const askedInfo = askedOffGridBenefits(payload.askText != null ? payload.askText : payload.threadText);
     const askedKeys = {};
     askedInfo.fieldKeys.forEach((k) => {
       askedKeys[k] = true;
     });
+    // One "DME" row, whichever field the SOB filled — but only when she asked about DME / a hospital bed.
+    if (askedKeys.dmeHospitalBed && anySobField(plans, sobBenefits, "dme")) askedKeys.dme = true;
     const printedExtras = {};
     const printedLabels = {};
     const pushBenefitRow = (label, values, highlight) => {
@@ -1974,7 +1982,8 @@
       (SOB_EXTRA_AFTER[key] || []).forEach((extra) => {
         const extraLabel = extra[0];
         const extraKey = extra[1];
-        if (!askedKeys[extraKey] && !anySobField(plans, sobBenefits, extraKey)) return;
+        // Only rows she asked for. A lookup that happened to return SNF / hearing aids must not add rows (Yahoska 2026-10-07).
+        if (!askedKeys[extraKey]) return;
         printedExtras[extraKey] = true;
         const extraValues = [
           extraLabel,
@@ -2365,6 +2374,11 @@
     return resolved;
   }
 
+  /** Only the agent's own messages — Max's replies ("like chemo, home health…") must not request benefit rows. */
+  function conversationUserText(messages, userMessageTextFn) {
+    return conversationPlainText((messages || []).filter((m) => m && m.role === "user"), userMessageTextFn);
+  }
+
   function conversationPlainText(messages, userMessageTextFn) {
     const toText =
       typeof userMessageTextFn === "function"
@@ -2395,6 +2409,7 @@
     askedOffGridBenefits,
     askedExportSobBenefits,
     applySheetExtras,
+    conversationUserText,
     sobFieldValue,
     anySobField,
     mergeSobBenefitMaps,
@@ -3303,6 +3318,7 @@ function collectComparisonExport(history, plans, extras) {
       : "");
   return window.MaxComparisonExport.buildExportPayload(plans, text, {
     catalog: typeof PLANS !== "undefined" ? PLANS : extra.catalog,
+    askText: extra.askText != null ? extra.askText : window.MaxComparisonExport.conversationUserText(history, userMessageText),
     ...extra,
     latestUserText,
     drugs: []
@@ -3338,7 +3354,7 @@ async function hydrateExportSobBenefits(payload) {
   const exp = window.MaxComparisonExport || {};
   const asked =
     payload.askedExportSob === true ||
-    (typeof exp.askedExportSobBenefits === "function" && exp.askedExportSobBenefits(payload.threadText || ""));
+    (typeof exp.askedExportSobBenefits === "function" && exp.askedExportSobBenefits(payload.askText != null ? payload.askText : (payload.threadText || "")));
   if (!asked) return payload;
   payload.askedExportSob = true;
   const fill = exp.fillExportSobBenefits;
@@ -3346,7 +3362,7 @@ async function hydrateExportSobBenefits(payload) {
   try {
     payload.sobBenefits = await fill(payload.plans, payload.sobBenefits || {}, fetchSobLookupForExport, {
       asked: true,
-      threadText: payload.threadText || "",
+      threadText: payload.askText != null ? payload.askText : (payload.threadText || ""),
     });
   } catch (_) {
     payload.sobBenefits = payload.sobBenefits || {};
