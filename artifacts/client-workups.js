@@ -382,10 +382,14 @@
       if (ids.length) lines.push("Doctor NPIs (pass npi= so the same doctor is checked): " + ids.map((d) => d.name + (d.role ? " (" + d.role + ")" : "") + (d.npi ? " NPI " + d.npi : "")).join("; "));
       const saved = doctors.filter((d) => Object.keys(d.byPlanId || {}).length);
       if (saved.length) {
-        lines.push("Saved In/Out results (reference only — the text after the name is a result, NOT part of the doctor's name):");
+        // Older saved rows are history, not a result: a live check this turn always wins, and a
+        // carrier-level In is never downgraded by a stale plan-level row (Maura, 2026-10-07 5:20 PM).
+        lines.push("Saved In/Out results from EARLIER checks (reference only — may be stale; any live lookup this turn wins: never downgrade a live ✅ In / ✅ In* to not confirmed or Out because of these, and never answer from these instead of the server table; the text after the name is a result, NOT part of the doctor's name):");
         saved.forEach((d) => {
-          const bits = Object.keys(d.byPlanId || {}).map((id) => id + " " + d.byPlanId[id]);
-          lines.push("- " + d.name + " [saved: " + bits.join("; ") + "]");
+          const bits = Object.keys(d.byPlanId || {})
+            .filter((id) => !/not confirmed|unchecked|need more/i.test(String(d.byPlanId[id])))
+            .map((id) => id + " " + d.byPlanId[id]);
+          if (bits.length) lines.push("- " + d.name + " [saved: " + bits.join("; ") + "]");
         });
       }
     }
