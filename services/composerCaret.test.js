@@ -177,6 +177,8 @@ describe('Client queue panel', () => {
     const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
     assert.match(html, /function QueuePanel\(/);
     assert.match(html, /data-testid="queue-add"/);
+    assert.match(html, /data-testid="queue-medicaid"/);
+    assert.match(html, /data-testid="queue-csnp"/);
     assert.match(html, /data-testid="queue-row"/);
     assert.match(html, /data-testid="queue-open"/);
     assert.doesNotMatch(html, /function ComparePanel\(/);
