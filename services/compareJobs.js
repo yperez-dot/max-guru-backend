@@ -365,6 +365,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     // 4) Tables (same look as chat) + the rule lines the UI shows above / below them.
     job.result.header = sel.header;
     job.result.whyLine = sel.whyLine;
+    job.result.doctorCount = input.doctors.length;
     job.result.doctorTable = gridTable(sel.doctors, columns);
     job.result.medsTable = medsTable(drugs, columns, input.meds);
     job.result.legend = LEGEND + (columns.some((p) => (p.inCarrier || []).length) ? ` · ${IN_STAR_LEGEND}` : '');
