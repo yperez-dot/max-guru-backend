@@ -218,7 +218,13 @@
           if (plan) writeBucket(statusPlanKey(plan), normalizeNetworkBucket(status));
         });
       }
-      out.push({ name: name, byPlanId: byPlanId });
+      const row = { name: name, byPlanId: byPlanId };
+      // NPI and role ride along so a reopened workup looks up the SAME doctor (Enrique Soley, 2026-10-07).
+      const npi = String(d.npi || "").trim();
+      if (/^\d{10}$/.test(npi)) row.npi = npi;
+      const role = clip(d.role || d.specialty || "", 40);
+      if (role) row.role = role;
+      out.push(row);
     });
     return out;
   }
@@ -232,7 +238,8 @@
         /* discarded forever — never copy Daisy / client-stated tiers */
       }
       const name = clip(d.name || d.drug || "", 48);
-      if (!name) return;
+      // A role word ("PCP" from "Cheryl Diaz PCP") is never a med.
+      if (!name || /^(?:pcp|primary(?:\s+care)?|cardiolog\w*|dermatolog\w*|neurolog\w*|specialist|doctors?|both|none|n\/a)$/i.test(name)) return;
       const map = d.byPlanId || {};
       const byPlanId = {};
       Object.keys(map).forEach((id) => {
@@ -251,9 +258,24 @@
           source: incoming.source ? clip(incoming.source, 40) : null,
         };
       });
-      if (Object.keys(byPlanId).length) out.push({ name: name, byPlanId: byPlanId });
+      // Every med is kept (verified tiers only) — an unverified med used to vanish on save.
+      out.push({ name: name, byPlanId: byPlanId });
     });
     return out;
+  }
+
+  // The plan she said she is ON ("current plan UHC Preferred H1045-001"). "compare her current plan
+  // with Humana H1036-054C" — that ID is the other side. Comparison columns are never her plan.
+  function extractCurrentPlanIds(text) {
+    const ids = [];
+    const re = /\b(?:current(?:ly)?(?:\s+plan)?|is\s+on|stay(?:ing)?\s+on|her\s+plan|his\s+plan)\b[^.\n]{0,60}?\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
+    let m;
+    while ((m = re.exec(String(text || "")))) {
+      if (/\b(?:with|vs\.?|versus|against|to|and|or|instead)\b/i.test(m[0].slice(0, m[0].length - m[1].length))) continue;
+      const id = m[1].toUpperCase();
+      if (!ids.some((x) => x.slice(0, 9) === id.slice(0, 9))) ids.push(id);
+    }
+    return ids.slice(0, 3);
   }
 
   function buildWorkupFromExport(payload, extras) {
@@ -283,6 +305,7 @@
       medications: medicationsFromExport(src),
       needs: needs,
       terminatingPlan: terminatingPlan,
+      currentPlanIds: (Array.isArray(extra.currentPlanIds) && extra.currentPlanIds.length ? extra.currentPlanIds : extractCurrentPlanIds(thread)).slice(0, 3),
     };
   }
 
@@ -315,6 +338,8 @@
     const plans = rehydratePlans(w.plans, catalog);
     const doctors = (w.doctors || []).map((d) => ({
       name: d.name,
+      npi: d.npi || undefined,
+      role: d.role || undefined,
       byPlanId: Object.fromEntries(
         Object.entries(d.byPlanId || {}).map(([id, bucket]) => [id, bucketToExportStatus(bucket)])
       ),
@@ -335,13 +360,15 @@
   function compactWorkupContext(workup) {
     const w = workup && typeof workup === "object" ? workup : {};
     const lines = [
-      WORKUP_CONTEXT_PREFIX + " (structured facts only — not a prior chat transcript). Resume these saved facts as a starting point. If the agent later asks for different plans, doctors, drugs, or a benefit that is not on the grid, follow that NEW request for chat and Excel/PDF. Do not lock the export to this snapshot. The Plans listed below are the client's CURRENT plan(s): when the agent asks for other, comparable or better plans, compare alternatives against them and never ask which plan she has. Do not ask to re-paste Daisy. Discard any client-stated Rx tiers. Call lookup_formulary for any unverified drug × named plan.",
+      WORKUP_CONTEXT_PREFIX + " (structured facts only — not a prior chat transcript). Resume these saved facts as a starting point. If the agent later asks for different plans, doctors, drugs, or a benefit that is not on the grid, follow that NEW request for chat and Excel/PDF. Do not lock the export to this snapshot. Only the 'Current plan' line is the client's current plan (if there is no such line and one plan is listed, that one is); every other plan below is a comparison column — never call it her current plan. When the agent asks for other, comparable or better plans, compare alternatives against her current plan, keep it as a column, and never ask which plan she has. Do not ask to re-paste Daisy. Discard any client-stated Rx tiers. Call lookup_formulary for any unverified drug × named plan.",
     ];
     if (w.clientName) lines.push("Client: " + w.clientName);
     const place = [w.zip, w.county].filter(Boolean).join(" / ");
     if (place) lines.push("ZIP/county: " + place);
     if (w.contacts) lines.push("Contacts: " + w.contacts);
     const plans = w.plans || [];
+    const current = (w.currentPlanIds || []).filter(Boolean);
+    if (current.length) lines.push("Current plan: " + current.join(", "));
     if (plans.length) {
       lines.push("Plans:");
       plans.forEach((p) => lines.push("- " + marketingLabel(p)));
@@ -350,6 +377,8 @@
     if (doctors.length) {
       // Names alone first: when a lookup is needed, pass ONLY these names (never the status text next to them).
       lines.push("Doctors (names only — pass exactly these names to lookup_provider_network): " + doctors.map((d) => d.name).join("; "));
+      const ids = doctors.filter((d) => d.npi || d.role);
+      if (ids.length) lines.push("Doctor NPIs (pass npi= so the same doctor is checked): " + ids.map((d) => d.name + (d.role ? " (" + d.role + ")" : "") + (d.npi ? " NPI " + d.npi : "")).join("; "));
       const saved = doctors.filter((d) => Object.keys(d.byPlanId || {}).length);
       if (saved.length) {
         lines.push("Saved In/Out results (reference only — the text after the name is a result, NOT part of the doctor's name):");
@@ -361,7 +390,7 @@
     }
     const meds = w.medications || [];
     if (meds.length) {
-      lines.push("Medications (verified formulary only):");
+      lines.push("Medications (tiers shown are verified formulary only; a med with no tier still needs lookup_formulary):");
       meds.forEach((m) => {
         const bits = Object.keys(m.byPlanId || {}).map((id) => {
           const st = m.byPlanId[id] || {};

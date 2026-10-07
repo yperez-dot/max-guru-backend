@@ -350,6 +350,38 @@ async function lookupByName({ firstName, lastName, middleName, state = 'FL', zip
   return rankResults(results, { zip, firstName, middleName }).slice(0, limit);
 }
 
+/**
+ * NPPES fuzzes first names: first_name=Cheryl&last_name=Diaz returns "CHER DIAZ" (NP, Miami Beach)
+ * and never "CHERYL L CASE-DIAZ MD" in Hialeah (Enrique Soley, 2026-10-07). When no hit carries her
+ * exact first name, look in the client's area for that exact first name with the surname as one
+ * part of a hyphenated / two-part last name. Those go first; the fuzzy hits stay as candidates.
+ */
+async function areaSurnamePartMatches({ firstName, lastName, zip, state = 'FL' } = {}) {
+  const qf = String(firstName || '').toUpperCase().replace(/[^A-Z]/g, '');
+  const ql = String(lastName || '').toUpperCase().replace(/[^A-Z]/g, '');
+  const z = String(zip || '').replace(/\D/g, '');
+  if (qf.length < 3 || ql.length < 2 || z.length < 3) return [];
+  const p = new URLSearchParams({
+    version: '2.1', enumeration_type: 'NPI-1', state, first_name: qf, postal_code: `${z.slice(0, 3)}*`, limit: String(CMS_PAGE_LIMIT),
+  });
+  const data = await fetchJSON(`${NPI_REGISTRY_BASE}?${p}`);
+  return (data?.results || []).filter((r) => {
+    if (isNonProvider(r)) return false;
+    const b = r.basic || {};
+    if (String(b.first_name || '').toUpperCase() !== qf) return false;
+    const parts = String(b.last_name || '').toUpperCase().split(/[\s-]+/).filter(Boolean);
+    return parts.length >= 2 && parts.includes(ql);
+  });
+}
+
+function hasExactFirstName(results, firstName) {
+  const qf = String(firstName || '').toUpperCase().replace(/[^A-Z]/g, '');
+  return results.some((r) => {
+    const b = r?.basic || {};
+    return String(b.first_name || '').toUpperCase() === qf || String(b.middle_name || '').toUpperCase() === qf;
+  });
+}
+
 // "Ian Del Conde", "Maria De La Cruz", "Juan Dos Santos" — the particle belongs to the last name.
 const SURNAME_PARTICLES = new Set(['de', 'del', 'della', 'dela', 'la', 'las', 'los', 'da', 'das', 'do', 'dos', 'di', 'du', 'van', 'von', 'der', 'den', 'le', 'st', 'san', 'santa', 'mac', 'y']);
 
@@ -393,6 +425,13 @@ async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limi
     if (!attempt.lastName || seen.has(key)) continue;
     seen.add(key);
     results = await lookupByName({ ...attempt, zip, state, limit });
+    if (results.length && attempt.firstName && !hasExactFirstName(results, attempt.firstName)) {
+      const area = await areaSurnamePartMatches({ firstName: attempt.firstName, lastName: attempt.lastName, zip, state });
+      if (area.length) {
+        const ids = new Set(area.map((r) => r.number));
+        return [...rankResults(area, { zip, firstName: attempt.firstName }), ...results.filter((r) => !ids.has(r.number))].slice(0, Math.max(limit, area.length + 1));
+      }
+    }
     if (results.length) return results;
   }
   // Longer registered last names: "Ian Del Conde" is NPPES "DEL CONDE POZZI". NPPES takes a
@@ -560,4 +599,5 @@ module.exports = {
   rankOrgScore,
   rankOrgResults,
   resolveNpiRecords,
+  areaSurnamePartMatches,
 };

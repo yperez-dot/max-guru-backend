@@ -148,6 +148,36 @@ function normalizeNpi(value) {
 
 const cache = new Map();
 
+/**
+ * Every CMS plan ID in the given values (strings, comma lists, arrays), unique, upper-case.
+ * "H1036-054C, H1036-305, H1045-001" is three plans — not just the first one.
+ */
+function planIdsFrom(...values) {
+  const out = [];
+  const walk = (v) => {
+    if (v == null) return;
+    if (Array.isArray(v)) { v.forEach(walk); return; }
+    for (const m of String(v).matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)) {
+      const id = m[1].toUpperCase();
+      if (!out.some((x) => x.slice(0, 9) === id.slice(0, 9))) out.push(id);
+    }
+  };
+  values.forEach(walk);
+  return out;
+}
+
+/**
+ * Plan IDs the UHC / Humana guest checks are limited to. The tool's planId often names
+ * only one carrier's plan (H1036-054C), so the plans of the comparison she asked for
+ * (her current UHC H1045-001) are added — otherwise UHC checks nothing and every UHC
+ * column reads "not confirmed" (Maura, 2026-10-07). No planId at all = check every plan.
+ */
+function guestPlanIdsFor(toolIds, askText) {
+  const ids = planIdsFrom(toolIds);
+  if (!ids.length) return [];
+  return planIdsFrom(ids, askText);
+}
+
 function cacheKey({ doctorName, npi, zip, year, planId }) {
   // "HOWARD BUSH M.D." and "Howard Bush Cardio" share one entry.
   const who = normalizeNpi(npi) || normalizeNpi(doctorName) || cleanDoctorQuery(doctorName).toLowerCase();
@@ -569,8 +599,9 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
   const doctorName = stripSavedStatus(input.doctorName || input.name || input.npi || '');
   const zip = String(input.zip || '33136');
   const planYear = Number(input.year) || Number(UHC_PLAN_YEAR);
-  const guestPlanIds = input.planId ? [String(input.planId)] : [];
-  const key = cacheKey({ doctorName, npi: input.npi, zip, year: planYear, planId: input.planId });
+  const guestPlanIds = planIdsFrom(input.planIds, input.planId);
+  const planKey = guestPlanIds.join(',');
+  const key = cacheKey({ doctorName, npi: input.npi, zip, year: planYear, planId: planKey });
   const until = Number(deadlineAt) > 0 ? Number(deadlineAt) : Date.now() + DEFAULT_BUDGET_MS;
 
   if (useCache) {
@@ -648,7 +679,7 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
       if (result.status === 'done') {
         for (const alias of [{ npi: s0.npi }, { doctorName: s0.doctorName }]) {
           if (!alias.npi && !alias.doctorName) continue;
-          const k = cacheKey({ ...alias, zip, year: planYear, planId: input.planId });
+          const k = cacheKey({ ...alias, zip, year: planYear, planId: planKey });
           if (k !== key) cacheSet(k, { value: result });
         }
       }
@@ -717,6 +748,7 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   const common = { zip: toolInput.zip, state: toolInput.state, year: toolInput.year, planId: toolInput.planId };
   const npiCap = doctors.length > 1 ? BATCH_NPI_CAP : SINGLE_NPI_CAP;
   const askText = doctors.length > 1 ? comparisonAskText(context.messages || [], conversationAskText(context.messages || [])) : '';
+  const planAskText = askText || comparisonAskText(context.messages || [], conversationAskText(context.messages || []));
   // Rule 8: meds she already listed are priced here, in the same turn — not left for a
   // later model round that the chat wait never reaches.
   const meds = doctors.length > 1 ? medsFromAsk(askText) : [];
@@ -726,7 +758,7 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   }
   const doctorDeadline = meds.length && deadlineAt - Date.now() > MEDS_RESERVE_MS + 15_000 ? deadlineAt - MEDS_RESERVE_MS : deadlineAt;
   const results = await Promise.all(doctors.map((d) => lookupDoctor(
-    { ...common, ...d, planId: d.planId || common.planId },
+    { ...common, ...d, planId: undefined, planIds: guestPlanIdsFor([d.planId, common.planId, toolInput.planIds], planAskText) },
     { deadlineAt: doctorDeadline, npiCap }
   )));
 
@@ -776,6 +808,8 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
 
 module.exports = {
   stripSavedStatus,
+  planIdsFrom,
+  guestPlanIdsFor,
   lookupProviderNetwork,
   fhirCheck,
   FHIR_CARRIERS,

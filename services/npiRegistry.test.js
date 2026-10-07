@@ -158,6 +158,25 @@ describe('doctor match never swaps in a different person (2026-10-06 live bugs)'
     try { return await fn(); } finally { global.fetch = saved; }
   }
 
+  it('"Cheryl Diaz" prefers Cheryl Case-Diaz in her area over NPPES\'s fuzzy "Cher Diaz" (Enrique, 2026-10-07)', async () => {
+    const cher = person('1740843937', 'CHER', '', 'DIAZ', 'APRN', '33140', 'Nurse Practitioner, Family');
+    const caseDiaz = person('1184615874', 'CHERYL', 'L', 'CASE-DIAZ', 'MD', '33018', 'Internal Medicine');
+    const casella = person('1972619765', 'CHERYL', '', 'CASELLA', 'ARNP', '33461', 'Nurse Practitioner');
+    const saved = global.fetch;
+    global.fetch = async (url) => {
+      const q = new URL(url).searchParams;
+      if (q.get('enumeration_type') === 'NPI-2') return { ok: true, json: async () => ({ results: [] }) };
+      // NPPES: first_name=CHERYL&last_name=DIAZ → CHER DIAZ (fuzzy first name).
+      if ((q.get('last_name') || '').toUpperCase() === 'DIAZ') return { ok: true, json: async () => ({ results: [cher] }) };
+      if (q.get('postal_code') === '330*' && (q.get('first_name') || '').toUpperCase() === 'CHERYL') return { ok: true, json: async () => ({ results: [caseDiaz, casella] }) };
+      return { ok: true, json: async () => ({ results: [] }) };
+    };
+    try {
+      const r = await resolveNpiRecords({ doctorName: 'Cheryl Diaz', zip: '33018' });
+      assert.deepEqual(r.map((x) => x.number), ['1184615874', '1740843937'], 'Case-Diaz first, Cher Diaz kept only as a candidate');
+    } finally { global.fetch = saved; }
+  });
+
   it('"Ian Del Conde" → Ian Del Conde, not Cesar A Conde', async () => {
     const r = await withNppes(() => resolveNpiRecords({ doctorName: 'Ian Del Conde', zip: '33172' }));
     assert.equal(r[0].number, '1111111111');

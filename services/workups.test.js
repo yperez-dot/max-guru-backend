@@ -76,7 +76,10 @@ describe('workup store identity + shape', () => {
     assert.equal(trin.claimedTier, undefined);
     assert.equal(trin.byPlanId['H1036-054C'].tier, 5);
     assert.equal(trin.byPlanId['H1045-012'], undefined);
-    assert.equal(yahoska.medications.some((d) => d.name === 'Lorazepam'), false);
+    // The med itself is kept (a re-save must never lose it); its Daisy tier never is.
+    const lora = yahoska.medications.find((d) => d.name === 'Lorazepam');
+    assert.ok(lora);
+    assert.deepEqual(lora.byPlanId, {});
     assert.equal(yahoska.doctors[0].byPlanId['H1036-054C'], 'IN');
     assert.equal(yahoska.doctors[1].byPlanId['H1036-054C'], 'NEED MORE INFO');
 
@@ -119,7 +122,7 @@ describe('workup store identity + shape', () => {
     const slim = slimMedications([
       { name: 'Atorvastatin', claimedTier: 1, byPlanId: { 'H1036-054C': { verified: false, tier: 1 } } },
     ]);
-    assert.deepEqual(slim, []);
+    assert.deepEqual(slim, [{ name: 'Atorvastatin', byPlanId: {} }]);
   });
 
   it('rejects empty saves and delete is owner-scoped', (t) => {

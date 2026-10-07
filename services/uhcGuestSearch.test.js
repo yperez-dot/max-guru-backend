@@ -124,6 +124,13 @@ const DUAL_012 = {
   searchDirectory: 'COSMOS',
   years: [{ planYear: '2027', reciprocityId: '115' }],
 };
+const MAX_028 = {
+  planName: 'UHC MedicareMax FL-0028 (HMO)',
+  planIdentifier: 'H5420-001-000',
+  medicarePlanType: 'INDIVIDUAL',
+  searchDirectory: 'COSMOS',
+  years: [{ planYear: '2027', reciprocityId: '115' }],
+};
 const DUAL_061 = {
   planName: 'UHC Preferred Dual Complete FL-QV5 (HMO D-SNP)',
   planIdentifier: 'H1045-061-000',
@@ -166,15 +173,28 @@ describe('queryUhcGuest mocked path', () => {
     const fetchImpl = mockFetch({
       GetLocation: { location: { features: [{ center: ['-80.36', '25.68'], stateCode: 'FL' }] } },
       GetPostalPoint: { getPostalPoint: { county_proper: 'Miami-Dade', county_id: '12086', state: 'FL' } },
-      GetPlanDefinitions: { getPlanDefinitions: { planDetails: [DUAL_012] } },
+      GetPlanDefinitions: { getPlanDefinitions: { planDetails: [MAX_028] } },
       ProviderSearch: { providerSearch: { providers: [] } },
     });
-    const result = await queryUhcGuest('1306409339', { zip: '33176', planIds: ['H1045-012'] }, fetchImpl);
+    const result = await queryUhcGuest('1306409339', { zip: '33176', planIds: ['H5420-001'] }, fetchImpl);
     assert.equal(result.error, null);
     assert.equal(result.inNetwork, false);
     assert.deepEqual(result.plans, []);
     assert.equal(result.checks[0].status, 'out_of_network');
-    assert.ok(result.outOfNetworkPlans[0].includes('H1045-012'));
+    assert.ok(result.outOfNetworkPlans[0].includes('H5420-001'));
+  });
+
+  it('an empty search on a Preferred Care Partners (H1045) plan is not listed — not confirmed, not Out', async () => {
+    const fetchImpl = mockFetch({
+      GetLocation: { location: { features: [{ center: ['-80.36', '25.68'], stateCode: 'FL' }] } },
+      GetPostalPoint: { getPostalPoint: { county_proper: 'Miami-Dade', county_id: '12086', state: 'FL' } },
+      GetPlanDefinitions: { getPlanDefinitions: { planDetails: [DUAL_012] } },
+      ProviderSearch: { providerSearch: { providers: [] } },
+    });
+    const result = await queryUhcGuest('1306409339', { zip: '33176', planIds: ['H1045-012'] }, fetchImpl);
+    assert.equal(result.checks[0].status, 'not_listed');
+    assert.deepEqual(result.outOfNetworkPlans, []);
+    assert.ok(result.notListedPlans[0].includes('H1045-012'));
   });
 
   it('does not treat a GraphQL failure as out of network', async () => {
@@ -217,6 +237,6 @@ describe('queryUhcGuest mocked path', () => {
     });
     const result = await queryUhcGuest('1598792707', { zip: '33176', planIds: ['H1045-012'] }, fetchImpl);
     assert.equal(result.inNetwork, false);
-    assert.equal(result.checks[0].status, 'out_of_network');
+    assert.equal(result.checks[0].status, 'not_listed');
   });
 });

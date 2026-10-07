@@ -615,8 +615,32 @@
     return looksLikePersonName(cleaned) ? cleaned : "";
   }
 
+  // Names that belong to doctors in the text: "Dr. X", the "Doctors:" list, and lines that carry a
+  // specialty / NPI ("Cheryl L Case-Diaz (PCP)"). A client name is never one of them
+  // (Maura's workup was saved as "Cheryl Case" — 2026-10-07).
+  const DOCTOR_LINE_RE = /\b(?:pcp|primary\s+care|cardiolog\w*|dermatolog\w*|neurolog\w*|ophthalmolog\w*|gyn\w*|ob\/?gyn|oncolog\w*|urolog\w*|orthop\w*|gastro\w*|endocrin\w*|rheumat\w*|pulmon\w*|nephrolog\w*|podiatr\w*|psychiatr\w*|specialist|npi|m\.?d\.?|d\.?o\.?|aprn|arnp|np)\b/i;
+  function doctorNamesIn(text) {
+    const out = [];
+    const t = String(text || "");
+    for (const m of t.matchAll(/\bDr\.?\s+([A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){0,3})/g)) out.push(m[1]);
+    for (const m of t.matchAll(/\b(?:doctors?|drs?|providers?)\s*:\s*([^\n]+)/gi)) {
+      m[1].split(/[,;]|\band\b/).forEach((x) => out.push(x));
+    }
+    t.split(/\n/).forEach((line) => { if (DOCTOR_LINE_RE.test(line)) out.push(line); });
+    return out.map((x) => String(x).toLowerCase());
+  }
+  function isDoctorName(candidate, doctorNames) {
+    const words = String(candidate || "").toLowerCase().split(/[\s-]+/).filter((w) => w.length > 1);
+    if (!words.length) return false;
+    return doctorNames.some((d) => {
+      const dw = d.split(/[^a-z']+/);
+      return words.every((w) => dw.includes(w));
+    });
+  }
+
   function extractClientName(text) {
     if (!text) return "";
+    const doctorNames = doctorNamesIn(text);
     // Do not use the /i flag: it makes [A-Z] match lowercase and grabs "for both plans".
     const name = "([A-Z][a-zA-Z'-]+(?:\\s+[A-Z][a-zA-Z'-]+){1,3})";
     const patterns = [
@@ -629,7 +653,7 @@
       let m;
       while ((m = re.exec(text))) {
         const candidate = m[1].replace(/\s+/g, " ").trim();
-        if (looksLikePersonName(candidate)) found = candidate;
+        if (looksLikePersonName(candidate) && !isDoctorName(candidate, doctorNames)) found = candidate;
       }
     }
     // Labeled household / last name — colon or "is", including Client's / Clients.
@@ -642,8 +666,9 @@
     }
     // Ask that opens with the household: "Maria & Gaspar Padron, ZIP 33332 …" / "Gaspar and Maria Padron: …"
     if (!found) {
-      const lead = String(text).match(/(?:^|\n)\s*([A-Z][a-z]+(?:\s*(?:&|and|y)\s*[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]+)\s*[,:.-]/);
-      if (lead && !/\b(Medicare|Humana|Aetna|Devoted|Compare|Current|Plan|Doctors?|Meds?)\b/.test(lead[1])) {
+      // The surname ends at a real delimiter — "Case-Diaz" is never cut to "Case" at its hyphen.
+      const lead = String(text).match(/(?:^|\n)\s*([A-Z][a-z]+(?:\s*(?:&|and|y)\s*[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]*[A-Za-z])\s*(?:[,:.]|\s-\s)/);
+      if (lead && !/\b(Medicare|Humana|Aetna|Devoted|Compare|Current|Plan|Doctors?|Meds?)\b/.test(lead[1]) && !isDoctorName(lead[1], doctorNames)) {
         found = lead[1].replace(/\s+/g, " ").trim();
       }
     }
@@ -3211,7 +3236,13 @@
           if (plan) writeBucket(statusPlanKey(plan), normalizeNetworkBucket(status));
         });
       }
-      out.push({ name: name, byPlanId: byPlanId });
+      const row = { name: name, byPlanId: byPlanId };
+      // NPI and role ride along so a reopened workup looks up the SAME doctor (Enrique Soley, 2026-10-07).
+      const npi = String(d.npi || "").trim();
+      if (/^\d{10}$/.test(npi)) row.npi = npi;
+      const role = clip(d.role || d.specialty || "", 40);
+      if (role) row.role = role;
+      out.push(row);
     });
     return out;
   }
@@ -3225,7 +3256,8 @@
         /* discarded forever — never copy Daisy / client-stated tiers */
       }
       const name = clip(d.name || d.drug || "", 48);
-      if (!name) return;
+      // A role word ("PCP" from "Cheryl Diaz PCP") is never a med.
+      if (!name || /^(?:pcp|primary(?:\s+care)?|cardiolog\w*|dermatolog\w*|neurolog\w*|specialist|doctors?|both|none|n\/a)$/i.test(name)) return;
       const map = d.byPlanId || {};
       const byPlanId = {};
       Object.keys(map).forEach((id) => {
@@ -3244,9 +3276,24 @@
           source: incoming.source ? clip(incoming.source, 40) : null,
         };
       });
-      if (Object.keys(byPlanId).length) out.push({ name: name, byPlanId: byPlanId });
+      // Every med is kept (verified tiers only) — an unverified med used to vanish on save.
+      out.push({ name: name, byPlanId: byPlanId });
     });
     return out;
+  }
+
+  // The plan she said she is ON ("current plan UHC Preferred H1045-001"). "compare her current plan
+  // with Humana H1036-054C" — that ID is the other side. Comparison columns are never her plan.
+  function extractCurrentPlanIds(text) {
+    const ids = [];
+    const re = /\b(?:current(?:ly)?(?:\s+plan)?|is\s+on|stay(?:ing)?\s+on|her\s+plan|his\s+plan)\b[^.\n]{0,60}?\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
+    let m;
+    while ((m = re.exec(String(text || "")))) {
+      if (/\b(?:with|vs\.?|versus|against|to|and|or|instead)\b/i.test(m[0].slice(0, m[0].length - m[1].length))) continue;
+      const id = m[1].toUpperCase();
+      if (!ids.some((x) => x.slice(0, 9) === id.slice(0, 9))) ids.push(id);
+    }
+    return ids.slice(0, 3);
   }
 
   function buildWorkupFromExport(payload, extras) {
@@ -3276,6 +3323,7 @@
       medications: medicationsFromExport(src),
       needs: needs,
       terminatingPlan: terminatingPlan,
+      currentPlanIds: (Array.isArray(extra.currentPlanIds) && extra.currentPlanIds.length ? extra.currentPlanIds : extractCurrentPlanIds(thread)).slice(0, 3),
     };
   }
 
@@ -3308,6 +3356,8 @@
     const plans = rehydratePlans(w.plans, catalog);
     const doctors = (w.doctors || []).map((d) => ({
       name: d.name,
+      npi: d.npi || undefined,
+      role: d.role || undefined,
       byPlanId: Object.fromEntries(
         Object.entries(d.byPlanId || {}).map(([id, bucket]) => [id, bucketToExportStatus(bucket)])
       ),
@@ -3328,13 +3378,15 @@
   function compactWorkupContext(workup) {
     const w = workup && typeof workup === "object" ? workup : {};
     const lines = [
-      WORKUP_CONTEXT_PREFIX + " (structured facts only — not a prior chat transcript). Resume these saved facts as a starting point. If the agent later asks for different plans, doctors, drugs, or a benefit that is not on the grid, follow that NEW request for chat and Excel/PDF. Do not lock the export to this snapshot. The Plans listed below are the client's CURRENT plan(s): when the agent asks for other, comparable or better plans, compare alternatives against them and never ask which plan she has. Do not ask to re-paste Daisy. Discard any client-stated Rx tiers. Call lookup_formulary for any unverified drug × named plan.",
+      WORKUP_CONTEXT_PREFIX + " (structured facts only — not a prior chat transcript). Resume these saved facts as a starting point. If the agent later asks for different plans, doctors, drugs, or a benefit that is not on the grid, follow that NEW request for chat and Excel/PDF. Do not lock the export to this snapshot. Only the 'Current plan' line is the client's current plan (if there is no such line and one plan is listed, that one is); every other plan below is a comparison column — never call it her current plan. When the agent asks for other, comparable or better plans, compare alternatives against her current plan, keep it as a column, and never ask which plan she has. Do not ask to re-paste Daisy. Discard any client-stated Rx tiers. Call lookup_formulary for any unverified drug × named plan.",
     ];
     if (w.clientName) lines.push("Client: " + w.clientName);
     const place = [w.zip, w.county].filter(Boolean).join(" / ");
     if (place) lines.push("ZIP/county: " + place);
     if (w.contacts) lines.push("Contacts: " + w.contacts);
     const plans = w.plans || [];
+    const current = (w.currentPlanIds || []).filter(Boolean);
+    if (current.length) lines.push("Current plan: " + current.join(", "));
     if (plans.length) {
       lines.push("Plans:");
       plans.forEach((p) => lines.push("- " + marketingLabel(p)));
@@ -3343,6 +3395,8 @@
     if (doctors.length) {
       // Names alone first: when a lookup is needed, pass ONLY these names (never the status text next to them).
       lines.push("Doctors (names only — pass exactly these names to lookup_provider_network): " + doctors.map((d) => d.name).join("; "));
+      const ids = doctors.filter((d) => d.npi || d.role);
+      if (ids.length) lines.push("Doctor NPIs (pass npi= so the same doctor is checked): " + ids.map((d) => d.name + (d.role ? " (" + d.role + ")" : "") + (d.npi ? " NPI " + d.npi : "")).join("; "));
       const saved = doctors.filter((d) => Object.keys(d.byPlanId || {}).length);
       if (saved.length) {
         lines.push("Saved In/Out results (reference only — the text after the name is a result, NOT part of the doctor's name):");
@@ -3354,7 +3408,7 @@
     }
     const meds = w.medications || [];
     if (meds.length) {
-      lines.push("Medications (verified formulary only):");
+      lines.push("Medications (tiers shown are verified formulary only; a med with no tier still needs lookup_formulary):");
       meds.forEach((m) => {
         const bits = Object.keys(m.byPlanId || {}).map((id) => {
           const st = m.byPlanId[id] || {};
@@ -6482,10 +6536,19 @@ function App() {
     }
   };
 
-  const scheduleAutoSave = (payload) => {
+  // Loading or switching a workup never writes: a reply (or a timer) from the chat she left is
+  // dropped instead of being saved over the workup she opened (Maura / Enrique Soley, 2026-10-07).
+  const scheduleAutoSave = (payload, gen) => {
     if (!payload || !payload.plans || payload.plans.length < 2) return;
+    if (gen != null && gen !== chatGenRef.current) return;
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    autoSaveTimerRef.current = setTimeout(() => { void saveWorkup(payload, { silent: true }); }, 700);
+    const atGen = chatGenRef.current;
+    const forId = currentWorkupIdRef.current;
+    autoSaveTimerRef.current = setTimeout(() => {
+      autoSaveTimerRef.current = null;
+      if (atGen !== chatGenRef.current || forId !== currentWorkupIdRef.current) return;
+      void saveWorkup(payload, { silent: true });
+    }, 700);
   };
 
   const openWorkup = async (id, extra) => {
@@ -6956,7 +7019,7 @@ function App() {
             rememberedPlans: followLatest ? [] : ((remembered && remembered.plans) || (lastOffer && lastOffer.plans) || []),
           }));
           lastComparisonExportRef.current = payload;
-          scheduleAutoSave(payload);
+          scheduleAutoSave(payload, gen);
           const labels = (payload.plans || fromThread).map((p) => `${p.carrier} ${p.planName} (${p.planId})`).join(" vs ");
           const assistantMsg = {
             role: "assistant",
@@ -7039,7 +7102,7 @@ function App() {
           rememberedPlans: followLatest ? [] : ((remembered && remembered.plans) || []),
         }));
         lastComparisonExportRef.current = payload;
-        scheduleAutoSave(payload);
+        scheduleAutoSave(payload, gen);
         nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, sobBenefits: payload.sobBenefits, time: nowLabel() }];
       } else {
         const remembered = lastComparisonExportRef.current;
@@ -7064,7 +7127,7 @@ function App() {
             rememberedPlans: baseline,
           }));
           lastComparisonExportRef.current = payload;
-          scheduleAutoSave(payload);
+          scheduleAutoSave(payload, gen);
           nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, sobBenefits: payload.sobBenefits, time: nowLabel() }];
         } else {
           nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg];
