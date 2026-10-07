@@ -237,6 +237,20 @@ function catalogDrugs(payload) {
 
 const BAD_FORM_RE = /\b(inject(?:ion|able)?|intravenous|\biv\b|vial|kit|powder for|for solution|irrigation|topical|ophthalmic|otic|nasal|patch|suppositor)/i;
 
+/** Strip strength/dose/form so catalog search finds the molecule (e.g. "pregabalin 200 mg" → "pregabalin"). */
+function drugCatalogQuery(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  const stripped = s
+    .replace(/\b\d+(?:\.\d+)?\s*(mg|mcg|µg|ug|g|ml|iu|units?)\b/gi, ' ')
+    .replace(/\b(oral|tablet|tablets|capsule|capsules|caplets?|tabs?|caps?|er|xr|cr|dr|odt|solution|suspension|cream|gel|ointment|extended[- ]release|immediate[- ]release)\b/gi, ' ')
+    .replace(/[(),/]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return stripped || s.split(/\s+/)[0] || s;
+}
+
+
 function catalogScore(drug, query) {
   const name = String(drug.name || '').toLowerCase();
   const q = String(query || '').toLowerCase().trim();
@@ -839,13 +853,17 @@ async function resolveMedicareGovNdcs({ drugName, ndc }, fetchImpl = fetch) {
   // An NDC the agent typed is the product by definition.
   if (ndc) push(ndc, true);
 
-  const auto = await autocompleteMedicareGov(drugName || '', fetchImpl);
+  const medicareQuery = drugCatalogQuery(drugName) || drugName || '';
+  let auto = await autocompleteMedicareGov(medicareQuery, fetchImpl);
+  if (!(auto.drugs || []).length && drugName && medicareQuery && medicareQuery !== drugName) {
+    auto = await autocompleteMedicareGov(String(drugName).split(/\s+/)[0] || medicareQuery, fetchImpl);
+  }
   const match = pickCatalogMatch(
     (auto.drugs || []).map((d) => ({ name: d.name, rxcui: d.rxcui, id: d.rxcui })),
-    drugName
+    drugName || medicareQuery
   );
   const rxcui = match?.rxcui || auto.drugs?.[0]?.rxcui || null;
-  const resolvedName = match?.name || auto.drugs?.[0]?.name || drugName;
+  const resolvedName = match?.name || auto.drugs?.[0]?.name || medicareQuery || drugName;
   const query = drugName || resolvedName;
 
   if (rxcui) {
@@ -1098,6 +1116,7 @@ const BRAND_TO_GENERIC = {
   norvasc: 'Amlodipine',
   cozaar: 'Losartan',
   diovan: 'Valsartan',
+  lyrica: 'Pregabalin',
 };
 
 function brandKey(name) {
@@ -1150,10 +1169,25 @@ async function lookupFormulary(
     if (!uniqueIds.some((u) => cmsIdsMatch(u, id))) uniqueIds.push(id);
   }
 
-  const catalog = await searchSunfireCatalog(drugName || ndc, fetchImpl);
-  const ranked = rankCatalogMatches(catalog.drugs, drugName || ndc);
+  const rawQuery = drugName || ndc;
+  const catalogQuery = drugCatalogQuery(rawQuery) || rawQuery;
+  let catalog = await searchSunfireCatalog(catalogQuery, fetchImpl);
+  // If the agent pasted strength/form and the stripped query still missed, try the first token.
+  if (!catalog.drugs.length && catalogQuery && catalogQuery.includes(' ')) {
+    const token = catalogQuery.split(/\s+/)[0];
+    if (token && token !== catalogQuery) {
+      const retry = await searchSunfireCatalog(token, fetchImpl);
+      if (retry.drugs.length) catalog = retry;
+    }
+  }
+  if (!catalog.drugs.length && rawQuery && catalogQuery && catalogQuery !== rawQuery) {
+    // last resort: original string (keeps prior behavior for odd names)
+    const retryRaw = await searchSunfireCatalog(rawQuery, fetchImpl);
+    if (retryRaw.drugs.length) catalog = retryRaw;
+  }
+  const ranked = rankCatalogMatches(catalog.drugs, rawQuery);
   let match = ranked[0] || null;
-  let resolvedName = match?.name || drugName || ndc || 'Unknown drug';
+  let resolvedName = match?.name || drugCatalogQuery(rawQuery) || rawQuery || 'Unknown drug';
   let resolvedNdc = ndc || match?.ndc || null;
 
   let byPlanId = {};
@@ -1467,6 +1501,7 @@ module.exports = {
   sunfireIdForPlan,
   catalogDrugs,
   pickCatalogMatch,
+  drugCatalogQuery,
   humanaPlanYearMatch,
   isHumanaCms,
   cmsContractParts,
