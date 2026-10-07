@@ -39,22 +39,61 @@ function section(text, label, stops) {
   return m ? m[1].trim() : '';
 }
 
+// Plan ids as agents paste them: "H1045-5-0", "H1045-005-0", "H1045-5" → "H1045-005".
+function normalizePlanIds(text) {
+  return String(text || '').replace(/\b([HR]\d{4})-(\d{1,3})(?:-\d)?(?=[^\dA-Za-z-]|$)/gi, (m, a, b) => `${a.toUpperCase()}-${b.padStart(3, '0')}`);
+}
+
+const TITLE_SKIP = new Set(['and', 'y', '&']);
+
+/** Free-form paste with no strict capitalization: "Marilyn and Angus butler. 33076. …" → "Marilyn and Angus Butler". */
+function looseClientName(t) {
+  const head = String(t || '').replace(/^\s+/, '').split(/[\d\n,;:]|\.(?=\s|$)/)[0].replace(/\bzip(?:\s*code)?\s*$/i, '').trim();
+  if (!head || head.length > 70) return '';
+  const words = head.split(/\s+/);
+  if (words.length < 2 || words.length > 6) return '';
+  if (!words.every((w) => /^[A-Za-z][A-Za-z'’-]*$|^&$/.test(w))) return '';
+  if (/^(?:doctors?|drs?|meds?|medications?|compare|please|can|could|hi|hello|new|client)$/i.test(words[0])) return '';
+  return words.map((w) => (TITLE_SKIP.has(w.toLowerCase()) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
+}
+
+/** Doctors typed as a plain list right after the ZIP: "33076. Ashwin Mehta, Jorge G. Ruiz, … no meds." */
+function unlabeledDoctors(t, zip) {
+  if (!zip) return '';
+  const at = t.indexOf(zip);
+  if (at < 0) return '';
+  let rest = t.slice(at + zip.length).replace(/^[\s.,;:\-–—]+/, '');
+  rest = rest.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Za-z])|\n\s*\n/)[0];
+  const items = rest.split(/\n|,|;|\band\b(?=\s+[A-Z])/).map((x) => x.replace(/^[\s\-•*\d.)]+/, '').replace(/[\s.]+$/, '').trim()).filter(Boolean);
+  const looksLikeName = (x) => {
+    const w = x.replace(/\b(?:Drs?|Dras?|Doc)\.?\s+/i, '').split(/\s+/);
+    return w.length >= 2 && w.length <= 5 && /^[A-Z]/.test(w[0]) && /^[A-Z]/.test(w[w.length - 1]) && w.every((y) => /^[A-Za-z][A-Za-z.'’-]*$/.test(y)) &&
+      !/^(?:no|none|meds?|medicaid|they|for|has|have|she|he|compare|add)\b/i.test(x);
+  };
+  const good = items.filter(looksLikeName);
+  if (!good.length || good.length * 2 < items.length) return '';
+  return good.join('\n');
+}
+
 /** "Maria & Gaspar Padron, ZIP 33332 … Doctors: … Meds: … Compare H… " → fields. */
 function parseCompareAsk(text) {
-  const t = String(text || '').replace(/\r/g, '');
+  const t = normalizePlanIds(String(text || '').replace(/\r/g, ''));
   const stops = ['doctors?', 'drs?', 'providers?', 'meds?', 'medications?', 'rx', 'drugs?', 'plans?', 'compare'];
   const constraints = askConstraints(t);
 
   const zip = (t.match(/\b(?:zip\s*(?:code)?\s*:?\s*)?(\d{5})\b/i) || [])[1] || '';
   const clientMatch = t.match(/^\s*([A-Z][a-z]+(?:\s*(?:&|and|y)\s*[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]+)/);
-  const clientName = clientMatch ? clientMatch[1].replace(/\s+/g, ' ').trim() : '';
+  const strictName = clientMatch ? clientMatch[1].replace(/\s+/g, ' ').trim() : '';
+  const looseName = looseClientName(t);
+  const clientName = looseName && looseName.toLowerCase().startsWith(strictName.toLowerCase()) ? looseName : (strictName || looseName);
   const terminatingPlan = ((t.match(/\b([HR]\d{4}-\d{3}[A-Z]?)\b[^.\n]{0,25}?\b(?:terminat|ending)/i) || [])[1] || '').toUpperCase();
 
   let doctorsText = section(t, '(?:doctors?|drs?|providers?)', stops.filter((s) => !/doctor|dr|provider/.test(s)));
   let medsText = section(t, '(?:meds?|medications?|rx|drugs?)', stops.filter((s) => !/med|rx|drug/.test(s)));
   // Trim trailing sentences ("… Compare Humana …", "Give me 2-3 plans")
-  const cut = (s) => s.split(/\.\s+(?=[A-Z])|\bcompare\b|\bgive me\b|\bsuggest\b|\bshow me\b/i)[0];
+  const cut = (s) => s.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Z])|\bcompare\b|\bgive me\b|\bsuggest\b|\bshow me\b/i)[0];
   // "Dr. Jorge Perez" must not be cut at the period after "Dr" (it left the doctor named just "Dr").
+  if (!doctorsText) doctorsText = unlabeledDoctors(t, zip);
   doctorsText = doctorsText.replace(/\b(?:Drs?|Dras?|Doc)\.?\s+(?=[A-Za-z])/gi, '');
   doctorsText = cut(doctorsText);
   medsText = cut(medsText);
