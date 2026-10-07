@@ -573,3 +573,29 @@ Not in this change (lower risk, still open): Solis reporting In from the wrong c
 ZIP cannot be routed, Solis's Central Florida index never being searched, the Doctors PDF index
 matching across all four counties, and Wellcare/Simply/Aetna showing "not confirmed" when
 nothing was checked.
+
+## 2026-10-07 — HealthSun 2027 directory name index
+
+HealthSun's FHIR directory only answers at carrier level, so HealthSun plan cells read
+"not confirmed". Yahoska sent the 2027 Provider and Pharmacy Directory PDF (930 pages, one book
+for Miami-Dade, Broward and Palm Beach, current as of Sep 4, 2026). It has **no NPIs**, so — like
+Solis and CarePlus — it is a name index.
+
+- `scripts/build_healthsun_index.py` parses the alphabetical Provider Index (PDF pp. 797–838)
+  into `data/healthsun-directory-2027.json`: 4,148 people (Miami-Dade 2,052 · Broward 1,727 ·
+  Palm Beach 827), each with the printed pages it points to.
+- County comes from the body pages: provider pages are headed "<County> County / Condado …"
+  and footed with the printed page (= PDF page − 1). Only some pages repeat the header, so the
+  county carries forward. Traps hit while building: the pharmacy section *after* the index also
+  carries county headers (its opener is a bare "Broward County/"), and index entries can begin
+  with a facility name like "Broward County Health Dept". Header regex requires "/ Condado".
+- `services/healthsunDirectory.js` `healthsunCheck` — Solis's `samePerson` rules (surname words +
+  first name), county-scoped. Wired in `providerNetwork.js` (`healthsunResult`, rides on the
+  HealthSun FHIR network entry as `directoryStatus` / `directoryMatches`).
+- `doctorPlanNarrow.js`: HealthSun added to SINGLE_NETWORK and PARTIAL_DIRECTORY carriers.
+  **Listed → plan-level In. Not listed → not confirmed, never Out** — chosen over Solis's
+  "not listed = Out" because a name match can miss a real listing and a false Out loses the
+  client's doctor. Change it only with Yahoska's OK.
+
+Martin (Broward 33324): Daniel Ead p. 222 and Matthew Soff p. 70 are listed; Dr. Rundeep Gadh
+is NOT (the only Gadh in the book is Rajdeep S.); Kava, Torshizi, Bartlett not listed.

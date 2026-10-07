@@ -667,9 +667,11 @@ const isHmoTab = (c) => String((c.grid && c.grid.type) || '').toUpperCase() === 
 // applies when no plan-level answer exists (e.g. an unmapped year).
 // Solis: one HMO network per county directory — a listing covers every Solis plan there.
 // Doctors HealthCare: one network for every H4140 plan (Yahoska, 2026-10-07).
-const SINGLE_NETWORK_CARRIERS = ['Devoted', 'Solis', 'CarePlus', 'Doctors HealthCare'];
-// CarePlus's directory is a PARTIAL list: a listing is plan-level In, a miss is never Out.
-const PARTIAL_DIRECTORY_CARRIERS = ['CarePlus'];
+// HealthSun: one 2027 directory covers its HMO plans in a county (Yahoska sent the PDF, 2026-10-07).
+const SINGLE_NETWORK_CARRIERS = ['Devoted', 'Solis', 'CarePlus', 'Doctors HealthCare', 'HealthSun'];
+// A listing is plan-level In, a miss is never Out: CarePlus's PDF says "partial list"; HealthSun's
+// has no NPIs, so its match is by name and can miss a real listing.
+const PARTIAL_DIRECTORY_CARRIERS = ['CarePlus', 'HealthSun'];
 // Plans that share one carrier network, so a directory hit counts as plan-level In.
 // Doctors HealthCare: DrMax-Dade (H4140-022) and DrSelect-SFL (H4140-023) share one
 // network — confirmed by Yahoska 2026-10-06. 001/012 are the same products' prior IDs.
@@ -807,6 +809,11 @@ function careplusChecked(d) {
   return (d.networks || []).some((x) => /careplus/i.test(String(x.carrier)) && x.status === 'checked');
 }
 
+/** HealthSun's 2027 directory name index answered for this doctor's county. */
+function healthsunChecked(d) {
+  return (d.networks || []).some((x) => /healthsun/i.test(String(x.carrier)) && x.directoryStatus === 'checked');
+}
+
 /** UHC finished, the doctor is on no UHC plan, and UHC returned plan-level "not listed" answers. */
 function uhcUnlisted(d) {
   if (!directoryFinished(d, 'UnitedHealthcare')) return false;
@@ -820,6 +827,8 @@ function directoryFinished(d, carrier) {
   if (carrier === 'Solis' && !solisChecked(d)) return false;
   if (carrier === 'CarePlus' && !careplusChecked(d)) return false;
   if (d.status !== 'done' && d.status !== 'partial') return false;
+  // The directory index answered even if the live FHIR call did not.
+  if (carrier === 'HealthSun' && healthsunChecked(d)) return true;
   const re = PENDING_FOR[carrier];
   if (!re || NO_LIVE_DIRECTORY.includes(carrier)) return false;
   return ![...(d.pending || []), ...(d.failed || [])].some((p) => re.test(String(p)));

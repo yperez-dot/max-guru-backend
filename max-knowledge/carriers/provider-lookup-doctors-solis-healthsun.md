@@ -17,6 +17,8 @@ Live directory is FHIR (Aaneel), not Sunfire.
 
 Member-facing directory: https://healthsun.com/provider-directory/
 
+**2027 directory name index (2026-10-07).** The FHIR answer is carrier-level only, so Max also checks HealthSun's 2027 Provider and Pharmacy Directory PDF (Miami-Dade, Broward, Palm Beach; current as of Sep 4, 2026), indexed by name into `data/healthsun-directory-2027.json` (4,148 people). The PDF has NO NPIs, so it is a name match (surname + first name — "Rajdeep S. Gadh" never matches Dr. Rundeep Gadh). Listed in the client's county = In for HealthSun plans there, with the PDF page. Not listed = **not confirmed, never Out** (a name match can miss a real listing). No ZIP / county outside the three = unchecked. Rebuild with `scripts/build_healthsun_index.py` when HealthSun republishes.
+
 ## Doctors HealthCare Plans (H4140)
 
 No public FHIR. Live search is https://providersearch.doctorshcp.com (POST `/ProviderSearch` by NPI, PCP + specialist). Max queries this the same way. A hit means the NPI is in the Doctors directory — the API does not name a CMS plan ID. DrMax-Dade (H4140-022) and DrSelect-SFL (H4140-023) share one network (Yahoska, 2026-10-06), so a hit counts as In for both. The API rejects bursts with HTTP 404 — Max searches one list at a time and retries.

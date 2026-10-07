@@ -34,6 +34,20 @@ const careplusDirectory = require('./careplusDirectory');
 const CAREPLUS_LABEL = 'CarePlus';
 const CAREPLUS_COUNTY = careplusDirectory.COUNTY_LABEL;
 const CAREPLUS_UNAVAILABLE = { status: 'unavailable', inNetwork: false, matches: [], partialList: true };
+// HealthSun: name match against the 2027 directory PDF index (no NPIs). Listed → In; not listed →
+// not confirmed, never Out (services/healthsunDirectory.js).
+const healthsunDirectory = require('./healthsunDirectory');
+const HEALTHSUN_LABEL = 'HealthSun';
+const HEALTHSUN_COUNTY = healthsunDirectory.COUNTY_LABEL;
+const HEALTHSUN_UNAVAILABLE = { status: 'unavailable', inNetwork: false, matches: [], partialList: true };
+function healthsunFor(rec, zip, planYear) {
+  if (Number(planYear) === 2026 || rec.isOrg) return HEALTHSUN_UNAVAILABLE;
+  try {
+    return healthsunDirectory.healthsunCheck({ firstName: rec.firstName, middleName: rec.middleName, lastName: rec.lastName, zip });
+  } catch (_) {
+    return HEALTHSUN_UNAVAILABLE;
+  }
+}
 function careplusFor(rec, zip, planYear) {
   if (Number(planYear) === 2026) return CAREPLUS_UNAVAILABLE;
   try {
@@ -321,6 +335,7 @@ function startNpiChecks(rec, { zip, planYear, guestPlanIds, rank = 0 }) {
     // Solis: name match against the 2027 county directory index (local file, instant).
     solisResult: solisFor(rec, zip, planYear),
     careplusResult: careplusFor(rec, zip, planYear),
+    healthsunResult: healthsunFor(rec, zip, planYear),
     fhir: undefined,
     fhirFailed: [],
     doctorsResult: undefined,
@@ -384,6 +399,8 @@ function summarizeNpi(state, planYear) {
   if (solisResult.inNetwork && !inNetworkFor.includes(SOLIS_LABEL)) inNetworkFor.push(SOLIS_LABEL);
   const careplusResult = state.careplusResult || CAREPLUS_UNAVAILABLE;
   if (careplusResult.inNetwork && !inNetworkFor.includes(CAREPLUS_LABEL)) inNetworkFor.push(CAREPLUS_LABEL);
+  const healthsunResult = state.healthsunResult || HEALTHSUN_UNAVAILABLE;
+  if (healthsunResult.inNetwork && !inNetworkFor.includes(HEALTHSUN_LABEL)) inNetworkFor.push(HEALTHSUN_LABEL);
   for (const [res, fallbackLabel] of [[aetnaResult, AETNA_PLAN_LABEL], [simplyResult, SIMPLY_PLAN_LABEL]]) {
     if (!res.error && res.inNetwork) {
       for (const plan of res.plans || []) if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
@@ -428,6 +445,7 @@ function summarizeNpi(state, planYear) {
     humanaResult,
     solisResult,
     careplusResult,
+    healthsunResult,
     devotedResult: devoted,
   };
 }
@@ -489,6 +507,12 @@ function formatDoctorText({ doctorName, zip, planYear, providerResults, sunfire,
     } else {
       out += 'CarePlus: no 2027 directory index for this county yet — check CarePlusHealthPlans.com/FindCare.\n';
     }
+    const hr = pr.healthsunResult;
+    if (hr && hr.inNetwork) {
+      out += `HealthSun 2027 directory: LISTED as ${hr.matches.map((m) => `${m.name} (${HEALTHSUN_COUNTY[m.county] || m.county} PDF p. ${m.pages.join(', ')})`).join('; ')} — name match (the PDF has no NPIs).\n`;
+    } else if (hr && hr.status === 'checked') {
+      out += `HealthSun 2027 directory (${HEALTHSUN_COUNTY[hr.county] || hr.county}, current as of ${hr.asOf || 'Sep 2026'}): not listed by name — NOT Out (a name match can miss a listing). Confirm at healthsun.com/provider-directory.\n`;
+    }
     out += '\n';
   }
   if (timedOut) {
@@ -532,6 +556,14 @@ function structuredFor(doctorName, providerResults, { status, sunfireLabels = []
         inNetwork: firstProvider.inNetworkFor.includes(c.name),
         status: (firstProvider.lookupErrors || []).includes(`${c.name} (FHIR)`) ? 'failed'
           : (firstProvider.pending || []).some((p) => /^FHIR/.test(p)) ? 'pending' : 'checked',
+        // HealthSun: the 2027 directory name index rides on the same entry.
+        ...(c.key === 'healthsun' && firstProvider.healthsunResult
+          ? {
+            directoryStatus: firstProvider.healthsunResult.status,
+            directoryMatches: firstProvider.healthsunResult.matches || [],
+            partialList: true,
+          }
+          : {}),
         // Devoted: plan-level In/Out by network (C-SNP plans have their own network).
         ...(c.key === 'devoted' && firstProvider.devotedResult
           ? { plans: firstProvider.devotedResult.inPlans, outOfNetworkPlans: firstProvider.devotedResult.outPlans }
