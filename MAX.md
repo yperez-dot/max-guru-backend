@@ -416,3 +416,5 @@ Write it in this file (or `max-knowledge/` if the **chatbot** must cite it). Nex
 - 2026-10-07: Yahoska: Simply has NO core (non-SNP) plans in Miami-Dade or Broward — only a D-SNP. A failed Simply Find Care check is no longer listed as an unchecked carrier in provider-lookup output; do not offer Simply columns for HMO/core comparisons, and only talk about Simply when the client is a dual/D-SNP.
 
 - 2026-10-07: Yahoska: when she says "CarePlus" in a comparison, use the core plans CareOne Plus (H1019-001, HMO-POS) + CareAccess (H1019-148) "for now" — not all four CarePlus plans. Miami-Dade's grid only has H1019-148, so that county gets one. Others (CareFree Platinum H1019-135, CareFree Giveback H1019-065) only when she names them.
+
+- 2026-10-07: Cleusa's doctors (Gadh/Torshizi/Bartlett) leaked into Martin's comparison because they shared a chat thread. Added system rule 22b + behavior rule: a different client name = a new client; never reuse the earlier client's doctors/meds/plan. Use a New chat per client.
