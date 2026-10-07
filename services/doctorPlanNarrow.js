@@ -220,7 +220,11 @@ function statementsFor(question, answer) {
   }
   if (/must-keep/i.test(q)) return [`Must-keep doctors: ${a}.`];
   if (/HMO OK|PPO/i.test(q)) return [/ppo/i.test(a) && !/hmo ok|either/i.test(a) ? 'Needs a PPO.' : `Network: ${a} (HMO ok).`];
-  if (/meds/i.test(q)) return NO_RE.test(a) ? ['No meds.'] : [`Meds: ${a}`];
+  if (/meds/i.test(q)) {
+    if (NO_RE.test(a)) return ['No meds.'];
+    // "both" / "yes" / "same" answers the question, it is not a drug name.
+    return R.isNonDrugAnswer(a) ? [] : [`Meds: ${a}`];
+  }
   return [];
 }
 
@@ -462,6 +466,10 @@ function corePlanIdsFor(carrier, county) {
 const isHmoTab = (c) => String((c.grid && c.grid.type) || '').toUpperCase() === 'HMO';
 
 // Carriers whose Florida MA plans all share one provider network.
+// Devoted is only a FALLBACK here: each Devoted plan has its own network (FL HMO / FL HMO
+// D-SNP / FL HMO C-SNP — services/devotedNetworks.js), and a finished 2027 FHIR check gives
+// plan-level In/Out labels that win above (inIds/outIds). The carrier-level rule only
+// applies when no plan-level answer exists (e.g. an unmapped year).
 // Solis: one HMO network per county directory — a listing covers every Solis plan there.
 // Doctors HealthCare: one network for every H4140 plan (Yahoska, 2026-10-07).
 const SINGLE_NETWORK_CARRIERS = ['Devoted', 'Solis', 'CarePlus', 'Doctors HealthCare'];

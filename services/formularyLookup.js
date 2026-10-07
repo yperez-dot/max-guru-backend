@@ -237,10 +237,56 @@ function catalogDrugs(payload) {
 
 const BAD_FORM_RE = /\b(inject(?:ion|able)?|intravenous|\biv\b|vial|kit|powder for|for solution|irrigation|topical|ophthalmic|otic|nasal|patch|suppositor)/i;
 
+// Catalog-name abbreviations agents (and Max's own catalog hits) paste back:
+// "Amlodipine Besy-Benazepril HCL" → "Amlodipine Besylate-Benazepril HCL".
+const SALT_ABBREVIATIONS = [
+  [/\bbesy\b\.?/gi, 'Besylate'],
+  [/\bmal\b\.?/gi, 'Maleate'],
+  [/\bsuccin\b\.?/gi, 'Succinate'],
+  [/\btart\b\.?/gi, 'Tartrate'],
+];
+
+// Salt / form words that are not an active ingredient.
+const NON_INGREDIENT_WORDS = new Set(
+  'besy besylate hcl hydrochloride hbr hydrobromide sodium potassium calcium magnesium maleate mesylate succinate tartrate fumarate citrate sulfate acetate bromide phosphate hyclate monohydrate dihydrate trihydrate anhydrous oral tablet tablets tab tabs capsule capsules cap caps caplet caplets chewable solution suspension er xr xl sr dr cr la odt ec extended delayed immediate release hr mg mcg ml g unit units iu generic brand pen injector injection prefilled syringe kit'.split(' ')
+);
+
+/**
+ * Active ingredients named in a drug string, in order:
+ * "Amlodipine Besylate-Benazepril HCl 10-20 mg" → ["amlodipine", "benazepril"].
+ */
+function drugIngredients(raw) {
+  const s = String(raw || '')
+    .toLowerCase()
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\b\d+(?:\.\d+)?(?:\s*[-/]\s*\d+(?:\.\d+)?)*\s*(?:mg|mcg|µg|ug|g|ml|iu|units?|%)?(?:\s*\/\s*(?:ml|act|hr|h))?\b/g, ' ');
+  const out = [];
+  for (const part of s.split(/\s*(?:\/|\+|-|&|,|\band\b|\bwith\b)\s*/)) {
+    const words = part.replace(/[^a-z\s]+/g, ' ').split(/\s+/).filter((w) => w.length > 2 && !NON_INGREDIENT_WORDS.has(w));
+    if (!words.length) continue;
+    const ing = words.join(' ');
+    if (!out.includes(ing)) out.push(ing);
+  }
+  return out;
+}
+
+function ingredientWordMatch(a, b) {
+  if (a === b) return true;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  return short.length >= 5 && long.startsWith(short);
+}
+
+/** Does catalog product `name` contain every ingredient of the query? */
+function hasAllIngredients(name, queryIngredients) {
+  const candWords = drugIngredients(name).join(' ').split(/\s+/).filter(Boolean);
+  return queryIngredients.every((ing) => ing.split(/\s+/).every((w) => candWords.some((c) => ingredientWordMatch(w, c))));
+}
+
 /** Strip strength/dose/form so catalog search finds the molecule (e.g. "pregabalin 200 mg" → "pregabalin"). */
 function drugCatalogQuery(raw) {
-  const s = String(raw || '').trim();
+  let s = String(raw || '').trim();
   if (!s) return '';
+  for (const [re, full] of SALT_ABBREVIATIONS) s = s.replace(re, full);
   const stripped = s
     .replace(/\b\d+(?:\.\d+)?\s*(mg|mcg|µg|ug|g|ml|iu|units?)\b/gi, ' ')
     .replace(/\b(oral|tablet|tablets|capsule|capsules|caplets?|tabs?|caps?|er|xr|cr|dr|odt|solution|suspension|cream|gel|ointment|extended[- ]release|immediate[- ]release)\b/gi, ' ')
@@ -256,6 +302,13 @@ function catalogScore(drug, query) {
   const q = String(query || '').toLowerCase().trim();
   if (!name) return -100;
   let score = 0;
+  // Combination products: every ingredient asked must be in the product
+  // (amlodipine/benazepril must never resolve to amlodipine/valsartan), and a
+  // single-ingredient ask prefers the plain product over combos.
+  const qIngs = drugIngredients(q);
+  const nIngs = drugIngredients(name);
+  if (qIngs.length >= 2 && !hasAllIngredients(name, qIngs)) return -1000;
+  if (qIngs.length && nIngs.length > qIngs.length) score -= 15;
   if (name === q) score += 100;
   const base = q.split(/\s+/)[0];
   if (base && name.startsWith(base)) score += 10;
@@ -266,17 +319,21 @@ function catalogScore(drug, query) {
   return score;
 }
 
-/** Catalog products for a query, best match first (oral tablet over injection, matching strength). */
+/**
+ * Catalog products for a query, best match first (oral tablet over injection, matching strength).
+ * A combination ask drops products missing one of its ingredients — a wrong drug is worse than none.
+ */
 function rankCatalogMatches(drugs, query) {
   return (drugs || [])
     .map((d, i) => ({ d, i, s: catalogScore(d, query) }))
+    .filter((x) => x.s > -1000)
     .sort((a, b) => b.s - a.s || a.i - b.i)
     .map((x) => x.d);
 }
 
 function pickCatalogMatch(drugs, query) {
   if (!drugs || !drugs.length) return null;
-  return rankCatalogMatches(drugs, query)[0];
+  return rankCatalogMatches(drugs, query)[0] || null;
 }
 
 async function searchSunfireCatalog(name, fetchImpl = fetch) {
@@ -862,8 +919,12 @@ async function resolveMedicareGovNdcs({ drugName, ndc }, fetchImpl = fetch) {
     (auto.drugs || []).map((d) => ({ name: d.name, rxcui: d.rxcui, id: d.rxcui })),
     drugName || medicareQuery
   );
-  const rxcui = match?.rxcui || auto.drugs?.[0]?.rxcui || null;
-  const resolvedName = match?.name || auto.drugs?.[0]?.name || medicareQuery || drugName;
+  // No fallback to the first autocomplete hit when it is a different combination
+  // (asked amlodipine/benazepril, first hit amlodipine/valsartan).
+  const comboAsk = drugIngredients(drugName || medicareQuery).length >= 2;
+  const fallback = comboAsk ? null : auto.drugs?.[0] || null;
+  const rxcui = match?.rxcui || fallback?.rxcui || null;
+  const resolvedName = match?.name || fallback?.name || medicareQuery || drugName;
   const query = drugName || resolvedName;
 
   if (rxcui) {
@@ -1117,6 +1178,16 @@ const BRAND_TO_GENERIC = {
   cozaar: 'Losartan',
   diovan: 'Valsartan',
   lyrica: 'Pregabalin',
+  xanax: 'Alprazolam',
+  klonopin: 'Clonazepam',
+  ativan: 'Lorazepam',
+  valium: 'Diazepam',
+  synthroid: 'Levothyroxine',
+  wellbutrin: 'Bupropion',
+  elavil: 'Amitriptyline',
+  zoloft: 'Sertraline',
+  lexapro: 'Escitalopram',
+  neurontin: 'Gabapentin',
 };
 
 function brandKey(name) {
@@ -1502,6 +1573,8 @@ module.exports = {
   catalogDrugs,
   pickCatalogMatch,
   drugCatalogQuery,
+  drugIngredients,
+  rankCatalogMatches,
   humanaPlanYearMatch,
   isHumanaCms,
   cmsContractParts,
