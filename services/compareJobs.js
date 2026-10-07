@@ -127,10 +127,20 @@ function parseCompareAsk(text) {
   medsText = cut(medsText);
   if (!medsText) medsText = unlabeledMeds(t, zip, splitList(doctorsText).map((name) => ({ name })));
 
-  const doctors = splitList(doctorsText).map((name) => {
-    const mustKeep = /must[- ]?keep/i.test(name);
-    return { name: name.replace(/\(?\s*must[- ]?keep\s*\)?/i, '').replace(/[\s.]+$/, '').trim(), mustKeep };
-  }).filter((d) => d.name).slice(0, MAX_DOCTORS);
+  const doctors = splitList(doctorsText).map((raw) => {
+    const mustKeep = /must[- ]?keep/i.test(raw);
+    let name = raw.replace(/\(?\s*must[- ]?keep\s*\)?/i, '');
+    // "Rundeep Singh Gadh NPI 1407095615 (PCP)" — pull the NPI out so the lookup uses it
+    // instead of searching for a name with ten digits glued on (Yahoska, 2026-10-07).
+    let npi;
+    const m = name.match(/\b(?:npi\s*#?\s*:?\s*)?(\d{10})\b/i);
+    if (m) {
+      npi = m[1];
+      name = name.replace(m[0], ' ').replace(/\bnpi\b\s*#?\s*:?/i, ' ');
+    }
+    name = name.replace(/\s{2,}/g, ' ').replace(/[\s.,-]+$/, '').trim();
+    return npi ? { name, npi, mustKeep } : { name, mustKeep };
+  }).filter((d) => d.name || d.npi).slice(0, MAX_DOCTORS);
   const meds = splitList(medsText).map((m) => m.replace(/\.$/, '')).slice(0, MAX_MEDS);
 
   const skip = constraints.skip;
