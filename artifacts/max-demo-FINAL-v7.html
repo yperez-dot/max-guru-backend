@@ -5301,6 +5301,10 @@ function App() {
                 <div className="max-export-scroll" style={{ padding: "12px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(255,255,255,0.88)", color: "var(--ink)", fontSize: 14.5, lineHeight: 1.5, border: "1px solid var(--line)", maxWidth: "100%" }}>
                   <div style={{ marginBottom: 10 }}>Want this comparison as Excel or PDF?</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button data-testid="show-benefits" onClick={() => send("Show benefits for these plans")}
+                      style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
+                      Show benefits
+                    </button>
                     <button onClick={() => { void runComparisonExport("excel", messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", sobBenefits: m.sobBenefits || {}, toolResults: sessionToolResultsRef.current, rememberedPlans: m.plans || [] }).then(() => setMessages(prev => prev.filter((_,j) => j !== i))); }}
                       style={{ padding: "8px 14px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)", color: "white", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
                       Export Excel

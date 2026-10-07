@@ -336,3 +336,13 @@ describe('misspelled doctor → "did you mean?" (John Mortyko → John A Morytko
     assert.deepEqual(n.comparisonFollowUp(msgs).doctors, ['Juan D Cedeno', 'John A Morytko']);
   });
 });
+
+describe('short first reply + Show benefits', () => {
+  it('rules keep the first reply short and define the benefits reply', () => {
+    const R = require('./comparisonRules');
+    const text = R.COMPARISON_TABLE_RULES;
+    assert.match(text, /SHORT FIRST REPLY/);
+    assert.match(text, /Show benefits for these plans/);
+    assert.match(text, /NO new lookups/);
+  });
+});

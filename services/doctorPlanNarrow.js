@@ -1030,6 +1030,7 @@ function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] }
   } else if (answered) {
     lines.push('3) The agent already answered the narrowing questions — present the table above (2–3 plans) with every doctor In / Out / unchecked / not confirmed. No other plans.');
   }
+  lines.push('4) No benefits snapshot or Sources line; max 2 notes, 2 questions.');
   return { text: lines.join('\n'), matrix: sel.ranked, questions: sel.questions, selection: sel };
 }
 
