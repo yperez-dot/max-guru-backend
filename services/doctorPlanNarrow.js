@@ -394,6 +394,10 @@ function namedPlansFromAsk(askText, constraints) {
   return current;
 }
 
+// The carrier's core (flagship, non-SNP) plan: when she compares that carrier it always leads, even if its
+// doctors could not be confirmed — a carrier comparison that skips the core plan is not useful (Yahoska 2026-10-07).
+const CORE_PLANS = { Humana: ['H1036-065'] };
+
 // Carriers whose Florida MA plans all share one provider network.
 // Solis: one HMO network per county directory — a listing covers every Solis plan there.
 const SINGLE_NETWORK_CARRIERS = ['Devoted', 'Solis', 'CarePlus'];
@@ -890,7 +894,13 @@ function selectComparison(doctors, askText, opts = {}) {
       ));
       const perCarrier = carriers.length === 1 ? 3 : 1;
       for (const c of carriers) {
-        const picks = byCarrier(c).slice(0, perCarrier);
+        let ranked_ = byCarrier(c);
+        const coreCol = ranked_.find((x) => (CORE_PLANS[c] || []).includes(x.planId.slice(0, 9)));
+        if (coreCol) {
+          ranked_ = [coreCol, ...ranked_.filter((x) => x !== coreCol)];
+          if (!coreCol.verifiable) out.flags.unshift(`⚠️ ${shortPlanHeader(coreCol)}: ${c}'s core plan leads, but its doctors could not be confirmed (the directory returned no plan-level result) — check it in the carrier's Find Care / directory.`);
+        }
+        const picks = ranked_.slice(0, perCarrier);
         out.columns.push(...picks);
         if (!picks.length) {
           const why = carrierExcluded.get(c);
