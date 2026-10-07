@@ -696,3 +696,161 @@ describe('levothyroxine: odd catalog product must not read "not covered"', () =>
     assert.match(text, /do NOT state "not covered" as fact/);
   });
 });
+
+// Regression: Ana Maria Lopez 2027 (Doctors H4140-023, Humana H1036-065C).
+// Max read clonazepam 1 mg tablet and pregabalin 200 mg capsule as "not
+// covered" because the first RxNorm NDC tried was a brand / ER / ODT product.
+describe('medicare.gov product matching (brand / ER / ODT never decide a generic)', () => {
+  const {
+    queryProductHints,
+    conceptMatchesQuery,
+    scoreRelatedConcept,
+    lookupMedicareGov,
+  } = require('./formularyLookup');
+
+  const CONCEPTS = {
+    clonazepam: {
+      auto: { rxcui: '2598', name: 'clonazepam' },
+      related: [
+        { tty: 'SBD', rxcui: '206905', name: 'clonazepam 1 MG Oral Tablet [Klonopin]', ndc: '00004005801', covered: false },
+        { tty: 'SCD', rxcui: '349197', name: 'clonazepam 1 MG Disintegrating Oral Tablet', ndc: '00093321456', covered: false },
+        { tty: 'SCD', rxcui: '197528', name: 'clonazepam 0.5 MG Oral Tablet', ndc: '00093083201', covered: true, tier: 1 },
+        { tty: 'SCD', rxcui: '197527', name: 'clonazepam 1 MG Oral Tablet', ndc: '00093083301', covered: true, tier: 1 },
+      ],
+    },
+    pregabalin: {
+      auto: { rxcui: '187832', name: 'pregabalin' },
+      related: [
+        { tty: 'SCD', rxcui: '1858998', name: 'pregabalin 165 MG 24HR Extended Release Oral Tablet', ndc: '00071002630', covered: false },
+        { tty: 'SBD', rxcui: '577127', name: 'pregabalin 200 MG Oral Capsule [Lyrica]', ndc: '00071101768', covered: false },
+        { tty: 'SCD', rxcui: '483448', name: 'pregabalin 200 MG Oral Capsule', ndc: '68180056409', covered: true, tier: 1 },
+      ],
+    },
+  };
+
+  function makeFetch(key, overrides = {}) {
+    const set = CONCEPTS[key];
+    const byRxcui = Object.fromEntries(set.related.map((c) => [c.rxcui, { ...c, ...(overrides[c.rxcui] || {}) }]));
+    const byNdc = Object.fromEntries(Object.values(byRxcui).map((c) => [c.ndc, c]));
+    const costCalls = [];
+    const fetchImpl = async (url, options = {}) => {
+      const u = String(url);
+      if (u.includes('/drugs/autocomplete')) return jsonRes({ drugs: [set.auto] });
+      if (u.includes('/related.json')) {
+        return jsonRes({
+          relatedGroup: {
+            conceptGroup: ['SCD', 'SBD'].map((tty) => ({
+              tty,
+              conceptProperties: set.related.filter((c) => c.tty === tty).map((c) => ({ rxcui: c.rxcui, name: c.name })),
+            })),
+          },
+        });
+      }
+      if (u.includes('/ndcs.json')) {
+        const rx = decodeURIComponent(u.match(/rxcui\/([^/]+)\/ndcs/)[1]);
+        const c = byRxcui[rx];
+        return jsonRes({ ndcGroup: { ndcList: { ndc: c ? [c.ndc] : [] } } });
+      }
+      if (u.includes('/drugs/cost')) {
+        const body = JSON.parse(options.body);
+        const ndc = body.prescriptions[0].ndc;
+        costCalls.push(ndc);
+        const c = byNdc[ndc];
+        const plan = body.plans[0];
+        return jsonRes({
+          plans: [
+            {
+              plan: { contract_id: plan.contract_id, plan_id: plan.plan_id, segment_id: '0', contract_year: plan.contract_year },
+              restrictions: [],
+              costs: [
+                {
+                  drug_costs: [
+                    c && c.covered
+                      ? { ndc, covered: true, coverage_reason: 'COVERED', tier: c.tier }
+                      : { ndc, covered: false, coverage_reason: 'NOT_COVERED' },
+                  ],
+                },
+              ],
+            },
+          ],
+        });
+      }
+      return jsonRes({ message: 'nope' }, 404);
+    };
+    return { fetchImpl, costCalls };
+  }
+
+  it('reads the asked product from the query', () => {
+    const h = queryProductHints('Pregabalin 200 mg capsule');
+    assert.equal(h.form, 'capsule');
+    assert.equal(h.er, false);
+    assert.deepEqual(h.strengths, [{ value: '200', unit: 'mg' }]);
+    assert.equal(queryProductHints('Propranolol ER 60 mg capsule').er, true);
+    assert.equal(queryProductHints('Duloxetine 30 mg DR capsule').dr, true);
+  });
+
+  it('brand, ER, ODT and other strengths are not the asked generic', () => {
+    const q = 'Clonazepam 1 mg tablet';
+    assert.equal(conceptMatchesQuery({ name: 'clonazepam 1 MG Oral Tablet' }, q), true);
+    assert.equal(conceptMatchesQuery({ name: 'clonazepam 1 MG Oral Tablet [Klonopin]' }, q), false);
+    assert.equal(conceptMatchesQuery({ name: 'clonazepam 1 MG Disintegrating Oral Tablet' }, q), false);
+    assert.equal(conceptMatchesQuery({ name: 'clonazepam 0.5 MG Oral Tablet' }, q), false);
+    assert.equal(conceptMatchesQuery({ name: 'pregabalin 200 MG Oral Capsule' }, 'Pregabalin 200 mg capsule'), true);
+    assert.equal(
+      conceptMatchesQuery({ name: 'pregabalin 165 MG 24HR Extended Release Oral Tablet' }, 'Pregabalin 200 mg capsule'),
+      false
+    );
+    assert.equal(
+      conceptMatchesQuery(
+        { name: '24 HR propranolol hydrochloride 60 MG Extended Release Oral Capsule' },
+        'Propranolol ER 60 mg capsule'
+      ),
+      true
+    );
+    assert.equal(
+      conceptMatchesQuery({ name: 'vortioxetine 10 MG Oral Tablet [Trintellix]' }, 'Trintellix'),
+      true
+    );
+    const generic = scoreRelatedConcept({ tty: 'SCD', name: 'pregabalin 200 MG Oral Capsule' }, 'pregabalin 200 mg capsule');
+    const er = scoreRelatedConcept({ tty: 'SCD', name: 'pregabalin 165 MG 24HR Extended Release Oral Tablet' }, 'pregabalin 200 mg capsule');
+    assert.ok(generic > er);
+  });
+
+  for (const [key, query, planId] of [
+    ['clonazepam', 'Clonazepam 1 mg tablet', 'H4140-023'],
+    ['clonazepam', 'Clonazepam 1 mg tablet', 'H1036-065C'],
+    ['pregabalin', 'Pregabalin 200 mg capsule', 'H4140-023'],
+    ['pregabalin', 'Pregabalin 200 mg capsule', 'H1036-065C'],
+  ]) {
+    it(`${query} on ${planId} reads covered even when brand / ER / ODT NDCs are not`, async () => {
+      const { fetchImpl, costCalls } = makeFetch(key);
+      const hit = await lookupMedicareGov({ drugName: query, planId, year: 2027 }, fetchImpl);
+      assert.equal(hit.verified, true);
+      assert.equal(hit.coverage, 'covered');
+      assert.equal(hit.tier, 1);
+      assert.equal(hit.productNote, undefined);
+      // The exact generic is asked first, so one call answers it.
+      assert.equal(costCalls.length, 1);
+    });
+  }
+
+  it('the exact generic reading not covered is still reported not covered', async () => {
+    const { fetchImpl } = makeFetch('clonazepam', { 197527: { covered: false } });
+    const hit = await lookupMedicareGov({ drugName: 'Clonazepam 1 mg tablet', planId: 'H4140-023', year: 2027 }, fetchImpl);
+    assert.equal(hit.verified, true);
+    assert.equal(hit.coverage, 'not_covered');
+  });
+
+  it('only brand / ER NDCs not covered → unverified, never "not covered"', async () => {
+    const { fetchImpl } = makeFetch('pregabalin', { 483448: { ndc: '99999999999' } });
+    // Generic NDC now answers as an unknown product → not covered; make the
+    // generic concept return no NDCs instead so only brand / ER get asked.
+    const wrapped = async (url, options) => {
+      if (String(url).includes('/rxcui/483448/ndcs.json')) return jsonRes({ ndcGroup: { ndcList: {} } });
+      return fetchImpl(url, options);
+    };
+    const hit = await lookupMedicareGov({ drugName: 'Pregabalin 200 mg capsule', planId: 'H4140-023', year: 2027 }, wrapped);
+    assert.equal(hit.verified, false);
+    assert.equal(hit.reason, 'medicare_gov_only_other_products_not_covered');
+  });
+});
