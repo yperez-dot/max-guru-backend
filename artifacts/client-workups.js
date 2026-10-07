@@ -348,11 +348,16 @@
     }
     const doctors = w.doctors || [];
     if (doctors.length) {
-      lines.push("Doctors:");
-      doctors.forEach((d) => {
-        const bits = Object.keys(d.byPlanId || {}).map((id) => id + " " + d.byPlanId[id]);
-        lines.push("- " + d.name + (bits.length ? ": " + bits.join("; ") : ""));
-      });
+      // Names alone first: when a lookup is needed, pass ONLY these names (never the status text next to them).
+      lines.push("Doctors (names only — pass exactly these names to lookup_provider_network): " + doctors.map((d) => d.name).join("; "));
+      const saved = doctors.filter((d) => Object.keys(d.byPlanId || {}).length);
+      if (saved.length) {
+        lines.push("Saved In/Out results (reference only — the text after the name is a result, NOT part of the doctor's name):");
+        saved.forEach((d) => {
+          const bits = Object.keys(d.byPlanId || {}).map((id) => id + " " + d.byPlanId[id]);
+          lines.push("- " + d.name + " [saved: " + bits.join("; ") + "]");
+        });
+      }
     }
     const meds = w.medications || [];
     if (meds.length) {
