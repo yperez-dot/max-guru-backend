@@ -102,3 +102,9 @@ describe('comparison queue: 2 at a time', () => {
     assert.equal(queueState().active, 0);
   });
 });
+
+describe('Dr. titles', () => { it('keeps full doctor names written with a Dr. title', () => {
+  const ask = parseCompareAsk('Carmen Lopez, ZIP 33021, Broward\nDoctors: Dr. Jorge Perez (primary care), Dra. Maria Sanchez (orthopedics)\nMeds: Xarelto 20mg, Jardiance 10mg');
+  assert.deepEqual(ask.doctors.map((d) => d.name), ['Jorge Perez (primary care)', 'Maria Sanchez (orthopedics)']);
+  assert.deepEqual(ask.meds, ['Xarelto 20mg', 'Jardiance 10mg']);
+}); });

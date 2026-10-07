@@ -54,6 +54,8 @@ function parseCompareAsk(text) {
   let medsText = section(t, '(?:meds?|medications?|rx|drugs?)', stops.filter((s) => !/med|rx|drug/.test(s)));
   // Trim trailing sentences ("… Compare Humana …", "Give me 2-3 plans")
   const cut = (s) => s.split(/\.\s+(?=[A-Z])|\bcompare\b|\bgive me\b|\bsuggest\b|\bshow me\b/i)[0];
+  // "Dr. Jorge Perez" must not be cut at the period after "Dr" (it left the doctor named just "Dr").
+  doctorsText = doctorsText.replace(/\b(?:Drs?|Dras?|Doc)\.?\s+(?=[A-Za-z])/gi, '');
   doctorsText = cut(doctorsText);
   medsText = cut(medsText);
 
