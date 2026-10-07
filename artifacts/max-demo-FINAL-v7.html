@@ -4127,7 +4127,7 @@ function ClientWsCard({ ws, onSubmit, onAnswer, onToggleMust, onExport, onCancel
           {linesOf(f.plans).length > 0 && <div style={{ fontSize: 13, marginTop: 2 }}><b>Plans:</b> {linesOf(f.plans).join(", ")}</div>}
         </>)}
         {stage === "questions" && (<>
-          <div style={{ marginTop: 10, fontSize: 13, color: "var(--muted)" }}>Two quick answers before I compare plans. Plans that need these stay out until they're confirmed.</div>
+          <div style={{ marginTop: 10, fontSize: 13, color: "var(--muted)" }}>A few quick answers before I compare plans. Plans that need them stay out until they're confirmed.</div>
           <WsChoices testid="ws-medicaid" title="1. Does the client have Medicaid or a Medicare Savings Program?" options={WS_MEDICAID} value={a.medicaid} onPick={(idx) => onAnswer("medicaid", idx)} />
           <WsChoices testid="ws-csnp" title="2. Does the client have a C-SNP qualifying chronic condition, confirmed by diagnosis?" options={WS_CSNP} value={a.csnp} onPick={(idx) => onAnswer("csnp", idx)} />
           {wsNeedsMust(f) && (
@@ -5399,14 +5399,9 @@ function App() {
               Online · {PLANS.length} plans · {planYear}
             </div>
           </div>
-          <button data-testid="new-client-header" onClick={startNewClient} className="max-tap" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 700, color: "var(--plum)", flexShrink: 0 }}>
+          {isMobile && <button data-testid="new-client-header" onClick={startNewClient} className="max-tap" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 700, color: "var(--plum)", flexShrink: 0 }}>
             New client
-          </button>
-          {!isMobile && (
-            <button onClick={startNewChat} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 600, color: "var(--plum)" }}>
-              New chat
-            </button>
-          )}
+          </button>}
           <button onClick={lockMax} title="Lock Max" className="max-header-btn max-tap" style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", cursor: "pointer", fontFamily: "var(--font)", fontSize: 12.5, fontWeight: 600, color: "var(--muted)", flexShrink: 0 }}>
             Lock
           </button>
