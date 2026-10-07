@@ -219,3 +219,18 @@ describe('compare mode: current plan + named carriers (Cleusa Wiesenthal, 2026-1
     assert.deepEqual(job.result.planIds, ['H1036-065C', 'H4140-023', 'H0982-007', 'H1045-005', 'H1019-001', 'H1019-148']);
   });
 });
+
+describe('compare mode: an NPI typed next to a doctor name (Yahoska, 2026-10-07)', () => {
+  it('pulls the NPI out instead of leaving it in the name', () => {
+    const d = parseCompareAsk('Martin Wiesenthal, 33324. Doctors: Rundeep Singh Gadh NPI 1407095615 (PCP), Nicole Nicophene (PCP).').doctors;
+    assert.equal(d[0].name, 'Rundeep Singh Gadh (PCP)');
+    assert.equal(d[0].npi, '1407095615');
+    assert.equal(d[1].name, 'Nicole Nicophene (PCP)');
+    assert.equal(d[1].npi, undefined);
+  });
+  it('a bare 10-digit number works too, and must-keep still survives', () => {
+    const d = parseCompareAsk('X Y, 33324. Doctors: Rundeep Singh Gadh 1407095615 (PCP), Ana Lee (must-keep).').doctors;
+    assert.equal(d[0].npi, '1407095615');
+    assert.equal(d[1].mustKeep, true);
+  });
+});
