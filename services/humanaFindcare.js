@@ -393,6 +393,11 @@ async function searchNetwork(session, { npi, geo, network }, fetchImpl) {
       ipaId: 0,
       coverageYear: 'Future',
     }, fetchImpl);
+    // A 200 that is not a real search answer (WAF/HTML block page, [], {}, no `results` list) is a
+    // failed check, never a miss — otherwise every Humana plan reads ❌ Out with no warning.
+    if (!data || typeof data !== 'object' || Array.isArray(data) || !Array.isArray(data.results)) {
+      throw new Error('humana findcare: response is not a search result');
+    }
     const hit = resultHasNpi(data, npi);
     return {
       networkId: network.networkId,

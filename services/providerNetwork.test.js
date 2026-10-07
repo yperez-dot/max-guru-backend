@@ -84,7 +84,7 @@ stub('compareJobs', {
 });
 
 const originalFetch = global.fetch;
-global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ total: 0, entry: [] }) }); // FHIR misses (answered, not listed)
+global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ resourceType: 'Bundle', total: 0, entry: [] }) }); // FHIR misses (answered, not listed)
 
 const { lookupProviderNetwork, clearProviderCache, normalizeDoctorList } = require('./providerNetwork');
 
@@ -169,7 +169,7 @@ describe('lookup_provider_network batch (Padron 8 doctors)', () => {
   });
   it('Padron output: carriers per doctor, no Cigna for 2027, coverage counts, narrowing questions', async () => {
     global.fetch = async (url) => (/cigna/.test(String(url))
-      ? { ok: true, json: async () => ({ total: 1, entry: [{}] }) }
+      ? { ok: true, json: async () => ({ resourceType: 'Bundle', total: 1, entry: [{}] }) }
       : { ok: false, json: async () => ({}) });
     try {
       const out = await lookupProviderNetwork(

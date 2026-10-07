@@ -216,7 +216,7 @@ function clearProviderCache() {
  * answered 200 with zero entries is a real miss; a carrier that errored or timed
  * out is `failed` (shown ❔ unchecked, never Out).
  */
-async function fhirCheck(npi) {
+async function fhirCheck(npi, { isOrg = false } = {}) {
   const hits = [];
   const failed = [];
   // Devoted: which networks the doctor's roles link to (null = check failed / not run).
@@ -236,8 +236,23 @@ async function fhirCheck(npi) {
         failed.push(carrier.name);
         return;
       }
-      const fd = await r.json();
+      const fd = await r.json().catch(() => null);
+      // A 200 that is not a FHIR Bundle (OperationOutcome — FHIR's way of reporting a server
+      // error at 200 — or [] / {}) is a failed check, never a miss. Devoted is one network, so
+      // a false miss there reads ❌ Out on every Devoted plan.
+      if (!fd || typeof fd !== 'object' || Array.isArray(fd) || fd.resourceType !== 'Bundle') {
+        console.warn(`[fhir] ${carrier.key} 200 non-Bundle reply npi=${npi}`);
+        failed.push(carrier.name);
+        return;
+      }
       const n = Math.max(Number(fd.total) || 0, (fd.entry || []).length);
+      // A clinic / group (NPI-2) has no Practitioner resource, so this PractitionerRole query is
+      // empty by construction — an empty answer says nothing about the clinic. Keep a hit if one
+      // ever comes back; never count the miss.
+      if (isOrg && n === 0) {
+        failed.push(carrier.name);
+        return;
+      }
       if (DIRECTORY_DEBUG) console.log(`[fhir] ${carrier.key} 200 entries=${n} npi=${npi}`);
       if (n > 0) hits.push(carrier.name);
       if (devoted) {
@@ -271,8 +286,8 @@ async function fhirCheck(npi) {
   return { hits: order.filter((n) => hits.includes(n)), failed: order.filter((n) => failed.includes(n)), devotedNetworks };
 }
 
-async function fhirHits(npi) {
-  return (await fhirCheck(npi)).hits;
+async function fhirHits(npi, opts) {
+  return (await fhirCheck(npi, opts)).hits;
 }
 
 function npiRecordInfo(p) {
@@ -291,6 +306,8 @@ function npiRecordInfo(p) {
     lastName: p.basic?.last_name || p.basic?.organization_name || '',
     firstName: p.basic?.first_name || '',
     middleName: p.basic?.middle_name || '',
+    // NPI-2 = clinic / group. Practitioner-scoped directories cannot answer for it.
+    isOrg: p.enumeration_type === 'NPI-2' || (!p.basic?.first_name && Boolean(p.basic?.organization_name)),
   };
 }
 
@@ -316,7 +333,7 @@ function startNpiChecks(rec, { zip, planYear, guestPlanIds, rank = 0 }) {
   const track = (field, promise, fallback) => promise
     .then((v) => { state[field] = v; }, () => { state[field] = fallback; });
   const done = Promise.all([
-    limited('fhir', () => fhirCheck(npi), rank).then(
+    limited('fhir', () => fhirCheck(npi, { isOrg: Boolean(rec.isOrg) }), rank).then(
       (v) => { state.fhirFailed = v.failed; state.fhir = v.hits; state.devotedNetworks = v.devotedNetworks || null; },
       () => { state.fhirFailed = FHIR_CARRIERS.map((c) => c.name); state.fhir = []; },
     ),
@@ -866,6 +883,7 @@ module.exports = {
   guestPlanIdsFor,
   lookupProviderNetwork,
   fhirCheck,
+  npiRecordInfo,
   FHIR_CARRIERS,
   lookupDoctor,
   normalizeDoctorList,

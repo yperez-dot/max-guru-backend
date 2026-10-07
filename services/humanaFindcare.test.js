@@ -170,6 +170,21 @@ describe('queryHumanaFindcare mocked path', () => {
     assert.ok(result.outOfNetworkPlans[0].includes('H1036-054C'));
   });
 
+  // A 200 that is not a search answer (WAF/HTML page, [], {}) must read ❔ unchecked, never ❌ Out
+  // (audit, 2026-10-07): the old code fell through to resultHasNpi → out_of_network.
+  for (const [label, body] of [['an empty object', {}], ['a bare array', []], ['no results list', { resultCount: 0 }]]) {
+    it(`a 200 with ${label} is a failed check, not out of network`, async () => {
+      const fetchImpl = mockFetch({
+        networks: { current: [], future: [HMO27] },
+        search: () => jsonRes(body, 200),
+      });
+      const result = await queryHumanaFindcare('1306409339', { zip: '33176', planIds: ['H1036-054'] }, fetchImpl);
+      assert.equal(result.checks[0].status, 'failed');
+      assert.deepEqual(result.outOfNetworkPlans, []);
+      assert.equal(result.inNetwork, false);
+    });
+  }
+
   it('does not treat an HTTP failure as out of network', async () => {
     const fetchImpl = mockFetch({
       networks: { current: [], future: [HMO27] },

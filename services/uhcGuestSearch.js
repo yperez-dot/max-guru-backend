@@ -358,7 +358,13 @@ async function searchPlan(session, { npi, lat, lng, state, year, plan }, fetchIm
       pageSize: 5,
       searchRadius: SEARCH_RADIUS,
     }, 'ProviderSearch', fetchImpl);
-    const providers = data?.providerSearch?.providers || [];
+    // A 200 without a providerSearch.providers list ({}, [], providerSearch: null) is a failed
+    // check, never a miss — otherwise every UHC plan reads ❌ Out with no warning.
+    const ps = data && typeof data === 'object' ? data.providerSearch : null;
+    if (!ps || !Array.isArray(ps.providers)) {
+      throw new Error('uhc guest search: response is not a provider list');
+    }
+    const providers = ps.providers;
     const hit = providers.find((p) => npiMatches(p.npi, npi));
     return {
       cmsId: cmsId(key),
