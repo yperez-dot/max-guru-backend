@@ -4005,12 +4005,6 @@ function CompareResult({ result, onExport }) {
                     <b>Could not verify</b> ({result.couldNotVerify.count} eligible plan{result.couldNotVerify.count === 1 ? "" : "s"} with over half the doctors unchecked — not ranked){(result.couldNotVerify.plans || []).length ? ": " + result.couldNotVerify.plans.map((p) => p.name + " · " + p.planId).join("; ") : ""}
                   </div>
                 )}
-                {(result.sameNetwork || []).length > 0 && (
-                  <div style={{ fontSize: 12.5, marginTop: 6 }}>
-                    <b>Same network as above</b>
-                    {result.sameNetwork.map((x) => <div key={x.planId}>- {x.name} · {x.planId} — same doctor results as {x.sameAs}; differs: {x.diff}</div>)}
-                  </div>
-                )}
                 {result.medsTable && <div style={{ marginTop: 10 }}>{renderMessageText("**Meds**\n\n" + result.medsTable)}</div>}
                 {result.medsTable && (
                   <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>

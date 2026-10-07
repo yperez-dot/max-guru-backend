@@ -67,7 +67,10 @@ describe('compare mode: job', () => {
       lookupOneDoctor: fakeDoctor(['UHC Dual Complete FL-Q1 (PPO D-SNP) (H1889-002)', 'UHC Preferred Medicare Advantage FL-0002 (HMO) (H1045-005)']),
       lookupRx: fakeRx,
     });
-    assert.deepEqual(job.result.planIds, ['H1045-005']);
+    // never the D-SNP, and always at least 2 plans
+    assert.ok(job.result.planIds.length >= 2);
+    assert.ok(job.result.planIds.includes('H1045-005'));
+    assert.ok(!job.result.planIds.includes('H1889-002'));
     assert.equal(job.result.planSource, 'top_doctor_coverage');
   });
 
