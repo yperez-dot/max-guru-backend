@@ -1936,3 +1936,13 @@ describe('no "Show benefits" offer while Max is still asking questions', () => {
     assert.equal(exp.hasOpenQuestions('Got it — here is the side-by-side export. Click Excel or PDF below.'), false);
   });
 });
+
+describe('open questions: wrapped numbered items that end with a period', () => {
+  it('"Two things would let me finish" with questions inside the items is open', () => {
+    const t = 'Other results:\n- He\'s Out on H5420-003.\n\nTwo things would let me finish:\n1. Do you want me to add a Solis column? I\'d need the specific plan.\n2. Is Rusheen Bartlett the same person as Rusheena Bartlett, D.P.M. (NPI 1427581123)? Also, does either of them have Medicaid? D-SNPs stay out until you confirm that.';
+    assert.equal(exp.hasOpenQuestions(t), true);
+  });
+  it('a plain list of results with no question is not open', () => {
+    assert.equal(exp.hasOpenQuestions('Results:\n1. UHC In\n2. Humana Out'), false);
+  });
+});
