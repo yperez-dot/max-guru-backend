@@ -392,3 +392,5 @@ Write it in this file (or `max-knowledge/` if the **chatbot** must cite it). Nex
 - 2026-10-07 (phantom benefits "aPpo", "theOfficialOctober1Sob"): comparison-export.askedOffGridBenefits' generic regex treated "need a PPO" / "the Official October 1 SoB" in thread text as off-grid benefits. Now strips leading articles and skips PPO/HMO/SoB/EOC/official/month/document words.
 
 - 2026-10-07 (benefits detector): askedOffGridBenefits now treats "dont add SNFs" / "i dont need those" as OFF (negation look-behind) and ignores "thoseUnderstood"-style phrases. The model still chooses what lookup_sob_benefit to call; this only fixes the thread-text detector the export/lookup use.
+
+- 2026-10-07 (Excel look): comparison sheet now has thin grid lines on every table cell, centered text, and row heights that grow with wrapped text (comparison-export.js applyGridAndCenter). Client-name title row unchanged.

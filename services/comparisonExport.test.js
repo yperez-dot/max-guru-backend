@@ -1861,3 +1861,30 @@ describe('export doctor names stop at the end of a sentence', () => {
     assert.deepEqual(names, ['Dr. Jorge G. Ruiz']);
   });
 });
+
+describe('Excel sheet has grid lines and centered text', () => {
+  it('every table cell gets thin borders and horizontal center; long cells get taller rows', () => {
+    const L = (n) => { let s = ''; n += 1; while (n > 0) { s = String.fromCharCode(65 + ((n - 1) % 26)) + s; n = Math.floor((n - 1) / 26); } return s; };
+    global.XLSX = {
+      utils: {
+        encode_cell: ({ r, c }) => L(c) + (r + 1),
+        decode_range: () => ({ s: { r: 0, c: 0 }, e: { r: 0, c: 0 } }),
+        encode_range: (rg) => `A1:${L(rg.e.c)}${rg.e.r + 1}`,
+      },
+    };
+    try {
+      const plans = loadPlans().filter((p) => p.county === 'Miami-Dade').slice(0, 2);
+      const model = exp.buildComparisonModel({ plans, clientName: 'Marilyn Butler' });
+      const ws = {};
+      model.aoa.forEach((row, r) => row.forEach((v, c) => { ws[L(c) + (r + 1)] = { t: 's', v }; }));
+      ws['!ref'] = 'A1:A1';
+      exp.applySheetExtras(ws, model);
+      const a = ws['B3'];
+      assert.equal(a.s.alignment.horizontal, 'center');
+      assert.equal(a.s.border.top.style, 'thin');
+      assert.equal(ws['A3'].s.alignment.horizontal, 'center');
+      assert.equal(ws['A1'].s.border, undefined); // client-name title row untouched
+      assert.ok(ws['!rows'].every((r) => r.hpt >= 18));
+    } finally { delete global.XLSX; }
+  });
+});
