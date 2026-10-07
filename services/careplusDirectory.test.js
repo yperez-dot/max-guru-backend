@@ -50,3 +50,16 @@ describe('CarePlus plan columns', () => {
     assert.deepEqual(col.unknown.sort(), ['B Two', 'C Three']);
   });
 });
+
+describe('manual-check notes for carriers with no directory', () => {
+  const { manualCheckNotes } = require('./doctorPlanNarrow');
+  it('names Wellcare and Gold Kidney with where to check, once each', () => {
+    const t = manualCheckNotes([{ carrier: 'Wellcare', name: 'Wellcare Simple (HMO)', planId: 'H1032-196' }, { carrier: '', name: 'Gold Kidney Heart (C-SNP)', planId: 'H1526-001' }, { carrier: 'Wellcare', name: 'Wellcare Giveback', planId: 'H1032-200' }]);
+    assert.match(t, /Wellcare: no 2027 Wellcare directory/);
+    assert.match(t, /Gold Kidney: .*providerportal\.goldkidney\.com.*\(844\) 294-6535/);
+    assert.equal((t.match(/Wellcare:/g) || []).length, 1);
+  });
+  it('says nothing for carriers that have a directory', () => {
+    assert.equal(manualCheckNotes([{ carrier: 'Humana', name: 'Humana Gold Plus', planId: 'H1036-054' }]), '');
+  });
+});
