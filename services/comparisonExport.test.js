@@ -1836,3 +1836,20 @@ describe('off-grid benefit detection ignores non-benefits', () => {
     assert.deepEqual(r.benefits, []);
   });
 });
+
+describe('off-grid benefit detection: negations and acknowledgements', () => {
+  it('"dont add SNFs. i dont need those" and "Understood" add no benefits', () => {
+    const r = exp.askedOffGridBenefits("dont add SNFs. i dont need those. Understood. Per your note, I don't need dialysis either.");
+    assert.ok(!r.benefits.some((b) => /those|understood|ppo|sob/i.test(b)), JSON.stringify(r.benefits));
+  });
+  it('a real ask still works', () => {
+    assert.ok(exp.askedOffGridBenefits('what is the copay for chiropractic').benefits.length >= 1);
+  });
+});
+
+describe('negated benefit asks are off', () => {
+  it('"dont add SNFs" does not request SNF; "show SNF days" does', () => {
+    assert.equal(exp.askedOffGridBenefits("dont add SNFs. i dont need that").benefits.includes('skilled_nursing'), false);
+    assert.equal(exp.askedOffGridBenefits('what is the SNF copay for these plans').benefits.includes('skilled_nursing'), true);
+  });
+});

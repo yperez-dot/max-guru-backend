@@ -200,17 +200,28 @@
         rows.push(r);
       });
     };
+    const NEG_BEFORE = /(?:don'?t|dont|do not|doesn'?t|does not|never|no|not|without|skip|leave out|remove|drop)\s+(?:\w+\s+){0,2}$/i;
     KNOWN_OFF_GRID.forEach((item) => {
-      if (item.re.test(src)) add(item);
+      // "dont add SNFs" / "no dialysis" turns the benefit off; only a non-negated mention counts.
+      const re = new RegExp(item.re.source, item.re.flags.replace("g", "") + "g");
+      let hit;
+      let live = false;
+      while ((hit = re.exec(src))) {
+        if (!NEG_BEFORE.test(src.slice(Math.max(0, hit.index - 30), hit.index))) { live = true; break; }
+        if (hit[0] === "") re.lastIndex += 1;
+      }
+      if (live) add(item);
     });
     const genericRe =
       /\b(?:need|needs|what's|whats|what is|does (?:it|this|the plan) cover|cover(?:age|ed)?(?: for)?|copay(?: for)?|cost (?:of|for)|how much (?:is|for))\s+([a-z][a-z0-9\s\-\/]{2,50})/gi;
     let m;
     while ((m = genericRe.exec(src))) {
-      const phrase = m[1].replace(/\s+/g, " ").trim().replace(/[?.!,;:]+$/, "").replace(/^(?:a|an|the|her|his|their)\s+/i, "");
+      // "i dont need those" / "no need for" / "without coverage" is a negation, not a benefit she asked for.
+      if (/(?:don'?t|dont|do not|doesn'?t|does not|didn'?t|never|no|not|without|skip)\s+(?:really\s+|even\s+)?$/i.test(src.slice(Math.max(0, m.index - 24), m.index))) continue;
+      const phrase = m[1].replace(/\s+/g, " ").trim().replace(/[?.!,;:]+$/, "").replace(/^(?:a|an|the|her|his|their|those|these|that|this|any|some|more|all)\s+/i, "");
       if (!phrase || GRID_TOPIC_RE.test(phrase)) continue;
       // "does she need a PPO?" / "cover the official October 1 SoB" are not benefits (they became "aPpo" rows).
-      if (/\b(ppo|hmo|pos|sob|eoc|pdf|snp|medicaid|msp|official|october|january|document|summary|directory)\b/i.test(phrase)) continue;
+      if (/\b(ppo|hmo|pos|sob|eoc|pdf|snp|medicaid|msp|official|october|january|document|summary|directory|understood|noted|okay|thanks|please|snfs?)\b/i.test(phrase)) continue;
       if (KNOWN_OFF_GRID.some((item) => item.re.test(phrase))) continue;
       if (/^(the|a|an|this|that|her|his|their|plan|plans|benefit|benefits|for|on)$/i.test(phrase)) continue;
       // "need the client's full name", "need the NPI", "need more info" — not a benefit.
