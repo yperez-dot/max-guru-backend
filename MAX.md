@@ -510,3 +510,34 @@ is kept as a fallback, which is all the legacy undated entries can use). Entries
 the asked year win; undated legacy entries are a last resort, so today's lookups keep working
 rather than going dark. `sunfireEntryYear` reads the year only from the entry, never the id.
 
+
+### 2027 Sunfire ids committed — Miami-Dade (2026-10-07)
+
+Captured from the row whose name begins `2027?option1=…` (the year-bearing endpoint), ZIP
+Miami-Dade: 195 records, 194 mapped, 13 carriers. `services/sunfire-id-map.json` now holds
+**497 entries — 194 dated 2027, plus the 303 legacy undated ones**, which stay as the last
+resort so nothing goes dark.
+
+Resolves for 2027 where nothing did before: UHC `H1045-001` → 270433, Aetna `H1609-093` →
+271301, Humana `H1036-054C` → 273828, HealthSun `H5431-001` → 275051, CarePlus `H1019-006`
+→ 273789.
+
+**Open discrepancy — needs Yahoska's eye, NOT changed here.** Several plans the THEI 2027 grid
+uses are absent from Sunfire's own 2027 book for this ZIP:
+
+| THEI 2027 grid | In Sunfire's 2027 list? | Sunfire 2027 has instead |
+|---|---|---|
+| UHC Preferred FL-0002 `H1045-005` | no | `H1045-001`, 012, 018, 061, 063 |
+| HealthSun HealthAdvantage `H5431-012` | no | `H5431-001`, 006, 017, 019, 021, 026 |
+| CarePlus CareOne Plus `H1019-001` | no | `H1019-006`, 023, 121, 123, 132, 136, 148, 150, 154 |
+| Solis `H0982-007` | no (whole contract absent) | — |
+| Doctors `H4140-022` / `-023` | no (whole contract absent) | — |
+
+Those same PBPs (`H1045-005`, `H5431-012`, `H1019-001`, `H0982-007`) DO appear in the
+"26"-prefixed captures. So either the grid's 2027 rows carry some 2026 PBPs, or Sunfire's 2027
+book is scoped differently (county, or carriers not yet loaded for AEP). Until it is settled,
+those plans get no Sunfire tier for 2027 and fall through to medicare.gov / the carrier PDF
+indexes — which is the safe failure, not a wrong tier. Solis and Doctors were never in
+Sunfire's book anyway and keep using their PDF indexes.
+
+To extend: capture the `2027?…` row again from a Broward quote and re-run with `--merge`.
