@@ -4163,7 +4163,7 @@ function QueuePanel({ isMobile, onWorkupSaved, onClose }) {
 
         <div style={label}>Paste a client, then Add</div>
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} style={box}
-          placeholder="Maria & Gaspar Padron, ZIP 33332. Current plan H5420-014 terminating 2027. No Medicaid. Doctors: … Meds: … Compare H1036-065C, H1609-018 …" />
+          placeholder="Please enter your client's name and ZIP, plus any doctors, meds, or anything else you have." />
         <div style={{ marginTop: 8, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <button data-testid="queue-add" onClick={add} disabled={busy || !text.trim()} style={btn(true)}>{busy ? "Adding…" : "Add to queue"}</button>
           <span style={{ fontSize: 12, color: "var(--muted)" }}>2 run at a time. Each client is saved as its own workup when it finishes.</span>
