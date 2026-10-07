@@ -132,3 +132,85 @@ test('Show benefits: every column from the whole grid by contract-PBP, one side-
   assert.match(html, /MaxComparisonExport\.benefitsTable\(rowsB, countyB\)/);
   assert.match(html, /attach every column of the last comparison/);
 });
+
+// ─── Maura's 4:43 PM Excel (after "yes all three on the excel") ─────────────────────────────────
+const TABLE_443 = `**Doctors × your plans**
+
+| Doctor | UHC Preferred Care Preferred MA HMO · H1045-001 | UHC MedicareMax FL-0028 · H5420-001 | Aetna Medicare Select Care · H1609-093 |
+|---|---|---|---|
+| Cheryl Case-Diaz · NPI 1184615874 | ✅ In | ✅ In | ✅ In |
+| Barbara R Martinez-Escobar · NPI 1649435041 | ✅ In | ✅ In | ✅ In* |
+| Nathan Hirsch · Gynecology · NPI 1720196454 | ❌ Not in network (not listed) | ❌ Not in network (not listed) | ❔ not confirmed |
+| Cynthia Golomb · NPI 1619900388 | ❌ Not in network (not listed) | ❌ Not in network (not listed) | ✅ In |
+| **Doctors** | **2 in · 2 not in network · 0 unchecked** | **2 in · 2 not in network · 0 unchecked** | **2 in · 0 not in network · 1 not confirmed (1 ✅ In*)** |
+
+On both plans all three meds are Tier 1 $0. The two plans are verified Tier 1 for losartan, which are Tier 1.`;
+const WORKUP_443 = { clientName: 'Maura Soley', county: 'Miami-Dade', currentPlanIds: ['H1045-001'], doctors: [
+  { name: 'Dr. Cheryl Case-Diaz', npi: '1184615874', role: 'PCP' }, { name: 'Dr. Barbara R Martinez-Escobar', npi: '1649435041', role: 'PCP' },
+  { name: 'Dr. Nathan Hirsch', npi: '1720196454', role: 'Gynecologist' }, { name: 'Dr. Cynthia Golomb', npi: '1619900388', role: 'Dermatologist' }] };
+const thread443 = (last, table = TABLE_443) => [
+  { role: 'workup', workup: WORKUP_443 },
+  { role: 'user', content: 'check her doctors on UHC MedicareMax FL-0028 H5420-001 vs Aetna H1609-093' },
+  { role: 'assistant', content: 'MedicareMax H5420-001 vs Aetna H1609-093 …' },
+  { role: 'user', content: 'show her current plan with those two' },
+  { role: 'assistant', content: table },
+  { role: 'user', content: last },
+];
+const catalog = R.gridPlansForCounty('');
+
+test('"yes all three on the excel" exports the latest table\'s 3 plans, current plan first', () => {
+  assert.ok(E.isExportShortcutAsk('yes all three on the excel'));
+  const msgs = thread443('yes all three on the excel');
+  assert.deepEqual(E.exportPlanIdsFromThread(msgs, null, { currentPlanIds: ['H1045-001'], catalog, county: 'Miami-Dade' }), ['H1045-001', 'H5420-001', 'H1609-093']);
+  // The fixed set beats her older typed IDs (H5420-001 vs H1609-093) and is not reordered.
+  const plans = ['H5420-001', 'H1609-093', 'H1045-001'].reverse().map((id) => catalog.find((p) => p.planId === id && p.county === 'Miami-Dade'));
+  const payload = E.buildExportPayload(plans, msgs.slice(1).map((m) => m.content).join('\n'), {
+    catalog, userMessages: msgs.filter((m) => m.role === 'user').map((m) => m.content), latestUserText: msgs[1].content, planSetFixed: true,
+  });
+  assert.deepEqual(payload.plans.map((p) => p.planId), ['H1045-001', 'H1609-093', 'H5420-001']);
+});
+
+test('"add X too" exports the latest table plus the added plan, current plan first', () => {
+  const msgs = thread443('add Aetna Medicare Chronic Care too, then the excel');
+  assert.equal(E.isExportShortcutAsk(msgs[msgs.length - 1].content), false); // runs the chat first
+  assert.deepEqual(E.exportPlanIdsFromThread(msgs, null, { currentPlanIds: ['H1045-001'], catalog, county: 'Miami-Dade' }), ['H1045-001', 'H5420-001', 'H1609-093', 'H1609-094']);
+  const byId = thread443('add H1609-094 too on the excel');
+  assert.deepEqual(E.exportPlanIdsFromThread(byId, null, { currentPlanIds: ['H1045-001'] }), ['H1045-001', 'H5420-001', 'H1609-093', 'H1609-094']);
+});
+
+test('export doctor rows: saved name / NPI / role, never "( )"; cells = the latest chat table', () => {
+  const msgs = thread443('yes all three on the excel');
+  const plans = ['H1045-001', 'H5420-001', 'H1609-093'].map((id) => catalog.find((p) => p.planId === id && p.county === 'Miami-Dade'));
+  const payload = E.buildExportPayload(plans, msgs.slice(1).map((m) => m.content).join('\n'), {
+    catalog, planSetFixed: true, savedDoctors: WORKUP_443.doctors, chatTable: E.latestChatTable(msgs),
+    providerLookups: [{ requestedName: 'Dr. Nathan Hirsch Gynecologist ( )', doctorName: 'Nathan Hirsch Gynecologist ( )', networks: [] }],
+  });
+  const labels = payload.doctors.map((d) => E.doctorExportLabel(d));
+  assert.ok(labels.includes('Dr. Nathan Hirsch — Gynecologist · NPI 1720196454'), labels.join('\n'));
+  for (const l of labels) assert.doesNotMatch(l, /\(\s*\)|Gynecologist \(|PCP \(/);
+  const row = (n) => payload.doctors.find((d) => d.name.includes(n));
+  assert.deepEqual(row('Case-Diaz').statuses, ['In network', 'In network', 'In network']);
+  assert.deepEqual(row('Martinez-Escobar').statuses, ['In network', 'In network', 'In network*']);
+  assert.deepEqual(row('Golomb').statuses, [R.NOT_LISTED_CELL.replace('❌ ', ''), R.NOT_LISTED_CELL.replace('❌ ', ''), 'In network']);
+  assert.equal(row('Hirsch').statuses[2], 'Not confirmed');
+  const sheet = E.buildComparisonSheetModel ? E.buildComparisonSheetModel(payload) : null;
+  if (sheet && sheet.aoa) assert.ok(!sheet.aoa.flat().some((c) => /\(\s*\)/.test(String(c || ''))));
+});
+
+test('med parser: prose before "Tier N" is never a med row', () => {
+  const text = 'On both plans all three meds are Tier 1 $0. The two plans are verified Tier 1 for losartan, which are Tier 1. And so are Tier 1. Eliquis 5 mg Tier 3';
+  const names = E.extractDrugs(text, [{ planId: 'H5420-001' }, { planId: 'H1609-093' }]).map((d) => d.name);
+  assert.deepEqual(names, ['Eliquis 5 mg']);
+  for (const junk of ['are', 'two plans are verified', 'all three meds are', 'which are']) assert.ok(!names.includes(junk), junk);
+});
+
+test('2027 plan-data carries the 23 EOC links wired into the grid (Aetna, Doctors, Wellcare, Devoted 037, Simply)', () => {
+  const eoc = (id, county = 'Miami-Dade') => (R.gridPlansForCounty(county).find((p) => p.planId === id) || {}).eocUrl;
+  assert.match(eoc('H1609-093'), /^https:\/\/www\.aetna\.com\/medicare\/documents\/individual\/2027\/eoc\/en\/Y0001_H1609_093_/);
+  assert.match(eoc('H1609-094'), /H1609_094.*EOC2027/);
+  assert.match(eoc('H4140-024'), /doctorshcp\.com/);
+  assert.match(eoc('H1290-037', 'Broward'), /DEVOTED-CORE-037/);
+  const all = [];
+  for (const id of ['Miami-Dade', 'Broward']) all.push(...R.gridPlansForCounty(id));
+  assert.ok(all.filter((p) => p.eocUrl).length >= 109, String(all.filter((p) => p.eocUrl).length));
+});

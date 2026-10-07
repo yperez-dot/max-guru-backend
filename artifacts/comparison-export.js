@@ -903,7 +903,7 @@
     return doctors;
   }
 
-  const DRUG_NAME_BLOCK = /^(the|and|for|with|from|plan|gold|plus|giveback|premium|deductible|hospital|client|miami|dade|broward|humana|tier|medicare|complete|dual|select|choice|preferred|summary|benefits|thei|max|otc|grocery|vision|dental|doctors?|network|uhc|united|careplus|devoted|aetna|simply|solis|wellcare)$/i;
+  const DRUG_NAME_BLOCK = /^(the|and|for|with|from|plan|gold|plus|giveback|premium|deductible|hospital|client|miami|dade|broward|humana|tier|medicare|complete|dual|select|choice|preferred|summary|benefits|thei|max|otc|grocery|vision|dental|doctors?|network|uhc|united|careplus|devoted|aetna|simply|solis|wellcare|are|is|was|were|be|been|being|which|that|these|those|this|all|both|each|every|two|three|four|five|six|meds?|medications?|drugs?|prescriptions?|plans?|verified|unverified|covered|so|also|her|his|their|its|it|them|they|still|now|only|same|other|others|on|in|at|of|to|by|but|or|not|no|yes)$/i;
 
   function isCarrierAsDrugName(name) {
     const s = String(name || "").replace(/\s+/g, " ").trim();
@@ -1040,7 +1040,13 @@
       /\b([A-Za-z][A-Za-z0-9'\/.+-]{2,}(?:\s+(?:\d+(?:\.\d+)?\s*(?:mg|mcg)|[A-Za-z][A-Za-z0-9'\/.+-]{2,})){0,3})\s+[\(:]?\s*(?:T(?:ier)?\s*)([1-6])\b/gi;
     let m;
     while ((m = re.exec(text || ""))) {
-      const name = normalizeDrugName(m[1]);
+      // Prose before "Tier N" ("all three meds are Tier 1", "Rosuvastatin is Tier 1"): drop filler
+      // words at both ends; a phrase with no drug left is not a med (Maura export, 2026-10-07).
+      const words = String(m[1]).split(/\s+/);
+      while (words.length && DRUG_NAME_BLOCK.test(words[words.length - 1])) words.pop();
+      while (words.length && DRUG_NAME_BLOCK.test(words[0])) words.shift();
+      if (!words.length) continue;
+      const name = normalizeDrugName(words.join(" "));
       if (!looksLikeDrugName(name)) continue;
       const key = name.toLowerCase();
       if (seen.has(key)) continue;
@@ -2154,6 +2160,9 @@
       delete row.aliases;
       return row;
     });
+    if (extra.savedDoctors || extra.chatTable) {
+      doctors = finalizeExportDoctors(doctors, resolvedPlans, { savedDoctors: extra.savedDoctors, table: extra.chatTable });
+    }
     // Drug checks from any earlier turn in the session count too (the meds turn
     // and the final plan answer are often different turns).
     const toolDrugs = [];
@@ -2296,11 +2305,11 @@
         styles[r + "," + c] = makeStyle({ fill: { patternType: "solid", fgColor: { rgb: SECTION_FILL } } });
       }
       doctors.forEach((doc) => {
-        const values = [doc.name, ...doc.statuses];
-        const rowKinds = ["label", ...doc.statuses.map((s) => (s === NETWORK_IN ? "in" : s === NETWORK_OUT ? "out" : "text"))];
+        const values = [doctorExportLabel(doc), ...doc.statuses];
+        const rowKinds = ["label", ...doc.statuses.map((s) => (s === NETWORK_IN || s === "In network*" ? "in" : s === NETWORK_OUT ? "out" : "text"))];
         const rowStyles = [makeStyle({ font: { bold: true } })];
         doc.statuses.forEach((s) => {
-          if (s === NETWORK_IN) {
+          if (s === NETWORK_IN || s === "In network*") {
             rowStyles.push(makeStyle({ font: { color: { rgb: GREEN }, bold: true } }));
           } else if (s === NETWORK_OUT) {
             rowStyles.push(makeStyle({ font: { color: { rgb: RED } } }));
@@ -2699,6 +2708,161 @@
     return (carrierShown + name).trim() + (id ? " (" + id + ")" : "");
   }
 
+  // ─── the latest chat table is the export's truth (Maura export, 2026-10-07 4:43 PM) ───────────
+  const CHAT_CELL_STATUS = [
+    [/^✅\s*In\*/, "In network*"],
+    [/^✅\s*In\b/, NETWORK_IN],
+    [/^❌/, NETWORK_OUT],
+  ];
+  const ROLE_WORD_RE = /^(?:pcp|primary|care|physician|internist|internal|medicine|family|cardiologist|cardiology|dermatologist|dermatology|ophthalmologist|ophthalmology|optometrist|gynecologist|gynecology|obgyn|ob\/gyn|ob|gyn|neurologist|neurology|endocrinologist|rheumatologist|gastroenterologist|urologist|oncologist|nephrologist|pulmonologist|podiatrist|psychiatrist|orthopedist|orthopedic|surgeon|specialist|dentist|allergist|hematologist|ent)$/i;
+
+  /** Newest assistant message with a doctor × plan table: plan IDs (header order) and each row's cells. */
+  function latestChatTable(messages, textFn) {
+    const toText = typeof textFn === "function" ? textFn : messageContentToText;
+    const list = Array.isArray(messages) ? messages : [];
+    for (let i = list.length - 1; i >= 0; i--) {
+      const m = list[i];
+      if (!m || m.role !== "assistant") continue;
+      const t = toText(m.content);
+      if (!hasComparisonTable(t)) continue;
+      const lines = t.split("\n");
+      const h = lines.findIndex((l) => /^\s*\|\s*\**Doctor\**\s*\|/i.test(l));
+      if (h < 0) {
+        const ids = [...new Set((t.match(/\b[HR]\d{4}-\d{3}[A-Z]?\b/gi) || []).map((x) => x.toUpperCase()))];
+        return { at: i, planIds: ids, rows: [] };
+      }
+      const cellsOf = (l) => l.split("|").slice(1, -1).map((c) => c.trim());
+      const planIds = cellsOf(lines[h]).slice(1).map((c) => ((c.match(/\b[HR]\d{4}-\d{3}[A-Z]?\b/i) || [])[0] || "").toUpperCase());
+      const rows = [];
+      for (let k = h + 1; k < lines.length; k++) {
+        const l = lines[k];
+        if (!/^\s*\|/.test(l)) break;
+        if (/^\s*\|\s*-{3}/.test(l)) continue;
+        const cells = cellsOf(l);
+        if (/^\**Doctors\**$/i.test(cells[0])) break;
+        const label = cells[0].replace(/⚠️.*$/, "").trim();
+        const npi = (label.match(/\bNPI\s*(\d{10})\b/i) || [])[1] || "";
+        const name = label.split(" · ")[0].replace(/\(asked:[^)]*\)/i, "").trim();
+        const byPlan = {};
+        planIds.forEach((id, j) => {
+          const c = cells[j + 1] || "";
+          const hit = CHAT_CELL_STATUS.find(([re]) => re.test(c));
+          if (id && hit) byPlan[id] = hit[1];
+        });
+        rows.push({ name, npi, byPlan });
+      }
+      return { at: i, planIds: planIds.filter(Boolean), rows };
+    }
+    return null;
+  }
+
+  /**
+   * Plan set to export for "yes all three on the excel" / "add X too": the latest chat table's columns,
+   * plus plans she adds in her newest message, with the current plan first. [] when there is no table.
+   */
+  function exportPlanIdsFromThread(messages, textFn, opts) {
+    const o = opts || {};
+    const toText = typeof textFn === "function" ? textFn : messageContentToText;
+    const tbl = latestChatTable(messages, toText);
+    if (!tbl || !tbl.planIds.length) return [];
+    const ids = tbl.planIds.slice();
+    const lastUser = [...(messages || [])].reverse().find((m) => m && m.role === "user");
+    const ut = lastUser ? toText(lastUser.content) : "";
+    if (/\b(add|include|plus|also|too|as well)\b/i.test(ut)) {
+      const added = citedPlanIdsFromText(ut).map((x) => normalizeTypedPlanId(x));
+      const hay = " " + ut.toLowerCase().replace(/[^a-z0-9]+/g, " ") + " ";
+      (Array.isArray(o.catalog) ? o.catalog : []).forEach((p) => {
+        if (o.county && p.county && p.county !== o.county) return;
+        const nm = String(p.planName || "").toLowerCase().replace(/\*+.*$/, "").replace(/[^a-z0-9]+/g, " ").trim();
+        if (nm.split(" ").length >= 3 && hay.includes(" " + nm + " ")) added.push(String(p.planId || p.id).toUpperCase().slice(0, 9));
+      });
+      added.forEach((id) => { if (id && !ids.some((x) => x.slice(0, 9) === id.slice(0, 9))) ids.push(id.slice(0, 9)); });
+    }
+    const current = (Array.isArray(o.currentPlanIds) ? o.currentPlanIds : []).map((x) => String(x).toUpperCase().slice(0, 9)).filter(Boolean);
+    const rest = ids.filter((id) => !current.includes(id.slice(0, 9)));
+    return [...current, ...rest];
+  }
+
+  /**
+   * Export doctor rows: saved name / NPI / role (role never inside the name, never "( )"), and the latest
+   * chat table's cells for every plan it covers — never recomputed to blanks.
+   */
+  function finalizeExportDoctors(doctors, plans, opts) {
+    const o = opts || {};
+    const saved = Array.isArray(o.savedDoctors) ? o.savedDoctors : [];
+    const tbl = o.table || null;
+    const titleCaseWords = (ws) => ws.map((w) => (w === w.toUpperCase() || w === w.toLowerCase() ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w)).join(" ");
+    return (Array.isArray(doctors) ? doctors : []).map((d) => {
+      const row = Object.assign({}, d);
+      const raw = String(row.name || "");
+      const npiInName = (raw.match(/\b(\d{10})\b/) || [])[1] || "";
+      let npi = String(row.npi || npiInName || "").replace(/\D/g, "");
+      if (npi.length !== 10) npi = "";
+      if (looksLikeOrganization(raw)) {
+        row.name = raw.replace(/\(\s*(?:npi[\s#:]*\d*)?\s*\)/gi, " ").replace(/\s+/g, " ").trim();
+      } else {
+        const words = doctorNameWords(raw.replace(/\(\s*(?:npi[\s#:]*\d*)?\s*\)/gi, " "));
+        const roleWords = [];
+        while (words.length > 2 && ROLE_WORD_RE.test(words[words.length - 1].replace(/\.$/, ""))) roleWords.unshift(words.pop());
+        if (roleWords.length && !row.role) row.role = roleWords.join(" ");
+        row.name = "Dr. " + titleCaseWords(words);
+      }
+      const ident = doctorIdentity(row.name, npi);
+      const match = saved.find((s) => s && ((npi && String(s.npi || "") === npi) || sameDoctorIdentity(ident, doctorIdentity(s.name, s.npi))));
+      if (match) {
+        const sw = doctorNameWords(match.name);
+        if (sw.length >= 2) row.name = "Dr. " + titleCaseWords(sw);
+        if (!npi && /^\d{10}$/.test(String(match.npi || ""))) npi = String(match.npi);
+        if (match.role) row.role = match.role;
+      }
+      if (npi) row.npi = npi; else delete row.npi;
+      if (tbl && Array.isArray(tbl.rows) && tbl.rows.length) {
+        const ident2 = doctorIdentity(row.name, npi);
+        const tr = tbl.rows.find((r) => (npi && r.npi === npi) || sameDoctorIdentity(ident2, doctorIdentity(r.name, r.npi)));
+        if (tr) {
+          row.statuses = (plans || []).map((p, i) => {
+            const id = String(p.planId || p.id || "").toUpperCase().slice(0, 9);
+            const key = Object.keys(tr.byPlan).find((k) => k.slice(0, 9) === id);
+            return key ? tr.byPlan[key] : (row.statuses || [])[i];
+          });
+          if (row.byPlanId) {
+            (plans || []).forEach((p, i) => { const id = p.planId || p.id; if (id && row.statuses[i]) row.byPlanId[id] = row.statuses[i]; });
+          }
+        }
+      }
+      return row;
+    }).concat(tableOnlyRows());
+
+    // A doctor in the latest chat table that no other source carried still gets its row.
+    function tableOnlyRows() {
+      if (!tbl || !Array.isArray(tbl.rows)) return [];
+      const have = (Array.isArray(doctors) ? doctors : []).map((d) => doctorIdentity(String(d.name || "").replace(/\(\s*\)/g, ""), d.npi));
+      return tbl.rows.filter((r) => !have.some((h) => (r.npi && h.npi === r.npi) || sameDoctorIdentity(h, doctorIdentity(r.name, r.npi)))).map((r) => {
+        const s0 = saved.find((sv) => sv && ((r.npi && String(sv.npi || "") === r.npi) || sameDoctorIdentity(doctorIdentity(r.name, r.npi), doctorIdentity(sv.name, sv.npi))));
+        const words = doctorNameWords((s0 && s0.name) || r.name);
+        const row = { name: "Dr. " + titleCaseWords(words), statuses: (plans || []).map((p) => {
+          const id = String(p.planId || p.id || "").toUpperCase().slice(0, 9);
+          const key = Object.keys(r.byPlan).find((k) => k.slice(0, 9) === id);
+          return key ? r.byPlan[key] : NETWORK_NOT_CONFIRMED;
+        }) };
+        row.byPlanId = {};
+        (plans || []).forEach((p, i) => { row.byPlanId[p.planId || p.id] = row.statuses[i]; });
+        const npi = r.npi || (s0 && /^\d{10}$/.test(String(s0.npi || "")) ? String(s0.npi) : "");
+        if (npi) row.npi = npi;
+        if (s0 && s0.role) row.role = s0.role;
+        return row;
+      });
+    }
+  }
+
+  /** Sheet label for a doctor row: "Dr. Nathan Hirsch — Gynecologist · NPI 1720196454" (never "( )"). */
+  function doctorExportLabel(doc) {
+    const name = String((doc && doc.name) || "").replace(/\(\s*\)/g, "").replace(/\s+/g, " ").trim();
+    const role = String((doc && doc.role) || "").trim();
+    const npi = /^\d{10}$/.test(String((doc && doc.npi) || "")) ? String(doc.npi) : "";
+    return name + (role ? " — " + role : "") + (npi ? " · NPI " + npi : "");
+  }
+
   // "Show benefits for these plans": every column, looked up by contract-PBP across the WHOLE grid
   // (the client's county copy first), never just the county slice or the ranked subset — H1045-001
   // (her current plan) came back missing on the first try (Maura, 2026-10-07).
@@ -2886,6 +3050,17 @@
     const latest = String(meta.latestUserText || "");
     const county = /\bbroward\b/i.test(text + " " + latest) && !/miami/i.test(text + " " + latest) ? "Broward" : "Miami-Dade";
     const pick = (id) => pickCatalogPlan(pool, id, county) || pickCatalogPlan(pool, id);
+    // The latest chat table's set (current plan first) is final: no older typed IDs, no reorder
+    // ("yes all three on the excel" exported 2 old columns — Maura, 2026-10-07).
+    if (meta.planSetFixed && (plans || []).length) {
+      const seenFixed = new Set();
+      return plans.map((p) => pick(String(p.planId || p.id || "")) || p).filter((p) => {
+        const id = planColumnId(p);
+        if (!id || seenFixed.has(id)) return false;
+        seenFixed.add(id);
+        return true;
+      });
+    }
     // Her working plan set wins over the union of every plan ever named in the thread
     // (Gail: 11 columns incl. HealthSun plans Max said it couldn't verify and a UHC plan never run).
     if (Array.isArray(meta.userMessages)) {
@@ -3018,6 +3193,10 @@
     requestUpdatesComparison,
     isExportOnlyAsk,
     isNarrowingReply,
+    latestChatTable,
+    exportPlanIdsFromThread,
+    finalizeExportDoctors,
+    doctorExportLabel,
     hasComparisonTable,
     benefitPlansFor,
     benefitsTable,
