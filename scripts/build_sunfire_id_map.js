@@ -201,14 +201,12 @@ async function main() {
   let out = map;
   if (args.merge && fs.existsSync(args.out)) {
     const existing = JSON.parse(fs.readFileSync(args.out, 'utf8'));
-    // Entries for OTHER years are kept; this year's are replaced wholesale.
-    const kept = Object.fromEntries(
-      Object.entries(existing).filter(([id, e]) => {
-        const y = Number(e && e.year) || (String(id).match(/^(\d{2})/) ? 2000 + Number(String(id).slice(0, 2)) : null);
-        return y !== args.year;
-      })
-    );
-    out = { ...kept, ...map };
+    // Additive by Sunfire id: plan lists are scoped to the quote's ZIP, so several captures
+    // per year are normal and each one adds that county's plans. Newly captured entries win
+    // on conflict (Yahoska, 2026-10-07).
+    out = { ...existing, ...map };
+    const added = Object.keys(map).filter((id) => !(id in existing)).length;
+    console.error(`${added} new, ${Object.keys(map).length - added} refreshed`);
   }
 
   const carriers = new Set(Object.values(map).map((e) => e.carrier).filter(Boolean));

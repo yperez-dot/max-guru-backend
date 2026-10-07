@@ -469,8 +469,8 @@ Sunfire's plan-list endpoints have answered 404 for 2027 (Charlotte, 2026-10-07)
 do, capture the plan list from a live Sunfire session (DevTools → Network → the plan-list
 response → Copy response) and feed it in: `--from captured.json`. The script reads the common
 field spellings (contractId/pbp, cmsPlanId, contractNumber/pbpNumber) and skips records with
-no Sunfire id or no CMS contract-PBP. `--dry-run` prints without writing; `--merge` keeps
-other years. Session valid to Nov 1.
+no Sunfire id or no CMS contract-PBP. `--dry-run` prints without writing; `--merge` is additive by Sunfire id, so several per-ZIP captures can be
+layered into the same year. Session valid to Nov 1.
 
 `services/formularyLookup.test.js` — the "live Sunfire tier" case ran at year 2027 against
 2026 stub ids, i.e. it asserted the bug. Moved to 2026 (the only mapped year); its
@@ -519,9 +519,11 @@ Caveats on the 2027 half:
 - It covers **one ZIP's county only** (19 contracts: UHC, Aetna, Humana, HealthSun, CarePlus,
   Devoted, Wellcare, HealthSpring, Gold Kidney and the PDPs). Capture again from a quote in
   the other county and re-run with `--merge` to extend it.
-- **Solis (H0982) and Doctors (H4140) are absent** — consistent with the long-standing note
-  that THEI's Sunfire book does not carry them. Their drug tiers keep coming from the
-  carrier-PDF indexes.
+- **Solis (H0982) and Doctors (H4140) are absent from the 2027 capture**, though both appear
+  in the 2026 county list (Solis 002/016/022/027/028, Doctors 001/002/004/012/013/019). So
+  they are in Sunfire's book, just not in the 2027 list captured so far — capture a 2027
+  quote in their county to pick them up. Until then their drug tiers come from the
+  carrier-PDF indexes, as before.
 - CarePlus 2027 in this capture is `H1019-006` CareOne Plus / `H1019-148` CareAccess, while
   the THEI grid's Broward CarePlus core is `H1019-001` / `H1019-148`. PBPs are renumbered
   between years, so `H1019-001` will not resolve against the 2027 Sunfire list. Worth
