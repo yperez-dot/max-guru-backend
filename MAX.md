@@ -503,3 +503,27 @@ H4140-012 as 023".)
 Still to do: capture the plan list again from a **2027** quote and run
 `node scripts/build_sunfire_id_map.js --year 2027 --from captured.json --merge`.
 Until then 2027 drug lookups skip Sunfire's plan-scoped probes by design.
+
+### 2027 Sunfire ids captured (2026-10-07)
+
+The 2027 plan list is a **separate request from the 2026 one and is scoped to the quote's ZIP**:
+in DevTools it is the row named `2027?option1=dedDetails&option2=extiers…` (~232 kB), not the
+522 kB `load` fetch, which is the 2026 state-wide list. Its payload puts the array under
+`plans`, and `id` is a number (270433) rather than a string.
+
+`services/sunfire-id-map.json` now holds **380 entries: 305 for 2026, 75 for 2027**, every one
+with `hRaw`, `pbp`, `planName`, `carrier`, `year`. Ids differ by year as expected —
+UHC `H1045-001` is 270433 in 2027 and 262440 in 2026; Humana `H1036-054C` is 273828 / 262355.
+
+Caveats on the 2027 half:
+- It covers **one ZIP's county only** (19 contracts: UHC, Aetna, Humana, HealthSun, CarePlus,
+  Devoted, Wellcare, HealthSpring, Gold Kidney and the PDPs). Capture again from a quote in
+  the other county and re-run with `--merge` to extend it.
+- **Solis (H0982) and Doctors (H4140) are absent** — consistent with the long-standing note
+  that THEI's Sunfire book does not carry them. Their drug tiers keep coming from the
+  carrier-PDF indexes.
+- CarePlus 2027 in this capture is `H1019-006` CareOne Plus / `H1019-148` CareAccess, while
+  the THEI grid's Broward CarePlus core is `H1019-001` / `H1019-148`. PBPs are renumbered
+  between years, so `H1019-001` will not resolve against the 2027 Sunfire list. Worth
+  confirming against the grid before relying on CarePlus drug tiers. NOT changed here —
+  outside this PR's scope.

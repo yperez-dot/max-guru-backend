@@ -925,6 +925,532 @@
     "carrier": "Florida Complete Care",
     "year": 2026
   },
+  "270214": {
+    "hRaw": "S5715",
+    "pbp": "032",
+    "planName": "HealthSpring Assurance Rx (PDP)",
+    "carrier": "Healthspring",
+    "year": 2027
+  },
+  "270433": {
+    "hRaw": "H1045",
+    "pbp": "001",
+    "planName": "UHC Preferred Medicare Advantage FL-0001 (HMO)",
+    "carrier": "UnitedHealthcare",
+    "year": 2027
+  },
+  "270435": {
+    "hRaw": "H1045",
+    "pbp": "012",
+    "planName": "UHC Preferred Dual Complete FL-QV4 (HMO D-SNP)",
+    "carrier": "UnitedHealthcare",
+    "year": 2027
+  },
+  "270436": {
+    "hRaw": "H1045",
+    "pbp": "018",
+    "planName": "UHC Preferred Complete Care FL-0003 (HMO C-SNP)",
+    "carrier": "UnitedHealthcare",
+    "year": 2027
+  },
+  "270458": {
+    "hRaw": "H1045",
+    "pbp": "061",
+    "planName": "UHC Preferred Dual Complete FL-QV5 (HMO D-SNP)",
+    "carrier": "UnitedHealthcare",
+    "year": 2027
+  },
+  "270459": {
+    "hRaw": "H1045",
+    "pbp": "063",
+    "planName": "UHC Preferred Dual Complete FL-Y6 (HMO-POS D-SNP)",
+    "carrier": "UnitedHealthcare",
+    "year": 2027
+  },
+  "271042": {
+    "hRaw": "H5420",
+    "pbp": "001",
+    "planName": "UHC MedicareMax Medicare Advantage FL-0028 (HMO)",
+    "carrier": "UnitedHealthcare",
+    "year": 2027
+  },
+  "271044": {
+    "hRaw": "H5420",
+    "pbp": "014",
+    "planName": "UHC MedicareMax Complete Care FL-30 (HMO C-SNP)",
+    "carrier": "UnitedHealthcare",
+    "year": 2027
+  },
+  "271269": {
+    "hRaw": "H1609",
+    "pbp": "043",
+    "planName": "Aetna Medicare QMB Only Select (HMO D-SNP) H1609-043",
+    "carrier": "Aetna Inc.",
+    "year": 2027
+  },
+  "271284": {
+    "hRaw": "H1609",
+    "pbp": "073",
+    "planName": "Aetna Medicare Full Dual Select (HMO D-SNP) H1609-073",
+    "carrier": "Aetna Inc.",
+    "year": 2027
+  },
+  "271301": {
+    "hRaw": "H1609",
+    "pbp": "093",
+    "planName": "Aetna Medicare Select Care (HMO)",
+    "carrier": "Aetna Inc.",
+    "year": 2027
+  },
+  "271302": {
+    "hRaw": "H1609",
+    "pbp": "094",
+    "planName": "Aetna Medicare Chronic Care (HMO C-SNP)",
+    "carrier": "Aetna Inc.",
+    "year": 2027
+  },
+  "271308": {
+    "hRaw": "H1609",
+    "pbp": "103",
+    "planName": "Aetna Medicare Partial Dual Select (HMO D-SNP)",
+    "carrier": "Aetna Inc.",
+    "year": 2027
+  },
+  "271854": {
+    "hRaw": "S5601",
+    "pbp": "022",
+    "planName": "SilverScript Choice (PDP)",
+    "carrier": "Aetna Inc.",
+    "year": 2027
+  },
+  "271874": {
+    "hRaw": "H1290",
+    "pbp": "001",
+    "planName": "DEVOTED CORE 001 FL (HMO)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271878": {
+    "hRaw": "H1290",
+    "pbp": "013",
+    "planName": "DEVOTED GIVEBACK 013 FL (HMO)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271882": {
+    "hRaw": "H1290",
+    "pbp": "019",
+    "planName": "DEVOTED DUAL 019 FL (HMO D-SNP)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271898": {
+    "hRaw": "H1290",
+    "pbp": "037",
+    "planName": "DEVOTED CORE 037 FL (HMO)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271917": {
+    "hRaw": "H1290",
+    "pbp": "053",
+    "planName": "DEVOTED DUAL QMB 053 FL (HMO D-SNP)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271926": {
+    "hRaw": "H1290",
+    "pbp": "062",
+    "planName": "DEVOTED CORE 062 FL (HMO)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271931": {
+    "hRaw": "H1290",
+    "pbp": "067",
+    "planName": "DEVOTED C-SNP ENHANCED 067 FL (HMO C-SNP)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271940": {
+    "hRaw": "H1290",
+    "pbp": "078",
+    "planName": "DEVOTED DUAL FULL 078 FL (HMO D-SNP)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271947": {
+    "hRaw": "H1290",
+    "pbp": "085",
+    "planName": "DEVOTED C-SNP PLUS 085 FL (HMO C-SNP)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "271967": {
+    "hRaw": "H1290",
+    "pbp": "110",
+    "planName": "DEVOTED GIVEBACK EXTRAS 110 FL (HMO)",
+    "carrier": "Devoted Health",
+    "year": 2027
+  },
+  "272780": {
+    "hRaw": "H1035",
+    "pbp": "017",
+    "planName": "BlueMedicare Classic (HMO)",
+    "carrier": "Florida Blue",
+    "year": 2027
+  },
+  "272803": {
+    "hRaw": "H5434",
+    "pbp": "002",
+    "planName": "BlueMedicare Select (PPO)",
+    "carrier": "Florida Blue",
+    "year": 2027
+  },
+  "272817": {
+    "hRaw": "H5434",
+    "pbp": "044",
+    "planName": "BlueMedicare Patriot (PPO)",
+    "carrier": "Florida Blue",
+    "year": 2027
+  },
+  "272824": {
+    "hRaw": "H6378",
+    "pbp": "001",
+    "planName": "AmeriHealth Caritas VIP Care (HMO D-SNP)",
+    "carrier": "AmeriHealth Caritas",
+    "year": 2027
+  },
+  "272829": {
+    "hRaw": "S5904",
+    "pbp": "001",
+    "planName": "BlueMedicare Premier Rx (PDP)",
+    "carrier": "Florida Blue",
+    "year": 2027
+  },
+  "272830": {
+    "hRaw": "S5904",
+    "pbp": "002",
+    "planName": "BlueMedicare Complete Rx (PDP)",
+    "carrier": "Florida Blue",
+    "year": 2027
+  },
+  "273236": {
+    "hRaw": "H1032",
+    "pbp": "195",
+    "planName": "Wellcare Giveback (HMO-POS)",
+    "carrier": "WellCare Health Plans, Inc.",
+    "year": 2027
+  },
+  "273237": {
+    "hRaw": "H1032",
+    "pbp": "196",
+    "planName": "Wellcare Simple (HMO-POS)",
+    "carrier": "WellCare Health Plans, Inc.",
+    "year": 2027
+  },
+  "273242": {
+    "hRaw": "H1032",
+    "pbp": "202",
+    "planName": "Wellcare Sunshine Health Dual Reserve (HMO-POS D-SNP)",
+    "carrier": "WellCare Health Plans, Inc.",
+    "year": 2027
+  },
+  "273249": {
+    "hRaw": "H1032",
+    "pbp": "246",
+    "planName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+    "carrier": "WellCare Health Plans, Inc.",
+    "year": 2027
+  },
+  "273251": {
+    "hRaw": "H1032",
+    "pbp": "248",
+    "planName": "Wellcare Sunshine Health Dual Access (HMO-POS D-SNP)",
+    "carrier": "WellCare Health Plans, Inc.",
+    "year": 2027
+  },
+  "273253": {
+    "hRaw": "H1032",
+    "pbp": "250",
+    "planName": "Wellcare Sunshine Health Dual Align Unity (HMO D-SNP)",
+    "carrier": "WellCare Health Plans, Inc.",
+    "year": 2027
+  },
+  "273789": {
+    "hRaw": "H1019",
+    "pbp": "006",
+    "planName": "CareOne Plus (HMO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273790": {
+    "hRaw": "H1019",
+    "pbp": "023",
+    "planName": "CareNeeds Platinum (HMO D-SNP)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273803": {
+    "hRaw": "H1019",
+    "pbp": "121",
+    "planName": "CareComplete Platinum (HMO C-SNP)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273804": {
+    "hRaw": "H1019",
+    "pbp": "123",
+    "planName": "CareBreeze Platinum (HMO C-SNP)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273807": {
+    "hRaw": "H1019",
+    "pbp": "132",
+    "planName": "CareSalute (HMO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273810": {
+    "hRaw": "H1019",
+    "pbp": "136",
+    "planName": "CareFree Platinum Giveback (HMO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273817": {
+    "hRaw": "H1019",
+    "pbp": "148",
+    "planName": "CareAccess (HMO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273819": {
+    "hRaw": "H1019",
+    "pbp": "150",
+    "planName": "CareComplete (HMO C-SNP)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273823": {
+    "hRaw": "H1019",
+    "pbp": "154",
+    "planName": "CareBreeze (HMO C-SNP)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273828": {
+    "hRaw": "H1036",
+    "pbp": "054",
+    "letter": "C",
+    "planName": "Humana Gold Plus H1036-054C (HMO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273833": {
+    "hRaw": "H1036",
+    "pbp": "077",
+    "planName": "Humana Dual Select H1036-077 (HMO D-SNP)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273836": {
+    "hRaw": "H1036",
+    "pbp": "121",
+    "planName": "Humana Gold Plus - Diabetes and Heart (HMO C-SNP)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273863": {
+    "hRaw": "H1036",
+    "pbp": "279",
+    "planName": "Humana USAA Honor Giveback (HMO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273869": {
+    "hRaw": "H1036",
+    "pbp": "297",
+    "planName": "Humana Gold Plus Lung (HMO C-SNP)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273875": {
+    "hRaw": "H1036",
+    "pbp": "304",
+    "planName": "Humana Dual Select H1036-304 (HMO D-SNP)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273876": {
+    "hRaw": "H1036",
+    "pbp": "305",
+    "planName": "Humana Gold Plus Giveback H1036-305 (HMO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "273907": {
+    "hRaw": "H1036",
+    "pbp": "339",
+    "planName": "Humana Dual Integrated (HMO D-SNP)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "274196": {
+    "hRaw": "H5216",
+    "pbp": "068",
+    "planName": "HumanaChoice Florida H5216-068 (PPO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "274266": {
+    "hRaw": "H5216",
+    "pbp": "256",
+    "planName": "Humana USAA Honor Giveback (PPO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "274298": {
+    "hRaw": "H5216",
+    "pbp": "311",
+    "planName": "HumanaChoice Giveback H5216-311 (PPO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "274584": {
+    "hRaw": "H7284",
+    "pbp": "008",
+    "planName": "HumanaChoice Florida H7284-008 (PPO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "274586": {
+    "hRaw": "H7284",
+    "pbp": "010",
+    "planName": "Humana Dual Select H7284-010 (PPO D-SNP)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "274676": {
+    "hRaw": "H7617",
+    "pbp": "107",
+    "planName": "HumanaChoice Florida H7617-107 (PPO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "274677": {
+    "hRaw": "H7617",
+    "pbp": "108",
+    "planName": "Humana USAA Honor Giveback (PPO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "274678": {
+    "hRaw": "H7617",
+    "pbp": "110",
+    "planName": "HumanaChoice Giveback H7617-110 (PPO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "274710": {
+    "hRaw": "H7617",
+    "pbp": "145",
+    "planName": "HumanaChoice Giveback H7617-145 (PPO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "274761": {
+    "hRaw": "R5826",
+    "pbp": "005",
+    "planName": "HumanaChoice R5826-005 (Regional PPO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "274762": {
+    "hRaw": "R5826",
+    "pbp": "018",
+    "planName": "HumanaChoice R5826-018 (Regional PPO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "274763": {
+    "hRaw": "R5826",
+    "pbp": "074",
+    "planName": "HumanaChoice R5826-074 (Regional PPO)",
+    "carrier": "Humana Inc.",
+    "year": 2027
+  },
+  "275051": {
+    "hRaw": "H5431",
+    "pbp": "001",
+    "planName": "HealthSun HealthAdvantage Plan (HMO)",
+    "carrier": "HealthSun Health Plans, Inc",
+    "year": 2027
+  },
+  "275052": {
+    "hRaw": "H5431",
+    "pbp": "006",
+    "planName": "HealthSun MediMax (HMO)",
+    "carrier": "HealthSun Health Plans, Inc",
+    "year": 2027
+  },
+  "275055": {
+    "hRaw": "H5431",
+    "pbp": "017",
+    "planName": "HealthSun HealthAdvantage Plus (HMO)",
+    "carrier": "HealthSun Health Plans, Inc",
+    "year": 2027
+  },
+  "275057": {
+    "hRaw": "H5431",
+    "pbp": "019",
+    "planName": "HealthSun MediSun Extra (HMO D-SNP)",
+    "carrier": "HealthSun Health Plans, Inc",
+    "year": 2027
+  },
+  "275059": {
+    "hRaw": "H5431",
+    "pbp": "021",
+    "planName": "HealthSun VitalCare (HMO C-SNP)",
+    "carrier": "HealthSun Health Plans, Inc",
+    "year": 2027
+  },
+  "275061": {
+    "hRaw": "H5431",
+    "pbp": "026",
+    "planName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+    "carrier": "HealthSun Health Plans, Inc",
+    "year": 2027
+  },
+  "275349": {
+    "hRaw": "H1526",
+    "pbp": "002",
+    "planName": "Gold Heart & Diabetes Complete (HMO-POS C-SNP)",
+    "carrier": "Gold Kidney Health Plan",
+    "year": 2027
+  },
+  "275351": {
+    "hRaw": "H1526",
+    "pbp": "004",
+    "planName": "Gold Dialysis & Kidney Complete (HMO-POS C-SNP)",
+    "carrier": "Gold Kidney Health Plan",
+    "year": 2027
+  },
+  "275352": {
+    "hRaw": "H1526",
+    "pbp": "009",
+    "planName": "Gold Dialysis & Kidney (HMO-POS C-SNP)",
+    "carrier": "Gold Kidney Health Plan",
+    "year": 2027
+  },
+  "275356": {
+    "hRaw": "H1526",
+    "pbp": "013",
+    "planName": "Gold Heart & Diabetes (HMO-POS C-SNP)",
+    "carrier": "Gold Kidney Health Plan",
+    "year": 2027
+  },
   "26022970": {
     "hRaw": "H7617",
     "pbp": "801",
