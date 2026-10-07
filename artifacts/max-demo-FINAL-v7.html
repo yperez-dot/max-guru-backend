@@ -2312,7 +2312,7 @@
             return String(content || "");
           };
     return (messages || [])
-      .filter((m) => m && m.role !== "offer" && m.role !== "workup")
+      .filter((m) => m && m.role !== "offer" && m.role !== "workup" && m.role !== "queueResult")
       .map((m) => toText(m.content))
       .filter(Boolean)
       .join("\n");
@@ -4042,10 +4042,10 @@ function CompareResult({ result, onExport }) {
                 {(result.notConfirmed || []).length > 0 && (
                   <div style={{ fontSize: 12.5, color: "#92400e", marginTop: 6 }}>No NPI match: {result.notConfirmed.join(", ")} — try the NPI or practice name.</div>
                 )}
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                {onExport && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
                   <button onClick={() => void onExport("excel")} style={btn(true)}>Export Excel</button>
                   <button onClick={() => void onExport("pdf")} style={btn(false)}>Export PDF</button>
-                </div>
+                </div>}
               </div>
   );
 }
@@ -4181,7 +4181,7 @@ function QueuePanel({ isMobile, onWorkupSaved, onOpenWorkup, onClose }) {
                   <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", flex: "1 1 140px", minWidth: 0 }}>{e.name || "Client"}</div>
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: tone[st.tone] }}>{st.text}</div>
                   {e.job && e.job.status === "done" && (
-                    <button data-testid="queue-open" onClick={() => { if (e.workupId && onOpenWorkup) void onOpenWorkup(e.workupId); else setOpenKey(isOpen ? null : e.key); }} style={{ ...btn(false), padding: "6px 12px" }}>{!e.workupId && isOpen ? "Close" : "Open"}</button>
+                    <button data-testid="queue-open" onClick={() => { if (e.workupId && onOpenWorkup) void onOpenWorkup(e.workupId, e.job && e.job.result); else setOpenKey(isOpen ? null : e.key); }} style={{ ...btn(false), padding: "6px 12px" }}>{!e.workupId && isOpen ? "Close" : "Open"}</button>
                   )}
                   <button onClick={() => remove(e.key)} aria-label="Remove from list" style={{ ...btn(false), padding: "6px 10px" }}>✕</button>
                 </div>
@@ -4566,7 +4566,7 @@ function App() {
     autoSaveTimerRef.current = setTimeout(() => { void saveWorkup(payload, { silent: true }); }, 700);
   };
 
-  const openWorkup = async (id) => {
+  const openWorkup = async (id, extra) => {
     try {
       const data = await workupsRequest("GET", "/" + id);
       const workup = data.workup;
@@ -4602,6 +4602,7 @@ function App() {
           time: nowLabel(),
         });
       }
+      if (extra && extra.result) next.push({ role: "queueResult", result: extra.result, time: nowLabel() });
       messagesRef.current = next;
       setMessages(next);
       setWorkupNotice(null);
@@ -5279,7 +5280,7 @@ function App() {
           <QueuePanel
             isMobile={isMobile}
             onClose={() => setCompareOpen(false)}
-            onOpenWorkup={async (id) => { setCompareOpen(false); await openWorkup(id); }}
+            onOpenWorkup={async (id, result) => { setCompareOpen(false); await openWorkup(id, { result }); }}
             onWorkupSaved={(workup) => setWorkups((current) => {
               const summary = {
                 id: workup.id,
@@ -5347,7 +5348,15 @@ function App() {
               </div>
             </div>
           )}
-          {messages.map((m, i) => m.role === "workup" ? (
+          {messages.map((m, i) => m.role === "queueResult" ? (
+            <div key={i} className="max-fade" data-testid="queue-result" style={{ display: "flex", justifyContent: "flex-start", gap: 8, marginBottom: 10 }}>
+              <Avatar size={30} />
+              <div style={{ maxWidth: "92%", padding: "12px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(255,255,255,0.95)", border: "1px solid var(--line)" }}>
+                <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 14 }}>Comparison results</div>
+                <CompareResult result={m.result} />
+              </div>
+            </div>
+          ) : m.role === "workup" ? (
             <div key={i} className="max-fade" data-testid="loaded-workup-card" style={{ display: "flex", justifyContent: "flex-start", gap: 8, marginBottom: 10 }}>
               <Avatar size={30} />
               <div style={{ maxWidth: "78%", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
