@@ -25,7 +25,7 @@ const { resolveNpiRecords, displayName, allLocationAddresses } = require('./npiR
 const { searchClinicOrProvider } = require('./clinicSearch');
 const { discoverPlansForArea } = require('./planDiscover');
 const { lookupFormulary, formatFormularyText, toExportDrug, toExportDrugs } = require('./formularyLookup');
-const { lookupSobBenefits, formatSobLookupText, toExportSobBenefits } = require('./sobLookup');
+const { lookupSobBenefits, formatSobLookupText, toExportSobBenefits, askedOffGridFromText, userPlainText, normalizeBenefitList } = require('./sobLookup');
 const {
   querySunfireProviderList,
   inNetworkLabelsFromSunfirePlans,
@@ -425,13 +425,24 @@ async function processTool(toolName, toolInput, context = {}) {
   }
   if (toolName === 'lookup_sob_benefit') {
     try {
+      // Only look up the known off-grid benefits (SNF, hearing, DME, home health, dialysis, chemo...) the agent
+      // typed herself — Max's own replies and a bare "Show benefits" never justify them (Yahoska, 2026-10-07).
+      let benefits = toolInput.benefits;
+      if (Array.isArray(benefits) && benefits.length && Array.isArray(context.messages)) {
+        const askedKeys = new Set(normalizeBenefitList(askedOffGridFromText(userPlainText(context.messages)).benefits));
+        const KNOWN = new Set(['skilledNursing', 'hearingAids', 'dme', 'dmeHospitalBed', 'hospitalBed', 'homeHealth', 'dialysis', 'chemotherapy', 'chemo']);
+        benefits = normalizeBenefitList(benefits).filter((k) => !KNOWN.has(k) || askedKeys.has(k));
+        if (!benefits.length) {
+          return 'No off-grid benefit lookup run: the agent did not ask for SNF, hearing aids, DME, home health, dialysis or chemo in her own messages. Do not look them up or show them; show only the grid benefits.';
+        }
+      }
       const result = await lookupSobBenefits({
         planId: toolInput.planId,
         planIds: toolInput.planIds,
         sobUrl: toolInput.sobUrl,
         eocUrl: toolInput.eocUrl,
         plans: toolInput.plans,
-        benefits: toolInput.benefits,
+        benefits,
         query: toolInput.query,
         year: toolInput.year,
         askText: context.askText || conversationAskText(context.messages),

@@ -659,3 +659,23 @@ describe('SOB lookup only when the agent asked', () => {
     assert.ok(!/\$9/.test(String(out.snfDays1to20)));
   });
 });
+
+describe('auto SOB lookup reads only what the agent typed (Yahoska, 2026-10-07)', () => {
+  const { shouldAutoLookupComparisonSob, userPlainText } = require('./sobLookup');
+  const msgs = [
+    { role: 'user', content: 'Martin Wiesenthal, 33324. Compare Humana Gold Plus H1036-065C and Doctors DrSelect H4140-023.' },
+    { role: 'assistant', content: 'Skilled nursing facility days, hearing aids, home health and dialysis are not on the grid. H1036-065C H4140-023' },
+    { role: 'user', content: 'Show benefits for these plans' },
+  ];
+  it('Max mentioning SNF / hearing aids himself does not trigger a lookup', () => {
+    assert.equal(shouldAutoLookupComparisonSob(msgs, []), false);
+  });
+  it('userPlainText drops assistant turns', () => {
+    assert.doesNotMatch(userPlainText(msgs), /hearing aids|dialysis/i);
+  });
+  it('processTool refuses an unasked SNF/hearing/home-health lookup', async () => {
+    const { processTool } = require('./claude');
+    const r = await processTool('lookup_sob_benefit', { planIds: ['H1036-065C'], benefits: ['skilled_nursing', 'hearing_aids', 'home_health', 'dialysis'] }, { messages: msgs });
+    assert.match(String(r.text || r), /did not ask/i);
+  });
+});

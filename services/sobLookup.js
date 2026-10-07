@@ -1116,6 +1116,12 @@ function askedOffGridFromText(text) {
   };
 }
 
+// What the AGENT typed — never Max's own replies, which mention SNF / hearing aids / dialysis on their own
+// and then triggered lookups she never asked for (Yahoska, 2026-10-07).
+function userPlainText(messages) {
+  return messagePlainText((messages || []).filter((m) => m && m.role === 'user'));
+}
+
 function messagePlainText(messages) {
   return (messages || [])
     .map((m) => {
@@ -1200,7 +1206,7 @@ function comparisonPlanIdsForSob(messages) {
 }
 
 function uniquePlanIdsNeedingExportSob(messages, toolResults, fieldKeys) {
-  const text = messagePlainText(messages);
+  const text = userPlainText(messages);
   const asked = askedOffGridFromText(text);
   const keys = fieldKeys && fieldKeys.length ? fieldKeys : asked.fieldKeys.length ? asked.fieldKeys : EXPORT_SOB_FIELD_KEYS;
   const planIds = comparisonPlanIdsForSob(messages);
@@ -1211,7 +1217,7 @@ function uniquePlanIdsNeedingExportSob(messages, toolResults, fieldKeys) {
 // Only when the agent asked for a known off-grid benefit — never on every compare,
 // never for "need doctors / meds", never the whole Florida grid.
 function shouldAutoLookupComparisonSob(messages, toolResults) {
-  const text = messagePlainText(messages);
+  const text = userPlainText(messages);
   const asked = askedOffGridFromText(text);
   if (!askedKnownOffGridForAutotool(asked)) return false;
   const planIds = comparisonPlanIdsForSob(messages);
@@ -1253,6 +1259,7 @@ module.exports = {
   EXPORT_SOB_BENEFITS,
   ASKED_EXPORT_SOB_RE,
   messagePlainText,
+  userPlainText,
   citedPlanIdsFromText,
   planIdsCoveredBySobToolResults,
   uniquePlanIdsNeedingExportSob,

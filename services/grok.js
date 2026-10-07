@@ -10,6 +10,7 @@ const {
   askedOffGridFromText,
   messagePlainText,
   EXPORT_SOB_BENEFITS,
+  userPlainText,
   gateSobPlanIds,
   maxSobLookupPlans,
 } = require('./sobLookup');
@@ -375,7 +376,7 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
             `[AutoTool/${CONFIG.provider}] oversized SOB plan list (${planIds.length}); refusing grid dump`
           );
         } else if (planIds.length) {
-          const asked = askedOffGridFromText(messagePlainText(probeMessages));
+          const asked = askedOffGridFromText(userPlainText(probeMessages));
           console.log(`[AutoTool/${CONFIG.provider}] lookup_sob_benefit ${planIds.join(',')}`);
           const result = await runTool('lookup_sob_benefit', {
             planIds,
