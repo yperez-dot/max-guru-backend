@@ -475,3 +475,31 @@ other years. Session valid to Nov 1.
 `services/formularyLookup.test.js` — the "live Sunfire tier" case ran at year 2027 against
 2026 stub ids, i.e. it asserted the bug. Moved to 2026 (the only mapped year); its
 year-specific cost-share assertions were dropped because the 2026 KB has no tier tables.
+
+### Sunfire map rebuilt for 2026 from a live capture (2026-10-07)
+
+Yahoska captured the Sunfire plan list (DevTools → Network → the 522 kB `load` fetch).
+It was a **2026** quote — all 305 ids are prefixed "26" — so 2027 is still unmapped, but the
+capture gave the field shape the builder needed: the Sunfire id is `id` ("262355") while the
+CMS PBP is `planId` ("054"), `contractId` is the contract, and `brandName` is the carrier.
+The CMS letter only appears inside the marketing name ("… H1036-054C (HMO)").
+
+`services/sunfire-id-map.json` is regenerated from it: 305 entries, every one carrying
+`hRaw`, `pbp`, `planName`, `carrier` and `year` (the old file had no pbp at all). Plans that
+never resolved now do — UHC `H1045-001` → 262440, Aetna `H1609-093` → 260820.
+
+**PBP numbers are not stable across plan years**, which makes the year guard load-bearing:
+
+| Plan | 2026 PBP | 2027 PBP |
+|---|---|---|
+| Solis Healthy Living | 022 | 007 |
+| Doctors DrMax | 001 | 022 |
+| Doctors DrSelect | 012 | 023 |
+
+A 2026 id used for a 2027 plan would have hit a **different plan**, not merely last year's
+tiers. (Consistent with the existing note under rule 20: "accept H4140-001 as 022 /
+H4140-012 as 023".)
+
+Still to do: capture the plan list again from a **2027** quote and run
+`node scripts/build_sunfire_id_map.js --year 2027 --from captured.json --merge`.
+Until then 2027 drug lookups skip Sunfire's plan-scoped probes by design.

@@ -110,7 +110,12 @@ function cmsPartsOf(plan) {
   const contract = String(
     plan.contractId || plan.contractNumber || plan.hNumber || plan.hRaw || plan.contract || ''
   ).toUpperCase().match(/^[HRS]\d{4}/)?.[0] || null;
-  const rawPbp = plan.pbp ?? plan.pbpId ?? plan.planBenefitPackage ?? plan.pbpNumber ?? plan.segmentPbp;
+  // Sunfire's plan-list records carry the PBP in `planId` ("054") while the Sunfire plan id
+  // lives in `id` ("262355"). Only treat planId as a PBP when it is short and numeric, so a
+  // record that uses planId as the Sunfire id is not misread (Yahoska capture, 2026-10-07).
+  const shortPlanId = /^\d{1,3}$/.test(String(plan.planId ?? '')) ? plan.planId : null;
+  const rawPbp =
+    plan.pbp ?? plan.pbpId ?? plan.planBenefitPackage ?? plan.pbpNumber ?? plan.segmentPbp ?? shortPlanId;
   let pbp = rawPbp == null || rawPbp === '' ? null : String(rawPbp).replace(/\D/g, '').padStart(3, '0');
 
   if (!contract || !pbp) {
@@ -118,7 +123,12 @@ function cmsPartsOf(plan) {
     const m = blob.match(/([HRS]\d{4})-?(\d{3})([A-Z])?/);
     if (m) return { contract: contract || m[1], pbp: pbp || m[2], letter: m[3] || '' };
   }
-  const letter = String(plan.segmentId || plan.suffix || '').toUpperCase().match(/^[A-Z]$/)?.[0] || '';
+  // segmentId is numeric in the plan list ("000"); the CMS letter, when there is one, only
+  // shows up inside the marketing name ("… H1036-054C (HMO)").
+  const nameLetter = String(plan.name || plan.planName || '')
+    .toUpperCase()
+    .match(/[HRS]\d{4}-\d{3}([A-Z])/)?.[1] || '';
+  const letter = String(plan.suffix || '').toUpperCase().match(/^[A-Z]$/)?.[0] || nameLetter;
   return { contract, pbp, letter };
 }
 
@@ -143,7 +153,7 @@ function buildEntries(plans, year) {
       pbp,
       letter: letter || undefined,
       planName: String(plan.name || plan.planName || '').trim(),
-      carrier: String(plan.carrier || plan.carrierName || plan.organizationName || '').trim(),
+      carrier: String(plan.carrier || plan.carrierName || plan.brandName || plan.organizationName || '').trim(),
       year,
     };
   }
