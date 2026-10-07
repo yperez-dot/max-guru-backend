@@ -16,9 +16,16 @@ describe('CarePlus 2027 directory index', () => {
     assert.equal(r.status, 'checked');
     assert.equal(r.inNetwork, false);
   });
+  it('Broward is covered: a listed Broward doctor is In, a miss is checked-not-listed', () => {
+    const hit = careplusCheck({ firstName: 'Barry', lastName: 'Sarkell', zip: '33076' });
+    assert.equal(hit.status, 'checked');
+    assert.equal(hit.inNetwork, true);
+    assert.equal(hit.county, 'broward');
+    assert.equal(careplusCheck({ firstName: 'Zzyzx', lastName: 'Nonexistent', zip: '33076' }).inNetwork, false);
+  });
   it('a county without an index is unavailable, not a miss', () => {
     assert.equal(countyKeyForZip('33076'), 'broward');
-    const r = careplusCheck({ firstName: 'Ashwin', lastName: 'Mehta', zip: '33076' });
+    const r = careplusCheck({ firstName: 'Ashwin', lastName: 'Mehta', zip: '32801' }); // Orlando — no CarePlus index loaded
     assert.equal(r.status, 'unavailable');
   });
 });
