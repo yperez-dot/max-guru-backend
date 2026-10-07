@@ -4872,7 +4872,7 @@ function App() {
         eligibility: f.eligibility || null,
         year: f.year || 2027,
       };
-      if (!fields.clientName) throw new Error("I didn't find the client's name. Start with the name, like \"Maria Gonzalez, ZIP 33178 …\".");
+      if (!fields.clientName) throw new Error("I didn't find the client's name. Start with the name — a person, a couple, or a family name — like \"Maria Gonzalez, ZIP 33178 …\", \"Sharon and George Mazzeo, 33178 …\" or \"Mazzeos, 33178 …\".");
       if (!fields.zip) throw new Error("I didn't find a ZIP in that. Add the client's ZIP and tap Continue again.");
       if (!linesOf(fields.doctors).length && !linesOf(fields.meds).length) throw new Error("I didn't find any doctors or meds in that. Add at least one and tap Continue again.");
       const saved = await workupsRequest("PUT", "", { clientName: fields.clientName, zip: fields.zip, plans: [] });

@@ -51,13 +51,17 @@ const TITLE_SKIP = new Set(['and', 'y', '&']);
 
 /** Free-form paste with no strict capitalization: "Marilyn and Angus butler. 33076. …" → "Marilyn and Angus Butler". */
 function looseClientName(t) {
-  const head = String(t || '').replace(/^\s+/, '').split(/[\d\n,;:]|\.(?=\s|$)/)[0].replace(/\bzip(?:\s*code)?\s*$/i, '').trim();
+  // "Mr. and Mrs. Mazzeo" / "The Mazzeos" / "Mazzeo family" → keep the titles, drop the filler; the dots in Mr./Mrs. are not sentence ends.
+  const src = String(t || '').replace(/^\s+/, '').replace(/\b(Mr|Mrs|Ms|Miss)\.(?=\s)/gi, '$1');
+  const head = src.split(/[\d\n,;:]|\.(?=\s|$)/)[0].replace(/\bzip(?:\s*code)?\s*$/i, '').replace(/^\s*(?:the|new client|client)\s+/i, '').replace(/\s+family\s*$/i, '').trim();
   if (!head || head.length > 70) return '';
   const words = head.split(/\s+/);
-  if (words.length < 2 || words.length > 6) return '';
+  if (words.length > 6) return '';
   if (!words.every((w) => /^[A-Za-z][A-Za-z'’-]*$|^&$/.test(w))) return '';
-  if (/^(?:doctors?|drs?|meds?|medications?|compare|please|can|could|hi|hello|new|client)$/i.test(words[0])) return '';
-  return words.map((w) => (TITLE_SKIP.has(w.toLowerCase()) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
+  if (/^(?:doctors?|drs?|meds?|medications?|compare|please|can|could|hi|hello|new|client|zip|plan|plans|current|show|add|check|look|find|help|she|he|they|his|her|their|no|none)$/i.test(words[0])) return '';
+  // One word is a family name ("Mazzeos", "Mazzeo") — only when it clearly opens the paste, i.e. a delimiter followed it.
+  if (words.length === 1 && (words[0].length < 3 || !/^[A-Za-z][A-Za-z'’-]+$/.test(words[0]))) return '';
+  return words.map((w) => (TITLE_SKIP.has(w.toLowerCase()) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1))).join(' ').replace(/\b(Mr|Mrs|Ms)\b(?!\.)/g, '$1.');
 }
 
 /** Doctors typed as a plain list right after the ZIP: "33076. Ashwin Mehta, Jorge G. Ruiz, … no meds." */
@@ -109,7 +113,7 @@ function parseCompareAsk(text) {
   const clientMatch = t.match(/^\s*([A-Z][a-z]+(?:\s*(?:&|and|y)\s*[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]+)/);
   const strictName = clientMatch ? clientMatch[1].replace(/\s+/g, ' ').trim() : '';
   const looseName = looseClientName(t);
-  const clientName = looseName && looseName.toLowerCase().startsWith(strictName.toLowerCase()) ? looseName : (strictName || looseName);
+  const clientName = (looseName && looseName.toLowerCase().startsWith(strictName.toLowerCase()) ? looseName : (strictName || looseName)).replace(/^the\s+/i, '');
   const terminatingPlan = ((t.match(/\b([HR]\d{4}-\d{3}[A-Z]?)\b[^.\n]{0,25}?\b(?:terminat|ending)/i) || [])[1] || '').toUpperCase();
 
   let doctorsText = section(t, '(?:doctors?|drs?|providers?)', stops.filter((s) => !/doctor|dr|provider/.test(s)));
