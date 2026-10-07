@@ -69,6 +69,8 @@ try {
   SUNFIRE_PLAN_MAP = {};
 }
 
+const { devotedNetworkRefs, devotedPlanVerdicts, devotedPlanNetwork } = require('./devotedNetworks');
+
 const FHIR_CARRIERS = [
   { name: 'Florida Blue', key: 'flblue', base: 'https://apigw.bcbsfl.com/interop/interop-developer-portal/emr/api/v1/fhir' },
   { name: 'Cigna', key: 'cigna', base: 'https://fhir.cigna.com/ProviderDirectory/v1' },
@@ -184,11 +186,17 @@ function clearProviderCache() {
 async function fhirCheck(npi) {
   const hits = [];
   const failed = [];
+  // Devoted: which networks the doctor's roles link to (null = check failed / not run).
+  let devotedNetworks = null;
   await Promise.all(FHIR_CARRIERS.map(async (carrier) => {
     try {
-      const url = carrier.extra
+      const devoted = carrier.key === 'devoted';
+      let url = carrier.extra
         ? `${carrier.base}/PractitionerRole?practitioner.identifier=${npi}&${carrier.extra}`
         : `${carrier.base}/PractitionerRole?practitioner.identifier=${npi}`;
+      // Devoted lists one role per network × location (50+ for a busy doctor): page through so
+      // every network is seen — a plan counts as In only when its own network is linked.
+      if (devoted) url += '&_count=100';
       const r = await fetch(url, { headers: { Accept: 'application/fhir+json' }, signal: AbortSignal.timeout(8000) });
       if (!r.ok) {
         console.warn(`[fhir] ${carrier.key} HTTP ${r.status} npi=${npi}`);
@@ -199,13 +207,35 @@ async function fhirCheck(npi) {
       const n = Math.max(Number(fd.total) || 0, (fd.entry || []).length);
       if (DIRECTORY_DEBUG) console.log(`[fhir] ${carrier.key} 200 entries=${n} npi=${npi}`);
       if (n > 0) hits.push(carrier.name);
+      if (devoted) {
+        const refs = new Set(devotedNetworkRefs(fd));
+        let next = ((fd.link || []).find((l) => l && l.relation === 'next') || {}).url;
+        let pages = 1;
+        let complete = true;
+        while (next && pages < 5) {
+          pages += 1;
+          try {
+            const rr = await fetch(next, { headers: { Accept: 'application/fhir+json' }, signal: AbortSignal.timeout(8000) });
+            if (!rr.ok) { complete = false; break; }
+            const page = await rr.json();
+            devotedNetworkRefs(page).forEach((x) => refs.add(x));
+            next = ((page.link || []).find((l) => l && l.relation === 'next') || {}).url;
+          } catch (_) {
+            complete = false;
+            break;
+          }
+        }
+        if (next) complete = false;
+        // A partial read could miss the C-SNP role — then no plan-level Out, only what was seen as In.
+        devotedNetworks = { refs: [...refs], complete };
+      }
     } catch (err) {
       console.warn(`[fhir] ${carrier.key} ${err.name === 'TimeoutError' || err.name === 'AbortError' ? 'Timeout' : err.message} npi=${npi}`);
       failed.push(carrier.name);
     }
   }));
   const order = FHIR_CARRIERS.map((c) => c.name);
-  return { hits: order.filter((n) => hits.includes(n)), failed: order.filter((n) => failed.includes(n)) };
+  return { hits: order.filter((n) => hits.includes(n)), failed: order.filter((n) => failed.includes(n)), devotedNetworks };
 }
 
 async function fhirHits(npi) {
@@ -254,7 +284,7 @@ function startNpiChecks(rec, { zip, planYear, guestPlanIds, rank = 0 }) {
     .then((v) => { state[field] = v; }, () => { state[field] = fallback; });
   const done = Promise.all([
     limited('fhir', () => fhirCheck(npi), rank).then(
-      (v) => { state.fhirFailed = v.failed; state.fhir = v.hits; },
+      (v) => { state.fhirFailed = v.failed; state.fhir = v.hits; state.devotedNetworks = v.devotedNetworks || null; },
       () => { state.fhirFailed = FHIR_CARRIERS.map((c) => c.name); state.fhir = []; },
     ),
     track('doctorsResult', limited('doctors', () => queryDoctorsHcp(npi), rank), { inNetwork: false, error: 'request_failed' }),
@@ -267,6 +297,18 @@ function startNpiChecks(rec, { zip, planYear, guestPlanIds, rank = 0 }) {
 }
 
 const TIMED_OUT = { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'timeout' };
+
+/**
+ * Devoted plan verdicts from a finished FHIR read. Out is only claimed when every
+ * page was read; a partial read keeps just the Ins it saw.
+ */
+function devotedVerdictsFor(state, planYear) {
+  const dn = state && state.devotedNetworks;
+  if (!dn || (state.fhirFailed || []).includes('Devoted Health')) return null;
+  const v = devotedPlanVerdicts(dn.refs || [], planYear);
+  if (!v) return null;
+  return dn.complete === false ? { inPlans: v.inPlans, outPlans: [] } : v;
+}
 
 /** Snapshot a (possibly unfinished) NPI state into the classic providerResults shape. */
 function summarizeNpi(state, planYear) {
@@ -303,6 +345,9 @@ function summarizeNpi(state, planYear) {
       for (const plan of res.plans || []) if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
     }
   }
+  // Devoted plan-level: In only on plans whose network the doctor is linked to.
+  const devoted = devotedVerdictsFor(state, planYear);
+  if (devoted) for (const plan of devoted.inPlans) if (!inNetworkFor.includes(plan)) inNetworkFor.push(plan);
 
   const lookupErrors = [];
   // FHIR carriers that errored are failed checks (❔ unchecked), not misses.
@@ -333,6 +378,7 @@ function summarizeNpi(state, planYear) {
     humanaResult,
     solisResult,
     careplusResult,
+    devotedResult: devoted,
   };
 }
 
@@ -349,6 +395,14 @@ function formatDoctorText({ doctorName, zip, planYear, providerResults, sunfire,
     out += allNetworks.length
       ? `In-network for: ${allNetworks.join(', ')}\n`
       : `Not found in ${missList} (a miss on FHIR/Doctors/Aetna/Simply is not a UHC or Humana answer).\n`;
+    if (pr.devotedResult && pr.devotedResult.outPlans.length) {
+      const idOf = (l) => (String(l).match(/\((H\d{4}-\d{3})\)\s*$/) || [])[1] || l;
+      const nets = (labels) => [...new Set(labels.map((l) => devotedPlanNetwork(idOf(l))).filter(Boolean))];
+      const inNets = nets(pr.devotedResult.inPlans);
+      out += `Devoted ${planYear} by plan network (each plan has ONE network; C-SNP plans use FL HMO C-SNP): `
+        + `${inNets.length ? `linked to ${inNets.join(', ')}; ` : 'not linked to any FL Devoted network; '}`
+        + `NOT linked to ${nets(pr.devotedResult.outPlans).join(', ')} → Out on ${pr.devotedResult.outPlans.map(idOf).join(', ')}.\n`;
+    }
     if (pr.uhcResult && pr.uhcResult.error !== 'timeout') out += `${formatUhcAgentNote(pr.uhcResult)}\n`;
     if (pr.humanaResult && pr.humanaResult.error !== 'timeout') out += `${formatHumanaAgentNote(pr.humanaResult)}\n`;
     if (sunfire.labels.length > 0) {
@@ -402,6 +456,7 @@ function structuredFor(doctorName, providerResults, { status, sunfireLabels = []
     ...(firstProvider.aetnaResult?.error ? [] : (firstProvider.aetnaResult?.outOfNetworkPlans || [])),
     ...(firstProvider.uhcResult?.error ? [] : (firstProvider.uhcResult?.outOfNetworkPlans || [])),
     ...(firstProvider.humanaResult?.error ? [] : (firstProvider.humanaResult?.outOfNetworkPlans || [])),
+    ...((firstProvider.devotedResult && firstProvider.devotedResult.outPlans) || []),
   ];
   const guestEntry = (label, res) => ({
     carrier: label,
@@ -427,6 +482,10 @@ function structuredFor(doctorName, providerResults, { status, sunfireLabels = []
         inNetwork: firstProvider.inNetworkFor.includes(c.name),
         status: (firstProvider.lookupErrors || []).includes(`${c.name} (FHIR)`) ? 'failed'
           : (firstProvider.pending || []).some((p) => /^FHIR/.test(p)) ? 'pending' : 'checked',
+        // Devoted: plan-level In/Out by network (C-SNP plans have their own network).
+        ...(c.key === 'devoted' && firstProvider.devotedResult
+          ? { plans: firstProvider.devotedResult.inPlans, outOfNetworkPlans: firstProvider.devotedResult.outPlans }
+          : {}),
       })),
       {
         carrier: SOLIS_LABEL,

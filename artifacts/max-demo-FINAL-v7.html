@@ -295,14 +295,95 @@
     norvasc: "Amlodipine",
     cozaar: "Losartan",
     diovan: "Valsartan",
+    lyrica: "Pregabalin",
+    xanax: "Alprazolam",
+    klonopin: "Clonazepam",
+    ativan: "Lorazepam",
+    valium: "Diazepam",
+    synthroid: "Levothyroxine",
+    wellbutrin: "Bupropion",
+    elavil: "Amitriptyline",
+    zoloft: "Sertraline",
+    lexapro: "Escitalopram",
+    neurontin: "Gabapentin",
+    lotrel: "Amlodipine/Benazepril",
   };
   const MUSKAT_PLAN_IDS = ["H1036-054C", "H4140-023", "H5420-014"];
   const CMS_PLAN_ID_RE = /\b[HR]\d{3,4}[\s-]?\d{2,4}[A-Z]?(?:\s*\/\s*-?\d{2,4})?\b/gi;
+  const CMS_PLAN_ID_RE_ONE = /\b[HR]\d{4}-\d{2,3}/i;
   const PREFERRED_COLUMN_IDS = ["H1036-054C", "H4140-023", "H5420-001", "H5420-014"];
   const DOCTORS_PBP_2027 = { "H4140-001": "H4140-022", "H4140-012": "H4140-023" };
   const CARRIER_AS_DRUG = /^(doctors?|uhc|united|unitedhealthcare|humana|careplus|care\s*plus|devoted|wellcare|well\s*care|aetna|simply|solis|healthsun|health\s*sun|healthspring|health\s*spring|medicaremax|medicare\s*max|preferred|cigna|anthem|elevance|floridablue|florida\s*blue|goldkidney|gold\s*kidney|gold\s*plus|drselect|drmax)$/i;
 
   const CLIENT_NAME_BLOCK = /^(miami|dade|broward|florida|medicare|humana|united|uhc|careplus|devoted|wellcare|aetna|simply|solis|healthsun|healthspring|doctors?|client|clients|export|excel|compare|comparison|plan|plans|dual|complete|preferred|summary|benefits|thei|max|pdf|sheet|name|household|both|network|zip|county|in|on|at|is|are|the|and|or|for|with|from|this|that)$/i;
+
+  // Placeholder text from Max's own replies ('Reply like "X = Dr. Full Name"') — never a doctor row.
+  const DOCTOR_TEMPLATE_RE = /^(?:dr\.?\s+|doctor\s+)?(?:(?:the\s+)?(?:full|first|last|doctor'?s?|provider'?s?)\s+name(?:\s+(?:here|last\s+name))?|first\s+last|name|full\s+name\s+here|john\s+doe|jane\s+doe)$/i;
+
+  // Words an agent types in a reply ("both", "yes", "same") — never a medication row.
+  const NON_DRUG_WORDS = new Set(
+    "both all none no nope yes yeah yep ok okay sure same correct right wrong those these them they it this that either neither each other others another any meds med medication medications drug drugs rx generic brand unknown na idk she he her his their unchanged covered".split(" ")
+  );
+
+  function isNonDrugName(name) {
+    const words = String(name || "")
+      .toLowerCase()
+      .replace(/\*+$/, "")
+      .replace(/[^a-z0-9/\s-]+/g, " ")
+      .split(/[\s/]+/)
+      .filter(Boolean);
+    if (!words.length) return true;
+    return words.every((w) => NON_DRUG_WORDS.has(w));
+  }
+
+  // Salt / dosage-form / packaging words: "Amlodipine Besy-Benazepril HCL" and
+  // "Amlodipine/Benazepril" are one drug; "Levothyroxine Sodium" is "Levothyroxine".
+  const DRUG_SALT_WORDS = new Set(
+    "besy besylate hcl hydrochloride hcl. hbr hydrobromide sodium na potassium calcium magnesium maleate mesylate succinate tartrate fumarate citrate sulfate acetate bromide phosphate hyclate monohydrate dihydrate trihydrate anhydrous dipropionate propionate valerate oral tablet tablets tab tabs capsule capsules cap caps caplet caplets chewable solution suspension pen injector injection auto autoinjector sureclick prefilled syringe generic mg mcg ml g unit units iu".split(" ")
+  );
+
+  /** Active-ingredient list for dedupe/matching ("Amlodipine Besy-Benazepril HCL 10-40mg" → ["amlodipine","benazepril"]). */
+  function drugIngredients(name) {
+    let s = String(name || "")
+      .toLowerCase()
+      .replace(/\[[^\]]*\]/g, " ")
+      .replace(/\((?:generic|brand)\)/g, " ")
+      .replace(/\*+/g, " ")
+      .replace(/\b\d+(?:\.\d+)?(?:\s*[-\/]\s*\d+(?:\.\d+)?)*\s*(?:mg|mcg|µg|ug|g|ml|iu|units?|%)?(?:\s*\/\s*(?:ml|act|actuation|hr|h))?\b/g, " ");
+    const parts = s.split(/\s*(?:\/|\+|-|&|,|\band\b|\bwith\b|\bw\/)\s*/);
+    const out = [];
+    parts.forEach((part) => {
+      const words = part
+        .replace(/[^a-z\s]+/g, " ")
+        .split(/\s+/)
+        .filter((w) => w && w.length > 1 && !DRUG_SALT_WORDS.has(w));
+      if (!words.length) return;
+      const ing = words.join(" ");
+      if (out.indexOf(ing) < 0) out.push(ing);
+    });
+    return out;
+  }
+
+  /** Dedupe key for a medication row: sorted active ingredients. */
+  function drugIdentityKey(name) {
+    const ings = drugIngredients(name);
+    if (!ings.length) return String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+    return ings.slice().sort().join("+");
+  }
+
+  /** Cleaner display between two aliases of one drug: no salt abbreviations, then shorter. */
+  function preferredDrugName(a, b) {
+    const noisy = (n) => {
+      const words = String(n || "").toLowerCase().replace(/[^a-z\s]+/g, " ").split(/\s+/).filter(Boolean);
+      return words.filter((w) => DRUG_SALT_WORDS.has(w)).length;
+    };
+    const keepMark = (n) => /\*$|\(generic\)/i.test(String(n || ""));
+    if (keepMark(a) !== keepMark(b)) return keepMark(a) ? a : b;
+    const na = noisy(a);
+    const nb = noisy(b);
+    if (na !== nb) return na < nb ? a : b;
+    return a || b;
+  }
 
   function escapeRe(s) {
     return String(s || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -672,6 +753,7 @@
     if (/\b[HRS]\d{4}\s*-\s*\d{3}/i.test(name)) return "";
     if (/\.\s+Dr\.?\b/i.test(name) || /\bDr\.?\s+Dr\b/i.test(name)) return "";
     if (/\b(?:not\s+confirmed|out\s+of\s+network|in\s+network|need\s+more\s+info)\b/i.test(name)) return "";
+    if (DOCTOR_TEMPLATE_RE.test(name)) return "";
     return name;
   }
 
@@ -746,7 +828,9 @@
       });
       return;
     }
-    if (tokens.length === 1 && (both || hits.filter(Boolean).length === plans.length)) {
+    // "both" means both plans of a two-plan answer; on a 4-plan export it says nothing about
+    // which columns, so it must not paint every column.
+    if (tokens.length === 1 && ((both && plans.length <= 2) || hits.filter(Boolean).length === plans.length)) {
       statuses.forEach((_, i) => {
         statuses[i] = tokens[0];
       });
@@ -758,12 +842,42 @@
         const id = displayContractPbp(p);
         const upper = window.toUpperCase();
         const idx = upper.indexOf(id.toUpperCase());
+        // Prefer the status after the ID on its own line ("- H1036-121: Out"); a ±48-char
+        // window alone picks up the previous bullet's status first.
+        const lineEnd = idx >= 0 ? window.indexOf("\n", idx) : -1;
+        const after = idx >= 0 ? window.slice(idx + id.length, lineEnd >= 0 ? lineEnd : undefined) : "";
         const local = idx >= 0 ? window.slice(Math.max(0, idx - 48), idx + id.length + 48) : window;
-        const localTokens = statusTokens(local);
+        const afterTokens = statusTokens(after);
+        const localTokens = afterTokens.length ? afterTokens : statusTokens(local);
         if (localTokens.length) statuses[i] = localTokens[0];
         else if (tokens.length === 1) statuses[i] = tokens[0];
       });
     }
+  }
+
+  // The text a doctor's status is read from: the rest of the line the name is on. Only when
+  // that line has no status ("Dr. X:" then "- H1045-012: In") do the following lines count,
+  // and only while each names a plan. A 420-char run used to bleed the NEXT bullet into this
+  // doctor ("✅ In on both: Rincon … \n❌ Out on both: Menendez" painted Rincon Out on a plan
+  // that was never checked — Gail, H1045-018).
+  function doctorStatusWindow(text, at) {
+    const t = String(text || "");
+    const lineEnd = t.indexOf("\n", at);
+    const first = t.slice(at, lineEnd < 0 ? t.length : lineEnd).slice(0, 420);
+    if (statusTokens(first).length || lineEnd < 0) return first;
+    const lines = [first];
+    let pos = lineEnd + 1;
+    let used = first.length;
+    while (pos < t.length && used < 420) {
+      const next = t.indexOf("\n", pos);
+      const line = t.slice(pos, next < 0 ? t.length : next);
+      if (!CMS_PLAN_ID_RE_ONE.test(line) || /\b(?:Dr\.?|Doctor)\s+[A-Z]/.test(line)) break;
+      lines.push(line);
+      used += line.length + 1;
+      if (next < 0) break;
+      pos = next + 1;
+    }
+    return lines.join("\n");
   }
 
   function extractDoctors(text, plans) {
@@ -776,7 +890,7 @@
       const re = new RegExp("(?:Dr\\.?\\s+)?" + escapeRe(bare), "ig");
       let m;
       while ((m = re.exec(text))) {
-        applyStatusesFromWindow(text.slice(m.index, m.index + 420), plans, statuses);
+        applyStatusesFromWindow(doctorStatusWindow(text, m.index), plans, statuses);
       }
       doctors.push({
         name,
@@ -808,6 +922,7 @@
     if (s.length < 3 || s.length > 48) return false;
     if (/\d{5,}/.test(s)) return false;
     if (isCarrierAsDrugName(s)) return false;
+    if (isNonDrugName(s)) return false;
     const parts = s.split(/\s+/);
     if (parts.length > 4) return false;
     if (parts.some((p) => DRUG_NAME_BLOCK.test(p))) return false;
@@ -853,6 +968,7 @@
     return (
       k === gKey ||
       k === gKey + "generic" ||
+      drugIdentityKey(drug.name) === drugIdentityKey(genericName) ||
       (drug.genericOf && drugNameKey(drug.genericOf) === bKey)
     );
   }
@@ -991,9 +1107,12 @@
     const add = (name) => {
       const n = normalizeDrugName(name);
       if (!looksLikeDrugName(n)) return null;
-      const key = n.toLowerCase();
+      const key = drugIdentityKey(n);
       if (!byName.has(key)) {
         byName.set(key, { name: n, byPlanId: emptyPlanDrugStatuses(plans) });
+      } else {
+        const row = byName.get(key);
+        row.name = preferredDrugName(row.name, n);
       }
       return byName.get(key);
     };
@@ -1005,18 +1124,23 @@
       if (!row) return;
       mergeDrugPlanStatus(row.byPlanId, hit.planId, hit, plans);
     });
-    return applyKnownGenericSuggestions([...byName.values()], plans);
+    return settleBrandNotCovered(applyKnownGenericSuggestions([...byName.values()], plans));
   }
 
+  // One row per drug: "Amlodipine/Benazepril" and the catalog's "Amlodipine Besy-Benazepril HCL"
+  // merge (verified tier wins per plan). Stray reply words ("both") are never a row.
   function normalizeDrugs(drugs, plans) {
     if (!Array.isArray(drugs) || !drugs.length || !plans || !plans.length) return [];
     const byName = new Map();
     const add = (name) => {
       const n = normalizeDrugName(name);
-      if (!n) return null;
-      const key = n.toLowerCase();
+      if (!n || isNonDrugName(n) || isCarrierAsDrugName(n)) return null;
+      const key = drugIdentityKey(n);
       if (!byName.has(key)) {
         byName.set(key, { name: n, byPlanId: emptyPlanDrugStatuses(plans) });
+      } else {
+        const row = byName.get(key);
+        row.name = preferredDrugName(row.name, n);
       }
       return byName.get(key);
     };
@@ -1038,7 +1162,31 @@
         d.lookups.forEach((hit) => mergeDrugPlanStatus(row.byPlanId, hit.planId, hit, plans));
       }
     });
-    return applyKnownGenericSuggestions([...byName.values()], plans);
+    return settleBrandNotCovered(applyKnownGenericSuggestions([...byName.values()], plans));
+  }
+
+  // A brand the formulary lists as not covered, with its generic on its own row, reads
+  // "Not covered" (the generic row carries the tier) — not "Confirm in Sunfire" (Gail / Xanax).
+  function settleBrandNotCovered(drugs) {
+    (drugs || []).forEach((d) => {
+      if (!d || !d.byPlanId) return;
+      const brand = String(d.name || "").replace(/\*+$/, "");
+      const generic = knownGenericFor(brand);
+      if (!generic) return;
+      const gKey = drugIdentityKey(generic);
+      const bKey = drugIdentityKey(brand);
+      const hasGenericRow = drugs.some(
+        (x) => x && x !== d && (drugIdentityKey(x.name) === gKey || (x.genericOf && drugIdentityKey(x.genericOf) === bKey))
+      );
+      if (!hasGenericRow) return;
+      Object.keys(d.byPlanId).forEach((id) => {
+        const cell = d.byPlanId[id];
+        if (cell && cell.verified && cell.coverage === "not_covered" && cell.unsure) {
+          d.byPlanId[id] = Object.assign({}, cell, { unsure: false });
+        }
+      });
+    });
+    return drugs;
   }
 
   function formatDrugCell(status, plan) {
@@ -1133,11 +1281,17 @@
         const merged = mergeStatusPair(fromMap, fromNet);
         return merged || NETWORK_NOT_CONFIRMED;
       });
-      out.push({
+      const row = {
         name,
         statuses,
         byPlanId: mergeByPlanIdMaps(map, byPlanIdFromStatuses(statuses, plans)),
-      });
+      };
+      if (typeof d !== "string") {
+        const npi = String(d.npi || "").replace(/\D/g, "");
+        if (npi.length === 10) row.npi = npi;
+        if (Array.isArray(d.aliases) && d.aliases.length) row.aliases = d.aliases.slice();
+      }
+      out.push(row);
     }
     return out;
   }
@@ -1198,7 +1352,9 @@
   function carrierHitIsPlanHit(carrierLabel, plan) {
     const c = String(carrierLabel || "").toLowerCase();
     if (!carrierMatchesPlan(carrierLabel, plan)) return false;
-    if (/devoted|solis/.test(c)) return true; // one network per carrier (Solis: per county directory)
+    // Solis: one network per county directory. Devoted: fallback only — a 2027 lookup carries
+    // plan-level In/Out by network (C-SNP plans have their own network), checked first above.
+    if (/devoted|solis/.test(c)) return true;
     if (/doctors/.test(c)) {
       const id = String((plan && (plan.planId || plan.id)) || "").toUpperCase().slice(0, 9);
       return SHARED_NETWORK_PLAN_IDS.doctors.indexOf(id) >= 0;
@@ -1252,15 +1408,29 @@
         const statuses = plans.map(
           (p) => statusFromProviderNetworks(p, networks, { missIsUnknown }) || NETWORK_NOT_CONFIRMED
         );
-        out.push({
-          name: cleanProviderDisplayName(pr.requestedName || name),
+        const display = cleanProviderDisplayName(pr.requestedName || name);
+        const row = {
+          name: display,
           statuses,
           byPlanId: byPlanIdFromStatuses(statuses, plans),
           networks,
-        });
+        };
+        const npi = String(pr.npi || "").replace(/\D/g, "");
+        if (npi.length === 10) row.npi = npi;
+        // The registry's name for the requested one ("Rawan Jumean-Haddad" → RAWAN H JUMEAN) is an alias.
+        const registry = cleanProviderDisplayName(name);
+        if (registry && registry !== display) row.aliases = [registry];
+        out.push(row);
       });
     });
-    return normalizeDoctors(out, plans);
+    // Lookups arrive oldest first: a re-run of the same doctor (or the corrected spelling)
+    // supersedes the earlier run plan by plan (Gail: Rincon Buendia re-run → In on Humana).
+    let rows = [];
+    out.forEach((r) => {
+      const one = normalizeDoctors([r], plans)[0];
+      if (one) rows = foldDoctorsLatestWins(rows, [one], plans);
+    });
+    return rows;
   }
 
   function personNameParts(name) {
@@ -1308,6 +1478,121 @@
     return score(a) >= score(b) ? a : b;
   }
 
+  // ─── one row per doctor: aliases, spelling fixes, NPI ─────────────────────────
+  const DOCTOR_CRED_RE = /^(md|do|np|pa|pac|rn|aprn|arnp|dds|dmd|dpm|od|dc|pharmd|phd|fnp|dnp|facc|facp|facs|mph|mba|jr|sr|ii|iii|iv)$/i;
+
+  function doctorNameWords(name) {
+    let s = String(name || "")
+      .replace(/^\s*(?:dr\.?|doctor)\s*/i, "")
+      .replace(/\bnpi\b[\s#:]*\d*/gi, " ")
+      .replace(/\b\d+\b/g, " ")
+      .replace(/\([^)]*\)/g, " ");
+    if (s.indexOf(",") >= 0) {
+      const bits = s.split(",").map((b) => b.trim()).filter(Boolean);
+      const isCred = (b) => b.split(/\s+/).every((w) => DOCTOR_CRED_RE.test(w.replace(/[.\-]/g, "")));
+      const rest = bits.slice(1).filter((b) => !isCred(b));
+      // "MARGOLESKY, JASON" → "JASON MARGOLESKY"; "Jerry Martel, M.P.H." → "Jerry Martel".
+      s = rest.length && bits[0].split(/\s+/).length === 1 ? rest.join(" ") + " " + bits[0] : [bits[0]].concat(rest).join(" ");
+    }
+    return s
+      .split(/\s+/)
+      .map((w) => w.replace(/[^A-Za-z'\-.]/g, "").replace(/^[.'-]+|[.'-]+$/g, ""))
+      .filter((w) => w && !DOCTOR_CRED_RE.test(w.replace(/[.\-]/g, "")));
+  }
+
+  function doctorIdentity(name, npi) {
+    const words = doctorNameWords(name).map((w) => w.toLowerCase().replace(/[.']/g, ""));
+    const first = words.length > 1 ? words[0] : "";
+    const surnames = [];
+    const initials = [];
+    words.slice(words.length > 1 ? 1 : 0).forEach((w) => {
+      if (w.length === 1) {
+        initials.push(w);
+        return;
+      }
+      w.split("-").filter((x) => x.length >= 2).forEach((x) => surnames.push(x));
+    });
+    const n = String(npi || "").replace(/\D/g, "");
+    return { first, surnames, initials, npi: n.length === 10 ? n : "", org: looksLikeOrganization(name) };
+  }
+
+  function editDistanceAtMost1(a, b) {
+    if (a === b) return true;
+    if (Math.abs(a.length - b.length) > 1) return false;
+    let i = 0;
+    let j = 0;
+    let edits = 0;
+    while (i < a.length && j < b.length) {
+      if (a[i] === b[j]) {
+        i += 1;
+        j += 1;
+        continue;
+      }
+      edits += 1;
+      if (edits > 1) return false;
+      if (a.length > b.length) i += 1;
+      else if (b.length > a.length) j += 1;
+      else {
+        i += 1;
+        j += 1;
+      }
+    }
+    return edits + (a.length - i) + (b.length - j) <= 1;
+  }
+
+  // "Eli" ~ "Elie", "Rowan" ~ "Rawan" (one-letter typo), "J" ~ "Jason". "Jose" vs "Josefina" stays apart.
+  function firstNamesCompatible(a, b) {
+    if (!a || !b) return true;
+    if (a === b) return true;
+    if (a.length === 1 || b.length === 1) return a[0] === b[0];
+    const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+    if (short.length >= 3 && long.indexOf(short) === 0 && long.length - short.length <= 2) return true;
+    return short.length >= 4 && editDistanceAtMost1(a, b);
+  }
+
+  /** Same person? NPI decides when both rows have one; else a shared surname part + compatible first name. */
+  function sameDoctorIdentity(a, b) {
+    if (!a || !b) return false;
+    if (a.npi && b.npi) return a.npi === b.npi;
+    if (a.org || b.org) return false;
+    const shared = a.surnames.some((x) => x.length >= 3 && b.surnames.indexOf(x) >= 0);
+    if (!shared) return false;
+    return firstNamesCompatible(a.first, b.first);
+  }
+
+  function doctorDisplayScore(name) {
+    const s = String(name || "").replace(/^\s*(?:dr\.?|doctor)\s+/i, "");
+    const words = doctorNameWords(s);
+    let pts = 0;
+    if (/[a-z]/.test(s)) pts += 4;
+    if (/,/.test(s) && !/[a-z]/.test(s)) pts -= 4;
+    words.forEach((w) => {
+      if (w.length === 1 || /^[A-Za-z]\.$/.test(w)) pts += 0.5;
+      else pts += w.split("-").filter(Boolean).length;
+    });
+    if (s.length > 48) pts -= 2;
+    return pts;
+  }
+
+  /** Index of the existing row this doctor belongs to, or -1. A last-name-only row merges only when unambiguous. */
+  function findDoctorGroup(rows, doc) {
+    const ident = doctorIdentity(doc.name, doc.npi);
+    if (ident.org || !ident.surnames.length) {
+      const key = doctorIdentityKey(doc.name) || String(doc.name || "").toLowerCase();
+      return rows.findIndex((r) => (doctorIdentityKey(r.name) || String(r.name || "").toLowerCase()) === key);
+    }
+    const hits = [];
+    rows.forEach((r, i) => {
+      if (sameDoctorIdentity(ident, doctorIdentity(r.name, r.npi))) hits.push(i);
+      else if (Array.isArray(r.aliases) && r.aliases.some((a) => sameDoctorIdentity(ident, doctorIdentity(a, r.npi)))) hits.push(i);
+    });
+    if (!hits.length) return -1;
+    if (hits.length === 1) return hits[0];
+    // NPI match beats a fuzzy name match; otherwise ambiguous → its own row.
+    const byNpi = hits.filter((i) => ident.npi && rows[i].npi === ident.npi);
+    return byNpi.length === 1 ? byNpi[0] : -1;
+  }
+
   function mergeStatusPair(prev, incoming) {
     // Two sources disagree (one In, one Out) → never pick one silently.
     if ((prev === NETWORK_IN && incoming === NETWORK_OUT) || (prev === NETWORK_OUT && incoming === NETWORK_IN)) {
@@ -1322,28 +1607,26 @@
   }
 
   function mergeDoctorLists(lists, plans) {
-    const byKey = new Map();
+    const rows = [];
     (lists || []).forEach((list) => {
       normalizeDoctors(list, plans).forEach((doc) => {
-        let key = doctorIdentityKey(doc.name) || doc.name.toLowerCase();
-        // "Dr. Krajewski" (last name only) and "Dr. Eduardo Krajewski" are one doctor
-        // when exactly one full-name row shares that last name.
-        if (/^person:[a-z]+$/.test(key)) {
-          const full = [...byKey.keys()].filter((k) => k.indexOf(key + ":") === 0);
-          if (full.length === 1) key = full[0];
-        } else if (/^person:[a-z]+:[a-z]$/.test(key)) {
-          const bare = key.replace(/:[a-z]$/, "");
-          if (byKey.has(bare) && ![...byKey.keys()].some((k) => k !== key && k.indexOf(bare + ":") === 0)) {
-            byKey.set(key, byKey.get(bare));
-            byKey.delete(bare);
-          }
-        }
-        const prev = byKey.get(key);
-        if (!prev) {
-          byKey.set(key, doc);
+        const idx = findDoctorGroup(rows, doc);
+        if (idx < 0) {
+          doc.aliases = [doc.name];
+          rows.push(doc);
           return;
         }
-        prev.name = preferredDoctorName(prev.name, doc.name);
+        const prev = rows[idx];
+        prev.aliases = (prev.aliases || [prev.name]).concat(doc.name);
+        const pick = preferredDoctorName(prev.name, doc.name);
+        // Same person under two spellings: keep the fuller name ("Elie R Haddad" over "Eli Haddad").
+        prev.name =
+          doctorIdentityKey(prev.name) === doctorIdentityKey(doc.name) || looksLikeOrganization(prev.name)
+            ? pick
+            : doctorDisplayScore(doc.name) > doctorDisplayScore(prev.name)
+              ? doc.name
+              : prev.name;
+        if (!prev.npi && doc.npi) prev.npi = doc.npi;
         prev.byPlanId = mergeByPlanIdMaps(prev.byPlanId, doc.byPlanId);
         prev.statuses = plans.map((p, i) => {
           const fromMap = normalizeNetworkStatus(lookupPlanStatus(prev.byPlanId, p));
@@ -1352,7 +1635,104 @@
         prev.byPlanId = mergeByPlanIdMaps(prev.byPlanId, byPlanIdFromStatuses(prev.statuses, plans));
       });
     });
-    return [...byKey.values()];
+    return rows;
+  }
+
+  /**
+   * Fold doctor rows where the LATER result wins per plan (a re-run supersedes an earlier
+   * run of the same doctor). A later Not confirmed / timeout never erases an earlier In/Out.
+   */
+  function foldDoctorsLatestWins(base, incoming, plans, opts) {
+    // opts.conflict === "needMore": rows from DIFFERENT sources (saved payload / chat text vs a
+    // live lookup) keep the old rule — an In-vs-Out disagreement exports as Need more info.
+    const conflictRule = Boolean(opts && opts.conflict === "needMore");
+    const rows = (base || []).slice();
+    (incoming || []).forEach((doc) => {
+      if (!doc || !doc.name) return;
+      const idx = findDoctorGroup(rows, doc);
+      if (idx < 0) {
+        rows.push(Object.assign({}, doc, { aliases: [doc.name].concat(doc.aliases || []) }));
+        return;
+      }
+      const prev = rows[idx];
+      prev.aliases = (prev.aliases || [prev.name]).concat(doc.name);
+      if (doctorDisplayScore(doc.name) > doctorDisplayScore(prev.name)) prev.name = doc.name;
+      if (!prev.npi && doc.npi) prev.npi = doc.npi;
+      prev.statuses = plans.map((p, i) => {
+        const was = normalizeNetworkStatus(prev.statuses && prev.statuses[i]) || NETWORK_NOT_CONFIRMED;
+        const now = normalizeNetworkStatus(doc.statuses && doc.statuses[i]);
+        if (conflictRule) return mergeStatusPair(was === NETWORK_NOT_CONFIRMED ? "" : was, now) || NETWORK_NOT_CONFIRMED;
+        if (now === NETWORK_IN || now === NETWORK_OUT) return now;
+        if (now === NETWORK_NEED_MORE && was === NETWORK_NOT_CONFIRMED) return now;
+        return was;
+      });
+      prev.byPlanId = byPlanIdFromStatuses(prev.statuses, plans);
+    });
+    return rows;
+  }
+
+  // ─── names the AGENT typed (never Max's replies) ─────────────────────────────
+  const SPECIALTY_WORD_RE = /\b(?:pcp|primary\s+care|primary|neuro\w*|endo\w*|rheum\w*|cardio\w*|gastro\w*|gi|derm\w*|ophthal\w*|onco\w*|uro\w*|nephro\w*|pulmo\w*|podiat\w*|psych\w*|ortho\w*|ent|ob\/?gyn|gyn\w*|allerg\w*|hemat\w*|internist|surgeon|specialist|dentist|optometrist|doctor|dr)\b\.?/gi;
+
+  /** Doctor names (and NPIs) from her own messages, oldest first. Used to back and name rows. */
+  function userDoctorAliases(userText) {
+    const out = [];
+    const t = String(userText || "");
+    // "Elie R Haddad, NPI 1740242361" — tie the NPI to the name before it.
+    const npiFor = {};
+    for (const m of t.matchAll(/([A-Za-z][A-Za-z'.\- ]{2,60}?)\s*,?\s*\bNPI\b\s*#?:?\s*(\d{10})/gi)) {
+      const key = doctorNameWords(m[1].replace(SPECIALTY_WORD_RE, " ").replace(/^.*\b(?:correct|is|=)\s*:?\s*/i, "")).join(" ").toLowerCase();
+      if (key) npiFor[key] = m[2];
+    }
+    let pos = 0;
+    t.split(/(\n|,|;|=|:|\bis\s+correct\b|\band\b|\bor\b)/i).forEach((seg) => {
+      const at = pos;
+      pos += seg.length;
+      const cleaned = seg
+        .replace(/\bnpi\b[\s#:]*\d*/gi, " ")
+        .replace(/\d+/g, " ")
+        .replace(/^\s*(?:this|that|it)\s+(?:is|was)\s+(?:the\s+)?(?:correct|right)(?:\s+one)?\s*/i, " ")
+        .replace(/\b(?:dr|dra|doctor)\.?\s*/gi, " ")
+        .replace(SPECIALTY_WORD_RE, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const words = cleaned.split(/\s+/).filter(Boolean);
+      if (words.length < 2 || words.length > 4) return;
+      if (!words.every((w) => /^[A-Za-z][A-Za-z'.-]*$/.test(w))) return;
+      if (DOCTOR_TEMPLATE_RE.test(cleaned)) return;
+      const key = doctorNameWords(cleaned).join(" ").toLowerCase();
+      out.push({ name: cleaned, npi: npiFor[key] || "", at });
+    });
+    return out;
+  }
+
+  function doctorUserBacked(doc, aliases) {
+    const ident = doctorIdentity(doc && doc.name, doc && doc.npi);
+    return (aliases || []).some((a) => sameDoctorIdentity(ident, doctorIdentity(a.name, a.npi)));
+  }
+
+  function titleCaseName(name) {
+    const s = String(name || "").trim();
+    if (s !== s.toLowerCase() && s !== s.toUpperCase()) return s;
+    return s.toLowerCase().replace(/(^|[\s\-'])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+  }
+
+  /** Her correction names the row: when she typed 2+ spellings of one doctor, her latest wins ("rawan jumean-haddad"). */
+  function applyUserDoctorNames(doctors, aliases) {
+    (doctors || []).forEach((doc) => {
+      if (!doc || looksLikeOrganization(doc.name)) return;
+      const ident = doctorIdentity(doc.name, doc.npi);
+      const mine = (aliases || []).filter((a) => {
+        const ai = doctorIdentity(a.name, a.npi);
+        if (sameDoctorIdentity(ident, ai)) return true;
+        return (doc.aliases || []).some((x) => sameDoctorIdentity(doctorIdentity(x, doc.npi), ai));
+      });
+      const distinct = [...new Set(mine.map((a) => doctorNameWords(a.name).join(" ").toLowerCase()))];
+      if (distinct.length < 2) return;
+      const latest = mine.slice().sort((a, b) => a.at - b.at)[mine.length - 1];
+      doc.name = "Dr. " + titleCaseName(doctorNameWords(latest.name).join(" "));
+    });
+    return doctors;
   }
 
   // Doctor `statuses` arrays are positional (one per plan column). When copies of the same
@@ -1744,10 +2124,33 @@
       extra.providerLookups || extra.toolResults || extra.doctorsFromTools || [],
       resolvedPlans
     );
-    const doctors = mergeDoctorLists(
-      [extra.doctors, fromLookups, extractDoctors(text, resolvedPlans)],
-      resolvedPlans
+    // Doctor rows come from names SHE typed. Names that only appear in Max's replies — his own
+    // 'Reply like "X = Dr. Full Name"' template, a candidate he floated — are not rows. Her
+    // messages are only known when the chat passes them (userMessages); otherwise unchanged.
+    const userMsgs = Array.isArray(extra.userMessages) ? extra.userMessages.map((m) => String(m || "")) : null;
+    const userAliases = userMsgs ? userDoctorAliases(userMsgs.join("\n")) : [];
+    let textDoctors = extractDoctors(text, resolvedPlans);
+    let rememberedDoctors = extra.doctors;
+    if (userAliases.length) {
+      textDoctors = textDoctors.filter((d) => doctorUserBacked(d, userAliases));
+      rememberedDoctors = (Array.isArray(rememberedDoctors) ? rememberedDoctors : []).filter(
+        (d) => d && (typeof d === "string" ? doctorUserBacked({ name: d }, userAliases) : doctorUserBacked(d, userAliases))
+      );
+    }
+    // Aliases of one doctor (saved rows, chat text, live lookups) collapse into one row. Within
+    // the lookups the latest run already won per plan; across sources In-vs-Out stays Need more info.
+    let doctors = foldDoctorsLatestWins(
+      mergeDoctorLists([rememberedDoctors, textDoctors], resolvedPlans),
+      fromLookups,
+      resolvedPlans,
+      { conflict: "needMore" }
     );
+    if (userAliases.length) applyUserDoctorNames(doctors, userAliases);
+    doctors = doctors.map((d) => {
+      const row = Object.assign({}, d);
+      delete row.aliases;
+      return row;
+    });
     // Drug checks from any earlier turn in the session count too (the meds turn
     // and the final plan answer are often different turns).
     const toolDrugs = [];
@@ -1762,7 +2165,7 @@
     let drugs = fromExtras.length ? fromExtras : fromThread;
     if (fromExtras.length && fromThread.length) {
       fromThread.forEach((t) => {
-        const hit = drugs.find((d) => d.name.toLowerCase() === t.name.toLowerCase());
+        const hit = drugs.find((d) => drugIdentityKey(d.name) === drugIdentityKey(t.name));
         if (!hit) drugs.push(t);
         else {
           Object.keys(t.byPlanId || {}).forEach((id) => {
@@ -1771,7 +2174,7 @@
         }
       });
     }
-    drugs = applyKnownGenericSuggestions(drugs, resolvedPlans);
+    drugs = settleBrandNotCovered(applyKnownGenericSuggestions(drugs, resolvedPlans));
     const payload = {
       plans: resolvedPlans,
       clientName: clientName || "",
@@ -2333,6 +2736,63 @@
     return /\binstead of (?:these|those|the) plans\b/i.test(t) || (PLAN_SET_VERB_RE.test(t) && CARRIER_ASK_RE.test(t));
   }
 
+  // "H5420-14-0" / "H5420-14" as agents type them → "H5420-014".
+  function normalizeTypedPlanId(raw) {
+    const s = String(raw || "").toUpperCase().replace(/\s+/g, "").split("/")[0];
+    const m = s.match(/^([HR]\d{4})-?(\d{1,3})([A-Z]?)(?:-\d{1,3})?$/);
+    if (!m) return s;
+    return m[1] + "-" + m[2].padStart(3, "0") + m[3];
+  }
+
+  function typedPlanIds(text) {
+    const re = /\b([HR]\d{4})-(\d{1,3})([A-Z]?)(?:-\d{1,3})?\b/gi;
+    const out = [];
+    for (const m of String(text || "").matchAll(re)) {
+      const id = normalizeTypedPlanId(m[0]);
+      if (out.indexOf(id) < 0) out.push(id);
+    }
+    return out;
+  }
+
+  const PLAN_ADD_RE = /\b(add|also|include|plus|too|as\s+well|another)\b/i;
+  const PLAN_USE_RE = /\b(use|go\s+with|pick|choose|want)\b/i;
+  const PLAN_REMOVE_RE = /\b(remove|drop|take\s+off|take\s+out|without|skip|exclude|delete|no\s+longer)\b/i;
+
+  /**
+   * The plans she is working with NOW, from her own messages only: the latest message that
+   * lists 2+ plan IDs sets the columns; later "add/also/too … H…" adds, "remove/drop H…"
+   * removes. Plans Max mentioned, couldn't verify, or that came up earlier are not columns.
+   * [] when her messages never listed plans (callers fall back to the old resolution).
+   */
+  function workingPlanIdsFromUserMessages(messages) {
+    let set = null;
+    (messages || []).forEach((raw) => {
+      const t = String(raw || "");
+      // Statements about her current/old plan are not asks ("she was switched to … H5420-14-0 for 2026").
+      const ids = typedPlanIds(t);
+      if (!ids.length) return;
+      if (PLAN_REMOVE_RE.test(t) && set) {
+        set = set.filter((id) => ids.indexOf(id) < 0);
+        return;
+      }
+      if (PLAN_ADD_RE.test(t) && set) {
+        ids.forEach((id) => {
+          if (set.indexOf(id) < 0) set.push(id);
+        });
+        return;
+      }
+      if (ids.length >= 2) {
+        set = ids.slice();
+        return;
+      }
+      if (PLAN_ADD_RE.test(t) || PLAN_USE_RE.test(t)) {
+        set = set || [];
+        if (set.indexOf(ids[0]) < 0) set.push(ids[0]);
+      }
+    });
+    return set || [];
+  }
+
   function resolveExportPlans(plans, threadText, extra) {
     const meta = extra && typeof extra === "object" ? extra : {};
     const catalog = meta.catalog || meta.planCatalog || [];
@@ -2341,6 +2801,15 @@
     const latest = String(meta.latestUserText || "");
     const county = /\bbroward\b/i.test(text + " " + latest) && !/miami/i.test(text + " " + latest) ? "Broward" : "Miami-Dade";
     const pick = (id) => pickCatalogPlan(pool, id, county) || pickCatalogPlan(pool, id);
+    // Her working plan set wins over the union of every plan ever named in the thread
+    // (Gail: 11 columns incl. HealthSun plans Max said it couldn't verify and a UHC plan never run).
+    if (Array.isArray(meta.userMessages)) {
+      const working = workingPlanIdsFromUserMessages(meta.userMessages);
+      const picked = working.map((id) => pick(id) || (plans || []).find((p) => planColumnId(p) === compactContractPbp(id))).filter(Boolean);
+      if (picked.length >= 2) {
+        return uniquePlansByContractPbp(canonicalize2027ComparisonPlans(picked, latest || text, pool));
+      }
+    }
     const latestIds = citedPlanIdsFromText(latest);
     // "show me Doctors, Solis, Devoted" / "instead of these plans …" replaces the columns:
     // export exactly the plans the latest answer showed, never older plans from the thread.
@@ -2450,6 +2919,16 @@
     orderComparisonPlans,
     keepCurrentComparisonPlans,
     resolveExportPlans,
+    workingPlanIdsFromUserMessages,
+    normalizeTypedPlanId,
+    drugIngredients,
+    drugIdentityKey,
+    isNonDrugName,
+    doctorIdentity,
+    sameDoctorIdentity,
+    userDoctorAliases,
+    foldDoctorsLatestWins,
+    settleBrandNotCovered,
     lastUserComparisonAsk,
     requestUpdatesComparison,
     isExportOnlyAsk,
@@ -3338,6 +3817,8 @@ function collectComparisonExport(history, plans, extras) {
   return window.MaxComparisonExport.buildExportPayload(plans, text, {
     catalog: typeof PLANS !== "undefined" ? PLANS : extra.catalog,
     askText: extra.askText != null ? extra.askText : window.MaxComparisonExport.conversationUserText(history, userMessageText),
+    // Her own messages, one per entry: the working plan set and doctor names come only from these.
+    userMessages: (history || []).filter((m) => m && m.role === "user").map((m) => userMessageText(m.content)).filter(Boolean),
     ...extra,
     latestUserText,
     drugs: []

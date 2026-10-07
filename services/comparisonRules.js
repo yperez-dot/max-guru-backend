@@ -242,13 +242,24 @@ function sameDrug(a, b) {
 }
 
 /** Meds the agent listed: "Meds: …" sections plus any known drug names in her words. */
+// Reply words that are never a medication ("both", "yes", "same") — a numbered answer
+// like "2. both" must not become a drug lookup / export row (Gail Carreno, 2026-10-07).
+const NON_DRUG_WORDS = new Set(
+  'both all none no nope yes yeah yep ok okay sure same correct right wrong those these them they it this that either neither each other others another any meds med medication medications drug drugs rx generic brand unknown na idk she he her his their unchanged covered'.split(' ')
+);
+
+function isNonDrugAnswer(text) {
+  const words = String(text || '').toLowerCase().replace(/[^a-z0-9\s/-]+/g, ' ').split(/[\s/]+/).filter(Boolean);
+  return !words.length || words.every((w) => NON_DRUG_WORDS.has(w));
+}
+
 function medsFromAsk(askText) {
   const t = String(askText || '');
   const out = [];
   for (const m of t.matchAll(/\b(?:meds?|medications?|rx|drugs?|medicamentos?)\s*:\s*([^\n]+)/gi)) {
     // The list ends at the first sentence break ("… chlorthalidone. Suggest 2-3 plans").
     const list = m[1].split(/\.\s+(?=[A-Z])|\.\s*$|\b(?:compare|suggest|give me|show me|doctors?|drs?|plans?)\s*[:\b]/i)[0];
-    list.split(/[,;]|\band\b/).map((s) => s.replace(/\(.*?\)/g, '').replace(/[.\s]+$/, '').trim()).filter((s) => s && s.length > 2 && s.length < 40).forEach((s) => out.push(s));
+    list.split(/[,;]|\band\b/).map((s) => s.replace(/\(.*?\)/g, '').replace(/[.\s]+$/, '').trim()).filter((s) => s && s.length > 2 && s.length < 40 && !isNonDrugAnswer(s)).forEach((s) => out.push(s));
   }
   for (const h of CSNP_HINTS) {
     const hit = t.match(h.re);
@@ -332,6 +343,7 @@ module.exports = {
   planEligibility,
   csnpHintsFromMeds,
   medsFromAsk,
+  isNonDrugAnswer,
   sameDrug,
   exactDollars,
   CARRIER_WORDS,
