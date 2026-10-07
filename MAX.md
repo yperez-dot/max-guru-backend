@@ -439,3 +439,110 @@ Write it in this file (or `max-knowledge/` if the **chatbot** must cite it). Nex
 - 2026-10-07: UI — Max's ⚠️ callout block had 8px bottom margin, so "Before this narrows to 2–3 plans:" collided with the warnings above it. Bottom margin is now 16px. Needs a Netlify drop.
 - 2026-10-07: Yahoska sent a Solis formulary PDF, but it is the 2026 book (H0982_formulary26_C, updated 09/22/2026) — NOT 2027. Not indexed. Orgovyx = T5 (PA, QL 90/30); tadalafil 2.5/5mg = T4 (PA, QL), 10/20mg = T6 (QL) in that 2026 file. Need the 2027 PDF before Solis drug tiers can be answered for AEP.
 - 2026-10-07: 2026 vs 2027 same-plan compare. "compare 2026 vs 2027 for H1036-054C", "what changed for …", "year over year" → the UI pairs the plan's 2026 and 2027 rows (CMS 2027 crosswalk for renumbered / consolidated / new plans, flags same-ID product changes like H4140-013 DrFlex → DrFullDual-SFL), grades each row Changed / Same / Review in code, replies with only the changed rows + unchanged count + both SOB links, and offers Export Excel / PDF (2026 | 2027 | Change per plan; CMS premium, MOOP, Part D deductible and stars on top; changed rows pale orange, not yellow). No model call. Every other ask still defaults to 2027. Removed the bad Broward H0982-022 row from the 2026 archive (CMS has -022 in Miami-Dade only). Needs Railway (prompt rule) + Netlify drop.
+
+## 2026-10-07 — Sunfire plan-id map (PR open, NOT merged)
+
+Two defects, both found while chasing Katy's pregabalin "unverified" on Humana:
+
+1. **Matching searched the marketing name for the CMS id.** Only Humana prints it
+   ("Humana Gold Plus H1036-054C (HMO)"), so UHC H1045-001, Aetna H1609-093, Solis H0982-007
+   and Doctors H4140-023 never resolved to a Sunfire plan — Sunfire was skipped for them
+   entirely and every drug fell through to medicare.gov. `sunfireIdForPlan` now matches on
+   `hRaw` (contract) + `pbp`, with the old name search kept as a fallback for entries that
+   have no pbp recorded.
+2. **Every id in `services/sunfire-id-map.json` is a 2026 id** (all 303 are prefixed "26").
+   A 2027 lookup that resolved would have been answered with 2026 tiers. `sunfireIdForPlan`
+   is now year-scoped and returns null rather than another year's id; `lookupSunfireCoverage`
+   skips only the plan-scoped probes (drug-level ones still run) and reports
+   `sunfire_no_<year>_plan_ids` or `sunfire_plan_not_mapped` instead of a bare `sunfire_no_tier`.
+
+Also kept: a Sunfire 401/403 now reports `sunfire_session_expired` instead of looking like
+"drug not found". (The JWT itself is good until 11/30 — this is for the next expiry.)
+
+**The map is NOT yet regenerated — this PR does not fix 2027 lookups on its own.**
+`scripts/build_sunfire_id_map.js` writes entries with `hRaw`, `pbp`, `letter`, `planName`,
+`carrier` and `year`:
+
+    SUNFIRE_JWT=... SUNFIRE_SFP=... node scripts/build_sunfire_id_map.js --year 2027 --merge
+
+Sunfire's plan-list endpoints have answered 404 for 2027 (Charlotte, 2026-10-07). When they
+do, capture the plan list from a live Sunfire session (DevTools → Network → the plan-list
+response → Copy response) and feed it in: `--from captured.json`. The script reads the common
+field spellings (contractId/pbp, cmsPlanId, contractNumber/pbpNumber) and skips records with
+no Sunfire id or no CMS contract-PBP. `--dry-run` prints without writing; `--merge` is additive by Sunfire id, so several per-ZIP captures can be
+layered into the same year. Session valid to Nov 1.
+
+`services/formularyLookup.test.js` — the "live Sunfire tier" case ran at year 2027 against
+2026 stub ids, i.e. it asserted the bug. Moved to 2026 (the only mapped year); its
+year-specific cost-share assertions were dropped because the 2026 KB has no tier tables.
+
+### Sunfire captures — what we learned, and what is NOT safe to conclude (2026-10-07)
+
+Yahoska captured the Sunfire plan list several times (DevTools → Network). The captures taught
+us the record shape, and then overturned the conclusion drawn from the first one.
+
+**Record shape** (used by `scripts/build_sunfire_id_map.js`): the Sunfire id is `id`
+("262355"), the CMS PBP is `planId` ("054"), the contract is `contractId`, the carrier is
+`brandName` or `carrierName`, and the CMS letter appears only inside the marketing name
+("… H1036-054C (HMO)"). Some payloads are a bare array, others put it under `plans`.
+
+**The id prefix is NOT the plan year.** Two captures with different PBP sets both had ids
+beginning "26", and where 250 ids overlapped they agreed on every one. So ids are opaque
+sequence numbers; the year comes from the endpoint the list was pulled from
+(`.../2026?option1=…` vs `.../2027?option1=…`), not from the id.
+
+**PBPs differ by COUNTY, not by year.** "Solis Healthy Living Plan (HMO)" exists as id 265738
+= `H0982-022` and id 265726 = `H0982-007` — same product, same book, two service areas. The
+THEI grid confirms it: both PBPs are listed under *both* 2026 and 2027. An earlier note here
+claimed PBPs were renumbered between plan years; that was wrong and is retracted.
+
+**Consequence:** the captures could not be labelled by year with confidence, so none of them
+were committed. `services/sunfire-id-map.json` is unchanged (303 legacy entries, no `pbp`,
+no `year`). To add a year's ids we need a capture whose endpoint is known — i.e. the row whose
+*name* starts with the plan year — and the builder is ready for it:
+
+    node scripts/build_sunfire_id_map.js --year 2027 --from captured.json --merge
+
+`--merge` is additive by Sunfire id, so several per-ZIP captures layer into the same year.
+
+**Code behaviour meanwhile:** `sunfireIdForPlan` matches on contract + PBP (the old name search
+is kept as a fallback, which is all the legacy undated entries can use). Entries recorded for
+the asked year win; undated legacy entries are a last resort, so today's lookups keep working
+rather than going dark. `sunfireEntryYear` reads the year only from the entry, never the id.
+
+
+### 2027 Sunfire ids committed — Miami-Dade (2026-10-07)
+
+Captured from the row whose name begins `2027?option1=…` (the year-bearing endpoint), ZIP
+Miami-Dade: 195 records, 194 mapped, 13 carriers. `services/sunfire-id-map.json` now holds
+**497 entries — 194 dated 2027, plus the 303 legacy undated ones**, which stay as the last
+resort so nothing goes dark.
+
+Resolves for 2027 where nothing did before: UHC `H1045-001` → 270433, Aetna `H1609-093` →
+271301, Humana `H1036-054C` → 273828, HealthSun `H5431-001` → 275051, CarePlus `H1019-006`
+→ 273789.
+
+**The earlier "open discrepancy" is RESOLVED: it was county scope.** Sunfire's 2027 book is
+per-service-area, and the Miami-Dade list simply does not contain Broward's PBPs. Adding the
+Broward `2027?…` capture (205 records, ZIP Broward) supplied exactly the plans that looked
+missing — the THEI grid was right throughout:
+
+| Plan | Sunfire 2027 id | County |
+|---|---|---|
+| UHC Preferred FL-0002 `H1045-005` | 270434 | Broward |
+| UHC Preferred FL-0001 `H1045-001` | 270433 | Miami-Dade |
+| HealthSun HealthAdvantage `H5431-012` | 275053 | Broward |
+| CarePlus CareOne Plus `H1019-001` | 273788 | Broward |
+| CarePlus CareAccess `H1019-148` | 273817 | Broward |
+| CarePlus CareOne Plus `H1019-006` | 273789 | Miami-Dade |
+| Humana Gold Plus `H1036-065C` | 273830 | Broward |
+
+`services/sunfire-id-map.json` now holds **537 entries — 234 dated 2027 (both counties) plus
+the 303 legacy undated ones**. Solis (H0982) and Doctors (H4140) remain absent from Sunfire's
+book in both counties, as they always have been; their tiers come from the carrier-PDF
+indexes.
+
+Note for future captures: the same product can have a different PBP in each county
+("Solis Healthy Living Plan" is `H0982-022` in one service area and `H0982-007` in another),
+so a plan missing from the map usually means that county has not been captured yet — not that
+the plan or the grid is wrong.
