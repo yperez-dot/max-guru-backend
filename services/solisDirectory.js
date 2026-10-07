@@ -174,6 +174,7 @@ const COUNTY_LABEL = { miamiDade: 'Miami-Dade', browardPalmBeach: 'Broward & Pal
 
 module.exports = {
   solisCheck,
+  samePerson,
   countiesForZip,
   COUNTY_LABEL,
   FIND_A_PROVIDER,

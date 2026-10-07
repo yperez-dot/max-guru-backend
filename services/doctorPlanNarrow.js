@@ -396,7 +396,9 @@ function namedPlansFromAsk(askText, constraints) {
 
 // Carriers whose Florida MA plans all share one provider network.
 // Solis: one HMO network per county directory — a listing covers every Solis plan there.
-const SINGLE_NETWORK_CARRIERS = ['Devoted', 'Solis'];
+const SINGLE_NETWORK_CARRIERS = ['Devoted', 'Solis', 'CarePlus'];
+// CarePlus's directory is a PARTIAL list: a listing is plan-level In, a miss is never Out.
+const PARTIAL_DIRECTORY_CARRIERS = ['CarePlus'];
 // Plans that share one carrier network, so a directory hit counts as plan-level In.
 // Doctors HealthCare: DrMax-Dade (H4140-022) and DrSelect-SFL (H4140-023) share one
 // network — confirmed by Yahoska 2026-10-06. 001/012 are the same products' prior IDs.
@@ -425,7 +427,7 @@ function namedPlanColumns(named, matrix, doctors) {
   return named.map((np) => {
     const row = matrix.find((p) => p.planId.slice(0, 9) === np.planId.slice(0, 9));
     const carrier = carrierKey(np.name) || (row && row.carrier) || '';
-    const col = { planId: np.planId, name: row ? row.name : np.name, carrier, type: row ? row.type : planTypeOf(np.name), in: [], inCarrier: [], out: [], unknown: [] };
+    const col = { planId: np.planId, name: row ? row.name : np.name, carrier, type: row ? row.type : planTypeOf(np.name), in: [], inCarrier: [], out: [], unknown: [], notConfirmed: [] };
     for (const d of doctors) {
       const who = shortDoctor(d);
       const inIds = new Set((d.inNetworkPlans || []).map(planIdOf).filter(Boolean).map((x) => x.slice(0, 9)));
@@ -439,7 +441,9 @@ function namedPlanColumns(named, matrix, doctors) {
       }
       // One-network directory (Devoted; Doctors DrMax/DrSelect) finished and did not list
       // this NPI → Out. A failed or pending check stays ❔ unchecked (never assume Out).
-      else if (carrier && carrierHitIsPlanHit(carrier, np.planId) && directoryFinished(d, carrier)) col.out.push(who);
+      else if (carrier && carrierHitIsPlanHit(carrier, np.planId) && !PARTIAL_DIRECTORY_CARRIERS.includes(carrier) && directoryFinished(d, carrier)) col.out.push(who);
+      // Partial-list directory (CarePlus) answered and did not list this doctor: checked, not confirmed — not unchecked.
+      else if (carrier && PARTIAL_DIRECTORY_CARRIERS.includes(carrier) && directoryFinished(d, carrier)) { col.unknown.push(who); col.notConfirmed.push(who); }
       else col.unknown.push(who);
     }
     return col;
@@ -461,7 +465,7 @@ const PENDING_FOR = {
   'Florida Blue': /blue/i,
   HealthSun: /healthsun/i,
   Wellcare: /sunfire|wellcare/i,
-  CarePlus: /sunfire|careplus/i,
+  CarePlus: /careplus/i,
   Solis: /solis/i,
 };
 // No directory check exists for these. (Solis left 2026-10-06: its 2027 county PDF index is searched by name.)
@@ -483,15 +487,39 @@ function solisFlag(docs) {
   return `⚠️ Solis: checked by name against the 2027 Solis county provider directory PDF (current as of Oct 1, 2026; the PDF has no NPIs).${found}${unchecked ? ` ${unchecked} not checked (no match run or county not covered) — verify in the Solis PDF.` : ''}`;
 }
 
+/** Where the CarePlus cells came from: the 2027 county PDF index (partial list), by name. */
+function careplusFlag(docs) {
+  const listed = [];
+  let unchecked = 0;
+  let missed = 0;
+  for (const d of docs || []) {
+    const net = (d.networks || []).find((x) => /careplus/i.test(String(x.carrier)));
+    if (net && net.inNetwork && (net.directoryMatches || []).length) {
+      const m = net.directoryMatches[0];
+      listed.push(`${titleCase(shortDoctor(d))} = ${m.name} (p. ${m.pages.join(', ')})`);
+    } else if (!net || net.status !== 'checked') unchecked += 1;
+    else missed += 1;
+  }
+  const found = listed.length ? ` Listed: ${listed.join('; ')}.` : '';
+  const miss = missed ? ` ${missed} not listed — the CarePlus PDF is a partial list, so that is "not confirmed", not Out; verify at CarePlusHealthPlans.com/FindCare.` : '';
+  const unch = unchecked ? ` ${unchecked} not checked (no 2027 CarePlus directory loaded for this county yet).` : '';
+  return `⚠️ CarePlus: checked by name against the 2027 CarePlus county provider directory PDF (updated Sep 17, 2026; no NPIs).${found}${miss}${unch}`;
+}
+
 /** The carrier's live directory answered for this doctor (not pending, not failed, identity confirmed). */
 /** Solis is a local name index: it counts as checked only when the lookup says so. */
 function solisChecked(d) {
   return (d.networks || []).some((x) => /solis/i.test(String(x.carrier)) && x.status === 'checked');
 }
+/** CarePlus is a local name index too (partial list): checked only when a county index answered. */
+function careplusChecked(d) {
+  return (d.networks || []).some((x) => /careplus/i.test(String(x.carrier)) && x.status === 'checked');
+}
 
 function directoryFinished(d, carrier) {
   if (!d || d.identityPending) return false;
   if (carrier === 'Solis' && !solisChecked(d)) return false;
+  if (carrier === 'CarePlus' && !careplusChecked(d)) return false;
   if (d.status !== 'done' && d.status !== 'partial') return false;
   const re = PENDING_FOR[carrier];
   if (!re || NO_LIVE_DIRECTORY.includes(carrier)) return false;
@@ -507,6 +535,7 @@ function unknownCell(d, carrier) {
   if (status === 'not_found') return R.NOT_CONFIRMED_CELL;
   if (!carrier || NO_LIVE_DIRECTORY.includes(carrier)) return R.UNCHECKED;
   if (carrier === 'Solis' && !solisChecked(d)) return R.UNCHECKED;
+  if (carrier === 'CarePlus' && !careplusChecked(d)) return R.UNCHECKED;
   const re = PENDING_FOR[carrier];
   if (re && [...(d.pending || []), ...(d.failed || [])].some((p) => re.test(String(p)))) return R.UNCHECKED;
   return R.NOT_CONFIRMED_CELL;
@@ -568,7 +597,9 @@ function countsOf(p, n) {
   const inN = p.in.length;
   const outN = p.out.length;
   const star = (p.inCarrier || []).length;
-  return { inN, outN, star, unchecked: n - inN - outN };
+  const notConfirmed = (p.notConfirmed || []).length;
+  // `unchecked` is what the count row prints; `reallyUnchecked` (never looked up) decides if a plan can be ranked.
+  return { inN, outN, star, unchecked: n - inN - outN, reallyUnchecked: n - inN - outN - notConfirmed };
 }
 
 /** Rule 6: "X in · Y out · Z unchecked" (✅ In* counts as unchecked at plan level). */
@@ -763,6 +794,7 @@ function selectComparison(doctors, askText, opts = {}) {
       if (e.status !== 'eligible') out.flags.push(`⚠️ ${shortPlanHeader(c)}: ${e.reason} — you named it, so it stays; confirm eligibility before enrolling.`);
     }
     if (n > 0 && cols.some((c) => c.carrier === 'Solis')) out.flags.push(solisFlag(docs));
+    if (n > 0 && cols.some((c) => c.carrier === 'CarePlus')) out.flags.push(careplusFlag(docs));
   } else if (n > 0 || carriers.length) {
     const gridRows = R.gridPlansForCounty(county);
     const pool = gridRows.length
@@ -812,7 +844,7 @@ function selectComparison(doctors, askText, opts = {}) {
     const cols = decorate(namedPlanColumns(eligible.map((p) => ({ planId: p.planId, name: p.name })), matrix, docs))
       .map((c) => {
         const k = countsOf(c, n);
-        return { ...c, counts: k, verifiable: k.unchecked * 2 <= n };
+        return { ...c, counts: k, verifiable: k.reallyUnchecked * 2 <= n };
       });
     const ranked = cols.filter((c) => c.verifiable).sort((a, b) => (
       b.counts.inN - a.counts.inN
@@ -850,6 +882,7 @@ function selectComparison(doctors, askText, opts = {}) {
       }
       out.columns.filter((c) => !c.verifiable).forEach((c) => out.flags.push(`⚠️ ${shortPlanHeader(c)}: over half the doctors unchecked for this plan — shown because you asked for ${R.carrierOfPlan(c.grid || { name: c.name })}; verify in the carrier directory.`));
       if (carriers.includes('Solis')) out.flags.push(solisFlag(docs));
+      if (carriers.includes('CarePlus')) out.flags.push(careplusFlag(docs));
       const where = county || 'Miami-Dade + Broward (no ZIP/county given)';
       const excludedText = out.excluded.length ? out.excluded.map((x) => `${x.reason} (${x.count})`).join('; ') : 'none';
       out.whyLine = `Why these plans: you asked for ${carriers.join(', ')} — ${perCarrier === 1 ? 'best eligible plan per carrier' : `top ${perCarrier} eligible ${carriers[0]} plans`} from ${out.poolSize} eligible ${carriers.join(' / ')} plans in ${where}. ${R.RANK_ORDER} Excluded: ${excludedText}.`;
