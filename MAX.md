@@ -374,3 +374,5 @@ Cursor Max reads the whole repo. **Live chat only searches `max-knowledge/**/*.m
 Write it in this file (or `max-knowledge/` if the **chatbot** must cite it). Next Max session has no other memory. Confirmed 2027 plan dollars belong in `max-knowledge/` as soon as they are SoB-checked — that is how live Max “has it.”
 
 - 2026-10-07 paste parser: New-client paste accepts lowercase surnames, doctors listed with no "Doctors:" label right after the ZIP (incl. middle initials like "Jorge G. Ruiz"), and short plan ids (H1045-5-0 → H1045-005, added to the comparison).
+
+- 2026-10-07 Chat survives tab switches: the UI no longer holds one long /chat fetch. POST /chat/start runs the same /chat handler in the background (services/chatJobs.js, 2h TTL, private per user) and the page polls GET /chat/jobs/:id every ~2s, and again the instant the tab is visible/focused/online. Errors (401/402/413/429/503) come back from the same call as before. Old backend without /chat/start falls back to the single fetch. Still lost: a hard page reload mid-answer (the job id lives only in the page) and a Railway restart (job gone → "send it again").

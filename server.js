@@ -15,6 +15,7 @@ const formularyLookupRouter = require('./routes/formularyLookup');
 const providerLookupRouter = require('./routes/providerLookup');
 const workupsRouter = require('./routes/workups');
 const compareRouter = require('./routes/compare');
+const { startChatJob, getChatJob, publicChatJob } = require('./services/chatJobs');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -188,7 +189,7 @@ function priorToolResultsNote(prior) {
 // Netlify (thei-max-guru.netlify.app) sends system = buildSystemPrompt(): rules + hospitals + carrier rules (~45KB) plus only the plan rows for the ask (client county from ZIP/workup, carrier, plan IDs).
 // Auth (MAX_API_KEY) is the trust boundary — do not reject client system prompts or the live UI breaks.
 // LLM: xAI Grok (OpenAI-compatible). Response shape stays Anthropic-like for the Netlify UI.
-app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, res) => {
+const chatHandler = async (req, res) => {
   const { system } = req.body;
   if (!Array.isArray(req.body.messages) || !req.body.messages.length) {
     return res.status(400).json({ error: 'messages array required' });
@@ -309,6 +310,20 @@ app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, async (req, 
     console.error('Chat error:', err.message);
     res.status(500).json({ error: 'Having trouble right now — try again in a moment.' });
   }
+};
+
+app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, chatHandler);
+
+// Same turn, but in the background: the page polls, so a tab switch or a sleeping phone cannot lose the answer.
+app.post('/chat/start', requireApiKey, requireAccessToken, chatRateLimit, (req, res) => {
+  const job = startChatJob(chatHandler, req.body, req.accessEmail || '');
+  return res.status(202).json({ ok: true, jobId: job.id });
+});
+
+app.get('/chat/jobs/:id', requireApiKey, requireAccessToken, (req, res) => {
+  const job = getChatJob(req.params.id, req.accessEmail || '');
+  if (!job) return res.status(404).json({ error: 'That reply is gone (Max restarted or it expired) — send it again.', code: 'chat_job_gone' });
+  return res.json({ ok: true, job: publicChatJob(job) });
 });
 
 // 404

@@ -3701,6 +3701,72 @@ async function unlockMax(email, password) {
 const UI_QA = typeof location !== "undefined" ? new URLSearchParams(location.search) : new URLSearchParams();
 const MOCK_DELAY_MS = Number(UI_QA.get("mockDelay") || 0);
 
+
+// ─── Chat turn as a background job (survives tab switches / sleeping phones) ───
+// POST /chat/start → job id; GET /chat/jobs/:id every ~2s. A hidden tab throttles timers, so we also
+// poll the moment the tab becomes visible again. Old backend without /chat/start → the single long fetch.
+const CHAT_POLL_MS = 2000;
+const CHAT_MAX_WAIT_MS = 10 * 60 * 1000;
+const chatWakers = new Set();
+if (typeof document !== "undefined") {
+  const wake = () => { if (document.visibilityState !== "hidden") [...chatWakers].forEach((fn) => fn()); };
+  document.addEventListener("visibilitychange", wake);
+  if (typeof window !== "undefined") { window.addEventListener("focus", wake); window.addEventListener("online", wake); window.addEventListener("pageshow", wake); }
+}
+function chatSleep(ms) {
+  return new Promise((resolve) => {
+    const done = () => { clearTimeout(t); chatWakers.delete(done); resolve(); };
+    const t = setTimeout(done, ms);
+    chatWakers.add(done);
+  });
+}
+
+async function chatViaJob(headers, payload) {
+  let start;
+  try {
+    start = await fetch(API_BASE + "/chat/start", { method: "POST", headers, body: JSON.stringify(payload) });
+  } catch (_) {
+    start = null;
+  }
+  if (!start || start.status === 404) {
+    // Older backend (or network blip on start): the original single request.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 120_000);
+    try {
+      const response = await fetch(PROXY_URL, { method: "POST", headers, body: JSON.stringify(payload), signal: ctrl.signal });
+      return { response, data: await response.json().catch(() => ({})) };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  const started = await start.json().catch(() => ({}));
+  if (start.status !== 202 || !started.jobId) {
+    // 401 / 429 / 413 … come back from the start call exactly as /chat would have returned them.
+    return { response: start, data: started };
+  }
+  const t0 = Date.now();
+  let misses = 0;
+  while (Date.now() - t0 < CHAT_MAX_WAIT_MS) {
+    await chatSleep(CHAT_POLL_MS);
+    let r;
+    try {
+      r = await fetch(API_BASE + "/chat/jobs/" + encodeURIComponent(started.jobId), { headers });
+    } catch (_) {
+      misses += 1; // offline / frozen tab: keep trying, the answer is waiting on the server
+      continue;
+    }
+    const body = await r.json().catch(() => ({}));
+    if (r.status === 404) return { response: { status: 410, ok: false }, data: { error: body.error || "That reply is gone — send it again." } };
+    if (r.status === 401) return { response: r, data: body };
+    if (!r.ok || !body.job) { misses += 1; continue; }
+    if (body.job.status === "done") {
+      const code = body.job.httpStatus || 200;
+      return { response: { status: code, ok: code >= 200 && code < 300 }, data: body.job.body || {} };
+    }
+  }
+  return { response: { status: 504, ok: false }, data: { error: "Max took too long on that one — send it again." } };
+}
+
 async function askGuru(conversationHistory, opts) {
   if (MOCK_DELAY_MS > 0) {
     await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
@@ -3719,16 +3785,10 @@ async function askGuru(conversationHistory, opts) {
   const prior = opts && Array.isArray(opts.priorToolResults) ? opts.priorToolResults : [];
   if (prior.length) payload.priorToolResults = prior.slice(-40);
   const headers = maxAuthHeaders();
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 120_000);
+  const timer = null;
   try {
-    const response = await fetch(PROXY_URL, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-      signal: ctrl.signal,
-    });
-    const data = await response.json().catch(() => ({}));
+    // Background chat: the server keeps working while this tab is hidden; we poll and pick the answer up.
+    const { response, data } = await chatViaJob(headers, payload);
     if (response.status === 401) {
       if (data.code === "access_required") {
         setAccessToken("");
@@ -3766,7 +3826,7 @@ async function askGuru(conversationHistory, opts) {
       resume: data.resume && typeof data.resume === "object" ? data.resume : null,
     };
   } finally {
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
   }
 }
 
