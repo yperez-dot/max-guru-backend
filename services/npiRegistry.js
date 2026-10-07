@@ -459,6 +459,11 @@ function isTreating(r) {
     || /medicine|surgery|cardio|neuro|pediatr|psychiatr|oncolog|urolog|nephrolog|pulmonar|gastro|endocrin|rheumat|dermat|ophthal|orthop|family|internal|nurse practitioner|physician assistant/i.test(tax);
 }
 
+function surnameTokens(str) {
+  return String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+    .replace(/[^A-Z\s-]/g, ' ').split(/[\s-]+/).filter((w) => w.length >= 3);
+}
+
 /**
  * No exact match for the name she gave? Find the closest real treating providers
  * instead of asking her for an NPI — including likely misspellings:
@@ -493,7 +498,8 @@ async function suggestSimilarProviders({ doctorName = '', zip, state = 'FL', lim
   const qf = first.toUpperCase();
   const scored = found.map((r) => {
     const candLast = String(r.basic?.last_name || '');
-    const dist = Math.min(spellingDistance(last, candLast), spellingDistance(last, candLast.split(/[\s-]+/)[0]));
+    const candWords = candLast.split(/[\s-]+/).filter(Boolean);
+    const dist = Math.min(spellingDistance(last, candLast), ...candWords.map((w) => spellingDistance(last, w)));
     const fn = String(r.basic?.first_name || '').toUpperCase();
     let s = 100 - dist * 30;
     if (qf && fn === qf) s += 60;
@@ -504,8 +510,20 @@ async function suggestSimilarProviders({ doctorName = '', zip, state = 'FL', lim
   }).filter((x) => x.dist <= maxTypos)
     // A different spelling only counts when the first name also agrees (or there is none).
     .filter((x) => x.dist === 0 || !qf || String(x.r.basic?.first_name || '').toUpperCase()[0] === qf[0]);
-  scored.sort((a, b) => b.s - a.s);
-  return scored.slice(0, limit).map(({ r, dist }) => {
+  // Compound names ("Carlos Alberto Sosa Rosales"): a candidate that shares only the last
+  // word (Julio Cesar Rosales) is a different person. Keep a surname-only match when the
+  // first name is the same / one typo away, or the candidate also carries another word she gave.
+  const askedWords = new Set(surnameTokens(parsed.middleName));
+  const relevant = askedWords.size
+    ? scored.filter((x) => {
+      const b = x.r.basic || {};
+      const fn = String(b.first_name || '').toUpperCase();
+      if (!qf || fn === qf || spellingDistance(qf, fn) <= 1) return true;
+      return surnameTokens(`${b.middle_name || ''} ${b.last_name || ''}`).some((w) => askedWords.has(w));
+    })
+    : scored;
+  relevant.sort((a, b) => b.s - a.s);
+  return relevant.slice(0, limit).map(({ r, dist }) => {
     const loc = (r.addresses || []).find((a) => a.address_purpose === 'LOCATION') || {};
     const b = r.basic || {};
     const name = [b.first_name, b.middle_name, b.last_name].filter(Boolean).join(' ').toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());

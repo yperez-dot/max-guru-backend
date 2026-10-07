@@ -242,6 +242,28 @@ describe('closest real providers when the name has no exact match', () => {
   });
 });
 
+describe('compound names do not suggest people who share only the last word', () => {
+  const { suggestSimilarProviders } = require('./npiRegistry');
+  it('Carlos Alberto Sosa Rosales → no unrelated Rosales doctors; a Sosa Rosales relative still shows', async () => {
+    const saved = global.fetch;
+    const rec = (npi, first, middle, last, cred, zip, tax) => ({ number: npi, basic: { first_name: first, middle_name: middle, last_name: last, credential: cred }, addresses: [{ address_purpose: 'LOCATION', postal_code: zip, city: 'MIAMI' }], taxonomies: [{ primary: true, desc: tax }] });
+    global.fetch = async () => ({ ok: true, json: async () => ({ results: [
+      rec('1111111111', 'JULIO', 'CESAR', 'ROSALES', 'MD', '33172', 'General Practice'),
+      rec('2222222222', 'LEO', 'ELLIOT', 'ROSALES', 'MD', '33172', 'Internal Medicine, Hospitalist'),
+      rec('3333333333', 'GABRIELLA', 'CRISTINA', 'ROSALES', 'NP', '33172', 'Nurse Practitioner, Family'),
+      rec('4444444444', 'MARIA', '', 'SOSA ROSALES', 'MD', '33172', 'Family Medicine'),
+      rec('5555555555', 'CARLOS', 'A', 'ROSALES', 'MD', '33172', 'Family Medicine'),
+    ] }) });
+    try {
+      const s = await suggestSimilarProviders({ doctorName: 'Carlos Alberto Sosa Rosales', zip: '33172' });
+      const npis = s.map((x) => x.npi);
+      assert.ok(!npis.includes('1111111111') && !npis.includes('2222222222') && !npis.includes('3333333333'));
+      assert.ok(npis.includes('4444444444'), 'shares Sosa Rosales');
+      assert.ok(npis.includes('5555555555'), 'same first name');
+    } finally { global.fetch = saved; }
+  });
+});
+
 describe('spelling-tolerant suggestions', () => {
   const { suggestSimilarProviders, spellingDistance } = require('./npiRegistry');
   it('a swapped letter is one typo', () => {
