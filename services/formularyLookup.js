@@ -22,6 +22,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { getKnowledgeByKey } = require('../knowledge/loader');
+const { solisFormularyLookup } = require('./solisFormulary');
 const { lookupConsumerFormulary } = require('./consumerFormulary');
 const { doctorsPbpAliases, isDoctorsCms } = require('./doctorsFormularyPdf');
 
@@ -1205,6 +1206,12 @@ async function lookupFormulary(
         );
         if (mpf.verified) hit = mpf;
         else if (mpf.reason) reasons.push(mpf.reason);
+      }
+
+      // Solis has no API Max can call — its published 2027 formulary PDF index answers instead.
+      if (!hit || !hit.verified) {
+        const solis = solisFormularyLookup(resolvedName, id, y);
+        if (solis) hit = solis;
       }
 
       if (!hit || !hit.verified) {

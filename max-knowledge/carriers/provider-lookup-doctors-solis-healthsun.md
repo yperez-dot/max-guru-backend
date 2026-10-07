@@ -78,3 +78,7 @@ Guest Find Care: https://findcare.simplyhealthcareplans.com/?brand=SHC and shop 
 - **CarePlus, Wellcare:** no stable unauthenticated public provider API is wired.
 
 Use THEI Sunfire when its session is available; otherwise the carrier's public directory. Do not invent an affiliation.
+
+## Solis drug formulary (2027)
+
+Solis is not on Sunfire and has no consumer formulary API. Max answers Solis drug tiers from `data/solis-formulary-2027.json`, built by `scripts/build_solis_formulary.py` from Solis's published Comprehensive Formulary PDF (H0982_formulary27_C, updated 10/05/2026). One tier per drug, plan-wide for every H0982 plan that year. A drug that is not in the book returns no tier — say unverified, never invent one. Rebuild when Solis republishes.
