@@ -172,18 +172,21 @@ describe('Show benefits is offered once', () => {
   });
 });
 
-describe('Client queue panel', () => {
-  it('replaces the single Compare form with a queue; each finished client saves as its own new workup', () => {
+describe('New client workspace', () => {
+  it('replaces the queue screen: its own workspace, eligibility + must-have questions first, then auto-queue', () => {
     const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
-    assert.match(html, /function QueuePanel\(/);
-    assert.match(html, /data-testid="queue-add"/);
-    assert.match(html, /data-testid="queue-row"/);
-    assert.match(html, /data-testid="queue-open"/);
+    assert.doesNotMatch(html, /function QueuePanel\(/);
     assert.doesNotMatch(html, /function ComparePanel\(/);
-    // new workup, never an update of the one that is open
-    const fn = html.slice(html.indexOf('const saveAsWorkup'), html.indexOf('const refresh = async'));
-    assert.match(fn, /id: ""/);
-    assert.match(fn, /delete body\.id/);
-    assert.match(fn, /workupsRequest\("PUT", "", body\)/);
+    assert.match(html, /function ClientWsCard\(/);
+    assert.match(html, /data-testid="new-client-header"/);
+    assert.match(html, /data-testid="new-client-sidebar"/);
+    assert.match(html, /are any of them a must\?/);
+    // the comparison only starts once every question is answered
+    const fn = html.slice(html.indexOf('const wsAnswer'), html.indexOf('const wsToggleMust'));
+    assert.match(fn, /answers\.medicaid != null && answers\.csnp != null && mustDone/);
+    // finished client updates the same workup and keeps its results
+    const fin = html.slice(html.indexOf('const wsFinish'), html.indexOf('const wsPoll'));
+    assert.match(fin, /body\.id = id/);
+    assert.match(fin, /body\.compareResult = job\.result/);
   });
 });
