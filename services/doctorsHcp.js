@@ -11,6 +11,33 @@
  * Probed 2026-09-02. PCPSpecialtiesCode MUST be a string array (empty string → 400).
  */
 
+const fs = require('fs');
+const path = require('path');
+
+// 2027 county directory PDFs (exact NPIs), built by scripts/build_doctors_index.py.
+// Checked first because Railway often cannot reach the live search site ("fetch failed").
+const INDEX_PATH = path.join(__dirname, '..', 'data', 'doctors-directory-2027.json');
+const COUNTY_LABEL = { miamiDade: 'Miami-Dade', broward: 'Broward', tampa: 'Hillsborough/Pasco', orlando: 'Orange/Osceola/Seminole', polk: 'Polk' };
+let pdfIndex;
+function loadIndex() {
+  if (pdfIndex === undefined) {
+    try { pdfIndex = JSON.parse(fs.readFileSync(INDEX_PATH, 'utf8')); } catch { pdfIndex = null; }
+  }
+  return pdfIndex;
+}
+
+/** NPI listed in any 2027 Doctors county PDF? Returns [{county, label, page, asOf}] (empty = not listed). */
+function doctorsPdfCheck(npi) {
+  const idx = loadIndex();
+  if (!idx || !npi) return [];
+  const hits = [];
+  for (const [county, c] of Object.entries(idx.counties || {})) {
+    const page = c.npis && c.npis[String(npi)];
+    if (page) hits.push({ county, label: COUNTY_LABEL[county] || county, page, asOf: c.asOf || null });
+  }
+  return hits;
+}
+
 const DOCTORS_SEARCH_URL = 'https://providersearch.doctorshcp.com/ProviderSearch';
 const FETCH_TIMEOUT_MS = 12_000;
 const PLAN_LABEL = 'Doctors HealthCare Plans';
@@ -120,6 +147,20 @@ async function queryDoctorsHcp(npi) {
     return { inNetwork: false, matches: [], error: 'missing_npi', planLabel: PLAN_LABEL };
   }
 
+  const pdfHits = doctorsPdfCheck(npi);
+  if (pdfHits.length) {
+    return {
+      inNetwork: true,
+      matches: pdfHits.map((h) => ({
+        npi: String(npi), name: '', specialty: '', phone: '', acceptsNewPatients: '',
+        address: `Doctors 2027 directory PDF, ${h.label} p. ${h.page}${h.asOf ? ` (current as of ${h.asOf})` : ''}`,
+      })),
+      error: null,
+      source: 'pdf',
+      planLabel: PLAN_LABEL,
+    };
+  }
+
   // One after the other (PCP, then specialist) — parallel bursts get 404s.
   const results = [];
   for (const providerType of SEARCH_TYPES) {
@@ -161,6 +202,7 @@ async function probeDoctors(npi) {
 }
 
 module.exports = {
+  doctorsPdfCheck,
   probeDoctors,
   PLAN_LABEL,
   DOCTORS_SEARCH_URL,
