@@ -146,3 +146,11 @@ describe('Copy text button on Max replies', () => {
     assert.match(html, /navigator\.clipboard\.writeText\(text\)/);
   });
 });
+
+describe('Show benefits button', () => {
+  it('the export offer has a Show benefits button that asks Max for the benefits reply', () => {
+    const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
+    assert.match(html, /data-testid="show-benefits"/);
+    assert.match(html, /send\("Show benefits for these plans"\)/);
+  });
+});
