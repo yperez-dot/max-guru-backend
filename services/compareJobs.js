@@ -9,7 +9,7 @@ const crypto = require('crypto');
 const { lookupDoctor, NOT_CONFIRMED } = require('./providerNetwork');
 const { lookupFormulary, toExportDrug, toExportDrugs, formatFormularyText } = require('./formularyLookup');
 const { askConstraints, gridTable, medsTable, selectComparison } = require('./doctorPlanNarrow');
-const { eligibilityFromAsk, LEGEND, MEDS_LEGEND, IN_STAR_LEGEND } = require('./comparisonRules');
+const { eligibilityFromAsk, carriersRequested, LEGEND, MEDS_LEGEND, IN_STAR_LEGEND } = require('./comparisonRules');
 
 // Candidates priced before the final top 3, so drug cost can break ties (rule 3).
 const RX_SHORTLIST = Number(process.env.MAX_COMPARE_RX_SHORTLIST || 6);
@@ -138,7 +138,8 @@ function parseCompareAsk(text) {
   for (const m of t.matchAll(PLAN_ID_RE)) {
     const id = m[1].toUpperCase();
     if (id === terminatingPlan || skip.has(id) || [...skip].some((x) => x.slice(0, 9) === id.slice(0, 9))) continue;
-    if (!plans.includes(id)) plans.push(id);
+    // H1036-065C and H1036-065 are the same contract-PBP: keep one column.
+    if (!plans.some((x) => x.slice(0, 9) === id.slice(0, 9))) plans.push(id);
   }
 
   return {
@@ -149,6 +150,7 @@ function parseCompareAsk(text) {
     plans: plans.slice(0, MAX_PLANS),
     terminatingPlan,
     wantsAlternatives: ALTERNATIVES_RE.test(t),
+    carriers: carriersRequested(t),
     noMedicaid: constraints.noMedicaid,
     // Medicaid / MSP level / C-SNP condition exactly as the agent stated them (never inferred).
     eligibility: eligibilityFromAsk(t),
@@ -279,6 +281,7 @@ function normalizeInput(raw) {
     terminatingPlan: String(src.terminatingPlan || '').trim().toUpperCase(),
     noMedicaid: Boolean(src.noMedicaid),
     wantsAlternatives: Boolean(src.wantsAlternatives),
+    carriers: list(src.carriers).map((c) => String(c || '').trim()).filter(Boolean).slice(0, 8),
     eligibility: normalizeEligibility(src.eligibility, Boolean(src.noMedicaid)),
     skip: list(src.skip).map((s) => String(s).toUpperCase()),
     year: Number(src.year) === 2026 ? 2026 : 2027,
@@ -298,6 +301,7 @@ function askTextFor(input) {
   else if (input.eligibility) parts.push(eligibilityText(input.eligibility));
   for (const id of input.skip) parts.push(`Skip ${id}.`);
   if (input.plans.length) parts.push(`Compare ${input.plans.join(', ')}.`);
+  if ((input.carriers || []).length) parts.push(`Carriers requested: ${input.carriers.join(', ')}.`);
   return parts.join(' ');
 }
 
@@ -326,7 +330,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     // table plan already has its meds checked (rules 3 + 8).
     const named = input.plans.map((id) => ({ planId: id, name: (input.planNames && input.planNames[id]) || id }));
     // Her plan(s) + "is there something better?": keep them as the first column and shop the county for the rest.
-    const pinned = named.length && input.wantsAlternatives ? named.map((p) => p.planId) : [];
+    const pinned = named.length && (input.wantsAlternatives || (input.carriers || []).length) ? named.map((p) => p.planId) : [];
     const planSource = pinned.length ? 'current_plus_alternatives' : named.length ? 'named' : 'top_doctor_coverage';
     let rxPlanIds = named.map((p) => p.planId);
     if (!named.length || pinned.length) {
