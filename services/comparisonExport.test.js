@@ -1803,3 +1803,29 @@ describe('export matches the chat table (2026-10-06 Doctors/Solis/Devoted export
     assert.equal(asked.asked, false);
   });
 });
+
+describe('export doctor list ignores scraped junk', () => {
+  const plans = [{ planId: 'H1036-065C', planName: 'Humana Gold Plus' }, { planId: 'H1045-005', planName: 'UHC Preferred' }];
+  const text = [
+    'Doctors: Dr. Ashwin Mehta, Dr. Barry Sarkell',
+    '- Dr. Ashwin Mehta: H1045-005 IN',
+    '- Dr. Barry Sarkell: H1045-005 OUT',
+    'Dr. H1045-005 In',
+    'Dr. H1036-065c Not Confirmed',
+    'Dr. Sarkell. Dr. Aguiar',
+  ].join('\n');
+  it('findDoctorNames/extractDoctors keep only real names', () => {
+    const names = exp.extractDoctors(text, plans).map((d) => d.name);
+    assert.deepEqual(names.sort(), ['Dr. Ashwin Mehta', 'Dr. Barry Sarkell']);
+  });
+  it('mergeDoctorLists cleans annotated and plan-id rows', () => {
+    const merged = exp.mergeDoctorLists([[
+      { name: 'Dr. Ashwin Mehta' },
+      { name: 'Dr. Ashwin Mehta: H1045-005 IN' },
+      { name: 'Dr. H1045-005 In' },
+      { name: 'Dr. H1036-065c Not Confirmed' },
+      { name: 'Dr. Sarkell. Dr. Aguiar' },
+    ]], plans);
+    assert.deepEqual(merged.map((d) => d.name), ['Dr. Ashwin Mehta']);
+  });
+});
