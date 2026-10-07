@@ -102,7 +102,8 @@ async function postSearchOnce(body) {
     }
     return { ok: true, hits: data };
   } catch (err) {
-    const label = err.name === 'AbortError' ? 'Timeout' : err.message;
+    const cause = err.cause ? ` (${err.cause.code || err.cause.name || ''} ${err.cause.message || ''})`.replace(/\s+\)/, ')') : '';
+    const label = err.name === 'AbortError' ? 'Timeout' : `${err.message}${cause}`;
     console.warn(`[doctorsHcp] ${label} type=${body.ProviderType}`);
     return { ok: false, hits: [] };
   } finally {
