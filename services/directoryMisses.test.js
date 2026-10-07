@@ -44,11 +44,11 @@ describe('Doctors + Devoted cells', () => {
     assert.equal(rowOf(pending, 'Dileep Yavagal')[4], '❔ unchecked');
   });
 
-  it('Doctors plans outside the shared DrMax/DrSelect network stay ❔ (no carrier-level Out)', () => {
+  it('Doctors is one network for all plans: a finished list that omits the NPI is Out for a Doctors C-SNP too', () => {
     const ask = 'Compare Doctors HealthCare Plan C-SNP H4140-015 and Devoted CORE H1290-001 for these doctors';
     const t = n.batchSummaryForModel([doc('Dileep Yavagal', [])], ask, {}).text;
     const cells = rowOf(t, 'Dileep Yavagal');
-    assert.ok(!/Out/.test(cells[1]), `Doctors C-SNP cell was ${cells[1]}`);
+    assert.ok(/Out/.test(cells[1]), `Doctors C-SNP cell was ${cells[1]}`);
   });
 });
 

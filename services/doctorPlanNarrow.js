@@ -456,7 +456,8 @@ const isHmoTab = (c) => String((c.grid && c.grid.type) || '').toUpperCase() === 
 
 // Carriers whose Florida MA plans all share one provider network.
 // Solis: one HMO network per county directory — a listing covers every Solis plan there.
-const SINGLE_NETWORK_CARRIERS = ['Devoted', 'Solis', 'CarePlus'];
+// Doctors HealthCare: one network for every H4140 plan (Yahoska, 2026-10-07).
+const SINGLE_NETWORK_CARRIERS = ['Devoted', 'Solis', 'CarePlus', 'Doctors HealthCare'];
 // CarePlus's directory is a PARTIAL list: a listing is plan-level In, a miss is never Out.
 const PARTIAL_DIRECTORY_CARRIERS = ['CarePlus'];
 // Plans that share one carrier network, so a directory hit counts as plan-level In.

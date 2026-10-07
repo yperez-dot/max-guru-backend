@@ -272,15 +272,15 @@ describe('partial doctor-match answers', () => {
   });
 });
 
-describe('Doctors HealthCare shared network (Yahoska, 2026-10-06)', () => {
-  it('a Doctors directory hit is ✅ In for DrMax-Dade and DrSelect-SFL, still ✅ In* for Doctors C-SNP', () => {
+describe('Doctors HealthCare shared network (Yahoska, 2026-10-06; all plans 2026-10-07)', () => {
+  it('a Doctors directory hit is ✅ In for every Doctors plan (one network), including DrExtraCare', () => {
     const d = doc('Juan D Cedeno', 'JUAN DIEGO CEDENO', '1043665177', [], [], { carriersIn: ['Doctors HealthCare Plans'] });
     const cols = n.namedPlanColumns([
       { planId: 'H4140-022', name: 'Doctors DrMax-Dade' },
       { planId: 'H4140-023', name: 'Doctors DrSelect-SFL' },
       { planId: 'H4140-024', name: 'Doctors DrExtraCare' },
     ], [], [d]);
-    assert.deepEqual(cols.map((c) => [c.in.length, c.inCarrier.length]), [[1, 0], [1, 0], [0, 1]]);
+    assert.deepEqual(cols.map((c) => [c.in.length, c.inCarrier.length]), [[1, 0], [1, 0], [1, 0]]);
   });
 });
 

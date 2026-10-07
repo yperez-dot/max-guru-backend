@@ -215,3 +215,7 @@ Muskat/Yahoska: Max listed Pablo/Miriam meds with Daisy’s tiers (Lorazepam T2,
 - ❌ Drop doctors or live Rx because an older snapshot had fewer rows
 - ❌ Drop Humana because a later reply only restated 023 and 001
 - ❌ Print the same doctor twice (legal name In network + short name Not confirmed)
+
+## Doctors HealthCare and Simply (Yahoska, 2026-10-07)
+- Doctors HealthCare Plans has ONE network for ALL its plans. A Doctors directory hit means In for every Doctors plan (DrMax, DrSelect, DrExtraCare, duals) — say "In", not carrier-level "In*". The 2027 county directory PDFs (Miami-Dade, Broward, Hillsborough/Pasco, Orange/Osceola/Seminole) list NPIs and are checked first.
+- Simply has NO core (non-SNP) plans in Miami-Dade or Broward — only a D-SNP. Do not mention a Simply check, ask to add Simply columns, or call Simply "unchecked" unless the client is a dual/D-SNP candidate.
