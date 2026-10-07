@@ -373,3 +373,14 @@ describe('carriersRequested: her client\'s current plan is not a carrier ask', (
     assert2.deepEqual(R2.carriersRequested('show me humana and aetna'), ['Humana', 'Aetna']);
   });
 });
+
+describe('carrier asks next to a plan ID (Martin/Cleusa, 2026-10-07)', () => {
+  it('"compare his current plan with Humana, HealthSun and Doctors (DrSelect H4140-023)" asks for Humana + HealthSun', () => {
+    const got = R.carriersRequested('Martin Wiesenthal, 33324. Current plan: Solis Healthy Living H0982-007. Compare his current plan with Humana, HealthSun and Doctors (DrSelect-SFL H4140-023). Doctors: Dr. Randeep Gadh (PCP).');
+    assert.deepEqual(got.sort(), ['HealthSun', 'Humana']);
+  });
+  it('a carrier word glued to a named plan is still not a carrier ask', () => {
+    assert.deepEqual(R.carriersRequested('Compare Humana Gold Plus H1036-065C, Aetna Medicare Select H1609-018.'), []);
+    assert.deepEqual(R.carriersRequested('Current plan H1045-005 UHC Preferred MA FL-0002. Doctors: Ana Lee.'), []);
+  });
+});
