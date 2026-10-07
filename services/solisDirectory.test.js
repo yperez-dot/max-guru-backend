@@ -22,9 +22,10 @@ describe('solisDirectory zip → county PDF', () => {
     assert.match(directoryForZip('33312').url, /ProvDirecBDPB_All_Next/);
   });
 
-  it('does not invent a county for unknown zips — lists all three PDFs', () => {
-    assert.equal(directoryForZip('32801'), null);
-    const note = solisLookupNote('32801');
+  it('Central Florida ZIPs get the Central Florida PDF; unknown / uncovered ZIPs list all three PDFs', () => {
+    assert.equal(directoryForZip('32801').key, 'centralFl'); // Orlando, Orange County
+    assert.equal(directoryForZip('32202'), null); // Jacksonville (Duval): no Solis directory
+    const note = solisLookupNote('32202');
     assert.equal(note.searchable, false);
     assert.equal(note.directories.length, 3);
     assert.equal(note.findAProviderUrl, FIND_A_PROVIDER);
@@ -60,9 +61,11 @@ describe('Solis 2027 directory index (name match)', () => {
     assert.equal(solisCheck({ firstName: 'ANDREA', middleName: 'MELO', lastName: 'SOSA', zip: '33172' }).inNetwork, true);
     assert.equal(solisCheck({ firstName: 'CARLOS', lastName: 'SOSA', zip: '33172' }).inNetwork, false);
   });
-  it('unknown county: a miss is not a check (unavailable), a hit still counts', () => {
+  it('unknown county: nothing is searched (unavailable) — not even a hit counts, it could be another county', () => {
     assert.equal(solisCheck({ firstName: 'JOHN', lastName: 'MORYTKO', zip: '' }).status, 'unavailable');
-    assert.equal(solisCheck({ firstName: 'EDUARDO', lastName: 'KRAJEWSKI', zip: '' }).inNetwork, true);
+    const k = solisCheck({ firstName: 'EDUARDO', lastName: 'KRAJEWSKI', zip: '' });
+    assert.equal(k.status, 'unavailable');
+    assert.equal(k.inNetwork, false);
   });
 });
 

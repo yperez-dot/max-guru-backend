@@ -352,7 +352,7 @@ function startNpiChecks(rec, { zip, planYear, guestPlanIds, rank = 0 }) {
       (v) => { state.fhirFailed = v.failed; state.fhir = v.hits; state.devotedNetworks = v.devotedNetworks || null; },
       () => { state.fhirFailed = FHIR_CARRIERS.map((c) => c.name); state.fhir = []; },
     ),
-    track('doctorsResult', limited('doctors', () => queryDoctorsHcp(npi), rank), { inNetwork: false, error: 'request_failed' }),
+    track('doctorsResult', limited('doctors', () => queryDoctorsHcp(npi, { zip }), rank), { inNetwork: false, error: 'request_failed' }),
     track('aetnaResult', limited('aetna', () => queryAetnaPublic(npi, { zip, lastName: rec.lastName, year: planYear }), rank), { inNetwork: false, plans: [], error: 'request_failed' }),
     track('simplyResult', limited('simply', () => querySimplyFindcare(npi, { zip, lastName: rec.lastName }), rank), { inNetwork: false, plans: [], error: 'request_failed' }),
     track('uhcResult', limited('uhc', () => queryUhcGuest(npi, { zip, year: planYear, planIds: guestPlanIds }), rank), { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'request_failed', year: String(planYear) }),
@@ -522,7 +522,23 @@ function formatDoctorText({ doctorName, zip, planYear, providerResults, sunfire,
   return out.slice(0, 7000);
 }
 
-function structuredFor(doctorName, providerResults, { status, sunfireLabels = [] }) {
+/**
+ * Did this carrier's lookup actually run? Aetna / Simply / Wellcare used to read "not confirmed"
+ * even when no check happened. Now: a result with no error → 'checked'; an error → 'failed'
+ * (❔ unchecked); no result at all (skipped, never started) → 'unchecked'. Never Out.
+ */
+function guestCheckStatus(res) {
+  if (!res) return 'unchecked';
+  if (res.error) return 'failed';
+  return res.inNetwork ? 'in_network' : 'checked';
+}
+function sunfireCheckStatus(sunfire) {
+  if (sunfire && sunfire.ran) return 'checked';
+  if (sunfire && sunfire.error && sunfire.error !== 'skipped') return 'failed';
+  return 'unchecked';
+}
+
+function structuredFor(doctorName, providerResults, { status, sunfireLabels = [], sunfire = null }) {
   const firstProvider = providerResults[0];
   if (!firstProvider) return { doctorName, networks: [], status };
   const inNetworkPlans = [...new Set([...firstProvider.inNetworkFor, ...sunfireLabels])];
@@ -583,8 +599,10 @@ function structuredFor(doctorName, providerResults, { status, sunfireLabels = []
         directoryMatches: (firstProvider.careplusResult && firstProvider.careplusResult.matches) || [],
       },
       { carrier: DOCTORS_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.includes(DOCTORS_PLAN_LABEL), status: (firstProvider.lookupErrors || []).includes('Doctors HealthCare Plans') ? 'failed' : 'checked' },
-      { carrier: AETNA_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.some((p) => /aetna/i.test(p)) },
-      { carrier: SIMPLY_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.some((p) => /simply/i.test(p)) },
+      { carrier: AETNA_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.some((p) => /aetna/i.test(p)), status: guestCheckStatus(firstProvider.aetnaResult) },
+      { carrier: SIMPLY_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.some((p) => /simply/i.test(p)), status: guestCheckStatus(firstProvider.simplyResult) },
+      // Wellcare has no directory of its own here: Sunfire's provider search is its only check.
+      { carrier: 'Wellcare', inNetwork: sunfireLabels.some((p) => /wellcare/i.test(p)), status: sunfireCheckStatus(sunfire) },
       guestEntry(UHC_PLAN_LABEL, firstProvider.uhcResult),
       guestEntry(HUMANA_PLAN_LABEL, firstProvider.humanaResult),
     ],
@@ -709,6 +727,7 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
         live.sunfire = {
           labels: inNetworkLabelsFromSunfirePlans(sf.plans, SUNFIRE_PLAN_MAP, { skipHumana: humanaGuestOk, isHumanaLabel }),
           error: null,
+          ran: true, // Sunfire's provider search answered (Wellcare's only check)
         };
       } else if (sf.error && sf.error !== 'missing_credentials') {
         live.sunfire = { labels: [], error: sf.error };
@@ -760,7 +779,7 @@ function buildDoctorResult(doctorName, zip, planYear, live, { timedOut }) {
     status,
     doctorName,
     text: formatDoctorText({ doctorName, zip, planYear, providerResults, sunfire: live.sunfire, timedOut: status === 'partial' }),
-    structured: structuredFor(doctorName, providerResults, { status, sunfireLabels: live.sunfire.labels || [] }),
+    structured: structuredFor(doctorName, providerResults, { status, sunfireLabels: live.sunfire.labels || [], sunfire: live.sunfire }),
   };
 }
 
@@ -908,6 +927,8 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
 }
 
 module.exports = {
+  guestCheckStatus,
+  sunfireCheckStatus,
   savedDoctorNpis,
   savedNpiFor,
   stripSavedStatus,

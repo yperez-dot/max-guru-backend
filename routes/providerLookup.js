@@ -367,7 +367,7 @@ router.post('/', async (req, res) => {
     const [fhirResults, sunfireResult, doctorsResult, aetnaResult, simplyResult, uhcResult, humanaResult] = await Promise.all([
       Promise.all(CARRIERS.map(carrier => queryCarrier(carrier, npi))),
       querySunfire(npi, zip, county),
-      queryDoctorsHcp(npi),
+      queryDoctorsHcp(npi, { zip }),
       queryAetnaPublic(npi, { zip, state, lastName: npiLastName }),
       querySimplyFindcare(npi, { zip, lastName: npiLastName }),
       queryUhcGuest(npi, { zip, state, year: UHC_PLAN_YEAR }),

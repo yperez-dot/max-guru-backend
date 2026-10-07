@@ -54,10 +54,8 @@ function fipsForZip(zip) {
 }
 
 function directoryForZip(zip) {
-  const fips = fipsForZip(zip);
-  if (fips === '12086') return DIRECTORIES.miamiDade;
-  if (fips === '12011' || fips === '12099') return DIRECTORIES.browardPalmBeach;
-  return null;
+  const { keys, known } = countiesForZip(zip);
+  return known && keys.length ? DIRECTORIES[keys[0]] : null;
 }
 
 function solisLookupNote(zip, year = 2027) {
@@ -118,16 +116,25 @@ function surnameWords(s) {
   return words(s).filter((w) => !PARTICLES.has(w) && w.length >= 2);
 }
 
-/** Which index(es) cover this ZIP: Miami-Dade, Broward & Palm Beach, or (unknown) both South FL. */
+// Solis county directory PDFs and the counties each one covers (the Central Florida PDF's cover:
+// "Hillsborough, Orange, Osceola, Pasco, Pinellas, Polk, and Seminole Counties", Oct 2026).
+const INDEX_COUNTIES = {
+  miamiDade: ['Miami-Dade'],
+  browardPalmBeach: ['Broward', 'Palm Beach'],
+  centralFl: ['Hillsborough', 'Orange', 'Osceola', 'Pasco', 'Pinellas', 'Polk', 'Seminole'],
+};
+
+/**
+ * The index(es) for HER county only. A listing in another county's directory is not In for her.
+ * Unknown county, or a county Solis has no directory for → no index (unchecked, never Out).
+ */
 function countiesForZip(zip) {
-  let county = '';
-  try { county = require('./comparisonRules').countyForZip(zip); } catch (_) { county = ''; }
-  if (county === 'Miami-Dade') return { keys: ['miamiDade'], known: true };
-  if (county === 'Broward') return { keys: ['browardPalmBeach'], known: true };
-  const fips = fipsForZip(zip);
-  if (fips === '12086') return { keys: ['miamiDade'], known: true };
-  if (fips === '12011' || fips === '12099') return { keys: ['browardPalmBeach'], known: true };
-  return { keys: ['miamiDade', 'browardPalmBeach'], known: false };
+  const counties = require('./flZipCounty').countiesForZip(zip);
+  const keys = [];
+  for (const c of counties) {
+    for (const [k, list] of Object.entries(INDEX_COUNTIES)) if (list.includes(c) && !keys.includes(k)) keys.push(k);
+  }
+  return { keys, known: keys.length > 0, counties };
 }
 
 function samePerson(entry, { first, middle, last }) {
@@ -151,7 +158,7 @@ function samePerson(entry, { first, middle, last }) {
  */
 function solisCheck({ firstName, middleName, lastName, zip } = {}) {
   const idx = loadIndex();
-  const { keys, known } = countiesForZip(zip);
+  const { keys } = countiesForZip(zip);
   const covered = keys.filter((k) => idx.counties && idx.counties[k]);
   if (!covered.length || !lastName || !firstName) {
     return { status: 'unavailable', inNetwork: false, matches: [], county: keys.join('+') };
@@ -165,8 +172,7 @@ function solisCheck({ firstName, middleName, lastName, zip } = {}) {
     }
   }
   const asOf = idx.counties[covered[0]].asOf || null;
-  // Unknown county: a hit is still a hit, but a miss in "both" is not proof — unchecked.
-  if (!matches.length && !known) return { status: 'unavailable', inNetwork: false, matches, county: covered.join('+'), asOf };
+  // Her county's directory was searched: listed → In, not listed → Out (it lists every network provider).
   return { status: 'checked', inNetwork: matches.length > 0, matches, county: covered.join('+'), asOf };
 }
 
@@ -176,6 +182,7 @@ module.exports = {
   solisCheck,
   samePerson,
   countiesForZip,
+  INDEX_COUNTIES,
   COUNTY_LABEL,
   FIND_A_PROVIDER,
   FIND_A_PROVIDER_2026,
