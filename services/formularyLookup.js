@@ -848,7 +848,9 @@ function queryProductHints(query) {
 function conceptProductTraits(name) {
   const n = String(name || '').toLowerCase();
   const strengths = [];
-  const re = /(\d+(?:\.\d+)?)\s*(mg|mcg|g|unit|units|meq|%)\b/g;
+  // "20 MG/ML" is a concentration (oral solution), not a 20 mg dose: "pregabalin 20 mg" must not
+  // match pregabalin 20 MG/ML Oral Solution (Katy, 2026-10-07).
+  const re = /(\d+(?:\.\d+)?)\s*(mg|mcg|g|unit|units|meq|%)\b(?!\s*\/\s*(?:ml|actuat))/g;
   let m;
   while ((m = re.exec(n))) strengths.push({ value: m[1], unit: m[2] });
   const brand = (n.match(/\[([^\]]+)\]\s*$/) || [])[1] || null;
@@ -863,6 +865,39 @@ function conceptProductTraits(name) {
     odt: /disintegrating/.test(n),
     brand,
   };
+}
+
+/**
+ * The asked strength matches none of the products this lookup returned (pregabalin "20 mg" — likely
+ * 200 mg). Only those products were checked, so this is "couldn't match", never "does not exist".
+ * Returns the closest strengths found (×10 / ÷10 typos first), or null when it matches.
+ */
+function missingStrengthCheck(query, concepts) {
+  const hints = queryProductHints(query);
+  if (!hints.strengths.length) return null;
+  const real = [];
+  for (const c of concepts || []) {
+    for (const t of conceptProductTraits(c && c.name).strengths) {
+      if (!real.some((r) => sameStrength(r, t))) real.push(t);
+    }
+  }
+  if (!real.length) return null;
+  const missing = hints.strengths.filter((h) => !real.some((t) => sameStrength(h, t)));
+  if (!missing.length) return null;
+  const asked = missing[0];
+  const v = Number(asked.value);
+  const same = real.filter((t) => t.unit === asked.unit).sort((a, b) => Number(a.value) - Number(b.value));
+  const typo = same.filter((t) => [v * 10, v / 10, v * 100].includes(Number(t.value)));
+  const near = [...same].sort((a, b) => Math.abs(Number(a.value) - v) - Math.abs(Number(b.value) - v));
+  const nearest = [];
+  for (const t of [...typo, ...near]) if (!nearest.some((n) => sameStrength(n, t)) && nearest.length < 3) nearest.push(t);
+  const fmt = (t) => `${t.value} ${t.unit}`;
+  return { asked: fmt(asked), nearest: nearest.map(fmt), available: same.map(fmt) };
+}
+
+/** Query with the strength removed — the drug-level fallback for a strength that could not be matched. */
+function withoutStrength(query) {
+  return String(query || '').replace(/(\d+(?:\.\d+)?)\s*(mg|mcg|g|unit|units|meq|%)\b/gi, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function sameStrength(a, b) {
@@ -972,10 +1007,15 @@ async function ndcsForRxcui(rxcui, fetchImpl = fetch) {
   return Array.isArray(list) ? list.map((n) => normalizeNdc(n)).filter(Boolean) : [];
 }
 
-async function resolveMedicareGovNdcs({ drugName, ndc }, fetchImpl = fetch) {
+// Extra exact-product NDCs asked when the first ones come back empty (not in medicare.gov's drug file).
+const MEDICARE_GOV_EXTRA_NDC_PROBES = 24;
+const MEDICARE_GOV_PROBE_BATCH = 4;
+
+async function resolveMedicareGovNdcs({ drugName, ndc, hintNdc }, fetchImpl = fetch) {
   const out = [];
   const exact = new Set();
   const seen = new Set();
+  const moreExact = [];
   const push = (value, isExact) => {
     const n = normalizeNdc(value);
     if (!n || seen.has(n)) return;
@@ -1001,7 +1041,8 @@ async function resolveMedicareGovNdcs({ drugName, ndc }, fetchImpl = fetch) {
   const fallback = comboAsk ? null : auto.drugs?.[0] || null;
   const rxcui = match?.rxcui || fallback?.rxcui || null;
   const resolvedName = match?.name || fallback?.name || medicareQuery || drugName;
-  const query = drugName || resolvedName;
+  let query = drugName || resolvedName;
+  let strengthNote = null;
 
   if (rxcui) {
     const rel = await fetchJson(
@@ -1014,20 +1055,33 @@ async function resolveMedicareGovNdcs({ drugName, ndc }, fetchImpl = fetch) {
     const candidates = [{ rxcui: String(rxcui), name: resolvedName, tty: '' }, ...relatedRxnormConcepts(rel.json)];
     const dedup = [];
     for (const c of candidates) if (!dedup.some((d) => d.rxcui === c.rxcui)) dedup.push(c);
+    // A strength no product has (typo): confirm at drug level and say so, never "unverified".
+    strengthNote = missingStrengthCheck(query, dedup);
+    if (strengthNote) query = withoutStrength(query);
     const toTry = dedup
       .map((c, i) => ({ ...c, i, score: scoreRelatedConcept(c, query), exact: conceptMatchesQuery(c, query) }))
       .sort((a, b) => Number(b.exact) - Number(a.exact) || b.score - a.score || a.i - b.i)
       .slice(0, 8);
     for (const concept of toTry) {
-      const ndcs = rankNdcs(await ndcsForRxcui(concept.rxcui, fetchImpl)).slice(0, 3);
-      ndcs.forEach((n) => push(n, concept.exact));
+      const all = rankNdcs(await ndcsForRxcui(concept.rxcui, fetchImpl));
+      all.slice(0, 3).forEach((n) => push(n, concept.exact));
+      // medicare.gov only prices the NDCs in its own drug file: most RxNorm NDCs for a generic
+      // answer with empty drug_costs (pregabalin 200 mg on H1036-065C: 13668-0363-30, 46708-0124-30
+      // and 50228-0355-30 are all empty, while 00904-7003-04 reads Tier 3). Keep the rest of the
+      // exact product's NDCs so the lookup can keep asking (Katy, 2026-10-07).
+      if (concept.exact) all.slice(3).forEach((n) => { const k = normalizeNdc(n); if (k && !seen.has(k) && !moreExact.includes(k)) moreExact.push(k); });
       if (out.length >= 8) break;
     }
   }
 
+  // A catalog NDC (Sunfire's first hit) is a hint, never the asked product: duloxetine 30 mg
+  // resolved to a 40 mg NDC and read "not covered" (2026-10-07).
+  if (hintNdc && out.length < 8) push(hintNdc, false);
   const ndcs = out.slice(0, 8);
   return {
+    strengthNote,
     ndcs,
+    moreExactNdcs: moreExact.filter((n) => !ndcs.includes(n)).slice(0, MEDICARE_GOV_EXTRA_NDC_PROBES),
     exactNdcs: ndcs.filter((n) => exact.has(n)),
     rxcui: rxcui ? String(rxcui) : null,
     name: resolvedName || drugName,
@@ -1068,12 +1122,12 @@ function extractMedicareGovCost(payload, planId, year) {
   return { miss: 'empty_costs' };
 }
 
-async function lookupMedicareGov({ drugName, ndc, planId, year }, fetchImpl = medicareGovFetch) {
+async function lookupMedicareGov({ drugName, ndc, hintNdc, planId, year }, fetchImpl = medicareGovFetch) {
   const y = Number(year) || PLAN_YEAR;
   const parts = cmsContractParts(planId);
   if (!parts) return { verified: false, reason: 'medicare_gov_bad_plan_id', source: 'medicare_gov' };
 
-  const resolved = await resolveMedicareGovNdcs({ drugName, ndc }, fetchImpl);
+  const resolved = await resolveMedicareGovNdcs({ drugName, ndc, hintNdc }, fetchImpl);
   if (!resolved.ndcs.length) {
     return {
       verified: false,
@@ -1097,17 +1151,14 @@ async function lookupMedicareGov({ drugName, ndc, planId, year }, fetchImpl = me
     ndc: hit.ndc || useNdc,
     rxcui: resolved.rxcui,
     drugName: resolved.name || drugName,
+    ...(resolved.strengthNote ? { strengthNote: resolved.strengthNote } : {}),
     ...extra,
   });
   let lastError = null;
   let exactNotCovered = null;
   let otherCovered = null;
   let otherNotCovered = null;
-  for (const useNdc of resolved.ndcs.slice(0, 8)) {
-    const isExact = exactSet.has(useNdc);
-    // Once the exact product read not covered, only another exact NDC can change that.
-    if (exactNotCovered && !isExact) continue;
-    const res = await fetchJson(
+  const askCost = (useNdc) => fetchJson(
       `${MEDICARE_GOV_BASE}/drugs/cost`,
       {
         method: 'POST',
@@ -1131,6 +1182,12 @@ async function lookupMedicareGov({ drugName, ndc, planId, year }, fetchImpl = me
       fetchImpl,
       15_000
     );
+  let emptyExact = 0;
+  for (const useNdc of resolved.ndcs.slice(0, 8)) {
+    const isExact = exactSet.has(useNdc);
+    // Once the exact product read not covered, only another exact NDC can change that.
+    if (exactNotCovered && !isExact) continue;
+    const res = await askCost(useNdc);
     if (!res.ok || !res.json) {
       lastError = res.error || `medicare_gov_http_${res.status}`;
       continue;
@@ -1147,6 +1204,27 @@ async function lookupMedicareGov({ drugName, ndc, planId, year }, fetchImpl = me
       continue;
     }
     lastError = hit.miss ? `medicare_gov_${hit.miss}` : 'medicare_gov_no_tier';
+    if (isExact && hit.miss === 'empty_costs') emptyExact += 1;
+  }
+
+  // The asked product's first NDCs were not in medicare.gov's drug file (empty drug_costs):
+  // keep asking its other NDCs, a few at a time, until one answers. A sibling product never
+  // answers for it (Katy, pregabalin on H1036-065C 2027, 2026-10-07).
+  const more = resolved.moreExactNdcs || [];
+  if (more.length && (emptyExact || exactNotCovered || !exactSet.size)) {
+    for (let i = 0; i < more.length; i += MEDICARE_GOV_PROBE_BATCH) {
+      const batch = more.slice(i, i + MEDICARE_GOV_PROBE_BATCH);
+      const answers = await Promise.all(batch.map(async (useNdc) => {
+        const res = await askCost(useNdc);
+        return { useNdc, hit: res.ok && res.json ? extractMedicareGovCost(res.json, planId, y) : { miss: 'http' } };
+      }));
+      const covered = answers.find((a) => a.hit.coverage === 'covered' && a.hit.tier);
+      if (covered) return build(covered.hit, covered.useNdc);
+      // One repackager NDC reading not covered does not decide it while others may still answer.
+      const notCovered = answers.find((a) => a.hit.coverage === 'not_covered');
+      if (notCovered && !exactNotCovered) exactNotCovered = notCovered;
+      if (exactNotCovered && i + MEDICARE_GOV_PROBE_BATCH >= 12) break;
+    }
   }
 
   if (exactNotCovered) return build(exactNotCovered.hit, exactNotCovered.useNdc);
@@ -1381,8 +1459,10 @@ async function lookupFormulary(
 
       if (!hit || !hit.verified) {
         const medicareFetch = fetchImpl === fetch ? medicareGovFetch : fetchImpl;
+        // medicare.gov gets the product the agent asked for (strength / form / ER), not the Sunfire
+        // catalog's bare name, and only an NDC the agent typed counts as that exact product.
         const mpf = await lookupMedicareGov(
-          { drugName: resolvedName, ndc: resolvedNdc, planId: id, year: y },
+          { drugName: medicareGovQueryName(rawQuery, resolvedName), ndc: ndc || null, hintNdc: ndc ? null : resolvedNdc, planId: id, year: y },
           medicareFetch
         );
         if (mpf.verified) hit = mpf;
@@ -1425,6 +1505,7 @@ async function lookupFormulary(
           source: hit.source,
           reason: null,
           formularyPlanId: hit.formularyPlanId || null,
+          ...(hit.strengthNote ? { strengthNote: hit.strengthNote } : {}),
         };
         byPlanId[displayId] = row;
         lookups.push(row);
@@ -1506,6 +1587,24 @@ async function lookupFormulary(
   return result;
 }
 
+/** The agent's own words when they carry the product (strength / form / release) the catalog name dropped. */
+function medicareGovQueryName(rawQuery, resolvedName) {
+  const raw = String(rawQuery || '').trim();
+  if (!raw || /^\d[\d-]*$/.test(raw)) return resolvedName;
+  const a = queryProductHints(raw);
+  const b = queryProductHints(resolvedName);
+  const rawCarries = a.strengths.length > b.strengths.length || (a.form && !b.form) || (a.er && !b.er) || (a.dr && !b.dr) || (a.odt && !b.odt);
+  return rawCarries ? raw : resolvedName;
+}
+
+function strengthNoteText(drugName, note) {
+  if (!note) return '';
+  // Only the products this lookup returned were checked, so never say a strength "does not exist".
+  const name = String(drugName || 'this drug').replace(/\s*\d.*$/, '').toLowerCase();
+  const near = note.nearest.length ? ` Closest strengths found: ${note.nearest.join(', ')}.` : '';
+  return `STRENGTH NOT MATCHED: Couldn't match ${name} ${note.asked} on medicare.gov — confirm it.${near} The tier below is drug-level only, not confirmed for ${note.asked}.`;
+}
+
 function flagLine(label, value) {
   if (value === true) return label;
   if (value === false) return `no ${label}`;
@@ -1522,6 +1621,7 @@ function formatPlanLookupLine(drugName, row) {
       row.pa === true ? 'pa=yes' : row.pa === false ? 'pa=no' : null,
       row.st === true ? 'st=yes' : row.st === false ? 'st=no' : null,
       row.source ? `source=${row.source}` : null,
+      row.strengthNote ? `tier_scope=drug_level strength=${row.strengthNote.asked.replace(/\s+/g, '')}_unmatched_confirm${row.strengthNote.nearest[0] ? ` closest=${row.strengthNote.nearest[0].replace(/\s+/g, '')}` : ''}` : null,
     ]
       .filter(Boolean)
       .join(' ');
@@ -1540,6 +1640,8 @@ function formatFormularyText(result) {
   if (result.notCoveredNote) {
     lines.push(`UNVERIFIED NOT-COVERED: ${result.notCoveredNote} Tell the agent to confirm — do NOT state "not covered" as fact.`);
   }
+  const sNote = (result.lookups || []).map((l) => l.strengthNote).find(Boolean);
+  if (sNote) lines.push(strengthNoteText(result.drugName, sNote));
   if (!result.lookups.length) {
     lines.push('No plan IDs were passed. Catalog only — tiers are unverified until lookup_formulary is called with a contract-PBP.');
     if (result.catalog && result.catalog.length) {
@@ -1566,7 +1668,9 @@ function formatFormularyText(result) {
             ? `${row.costShare} (${row.costShareSource})`
             : 'cost-share not on file in THEI 2027 grid/KB';
       lines.push(
-        `${row.planId}: verified Tier ${row.tier} · ${cost}${flags ? ` · ${flags}` : ''} · source ${row.source}`
+        row.strengthNote
+          ? `${row.planId}: Tier ${row.tier} at drug level (not confirmed for ${row.strengthNote.asked}) · ${cost}${flags ? ` · ${flags}` : ''} · source ${row.source}`
+          : `${row.planId}: verified Tier ${row.tier} · ${cost}${flags ? ` · ${flags}` : ''} · source ${row.source}`
       );
     } else if (row.verified && row.coverage === 'not_covered') {
       lines.push(`${row.planId}: verified not covered (${row.source}).`);
@@ -1631,6 +1735,9 @@ function toExportDrugs(result) {
 }
 
 module.exports = {
+  missingStrengthCheck,
+  medicareGovQueryName,
+  strengthNoteText,
   sunfireMapIsUndated,
   sunfireEntryYear,
   sunfireMapHasYear,
