@@ -1,0 +1,4587 @@
+{
+ "sources": {
+  "crosswalk": "CMS 2027 Part C&D Plan Crosswalk (file dated 10/01/2026)",
+  "landscape2026": "CMS CY2026 Landscape (202609)",
+  "landscape2027": "CMS CY2027 Landscape (202609.1)"
+ },
+ "crosswalk": [
+  {
+   "prev": "H0982-002",
+   "prevName": "Solis Guardian Plan (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H0982-002",
+   "curName": "Solis Guardian Plan (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H0982-007",
+   "prevName": "Solis Healthy Living Plan (HMO)",
+   "prevSnp": null,
+   "cur": "H0982-007",
+   "curName": "Solis Healthy Living Plan (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H0982-012",
+   "prevName": "Solis Guardian Plan (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H0982-012",
+   "curName": "Solis Guardian Plan (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H0982-016",
+   "prevName": "Solis Wellness Plan (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H0982-016",
+   "curName": "Solis Wellness Plan (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H0982-017",
+   "prevName": "Solis Wellness Plan (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H0982-017",
+   "curName": "Solis Wellness Plan (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H0982-018",
+   "prevName": "Solis Wellness Plan (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H0982-017",
+   "curName": "Solis Wellness Plan (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H0982-022",
+   "prevName": "Solis Healthy Living Plan (HMO)",
+   "prevSnp": null,
+   "cur": "H0982-022",
+   "curName": "Solis Healthy Living Plan (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H0982-027",
+   "prevName": "Solis Balanced Plan (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H0982-027",
+   "curName": "Solis Balanced Plan (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H0982-028",
+   "prevName": "Solis Wellness Giveback Plan (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H0982-028",
+   "curName": "Solis Wellness Giveback Plan (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H0982-030",
+   "prevName": "Solis Wellness Giveback Plan (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H0982-030",
+   "curName": "Solis Wellness Giveback Plan (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": null,
+   "prevName": null,
+   "prevSnp": null,
+   "cur": "H0982-034",
+   "curName": "Solis Balanced Plan (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "New Plan"
+  },
+  {
+   "prev": "H1019-001",
+   "prevName": "CareOne Plus (HMO-POS)",
+   "prevSnp": null,
+   "cur": "H1019-001",
+   "curName": "CareOne Plus (HMO-POS)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-006",
+   "prevName": "CareOne Plus (HMO)",
+   "prevSnp": null,
+   "cur": "H1019-006",
+   "curName": "CareOne Plus (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-023",
+   "prevName": "CareNeeds Platinum (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1019-023",
+   "curName": "CareNeeds Platinum (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-065",
+   "prevName": "CareFree Giveback (HMO)",
+   "prevSnp": null,
+   "cur": "H1019-065",
+   "curName": "CareFree Giveback (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-121",
+   "prevName": "CareComplete Platinum (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1019-121",
+   "curName": "CareComplete Platinum (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-123",
+   "prevName": "CareBreeze Platinum (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1019-123",
+   "curName": "CareBreeze Platinum (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-124",
+   "prevName": "CareBreeze Platinum (HMO-POS C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1019-124",
+   "curName": "CareBreeze Platinum (HMO-POS C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-130",
+   "prevName": "CareComplete Platinum (HMO-POS C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1019-130",
+   "curName": "CareComplete Platinum (HMO-POS C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-132",
+   "prevName": "CareSalute (HMO)",
+   "prevSnp": null,
+   "cur": "H1019-132",
+   "curName": "CareSalute (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-135",
+   "prevName": "CareFree Platinum Giveback (HMO-POS)",
+   "prevSnp": null,
+   "cur": "H1019-135",
+   "curName": "CareFree Platinum Giveback (HMO-POS)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-136",
+   "prevName": "CareFree Platinum Giveback (HMO)",
+   "prevSnp": null,
+   "cur": "H1019-136",
+   "curName": "CareFree Platinum Giveback (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-148",
+   "prevName": "CareAccess (HMO)",
+   "prevSnp": null,
+   "cur": "H1019-148",
+   "curName": "CareAccess (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-150",
+   "prevName": "CareComplete (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1019-150",
+   "curName": "CareComplete (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-154",
+   "prevName": "CareBreeze (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1019-154",
+   "curName": "CareBreeze (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1032-195",
+   "prevName": "Wellcare Giveback (HMO)",
+   "prevSnp": null,
+   "cur": "H1032-195",
+   "curName": "Wellcare Giveback (HMO-POS)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1032-196",
+   "prevName": "Wellcare Simple (HMO)",
+   "prevSnp": null,
+   "cur": "H1032-196",
+   "curName": "Wellcare Simple (HMO-POS)",
+   "curSnp": null,
+   "status": "Renewal Plan with SAE"
+  },
+  {
+   "prev": "H1032-202",
+   "prevName": "Wellcare Dual Reserve (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1032-202",
+   "curName": "Wellcare Sunshine Health Dual Reserve (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan with SAR"
+  },
+  {
+   "prev": "H1032-244",
+   "prevName": "Wellcare Dual Access Sync (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1032-246",
+   "curName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1032-245",
+   "prevName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1032-246",
+   "curName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1032-244",
+   "prevName": "Wellcare Dual Access Sync (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1032-247",
+   "curName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1032-245",
+   "prevName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1032-247",
+   "curName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1032-244",
+   "prevName": "Wellcare Dual Access Sync (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1032-248",
+   "curName": "Wellcare Sunshine Health Dual Access (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1032-244",
+   "prevName": "Wellcare Dual Access Sync (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1032-249",
+   "curName": "Wellcare Sunshine Health Dual Access (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": null,
+   "prevName": null,
+   "prevSnp": null,
+   "cur": "H1032-250",
+   "curName": "Wellcare Sunshine Health Dual Align Unity (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "New Plan"
+  },
+  {
+   "prev": "H1032-241",
+   "prevName": "Wellcare Dual Access Sync (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1032-250",
+   "curName": "Wellcare Sunshine Health Dual Align Unity (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1032-243",
+   "prevName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1032-250",
+   "curName": "Wellcare Sunshine Health Dual Align Unity (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1032-244",
+   "prevName": "Wellcare Dual Access Sync (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1032-250",
+   "curName": "Wellcare Sunshine Health Dual Align Unity (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1032-245",
+   "prevName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1032-250",
+   "curName": "Wellcare Sunshine Health Dual Align Unity (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1035-017",
+   "prevName": "BlueMedicare Classic (HMO)",
+   "prevSnp": null,
+   "cur": "H1035-017",
+   "curName": "BlueMedicare Classic (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1035-019",
+   "prevName": "BlueMedicare Classic (HMO)",
+   "prevSnp": null,
+   "cur": "H1035-019",
+   "curName": "BlueMedicare Classic (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1035-025",
+   "prevName": "BlueMedicare Premier (HMO)",
+   "prevSnp": null,
+   "cur": "H1035-025",
+   "curName": "BlueMedicare Premier (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1036-054",
+   "prevName": "Humana Gold Plus H1036-054C (HMO)",
+   "prevSnp": null,
+   "cur": "H1036-054",
+   "curName": "Humana Gold Plus H1036-054C (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1036-065",
+   "prevName": "Humana Gold Plus H1036-065C (HMO)",
+   "prevSnp": null,
+   "cur": "H1036-065",
+   "curName": "Humana Gold Plus H1036-065C (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1036-077",
+   "prevName": "Humana Gold Plus SNP-DE H1036-077A (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1036-077",
+   "curName": "Humana Dual Select H1036-077 (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1036-121",
+   "prevName": "Humana Gold Plus - Diabetes and Heart (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1036-121",
+   "curName": "Humana Gold Plus - Diabetes and Heart (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1036-297",
+   "prevName": "Humana Gold Plus Lung (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1036-297",
+   "curName": "Humana Gold Plus Lung (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1036-304",
+   "prevName": "Humana Gold Plus SNP-DE H1036-304 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1036-304",
+   "curName": "Humana Dual Select H1036-304 (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1036-305",
+   "prevName": "Humana Gold Plus Giveback H1036-305 (HMO)",
+   "prevSnp": null,
+   "cur": "H1036-305",
+   "curName": "Humana Gold Plus Giveback H1036-305 (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-023",
+   "prevName": "CareNeeds Platinum (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1036-339",
+   "curName": "Humana Dual Integrated (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1019-073",
+   "prevName": "CareNeeds Plus (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1036-339",
+   "curName": "Humana Dual Integrated (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1019-146",
+   "prevName": "CareNeeds Platinum (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1036-339",
+   "curName": "Humana Dual Integrated (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1019-152",
+   "prevName": "CareNeeds Extra (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1036-339",
+   "curName": "Humana Dual Integrated (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1019-153",
+   "prevName": "CareNeeds Extra (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1036-339",
+   "curName": "Humana Dual Integrated (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1036-077",
+   "prevName": "Humana Gold Plus SNP-DE H1036-077A (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1036-339",
+   "curName": "Humana Dual Integrated (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1036-226",
+   "prevName": "Humana Gold Plus SNP-DE H1036-226 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1036-339",
+   "curName": "Humana Dual Integrated (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1036-304",
+   "prevName": "Humana Gold Plus SNP-DE H1036-304 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1036-339",
+   "curName": "Humana Dual Integrated (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1036-339",
+   "prevName": "Humana Dual Integrated (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1036-339",
+   "curName": "Humana Dual Integrated (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1045-001",
+   "prevName": "UHC Preferred Medicare Advantage FL-0001 (HMO)",
+   "prevSnp": null,
+   "cur": "H1045-001",
+   "curName": "UHC Preferred Medicare Advantage FL-0001 (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1045-005",
+   "prevName": "UHC Preferred Medicare Advantage FL-0002 (HMO)",
+   "prevSnp": null,
+   "cur": "H1045-005",
+   "curName": "UHC Preferred Medicare Advantage FL-0002 (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1045-012",
+   "prevName": "UHC Preferred Dual Complete FL-D001 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1045-012",
+   "curName": "UHC Preferred Dual Complete FL-QV4 (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H5420-006",
+   "prevName": "UHC MedicareMax Dual Complete FL-D4 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1045-012",
+   "curName": "UHC Preferred Dual Complete FL-QV4 (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1045-018",
+   "prevName": "UHC Preferred Complete Care FL-0003 (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1045-018",
+   "curName": "UHC Preferred Complete Care FL-0003 (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1045-012",
+   "prevName": "UHC Preferred Dual Complete FL-D001 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1045-061",
+   "curName": "UHC Preferred Dual Complete FL-QV5 (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1045-061",
+   "prevName": "UHC Preferred Dual Complete FL-V1 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1045-061",
+   "curName": "UHC Preferred Dual Complete FL-QV5 (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H5420-006",
+   "prevName": "UHC MedicareMax Dual Complete FL-D4 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1045-061",
+   "curName": "UHC Preferred Dual Complete FL-QV5 (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5420-015",
+   "prevName": "UHC MedicareMax Dual Complete FL-V3 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1045-061",
+   "curName": "UHC Preferred Dual Complete FL-QV5 (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1045-012",
+   "prevName": "UHC Preferred Dual Complete FL-D001 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1045-063",
+   "curName": "UHC Preferred Dual Complete FL-Y6 (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1045-061",
+   "prevName": "UHC Preferred Dual Complete FL-V1 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1045-063",
+   "curName": "UHC Preferred Dual Complete FL-Y6 (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1045-063",
+   "prevName": "UHC Preferred Dual Complete FL-Y2 (HMO-POS D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1045-063",
+   "curName": "UHC Preferred Dual Complete FL-Y6 (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H2509-001",
+   "prevName": "UHC Dual Complete FL-Y001 (HMO-POS D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1045-063",
+   "curName": "UHC Preferred Dual Complete FL-Y6 (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5420-006",
+   "prevName": "UHC MedicareMax Dual Complete FL-D4 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1045-063",
+   "curName": "UHC Preferred Dual Complete FL-Y6 (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5420-015",
+   "prevName": "UHC MedicareMax Dual Complete FL-V3 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1045-063",
+   "curName": "UHC Preferred Dual Complete FL-Y6 (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5420-016",
+   "prevName": "UHC MedicareMax Dual Complete FL-Y6 (HMO-POS D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1045-063",
+   "curName": "UHC Preferred Dual Complete FL-Y6 (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H2509-001",
+   "prevName": "UHC Dual Complete FL-Y001 (HMO-POS D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1045-073",
+   "curName": "UHC Dual Complete FL-Y5 (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1290-001",
+   "prevName": "DEVOTED CORE 001 FL (HMO)",
+   "prevSnp": null,
+   "cur": "H1290-001",
+   "curName": "DEVOTED CORE 001 FL (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-002",
+   "prevName": "DEVOTED CORE 002 FL (HMO)",
+   "prevSnp": null,
+   "cur": "H1290-002",
+   "curName": "DEVOTED CORE 002 FL (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-013",
+   "prevName": "DEVOTED GIVEBACK 013 FL (HMO)",
+   "prevSnp": null,
+   "cur": "H1290-013",
+   "curName": "DEVOTED GIVEBACK 013 FL (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-014",
+   "prevName": "DEVOTED GIVEBACK 014 FL (HMO)",
+   "prevSnp": null,
+   "cur": "H1290-014",
+   "curName": "DEVOTED GIVEBACK 014 FL (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-019",
+   "prevName": "DEVOTED DUAL 019 FL (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1290-019",
+   "curName": "DEVOTED DUAL 019 FL (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-020",
+   "prevName": "DEVOTED DUAL 020 FL (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1290-020",
+   "curName": "DEVOTED DUAL 020 FL (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-037",
+   "prevName": "DEVOTED PREMIUM 037 FL (HMO)",
+   "prevSnp": null,
+   "cur": "H1290-037",
+   "curName": "DEVOTED CORE 037 FL (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-053",
+   "prevName": "DEVOTED DUAL PLUS 053 FL (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1290-053",
+   "curName": "DEVOTED DUAL QMB 053 FL (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-054",
+   "prevName": "DEVOTED DUAL PLUS 054 FL (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1290-054",
+   "curName": "DEVOTED DUAL QMB 054 FL (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-056",
+   "prevName": "DEVOTED CORE 056 FL (HMO)",
+   "prevSnp": null,
+   "cur": "H1290-056",
+   "curName": "DEVOTED CORE 056 FL (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-062",
+   "prevName": "DEVOTED CORE 062 FL (HMO)",
+   "prevSnp": null,
+   "cur": "H1290-062",
+   "curName": "DEVOTED CORE 062 FL (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-067",
+   "prevName": "DEVOTED C-SNP PREMIUM 067 FL (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1290-067",
+   "curName": "DEVOTED C-SNP ENHANCED 067 FL (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-073",
+   "prevName": "DEVOTED C-SNP PREMIUM 073 FL (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1290-073",
+   "curName": "DEVOTED C-SNP ENHANCED 073 FL (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-054",
+   "prevName": "DEVOTED DUAL PLUS 054 FL (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1290-077",
+   "curName": "DEVOTED DUAL FULL 077 FL (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1290-077",
+   "prevName": "DEVOTED DUAL FULL 077 FL (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1290-077",
+   "curName": "DEVOTED DUAL FULL 077 FL (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-053",
+   "prevName": "DEVOTED DUAL PLUS 053 FL (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1290-078",
+   "curName": "DEVOTED DUAL FULL 078 FL (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1290-078",
+   "prevName": "DEVOTED DUAL FULL 078 FL (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1290-078",
+   "curName": "DEVOTED DUAL FULL 078 FL (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-084",
+   "prevName": "DEVOTED C-SNP PLUS 084 FL (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1290-084",
+   "curName": "DEVOTED C-SNP PLUS 084 FL (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1290-085",
+   "prevName": "DEVOTED C-SNP PLUS 085 FL (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1290-085",
+   "curName": "DEVOTED C-SNP PLUS 085 FL (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": null,
+   "prevName": null,
+   "prevSnp": null,
+   "cur": "H1290-110",
+   "curName": "DEVOTED GIVEBACK EXTRAS 110 FL (HMO)",
+   "curSnp": null,
+   "status": "New Plan"
+  },
+  {
+   "prev": null,
+   "prevName": null,
+   "prevSnp": null,
+   "cur": "H1290-117",
+   "curName": "DEVOTED GIVEBACK EXTRAS 117 FL (HMO)",
+   "curSnp": null,
+   "status": "New Plan"
+  },
+  {
+   "prev": "H1526-002",
+   "prevName": "Gold Heart & Diabetes Complete (HMO-POS C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1526-002",
+   "curName": "Gold Heart & Diabetes Complete (HMO-POS C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1526-004",
+   "prevName": "Gold Dialysis & Kidney Complete (HMO-POS C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1526-004",
+   "curName": "Gold Dialysis & Kidney Complete (HMO-POS C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1526-009",
+   "prevName": "Gold Dialysis & Kidney (HMO-POS C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1526-009",
+   "curName": "Gold Dialysis & Kidney (HMO-POS C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": null,
+   "prevName": null,
+   "prevSnp": null,
+   "cur": "H1526-013",
+   "curName": "Gold Heart & Diabetes (HMO-POS C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "New Plan"
+  },
+  {
+   "prev": "H1609-018",
+   "prevName": "Aetna Medicare Select (HMO)",
+   "prevSnp": null,
+   "cur": "H1609-018",
+   "curName": "Aetna Medicare Select (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1609-028",
+   "prevName": "Aetna Medicare Select Extra (HMO-POS)",
+   "prevSnp": null,
+   "cur": "H1609-028",
+   "curName": "Aetna Medicare Select Extra (HMO-POS)",
+   "curSnp": null,
+   "status": "Renewal Plan with SAR"
+  },
+  {
+   "prev": "H1609-017",
+   "prevName": "Aetna Medicare Dual Select (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1609-043",
+   "curName": "Aetna Medicare QMB Only Select (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1609-043",
+   "prevName": "Aetna Medicare Dual Select (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1609-043",
+   "curName": "Aetna Medicare QMB Only Select (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1609-017",
+   "prevName": "Aetna Medicare Dual Select (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1609-073",
+   "curName": "Aetna Medicare Full Dual Select (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1609-043",
+   "prevName": "Aetna Medicare Dual Select (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1609-073",
+   "curName": "Aetna Medicare Full Dual Select (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1609-073",
+   "prevName": "Aetna Medicare Full Dual Select (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1609-073",
+   "curName": "Aetna Medicare Full Dual Select (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1609-080",
+   "prevName": "Aetna Medicare Chronic Care (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1609-080",
+   "curName": "Aetna Medicare Chronic Care (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1609-093",
+   "prevName": "Aetna Medicare Select (HMO)",
+   "prevSnp": null,
+   "cur": "H1609-093",
+   "curName": "Aetna Medicare Select Care (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1609-094",
+   "prevName": "Aetna Medicare Chronic Care (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H1609-094",
+   "curName": "Aetna Medicare Chronic Care (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": null,
+   "prevName": null,
+   "prevSnp": null,
+   "cur": "H1609-103",
+   "curName": "Aetna Medicare Partial Dual Select (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "New Plan"
+  },
+  {
+   "prev": "H1609-017",
+   "prevName": "Aetna Medicare Dual Select (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1609-103",
+   "curName": "Aetna Medicare Partial Dual Select (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1609-043",
+   "prevName": "Aetna Medicare Dual Select (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1609-103",
+   "curName": "Aetna Medicare Partial Dual Select (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1889-002",
+   "prevName": "UHC Dual Complete FL-D003 (PPO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1889-002",
+   "curName": "UHC Dual Complete FL-Q1 (PPO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1889-026",
+   "prevName": "UHC Dual Complete FL-Y4 (PPO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H1889-026",
+   "curName": "UHC Dual Complete FL-Y7 (PPO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1045-012",
+   "prevName": "UHC Preferred Dual Complete FL-D001 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H2509-001",
+   "curName": "UHC Dual Complete FL-YL (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1045-039",
+   "prevName": "UHC Dual Complete FL-D002 (HMO-POS D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H2509-001",
+   "curName": "UHC Dual Complete FL-YL (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1045-061",
+   "prevName": "UHC Preferred Dual Complete FL-V1 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H2509-001",
+   "curName": "UHC Dual Complete FL-YL (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H1045-063",
+   "prevName": "UHC Preferred Dual Complete FL-Y2 (HMO-POS D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H2509-001",
+   "curName": "UHC Dual Complete FL-YL (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H2509-001",
+   "prevName": "UHC Dual Complete FL-Y001 (HMO-POS D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H2509-001",
+   "curName": "UHC Dual Complete FL-YL (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H2509-002",
+   "prevName": "UHC Dual Complete FL-D006 (HMO-POS D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H2509-001",
+   "curName": "UHC Dual Complete FL-YL (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H2509-003",
+   "prevName": "UHC Dual Complete FL-Y5 (HMO-POS D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H2509-001",
+   "curName": "UHC Dual Complete FL-YL (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5420-006",
+   "prevName": "UHC MedicareMax Dual Complete FL-D4 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H2509-001",
+   "curName": "UHC Dual Complete FL-YL (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5420-015",
+   "prevName": "UHC MedicareMax Dual Complete FL-V3 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H2509-001",
+   "curName": "UHC Dual Complete FL-YL (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H2509-001",
+   "prevName": "UHC Dual Complete FL-Y001 (HMO-POS D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H2509-003",
+   "curName": "UHC Dual Complete FL-Y8 (HMO-POS D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H4140-002",
+   "prevName": "DrPlus (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H4140-013",
+   "curName": "DrFullDual-SFL (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H4140-013",
+   "prevName": "DrFlex (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H4140-013",
+   "curName": "DrFullDual-SFL (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": null,
+   "prevName": null,
+   "prevSnp": null,
+   "cur": "H4140-020",
+   "curName": "DrPartialDual-SFL (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "New Plan"
+  },
+  {
+   "prev": "H4140-002",
+   "prevName": "DrPlus (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H4140-020",
+   "curName": "DrPartialDual-SFL (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H4140-013",
+   "prevName": "DrFlex (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H4140-020",
+   "curName": "DrPartialDual-SFL (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": null,
+   "prevName": null,
+   "prevSnp": null,
+   "cur": "H4140-022",
+   "curName": "DrMax-Dade (HMO)",
+   "curSnp": null,
+   "status": "New Plan"
+  },
+  {
+   "prev": null,
+   "prevName": null,
+   "prevSnp": null,
+   "cur": "H4140-023",
+   "curName": "DrSelect-SFL (HMO)",
+   "curSnp": null,
+   "status": "New Plan"
+  },
+  {
+   "prev": null,
+   "prevName": null,
+   "prevSnp": null,
+   "cur": "H4140-024",
+   "curName": "DrExtraCare-SFL (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "New Plan"
+  },
+  {
+   "prev": "H5420-001",
+   "prevName": "UHC MedicareMax Medicare Advantage FL-0028 (HMO)",
+   "prevSnp": null,
+   "cur": "H5420-001",
+   "curName": "UHC MedicareMax Medicare Advantage FL-0028 (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H5420-003",
+   "prevName": "UHC MedicareMax Medicare Advantage FL-0029 (HMO)",
+   "prevSnp": null,
+   "cur": "H5420-003",
+   "curName": "UHC MedicareMax Medicare Advantage FL-0029 (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H5420-014",
+   "prevName": "UHC MedicareMax Complete Care FL-30 (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H5420-014",
+   "curName": "UHC MedicareMax Complete Care FL-30 (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan with SAR"
+  },
+  {
+   "prev": "H5431-001",
+   "prevName": "HealthSun HealthAdvantage Plan (HMO)",
+   "prevSnp": null,
+   "cur": "H5431-001",
+   "curName": "HealthSun HealthAdvantage Plan (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H5431-006",
+   "prevName": "HealthSun MediMax (HMO)",
+   "prevSnp": null,
+   "cur": "H5431-006",
+   "curName": "HealthSun MediMax (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H5431-012",
+   "prevName": "HealthSun HealthAdvantage Plan (HMO)",
+   "prevSnp": null,
+   "cur": "H5431-012",
+   "curName": "HealthSun HealthAdvantage Plan (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H5431-017",
+   "prevName": "HealthSun HealthAdvantage Plus (HMO)",
+   "prevSnp": null,
+   "cur": "H5431-017",
+   "curName": "HealthSun HealthAdvantage Plus (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H5431-018",
+   "prevName": "HealthSun HealthAdvantage Plus (HMO)",
+   "prevSnp": null,
+   "cur": "H5431-018",
+   "curName": "HealthSun HealthAdvantage Plus (HMO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H5431-016",
+   "prevName": "HealthSun MediSun Plus (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5431-019",
+   "curName": "HealthSun MediSun Extra (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5431-019",
+   "prevName": "HealthSun MediSun Extra (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5431-019",
+   "curName": "HealthSun MediSun Extra (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5431-021",
+   "prevName": "HealthSun VitalCare (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": "H5431-021",
+   "curName": "HealthSun VitalCare (HMO C-SNP)",
+   "curSnp": "Chronic or Disabling Condition",
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H5427-087",
+   "prevName": "Freedom Medi-Medi Full (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5431-026",
+   "curName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5431-025",
+   "prevName": "HealthSun MediSun Full Dual Plus (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5431-026",
+   "curName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5431-026",
+   "prevName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5431-026",
+   "curName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5471-127",
+   "prevName": "Simply Integrated (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5431-026",
+   "curName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5471-130",
+   "prevName": "Simply Integrated (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5431-026",
+   "curName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5471-132",
+   "prevName": "Simply Integrated (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5431-026",
+   "curName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5471-134",
+   "prevName": "Simply Integrated Platinum (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5431-026",
+   "curName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5471-137",
+   "prevName": "Simply Integrated Platinum (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5431-026",
+   "curName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5594-017",
+   "prevName": "Optimum Emerald Full (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5431-026",
+   "curName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5434-002",
+   "prevName": "BlueMedicare Select (PPO)",
+   "prevSnp": null,
+   "cur": "H5434-002",
+   "curName": "BlueMedicare Select (PPO)",
+   "curSnp": null,
+   "status": "Renewal Plan with SAR"
+  },
+  {
+   "prev": "H5434-026",
+   "prevName": "BlueMedicare Value (PPO)",
+   "prevSnp": null,
+   "cur": "H5434-026",
+   "curName": "BlueMedicare Value (PPO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H5471-064",
+   "prevName": "Simply Complete (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5471-125",
+   "curName": "Simply Complete Platinum (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5471-076",
+   "prevName": "Simply Complete (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5471-125",
+   "curName": "Simply Complete Platinum (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5471-084",
+   "prevName": "Simply Complete (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5471-125",
+   "curName": "Simply Complete Platinum (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5471-115",
+   "prevName": "Simply Complete Platinum (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5471-125",
+   "curName": "Simply Complete Platinum (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H5471-125",
+   "prevName": "Simply Complete Platinum (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H5471-125",
+   "curName": "Simply Complete Platinum (HMO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H7284-010",
+   "prevName": "HumanaChoice Florida SNP-DE H7284-010 (PPO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H7284-010",
+   "curName": "Humana Dual Select H7284-010 (PPO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Renewal Plan with SAR"
+  },
+  {
+   "prev": "H7284-010",
+   "prevName": "HumanaChoice Florida SNP-DE H7284-010 (PPO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": "H7284-013",
+   "curName": "Humana Dual Integrated (PPO D-SNP)",
+   "curSnp": "Dual-Eligible",
+   "status": "Consolidated Renewal Plan"
+  },
+  {
+   "prev": "H7617-107",
+   "prevName": "HumanaChoice Florida H7617-107 (PPO)",
+   "prevSnp": null,
+   "cur": "H7617-107",
+   "curName": "HumanaChoice Florida H7617-107 (PPO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H7617-110",
+   "prevName": "Humana Full Access Giveback H7617-110 (PPO)",
+   "prevSnp": null,
+   "cur": "H7617-110",
+   "curName": "HumanaChoice Giveback H7617-110 (PPO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": null,
+   "prevName": null,
+   "prevSnp": null,
+   "cur": "H7617-145",
+   "curName": "HumanaChoice Giveback H7617-145 (PPO)",
+   "curSnp": null,
+   "status": "New Plan"
+  },
+  {
+   "prev": "R0759-001",
+   "prevName": "AARP Medicare Advantage from UHC FL-0031 (Regional PPO)",
+   "prevSnp": null,
+   "cur": "R0759-001",
+   "curName": "AARP Medicare Advantage from UHC FL-0031 (Regional PPO)",
+   "curSnp": null,
+   "status": "Renewal Plan"
+  },
+  {
+   "prev": "H1019-152",
+   "prevName": "CareNeeds Extra (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H1032-237",
+   "prevName": "Wellcare Simple (HMO)",
+   "prevSnp": null,
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H1032-244",
+   "prevName": "Wellcare Dual Access Sync (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H1032-245",
+   "prevName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H1609-017",
+   "prevName": "Aetna Medicare Dual Select (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H4140-001",
+   "prevName": "DrMax (HMO)",
+   "prevSnp": null,
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H4140-004",
+   "prevName": "DrExtraCare (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H4140-012",
+   "prevName": "DrSelect (HMO)",
+   "prevSnp": null,
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H4140-019",
+   "prevName": "DrElite-SFL (HMO)",
+   "prevSnp": null,
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H5410-056",
+   "prevName": "HealthSpring TotalCare (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H5410-060",
+   "prevName": "HealthSpring Preferred (HMO)",
+   "prevSnp": null,
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H5420-006",
+   "prevName": "UHC MedicareMax Dual Complete FL-D4 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H5420-015",
+   "prevName": "UHC MedicareMax Dual Complete FL-V3 (HMO D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H5420-016",
+   "prevName": "UHC MedicareMax Dual Complete FL-Y6 (HMO-POS D-SNP)",
+   "prevSnp": "Dual-Eligible",
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H5471-065",
+   "prevName": "Simply More (HMO)",
+   "prevSnp": null,
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H5471-077",
+   "prevName": "Simply More (HMO)",
+   "prevSnp": null,
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H5471-080",
+   "prevName": "Simply Level (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H5471-113",
+   "prevName": "Simply Extra Platinum (HMO)",
+   "prevSnp": null,
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H5471-114",
+   "prevName": "Simply More Platinum (HMO)",
+   "prevSnp": null,
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H5471-116",
+   "prevName": "Simply Level Platinum (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H5471-123",
+   "prevName": "Simply Extra Platinum (HMO)",
+   "prevSnp": null,
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H5471-124",
+   "prevName": "Simply More Platinum (HMO)",
+   "prevSnp": null,
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  },
+  {
+   "prev": "H5471-126",
+   "prevName": "Simply Level Platinum (HMO C-SNP)",
+   "prevSnp": "Chronic or Disabling Condition",
+   "cur": null,
+   "curName": null,
+   "curSnp": null,
+   "status": "Terminated/Non-renewed Contract"
+  }
+ ],
+ "landscape": {
+  "2026": {
+   "H0982-007|Broward": {
+    "planName": "Solis Healthy Living Plan (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,900",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H0982-012|Broward": {
+    "planName": "Solis Guardian Plan (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$3,400",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H0982-017|Broward": {
+    "planName": "Solis Wellness Plan (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,900",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H0982-030|Broward": {
+    "planName": "Solis Wellness Giveback Plan (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-001|Broward": {
+    "planName": "CareOne Plus (HMO-POS)",
+    "planType": "HMO-POS",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,000",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-023|Broward": {
+    "planName": "CareNeeds Platinum (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-065|Broward": {
+    "planName": "CareFree Giveback (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$5,000",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-124|Broward": {
+    "planName": "CareBreeze Platinum (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-130|Broward": {
+    "planName": "CareComplete Platinum (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-132|Broward": {
+    "planName": "CareSalute (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": null,
+    "starRating": "4.5"
+   },
+   "H1019-135|Broward": {
+    "planName": "CareFree Platinum Giveback (HMO-POS)",
+    "planType": "HMO-POS",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-148|Broward": {
+    "planName": "CareAccess (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,250",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-150|Broward": {
+    "planName": "CareComplete (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,000",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1019-152|Broward": {
+    "planName": "CareNeeds Extra (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,250",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-154|Broward": {
+    "planName": "CareBreeze (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,000",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1032-195|Broward": {
+    "planName": "Wellcare Giveback (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$5,000",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1032-196|Broward": {
+    "planName": "Wellcare Simple (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,500",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1032-202|Broward": {
+    "planName": "Wellcare Dual Reserve (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$3,000",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1032-244|Broward": {
+    "planName": "Wellcare Dual Access Sync (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1032-245|Broward": {
+    "planName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1035-019|Broward": {
+    "planName": "BlueMedicare Classic (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$6,750",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1035-025|Broward": {
+    "planName": "BlueMedicare Premier (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$4,500",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1036-065|Broward": {
+    "planName": "Humana Gold Plus H1036-065C (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$1,000",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1036-077|Broward": {
+    "planName": "Humana Gold Plus SNP-DE H1036-077A (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$250",
+    "starRating": "4.5"
+   },
+   "H1036-121|Broward": {
+    "planName": "Humana Gold Plus - Diabetes and Heart (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1036-297|Broward": {
+    "planName": "Humana Gold Plus Lung (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1036-304|Broward": {
+    "planName": "Humana Gold Plus SNP-DE H1036-304 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$400",
+    "starRating": "4.5"
+   },
+   "H1036-305|Broward": {
+    "planName": "Humana Gold Plus Giveback H1036-305 (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,850",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1036-339|Broward": {
+    "planName": "Humana Dual Integrated (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,250",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1045-005|Broward": {
+    "planName": "UHC Preferred Medicare Advantage FL-0002 (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,900",
+    "partDDeductible": "$270",
+    "starRating": "4.5"
+   },
+   "H1045-012|Broward": {
+    "planName": "UHC Preferred Dual Complete FL-D001 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1045-061|Broward": {
+    "planName": "UHC Preferred Dual Complete FL-V1 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$2,900",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1045-063|Broward": {
+    "planName": "UHC Preferred Dual Complete FL-Y2 (HMO-POS D-SNP)",
+    "planType": "HMO-POS D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1290-002|Broward": {
+    "planName": "DEVOTED CORE 002 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$595",
+    "starRating": "5.0"
+   },
+   "H1290-014|Broward": {
+    "planName": "DEVOTED GIVEBACK 014 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$6,750",
+    "partDDeductible": "$605",
+    "starRating": "5.0"
+   },
+   "H1290-020|Broward": {
+    "planName": "DEVOTED DUAL 020 FL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$3,900",
+    "partDDeductible": "$615",
+    "starRating": "5.0"
+   },
+   "H1290-037|Broward": {
+    "planName": "DEVOTED PREMIUM 037 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$4.80",
+    "moop": "$3,900",
+    "partDDeductible": "$615",
+    "starRating": "5.0"
+   },
+   "H1290-054|Broward": {
+    "planName": "DEVOTED DUAL PLUS 054 FL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "5.0"
+   },
+   "H1290-056|Broward": {
+    "planName": "DEVOTED CORE 056 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$0",
+    "starRating": "5.0"
+   },
+   "H1290-073|Broward": {
+    "planName": "DEVOTED C-SNP PREMIUM 073 FL (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$4.80",
+    "moop": "$3,900",
+    "partDDeductible": "$615",
+    "starRating": "5.0"
+   },
+   "H1290-077|Broward": {
+    "planName": "DEVOTED DUAL FULL 077 FL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "5.0"
+   },
+   "H1290-084|Broward": {
+    "planName": "DEVOTED C-SNP PLUS 084 FL (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "5.0"
+   },
+   "H1526-002|Broward": {
+    "planName": "Gold Heart & Diabetes Complete (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "Not Enough Data Available"
+   },
+   "H1526-004|Broward": {
+    "planName": "Gold Dialysis & Kidney Complete (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "Not Enough Data Available"
+   },
+   "H1609-017|Broward": {
+    "planName": "Aetna Medicare Dual Select (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$3.90",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1609-018|Broward": {
+    "planName": "Aetna Medicare Select (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,900",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1609-028|Broward": {
+    "planName": "Aetna Medicare Select Extra (HMO-POS)",
+    "planType": "HMO-POS",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$6,750",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1609-043|Broward": {
+    "planName": "Aetna Medicare Dual Select (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1609-073|Broward": {
+    "planName": "Aetna Medicare Full Dual Select (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$1.30",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1609-080|Broward": {
+    "planName": "Aetna Medicare Chronic Care (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$200",
+    "starRating": "4.5"
+   },
+   "H1889-002|Broward": {
+    "planName": "UHC Dual Complete FL-D003 (PPO D-SNP)",
+    "planType": "PPO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1889-026|Broward": {
+    "planName": "UHC Dual Complete FL-Y4 (PPO D-SNP)",
+    "planType": "PPO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H4140-012|Broward": {
+    "planName": "DrSelect (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,000",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H4140-013|Broward": {
+    "planName": "DrFlex (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$1.10",
+    "moop": "$3,400",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H4140-019|Broward": {
+    "planName": "DrElite-SFL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5410-056|Broward": {
+    "planName": "HealthSpring TotalCare (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$3,500",
+    "partDDeductible": "$615",
+    "starRating": "3.5"
+   },
+   "H5410-060|Broward": {
+    "planName": "HealthSpring Preferred (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$6,750",
+    "partDDeductible": "$615",
+    "starRating": "3.5"
+   },
+   "H5420-003|Broward": {
+    "planName": "UHC MedicareMax Medicare Advantage FL-0029 (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,900",
+    "partDDeductible": "$340",
+    "starRating": "4.5"
+   },
+   "H5420-006|Broward": {
+    "planName": "UHC MedicareMax Dual Complete FL-D4 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H5420-014|Broward": {
+    "planName": "UHC MedicareMax Complete Care FL-30 (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5420-015|Broward": {
+    "planName": "UHC MedicareMax Dual Complete FL-V3 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$3,400",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H5420-016|Broward": {
+    "planName": "UHC MedicareMax Dual Complete FL-Y6 (HMO-POS D-SNP)",
+    "planType": "HMO-POS D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H5427-087|Broward": {
+    "planName": "Freedom Medi-Medi Full (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$500",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H5431-006|Broward": {
+    "planName": "HealthSun MediMax (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5431-012|Broward": {
+    "planName": "HealthSun HealthAdvantage Plan (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,500",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5431-018|Broward": {
+    "planName": "HealthSun HealthAdvantage Plus (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5431-019|Broward": {
+    "planName": "HealthSun MediSun Extra (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5431-021|Broward": {
+    "planName": "HealthSun VitalCare (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$1,900",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5431-026|Broward": {
+    "planName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5434-002|Broward": {
+    "planName": "BlueMedicare Select (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$153.70",
+    "moop": "$6,750",
+    "partDDeductible": "$615",
+    "starRating": "3.5"
+   },
+   "H5434-026|Broward": {
+    "planName": "BlueMedicare Value (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "3.5"
+   },
+   "H5471-076|Broward": {
+    "planName": "Simply Complete (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$500",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H5471-077|Broward": {
+    "planName": "Simply More (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5471-080|Broward": {
+    "planName": "Simply Level (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5471-123|Broward": {
+    "planName": "Simply Extra Platinum (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,200",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5471-124|Broward": {
+    "planName": "Simply More Platinum (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,850",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5471-125|Broward": {
+    "planName": "Simply Complete Platinum (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$500",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H5471-126|Broward": {
+    "planName": "Simply Level Platinum (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5471-130|Broward": {
+    "planName": "Simply Integrated (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$500",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H5471-137|Broward": {
+    "planName": "Simply Integrated Platinum (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$500",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H5594-017|Broward": {
+    "planName": "Optimum Emerald Full (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$500",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H7284-010|Broward": {
+    "planName": "HumanaChoice Florida SNP-DE H7284-010 (PPO D-SNP)",
+    "planType": "PPO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$4,900",
+    "partDDeductible": "$615",
+    "starRating": "3.5"
+   },
+   "H7617-107|Broward": {
+    "planName": "HumanaChoice Florida H7617-107 (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H7617-110|Broward": {
+    "planName": "Humana Full Access Giveback H7617-110 (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$6,700",
+    "partDDeductible": "$600",
+    "starRating": "4.5"
+   },
+   "R0759-001|Broward": {
+    "planName": "AARP Medicare Advantage from UHC FL-0031 (Regional PPO)",
+    "planType": "Regional PPO",
+    "snpType": "Not Applicable",
+    "premium": "$62",
+    "moop": "$9,250",
+    "partDDeductible": "$600",
+    "starRating": "3.5"
+   },
+   "H0982-002|Miami-Dade": {
+    "planName": "Solis Guardian Plan (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H0982-016|Miami-Dade": {
+    "planName": "Solis Wellness Plan (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,500",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H0982-022|Miami-Dade": {
+    "planName": "Solis Healthy Living Plan (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,500",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H0982-027|Miami-Dade": {
+    "planName": "Solis Balanced Plan (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$3",
+    "moop": "$2,500",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H0982-028|Miami-Dade": {
+    "planName": "Solis Wellness Giveback Plan (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,500",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-006|Miami-Dade": {
+    "planName": "CareOne Plus (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$500",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-023|Miami-Dade": {
+    "planName": "CareNeeds Platinum (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-121|Miami-Dade": {
+    "planName": "CareComplete Platinum (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,000",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-123|Miami-Dade": {
+    "planName": "CareBreeze Platinum (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,000",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-132|Miami-Dade": {
+    "planName": "CareSalute (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": null,
+    "starRating": "4.5"
+   },
+   "H1019-136|Miami-Dade": {
+    "planName": "CareFree Platinum Giveback (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,000",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-148|Miami-Dade": {
+    "planName": "CareAccess (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,250",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-150|Miami-Dade": {
+    "planName": "CareComplete (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,000",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1019-152|Miami-Dade": {
+    "planName": "CareNeeds Extra (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,250",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1019-154|Miami-Dade": {
+    "planName": "CareBreeze (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,000",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1032-195|Miami-Dade": {
+    "planName": "Wellcare Giveback (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$5,000",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1032-202|Miami-Dade": {
+    "planName": "Wellcare Dual Reserve (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$3,000",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1032-237|Miami-Dade": {
+    "planName": "Wellcare Simple (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$1,000",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1032-244|Miami-Dade": {
+    "planName": "Wellcare Dual Access Sync (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1032-245|Miami-Dade": {
+    "planName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1035-017|Miami-Dade": {
+    "planName": "BlueMedicare Classic (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$6,750",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1036-054|Miami-Dade": {
+    "planName": "Humana Gold Plus H1036-054C (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$500",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1036-077|Miami-Dade": {
+    "planName": "Humana Gold Plus SNP-DE H1036-077A (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$250",
+    "starRating": "4.5"
+   },
+   "H1036-121|Miami-Dade": {
+    "planName": "Humana Gold Plus - Diabetes and Heart (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1036-297|Miami-Dade": {
+    "planName": "Humana Gold Plus Lung (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1036-304|Miami-Dade": {
+    "planName": "Humana Gold Plus SNP-DE H1036-304 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$400",
+    "starRating": "4.5"
+   },
+   "H1036-305|Miami-Dade": {
+    "planName": "Humana Gold Plus Giveback H1036-305 (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,850",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1036-339|Miami-Dade": {
+    "planName": "Humana Dual Integrated (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,250",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1045-001|Miami-Dade": {
+    "planName": "UHC Preferred Medicare Advantage FL-0001 (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,900",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1045-012|Miami-Dade": {
+    "planName": "UHC Preferred Dual Complete FL-D001 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1045-018|Miami-Dade": {
+    "planName": "UHC Preferred Complete Care FL-0003 (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,900",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H1045-061|Miami-Dade": {
+    "planName": "UHC Preferred Dual Complete FL-V1 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$2,900",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1045-063|Miami-Dade": {
+    "planName": "UHC Preferred Dual Complete FL-Y2 (HMO-POS D-SNP)",
+    "planType": "HMO-POS D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1290-001|Miami-Dade": {
+    "planName": "DEVOTED CORE 001 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$615",
+    "starRating": "5.0"
+   },
+   "H1290-013|Miami-Dade": {
+    "planName": "DEVOTED GIVEBACK 013 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$6,750",
+    "partDDeductible": "$605",
+    "starRating": "5.0"
+   },
+   "H1290-019|Miami-Dade": {
+    "planName": "DEVOTED DUAL 019 FL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$615",
+    "starRating": "5.0"
+   },
+   "H1290-037|Miami-Dade": {
+    "planName": "DEVOTED PREMIUM 037 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$4.80",
+    "moop": "$3,900",
+    "partDDeductible": "$615",
+    "starRating": "5.0"
+   },
+   "H1290-053|Miami-Dade": {
+    "planName": "DEVOTED DUAL PLUS 053 FL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "5.0"
+   },
+   "H1290-062|Miami-Dade": {
+    "planName": "DEVOTED CORE 062 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$0",
+    "starRating": "5.0"
+   },
+   "H1290-067|Miami-Dade": {
+    "planName": "DEVOTED C-SNP PREMIUM 067 FL (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$4.80",
+    "moop": "$3,900",
+    "partDDeductible": "$615",
+    "starRating": "5.0"
+   },
+   "H1290-078|Miami-Dade": {
+    "planName": "DEVOTED DUAL FULL 078 FL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "5.0"
+   },
+   "H1290-085|Miami-Dade": {
+    "planName": "DEVOTED C-SNP PLUS 085 FL (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "5.0"
+   },
+   "H1526-002|Miami-Dade": {
+    "planName": "Gold Heart & Diabetes Complete (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "Not Enough Data Available"
+   },
+   "H1526-004|Miami-Dade": {
+    "planName": "Gold Dialysis & Kidney Complete (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "Not Enough Data Available"
+   },
+   "H1526-009|Miami-Dade": {
+    "planName": "Gold Dialysis & Kidney (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$1,900",
+    "partDDeductible": "$0",
+    "starRating": "Not Enough Data Available"
+   },
+   "H1609-017|Miami-Dade": {
+    "planName": "Aetna Medicare Dual Select (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$3.90",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1609-043|Miami-Dade": {
+    "planName": "Aetna Medicare Dual Select (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1609-073|Miami-Dade": {
+    "planName": "Aetna Medicare Full Dual Select (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$1.30",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H1609-093|Miami-Dade": {
+    "planName": "Aetna Medicare Select (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,900",
+    "partDDeductible": "$200",
+    "starRating": "4.5"
+   },
+   "H1609-094|Miami-Dade": {
+    "planName": "Aetna Medicare Chronic Care (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$200",
+    "starRating": "4.5"
+   },
+   "H1889-002|Miami-Dade": {
+    "planName": "UHC Dual Complete FL-D003 (PPO D-SNP)",
+    "planType": "PPO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H1889-026|Miami-Dade": {
+    "planName": "UHC Dual Complete FL-Y4 (PPO D-SNP)",
+    "planType": "PPO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.0"
+   },
+   "H2509-001|Miami-Dade": {
+    "planName": "UHC Dual Complete FL-Y001 (HMO-POS D-SNP)",
+    "planType": "HMO-POS D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "3.5"
+   },
+   "H4140-001|Miami-Dade": {
+    "planName": "DrMax (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,000",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H4140-002|Miami-Dade": {
+    "planName": "DrPlus (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$3,400",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H4140-004|Miami-Dade": {
+    "planName": "DrExtraCare (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H4140-012|Miami-Dade": {
+    "planName": "DrSelect (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,000",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H4140-013|Miami-Dade": {
+    "planName": "DrFlex (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$1.10",
+    "moop": "$3,400",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H4140-019|Miami-Dade": {
+    "planName": "DrElite-SFL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5410-056|Miami-Dade": {
+    "planName": "HealthSpring TotalCare (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$3,500",
+    "partDDeductible": "$615",
+    "starRating": "3.5"
+   },
+   "H5410-060|Miami-Dade": {
+    "planName": "HealthSpring Preferred (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$6,750",
+    "partDDeductible": "$615",
+    "starRating": "3.5"
+   },
+   "H5420-001|Miami-Dade": {
+    "planName": "UHC MedicareMax Medicare Advantage FL-0028 (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5420-006|Miami-Dade": {
+    "planName": "UHC MedicareMax Dual Complete FL-D4 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H5420-014|Miami-Dade": {
+    "planName": "UHC MedicareMax Complete Care FL-30 (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5420-015|Miami-Dade": {
+    "planName": "UHC MedicareMax Dual Complete FL-V3 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$3,400",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H5420-016|Miami-Dade": {
+    "planName": "UHC MedicareMax Dual Complete FL-Y6 (HMO-POS D-SNP)",
+    "planType": "HMO-POS D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$9,250",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H5431-001|Miami-Dade": {
+    "planName": "HealthSun HealthAdvantage Plan (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$1,500",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5431-006|Miami-Dade": {
+    "planName": "HealthSun MediMax (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5431-017|Miami-Dade": {
+    "planName": "HealthSun HealthAdvantage Plus (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5431-019|Miami-Dade": {
+    "planName": "HealthSun MediSun Extra (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5431-021|Miami-Dade": {
+    "planName": "HealthSun VitalCare (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$1,900",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5431-026|Miami-Dade": {
+    "planName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5434-002|Miami-Dade": {
+    "planName": "BlueMedicare Select (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$153.70",
+    "moop": "$6,750",
+    "partDDeductible": "$615",
+    "starRating": "3.5"
+   },
+   "H5471-064|Miami-Dade": {
+    "planName": "Simply Complete (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$500",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H5471-065|Miami-Dade": {
+    "planName": "Simply More (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,850",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5471-113|Miami-Dade": {
+    "planName": "Simply Extra Platinum (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5471-114|Miami-Dade": {
+    "planName": "Simply More Platinum (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5471-115|Miami-Dade": {
+    "planName": "Simply Complete Platinum (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$500",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H5471-116|Miami-Dade": {
+    "planName": "Simply Level Platinum (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,450",
+    "partDDeductible": "$0",
+    "starRating": "4.5"
+   },
+   "H5471-127|Miami-Dade": {
+    "planName": "Simply Integrated (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$500",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H5471-134|Miami-Dade": {
+    "planName": "Simply Integrated Platinum (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$500",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H7284-010|Miami-Dade": {
+    "planName": "HumanaChoice Florida SNP-DE H7284-010 (PPO D-SNP)",
+    "planType": "PPO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$4.80",
+    "moop": "$4,900",
+    "partDDeductible": "$615",
+    "starRating": "3.5"
+   },
+   "H7617-107|Miami-Dade": {
+    "planName": "HumanaChoice Florida H7617-107 (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$615",
+    "starRating": "4.5"
+   },
+   "H7617-110|Miami-Dade": {
+    "planName": "Humana Full Access Giveback H7617-110 (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$6,700",
+    "partDDeductible": "$600",
+    "starRating": "4.5"
+   },
+   "R0759-001|Miami-Dade": {
+    "planName": "AARP Medicare Advantage from UHC FL-0031 (Regional PPO)",
+    "planType": "Regional PPO",
+    "snpType": "Not Applicable",
+    "premium": "$62",
+    "moop": "$9,250",
+    "partDDeductible": "$600",
+    "starRating": "3.5"
+   }
+  },
+  "2027": {
+   "H0982-007|Broward": {
+    "planName": "Solis Healthy Living Plan (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,900",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H0982-012|Broward": {
+    "planName": "Solis Guardian Plan (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$7.30",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H0982-017|Broward": {
+    "planName": "Solis Wellness Plan (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,900",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H0982-030|Broward": {
+    "planName": "Solis Wellness Giveback Plan (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H0982-034|Broward": {
+    "planName": "Solis Balanced Plan (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$7.30",
+    "moop": "$3,200",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1019-001|Broward": {
+    "planName": "CareOne Plus (HMO-POS)",
+    "planType": "HMO-POS",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$750",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1019-023|Broward": {
+    "planName": "CareNeeds Platinum (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1019-065|Broward": {
+    "planName": "CareFree Giveback (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$5,000",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1019-124|Broward": {
+    "planName": "CareBreeze Platinum (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1019-130|Broward": {
+    "planName": "CareComplete Platinum (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1019-132|Broward": {
+    "planName": "CareSalute (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$4,150",
+    "partDDeductible": null,
+    "starRating": null
+   },
+   "H1019-135|Broward": {
+    "planName": "CareFree Platinum Giveback (HMO-POS)",
+    "planType": "HMO-POS",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1019-148|Broward": {
+    "planName": "CareAccess (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,250",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1019-150|Broward": {
+    "planName": "CareComplete (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,000",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1019-154|Broward": {
+    "planName": "CareBreeze (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,000",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1032-195|Broward": {
+    "planName": "Wellcare Giveback (HMO-POS)",
+    "planType": "HMO-POS",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$5,000",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1032-196|Broward": {
+    "planName": "Wellcare Simple (HMO-POS)",
+    "planType": "HMO-POS",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,700",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1032-202|Broward": {
+    "planName": "Wellcare Sunshine Health Dual Reserve (HMO-POS D-SNP)",
+    "planType": "HMO-POS D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,000",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1032-246|Broward": {
+    "planName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1032-248|Broward": {
+    "planName": "Wellcare Sunshine Health Dual Access (HMO-POS D-SNP)",
+    "planType": "HMO-POS D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1032-250|Broward": {
+    "planName": "Wellcare Sunshine Health Dual Align Unity (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$7.30",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1035-019|Broward": {
+    "planName": "BlueMedicare Classic (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$6,750",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1035-025|Broward": {
+    "planName": "BlueMedicare Premier (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$4,451",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1036-065|Broward": {
+    "planName": "Humana Gold Plus H1036-065C (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$1,000",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1036-077|Broward": {
+    "planName": "Humana Dual Select H1036-077 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1036-121|Broward": {
+    "planName": "Humana Gold Plus - Diabetes and Heart (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,450",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1036-297|Broward": {
+    "planName": "Humana Gold Plus Lung (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,450",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1036-304|Broward": {
+    "planName": "Humana Dual Select H1036-304 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1036-305|Broward": {
+    "planName": "Humana Gold Plus Giveback H1036-305 (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,850",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1036-339|Broward": {
+    "planName": "Humana Dual Integrated (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1045-005|Broward": {
+    "planName": "UHC Preferred Medicare Advantage FL-0002 (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$505",
+    "starRating": null
+   },
+   "H1045-012|Broward": {
+    "planName": "UHC Preferred Dual Complete FL-QV4 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$400",
+    "starRating": null
+   },
+   "H1045-061|Broward": {
+    "planName": "UHC Preferred Dual Complete FL-QV5 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$7.30",
+    "moop": "$2,900",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1045-063|Broward": {
+    "planName": "UHC Preferred Dual Complete FL-Y6 (HMO-POS D-SNP)",
+    "planType": "HMO-POS D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1290-002|Broward": {
+    "planName": "DEVOTED CORE 002 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,950",
+    "partDDeductible": "$650",
+    "starRating": null
+   },
+   "H1290-014|Broward": {
+    "planName": "DEVOTED GIVEBACK 014 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$7,150",
+    "partDDeductible": "$650",
+    "starRating": null
+   },
+   "H1290-020|Broward": {
+    "planName": "DEVOTED DUAL 020 FL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$4,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1290-037|Broward": {
+    "planName": "DEVOTED CORE 037 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$650",
+    "starRating": null
+   },
+   "H1290-054|Broward": {
+    "planName": "DEVOTED DUAL QMB 054 FL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1290-056|Broward": {
+    "planName": "DEVOTED CORE 056 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$465",
+    "starRating": null
+   },
+   "H1290-073|Broward": {
+    "planName": "DEVOTED C-SNP ENHANCED 073 FL (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$4,400",
+    "partDDeductible": "$465",
+    "starRating": null
+   },
+   "H1290-077|Broward": {
+    "planName": "DEVOTED DUAL FULL 077 FL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1290-084|Broward": {
+    "planName": "DEVOTED C-SNP PLUS 084 FL (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$461",
+    "starRating": null
+   },
+   "H1290-117|Broward": {
+    "planName": "DEVOTED GIVEBACK EXTRAS 117 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$5,150",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1526-002|Broward": {
+    "planName": "Gold Heart & Diabetes Complete (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$7.30",
+    "moop": "$9,750",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1526-004|Broward": {
+    "planName": "Gold Dialysis & Kidney Complete (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$7.30",
+    "moop": "$9,250",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1609-018|Broward": {
+    "planName": "Aetna Medicare Select (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,900",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1609-043|Broward": {
+    "planName": "Aetna Medicare QMB Only Select (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1609-073|Broward": {
+    "planName": "Aetna Medicare Full Dual Select (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1609-080|Broward": {
+    "planName": "Aetna Medicare Chronic Care (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1609-103|Broward": {
+    "planName": "Aetna Medicare Partial Dual Select (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1889-002|Broward": {
+    "planName": "UHC Dual Complete FL-Q1 (PPO D-SNP)",
+    "planType": "PPO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1889-026|Broward": {
+    "planName": "UHC Dual Complete FL-Y7 (PPO D-SNP)",
+    "planType": "PPO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$7.30",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H4140-013|Broward": {
+    "planName": "DrFullDual-SFL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H4140-020|Broward": {
+    "planName": "DrPartialDual-SFL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H4140-023|Broward": {
+    "planName": "DrSelect-SFL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,000",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H4140-024|Broward": {
+    "planName": "DrExtraCare-SFL (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H5420-003|Broward": {
+    "planName": "UHC MedicareMax Medicare Advantage FL-0029 (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$685",
+    "starRating": null
+   },
+   "H5431-006|Broward": {
+    "planName": "HealthSun MediMax (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$105",
+    "starRating": null
+   },
+   "H5431-012|Broward": {
+    "planName": "HealthSun HealthAdvantage Plan (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,500",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H5431-018|Broward": {
+    "planName": "HealthSun HealthAdvantage Plus (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H5431-019|Broward": {
+    "planName": "HealthSun MediSun Extra (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H5431-021|Broward": {
+    "planName": "HealthSun VitalCare (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$1,900",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H5431-026|Broward": {
+    "planName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H5434-002|Broward": {
+    "planName": "BlueMedicare Select (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$173",
+    "moop": "$7,500",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H5434-026|Broward": {
+    "planName": "BlueMedicare Value (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$9,250",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H5471-125|Broward": {
+    "planName": "Simply Complete Platinum (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$500",
+    "partDDeductible": "$350",
+    "starRating": null
+   },
+   "H7284-010|Broward": {
+    "planName": "Humana Dual Select H7284-010 (PPO D-SNP)",
+    "planType": "PPO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$4,900",
+    "partDDeductible": "$300",
+    "starRating": null
+   },
+   "H7284-013|Broward": {
+    "planName": "Humana Dual Integrated (PPO D-SNP)",
+    "planType": "PPO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$620",
+    "starRating": null
+   },
+   "H7617-107|Broward": {
+    "planName": "HumanaChoice Florida H7617-107 (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H7617-110|Broward": {
+    "planName": "HumanaChoice Giveback H7617-110 (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$7,150",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H7617-145|Broward": {
+    "planName": "HumanaChoice Giveback H7617-145 (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$7,150",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "R0759-001|Broward": {
+    "planName": "AARP Medicare Advantage from UHC FL-0031 (Regional PPO)",
+    "planType": "Regional PPO",
+    "snpType": "Not Applicable",
+    "premium": "$127",
+    "moop": "$9,850",
+    "partDDeductible": "$685",
+    "starRating": null
+   },
+   "H0982-002|Miami-Dade": {
+    "planName": "Solis Guardian Plan (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$7.30",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H0982-016|Miami-Dade": {
+    "planName": "Solis Wellness Plan (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,500",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H0982-022|Miami-Dade": {
+    "planName": "Solis Healthy Living Plan (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,500",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H0982-027|Miami-Dade": {
+    "planName": "Solis Balanced Plan (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,500",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H0982-028|Miami-Dade": {
+    "planName": "Solis Wellness Giveback Plan (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,500",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1019-006|Miami-Dade": {
+    "planName": "CareOne Plus (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$500",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1019-023|Miami-Dade": {
+    "planName": "CareNeeds Platinum (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1019-121|Miami-Dade": {
+    "planName": "CareComplete Platinum (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,000",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1019-123|Miami-Dade": {
+    "planName": "CareBreeze Platinum (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,000",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1019-132|Miami-Dade": {
+    "planName": "CareSalute (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$4,150",
+    "partDDeductible": null,
+    "starRating": null
+   },
+   "H1019-136|Miami-Dade": {
+    "planName": "CareFree Platinum Giveback (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,000",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1019-148|Miami-Dade": {
+    "planName": "CareAccess (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,250",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1019-150|Miami-Dade": {
+    "planName": "CareComplete (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,000",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1019-154|Miami-Dade": {
+    "planName": "CareBreeze (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,000",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1032-195|Miami-Dade": {
+    "planName": "Wellcare Giveback (HMO-POS)",
+    "planType": "HMO-POS",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$5,000",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1032-196|Miami-Dade": {
+    "planName": "Wellcare Simple (HMO-POS)",
+    "planType": "HMO-POS",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,700",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1032-202|Miami-Dade": {
+    "planName": "Wellcare Sunshine Health Dual Reserve (HMO-POS D-SNP)",
+    "planType": "HMO-POS D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,000",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1032-246|Miami-Dade": {
+    "planName": "Wellcare Sunshine Health Dual Align (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1032-248|Miami-Dade": {
+    "planName": "Wellcare Sunshine Health Dual Access (HMO-POS D-SNP)",
+    "planType": "HMO-POS D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1032-250|Miami-Dade": {
+    "planName": "Wellcare Sunshine Health Dual Align Unity (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$7.30",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1035-017|Miami-Dade": {
+    "planName": "BlueMedicare Classic (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$6,675",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1036-054|Miami-Dade": {
+    "planName": "Humana Gold Plus H1036-054C (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$500",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1036-077|Miami-Dade": {
+    "planName": "Humana Dual Select H1036-077 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1036-121|Miami-Dade": {
+    "planName": "Humana Gold Plus - Diabetes and Heart (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,450",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1036-297|Miami-Dade": {
+    "planName": "Humana Gold Plus Lung (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,450",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1036-304|Miami-Dade": {
+    "planName": "Humana Dual Select H1036-304 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1036-305|Miami-Dade": {
+    "planName": "Humana Gold Plus Giveback H1036-305 (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,850",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1036-339|Miami-Dade": {
+    "planName": "Humana Dual Integrated (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1045-001|Miami-Dade": {
+    "planName": "UHC Preferred Medicare Advantage FL-0001 (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,900",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1045-012|Miami-Dade": {
+    "planName": "UHC Preferred Dual Complete FL-QV4 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$400",
+    "starRating": null
+   },
+   "H1045-018|Miami-Dade": {
+    "planName": "UHC Preferred Complete Care FL-0003 (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,900",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1045-061|Miami-Dade": {
+    "planName": "UHC Preferred Dual Complete FL-QV5 (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$7.30",
+    "moop": "$2,900",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1045-063|Miami-Dade": {
+    "planName": "UHC Preferred Dual Complete FL-Y6 (HMO-POS D-SNP)",
+    "planType": "HMO-POS D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1290-001|Miami-Dade": {
+    "planName": "DEVOTED CORE 001 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$600",
+    "starRating": null
+   },
+   "H1290-013|Miami-Dade": {
+    "planName": "DEVOTED GIVEBACK 013 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$7,150",
+    "partDDeductible": "$650",
+    "starRating": null
+   },
+   "H1290-019|Miami-Dade": {
+    "planName": "DEVOTED DUAL 019 FL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$4,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1290-037|Miami-Dade": {
+    "planName": "DEVOTED CORE 037 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$650",
+    "starRating": null
+   },
+   "H1290-053|Miami-Dade": {
+    "planName": "DEVOTED DUAL QMB 053 FL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1290-062|Miami-Dade": {
+    "planName": "DEVOTED CORE 062 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$465",
+    "starRating": null
+   },
+   "H1290-067|Miami-Dade": {
+    "planName": "DEVOTED C-SNP ENHANCED 067 FL (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$4,400",
+    "partDDeductible": "$465",
+    "starRating": null
+   },
+   "H1290-078|Miami-Dade": {
+    "planName": "DEVOTED DUAL FULL 078 FL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1290-085|Miami-Dade": {
+    "planName": "DEVOTED C-SNP PLUS 085 FL (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$465",
+    "starRating": null
+   },
+   "H1290-110|Miami-Dade": {
+    "planName": "DEVOTED GIVEBACK EXTRAS 110 FL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$5,150",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1526-002|Miami-Dade": {
+    "planName": "Gold Heart & Diabetes Complete (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$7.30",
+    "moop": "$9,750",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1526-004|Miami-Dade": {
+    "planName": "Gold Dialysis & Kidney Complete (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$7.30",
+    "moop": "$9,250",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1526-009|Miami-Dade": {
+    "planName": "Gold Dialysis & Kidney (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$2,000",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1526-013|Miami-Dade": {
+    "planName": "Gold Heart & Diabetes (HMO-POS C-SNP)",
+    "planType": "HMO-POS C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,300",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1609-043|Miami-Dade": {
+    "planName": "Aetna Medicare QMB Only Select (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1609-073|Miami-Dade": {
+    "planName": "Aetna Medicare Full Dual Select (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1609-093|Miami-Dade": {
+    "planName": "Aetna Medicare Select Care (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$2,900",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1609-094|Miami-Dade": {
+    "planName": "Aetna Medicare Chronic Care (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H1609-103|Miami-Dade": {
+    "planName": "Aetna Medicare Partial Dual Select (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1889-002|Miami-Dade": {
+    "planName": "UHC Dual Complete FL-Q1 (PPO D-SNP)",
+    "planType": "PPO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H1889-026|Miami-Dade": {
+    "planName": "UHC Dual Complete FL-Y7 (PPO D-SNP)",
+    "planType": "PPO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$7.30",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H2509-001|Miami-Dade": {
+    "planName": "UHC Dual Complete FL-YL (HMO-POS D-SNP)",
+    "planType": "HMO-POS D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H4140-013|Miami-Dade": {
+    "planName": "DrFullDual-SFL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H4140-020|Miami-Dade": {
+    "planName": "DrPartialDual-SFL (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H4140-022|Miami-Dade": {
+    "planName": "DrMax-Dade (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,000",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H4140-023|Miami-Dade": {
+    "planName": "DrSelect-SFL (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,000",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H4140-024|Miami-Dade": {
+    "planName": "DrExtraCare-SFL (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H5420-001|Miami-Dade": {
+    "planName": "UHC MedicareMax Medicare Advantage FL-0028 (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H5420-014|Miami-Dade": {
+    "planName": "UHC MedicareMax Complete Care FL-30 (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$3,400",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H5431-001|Miami-Dade": {
+    "planName": "HealthSun HealthAdvantage Plan (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$1,500",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H5431-006|Miami-Dade": {
+    "planName": "HealthSun MediMax (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$105",
+    "starRating": null
+   },
+   "H5431-017|Miami-Dade": {
+    "planName": "HealthSun HealthAdvantage Plus (HMO)",
+    "planType": "HMO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H5431-019|Miami-Dade": {
+    "planName": "HealthSun MediSun Extra (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H5431-021|Miami-Dade": {
+    "planName": "HealthSun VitalCare (HMO C-SNP)",
+    "planType": "HMO C-SNP",
+    "snpType": "Chronic or Disabling Condition",
+    "premium": "$0",
+    "moop": "$1,900",
+    "partDDeductible": "$0",
+    "starRating": null
+   },
+   "H5431-026|Miami-Dade": {
+    "planName": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$3,450",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H5434-002|Miami-Dade": {
+    "planName": "BlueMedicare Select (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$173",
+    "moop": "$7,500",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H5471-125|Miami-Dade": {
+    "planName": "Simply Complete Platinum (HMO D-SNP)",
+    "planType": "HMO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$500",
+    "partDDeductible": "$350",
+    "starRating": null
+   },
+   "H7284-010|Miami-Dade": {
+    "planName": "Humana Dual Select H7284-010 (PPO D-SNP)",
+    "planType": "PPO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$4,900",
+    "partDDeductible": "$300",
+    "starRating": null
+   },
+   "H7284-013|Miami-Dade": {
+    "planName": "Humana Dual Integrated (PPO D-SNP)",
+    "planType": "PPO D-SNP",
+    "snpType": "Dual-Eligible",
+    "premium": "$0",
+    "moop": "$9,850",
+    "partDDeductible": "$620",
+    "starRating": null
+   },
+   "H7617-107|Miami-Dade": {
+    "planName": "HumanaChoice Florida H7617-107 (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$3,900",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H7617-110|Miami-Dade": {
+    "planName": "HumanaChoice Giveback H7617-110 (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$7,150",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "H7617-145|Miami-Dade": {
+    "planName": "HumanaChoice Giveback H7617-145 (PPO)",
+    "planType": "PPO",
+    "snpType": "Not Applicable",
+    "premium": "$0",
+    "moop": "$7,150",
+    "partDDeductible": "$700",
+    "starRating": null
+   },
+   "R0759-001|Miami-Dade": {
+    "planName": "AARP Medicare Advantage from UHC FL-0031 (Regional PPO)",
+    "planType": "Regional PPO",
+    "snpType": "Not Applicable",
+    "premium": "$127",
+    "moop": "$9,850",
+    "partDDeductible": "$685",
+    "starRating": null
+   }
+  }
+ }
+}

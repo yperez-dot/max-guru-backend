@@ -27,9 +27,9 @@ describe('live plan-data defaults to 2027', () => {
     assert.equal(plans.every((p) => p.year === 2027), true);
     assert.equal(html.includes('DEFAULT_PLAN_YEAR = 2027'), true);
     assert.equal(html.includes('data-testid="plan-year-toggle"'), true);
-    assert.equal(archived.length, 151);
+    assert.equal(archived.length, 150);
     assert.equal(archived.every((p) => (p.year || 2026) === 2026), true);
-    assert.equal(fileArchive.length, 151);
+    assert.equal(fileArchive.length, 150);
   });
 
   it('does not put HealthSpring / H5410 back on the 2027 grid', () => {

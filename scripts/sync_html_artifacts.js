@@ -36,6 +36,13 @@ if (require.main === module) {
       '<!-- MAX_CLIENT_WORKUPS_END -->'
     );
   }
+  if (which === 'all' || which === 'yearcompare') {
+    syncBlock(
+      'artifacts/year-compare.js',
+      '<!-- MAX_YEAR_COMPARE_BEGIN -->',
+      '<!-- MAX_YEAR_COMPARE_END -->'
+    );
+  }
   if (which === 'all' || which === 'caret') {
     syncBlock(
       'artifacts/composerCaret.js',
