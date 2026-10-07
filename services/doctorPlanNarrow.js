@@ -446,7 +446,11 @@ function namedPlansFromAsk(askText, constraints) {
 // leads (Humana → Gold Plus H1036-054C Dade / H1036-065C Broward). SNP and PPO tabs are not core.
 function corePlanIdsFor(carrier, county) {
   const rows = R.gridPlansForCounty(county).filter((g) => String(g.type || '').toUpperCase() === 'HMO' && R.carrierOfPlan(g) === carrier);
-  return rows.length ? [String(rows[0].planId || rows[0].id).toUpperCase().slice(0, 9)] : [];
+  const ids = rows.map((r) => String(r.planId || r.id).toUpperCase().slice(0, 9));
+  // Doctors HealthCare: every HMO-tab plan is core (Yahoska 2026-10-07: "both core plans … they're both good") —
+  // DrMax-Dade H4140-022 + DrSelect-SFL H4140-023 in Miami-Dade; Broward's grid has DrSelect only.
+  if (carrier === 'Doctors HealthCare') return [...new Set(ids)];
+  return ids.length ? [ids[0]] : [];
 }
 const isHmoTab = (c) => String((c.grid && c.grid.type) || '').toUpperCase() === 'HMO';
 
@@ -955,12 +959,15 @@ function selectComparison(doctors, askText, opts = {}) {
         let ranked_ = byCarrier(c);
         ranked_ = [...ranked_.filter(isHmoTab), ...ranked_.filter((x) => !isHmoTab(x))];
         const coreIds = corePlanIdsFor(c, county);
-        const coreCol = ranked_.find((x) => coreIds.includes(x.planId.slice(0, 9)));
-        if (coreCol) {
-          ranked_ = [coreCol, ...ranked_.filter((x) => x !== coreCol)];
-          if (!coreCol.verifiable) out.flags.unshift(`⚠️ ${shortPlanHeader(coreCol)}: ${c}'s core plan leads, but its doctors could not be confirmed (the directory returned no plan-level result) — check it in the carrier's Find Care / directory.`);
+        const coreCols = ranked_.filter((x) => coreIds.includes(x.planId.slice(0, 9)));
+        if (coreCols.length) {
+          ranked_ = [...coreCols, ...ranked_.filter((x) => !coreCols.includes(x))];
+          for (const coreCol of [...coreCols].reverse()) {
+            if (!coreCol.verifiable) out.flags.unshift(`⚠️ ${shortPlanHeader(coreCol)}: ${c}'s core plan leads, but its doctors could not be confirmed (the directory returned no plan-level result) — check it in the carrier's Find Care / directory.`);
+          }
         }
-        const picks = ranked_.slice(0, perCarrier);
+        // Every core plan of the carrier shows (Doctors HealthCare has two in Miami-Dade), then the best others up to the per-carrier count.
+        const picks = ranked_.slice(0, Math.max(perCarrier, coreCols.length));
         out.columns.push(...picks);
         if (!picks.length) {
           const why = carrierExcluded.get(c);
