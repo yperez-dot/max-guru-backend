@@ -88,3 +88,34 @@ describe('HMO is the default; PPOs only when asked', () => {
     assert3.equal(askConstraints('she needs a PPO').onlyHmo, false);
   });
 });
+
+describe('saved workup + "other plans comparable to what she has?"', () => {
+  const { selectComparison, comparisonFollowUp, comparisonAskText } = require('./doctorPlanNarrow');
+  const ctx = [
+    'LOADED CLIENT WORKUP (structured facts only — not a prior chat transcript). Resume these saved facts.',
+    'Client: Sharon Mazzeo',
+    'ZIP/county: 33324 / Broward',
+    'Plans:',
+    '- HealthSun VitalCare · H5431-021',
+    'Doctors (names only — pass exactly these names to lookup_provider_network): Matthew Waldron; Jean-Jacques Rajter; Kenneth Zelnick; Jose A Guerra',
+  ].join('\n');
+  const msgs = [
+    { role: 'user', content: ctx },
+    { role: 'user', content: 'are there any other plans comparable to what she has?' },
+  ];
+  it('the server re-runs the comparison with the workup doctors instead of asking her current plan', () => {
+    const f = comparisonFollowUp(msgs);
+    assert.ok(f, 'follow-up expected');
+    assert.match(f.reason, /alternatives/);
+    assert.equal(f.doctors.length, 4);
+    assert.equal(f.zip, '33324');
+  });
+  it('her saved plan leads and alternatives follow', () => {
+    const ask = comparisonAskText(msgs);
+    assert.match(ask, /Her current plan: H5431-021/);
+    const mk = (n) => ({ requestedName: n, doctorName: n, status: 'done', pending: [], failed: [], networks: [], carriersIn: [], inNetworkPlans: [], outOfNetworkPlans: [] });
+    const sel = selectComparison(['A One', 'B Two'].map(mk), ask, {});
+    assert.equal(sel.columns[0].planId, 'H5431-021', sel.columns.map((c) => c.planId).join(','));
+    assert.ok(sel.columns.length >= 2, 'alternatives added');
+  });
+});
