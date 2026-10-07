@@ -283,8 +283,12 @@ function carriersRequested(message) {
   const t = String(message || '')
     .replace(/\b(?:doctors?|drs?|providers?)\s*:[^\n]*/gi, ' ')
     // "Current plan H1045-005 UHC Preferred MA FL-0002" names her client's plan, it is not a carrier ask.
-    .replace(/\b(?:current(?:ly)?|has|is on|on)\s+(?:plan\s*)?(?:is\s*)?:?\s*[^.;\n]*\b[HR]\d{4}-\d{3}[A-Z]?\b[^.;\n]*/gi, ' ')
-    .replace(/[^,;.\n]{0,70}\b[HR]\d{4}-\d{3}[A-Z]?\b[^,;.\n]{0,60}/gi, ' ');
+    // No commas inside: "Current plan H1045-005 UHC Preferred" is her client's plan, but
+    // "compare his current plan with Humana, HealthSun and Doctors" is a carrier ask (2026-10-07).
+    .replace(/\b(?:current(?:ly)?|has|is on|on)\s+(?:plan\s*)?(?:is\s*)?:?\s*[^.;,\n]*\b[HR]\d{4}-\d{3}[A-Z]?\b[^.;,\n]*/gi, ' ')
+    // A carrier word glued to a plan name ("Humana Gold Plus H1036-065C") is not an ask, but one
+    // in a list ("Humana, HealthSun and Doctors (DrSelect H4140-023)") is — so stop at and/with/&.
+    .replace(/(?:(?!\band\b|\bwith\b|&)[^,;.\n]){0,70}\b[HR]\d{4}-\d{3}[A-Z]?\b[^,;.\n]{0,60}/gi, ' ');
   if (!REQUEST_VERBS.test(t)) return [];
   return CARRIER_WORDS.filter(([, re]) => re.test(t)).map(([name]) => name);
 }
