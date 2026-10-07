@@ -671,11 +671,85 @@ function relatedRxnormConcepts(payload) {
   return out.filter((c) => c.rxcui);
 }
 
+/**
+ * What product the agent asked for: strength(s), tablet vs capsule, and
+ * release type. RxNorm's related.json returns EVERY strength, form, and brand
+ * for an ingredient, and brand / ER / ODT products are often non-formulary
+ * while the plain generic is covered (Klonopin vs clonazepam, Lyrica CR vs
+ * pregabalin capsule). Those must never decide coverage for a generic ask.
+ */
+function queryProductHints(query) {
+  const q = String(query || '').toLowerCase();
+  const strengths = [];
+  const re = /(\d+(?:\.\d+)?)\s*(mg|mcg|g|unit|units|meq|%)\b/g;
+  let m;
+  while ((m = re.exec(q))) strengths.push({ value: m[1], unit: m[2] });
+  let form = null;
+  if (/\b(tab|tabs|tablet|tablets)\b/.test(q)) form = 'tablet';
+  else if (/\b(cap|caps|capsule|capsules)\b/.test(q)) form = 'capsule';
+  return {
+    strengths,
+    form,
+    er: /\b(er|xr|xl|cr|sr|la|extended|24\s*h(?:r|our)?|12\s*h(?:r|our)?)\b/.test(q),
+    dr: /\b(dr|delayed|ec|enteric)\b/.test(q),
+    odt: /\b(odt|disintegrat\w*)\b/.test(q),
+    words: q.replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(Boolean),
+  };
+}
+
+function conceptProductTraits(name) {
+  const n = String(name || '').toLowerCase();
+  const strengths = [];
+  const re = /(\d+(?:\.\d+)?)\s*(mg|mcg|g|unit|units|meq|%)\b/g;
+  let m;
+  while ((m = re.exec(n))) strengths.push({ value: m[1], unit: m[2] });
+  const brand = (n.match(/\[([^\]]+)\]\s*$/) || [])[1] || null;
+  let form = null;
+  if (/\btablet\b/.test(n)) form = 'tablet';
+  else if (/\bcapsule\b/.test(n)) form = 'capsule';
+  return {
+    strengths,
+    form,
+    er: /extended release|\b24 hr\b|\b12 hr\b/.test(n),
+    dr: /delayed release/.test(n),
+    odt: /disintegrating/.test(n),
+    brand,
+  };
+}
+
+function sameStrength(a, b) {
+  return Number(a.value) === Number(b.value) && a.unit === b.unit;
+}
+
+/**
+ * True when an RxNorm concept is the product the agent asked for. Anything
+ * not stated in the query (no strength, no form) does not disqualify.
+ */
+function conceptMatchesQuery(concept, query) {
+  const hints = queryProductHints(query);
+  const traits = conceptProductTraits(concept && concept.name);
+  if (hints.strengths.length) {
+    if (!traits.strengths.length) return false;
+    if (!hints.strengths.every((h) => traits.strengths.some((t) => sameStrength(h, t)))) return false;
+  }
+  if (hints.form && traits.form && hints.form !== traits.form) return false;
+  if (hints.er !== traits.er) return false;
+  if (hints.odt !== traits.odt) return false;
+  if (hints.dr && !traits.dr) return false;
+  if (traits.brand) {
+    const brandWords = traits.brand.toLowerCase().split(/\s+/);
+    if (!brandWords.every((w) => hints.words.includes(w))) return false;
+  }
+  return true;
+}
+
 function scoreRelatedConcept(concept, query) {
   const name = String(concept.name || '').toLowerCase();
   const q = String(query || '').toLowerCase().trim();
+  const hints = queryProductHints(q);
+  const traits = conceptProductTraits(name);
   let score = 0;
-  if (/oral tablet/.test(name)) score += 20;
+  if (!hints.form && /oral tablet/.test(name)) score += 20;
   if (/oral/.test(name)) score += 5;
   if (/(amlodipine|ezetimibe|caduet|vytorin)/.test(name) && !/(amlodipine|ezetimibe)/.test(q)) {
     score -= 40;
@@ -686,6 +760,22 @@ function scoreRelatedConcept(concept, query) {
   }
   if (concept.tty === 'SCD' && /generic|statin|pril|sartan|olol/.test(q)) score += 5;
   if (concept.tty === 'SBD' && /trintellix|lipitor|eliquis|jardiance|ozempic/.test(q)) score += 8;
+
+  // Product fit: strength, tablet vs capsule, ER / DR / ODT, brand vs generic.
+  if (hints.strengths.length && traits.strengths.length) {
+    const hit = hints.strengths.every((h) => traits.strengths.some((t) => sameStrength(h, t)));
+    score += hit ? 30 : -30;
+  }
+  if (hints.form && traits.form) score += hints.form === traits.form ? 15 : -20;
+  if (hints.er !== traits.er) score -= 35;
+  else if (hints.er) score += 10;
+  if (hints.odt !== traits.odt) score -= 35;
+  if (hints.dr && !traits.dr) score -= 15;
+  if (traits.brand) {
+    const brandWords = traits.brand.toLowerCase().split(/\s+/);
+    if (!brandWords.every((w) => hints.words.includes(w))) score -= 25;
+  }
+  if (conceptMatchesQuery(concept, q)) score += 20;
   return score;
 }
 
@@ -736,14 +826,17 @@ async function ndcsForRxcui(rxcui, fetchImpl = fetch) {
 
 async function resolveMedicareGovNdcs({ drugName, ndc }, fetchImpl = fetch) {
   const out = [];
+  const exact = new Set();
   const seen = new Set();
-  const push = (value) => {
+  const push = (value, isExact) => {
     const n = normalizeNdc(value);
     if (!n || seen.has(n)) return;
     seen.add(n);
     out.push(n);
+    if (isExact) exact.add(n);
   };
-  if (ndc) push(ndc);
+  // An NDC the agent typed is the product by definition.
+  if (ndc) push(ndc, true);
 
   const auto = await autocompleteMedicareGov(drugName || '', fetchImpl);
   const match = pickCatalogMatch(
@@ -752,6 +845,7 @@ async function resolveMedicareGovNdcs({ drugName, ndc }, fetchImpl = fetch) {
   );
   const rxcui = match?.rxcui || auto.drugs?.[0]?.rxcui || null;
   const resolvedName = match?.name || auto.drugs?.[0]?.name || drugName;
+  const query = drugName || resolvedName;
 
   if (rxcui) {
     const rel = await fetchJson(
@@ -759,19 +853,26 @@ async function resolveMedicareGovNdcs({ drugName, ndc }, fetchImpl = fetch) {
       { headers: { Accept: 'application/json' } },
       fetchImpl
     );
-    const concepts = relatedRxnormConcepts(rel.json)
-      .map((c) => ({ ...c, score: scoreRelatedConcept(c, drugName || resolvedName) }))
-      .sort((a, b) => b.score - a.score);
-    const toTry = [{ rxcui: String(rxcui), name: resolvedName, score: 0 }, ...concepts].slice(0, 8);
+    // Every candidate — including the autocomplete concept — is ranked by how
+    // well it fits the asked product. Brand / ER / ODT / wrong strength sink.
+    const candidates = [{ rxcui: String(rxcui), name: resolvedName, tty: '' }, ...relatedRxnormConcepts(rel.json)];
+    const dedup = [];
+    for (const c of candidates) if (!dedup.some((d) => d.rxcui === c.rxcui)) dedup.push(c);
+    const toTry = dedup
+      .map((c, i) => ({ ...c, i, score: scoreRelatedConcept(c, query), exact: conceptMatchesQuery(c, query) }))
+      .sort((a, b) => Number(b.exact) - Number(a.exact) || b.score - a.score || a.i - b.i)
+      .slice(0, 8);
     for (const concept of toTry) {
       const ndcs = rankNdcs(await ndcsForRxcui(concept.rxcui, fetchImpl)).slice(0, 3);
-      ndcs.forEach(push);
+      ndcs.forEach((n) => push(n, concept.exact));
       if (out.length >= 8) break;
     }
   }
 
+  const ndcs = out.slice(0, 8);
   return {
-    ndcs: out.slice(0, 8),
+    ndcs,
+    exactNdcs: ndcs.filter((n) => exact.has(n)),
     rxcui: rxcui ? String(rxcui) : null,
     name: resolvedName || drugName,
     error: out.length ? null : auto.error || 'medicare_gov_no_ndc',
@@ -825,8 +926,31 @@ async function lookupMedicareGov({ drugName, ndc, planId, year }, fetchImpl = me
     };
   }
 
+  // One NDC reading "not covered" does not decide coverage: RxNorm hands back
+  // brand, ER, ODT and other-strength products too. Try every candidate; the
+  // asked-for product (exact) wins, covered beats not covered.
+  const exactSet = new Set(resolved.exactNdcs || []);
+  const build = (hit, useNdc, extra = {}) => ({
+    verified: true,
+    coverage: hit.coverage,
+    tier: hit.coverage === 'covered' ? hit.tier : null,
+    pa: hit.pa,
+    st: hit.st,
+    ql: hit.ql,
+    source: 'medicare_gov',
+    ndc: hit.ndc || useNdc,
+    rxcui: resolved.rxcui,
+    drugName: resolved.name || drugName,
+    ...extra,
+  });
   let lastError = null;
-  for (const useNdc of resolved.ndcs.slice(0, 5)) {
+  let exactNotCovered = null;
+  let otherCovered = null;
+  let otherNotCovered = null;
+  for (const useNdc of resolved.ndcs.slice(0, 8)) {
+    const isExact = exactSet.has(useNdc);
+    // Once the exact product read not covered, only another exact NDC can change that.
+    if (exactNotCovered && !isExact) continue;
     const res = await fetchJson(
       `${MEDICARE_GOV_BASE}/drugs/cost`,
       {
@@ -856,37 +980,29 @@ async function lookupMedicareGov({ drugName, ndc, planId, year }, fetchImpl = me
       continue;
     }
     const hit = extractMedicareGovCost(res.json, planId, y);
-    if (hit.coverage === 'not_covered') {
-      return {
-        verified: true,
-        coverage: 'not_covered',
-        tier: null,
-        pa: hit.pa,
-        st: hit.st,
-        ql: hit.ql,
-        source: 'medicare_gov',
-        ndc: hit.ndc || useNdc,
-        rxcui: resolved.rxcui,
-        drugName: resolved.name || drugName,
-      };
+    if (hit.coverage === 'covered' && hit.tier) {
+      if (isExact) return build(hit, useNdc);
+      if (!otherCovered) otherCovered = { hit, useNdc };
+      continue;
     }
-    if (hit.tier) {
-      return {
-        verified: true,
-        coverage: 'covered',
-        tier: hit.tier,
-        pa: hit.pa,
-        st: hit.st,
-        ql: hit.ql,
-        source: 'medicare_gov',
-        ndc: hit.ndc || useNdc,
-        rxcui: resolved.rxcui,
-        drugName: resolved.name || drugName,
-      };
+    if (hit.coverage === 'not_covered') {
+      if (isExact) exactNotCovered = exactNotCovered || { hit, useNdc };
+      else otherNotCovered = otherNotCovered || { hit, useNdc };
+      continue;
     }
     lastError = hit.miss ? `medicare_gov_${hit.miss}` : 'medicare_gov_no_tier';
   }
 
+  if (exactNotCovered) return build(exactNotCovered.hit, exactNotCovered.useNdc);
+  if (otherCovered) {
+    // No exact NDC answered; a sibling product (same ingredient) is covered.
+    return build(otherCovered.hit, otherCovered.useNdc, { productNote: 'closest_product' });
+  }
+  if (otherNotCovered) {
+    // Only brand / other-strength / other-release NDCs read not covered —
+    // that says nothing about the generic the agent asked for.
+    return { verified: false, reason: 'medicare_gov_only_other_products_not_covered', source: 'medicare_gov' };
+  }
   return { verified: false, reason: lastError || 'medicare_gov_no_tier', source: 'medicare_gov' };
 }
 
@@ -1334,6 +1450,9 @@ module.exports = {
   isHumanaCms,
   cmsContractParts,
   scoreRelatedConcept,
+  queryProductHints,
+  conceptMatchesQuery,
+  resolveMedicareGovNdcs,
   rankNdcs,
   extractMedicareGovCost,
   costShareFromKnowledge,
