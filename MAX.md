@@ -426,3 +426,7 @@ Write it in this file (or `max-knowledge/` if the **chatbot** must cite it). Nex
 - 2026-10-07: An NPI typed in the doctor list ("Rundeep Singh Gadh NPI 1407095615 (PCP)") stayed inside the name, so the lookup searched for a name with ten digits glued on. parseCompareAsk now splits the NPI into d.npi (bare 10-digit numbers too).
 
 - 2026-10-07: With a carrier ask, the pinned current plans (Solis H0982-007, Doctors H4140-023) came back all-unchecked: the fallback column was built with name = the bare plan ID, so carrierKey() found no carrier and no doctor could match it. Pinned columns are now named from the grid row (carrier + marketing name) before namedPlanColumns runs.
+
+- 2026-10-07: HealthSun tiers rendered as "T1 0" / "T5 0.33" — the 2027 KB cost-share value was passed through raw (costShareFromPlanObject's number formatting only ran for 2026). New formatCostShare() in formularyLookup.js: bare number → \$X, bare decimal < 1 → X%, \$/% values and non-numbers untouched.
+- 2026-10-07: UI — Max's ⚠️ callout block had 8px bottom margin, so "Before this narrows to 2–3 plans:" collided with the warnings above it. Bottom margin is now 16px. Needs a Netlify drop.
+- 2026-10-07: Yahoska sent a Solis formulary PDF, but it is the 2026 book (H0982_formulary26_C, updated 09/22/2026) — NOT 2027. Not indexed. Orgovyx = T5 (PA, QL 90/30); tadalafil 2.5/5mg = T4 (PA, QL), 10/20mg = T6 (QL) in that 2026 file. Need the 2027 PDF before Solis drug tiers can be answered for AEP.

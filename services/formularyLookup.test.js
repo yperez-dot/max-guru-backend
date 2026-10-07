@@ -854,3 +854,20 @@ describe('medicare.gov product matching (brand / ER / ODT never decide a generic
     assert.equal(hit.reason, 'medicare_gov_only_other_products_not_covered');
   });
 });
+
+describe('tier cost-share formatting (HealthSun bare numbers, 2026-10-07)', () => {
+  const { formatCostShare } = require('./formularyLookup');
+  it('bare numbers become dollars and bare decimals become percents', () => {
+    assert.equal(formatCostShare('0'), '$0');
+    assert.equal(formatCostShare('5'), '$5');
+    assert.equal(formatCostShare('0.33'), '33%');
+    assert.equal(formatCostShare('0.49'), '49%');
+  });
+  it('already-formatted values and non-numbers are left alone', () => {
+    assert.equal(formatCostShare('$0'), '$0');
+    assert.equal(formatCostShare('33%'), '33%');
+    assert.equal(formatCostShare('N/A'), 'N/A');
+    assert.equal(formatCostShare(''), null);
+    assert.equal(formatCostShare(null), null);
+  });
+});
