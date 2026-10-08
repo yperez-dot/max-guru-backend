@@ -8,6 +8,13 @@ const path = require('path');
 const crypto = require('crypto');
 
 const DEFAULT_MAX_PER_OWNER = 50;
+// Backups (AEP audit, 2026-10-08): a rolling copy after a save (at most one per throttle
+// window) plus one copy per America/New_York day, both kept BACKUP_KEEP_DAYS.
+const DEFAULT_BACKUP_THROTTLE_MS = 15 * 60 * 1000;
+const DEFAULT_BACKUP_KEEP_DAYS = 14;
+const BACKUP_PREFIX = 'max-workups.';
+const ROLLING_RE = /^max-workups\.(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z)\.json$/;
+const DAILY_RE = /^max-workups\.daily-(\d{4}-\d{2}-\d{2})\.json$/;
 const MAX_CLIENT_NAME = 80;
 const MAX_CONTACTS = 200;
 const MAX_ZIP = 10;
@@ -316,6 +323,17 @@ class WorkupStore {
       options.filePath || process.env.MAX_WORKUPS_FILE || path.join(process.cwd(), 'data', 'max-workups.json');
     this.maxPerOwner = Number(options.maxPerOwner || process.env.MAX_WORKUPS_PER_OWNER || DEFAULT_MAX_PER_OWNER);
     this.now = options.now || (() => new Date());
+    this.backupDir =
+      options.backupDir || process.env.MAX_WORKUPS_BACKUP_DIR || path.join(path.dirname(this.filePath), 'backups');
+    this.backupThrottleMs = Number(
+      options.backupThrottleMs ?? process.env.MAX_WORKUPS_BACKUP_THROTTLE_MS ?? DEFAULT_BACKUP_THROTTLE_MS
+    );
+    this.backupKeepDays = Number(
+      options.backupKeepDays ?? process.env.MAX_WORKUPS_BACKUP_KEEP_DAYS ?? DEFAULT_BACKUP_KEEP_DAYS
+    );
+    this.backupsEnabled = options.backups !== false && process.env.MAX_WORKUPS_BACKUPS !== 'off';
+    this.loadError = null;
+    this.lastWarning = '';
     this._queue = Promise.resolve();
     this.state = this.readState();
   }
@@ -329,27 +347,109 @@ class WorkupStore {
     return run;
   }
 
+  /**
+   * A missing file is a fresh store. A file that EXISTS but cannot be read or parsed is
+   * never treated as empty: the next save would overwrite every agent's workups with just
+   * the one being saved. Mark the store unusable instead (assertUsable throws 503).
+   */
   readState() {
+    let text;
     try {
-      const raw = JSON.parse(fs.readFileSync(this.filePath, 'utf8'));
-      if (!raw || typeof raw !== 'object' || typeof raw.users !== 'object' || !raw.users) {
-        return defaultState();
-      }
-      return raw;
-    } catch (_) {
-      return defaultState();
+      text = fs.readFileSync(this.filePath, 'utf8');
+    } catch (err) {
+      if (err && err.code === 'ENOENT') return defaultState();
+      return this.failLoad(`cannot be read (${err && err.code ? err.code : err && err.message})`);
     }
+    let raw;
+    try {
+      raw = JSON.parse(text);
+    } catch (err) {
+      return this.failLoad(`is not valid JSON (${err.message}; ${Buffer.byteLength(text)} bytes)`);
+    }
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw) || typeof raw.users !== 'object' || !raw.users || Array.isArray(raw.users)) {
+      return this.failLoad('does not have the expected { users: {...} } shape');
+    }
+    return raw;
+  }
+
+  failLoad(reason) {
+    this.loadError = `Workups file ${this.filePath} exists but ${reason}`;
+    console.error(`[workups] FATAL: ${this.loadError} — refusing reads and saves so nothing is overwritten. Restore it from ${this.backupDir}.`);
+    return defaultState();
+  }
+
+  /** Throw (503) when the file on disk could not be loaded — never read or write a fake empty store. */
+  assertUsable() {
+    if (!this.loadError) return;
+    const err = new Error(
+      'Saved workups could not be read, so Max is not saving (that would overwrite them). Nothing was lost — tell Yahoska so the file can be restored.'
+    );
+    err.status = 503;
+    err.code = 'workups_unreadable';
+    err.detail = this.loadError;
+    throw err;
   }
 
   writeState() {
+    this.assertUsable();
     this.state.updatedAt = this.now().toISOString();
     fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
     const tempPath = `${this.filePath}.${process.pid}.tmp`;
     fs.writeFileSync(tempPath, `${JSON.stringify(this.state, null, 2)}\n`, 'utf8');
     fs.renameSync(tempPath, this.filePath);
+    this.backup();
+  }
+
+  /** Copies of the file just written. A backup failure is logged and never fails the save. */
+  backup() {
+    if (!this.backupsEnabled) return { rolling: null, daily: null };
+    const made = { rolling: null, daily: null };
+    try {
+      fs.mkdirSync(this.backupDir, { recursive: true });
+      const now = this.now();
+      const names = fs.readdirSync(this.backupDir);
+      const newestRolling = names
+        .map((n) => (n.match(ROLLING_RE) || [])[1])
+        .filter(Boolean)
+        .map(stampToMs)
+        .reduce((a, b) => Math.max(a, b), 0);
+      if (!newestRolling || now.getTime() - newestRolling >= this.backupThrottleMs) {
+        const name = `${BACKUP_PREFIX}${msToStamp(now.getTime())}.json`;
+        fs.copyFileSync(this.filePath, path.join(this.backupDir, name));
+        made.rolling = name;
+      }
+      const dailyName = `${BACKUP_PREFIX}daily-${etDay(now)}.json`;
+      if (!names.includes(dailyName)) {
+        fs.copyFileSync(this.filePath, path.join(this.backupDir, dailyName));
+        made.daily = dailyName;
+      }
+      this.pruneBackups(now);
+    } catch (err) {
+      console.error(`[workups] backup failed (save itself succeeded): ${err.message}`);
+    }
+    return made;
+  }
+
+  pruneBackups(now = this.now()) {
+    const cutoff = now.getTime() - this.backupKeepDays * 24 * 60 * 60 * 1000;
+    const removed = [];
+    for (const name of fs.readdirSync(this.backupDir)) {
+      const rolling = name.match(ROLLING_RE);
+      const daily = name.match(DAILY_RE);
+      let ts = 0;
+      if (rolling) ts = stampToMs(rolling[1]);
+      else if (daily) ts = Date.parse(`${daily[1]}T23:59:59Z`);
+      else continue; // never touch files we did not make
+      if (ts && ts < cutoff) {
+        fs.rmSync(path.join(this.backupDir, name), { force: true });
+        removed.push(name);
+      }
+    }
+    return removed;
   }
 
   ownerList(email) {
+    this.assertUsable();
     const owner = normalizeOwnerEmail(email);
     if (!owner) return [];
     const list = this.state.users[owner];
@@ -426,7 +526,15 @@ class WorkupStore {
     };
     list = list.filter((w) => w.id !== id);
     list.unshift(workup);
-    if (list.length > this.maxPerOwner) list = list.slice(0, this.maxPerOwner);
+    this.lastWarning = '';
+    if (list.length > this.maxPerOwner) {
+      // Oldest (by save time) go first. Say so instead of dropping silently.
+      const dropped = list.slice(this.maxPerOwner);
+      list = list.slice(0, this.maxPerOwner);
+      const names = dropped.map((w) => w.clientName || w.id).join(', ');
+      this.lastWarning = `Saved. You are at the ${this.maxPerOwner}-workup limit, so the oldest (${names}) was removed. It is still in the daily backup.`;
+      console.warn(`[workups] ${owner} hit the ${this.maxPerOwner}-workup cap; dropped ${dropped.length}: ${dropped.map((w) => w.id).join(', ')}`);
+    }
     this.state.users[owner] = list;
     this.writeState();
     return workup;
@@ -459,6 +567,24 @@ class WorkupStore {
     this.writeState();
     return true;
   }
+}
+
+function msToStamp(ms) {
+  return new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z').replace(/:/g, '-');
+}
+
+function stampToMs(stamp) {
+  const iso = String(stamp).replace(/T(\d{2})-(\d{2})-(\d{2})Z$/, 'T$1:$2:$3Z');
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function etDay(date) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date);
+  const get = (t) => parts.find((p) => p.type === t).value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
 }
 
 function createWorkupStore(options) {
