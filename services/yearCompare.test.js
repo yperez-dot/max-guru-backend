@@ -374,3 +374,20 @@ describe('year compare by plan name, with typos', () => {
     assert.deepEqual(yc.planCandidatesByName(ask, plans2027).map((x) => x.key), ['H1036-305']);
   });
 });
+
+describe('typo tolerance', () => {
+  const yes = [
+    'comparsion 2026 v 2027 H1036-305',
+    'compre 2026 vs 2027 for H1036-305',
+    'comparision of 2026 and 2027 H1036-305',
+    'diferences 2026 versus 2027 H1036-305',
+  ];
+  yes.forEach((t) => it(`year compare: ${t}`, () => assert.equal(yc.wantsYearCompare(t), true)));
+  it('plan by name with misspelled carrier, giveback and county', () => {
+    const c = yc.planCandidatesByName('2026 v 2027 Humanna Gold Plus Givback HMO for Browrd', plans2027);
+    assert.deepEqual(c.map((x) => x.key), ['H1036-305']);
+  });
+  it('short words are not fuzzed ("hmo" never becomes another word)', () => {
+    assert.equal(yc.wantsYearCompare('2026 to 2027 for me'), false);
+  });
+});
