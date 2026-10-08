@@ -1,7 +1,7 @@
 # 2027 THEI plan grid — what Max can cite
 Source: THEI 2027 Plan Benefit Grid working copy ([Google Sheet](https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit))
-Pulled: 2026-10-05 22:23 UTC
-Sheet stamp: 5420 confirmed (non-yellow) / 274 yellow benefit cells across plan tabs.
+Pulled: 2026-10-08 17:01 UTC
+Sheet stamp: 5454 confirmed (non-yellow) / 240 yellow benefit cells across plan tabs.
 
 Color key on the sheet: **yellow** = leftover / unconfirmed (never cited as 2027 dollars). After the Oct 2026 restyle, confirmed working 2027 numbers are typically **white/uncolored** (classic light-green fills were cleared; green still counts if it returns). Max only cites non-yellow cells.
 

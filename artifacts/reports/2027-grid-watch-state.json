@@ -1,8 +1,8 @@
 {
   "sheetId": "1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N",
-  "pulled": "2026-10-05 22:23 UTC",
-  "sha256": "acbd8c413c7c436821059c9c75bfb3ceb77f598dab734e9adde5d1fcc6dda456",
-  "bytes": 867451,
+  "pulled": "2026-10-08 17:01 UTC",
+  "sha256": "70ad86ef8fa71c52408fec8406d26f0c412c3f0fa21e802e2453410aa0620f06",
+  "bytes": 817896,
   "confirmedPlans": 128,
   "byCarrier": {
     "Aetna": 10,
@@ -19,8 +19,8 @@
     "Simply": 2
   },
   "greenCells": 0,
-  "confirmedCells": 5420,
-  "yellowCells": 274,
+  "confirmedCells": 5454,
+  "yellowCells": 240,
   "planIds": [
     "H0982-002",
     "H0982-007",

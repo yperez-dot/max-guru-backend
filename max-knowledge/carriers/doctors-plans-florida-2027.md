@@ -1,7 +1,7 @@
 # Doctors — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-05 22:23 UTC
+Pulled: 2026-10-08 17:01 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H4140-013, H4140-020, H4140-022, H4140-023, H4140-024
 
@@ -67,7 +67,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H4140-013
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** N/A
 **MOOP:** $3,400
@@ -116,6 +115,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $0; routine 12 visits/yr $0 (+ up to 12 more visits and x-rays under some Medicaid levels) |
 | Fitness | Prepaid card (SSBCI: gym access + catalog fitness kits) |
 | Other | N/A |
+| Evidence of Coverage | EOC — DrFullDual |
 
 ---
 
@@ -124,7 +124,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H4140-020
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,400
@@ -173,6 +172,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $0; routine 12 visits/yr $0 |
 | Fitness | Prepaid Card (SSBCI fitness) |
 | Other | N/A |
+| Evidence of Coverage | EOC — DrPartialDual |
 
 ---
 
@@ -290,7 +290,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H4140-013
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,400
@@ -339,6 +338,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $0; routine 12 visits/yr $0 (+ up to 12 more visits and x-rays under some Medicaid levels) |
 | Fitness | Prepaid card (SSBCI: gym access + catalog fitness kits) |
 | Other | N/A |
+| Evidence of Coverage | EOC — DrFullDual |
 
 ---
 
@@ -347,7 +347,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H4140-020
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,400
@@ -396,6 +395,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $0; routine 12 visits/yr $0 |
 | Fitness | Prepaid Card (SSBCI fitness) |
 | Other | N/A |
+| Evidence of Coverage | EOC — DrPartialDual |
 
 ---
 

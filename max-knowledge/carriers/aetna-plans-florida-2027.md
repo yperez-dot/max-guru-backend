@@ -1,7 +1,7 @@
 # Aetna — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-05 22:23 UTC
+Pulled: 2026-10-08 17:01 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1609-018, H1609-043, H1609-073, H1609-080, H1609-093, H1609-094, H1609-103
 
@@ -12,7 +12,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-080
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,900
@@ -59,6 +58,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $20; routine: not covered |
 | Fitness | SilverSneakers |
 | Other | N/A |
+| Evidence of Coverage | EOC — Chronic Care |
 
 ---
 
@@ -67,7 +67,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-043
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -116,6 +115,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $0; routine: 12 visits/yr $0 |
 | Fitness | SilverSneakers |
 | Other | N/A |
+| Evidence of Coverage | EOC — QMB Only Select |
 
 ---
 
@@ -124,7 +124,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-073
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -173,6 +172,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $0; routine: 24 visits/yr $0 |
 | Fitness | SilverSneakers |
 | Other | N/A |
+| Evidence of Coverage | EOC — Full Dual Select |
 
 ---
 
@@ -181,7 +181,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-103
-**Still yellow on the working grid:** 2 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -229,6 +229,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Acupuncture | $0 · chronic LBP only |
 | Fitness | SilverSneakers |
 | Other | Fall prevention $150/year · Chiropractic 12 visits/year Transport not listed |
+| Evidence of Coverage | EOC — Partial Dual Select |
 
 ---
 
@@ -237,7 +238,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1609-018
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $2,900
@@ -283,6 +283,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $20; routine: not covered |
 | Fitness | SilverSneakers |
 | Other | Resources For Living® |
+| Evidence of Coverage | EOC — Select |
 
 ---
 
@@ -291,7 +292,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-094
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $3,900
@@ -338,6 +338,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $0; routine: not covered |
 | Fitness | SilverSneakers |
 | Other | Resources For Living® |
+| Evidence of Coverage | EOC — Chronic Care |
 
 ---
 
@@ -346,7 +347,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-043
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -395,6 +395,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $0; routine: 12 visits/yr $0 |
 | Fitness | SilverSneakers |
 | Other | Fall prevention: $150/year |
+| Evidence of Coverage | EOC — QMB Only Select |
 
 ---
 
@@ -403,7 +404,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-073
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -452,6 +452,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $0; routine: 24 visits/yr $0 |
 | Fitness | SilverSneakers |
 | Other | Fall prevention: $150/year |
+| Evidence of Coverage | EOC — Full Dual Select |
 
 ---
 
@@ -460,7 +461,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-103
-**Still yellow on the working grid:** 2 field(s) — not cited below.
+**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -508,6 +509,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Acupuncture | $0 · chronic LBP only |
 | Fitness | SilverSneakers |
 | Other | Fall prevention: $150/year |
+| Evidence of Coverage | EOC — Partial Dual Select |
 
 ---
 
@@ -516,7 +518,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1609-093
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $2,900
@@ -562,5 +563,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $20; routine: not covered |
 | Fitness | SilverSneakers |
 | Other | N/A |
+| Evidence of Coverage | EOC — Select Care |
 
 ---

@@ -1,7 +1,7 @@
 # Humana — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-05 22:23 UTC
+Pulled: 2026-10-08 17:01 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1036-054C, H1036-065C, H1036-077, H1036-121, H1036-297, H1036-304, H1036-305, H1036-339, H7617-107, H7617-110, H7617-145
 

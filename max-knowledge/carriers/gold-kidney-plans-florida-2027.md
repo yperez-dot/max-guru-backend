@@ -1,7 +1,7 @@
 # Gold Kidney — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-05 22:23 UTC
+Pulled: 2026-10-08 17:01 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1526-002, H1526-004, H1526-009, H1526-013
 
