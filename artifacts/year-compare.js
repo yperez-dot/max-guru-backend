@@ -92,14 +92,14 @@
   function planCandidatesByName(text, plans2027) {
     const t = String(text || "").toLowerCase();
     const flat = t.replace(/[^a-z0-9]+/g, "");
-    const county = countyHint(text);
+    const county = countyHint(text) || (hasFuzzyWord(t, "broward", 2) ? "Broward" : hasFuzzyWord(t, "miamidade", 2) || hasFuzzyWord(t, "dade", 1) ? "Miami-Dade" : "");
     const wantType = (t.match(/\b(hmo|ppo)\b/) || [])[1] || "";
-    const wantGive = /give\s*-?back/.test(t);
+    const wantGive = /give\s*-?back/.test(t) || hasFuzzyWord(t, "giveback", 2);
     const seen = {};
     const fits = [];
     (plans2027 || []).forEach((p) => {
       const carrier = String(p.carrier || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
-      if (!carrier || !flat.includes(carrier)) return;
+      if (!carrier || !(flat.includes(carrier) || hasFuzzyWord(t, carrier, 2))) return;
       if (county && p.county !== county) return;
       if (wantType && !new RegExp(wantType, "i").test(String(p.type || ""))) return;
       const name = String(p.planName || p.name || "");
@@ -114,6 +114,35 @@
     });
     const best = Math.max(0, ...fits.map((f) => f.hits));
     return fits.filter((f) => f.hits === best);
+  }
+
+
+  // ─── Typo tolerance ────────────────────────────────────────────────────────
+
+  function editDistance(a, b) {
+    const m = a.length, n = b.length;
+    if (Math.abs(m - n) > 3) return 9;
+    let prev = Array.from({ length: n + 1 }, (_, j) => j);
+    for (let i = 1; i <= m; i++) {
+      const cur = [i];
+      for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = cur;
+    }
+    return prev[n];
+  }
+
+  function wordsOf(text) {
+    return String(text || "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  }
+
+  /** True when any word of the text is within `max` edits of `target` (words under 5 letters must match exactly). */
+  function hasFuzzyWord(text, target, max) {
+    return wordsOf(text).some((w) => (w.length >= 5 ? editDistance(w, target) <= (max == null ? 2 : max) : w === target));
+  }
+
+  const FUZZY_COMPARE_WORDS = ["compare", "comparison", "comparing", "comparisons", "difference", "differences", "different", "versus", "changes", "changed"];
+  function hasCompareWord(text) {
+    return COMPARE_WORD_RE.test(text) || FUZZY_COMPARE_WORDS.some((w) => hasFuzzyWord(text, w, 2));
   }
 
   // ─── Intent ────────────────────────────────────────────────────────────────
@@ -133,7 +162,7 @@
     const t = String(text || "");
     if (!t.trim()) return false;
     if (YOY_RE.test(t)) return true;
-    if (YEAR_PAIR_RE.test(t) && COMPARE_WORD_RE.test(t)) return true;
+    if (YEAR_PAIR_RE.test(t) && hasCompareWord(t)) return true;
     const ids = planIdsInText(t);
     const time = TIME_CONTEXT_RE.test(t);
     if (WHAT_CHANGED_RE.test(t)) {
@@ -1197,6 +1226,7 @@
     planIdsInText,
     countyHint,
     planCandidatesByName,
+    editDistance,
     wantsYearCompare,
     loadCmsFromDom,
     productChanged,

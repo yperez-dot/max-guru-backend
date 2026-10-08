@@ -689,3 +689,4 @@ bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.
 
 ## 2026-10-08 — 2026 v 2027 compare by plan name, typo-tolerant
 - "side by side comparsion 2026 v 2027 Humana Gold Plus Giveback HMO for Broward" now runs the same-plan compare directly (was: model said "type compare … H1036-305"). "v", "compar*" typos and "side by side" count as compare words next to a 2026/2027 pair; with no plan ID, the one 2027 grid plan that fits carrier + HMO/PPO + giveback + county is used (never guessed when several fit). Includes #169.
+- Typo tolerance (same day): compare words, carrier, "giveback" and county in the year-compare ask are matched within 2 edits (words under 5 letters stay exact), so "comparsion", "givback", "Humanna", "Browrd" still work.
