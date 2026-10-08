@@ -661,3 +661,4 @@ Tests: `services/gailCarriersWrapped.test.js` (Gail's exact text and the real wo
 ## 2026-10-08 — New-client form: "New client:" label, parenthetical commas
 - "New client: Victor Rocha, ZIP …" gave "I didn't find the client's name": the colon cut the head down to "New client". A leading New client / Client / Patient label is stripped first.
 - "Carlos Santa-Cruz, MD (Urology, Coral Gables)" became 3 doctors ("MD (Urology", "Coral Gables)"). Commas inside a parenthetical and a bare credential (MD, DO …) are no longer doctors. "(must keep)" markers are untouched.
+- UI (Netlify): the new-client form's plan names were built as carrier + plan name, so headers read "Humana Humana Gold Plus", "UHC UHC MedicareMax …", "CarePlus CarePlus CareOne Plus", "Doctors Doctors DrMax-Dade". The carrier is only added when the plan name doesn't already start with it.

@@ -6258,7 +6258,13 @@ function buildQueueJobBody(f) {
     eligibility: f.eligibility || undefined,
     year: f.year,
     planNames: Object.fromEntries(findComparisonPlans(linesOf(f.plans).join(" ") + " " + (f.year || 2027))
-      .map((p) => [String(p.planId || p.id || "").toUpperCase(), [p.carrier, p.planName].filter(Boolean).join(" ")])),
+      .map((p) => {
+        // "Humana Gold Plus" already starts with "Humana" — don't print the carrier twice (Victor, 2026-10-08).
+        const car = String(p.carrier || "").trim(), nm = String(p.planName || "").trim();
+        const first = (x) => x.toLowerCase().split(/\s+/)[0] || "";
+        const same = !car || !nm || nm.toLowerCase().startsWith(car.toLowerCase()) || first(nm) === first(car);
+        return [String(p.planId || p.id || "").toUpperCase(), (same ? nm || car : car + " " + nm)];
+      })),
   };
 }
 
