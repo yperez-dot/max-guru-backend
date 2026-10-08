@@ -3915,7 +3915,7 @@
   // ─── Intent ────────────────────────────────────────────────────────────────
 
   const YEAR_PAIR_RE = /\b2026\s*(?:vs\.?|versus|v\.?|to|→|->|and|&|with|against|or)\s*2027\b|\b2027\s*(?:vs\.?|versus|v\.?|and|&|with|against|or)\s*2026\b/i;
-  const COMPARE_WORD_RE = /\b(compare|comparison|vs\.?|versus|changes?|changed|changing|differences?|different|diff)\b|→|->/i;
+  const COMPARE_WORD_RE = /\b(compar\w*|vs\.?|v|versus|side[-\s]?by[-\s]?side|changes?|changed|changing|differences?|different|diff)\b|→|->/i;
   const YOY_RE = /\byear[-\s]?over[-\s]?year\b|\byoy\b/i;
   const WHAT_CHANGED_RE = /\bwhat(?:'?s|\s+has|\s+is|\s+will)?\s+chang(?:ed|ing|e)\b|\b(?:changes?|differences?)\s+(?:from|since|vs\.?|versus)\s+(?:last\s+year|this\s+year|2026)\b|\b(?:changed|changing)\s+(?:from|since)\s+(?:last\s+year|2026)\b|\bsame\s+plan\b.*\b(?:2026|last\s+year)\b/i;
   const WHAT_DIFFERENT_RE = /\bwhat(?:'?s|\s+is|\s+will\s+be)?\s+different\b|\bdifferences?\b/i;
@@ -5514,7 +5514,12 @@ function runYearCompareFromChat(text, history, remembered) {
   if (!YC.wantsYearCompare(text, { hasPlanContext: hasYearCompare })) return null;
   // No plan ID in the ask: reuse earlier plans only after a year compare or when she points back ("this plan", "her plans").
   const refersBack = /\b(?:this|that|these|those|her|his|their|same|the)\s+plans?\b/i.test(text);
-  const fallbackIds = YC.planIdsInText(text).length ? [] : (hasYearCompare || refersBack ? yearCompareFallbackIds(history, remembered) : []);
+  let fallbackIds = YC.planIdsInText(text).length ? [] : (hasYearCompare || refersBack ? yearCompareFallbackIds(history, remembered) : []);
+  // "2026 v 2027 Humana Gold Plus Giveback HMO for Broward" (no plan ID): pin the plan from the 2027 grid when exactly one fits.
+  if (!YC.planIdsInText(text).length && !fallbackIds.length && typeof YC.planCandidatesByName === "function") {
+    const byName = YC.planCandidatesByName(text, PLAN_DATA_BY_YEAR[2027]);
+    if (byName.length === 1) fallbackIds = [byName[0].key];
+  }
   const threadText = window.MaxComparisonExport.conversationPlainText(history, userMessageText);
   return YC.runYearCompare({
     text,

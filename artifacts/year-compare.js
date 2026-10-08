@@ -119,7 +119,7 @@
   // ─── Intent ────────────────────────────────────────────────────────────────
 
   const YEAR_PAIR_RE = /\b2026\s*(?:vs\.?|versus|v\.?|to|→|->|and|&|with|against|or)\s*2027\b|\b2027\s*(?:vs\.?|versus|v\.?|and|&|with|against|or)\s*2026\b/i;
-  const COMPARE_WORD_RE = /\b(compare|comparison|vs\.?|versus|changes?|changed|changing|differences?|different|diff)\b|→|->/i;
+  const COMPARE_WORD_RE = /\b(compar\w*|vs\.?|v|versus|side[-\s]?by[-\s]?side|changes?|changed|changing|differences?|different|diff)\b|→|->/i;
   const YOY_RE = /\byear[-\s]?over[-\s]?year\b|\byoy\b/i;
   const WHAT_CHANGED_RE = /\bwhat(?:'?s|\s+has|\s+is|\s+will)?\s+chang(?:ed|ing|e)\b|\b(?:changes?|differences?)\s+(?:from|since|vs\.?|versus)\s+(?:last\s+year|this\s+year|2026)\b|\b(?:changed|changing)\s+(?:from|since)\s+(?:last\s+year|2026)\b|\bsame\s+plan\b.*\b(?:2026|last\s+year)\b/i;
   const WHAT_DIFFERENT_RE = /\bwhat(?:'?s|\s+is|\s+will\s+be)?\s+different\b|\bdifferences?\b/i;
