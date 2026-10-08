@@ -3941,6 +3941,21 @@
     return COMPARE_WORD_RE.test(text) || FUZZY_COMPARE_WORDS.some((w) => hasFuzzyWord(text, w, 2));
   }
 
+
+  /**
+   * Which plan(s) does this ask mean? A plan she names (ID, or carrier + type/giveback + county) always beats the
+   * plan from earlier in the chat; earlier plans are used only when the ask names none ("what changed?").
+   * → { ids, ambiguous: [{key,name}] }
+   */
+  function resolveAskPlans(text, plans2027, fallbackIds) {
+    const typed = planIdsInText(text);
+    if (typed.length) return { ids: typed, ambiguous: [] };
+    const byName = planCandidatesByName(text, plans2027);
+    if (byName.length === 1) return { ids: [byName[0].key], ambiguous: [] };
+    if (byName.length > 1) return { ids: [], ambiguous: byName.slice(0, 8) };
+    return { ids: (fallbackIds || []).slice(), ambiguous: [] };
+  }
+
   // ─── Intent ────────────────────────────────────────────────────────────────
 
   const YEAR_PAIR_RE = /\b2026\s*(?:vs\.?|versus|v\.?|to|→|->|and|&|with|against|or)\s*2027\b|\b2027\s*(?:vs\.?|versus|v\.?|and|&|with|against|or)\s*2026\b/i;
@@ -5022,6 +5037,7 @@
     planIdsInText,
     countyHint,
     planCandidatesByName,
+    resolveAskPlans,
     editDistance,
     wantsYearCompare,
     loadCmsFromDom,
@@ -5544,12 +5560,18 @@ function runYearCompareFromChat(text, history, remembered) {
   if (!YC.wantsYearCompare(text, { hasPlanContext: hasYearCompare })) return null;
   // No plan ID in the ask: reuse earlier plans only after a year compare or when she points back ("this plan", "her plans").
   const refersBack = /\b(?:this|that|these|those|her|his|their|same|the)\s+plans?\b/i.test(text);
-  let fallbackIds = YC.planIdsInText(text).length ? [] : (hasYearCompare || refersBack ? yearCompareFallbackIds(history, remembered) : []);
-  // "2026 v 2027 Humana Gold Plus Giveback HMO for Broward" (no plan ID): pin the plan from the 2027 grid when exactly one fits.
-  if (!YC.planIdsInText(text).length && !fallbackIds.length && typeof YC.planCandidatesByName === "function") {
-    const byName = YC.planCandidatesByName(text, PLAN_DATA_BY_YEAR[2027]);
-    if (byName.length === 1) fallbackIds = [byName[0].key];
+  const earlierIds = YC.planIdsInText(text).length ? [] : (hasYearCompare || refersBack ? yearCompareFallbackIds(history, remembered) : []);
+  // A plan she names ("2026 v 2027 Humana Choice PPO giveback") beats the plan from earlier in the chat; several fits → ask, never reuse.
+  const asked = YC.resolveAskPlans(text, PLAN_DATA_BY_YEAR[2027], earlierIds);
+  if (asked.ambiguous.length) {
+    return {
+      pairs: [],
+      unresolved: asked.ambiguous.map((c) => c.key),
+      payload: null,
+      chatText: "More than one plan fits that: " + asked.ambiguous.map((c) => c.name.replace(/\s*(\*\*)?NEW 2027|\s*COMMISSIONABLE 2027/gi, "").trim() + " (" + c.key + ")").join("; ") + ". Tell me which one (the plan ID is easiest) and I'll run 2026 vs 2027.",
+    };
   }
+  const fallbackIds = asked.ids;
   const threadText = window.MaxComparisonExport.conversationPlainText(history, userMessageText);
   return YC.runYearCompare({
     text,
