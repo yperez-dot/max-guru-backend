@@ -52,7 +52,8 @@ const TITLE_SKIP = new Set(['and', 'y', '&']);
 /** Free-form paste with no strict capitalization: "Marilyn and Angus butler. 33076. …" → "Marilyn and Angus Butler". */
 function looseClientName(t) {
   // "Mr. and Mrs. Mazzeo" / "The Mazzeos" / "Mazzeo family" → keep the titles, drop the filler; the dots in Mr./Mrs. are not sentence ends.
-  const src = String(t || '').replace(/^\s+/, '').replace(/\b(Mr|Mrs|Ms|Miss)\.(?=\s)/gi, '$1');
+  // "New client: Victor Rocha, ZIP …" — the label (with its colon) is not the name (Victor, 2026-10-08).
+  const src = String(t || '').replace(/^\s+/, '').replace(/^(?:new\s+)?(?:client|patient|cliente)\s*[:\-–—]\s*/i, '').replace(/\b(Mr|Mrs|Ms|Miss)\.(?=\s)/gi, '$1');
   const head = src.split(/[\d\n,;:]|\.(?=\s|$)/)[0].replace(/\bzip(?:\s*code)?\s*$/i, '').replace(/^\s*(?:the|new client|client)\s+/i, '').replace(/\s+family\s*$/i, '').trim();
   if (!head || head.length > 70) return '';
   const words = head.split(/\s+/);
@@ -110,7 +111,7 @@ function parseCompareAsk(text) {
   const constraints = askConstraints(t);
 
   const zip = (t.match(/\b(?:zip\s*(?:code)?\s*:?\s*)?(\d{5})\b/i) || [])[1] || '';
-  const clientMatch = t.match(/^\s*([A-Z][a-z]+(?:\s*(?:&|and|y)\s*[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]+)/);
+  const clientMatch = t.replace(/^\s*(?:new\s+)?(?:client|patient|cliente)\s*[:\-–—]\s*/i, '').match(/^\s*([A-Z][a-z]+(?:\s*(?:&|and|y)\s*[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]+)/);
   const strictName = clientMatch ? clientMatch[1].replace(/\s+/g, ' ').trim() : '';
   const looseName = looseClientName(t);
   const clientName = (looseName && looseName.toLowerCase().startsWith(strictName.toLowerCase()) ? looseName : (strictName || looseName)).replace(/^the\s+/i, '');
@@ -127,7 +128,10 @@ function parseCompareAsk(text) {
   medsText = cut(medsText);
   if (!medsText) medsText = unlabeledMeds(t, zip, splitList(doctorsText).map((name) => ({ name })));
 
-  const doctors = splitList(doctorsText).map((raw) => {
+  // "Carlos Santa-Cruz, MD (Urology, Coral Gables)": the commas inside the parentheses and the
+  // credential after the name are not doctors of their own (Victor, 2026-10-08: 3 doctors read as 5).
+  const CRED_ONLY_RE = /^(?:md|m\.d\.?|do|d\.o\.?|dpm|dds|dmd|od|np|pa|pa-c|aprn|arnp|phd|facc|facp|facs)\.?$/i;
+  const doctors = splitList(doctorsText.replace(/\([^)]*,[^)]*\)/g, ' ')).filter((x) => !CRED_ONLY_RE.test(x.trim())).map((raw) => {
     const mustKeep = /must[- ]?keep/i.test(raw);
     let name = raw.replace(/\(?\s*must[- ]?keep\s*\)?/i, '');
     // "Rundeep Singh Gadh NPI 1407095615 (PCP)" — pull the NPI out so the lookup uses it
