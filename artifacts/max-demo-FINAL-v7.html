@@ -7421,8 +7421,12 @@ function App() {
             : [];
         // "add X too, then the excel": the new table's plans (+ added plans), current plan first.
         const replySet = window.MaxComparisonExport.wantsComparisonExport(userMessageText(apiContent)) ? exportTablePlanSet([...newHistory, assistantMsg]) : [];
-        const planSetFixed = replySet.length > 0;
-        if (planSetFixed) columns = replySet;
+        // "Pls add Humana … H1036-054C and UHC … H5420-001 to the grid": the 2 cited plans are ADDED to the
+        // table, not the new set — the export / Show benefits must keep every table column (Victor, 2026-10-08).
+        const addAsk = /\b(add|also|include|plus|too|as well)\b/i.test(latestAsk) && found.length > latestCited.length;
+        const planSetFixed = replySet.length > 0 || addAsk;
+        if (replySet.length) columns = replySet;
+        else if (addAsk) columns = found.slice();
         const followLatest = !planSetFixed && latestCited.length >= 2;
         if (planSetFixed) {
           // keep the table's set and order

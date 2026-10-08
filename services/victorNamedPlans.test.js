@@ -74,3 +74,23 @@ describe('Carlos Santa-Cruz is never Carlos A Cruz', () => {
     } finally { global.fetch = saved; }
   });
 });
+
+describe('"check Doctors DrMax-Dade · H4140-022 again" then "add Humana … and UHC …" (Victor, 9:45–9:48 AM)', () => {
+  const { comparisonAskText } = require('./doctorPlanNarrow');
+  const { conversationAskText } = require('./planYear');
+  const msgs = [
+    { role: 'user', content: 'Victor Rocha 33143. Compare Humana Gold Plus H1036-054C, UHC MedicareMax FL-0028 H5420-001, CarePlus CareOne Plus H1019-006, CarePlus H1019-136, Doctors DrMax-Dade H4140-022' },
+    { role: 'assistant', content: 'table' },
+    { role: 'user', content: 'check Doctors DrMax-Dade · H4140-022 again' },
+    { role: 'assistant', content: 'table' },
+    { role: 'user', content: 'Pls add Humana Humana Gold Plus · H1036-054C and UHC MedicareMax MA FL-0028 HMO · H5420-001 to the grid' },
+  ];
+  it('the column is named "Doctors DrMax-Dade", never "check Doctors DrMax-Dade"', () => {
+    const ask = comparisonAskText(msgs, conversationAskText(msgs));
+    const sel = selectComparison([marcus], ask);
+    assert.deepEqual(sel.columns.map((c) => c.planId), ['H4140-022', 'H1036-054C', 'H5420-001']);
+    const drmax = sel.columns.find((c) => c.planId === 'H4140-022');
+    assert.doesNotMatch(drmax.name, /^check\b/i);
+    assert.match(drmax.name, /Doctors DrMax-Dade/);
+  });
+});

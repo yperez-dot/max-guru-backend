@@ -649,3 +649,6 @@ Tests: `services/gailCarriersWrapped.test.js` (Gail's exact text and the real wo
   - The NPI search now tries the hyphenated compound before splitting the name.
   - A full middle word she gave that the match doesn't carry, as a word or as an initial, now flags "⚠️ different name — confirm match". People only, not organizations.
 - **Tests:** services/victorNamedPlans.test.js
+- **Same day, 9:45–9:49 AM:**
+  - "check Doctors DrMax-Dade · H4140-022 again" put "check" into the column name. Leading verbs (check / re-run / verify / try / pls …) are now stripped from plan names, and "check <plan ID>" decides the columns.
+  - UI (Netlify): "Pls add Humana … and UHC … to the grid" made the export and Show benefits use only the 2 cited plans and drop DrMax-Dade. An add-ask now keeps every column of the reply's table.
