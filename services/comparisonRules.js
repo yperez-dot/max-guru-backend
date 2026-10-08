@@ -312,6 +312,25 @@ function medsFromAsk(askText) {
     const list = m[1].split(/\.\s+(?=[A-Z])|\.\s*$|\b(?:compare|suggest|give me|show me|doctors?|drs?|plans?)\s*[:\b]/i)[0];
     list.split(/[,;]|\band\b/).map((s) => s.replace(/\(.*?\)/g, '').replace(/[.\s]+$/, '').trim()).filter((s) => s && s.length > 2 && s.length < 40 && !isNonDrugAnswer(s)).forEach((s) => out.push(s));
   }
+  // A list under a header — the loaded workup writes "Medications (tiers shown …):" then one
+  // "- Atorvastatin 20mg: H1036-054C Tier 1 …" bullet per med. The one-line pattern above saw
+  // nothing after the colon, so a loaded client's meds were never priced (Victor, 2026-10-08).
+  for (const m of t.matchAll(/^\s*(?:meds?|medications?|rx|drugs?|medicamentos?)\b[^\n:]*:\s*\n((?:[ \t]*[-•*][^\n]*(?:\n|$))+)/gim)) {
+    for (const line of m[1].split('\n')) {
+      const name = line.replace(/^\s*[-•*]\s*/, '').split(/:\s/)[0].replace(/\(.*?\)/g, '').replace(/[.\s]+$/, '').trim();
+      if (name && name.length > 2 && name.length < 40 && !isNonDrugAnswer(name) && !out.some((o) => sameDrug(o, name))) out.push(name);
+    }
+  }
+  // MedicarePro "Prescriptions (5)" paste: one "atorvastatin calcium TAB 10MG" line per drug (with
+  // "30/Monthly", "Quotable", dates around it). Name + dosage form + strength → "Atorvastatin Calcium 10mg"
+  // (Victor, 2026-10-08: none of his 5 meds were read).
+  const FORM = '(?:TAB|TABS|TABLET|CAP|CAPS|CAPSULE|TBEC|TBDR|CPDR|CPEP|TB24|TB12|CP24|CP12|SOL|SOLN|SUSP|INJ|PEN|CREAM|OINT|GEL|PATCH|INH|AERO|SPR|SPRAY|DROPS?|LIQ|POWD|PACK)';
+  const rxLine = new RegExp(`^\\s*([A-Za-z][A-Za-z\\- ]{2,40}?)\\s+${FORM}\\b[^\\d\\n]{0,20}(\\d+(?:\\.\\d+)?)\\s*(MG|MCG|G|ML|UNITS?|%)\\b`, 'gim');
+  for (const m of t.matchAll(rxLine)) {
+    const base = m[1].trim().toLowerCase().replace(/\b([a-z])/g, (c) => c.toUpperCase());
+    const name = `${base.replace(/\bHcl\b/, 'HCl')} ${m[2]}${m[3].toLowerCase()}`;
+    if (!isNonDrugAnswer(name) && !out.some((o) => sameDrug(o, name))) out.push(name);
+  }
   for (const h of CSNP_HINTS) {
     const hit = t.match(h.re);
     if (hit && !out.some((o) => sameDrug(o, hit[0]))) out.push(hit[0]);

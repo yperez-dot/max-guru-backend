@@ -639,3 +639,21 @@ Two runs on a loaded workup went wrong:
 
 Tests: `services/gailCarriersWrapped.test.js` (Gail's exact text and the real workup message),
 5 cases, all failing on main before the fix.
+
+## 2026-10-08 — Victor Rocha: plans named by ID only lost their carrier; Carlos Santa-Cruz
+
+- **Bug:** Victor (ZIP 33143) named 5 plans by ID only (H1036-054C, H5420-001, H1019-006, H1019-136, H4140-022). `namedPlanColumns` took the column carrier from the plan name or the lookup matrix, and neither had it. With a blank carrier, CarePlus and Doctors carrier-level hits never landed, so every cell read "❔ not confirmed". The lookups themselves were right: Marcus St John is CarePlus p62 + Doctors Miami-Dade p140, and Armando J Rivero is Doctors p74.
+- **Fix:** the column carrier now falls back to the THEI grid row for the plan ID (`R.carrierOfPlan`).
+- **Compare jobs:** a 5th named plan was dropped silently (`MAX_PLANS = 4`). The cap is now 6, the same as the UI.
+- **Carlos Santa-Cruz, MD** (urologist, Coral Gables; Yahoska confirmed UHC FL-0028 In on uhc.com): "Carlos Santa Cruz" matched Carlos A Cruz (NPI 1679505259), the wrong person. NPPES stores the name as "SANTA-CRUZ", so the space version missed and the search fell through to plain "Cruz".
+  - The NPI search now tries the hyphenated compound before splitting the name.
+  - A full middle word she gave that the match doesn't carry, as a word or as an initial, now flags "⚠️ different name — confirm match". People only, not organizations.
+- **Tests:** services/victorNamedPlans.test.js
+- **Same day, 9:45–9:49 AM:**
+  - "check Doctors DrMax-Dade · H4140-022 again" put "check" into the column name. Leading verbs (check / re-run / verify / try / pls …) are now stripped from plan names, and "check <plan ID>" decides the columns.
+  - UI (Netlify): "Pls add Humana … and UHC … to the grid" made the export and Show benefits use only the 2 cited plans and drop DrMax-Dade. An add-ask now keeps every column of the reply's table.
+- **9:50 AM, Excel (export module, UI):**
+  - A doctor matched to a different person ("Carlos Santa Cruz" → CARLOS A CRUZ) was exported under her name with his In/Out. It now reads "Dr. Carlos A Cruz (you asked Carlos Santa Cruz) — confirm match" and every cell is Not confirmed.
+  - A partial name she typed ("Marcus St") now exports the full registry name.
+- **9:51 AM, meds:** `medsFromAsk` only read "Meds: a, b" on one line. A loaded workup writes "Medications (…):" followed by one "- name: tiers" bullet per med, so those meds were never priced. Both forms are read now.
+- **9:54 AM, MedicarePro "Prescriptions (5)" paste:** Max read 0 meds in chat and 1 in the new-client form. Max now reads every "name TAB|CAP… strength" line, giving "Atorvastatin Calcium 10mg", "Tamsulosin HCl 0.4mg" and so on. Fixture: services/fixtures/victorPrescriptions.txt.

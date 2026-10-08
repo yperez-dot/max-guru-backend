@@ -20,7 +20,7 @@ const DOCTOR_BUDGET_MS = Number(process.env.MAX_COMPARE_DOCTOR_BUDGET_MS || 90_0
 const DRUG_CONCURRENCY = Number(process.env.MAX_COMPARE_DRUG_CONCURRENCY || 4);
 const MAX_DOCTORS = 15;
 const MAX_MEDS = 20;
-const MAX_PLANS = 4;
+const MAX_PLANS = 6; // same cap as the UI (max-demo MAX_PLANS) — a 5th named plan was silently dropped
 
 // "wondering if there's something better", "other options", "alternatives" → keep her plan as a column AND shop the county.
 const ALTERNATIVES_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\bother\s+(?:options?|plans?)\b|\balternatives?\b|\bsee\s+what\s+else\b|\bwhat\s+else\b|\bshop(?:ping)?\s+around\b|\bcompare\s+(?:it\s+)?(?:to|against|with)\s+others?\b|\bsomething\s+else\b/i;
@@ -141,7 +141,11 @@ function parseCompareAsk(text) {
     name = name.replace(/\s{2,}/g, ' ').replace(/[\s.,-]+$/, '').trim();
     return npi ? { name, npi, mustKeep } : { name, mustKeep };
   }).filter((d) => d.name || d.npi).slice(0, MAX_DOCTORS);
-  const meds = splitList(medsText).map((m) => m.replace(/\.$/, '')).slice(0, MAX_MEDS);
+  let meds = splitList(medsText).map((m) => m.replace(/\.$/, '')).slice(0, MAX_MEDS);
+  // A pasted MedicarePro "Prescriptions (5)" block ("atorvastatin calcium TAB 10MG" lines) — the
+  // section parser above caught only the first line (Victor, 2026-10-08). Use the full Rx-line read.
+  const rxMeds = require('./comparisonRules').medsFromAsk(t);
+  if (/^\s*[A-Za-z][A-Za-z\- ]{2,40}?\s+(?:TAB|CAP|TBEC|CPDR|TB24|CP24|SOL|SOLN|INJ|PATCH|INH)\b/im.test(t) && rxMeds.length > meds.length) meds = rxMeds.slice(0, MAX_MEDS);
 
   const skip = constraints.skip;
   const plans = [];

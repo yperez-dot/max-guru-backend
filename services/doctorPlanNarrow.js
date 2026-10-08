@@ -361,7 +361,7 @@ function comparisonAskText(messages, baseText) {
     }
     // A message that names plan IDs decides the columns — "lets do H5420-014, H4140-022, …" needs no verb.
     const idsNamed = new Set((t.match(/\b[HR]\d{4}-\d{3}/gi) || []).map((x) => x.toUpperCase())).size;
-    if (idsNamed >= 2 || (idsNamed && /\b(compare|show|add|instead|vs|do|use|run|go with)\b/i.test(t))) break;
+    if (idsNamed >= 2 || (idsNamed && /\b(compare|show|add|instead|vs|do|use|run|go with|check|re-?check|re-?run|verify)\b/i.test(t))) break;
   }
   return lines.join('\n');
 }
@@ -606,7 +606,9 @@ function plansInLine(line, constraints) {
       .replace(/^.*\b(compare|vs\.?|and|show(?: me| m)?|add|include|plus|instead of|lets|let's)\s+/i, '')
       .replace(/\*+/g, '').replace(/\b(new 2027|plan|instead)\b/gi, '').replace(/[·•]+\s*$/, '')
       // "lets do \"UHC MedicareMax …" → "UHC MedicareMax …" (Gail, 2026-10-08)
-      .replace(/^\s*(?:do|use|run|go with)\s+/i, '').replace(/["\u201C\u201D]+/g, '').replace(/\s+/g, ' ').trim();
+      .replace(/^\s*(?:do|use|run|go with)\s+/i, '').replace(/["\u201C\u201D]+/g, '').replace(/\s+/g, ' ').trim()
+      // "check Doctors DrMax-Dade · H4140-022 again" → "Doctors DrMax-Dade" (Victor, 2026-10-08)
+      .replace(LEAD_VERB_RE, '').trim();
     out.push({ planId: id, index: m.index, name: name || id });
   }
   // An ID with no separator before it ('…H5420-014"m Doctors DrMax-Dade · H4140-022') was skipped:
@@ -623,12 +625,14 @@ function plansInLine(line, constraints) {
     const prev = [...before.matchAll(/\b[HR]\d{4}-\d{3}[A-Z]?\b/gi)].pop();
     const name = before.slice(prev ? prev.index + prev[0].length : 0)
       .replace(/^[\s"\u201C\u201D')\]]*[a-z]?\b\s*/, '') // closing quote + stray letter: '"m '
-      .replace(/["\u201C\u201D*]+/g, '').replace(/[·•,]+\s*$/, '').replace(/\s+/g, ' ').trim();
+      .replace(/["\u201C\u201D*]+/g, '').replace(/[·•,]+\s*$/, '').replace(/\s+/g, ' ').trim()
+      .replace(LEAD_VERB_RE, '').trim();
     out.push({ planId: id, index: m2.index, name: name || id });
   }
   return out.sort((a, b) => a.index - b.index).map(({ index, ...p }) => p);
 }
 
+const LEAD_VERB_RE = /^(?:(?:pls|please|can you|could you|now|also|then)\s+)*(?:re-?check|check|re-?run|run|try|look at|look up|verify|do|use|go with)\s+(?:(?:on|for|the)\s+)?(?:again\s+)?/i;
 const REMOVE_RE = /\b(?:remove|drop|take out|delete|no more|get rid of|without)\s+(?:the\s+)?([^,.;\n]+?)(?=\s+(?:from|and|,)|[,.;\n]|$)/gi;
 
 /**
@@ -744,7 +748,11 @@ function carrierKey(label) {
 function namedPlanColumns(named, matrix, doctors) {
   return named.map((np) => {
     const row = matrix.find((p) => p.planId.slice(0, 9) === np.planId.slice(0, 9));
-    const carrier = carrierKey(np.name) || (row && row.carrier) || '';
+    // A plan named by ID only ("H1019-006") has no carrier word, and the lookup matrix only knows
+    // plans a directory listed by ID — so CarePlus / Doctors carrier hits never reached the cell
+    // and every one read "not confirmed" (Victor Rocha, 2026-10-08). The THEI grid knows the carrier.
+    const grid = carrierKey(np.name) || (row && row.carrier) ? null : gridRowFor(np.planId, '');
+    const carrier = carrierKey(np.name) || (row && row.carrier) || (grid ? R.carrierOfPlan(grid) : '') || '';
     const col = { planId: np.planId, name: row ? row.name : np.name, carrier, type: row ? row.type : planTypeOf(np.name), in: [], inCarrier: [], out: [], unknown: [], notConfirmed: [] };
     for (const d of doctors) {
       const who = shortDoctor(d);
@@ -934,6 +942,17 @@ function identityIssue(d) {
   const asked = plainWords(shortDoctor(d));
   const matched = plainWords(d.doctorName);
   if (asked.length >= 2 && !matched.includes(asked[0])) return 'mismatch';
+  // A full middle word she gave ("Carlos SANTA Cruz") that the match does not carry — not as a
+  // word, not as its initial — is a different person (Carlos A Cruz ≠ Carlos Santa-Cruz).
+  const orgTest = require('./npiRegistry').looksLikeOrganization;
+  const isOrg = d.isOrg || (typeof orgTest === 'function' ? orgTest(shortDoctor(d)) : /\b(associates|group|center|clinic|llc|inc|corp|surgery|medical|health)\b/i.test(shortDoctor(d)));
+  if (asked.length >= 3 && !isOrg) {
+    const raw = String(d.doctorName || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+      .replace(ROLE_WORDS_RE, ' ').split(/[^a-z']+/).filter(Boolean);
+    const initials = new Set(raw.filter((w) => w.length === 1));
+    const missing = asked.slice(1, -1).filter((w) => w.length >= 3 && !matched.includes(w) && !initials.has(w[0]));
+    if (missing.length) return 'mismatch';
+  }
   return '';
 }
 
