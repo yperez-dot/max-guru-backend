@@ -19,6 +19,8 @@
 
 const NPI_REGISTRY_BASE = 'https://npiregistry.cms.hhs.gov/api/';
 const FETCH_TIMEOUT_MS = 12_000;
+const NPI_RETRIES = 2;
+const NPI_RETRY_DELAY_MS = Number(process.env.NPPES_RETRY_DELAY_MS || 400);
 const CMS_PAGE_LIMIT = 20;
 const DEFAULT_RETURN_LIMIT = 5;
 
@@ -334,7 +336,14 @@ function firstNameAgrees(result, firstName) {
 async function lookupByNumber(npi) {
   if (!npi) return [];
   const url = `${NPI_REGISTRY_BASE}?version=2.1&number=${encodeURIComponent(npi)}`;
-  const data = await fetchJSON(url);
+  // fetchJSON answers null when NPPES does not answer (timeout, 5xx, a dropped connection under a
+  // 6-doctor burst). An NPI she typed is the one thing never to drop on a single blip: retry, then fall
+  // back to the name search (Gail's Rawan Jumean-Haddad, NPI 1184715435, read "No NPI match", 2026-10-08).
+  let data = await fetchJSON(url);
+  for (let i = 0; i < NPI_RETRIES && data == null; i += 1) {
+    await new Promise((r) => setTimeout(r, NPI_RETRY_DELAY_MS * (i + 1)));
+    data = await fetchJSON(url);
+  }
   return data?.results || [];
 }
 

@@ -674,3 +674,7 @@ bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.
 - Gail's PDF listed Victor's doctors (Santa-Cruz, Marcus St John, Armando Rivero, "Urology", "Coral Gables") and his 5 meds. `openWorkup` calls `resetChatSession({keepWorkup:true})`, which skipped clearing `sessionToolResultsRef` / `resumeToolResultsRef`, so every lookup from the earlier client in the same browser session fed the next export.
 - Fix: those two refs are always cleared on a reset. Workaround before this ships: reload the page between clients.
 - Check any workup saved right after switching clients for stray doctors / meds.
+
+## 2026-10-08 — A typed NPI survives one dropped NPPES answer
+- Gail's fresh run read "No NPI match: Rawan Jumean-Haddad" even though NPI 1184715435 was typed. `fetchJSON` answers null when NPPES doesn't (timeout / 5xx / dropped connection in a 6-doctor burst), `lookupByNumber` read null as "no records", and the name search for the hyphenated name found nothing. The NPI lookup now retries twice (400ms, 800ms) before falling back. (Tested with NPPES failing twice, then answering.)
+- Still open: Devoted shows ❌ for most of Gail's doctors; spot-check one on Devoted's site. Aetna meds all read "not confirmed" in that run.
