@@ -682,3 +682,7 @@ bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.
 - Gail's fresh 5-plan run priced Humana / UHC / Doctors but every med on Devoted H1290-037 and Aetna H1609-093 read "not confirmed". Neither plan is in the Sunfire map, so both go to medicare.gov (`lookupMedicareGov`), which was not reachable from the sandbox, so the real reason is unseen.
 - Added: one retry per NDC when medicare.gov's drug-cost answer fails (`askCost`, 700ms), and a Railway log line when a med can't be priced: `[formulary] <plan> <drug> <year> unverified: <reason>`. Read the next Gail run's reasons in the Railway logs.
 - Next step if it persists: the reasons in that log line decide (HTTP errors, no NDC, plan not in medicare.gov for 2027, …).
+
+## 2026-10-08 — New client with no doctors or meds (Kimberly Janiszewski)
+- "…is currently on the humana hmo giveback, compare side by side with 2027 benefits. She has no drs or meds" used to stop at "I didn't find any doctors or meds".
+- Now: if the paste names a plan ID, or a carrier + HMO/PPO (+ giveback) that fits exactly ONE 2027 grid plan in her county (`planCandidatesByName` in year-compare.js), the workup opens and the 2026 vs 2027 same-plan compare runs (Broward humana hmo giveback = H1036-305). More than one fit → Max lists them and asks for the ID; no fit → the original error.
