@@ -1,7 +1,7 @@
 # Simply — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-05 22:23 UTC
+Pulled: 2026-10-08 17:01 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H5471-125
 
@@ -12,7 +12,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H5471-125
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $500
@@ -61,6 +60,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $0; routine: not covered |
 | Fitness | SilverSneakers |
 | Other | N/A |
+| Evidence of Coverage | EOC — Simply Complete Platinum |
 
 ---
 

@@ -1,7 +1,7 @@
 # HealthSun — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-05 22:23 UTC
+Pulled: 2026-10-08 17:01 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H5431-001, H5431-006, H5431-012, H5431-017, H5431-018, H5431-019, H5431-021, H5431-026
 
@@ -619,13 +619,14 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H5431-017
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** 0
+**Part B Giveback:** $202.90
 **MOOP:** 3450
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Premium | 0 |
+| Part B Giveback | $202.90 |
 | Referrals Needed? | Yes |
 | Medical Deductible | $0 |
 | Max Out of Pocket | 3450 |

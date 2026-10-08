@@ -1,7 +1,7 @@
 # Wellcare — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-05 22:23 UTC
+Pulled: 2026-10-08 17:01 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1032-195, H1032-196, H1032-202, H1032-250
 
@@ -12,7 +12,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1032-202
-**Still yellow on the working grid:** 8 field(s) — not cited below.
+**Still yellow on the working grid:** 7 field(s) — not cited below.
 **Part B Giveback:** N/A
 **MOOP:** 3000
 
@@ -53,6 +53,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Acupuncture | $0 |
 | Chiropractic | $0; routine 12 visits/yr $0 |
 | Fitness | 0 |
+| Evidence of Coverage | EOC — Dual Reserve |
 
 ---
 
@@ -61,7 +62,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1032-250
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -110,6 +110,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $0; routine 12 visits/yr $0 |
 | Fitness | $0 |
 | Other | My Wellcare Rewards — up to $100 by completing eligible health & portal activities |
+| Evidence of Coverage | EOC — Dual Align Unity |
 
 ---
 
@@ -118,7 +119,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1032-195
-**Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** 0
 **Part B Giveback:** $163.60
 **MOOP:** 5000
@@ -162,6 +162,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Acupuncture | $0 / $15 / $20 |
 | Chiropractic | $15; routine 12 visits/yr, $15 copay |
 | Fitness | 0 |
+| Other | My Wellcare Rewards, you can earn up to $100 by completing eligible health activities and portal activities through your member portal. |
+| Evidence of Coverage | EOC — Giveback |
 
 ---
 
@@ -170,7 +172,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1032-196
-**Still yellow on the working grid:** 3 field(s) — not cited below.
+**Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** 0
 **Part B Giveback:** N/A
 **MOOP:** $2,700
@@ -214,6 +216,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Acupuncture | $0 PCP / $5 chiro or specialist |
 | Chiropractic | $5; routine 12 visits/yr $5 |
 | Fitness | 0 |
+| Evidence of Coverage | EOC — Simple |
 
 ---
 
@@ -222,7 +225,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1032-250
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -271,5 +273,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $0; routine 12 visits/yr $0 |
 | Fitness | $0 |
 | Other | My Wellcare Rewards — up to $100 by completing eligible health & portal activities |
+| Evidence of Coverage | EOC — Dual Align Unity |
 
 ---

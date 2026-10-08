@@ -1,7 +1,7 @@
 # Solis — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-05 22:23 UTC
+Pulled: 2026-10-08 17:01 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H0982-002, H0982-007, H0982-012, H0982-016, H0982-017, H0982-022, H0982-027, H0982-028, H0982-030, H0982-034
 
@@ -12,7 +12,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H0982-017
-**Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $8.70
 **MOOP:** $2,900
@@ -42,7 +41,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | Yes (auth*) |
 | Bridges | Yes (auth*) |
 | Implants | Yes (auth* — see Dental Guide limits) |
-| Vision Allowance | $250 |
+| Vision Allowance | $250 eyewear allowance/yr OR 2 pairs select eyeglasses/yr · routine eye exam $0 |
 | Ambulance | $50 ground · 20% air |
 | Transportation | $0 · 48 one-way trips |
 | RX Deductible | $0 |
@@ -53,11 +52,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 33% |
 | Tier 6 | $0 |
 | OTC | $112 x month |
-| Grocery Card | $100 x month |
+| Grocery Card | $100 x month (SSBCI Healthy Living Allowance: food/produce, pet, pest control, transport/gas, utilities/phone/internet; no rollover) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | Chronic LBP acupuncture $0/visit (12 visits/90 days + 8 more if improving, max 20/yr); routine: not covered |
-| Fitness | Fitness membership $0 |
-| Other | N/A |
+| Chiropractic | $0 Medicare-covered · 12 routine visits/yr $0 |
+| Fitness | Silver&Fit $0 (gym/YMCA + 1 home fitness kit/yr) |
+| Other | • Flex $100/quarter prepaid card for dental/vision/hearing (rolls over quarterly; expires 12/31) • Post-discharge meals: 2/day × 7 days • Worldwide ER $100 (up to $75,000/yr) |
+| Evidence of Coverage | EOC — Wellness H0982-017 |
 
 ---
 
@@ -66,7 +67,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H0982-030
-**Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $202.90
 **MOOP:** $3,400
@@ -96,7 +96,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $300 |
+| Vision Allowance | $300 eyewear allowance/yr OR 2 pairs select eyeglasses/yr · routine eye exam $0 |
 | Ambulance | $200 ground · 20% air |
 | Transportation | $0 · 24 one-way trips |
 | RX Deductible | $0 |
@@ -107,11 +107,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 33% |
 | Tier 6 | $0 |
 | OTC | $98 x month |
-| Grocery Card | $50 x month |
+| Grocery Card | $50 x month (SSBCI Healthy Living Allowance: food/produce, pet, pest control, transport/gas, utilities/phone/internet; no rollover) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | Chronic LBP acupuncture $0/visit (12 visits/90 days + 8 more if improving, max 20/yr); routine: not covered |
-| Fitness | Fitness membership $0 |
-| Other | N/A |
+| Chiropractic | $0 Medicare-covered · routine: not covered |
+| Fitness | Silver&Fit $0 (gym/YMCA + 1 home fitness kit/yr) |
+| Other | • Post-discharge meals: 2/day × 7 days • Worldwide ER $110 (up to $75,000/yr) |
+| Evidence of Coverage | EOC — Wellness Giveback H0982-030 |
 
 ---
 
@@ -120,27 +122,26 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H0982-034
-**Still yellow on the working grid:** 2 field(s) — not cited below.
-**Premium:** *
-**Part B Giveback:** $202.90
-**MOOP:** *
+**Premium:** $7.30
+**Part B Giveback:** $0
+**MOOP:** $3,200
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Chronic Conditions | •Mental health (bipolar, MDD, paranoid disorder, schizophrenia, schizoaffective). |
-| Premium | * |
-| Part B Giveback | $202.90 |
-| Referrals Needed? | * |
-| Medical Deductible | * |
-| Max Out of Pocket | * |
-| Inpatient Hospital | * |
-| Outpatient Hospital | * |
-| PCP | * |
-| Specialist | * |
-| ER | * |
-| Urgent Care | * |
-| Advanced Imaging (MRI, CT, PET) | * |
-| Hearing Services | * |
+| Premium | $7.30 |
+| Part B Giveback | $0 |
+| Referrals Needed? | Yes |
+| Medical Deductible | $0 |
+| Max Out of Pocket | $3,200 |
+| Inpatient Hospital | $0 per stay · 90 days |
+| Outpatient Hospital | OP surgery $20 · ASC $0 |
+| PCP | $0 |
+| Specialist | $0 |
+| ER | $50 |
+| Urgent Care | $0 |
+| Advanced Imaging (MRI, CT, PET) | $0 / $50 |
+| Hearing Services | $1,500 both ears every year |
 | Dental | Preventive & Comprehensive $3,500 |
 | Deep Cleaning | Yes (D4341/D4342 SRP — auth*) |
 | Dentures | Yes (complete no auth; partial — auth*; 1 per 5 yrs) |
@@ -150,22 +151,24 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | Yes (auth*) |
 | Bridges | Yes (auth*) |
 | Implants | Yes (auth* — see Dental Guide limits) |
-| Vision Allowance | * |
-| Ambulance | * |
-| Transportation | * |
-| RX Deductible | * |
-| Tier 1 | * |
-| Tier 2 | * |
-| Tier 3 | * |
-| Tier 4 | * |
-| Tier 5 | * |
-| Tier 6 | * |
-| OTC | * |
-| Grocery Card | * |
+| Vision Allowance | $300 eyewear allowance/yr OR 2 pairs select eyeglasses/yr · routine eye exam $0 |
+| Ambulance | $100 ground · 20% air |
+| Transportation | $0 · 48 one-way trips |
+| RX Deductible | $700 (except covered insulin & most adult Part D vaccines) |
+| Tier 1 | $0 |
+| Tier 2 | $0 |
+| Tier 3 | 25% (insulin ≤$35/mo) |
+| Tier 4 | 25% |
+| Tier 5 | 25% (insulin ≤$35/mo) |
+| Tier 6 | $0 |
+| OTC | $140 x month |
+| Grocery Card | $150 x month (SSBCI Healthy Living Allowance: food/produce, pet, pest control, transport/gas, utilities/phone/internet; no rollover) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | Chronic LBP acupuncture $0/visit (12 visits/90 days + 8 more if improving, max 20/yr); routine: not covered |
 | Chiropractic | $0; routine 12 visits/yr $0 |
-| Other | ED 8 pills/mo |
+| Fitness | Silver&Fit $0 (gym/YMCA + 1 home fitness kit/yr) |
+| Other | • Flex $100/quarter prepaid card for dental/vision/hearing (rolls over quarterly; expires 12/31) • Post-discharge meals: 2/day × 7 days • Worldwide ER $50 (up to $75,000/yr) • ED drugs (sildenafil/tadalafil) covered as enhanced Rx; qty limits per Drug List (prior grid: 8 pills/mo) |
+| Evidence of Coverage | EOC — Balanced H0982-034 |
 
 ---
 
@@ -174,7 +177,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H0982-012
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0–$7.30
 **Part B Giveback:** N/A
 **MOOP:** $3,400
@@ -187,8 +189,8 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Referrals Needed? | Yes |
 | Medical Deductible | $0 |
 | Max Out of Pocket | $3,400 |
-| Inpatient Hospital | $0 |
-| Outpatient Hospital | $0 |
+| Inpatient Hospital | $0 per stay · 90 days |
+| Outpatient Hospital | OP surgery $0 · ASC $0 |
 | PCP | $0 |
 | Specialist | $0 |
 | ER | $0 |
@@ -204,7 +206,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | Yes (auth*) |
 | Bridges | Yes (auth*) |
 | Implants | Yes (auth* — see Dental Guide limits) |
-| Vision Allowance | $300 |
+| Vision Allowance | $300 eyewear allowance/yr OR 2 pairs select eyeglasses/yr · routine eye exam $0 |
 | Ambulance | $0 ground · 20% air |
 | Transportation | $0 unlimited (plan-approved) |
 | Companionship | Not covered |
@@ -217,12 +219,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | Depends on LIS level |
 | Tier 6 | $0 |
 | OTC | $126 x month |
-| Grocery Card | $250 x month |
+| Grocery Card | $250 x month (SSBCI Healthy Living Allowance: food/produce, pet, pest control, transport/gas, utilities/phone/internet; no rollover) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | Chronic LBP acupuncture (see EOC) |
 | Chiropractic | $0; routine 12 visits/yr $0 |
-| Fitness | Fitness membership $0 |
-| Other | Flex $100 qtr + |
+| Fitness | Silver&Fit $0 (gym/YMCA + 1 home fitness kit/yr) |
+| Other | • Flex $100/quarter prepaid card for dental/vision/hearing (rolls over quarterly; expires 12/31) • Post-discharge meals: 2/day × 7 days • Worldwide ER $0 (up to $75,000/yr) |
+| Evidence of Coverage | EOC — Guardian H0982-012 |
 
 ---
 
@@ -259,7 +262,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | Yes (auth*) |
 | Bridges | Yes (auth*) |
 | Implants | Yes (auth* — see Dental Guide limits) |
-| Vision Allowance | $250 |
+| Vision Allowance | $250 eyewear allowance/yr OR 2 pairs select eyeglasses/yr · routine eye exam $0 |
 | Ambulance | $75 ground · 20% air |
 | Transportation | $0 · 24 one-way trips |
 | RX Deductible | $0 |
@@ -270,12 +273,12 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 33% |
 | Tier 6 | $0 |
 | OTC | $108 x month |
-| Grocery Card | $30 x month If eligible (SSBCI) |
+| Grocery Card | $30 x month (SSBCI Healthy Living Allowance: food/produce, pet, pest control, transport/gas, utilities/phone/internet; no rollover) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | Chronic LBP acupuncture (see EOC) |
 | Chiropractic | $0; routine: 12 visits/yr $0 |
-| Fitness | Fitness membership $0 |
-| Other | N/A |
+| Fitness | Silver&Fit $0 (gym/YMCA + 1 home fitness kit/yr) |
+| Other | • Post-discharge meals: 2/day × 7 days • Worldwide ER $100 (up to $75,000/yr) |
 | Evidence of Coverage | EOC — Healthy Living H0982-007 |
 
 ---
@@ -285,7 +288,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H0982-016
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $15.60
 **MOOP:** $2,500
@@ -315,7 +317,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | Yes (auth*) |
 | Bridges | Yes (auth*) |
 | Implants | Yes (auth* — see Dental Guide limits) |
-| Vision Allowance | $350 |
+| Vision Allowance | $350 eyewear allowance/yr OR 2 pairs select eyeglasses/yr · routine eye exam $0 |
 | Ambulance | $0 ground · 20% air |
 | Transportation | $0 · 48 one-way trips |
 | RX Deductible | $0 |
@@ -326,12 +328,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 33% |
 | Tier 6 | $0 |
 | OTC | $115 x month |
-| Grocery Card | $100 x month |
+| Grocery Card | $100 x month (SSBCI Healthy Living Allowance: food/produce, pet, pest control, transport/gas, utilities/phone/internet; no rollover) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | Chronic LBP acupuncture (see EOC) |
 | Chiropractic | $0; routine 12 visits/yr $0 |
-| Fitness | Fitness membership $0 |
-| Other | Flex $125 qtr ($500/yr) dental/vision/hearing |
+| Fitness | Silver&Fit $0 (gym/YMCA + 1 home fitness kit/yr) |
+| Other | • Flex $125/quarter prepaid card for dental/vision/hearing (rolls over quarterly; expires 12/31) • Post-discharge meals: 2/day × 7 days • Worldwide ER $50 (up to $75,000/yr) |
+| Evidence of Coverage | EOC — Wellness H0982-016 |
 
 ---
 
@@ -340,7 +343,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H0982-027
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $2.90
 **MOOP:** $2,500
@@ -370,7 +372,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | Yes (auth*) |
 | Bridges | Yes (auth*) |
 | Implants | Yes (auth* — see Dental Guide limits) |
-| Vision Allowance | $350 |
+| Vision Allowance | $350 eyewear allowance/yr OR 2 pairs select eyeglasses/yr · routine eye exam $0 |
 | Ambulance | $0 ground · 20% air |
 | Transportation | $0 · 48 one-way trips |
 | RX Deductible | $0 |
@@ -381,12 +383,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 25% |
 | Tier 6 | $0 |
 | OTC | $152 x month |
-| Grocery Card | $200 x month |
+| Grocery Card | $200 x month (SSBCI Healthy Living Allowance: food/produce, pet, pest control, transport/gas, utilities/phone/internet; no rollover) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | Chronic LBP acupuncture $0 (up to 20/yr) Routine: not covered |
 | Chiropractic | $0; routine: 12 visits/yr $0 |
-| Fitness | Fitness membership $0 (Silver&Fit) |
-| Other | Flex Allowance $125/quarter (max $500/yr) prepaid card for dental/vision/hearing ED drugs 8 pills/mo |
+| Fitness | Silver&Fit $0 (gym/YMCA + 1 home fitness kit/yr) |
+| Other | • Flex $125/quarter prepaid card for dental/vision/hearing (rolls over quarterly; expires 12/31) • Post-discharge meals: 2/day × 7 days • Worldwide ER $0 (up to $75,000/yr) • ED drugs (sildenafil/tadalafil) covered as enhanced Rx; qty limits per Drug List (prior grid: 8 pills/mo) |
+| Evidence of Coverage | EOC - Balanced H0982-027 (Miami-Dade) 2027 |
 
 ---
 
@@ -395,7 +398,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** C-SNP
 **Plan year:** 2027
 **CMS ID:** H0982-028
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** $202.90
 **MOOP:** $2,500
@@ -425,7 +427,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $300 |
+| Vision Allowance | $300 eyewear allowance/yr OR 2 pairs select eyeglasses/yr · routine eye exam $0 |
 | Ambulance | $150 ground · 20% air |
 | Transportation | $0 · 24 one-way trips |
 | RX Deductible | $0 |
@@ -436,12 +438,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 33% |
 | Tier 6 | $0 |
 | OTC | $100 x month |
-| Grocery Card | $75 x month |
+| Grocery Card | $75 x month (SSBCI Healthy Living Allowance: food/produce, pet, pest control, transport/gas, utilities/phone/internet; no rollover) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | Chronic low back pain only: $0, 12 visits/90 days (+8 if improving, max 20/yr) |
 | Chiropractic | $0; routine: not covered |
-| Fitness | Fitness membership $0 |
-| Other | N/A |
+| Fitness | Silver&Fit $0 (gym/YMCA + 1 home fitness kit/yr) |
+| Other | • Post-discharge meals: 2/day × 7 days • Worldwide ER $85 (up to $75,000/yr) |
+| Evidence of Coverage | EOC — Wellness Giveback H0982-028 |
 
 ---
 
@@ -463,7 +466,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Medical Deductible | $0 |
 | Max Out of Pocket | $3,400 |
 | Inpatient Hospital | $0 per stay · 90 days |
-| Outpatient Hospital | $0 |
+| Outpatient Hospital | OP surgery $0 · ASC $0 |
 | PCP | $0 |
 | Specialist | $0 |
 | ER | $0 |
@@ -479,7 +482,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | Yes (auth*) |
 | Bridges | Yes (auth*) |
 | Implants | Covered - within $5,000 allowance |
-| Vision Allowance | $350 |
+| Vision Allowance | $350 eyewear allowance/yr OR 2 pairs select eyeglasses/yr · routine eye exam $0 |
 | Ambulance | $0 ground · 20% air |
 | Transportation | $0 unlimited (plan-approved) |
 | Companionship | Not covered |
@@ -492,12 +495,12 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | Depends on LIS level |
 | Tier 6 | $0 |
 | OTC | $132 x month |
-| Grocery Card | $260 x month |
+| Grocery Card | $260 x month (SSBCI Healthy Living Allowance: food/produce, pet, pest control, transport/gas, utilities/phone/internet; no rollover) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | Acupuncture for chronic low back pain 12 visits in 90 days |
 | Chiropractic | $0; routine: 12 visits/yr $0 |
-| Fitness | Fitness membership $0 |
-| Other | Flex $125 qtr (max $500/yr) |
+| Fitness | Silver&Fit $0 (gym/YMCA + 1 home fitness kit/yr) |
+| Other | • Flex $125/quarter prepaid card for dental/vision/hearing (rolls over quarterly; expires 12/31) • Post-discharge meals: 2/day × 7 days • Worldwide ER $0 (up to $75,000/yr) |
 | Evidence of Coverage | EOC — Guardian H0982-002 |
 
 ---
@@ -535,7 +538,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | Yes (auth*) |
 | Bridges | Yes (auth*) |
 | Implants | Yes (auth* — see Dental Guide limits) |
-| Vision Allowance | $350 |
+| Vision Allowance | $350 eyewear allowance/yr OR 2 pairs select eyeglasses/yr · routine eye exam $0 |
 | Ambulance | $50 ground · 20% air |
 | Transportation | $0 · 24 one-way trips |
 | RX Deductible | $0 |
@@ -546,12 +549,12 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 33% |
 | Tier 6 | $0 |
 | OTC | $105 x month |
-| Grocery Card | $50 x month Healthy Living Allowance |
+| Grocery Card | $50 x month (SSBCI Healthy Living Allowance: food/produce, pet, pest control, transport/gas, utilities/phone/internet; no rollover) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | Chronic LBP acupuncture (see EOC) |
 | Chiropractic | $0; routine: 12 visits/yr $0 |
-| Fitness | Fitness membership $0 |
-| Other | N/A |
+| Fitness | Silver&Fit $0 (gym/YMCA + 1 home fitness kit/yr) |
+| Other | • Post-discharge meals: 2/day × 7 days • Worldwide ER $50 (up to $75,000/yr) |
 | Evidence of Coverage | EOC — Healthy Living 022 (Miami-Dade) |
 
 ---

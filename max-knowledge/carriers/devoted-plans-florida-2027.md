@@ -1,7 +1,7 @@
 # Devoted — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-05 22:23 UTC
+Pulled: 2026-10-08 17:01 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1290-001, H1290-002, H1290-013, H1290-014, H1290-019, H1290-020, H1290-037, H1290-053, H1290-054, H1290-056, H1290-062, H1290-067, H1290-073, H1290-077, H1290-078, H1290-084, H1290-085, H1290-110, H1290-117
 
@@ -400,7 +400,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1290-037
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** 3.2
 **MOOP:** $3,900
@@ -446,6 +445,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Chiropractic | $0; routine: not covered |
 | Fitness | SilverSneakers |
 | Other | $150 Wellness Bucks (fitness & wellness items) |
+| Evidence of Coverage | EOC — CORE 037 |
 
 ---
 
@@ -896,13 +896,14 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1290-013
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
+**Part B Giveback:** $202
 **MOOP:** $7,150
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Premium | $0 |
+| Part B Giveback | $202 |
 | Referrals Needed? | Yes |
 | Medical Deductible | 400 |
 | Max Out of Pocket | $7,150 |

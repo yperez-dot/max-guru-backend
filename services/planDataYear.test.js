@@ -67,6 +67,26 @@ describe('live plan-data defaults to 2027', () => {
       assert.equal(p.yellowLeft > 0, true);
     }
   });
+
+  it('carries the 10/8 grid resync: Solis H0982-034 Broward is filled in and the Part B givebacks follow the grid', () => {
+    const row = (id, county) => {
+      const hit = plans.find((p) => p.planId === id && p.county === county);
+      assert.ok(hit, `${id} ${county} missing`);
+      return hit;
+    };
+    // Was "*" in every core cell, with a $202.90 giveback the grid no longer has.
+    const solis = row('H0982-034', 'Broward');
+    assert.equal(solis.premium, '$7.30');
+    assert.equal(solis.moop, '$3,200');
+    assert.equal(solis.partBGiveback, '$0');
+    assert.equal(solis.erCopay, '$50');
+    for (const key of ['premium', 'moop', 'pcpCopay', 'specialistCopay', 'erCopay', 'urgentCareCopay', 'tier1', 'tier2', 'tier3', 'tier4', 'tier5', 'tier6', 'rxDeductible', 'otc', 'hearing', 'transportation']) {
+      assert.notEqual(String(solis[key]).trim(), '*', `H0982-034 ${key} still *`);
+    }
+    // Givebacks that were blank in Max.
+    assert.equal(row('H5431-017', 'Miami-Dade').partBGiveback, '$202.90');
+    assert.equal(row('H1290-013', 'Miami-Dade').partBGiveback, '$202');
+  });
 });
 
 describe('prompts say PLAN DATA is 2027', () => {
