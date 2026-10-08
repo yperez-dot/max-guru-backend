@@ -257,3 +257,10 @@ describe('compare mode: pinned current plans keep their doctor results (Martin, 
     assert.match(job.result.doctorTable, /Solis Healthy Living · H0982-007/);
   });
 });
+
+describe('compare mode: "Dr.Name" with no space (Victor Rocha, 2026-10-08)', () => {
+  it('drops the glued title from the doctor list', () => {
+    const d = parseCompareAsk('Victor Rocha, 33143. Doctors: Dr.Armando Rivero, Dra.Maria Lopez, Marcus St John. Meds: tamsulosin').doctors;
+    assert.deepEqual(d.map((x) => x.name), ['Armando Rivero', 'Maria Lopez', 'Marcus St John']);
+  });
+});
