@@ -618,3 +618,24 @@ Fixed in `services/doctorsHcp.js`:
 Tests in `services/auditCountyUnchecked.test.js`: Broward-only doctor is In for a Miami-Dade
 client and vice versa; Gadh is In for Miami-Dade; a Tampa-only doctor's DrSelect-SFL cell is
 unchecked, not Out. The 4 new or changed cases fail on #160 as first pushed and pass now.
+
+## 2026-10-08 — Gail Carreno: carrier ask after a loaded workup; wrapped plan list
+
+Two runs on a loaded workup went wrong:
+
+1. **"add doctors, devoted, and aetna to her plan comp." → Doctors HealthCare columns only.**
+   "add" was not a carrier request verb, so her message read as no ask and the column logic fell
+   back to an older user message: the **loaded-workup message**, whose rules text says "…asks for
+   different plans, **doctors**, drugs…". The bare-"doctors"-in-a-list carrier pattern (added
+   2026-10-07) read that as Doctors HealthCare.
+   Fixed: the newest-message loop in `comparisonAskText` skips the workup message
+   (`isWorkupMessage`), and REQUEST_VERBS now includes add / include / plus / also.
+2. **Four plans pasted in quotes that wrapped across lines → only some survived.**
+   `"UHC MedicareMax Complete Care FL-30⏎ H5420-014"m Doctors DrMax-Dade · H4140-022, …` was read
+   as three lines, and the last line won. Fixed: `joinWrappedQuotes` rejoins a line while its
+   double quotes are unbalanced; `plansInLine` now also catches an ID with no separator before it
+   (H4140-022 above), named by the text since the previous ID; leading "do" and quotes are
+   stripped from plan names; any message naming 2+ plan IDs decides the columns with no verb.
+
+Tests: `services/gailCarriersWrapped.test.js` (Gail's exact text and the real workup message),
+5 cases, all failing on main before the fix.
