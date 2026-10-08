@@ -55,11 +55,13 @@ const chatRateLimit = createRateLimiter({
   windowMs: Number(process.env.MAX_CHAT_RATE_WINDOW_MS || 60 * 60 * 1000),
   max: Number(process.env.MAX_CHAT_RATE_MAX || 40),
   name: 'chat',
+  keyBy: 'agent', // per unlocked agent (req.accessEmail); runs after requireAccessToken
 });
 const unlockRateLimit = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: Number(process.env.MAX_UNLOCK_RATE_MAX || 20),
   name: 'unlock',
+  keyBy: 'ip', // never the client-controlled token header
 });
 
 app.use(cors({
