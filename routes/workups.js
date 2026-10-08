@@ -18,18 +18,33 @@ function createWorkupsRouter(store) {
     return req.accessEmail || '';
   }
 
+  /** 503 workups_unreadable (file exists but cannot be parsed) and other store errors. */
+  function sendStoreError(res, err, fallback) {
+    const status = err.status && Number.isInteger(err.status) ? err.status : 400;
+    if (err.code === 'workups_unreadable') console.error(`[workups] request refused: ${err.detail || err.message}`);
+    return res.status(status).json({ error: err.message || fallback, code: err.code });
+  }
+
   router.get('/', (req, res) => {
     const email = ownerOf(req);
     if (!email) return res.status(401).json({ error: 'Access locked', code: 'access_required' });
-    return res.json({ ok: true, workups: getStore().list(email) });
+    try {
+      return res.json({ ok: true, workups: getStore().list(email) });
+    } catch (err) {
+      return sendStoreError(res, err, 'Could not load workups');
+    }
   });
 
   router.get('/:id', (req, res) => {
     const email = ownerOf(req);
     if (!email) return res.status(401).json({ error: 'Access locked', code: 'access_required' });
-    const workup = getStore().get(email, req.params.id);
-    if (!workup) return res.status(404).json({ error: 'Workup not found' });
-    return res.json({ ok: true, workup });
+    try {
+      const workup = getStore().get(email, req.params.id);
+      if (!workup) return res.status(404).json({ error: 'Workup not found' });
+      return res.json({ ok: true, workup });
+    } catch (err) {
+      return sendStoreError(res, err, 'Could not load workup');
+    }
   });
 
   function upsert(req, res) {
@@ -47,11 +62,11 @@ function createWorkupsRouter(store) {
       return res.status(400).json({ error: 'Need a client name or 2+ plans to save a workup' });
     }
     try {
-      const workup = getStore().upsert(email, body);
-      return res.json({ ok: true, workup });
+      const s = getStore();
+      const workup = s.upsert(email, body);
+      return res.json(s.lastWarning ? { ok: true, workup, warning: s.lastWarning } : { ok: true, workup });
     } catch (err) {
-      const status = err.status && Number.isInteger(err.status) ? err.status : 400;
-      return res.status(status).json({ error: err.message || 'Could not save workup', code: err.code });
+      return sendStoreError(res, err, 'Could not save workup');
     }
   }
 
@@ -67,17 +82,20 @@ function createWorkupsRouter(store) {
       if (!workup) return res.status(404).json({ error: 'Workup not found' });
       return res.json({ ok: true, workup });
     } catch (err) {
-      const status = err.status && Number.isInteger(err.status) ? err.status : 400;
-      return res.status(status).json({ error: err.message || 'Could not rename workup' });
+      return sendStoreError(res, err, 'Could not rename workup');
     }
   });
 
   router.delete('/:id', (req, res) => {
     const email = ownerOf(req);
     if (!email) return res.status(401).json({ error: 'Access locked', code: 'access_required' });
-    const ok = getStore().delete(email, req.params.id);
-    if (!ok) return res.status(404).json({ error: 'Workup not found' });
-    return res.json({ ok: true, deleted: req.params.id });
+    try {
+      const ok = getStore().delete(email, req.params.id);
+      if (!ok) return res.status(404).json({ error: 'Workup not found' });
+      return res.json({ ok: true, deleted: req.params.id });
+    } catch (err) {
+      return sendStoreError(res, err, 'Could not delete workup');
+    }
   });
 
   return router;
