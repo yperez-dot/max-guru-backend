@@ -303,3 +303,187 @@ describe('saved workup context keeps doctor names clean', () => {
     assert.equal(cleanDoctorQuery('Jorge G. Ruiz'), 'Jorge G. Ruiz');
   });
 });
+
+// ─── AEP audit 2026-10-08: never treat an unreadable workups file as empty; backups ───
+describe('workups file safety', () => {
+  function tmpDir() {
+    return fs.mkdtempSync(path.join(os.tmpdir(), 'max-workups-safety-'));
+  }
+  const save = (store, name) => store.upsert('agent@healthexps.com', { clientName: name, zip: '33176' });
+
+  for (const [label, contents] of [
+    ['truncated JSON', '{"updatedAt":"2026-10-08","users":{"agent@healthexps.com":[{"id":"abc'],
+    ['an empty file', ''],
+    ['the wrong shape', '[1,2,3]'],
+    ['users that is not an object', '{"users":"oops"}'],
+  ]) {
+    it(`a file with ${label} is never treated as empty: reads and saves refuse with 503 and the file is untouched`, () => {
+      const dir = tmpDir();
+      const file = path.join(dir, 'max-workups.json');
+      fs.writeFileSync(file, contents);
+      const errors = [];
+      const origError = console.error;
+      console.error = (...a) => errors.push(a.join(' '));
+      try {
+        const store = new WorkupStore({ filePath: file });
+        assert.ok(store.loadError, 'loadError set');
+        for (const fn of [
+          () => store.list('agent@healthexps.com'),
+          () => store.get('agent@healthexps.com', 'abc'),
+          () => save(store, 'New Client'),
+          () => store.rename('agent@healthexps.com', 'abc', 'X'),
+          () => store.delete('agent@healthexps.com', 'abc'),
+        ]) {
+          assert.throws(fn, (err) => err.status === 503 && err.code === 'workups_unreadable');
+        }
+        assert.equal(fs.readFileSync(file, 'utf8'), contents, 'corrupt file must not be overwritten');
+        assert.ok(!fs.existsSync(path.join(dir, 'backups')), 'no backup of a fake empty store');
+        assert.ok(errors.some((e) => /FATAL/.test(e) && /refusing/.test(e)), 'logged loudly');
+      } finally {
+        console.error = origError;
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  }
+
+  it('a missing file is still a fresh, writable store', () => {
+    const dir = tmpDir();
+    try {
+      const store = new WorkupStore({ filePath: path.join(dir, 'max-workups.json') });
+      assert.equal(store.loadError, null);
+      assert.deepEqual(store.list('agent@healthexps.com'), []);
+      save(store, 'First Client');
+      assert.equal(new WorkupStore({ filePath: path.join(dir, 'max-workups.json') }).list('agent@healthexps.com').length, 1);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('the API answers 503 workups_unreadable for GET and PUT, and the file stays as it was', async () => {
+    const express = require('express');
+    const { createWorkupsRouter } = require('../routes/workups');
+    const dir = tmpDir();
+    const file = path.join(dir, 'max-workups.json');
+    fs.writeFileSync(file, '{"users":{');
+    const origError = console.error;
+    console.error = () => {};
+    const app = express();
+    app.use(express.json());
+    app.use((req, _res, next) => { req.accessEmail = 'agent@healthexps.com'; next(); });
+    app.use('/workups', createWorkupsRouter(new WorkupStore({ filePath: file })));
+    const server = app.listen(0);
+    try {
+      const base = `http://127.0.0.1:${server.address().port}/workups`;
+      const list = await fetch(base);
+      assert.equal(list.status, 503);
+      assert.equal((await list.json()).code, 'workups_unreadable');
+      const put = await fetch(base, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientName: 'Test Audit' }) });
+      assert.equal(put.status, 503);
+      const body = await put.json();
+      assert.equal(body.code, 'workups_unreadable');
+      assert.match(body.error, /not saving/);
+      assert.equal(fs.readFileSync(file, 'utf8'), '{"users":{');
+    } finally {
+      console.error = origError;
+      server.close();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('a save makes a rolling backup (throttled) and one daily copy per ET day', () => {
+    const dir = tmpDir();
+    let now = new Date('2026-10-15T14:00:00Z'); // 10:00 AM ET
+    try {
+      const opts = { filePath: path.join(dir, 'max-workups.json'), backupThrottleMs: 15 * 60 * 1000, now: () => now };
+      const backups = path.join(dir, 'backups');
+      save(new WorkupStore(opts), 'Client A');
+      assert.deepEqual(fs.readdirSync(backups).sort(), [
+        'max-workups.2026-10-15T14-00-00Z.json',
+        'max-workups.daily-2026-10-15.json',
+      ]);
+      now = new Date('2026-10-15T14:05:00Z'); // inside the throttle window → no new rolling copy
+      save(new WorkupStore(opts), 'Client B');
+      assert.equal(fs.readdirSync(backups).length, 2);
+      now = new Date('2026-10-15T14:20:00Z'); // past it → new rolling copy, same daily
+      save(new WorkupStore(opts), 'Client C');
+      assert.deepEqual(fs.readdirSync(backups).sort(), [
+        'max-workups.2026-10-15T14-00-00Z.json',
+        'max-workups.2026-10-15T14-20-00Z.json',
+        'max-workups.daily-2026-10-15.json',
+      ]);
+      // The newest rolling backup holds every client saved so far.
+      const latest = JSON.parse(fs.readFileSync(path.join(backups, 'max-workups.2026-10-15T14-20-00Z.json'), 'utf8'));
+      assert.equal(latest.users['agent@healthexps.com'].length, 3);
+      now = new Date('2026-10-16T04:30:00Z'); // 12:30 AM ET on 10/16 → a new daily copy
+      save(new WorkupStore(opts), 'Client D');
+      assert.ok(fs.existsSync(path.join(backups, 'max-workups.daily-2026-10-16.json')));
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps ~14 days of backups and never deletes files it did not make', () => {
+    const dir = tmpDir();
+    const backups = path.join(dir, 'backups');
+    fs.mkdirSync(backups, { recursive: true });
+    for (const name of [
+      'max-workups.2026-09-30T12-00-00Z.json', // 15+ days old → pruned
+      'max-workups.daily-2026-09-30.json', // pruned
+      'max-workups.2026-10-02T12-00-00Z.json', // 13 days → kept
+      'max-workups.daily-2026-10-02.json', // kept
+      'max-workups.pre-restore-20261007.json', // manual copy → never touched
+      'notes.txt',
+    ]) fs.writeFileSync(path.join(backups, name), '{}');
+    try {
+      const store = new WorkupStore({ filePath: path.join(dir, 'max-workups.json'), now: () => new Date('2026-10-15T14:00:00Z') });
+      save(store, 'Client A');
+      const left = fs.readdirSync(backups).sort();
+      assert.ok(!left.includes('max-workups.2026-09-30T12-00-00Z.json'));
+      assert.ok(!left.includes('max-workups.daily-2026-09-30.json'));
+      for (const keep of ['max-workups.2026-10-02T12-00-00Z.json', 'max-workups.daily-2026-10-02.json', 'max-workups.pre-restore-20261007.json', 'notes.txt']) {
+        assert.ok(left.includes(keep), `${keep} kept`);
+      }
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('a failed backup is logged and never fails the save', () => {
+    const dir = tmpDir();
+    const blocker = path.join(dir, 'not-a-dir');
+    fs.writeFileSync(blocker, 'x'); // backupDir is a file → mkdir fails
+    const errors = [];
+    const origError = console.error;
+    console.error = (...a) => errors.push(a.join(' '));
+    try {
+      const store = new WorkupStore({ filePath: path.join(dir, 'max-workups.json'), backupDir: blocker });
+      const w = save(store, 'Client A');
+      assert.ok(w.id);
+      assert.equal(new WorkupStore({ filePath: path.join(dir, 'max-workups.json'), backups: false }).list('agent@healthexps.com').length, 1);
+      assert.ok(errors.some((e) => /backup failed/.test(e)));
+    } finally {
+      console.error = origError;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('warns (instead of dropping silently) when a save goes past the per-agent cap', () => {
+    const dir = tmpDir();
+    const origWarn = console.warn;
+    console.warn = () => {};
+    try {
+      let t = Date.parse('2026-10-15T14:00:00Z');
+      const store = new WorkupStore({ filePath: path.join(dir, 'max-workups.json'), maxPerOwner: 2, now: () => new Date((t += 1000)) });
+      save(store, 'Oldest Client');
+      save(store, 'Second Client');
+      assert.equal(store.lastWarning, '');
+      save(store, 'Third Client');
+      assert.match(store.lastWarning, /2-workup limit/);
+      assert.match(store.lastWarning, /Oldest Client/);
+      assert.deepEqual(store.list('agent@healthexps.com').map((w) => w.clientName), ['Third Client', 'Second Client']);
+    } finally {
+      console.warn = origWarn;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
