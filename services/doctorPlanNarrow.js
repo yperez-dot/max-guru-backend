@@ -117,6 +117,27 @@ function messageText(m) {
   return '';
 }
 
+/**
+ * A plan name pasted in quotes often wraps: '"UHC MedicareMax Complete Care FL-30\n H5420-014"'.
+ * Rejoin a line to the next while its double quotes are unbalanced, so one plan stays on one line
+ * (Gail, 2026-10-08: 4 named plans read as 3 lines and only the last line's 2 survived).
+ */
+function joinWrappedQuotes(text) {
+  const out = [];
+  let buf = null;
+  for (const line of String(text || '').split('\n')) {
+    buf = buf === null ? line : `${buf} ${line.trim()}`;
+    if ((buf.match(/["\u201C\u201D]/g) || []).length % 2 === 0) { out.push(buf); buf = null; }
+  }
+  if (buf !== null) out.push(buf);
+  return out.join('\n');
+}
+
+/** The loaded-workup message is saved facts plus rules text, never the agent's ask. */
+function isWorkupMessage(t) {
+  return /^\s*LOADED CLIENT WORKUP\b/.test(t) || /structured facts only/i.test(t);
+}
+
 /** "1. no, 2. eliquis cardiovascular disorder. 3. yes" → { 1: 'no', 2: 'eliquis …', 3: 'yes' } */
 function numberedAnswers(text) {
   const t = ` ${String(text || '')}`;
@@ -274,7 +295,10 @@ function comparisonAskText(messages, baseText) {
   for (let i = msgs.length - 1; i >= 0; i -= 1) {
     const m = msgs[i];
     if (!m || m.role !== 'user') continue;
-    const t = messageText(m);
+    const t = joinWrappedQuotes(messageText(m));
+    // Its rules text ("…asks for different plans, doctors, drugs…") read as a Doctors HealthCare
+    // ask whenever her own message named no carrier (Gail, 2026-10-08).
+    if (isWorkupMessage(t)) continue;
     const carriers = R.carriersRequested(t);
     // "HUMANA WONT WORK THEN. check on another plan": other carriers, re-checked now — not
     // the old carrier ask and not the plans she already named (Maura, 2026-10-07).
@@ -335,7 +359,9 @@ function comparisonAskText(messages, baseText) {
       if (current.length && !/^Her current plan:/m.test(lines.join('\n'))) lines.unshift(`Her current plan: ${current.join(', ')}.`);
       break;
     }
-    if (/\b[HR]\d{4}-\d{3}[A-Z]?\b/i.test(t) && /\b(compare|show|add|instead|vs)\b/i.test(t)) break;
+    // A message that names plan IDs decides the columns — "lets do H5420-014, H4140-022, …" needs no verb.
+    const idsNamed = new Set((t.match(/\b[HR]\d{4}-\d{3}/gi) || []).map((x) => x.toUpperCase())).size;
+    if (idsNamed >= 2 || (idsNamed && /\b(compare|show|add|instead|vs|do|use|run|go with)\b/i.test(t))) break;
   }
   return lines.join('\n');
 }
@@ -578,10 +604,29 @@ function plansInLine(line, constraints) {
     const name = String(m[1] || '')
       .replace(/^\s*[-•*]\s+/, '')
       .replace(/^.*\b(compare|vs\.?|and|show(?: me| m)?|add|include|plus|instead of|lets|let's)\s+/i, '')
-      .replace(/\*+/g, '').replace(/\b(new 2027|plan|instead)\b/gi, '').replace(/[·•]+\s*$/, '').trim();
-    out.push({ planId: id, name: name || id });
+      .replace(/\*+/g, '').replace(/\b(new 2027|plan|instead)\b/gi, '').replace(/[·•]+\s*$/, '')
+      // "lets do \"UHC MedicareMax …" → "UHC MedicareMax …" (Gail, 2026-10-08)
+      .replace(/^\s*(?:do|use|run|go with)\s+/i, '').replace(/["\u201C\u201D]+/g, '').replace(/\s+/g, ' ').trim();
+    out.push({ planId: id, index: m.index, name: name || id });
   }
-  return out;
+  // An ID with no separator before it ('…H5420-014"m Doctors DrMax-Dade · H4140-022') was skipped:
+  // the text since the previous ID is its name. Same skip / terminating rules (Gail, 2026-10-08).
+  for (const m2 of line.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)) {
+    const id = m2[1].toUpperCase();
+    const key = id.slice(0, 9);
+    if (seen.has(key)) continue;
+    if (constraints && [...constraints.skip].some((x) => x.slice(0, 9) === key)) continue;
+    const after = line.slice(m2.index + m2[0].length, m2.index + m2[0].length + 25);
+    const before = line.slice(0, m2.index);
+    if (/terminat|ending/i.test(after) || /current plan\s*$/i.test(before)) continue;
+    seen.add(key);
+    const prev = [...before.matchAll(/\b[HR]\d{4}-\d{3}[A-Z]?\b/gi)].pop();
+    const name = before.slice(prev ? prev.index + prev[0].length : 0)
+      .replace(/^[\s"\u201C\u201D')\]]*[a-z]?\b\s*/, '') // closing quote + stray letter: '"m '
+      .replace(/["\u201C\u201D*]+/g, '').replace(/[·•,]+\s*$/, '').replace(/\s+/g, ' ').trim();
+    out.push({ planId: id, index: m2.index, name: name || id });
+  }
+  return out.sort((a, b) => a.index - b.index).map(({ index, ...p }) => p);
 }
 
 const REMOVE_RE = /\b(?:remove|drop|take out|delete|no more|get rid of|without)\s+(?:the\s+)?([^,.;\n]+?)(?=\s+(?:from|and|,)|[,.;\n]|$)/gi;
@@ -594,7 +639,7 @@ const REMOVE_RE = /\b(?:remove|drop|take out|delete|no more|get rid of|without)\
  */
 function namedPlansFromAsk(askText, constraints) {
   let current = [];
-  for (const line of String(askText || '').split('\n')) {
+  for (const line of joinWrappedQuotes(askText).split('\n')) {
     if (!line.trim()) continue;
     // Removals first ("remove devoted", "drop H1290-073").
     let r;
