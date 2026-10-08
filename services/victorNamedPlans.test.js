@@ -172,3 +172,21 @@ describe('opening another client’s workup drops the previous client’s lookup
     assert.match(beforeIf, /resumeToolResultsRef\.current = \[\]/);
   });
 });
+
+describe('an NPI she typed survives one dropped NPPES answer (Gail’s Rawan Jumean-Haddad)', () => {
+  it('retries the NPI lookup, then finds him', async () => {
+    process.env.NPPES_RETRY_DELAY_MS = '1';
+    const saved = global.fetch;
+    let calls = 0;
+    global.fetch = async (url) => {
+      calls += 1;
+      if (calls <= 2) throw new Error('socket hang up');
+      return { ok: true, json: async () => ({ results: [{ number: '1184715435', enumeration_type: 'NPI-1', basic: { first_name: 'RAWAN', middle_name: 'H', last_name: 'JUMEAN', credential: 'MD' }, addresses: [{ address_purpose: 'LOCATION', postal_code: '331860000', state: 'FL' }], taxonomies: [{ primary: true, desc: 'Rheumatology' }] }] }) };
+    };
+    try {
+      const r = await resolveNpiRecords({ doctorName: 'Rawan Jumean-Haddad', npi: '1184715435', zip: '33186' });
+      assert.equal(r[0].number, '1184715435');
+      assert.equal(calls, 3);
+    } finally { global.fetch = saved; }
+  });
+});
