@@ -744,7 +744,11 @@ function carrierKey(label) {
 function namedPlanColumns(named, matrix, doctors) {
   return named.map((np) => {
     const row = matrix.find((p) => p.planId.slice(0, 9) === np.planId.slice(0, 9));
-    const carrier = carrierKey(np.name) || (row && row.carrier) || '';
+    // A plan named by ID only ("H1019-006") has no carrier word, and the lookup matrix only knows
+    // plans a directory listed by ID — so CarePlus / Doctors carrier hits never reached the cell
+    // and every one read "not confirmed" (Victor Rocha, 2026-10-08). The THEI grid knows the carrier.
+    const grid = carrierKey(np.name) || (row && row.carrier) ? null : gridRowFor(np.planId, '');
+    const carrier = carrierKey(np.name) || (row && row.carrier) || (grid ? R.carrierOfPlan(grid) : '') || '';
     const col = { planId: np.planId, name: row ? row.name : np.name, carrier, type: row ? row.type : planTypeOf(np.name), in: [], inCarrier: [], out: [], unknown: [], notConfirmed: [] };
     for (const d of doctors) {
       const who = shortDoctor(d);
@@ -934,6 +938,17 @@ function identityIssue(d) {
   const asked = plainWords(shortDoctor(d));
   const matched = plainWords(d.doctorName);
   if (asked.length >= 2 && !matched.includes(asked[0])) return 'mismatch';
+  // A full middle word she gave ("Carlos SANTA Cruz") that the match does not carry — not as a
+  // word, not as its initial — is a different person (Carlos A Cruz ≠ Carlos Santa-Cruz).
+  const orgTest = require('./npiRegistry').looksLikeOrganization;
+  const isOrg = d.isOrg || (typeof orgTest === 'function' ? orgTest(shortDoctor(d)) : /\b(associates|group|center|clinic|llc|inc|corp|surgery|medical|health)\b/i.test(shortDoctor(d)));
+  if (asked.length >= 3 && !isOrg) {
+    const raw = String(d.doctorName || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+      .replace(ROLE_WORDS_RE, ' ').split(/[^a-z']+/).filter(Boolean);
+    const initials = new Set(raw.filter((w) => w.length === 1));
+    const missing = asked.slice(1, -1).filter((w) => w.length >= 3 && !matched.includes(w) && !initials.has(w[0]));
+    if (missing.length) return 'mismatch';
+  }
   return '';
 }
 

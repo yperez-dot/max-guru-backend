@@ -410,7 +410,13 @@ async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limi
   if (tokens.length >= 3) {
     // Particle in the middle ("Ian Del Conde") → compound last name first.
     const particleAt = tokens.findIndex((t, i) => i > 0 && i < tokens.length - 1 && SURNAME_PARTICLES.has(t.toLowerCase()));
-    if (particleAt > 0) attempts.push({ firstName: tokens[0], middleName: tokens.slice(1, particleAt).join(' '), lastName: tokens.slice(particleAt).join(' ') });
+    if (particleAt > 0) {
+      const middleName = tokens.slice(1, particleAt).join(' ');
+      attempts.push({ firstName: tokens[0], middleName, lastName: tokens.slice(particleAt).join(' ') });
+      // NPPES often stores the compound hyphenated ("SANTA-CRUZ"); try that BEFORE splitting the
+      // name, or "Carlos Santa Cruz" falls through to Carlos A Cruz — a different doctor (Victor, 2026-10-08).
+      attempts.push({ firstName: tokens[0], middleName, lastName: tokens.slice(particleAt).join('-') });
+    }
   }
   attempts.push(parsed);
   if (tokens.length >= 3) {

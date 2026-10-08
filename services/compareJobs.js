@@ -20,7 +20,7 @@ const DOCTOR_BUDGET_MS = Number(process.env.MAX_COMPARE_DOCTOR_BUDGET_MS || 90_0
 const DRUG_CONCURRENCY = Number(process.env.MAX_COMPARE_DRUG_CONCURRENCY || 4);
 const MAX_DOCTORS = 15;
 const MAX_MEDS = 20;
-const MAX_PLANS = 4;
+const MAX_PLANS = 6; // same cap as the UI (max-demo MAX_PLANS) — a 5th named plan was silently dropped
 
 // "wondering if there's something better", "other options", "alternatives" → keep her plan as a column AND shop the county.
 const ALTERNATIVES_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\bother\s+(?:options?|plans?)\b|\balternatives?\b|\bsee\s+what\s+else\b|\bwhat\s+else\b|\bshop(?:ping)?\s+around\b|\bcompare\s+(?:it\s+)?(?:to|against|with)\s+others?\b|\bsomething\s+else\b/i;
