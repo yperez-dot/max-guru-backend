@@ -678,3 +678,7 @@ bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.
 ## 2026-10-08 — A typed NPI survives one dropped NPPES answer
 - Gail's fresh run read "No NPI match: Rawan Jumean-Haddad" even though NPI 1184715435 was typed. `fetchJSON` answers null when NPPES doesn't (timeout / 5xx / dropped connection in a 6-doctor burst), `lookupByNumber` read null as "no records", and the name search for the hyphenated name found nothing. The NPI lookup now retries twice (400ms, 800ms) before falling back. (Tested with NPPES failing twice, then answering.)
 - Still open: Devoted shows ❌ for most of Gail's doctors; spot-check one on Devoted's site. Aetna meds all read "not confirmed" in that run.
+## 2026-10-08 — Gail: Devoted and Aetna meds all "not confirmed" (retry + logging; root cause NOT proven)
+- Gail's fresh 5-plan run priced Humana / UHC / Doctors but every med on Devoted H1290-037 and Aetna H1609-093 read "not confirmed". Neither plan is in the Sunfire map, so both go to medicare.gov (`lookupMedicareGov`), which was not reachable from the sandbox, so the real reason is unseen.
+- Added: one retry per NDC when medicare.gov's drug-cost answer fails (`askCost`, 700ms), and a Railway log line when a med can't be priced: `[formulary] <plan> <drug> <year> unverified: <reason>`. Read the next Gail run's reasons in the Railway logs.
+- Next step if it persists: the reasons in that log line decide (HTTP errors, no NDC, plan not in medicare.gov for 2027, …).
