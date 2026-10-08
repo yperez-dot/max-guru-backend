@@ -867,7 +867,11 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   const latestUser = [...(context.messages || [])].reverse().find((m) => m && m.role === 'user');
   const latestText = latestUser ? (typeof latestUser.content === 'string' ? latestUser.content : JSON.stringify(latestUser.content || '')) : '';
   const tableMode = doctors.length > 1 || /\b[HR]\d{4}-\d{3}/i.test(latestText) || Boolean(toolInput.planId) || (Array.isArray(toolInput.planIds) && toolInput.planIds.length > 0);
-  let askText = tableMode ? comparisonAskText(context.messages || [], conversationAskText(context.messages || [])) : '';
+  // A loaded workup with saved meds + ONE doctor she just named (Paula Harris, 2026-10-08): still the full comparison —
+  // the meds are priced here, so Max never asks for meds she already has.
+  const workupWithMeds = !tableMode && (context.messages || []).some((m) => m && m.role === 'user' && /structured facts only/i.test(typeof m.content === 'string' ? m.content : JSON.stringify(m.content || '')))
+    && medsFromAsk(comparisonAskText(context.messages || [], conversationAskText(context.messages || []))).length > 0;
+  let askText = tableMode || workupWithMeds ? comparisonAskText(context.messages || [], conversationAskText(context.messages || [])) : '';
   // Her county decides which grid plans can be columns: the tool's ZIP fills in when the ask text has none
   // (an unknown county let Broward-only H1609-018 into a ZIP 33018 grid — Maura, 2026-10-07).
   const toolZip = String(toolInput.zip || doctors.map((d) => d.zip).find(Boolean) || '').match(/\b3\d{4}\b/);
@@ -875,7 +879,7 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   const planAskText = askText || comparisonAskText(context.messages || [], conversationAskText(context.messages || []));
   // Rule 8: meds she already listed are priced here, in the same turn — not left for a
   // later model round that the chat wait never reaches.
-  const meds = tableMode ? medsFromAsk(askText) : [];
+  const meds = tableMode || workupWithMeds ? medsFromAsk(askText) : [];
   if (doctors.length > 1) {
     const carriersLine = (askText.match(/Carriers requested:[^\n]*/g) || []).pop();
     console.log(`[comparison] ${doctors.length} doctors · ${meds.length} meds · ${carriersLine || 'no carrier ask'}`);
@@ -886,7 +890,7 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
     { deadlineAt: doctorDeadline, npiCap }
   )));
 
-  if (!tableMode) {
+  if (!tableMode && !workupWithMeds) {
     const r = results[0];
     return { text: r.text, structured: r.structured, status: r.status };
   }
