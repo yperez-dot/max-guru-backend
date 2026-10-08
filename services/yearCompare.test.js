@@ -364,3 +364,30 @@ describe('benefits-only New client (no doctors or meds): current plan by name', 
     assert.match(src, /found more than one plan that fits/);
   });
 });
+
+describe('year compare by plan name, with typos', () => {
+  const ask = 'provide me with a side by \\side comparsion 2026 v 2027 Humana Gold Plus Giveback HMO for Broward';
+  it('"2026 v 2027 … comparsion" is a year compare', () => assert.equal(yc.wantsYearCompare(ask), true));
+  it('plan-vs-plan asks stay plan-vs-plan', () => assert.equal(yc.wantsYearCompare('compare H1036-054C v H5216-345'), false));
+  it('the UI pins the one grid plan by name when no ID is typed', () => {
+    assert.match(html, /pin the plan from the 2027 grid when exactly one fits/);
+    assert.deepEqual(yc.planCandidatesByName(ask, plans2027).map((x) => x.key), ['H1036-305']);
+  });
+});
+
+describe('typo tolerance', () => {
+  const yes = [
+    'comparsion 2026 v 2027 H1036-305',
+    'compre 2026 vs 2027 for H1036-305',
+    'comparision of 2026 and 2027 H1036-305',
+    'diferences 2026 versus 2027 H1036-305',
+  ];
+  yes.forEach((t) => it(`year compare: ${t}`, () => assert.equal(yc.wantsYearCompare(t), true)));
+  it('plan by name with misspelled carrier, giveback and county', () => {
+    const c = yc.planCandidatesByName('2026 v 2027 Humanna Gold Plus Givback HMO for Browrd', plans2027);
+    assert.deepEqual(c.map((x) => x.key), ['H1036-305']);
+  });
+  it('short words are not fuzzed ("hmo" never becomes another word)', () => {
+    assert.equal(yc.wantsYearCompare('2026 to 2027 for me'), false);
+  });
+});
