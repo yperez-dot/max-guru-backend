@@ -657,3 +657,8 @@ Tests: `services/gailCarriersWrapped.test.js` (Gail's exact text and the real wo
   - A partial name she typed ("Marcus St") now exports the full registry name.
 - **9:51 AM, meds:** `medsFromAsk` only read "Meds: a, b" on one line. A loaded workup writes "Medications (…):" followed by one "- name: tiers" bullet per med, so those meds were never priced. Both forms are read now.
 - **9:54 AM, MedicarePro "Prescriptions (5)" paste:** Max read 0 meds in chat and 1 in the new-client form. Max now reads every "name TAB|CAP… strength" line, giving "Atorvastatin Calcium 10mg", "Tamsulosin HCl 0.4mg" and so on. Fixture: services/fixtures/victorPrescriptions.txt.
+
+## 2026-10-08 — New-client form: "New client:" label, parenthetical commas
+- "New client: Victor Rocha, ZIP …" gave "I didn't find the client's name": the colon cut the head down to "New client". A leading New client / Client / Patient label is stripped first.
+- "Carlos Santa-Cruz, MD (Urology, Coral Gables)" became 3 doctors ("MD (Urology", "Coral Gables)"). Commas inside a parenthetical and a bare credential (MD, DO …) are no longer doctors. "(must keep)" markers are untouched.
+- UI (Netlify): the new-client form's plan names were built as carrier + plan name, so headers read "Humana Humana Gold Plus", "UHC UHC MedicareMax …", "CarePlus CarePlus CareOne Plus", "Doctors Doctors DrMax-Dade". The carrier is only added when the plan name doesn't already start with it.

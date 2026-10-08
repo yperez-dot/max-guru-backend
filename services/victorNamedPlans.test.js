@@ -138,3 +138,27 @@ describe('MedicarePro "Prescriptions (5)" paste (Victor, 9:54 AM)', () => {
   it('chat reads all 5 meds with strengths', () => assert.deepEqual(R.medsFromAsk(rx), want));
   it('the new-client form reads all 5 too', () => assert.deepEqual(parseCompareAsk(`Victor Rocha 33143\n${rx}`).meds, want));
 });
+
+describe('the exact text pasted into New client (Victor, 9:57 AM)', () => {
+  const { parseCompareAsk } = require('./compareJobs');
+  const text = [
+    'New client: Victor Rocha, ZIP 33143 (Miami-Dade), 2027.',
+    'Doctors: Carlos Santa-Cruz, MD (Urology, Coral Gables); Marcus St John NPI 1073510269; Armando J Rivero NPI 1982668323',
+    'Meds: atorvastatin calcium 10mg, ezetimibe 10mg, pantoprazole sodium 20mg DR, tadalafil 2.5mg, tamsulosin HCl 0.4mg',
+    'Compare Humana Gold Plus H1036-054C, UHC MedicareMax FL-0028 H5420-001, CarePlus CareOne Plus H1019-006, CarePlus CareFree Platinum H1019-136, Doctors DrMax-Dade H4140-022',
+  ].join('\n');
+  it('finds the name after a "New client:" label', () => {
+    assert.equal(parseCompareAsk(text).clientName, 'Victor Rocha');
+    assert.equal(parseCompareAsk('Client: Maria Gonzalez, ZIP 33178').clientName, 'Maria Gonzalez');
+  });
+  it('3 doctors (not 5): parenthetical commas and a trailing credential are not doctors', () => {
+    const r = parseCompareAsk(text);
+    assert.deepEqual(r.doctors.map((d) => d.name), ['Carlos Santa-Cruz', 'Marcus St John', 'Armando J Rivero']);
+    assert.equal(r.doctors[1].npi, '1073510269');
+  });
+  it('5 meds and 5 plans', () => {
+    const r = parseCompareAsk(text);
+    assert.equal(r.meds.length, 5);
+    assert.equal(r.plans.length, 5);
+  });
+});
