@@ -84,6 +84,38 @@
     return "";
   }
 
+
+  /**
+   * "she is on the humana hmo giveback" (no plan ID) → the 2027 grid plan(s) that fit, for her county.
+   * Needs the carrier; HMO/PPO and "giveback" narrow it. Returns every fit so the caller can say "more than one".
+   */
+  function planCandidatesByName(text, plans2027) {
+    const t = String(text || "").toLowerCase();
+    const flat = t.replace(/[^a-z0-9]+/g, "");
+    const county = countyHint(text);
+    const wantType = (t.match(/\b(hmo|ppo)\b/) || [])[1] || "";
+    const wantGive = /give\s*-?back/.test(t);
+    const seen = {};
+    const fits = [];
+    (plans2027 || []).forEach((p) => {
+      const carrier = String(p.carrier || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+      if (!carrier || !flat.includes(carrier)) return;
+      if (county && p.county !== county) return;
+      if (wantType && !new RegExp(wantType, "i").test(String(p.type || ""))) return;
+      const name = String(p.planName || p.name || "");
+      if (wantGive && !/give\s*-?back/i.test(name)) return;
+      if (!wantGive && /give\s*-?back/i.test(name)) return;
+      const key = planKey(p);
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      const tokens = productTokens(name).filter((w) => w !== carrier && w !== "giveback" && w !== "commissionable" && w !== "new" && !/^20\d\d$/.test(w));
+      const hits = tokens.filter((w) => t.includes(w)).length;
+      fits.push({ key, name, hits });
+    });
+    const best = Math.max(0, ...fits.map((f) => f.hits));
+    return fits.filter((f) => f.hits === best);
+  }
+
   // ─── Intent ────────────────────────────────────────────────────────────────
 
   const YEAR_PAIR_RE = /\b2026\s*(?:vs\.?|versus|v\.?|to|→|->|and|&|with|against|or)\s*2027\b|\b2027\s*(?:vs\.?|versus|v\.?|and|&|with|against|or)\s*2026\b/i;
@@ -1164,6 +1196,7 @@
     normalizePlanKey,
     planIdsInText,
     countyHint,
+    planCandidatesByName,
     wantsYearCompare,
     loadCmsFromDom,
     productChanged,

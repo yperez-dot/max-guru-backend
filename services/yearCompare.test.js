@@ -335,3 +335,32 @@ describe('2026 archive cleanup', () => {
     assert.ok(plans2026.some((p) => p.county === 'Broward' && /H0982-007/.test(String(p.planId))));
   });
 });
+
+describe('benefits-only New client (no doctors or meds): current plan by name', () => {
+  it('"humana hmo giveback" in 33009 (Broward) is exactly Humana Gold Plus Giveback H1036-305', () => {
+    const c = yc.planCandidatesByName('Kimberly Janiszewski , 33009, is currently on the humana hmo giveback. lets compare side by side with 2027 benefits. She has no drs or meds', plans2027);
+    assert.deepEqual(c.map((x) => x.key), ['H1036-305']);
+  });
+  it('the Humana PPO giveback fits two plans, so it is ambiguous (never guessed)', () => {
+    const c = yc.planCandidatesByName('33009 on the humana ppo giveback', plans2027);
+    assert.deepEqual(c.map((x) => x.key).sort(), ['H7617-110', 'H7617-145']);
+  });
+  it('a plain "humana hmo" does not pick a giveback plan', () => {
+    const c = yc.planCandidatesByName('33009 humana hmo', plans2027);
+    assert.deepEqual(c.map((x) => x.key), ['H1036-065']);
+  });
+  it('no carrier named → no candidates', () => {
+    assert.deepEqual(yc.planCandidatesByName('33009 on the giveback hmo', plans2027), []);
+  });
+  it('H1036-305 in Broward compares 2026 vs 2027 from the ZIP', () => {
+    const r = run('Kimberly Janiszewski 33009 H1036-305 compare 2026 vs 2027');
+    assert.ok(r.pairs.length);
+    assert.match(r.chatText, /Giveback H1036-305 \(Broward\)/);
+  });
+  it('New client no longer stops on "no doctors or meds" when the plan resolves', () => {
+    const src = html;
+    assert.match(src, /benefitsOnlyIds/);
+    assert.match(src, /planCandidatesByName\(rawText, PLAN_DATA_BY_YEAR\[2027\]\)/);
+    assert.match(src, /found more than one plan that fits/);
+  });
+});

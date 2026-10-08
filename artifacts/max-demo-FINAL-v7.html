@@ -3880,6 +3880,38 @@
     return "";
   }
 
+
+  /**
+   * "she is on the humana hmo giveback" (no plan ID) → the 2027 grid plan(s) that fit, for her county.
+   * Needs the carrier; HMO/PPO and "giveback" narrow it. Returns every fit so the caller can say "more than one".
+   */
+  function planCandidatesByName(text, plans2027) {
+    const t = String(text || "").toLowerCase();
+    const flat = t.replace(/[^a-z0-9]+/g, "");
+    const county = countyHint(text);
+    const wantType = (t.match(/\b(hmo|ppo)\b/) || [])[1] || "";
+    const wantGive = /give\s*-?back/.test(t);
+    const seen = {};
+    const fits = [];
+    (plans2027 || []).forEach((p) => {
+      const carrier = String(p.carrier || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+      if (!carrier || !flat.includes(carrier)) return;
+      if (county && p.county !== county) return;
+      if (wantType && !new RegExp(wantType, "i").test(String(p.type || ""))) return;
+      const name = String(p.planName || p.name || "");
+      if (wantGive && !/give\s*-?back/i.test(name)) return;
+      if (!wantGive && /give\s*-?back/i.test(name)) return;
+      const key = planKey(p);
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      const tokens = productTokens(name).filter((w) => w !== carrier && w !== "giveback" && w !== "commissionable" && w !== "new" && !/^20\d\d$/.test(w));
+      const hits = tokens.filter((w) => t.includes(w)).length;
+      fits.push({ key, name, hits });
+    });
+    const best = Math.max(0, ...fits.map((f) => f.hits));
+    return fits.filter((f) => f.hits === best);
+  }
+
   // ─── Intent ────────────────────────────────────────────────────────────────
 
   const YEAR_PAIR_RE = /\b2026\s*(?:vs\.?|versus|v\.?|to|→|->|and|&|with|against|or)\s*2027\b|\b2027\s*(?:vs\.?|versus|v\.?|and|&|with|against|or)\s*2026\b/i;
@@ -4960,6 +4992,7 @@
     normalizePlanKey,
     planIdsInText,
     countyHint,
+    planCandidatesByName,
     wantsYearCompare,
     loadCmsFromDom,
     productChanged,
@@ -7054,10 +7087,39 @@ function App() {
       };
       if (!fields.clientName) throw new Error("I didn't find the client's name. Start with the name — a person, a couple, or a family name — like \"Maria Gonzalez, ZIP 33178 …\", \"Sharon and George Mazzeo, 33178 …\" or \"Mazzeos, 33178 …\".");
       if (!fields.zip) throw new Error("I didn't find a ZIP in that. Add the client's ZIP and tap Continue again.");
-      if (!linesOf(fields.doctors).length && !linesOf(fields.meds).length) throw new Error("I didn't find any doctors or meds in that. Add at least one and tap Continue again.");
+      let benefitsOnlyIds = [];
+      if (!linesOf(fields.doctors).length && !linesOf(fields.meds).length) {
+        // No doctors or meds (Kimberly Janiszewski, 2026-10-08): "she is on the humana hmo giveback, compare with 2027 benefits"
+        // is a plan-vs-plan benefits ask. Pin the current plan from the 2027 grid for her county; never guess between several.
+        const YC = window.MaxYearCompare;
+        const idsInAsk = YC && YC.planIdsInText ? YC.planIdsInText(rawText) : [];
+        const byName = !idsInAsk.length && YC && YC.planCandidatesByName ? YC.planCandidatesByName(rawText, PLAN_DATA_BY_YEAR[2027]) : [];
+        if (idsInAsk.length) benefitsOnlyIds = idsInAsk;
+        else if (byName.length === 1) benefitsOnlyIds = [byName[0].key];
+        else if (byName.length > 1 && byName.length <= 6) throw new Error("No doctors or meds is fine, but I found more than one plan that fits: " + byName.map((c) => c.name.replace(/\s*(\*\*)?NEW 2027|\s*COMMISSIONABLE 2027/gi, "").trim() + " (" + c.key + ")").join("; ") + ". Add the plan ID to the paste and tap Continue again.");
+        else throw new Error("I didn't find any doctors or meds in that. Add at least one (or the plan she is on, with its ID) and tap Continue again.");
+      }
       const saved = await workupsRequest("PUT", "", { clientName: fields.clientName, zip: fields.zip, plans: [] });
       const workup = saved.workup;
       addWorkupSummary(workup);
+      if (benefitsOnlyIds.length) {
+        setWs("new", { busy: false, error: "" });
+        await openWorkup(workup.id);
+        const yc = window.MaxYearCompare.runYearCompare({
+          text: rawText + " " + benefitsOnlyIds.join(" ") + " compare 2026 vs 2027",
+          plans2026: PLAN_DATA_BY_YEAR[2026],
+          plans2027: PLAN_DATA_BY_YEAR[2027],
+          clientName: fields.clientName,
+        });
+        if (yc) {
+          const more = [{ role: "assistant", content: yc.chatText, time: nowLabel() }];
+          if (yc.payload) more.push({ role: "offer", content: "yearCompare", yearCompare: yc.payload, clientName: yc.payload.clientName, time: nowLabel() });
+          const merged = [...messagesRef.current, ...more];
+          messagesRef.current = merged;
+          setMessages(merged);
+        }
+        return;
+      }
       setWs(workup.id, { id: workup.id, workupId: workup.id, stage: "questions", rawText, fields, answers: {}, name: fields.clientName, error: "" });
       setWs("new", { busy: false, error: "" });
       await openWorkup(workup.id);
