@@ -370,7 +370,7 @@ describe('year compare by plan name, with typos', () => {
   it('"2026 v 2027 … comparsion" is a year compare', () => assert.equal(yc.wantsYearCompare(ask), true));
   it('plan-vs-plan asks stay plan-vs-plan', () => assert.equal(yc.wantsYearCompare('compare H1036-054C v H5216-345'), false));
   it('the UI pins the one grid plan by name when no ID is typed', () => {
-    assert.match(html, /pin the plan from the 2027 grid when exactly one fits/);
+    assert.match(html, /YC\.resolveAskPlans/);
     assert.deepEqual(yc.planCandidatesByName(ask, plans2027).map((x) => x.key), ['H1036-305']);
   });
 });
@@ -390,4 +390,24 @@ describe('typo tolerance', () => {
   it('short words are not fuzzed ("hmo" never becomes another word)', () => {
     assert.equal(yc.wantsYearCompare('2026 to 2027 for me'), false);
   });
+});
+
+describe('a plan named in the ask beats the plan from earlier in the chat', () => {
+  const earlier = ['H1036-305'];
+  it('names one plan → that plan, not the earlier one', () => {
+    const r = yc.resolveAskPlans('now 2026 v 2027 Humana Gold Plus HMO for Broward', plans2027, earlier);
+    assert.deepEqual(r.ids, ['H1036-065']);
+  });
+  it('typed ID wins', () => {
+    assert.deepEqual(yc.resolveAskPlans('compare 2026 vs 2027 H5420-001', plans2027, earlier).ids, ['H5420-001']);
+  });
+  it('several fits → ambiguous, earlier plan is NOT reused', () => {
+    const r = yc.resolveAskPlans('2026 v 2027 humana ppo giveback broward', plans2027, earlier);
+    assert.deepEqual(r.ids, []);
+    assert.deepEqual(r.ambiguous.map((x) => x.key).sort(), ['H7617-110', 'H7617-145']);
+  });
+  it('no plan named ("what changed?") → earlier plan is kept', () => {
+    assert.deepEqual(yc.resolveAskPlans('what changed?', plans2027, earlier).ids, earlier);
+  });
+  it('UI uses resolveAskPlans', () => assert.match(html, /YC\.resolveAskPlans\(text, PLAN_DATA_BY_YEAR\[2027\], earlierIds\)/));
 });
