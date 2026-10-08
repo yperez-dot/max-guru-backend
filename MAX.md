@@ -686,3 +686,6 @@ bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.
 ## 2026-10-08 — New client with no doctors or meds (Kimberly Janiszewski)
 - "…is currently on the humana hmo giveback, compare side by side with 2027 benefits. She has no drs or meds" used to stop at "I didn't find any doctors or meds".
 - Now: if the paste names a plan ID, or a carrier + HMO/PPO (+ giveback) that fits exactly ONE 2027 grid plan in her county (`planCandidatesByName` in year-compare.js), the workup opens and the 2026 vs 2027 same-plan compare runs (Broward humana hmo giveback = H1036-305). More than one fit → Max lists them and asks for the ID; no fit → the original error.
+
+## 2026-10-08 — 2026 v 2027 compare by plan name, typo-tolerant
+- "side by side comparsion 2026 v 2027 Humana Gold Plus Giveback HMO for Broward" now runs the same-plan compare directly (was: model said "type compare … H1036-305"). "v", "compar*" typos and "side by side" count as compare words next to a 2026/2027 pair; with no plan ID, the one 2027 grid plan that fits carrier + HMO/PPO + giveback + county is used (never guessed when several fit). Includes #169.
