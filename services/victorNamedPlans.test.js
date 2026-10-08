@@ -162,3 +162,13 @@ describe('the exact text pasted into New client (Victor, 9:57 AM)', () => {
     assert.equal(r.plans.length, 5);
   });
 });
+
+describe('opening another client’s workup drops the previous client’s lookups (Gail’s PDF had Victor’s doctors and meds)', () => {
+  const html = require('fs').readFileSync(require('path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
+  it('resetChatSession clears the session lookup results even when it keeps the workup', () => {
+    const fn = html.slice(html.indexOf('const keepWorkup = opts && opts.keepWorkup;'), html.indexOf('setMessages([]);', html.indexOf('const keepWorkup = opts && opts.keepWorkup;')));
+    const beforeIf = fn.slice(0, fn.indexOf('if (!keepWorkup)'));
+    assert.match(beforeIf, /sessionToolResultsRef\.current = \[\]/);
+    assert.match(beforeIf, /resumeToolResultsRef\.current = \[\]/);
+  });
+});
