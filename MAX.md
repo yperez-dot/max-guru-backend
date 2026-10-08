@@ -690,6 +690,7 @@ bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.
 ## 2026-10-08 — 2026 v 2027 compare by plan name, typo-tolerant
 - "side by side comparsion 2026 v 2027 Humana Gold Plus Giveback HMO for Broward" now runs the same-plan compare directly (was: model said "type compare … H1036-305"). "v", "compar*" typos and "side by side" count as compare words next to a 2026/2027 pair; with no plan ID, the one 2027 grid plan that fits carrier + HMO/PPO + giveback + county is used (never guessed when several fit). Includes #169.
 - Typo tolerance (same day): compare words, carrier, "giveback" and county in the year-compare ask are matched within 2 edits (words under 5 letters stay exact), so "comparsion", "givback", "Humanna", "Browrd" still work.
+- Follow-up asks (same day): a plan she names in a new year-compare ask (ID, or carrier + HMO/PPO + giveback + county) now beats the plan from earlier in the chat (`resolveAskPlans`). Before, a name with no ID fell back to the previous plan and Max repeated the same comparison. Several fits → Max lists them and asks; the earlier plan is reused only for bare asks like "what changed?".
 
 ## 2026-10-08 — Loaded workup meds + one doctor (Paula Harris)
 - A loaded workup with saved meds plus ONE doctor typed in chat ("Her Dr is Dr. Elda Regalado") was treated as a single-doctor lookup: meds never priced, and Max asked "does she take any medications?". providerNetwork now runs the full comparison (table mode + meds priced) when a loaded workup with meds is in the thread (`workupWithMeds`).
