@@ -694,3 +694,7 @@ bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.
 
 ## 2026-10-08 — Loaded workup meds + one doctor (Paula Harris)
 - A loaded workup with saved meds plus ONE doctor typed in chat ("Her Dr is Dr. Elda Regalado") was treated as a single-doctor lookup: meds never priced, and Max asked "does she take any medications?". providerNetwork now runs the full comparison (table mode + meds priced) when a loaded workup with meds is in the thread (`workupWithMeds`).
+
+
+## 2026-10-08 — "i gave them to you already" (Paula Harris)
+- Even with her 5 meds in the loaded workup, Max later said the workup had none and asked again. /chat now appends a MEDS ALREADY ON FILE note (from the workup or her messages, `knownMedsNote`) to the system prompt every turn, telling the model to price them and never ask.
