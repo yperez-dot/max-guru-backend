@@ -145,6 +145,21 @@
     return COMPARE_WORD_RE.test(text) || FUZZY_COMPARE_WORDS.some((w) => hasFuzzyWord(text, w, 2));
   }
 
+
+  /**
+   * Which plan(s) does this ask mean? A plan she names (ID, or carrier + type/giveback + county) always beats the
+   * plan from earlier in the chat; earlier plans are used only when the ask names none ("what changed?").
+   * → { ids, ambiguous: [{key,name}] }
+   */
+  function resolveAskPlans(text, plans2027, fallbackIds) {
+    const typed = planIdsInText(text);
+    if (typed.length) return { ids: typed, ambiguous: [] };
+    const byName = planCandidatesByName(text, plans2027);
+    if (byName.length === 1) return { ids: [byName[0].key], ambiguous: [] };
+    if (byName.length > 1) return { ids: [], ambiguous: byName.slice(0, 8) };
+    return { ids: (fallbackIds || []).slice(), ambiguous: [] };
+  }
+
   // ─── Intent ────────────────────────────────────────────────────────────────
 
   const YEAR_PAIR_RE = /\b2026\s*(?:vs\.?|versus|v\.?|to|→|->|and|&|with|against|or)\s*2027\b|\b2027\s*(?:vs\.?|versus|v\.?|and|&|with|against|or)\s*2026\b/i;
@@ -1226,6 +1241,7 @@
     planIdsInText,
     countyHint,
     planCandidatesByName,
+    resolveAskPlans,
     editDistance,
     wantsYearCompare,
     loadCmsFromDom,
