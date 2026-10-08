@@ -1398,6 +1398,26 @@
     return fallback;
   }
 
+  const ID_TITLE_RE = /\b(dr|md|m\.d|do|d\.o|np|pa|aprn|arnp|dpm|od|phd|pcp|doctor)\b\.?/gi;
+  function nameWords(n) {
+    return String(n || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+      .replace(ID_TITLE_RE, " ").split(/[^a-z']+/).filter(Boolean);
+  }
+  function askedWordsIn(asked, registry) {
+    const a = nameWords(asked).filter((w) => w.length > 1);
+    const r = nameWords(registry);
+    return a.length > 0 && a.every((w) => r.includes(w));
+  }
+  function exportIdentityMismatch(asked, registry) {
+    const a = nameWords(asked).filter((w) => w.length > 1);
+    if (a.length < 2) return false;
+    const rAll = nameWords(registry);
+    const r = rAll.filter((w) => w.length > 1);
+    if (!r.includes(a[0])) return true;
+    const initials = new Set(rAll.filter((w) => w.length === 1));
+    return a.slice(1, -1).some((w) => w.length >= 3 && !r.includes(w) && !initials.has(w[0]));
+  }
+
   function doctorsFromProviderLookups(lookups, plans) {
     if (!Array.isArray(lookups) || !lookups.length || !plans || !plans.length) return [];
     const out = [];
@@ -1414,21 +1434,33 @@
         if (!name) return;
         const networks = pr.networks || src.networks || [];
         const missIsUnknown = looksLikeOrganization(name);
+        // Same identity rule as the chat table (doctorPlanNarrow.identityIssue): a match whose first
+        // name, or a full middle word she gave, is not in the registry name is a different person —
+        // its In/Out never counts ("Carlos Santa Cruz" → CARLOS A CRUZ, Victor 2026-10-08).
+        const mismatch = !looksLikeOrganization(name) && !looksLikeOrganization(pr.requestedName || "") && exportIdentityMismatch(pr.requestedName, name);
         const statuses = plans.map(
-          (p) => statusFromProviderNetworks(p, networks, { missIsUnknown }) || NETWORK_NOT_CONFIRMED
+          (p) => (mismatch ? "" : statusFromProviderNetworks(p, networks, { missIsUnknown })) || NETWORK_NOT_CONFIRMED
         );
-        const display = cleanProviderDisplayName(pr.requestedName || name);
+        const askedLabel = cleanProviderDisplayName(pr.requestedName || name);
+        const registryLabel = cleanProviderDisplayName(name);
+        // She typed part of the name ("Marcus St") and the registry has all of it → show the full name.
+        // A different person → "Dr. Carlos A Cruz (asked: Carlos Santa Cruz)", never her name on his NPI.
+        const display = !pr.requestedName ? registryLabel
+          : mismatch ? `${registryLabel} (you asked ${askedLabel.replace(/^Dr\. /, "")}) — confirm match`
+            : askedWordsIn(pr.requestedName, name) ? registryLabel : askedLabel;
         const row = {
           name: display,
           statuses,
           byPlanId: byPlanIdFromStatuses(statuses, plans),
-          networks,
+          // A different person's directory hits must not be re-read into In/Out further down.
+          networks: mismatch ? [] : networks,
         };
+        if (mismatch) row.identityPending = "mismatch";
         const npi = String(pr.npi || "").replace(/\D/g, "");
         if (npi.length === 10) row.npi = npi;
         // The registry's name for the requested one ("Rawan Jumean-Haddad" → RAWAN H JUMEAN) is an alias.
-        const registry = cleanProviderDisplayName(name);
-        if (registry && registry !== display) row.aliases = [registry];
+        row.aliases = [...new Set([registryLabel, askedLabel].filter((a) => a && a !== display))];
+        if (!row.aliases.length) delete row.aliases;
         out.push(row);
       });
     });

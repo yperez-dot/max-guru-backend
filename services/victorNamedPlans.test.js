@@ -94,3 +94,38 @@ describe('"check Doctors DrMax-Dade · H4140-022 again" then "add Humana … and
     assert.match(drmax.name, /Doctors DrMax-Dade/);
   });
 });
+
+describe('Excel export doctor rows (Victor’s Plan_Comparison_H1036-054C_H5420-001.xlsx)', () => {
+  const exp = require('../artifacts/comparison-export.js');
+  const plans = [{ planId: 'H5420-001', carrier: 'UnitedHealthcare', planName: 'UHC MedicareMax FL-0028', county: 'Miami-Dade' }];
+  const uhc = (inNetwork) => [{ carrier: 'UnitedHealthcare', inNetwork, status: 'checked', plans: inNetwork ? ['UHC MedicareMax FL-0028 (H5420-001)'] : [], outOfNetworkPlans: inNetwork ? [] : ['UHC MedicareMax FL-0028 (H5420-001)'] }];
+
+  it('her name never sits on a different doctor’s NPI; his In/Out does not count', () => {
+    const [row] = exp.doctorsFromProviderLookups([{ doctorName: 'CARLOS A CRUZ MD', requestedName: 'Dr. Carlos Santa Cruz', npi: '1679505259', networks: uhc(false) }], plans);
+    assert.match(row.name, /Carlos A Cruz \(you asked Carlos Santa Cruz\)/);
+    assert.match(row.name, /confirm match/);
+    assert.equal(row.statuses[0], 'Not confirmed');
+  });
+
+  it('a partial name she typed ("Marcus St") shows the full registry name', () => {
+    const [row] = exp.doctorsFromProviderLookups([{ doctorName: 'MARCUS E ST JOHN MD', requestedName: 'Marcus St', npi: '1073510269', networks: uhc(true) }], plans);
+    assert.equal(row.name, 'Dr. Marcus E St John');
+    assert.equal(row.statuses[0], 'In network');
+  });
+
+  it('a matching middle initial is the same person', () => {
+    const [row] = exp.doctorsFromProviderLookups([{ doctorName: 'ARMANDO J RIVERO MD', requestedName: 'Armando Jose Rivero', networks: uhc(true) }], plans);
+    assert.equal(row.statuses[0], 'In network');
+  });
+});
+
+describe('a loaded workup’s meds are priced ("it didnt add his meds either")', () => {
+  const R = require('./comparisonRules');
+  it('reads the workup "Medications (…):" bullet list, without the saved tier text', () => {
+    const t = 'LOADED CLIENT WORKUP — structured facts only\nZIP: 33143\nMedications (tiers shown are verified formulary only; a med with no tier still needs lookup_formulary):\n- Atorvastatin 20mg: H1036-054C Tier 1 · $0\n- Tamsulosin 0.4mg\nNeeds:\n- dental';
+    assert.deepEqual(R.medsFromAsk(t), ['Atorvastatin 20mg', 'Tamsulosin 0.4mg']);
+  });
+  it('the one-line form still works', () => {
+    assert.deepEqual(R.medsFromAsk('Meds: Metformin 500mg, Lisinopril 10mg'), ['Metformin 500mg', 'Lisinopril 10mg']);
+  });
+});

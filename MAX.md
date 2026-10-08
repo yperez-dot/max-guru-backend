@@ -652,3 +652,7 @@ Tests: `services/gailCarriersWrapped.test.js` (Gail's exact text and the real wo
 - **Same day, 9:45–9:49 AM:**
   - "check Doctors DrMax-Dade · H4140-022 again" put "check" into the column name. Leading verbs (check / re-run / verify / try / pls …) are now stripped from plan names, and "check <plan ID>" decides the columns.
   - UI (Netlify): "Pls add Humana … and UHC … to the grid" made the export and Show benefits use only the 2 cited plans and drop DrMax-Dade. An add-ask now keeps every column of the reply's table.
+- **9:50 AM, Excel (export module, UI):**
+  - A doctor matched to a different person ("Carlos Santa Cruz" → CARLOS A CRUZ) was exported under her name with his In/Out. It now reads "Dr. Carlos A Cruz (you asked Carlos Santa Cruz) — confirm match" and every cell is Not confirmed.
+  - A partial name she typed ("Marcus St") now exports the full registry name.
+- **9:51 AM, meds:** `medsFromAsk` only read "Meds: a, b" on one line. A loaded workup writes "Medications (…):" followed by one "- name: tiers" bullet per med, so those meds were never priced. Both forms are read now.
