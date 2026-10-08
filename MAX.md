@@ -682,3 +682,6 @@ bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.
 - Gail's fresh 5-plan run priced Humana / UHC / Doctors but every med on Devoted H1290-037 and Aetna H1609-093 read "not confirmed". Neither plan is in the Sunfire map, so both go to medicare.gov (`lookupMedicareGov`), which was not reachable from the sandbox, so the real reason is unseen.
 - Added: one retry per NDC when medicare.gov's drug-cost answer fails (`askCost`, 700ms), and a Railway log line when a med can't be priced: `[formulary] <plan> <drug> <year> unverified: <reason>`. Read the next Gail run's reasons in the Railway logs.
 - Next step if it persists: the reasons in that log line decide (HTTP errors, no NDC, plan not in medicare.gov for 2027, …).
+
+## 2026-10-08 — Loaded workup meds + one doctor (Paula Harris)
+- A loaded workup with saved meds plus ONE doctor typed in chat ("Her Dr is Dr. Elda Regalado") was treated as a single-doctor lookup: meds never priced, and Max asked "does she take any medications?". providerNetwork now runs the full comparison (table mode + meds priced) when a loaded workup with meds is in the thread (`workupWithMeds`).
