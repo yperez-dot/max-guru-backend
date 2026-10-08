@@ -662,3 +662,10 @@ Tests: `services/gailCarriersWrapped.test.js` (Gail's exact text and the real wo
 - "New client: Victor Rocha, ZIP …" gave "I didn't find the client's name": the colon cut the head down to "New client". A leading New client / Client / Patient label is stripped first.
 - "Carlos Santa-Cruz, MD (Urology, Coral Gables)" became 3 doctors ("MD (Urology", "Coral Gables)"). Commas inside a parenthetical and a bare credential (MD, DO …) are no longer doctors. "(must keep)" markers are untouched.
 - UI (Netlify): the new-client form's plan names were built as carrier + plan name, so headers read "Humana Humana Gold Plus", "UHC UHC MedicareMax …", "CarePlus CarePlus CareOne Plus", "Doctors Doctors DrMax-Dade". The carrier is only added when the plan name doesn't already start with it.
+## 2026-10-08 — "Dr.Armando Rivero" (no space after the period)
+
+Victor Rocha's run: "Dr.Armando Rivero" went to NPPES unchanged and matched nobody ("No exact
+match … closest: Armando J Rivero, Homero G. Rivero …"). Every title strip required whitespace
+after "Dr." (`npiRegistry.js` cleanDoctorQuery + parseName, four places in `compareJobs.js`).
+Now a dotted title may be glued to the name ("Dr.", "Dra.", "Drs.", "Mr.", "Ms.", "Mrs.") while a
+bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.

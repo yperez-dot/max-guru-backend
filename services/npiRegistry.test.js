@@ -317,3 +317,22 @@ describe('spelling-tolerant suggestions', () => {
     } finally { global.fetch = saved; }
   });
 });
+
+describe('cleanDoctorQuery: a title glued to the name (Victor Rocha, 2026-10-08)', () => {
+  const { cleanDoctorQuery } = require('./npiRegistry');
+  it('"Dr.Armando Rivero" searches NPPES as Armando Rivero', () => {
+    assert.equal(cleanDoctorQuery('Dr.Armando Rivero'), 'Armando Rivero');
+    assert.equal(cleanDoctorQuery('DR.ARMANDO RIVERO'), 'Armando Rivero');
+    assert.equal(cleanDoctorQuery('Dra.Maria Lopez'), 'Maria Lopez');
+    assert.equal(cleanDoctorQuery('Dr.Armando Rivero MD'), 'Armando Rivero');
+  });
+  it('the spaced forms still work', () => {
+    assert.equal(cleanDoctorQuery('Dr. Armando Rivero'), 'Armando Rivero');
+    assert.equal(cleanDoctorQuery('Dr Armando Rivero'), 'Armando Rivero');
+    assert.equal(cleanDoctorQuery('Doctor Armando Rivero'), 'Armando Rivero');
+  });
+  it('a first name that starts with "Dr" is left alone', () => {
+    assert.equal(cleanDoctorQuery('Drake Smith'), 'Drake Smith');
+    assert.equal(cleanDoctorQuery('Drew Carey'), 'Drew Carey');
+  });
+});

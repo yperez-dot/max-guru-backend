@@ -69,7 +69,10 @@ const SPECIALTY_HINT_RE = /^(gynecologist|gynecology|gynecologic|obgyn|internist
 function cleanDoctorQuery(name) {
   let s = String(name || '').replace(/\s+/g, ' ').trim();
   if (!s || /^\d{10}$/.test(s)) return s;
-  s = s.replace(/^(dr\.?|doctor|mr\.?|mrs\.?|ms\.?)\s+/i, '');
+  // "Dr.Armando Rivero" (no space after the period) went to NPPES as-is and matched nobody
+  // (Victor Rocha, 2026-10-08). A dotted title may be glued to the name; a bare one needs a space
+  // so "Drake" / "Drew" are left alone. "Dra." is the Spanish title.
+  s = s.replace(/^(?:(?:dra?s?|mr|mrs|ms)\.\s*|(?:dra?s?|doctor|mr|mrs|ms)\s+)/i, '');
   s = s.replace(/\(([^)]*)\)/g, ' ').replace(/\s+/g, ' ').trim();
   const isOrg = ORG_HINT_RE.test(s);
   const parts = s.split(/[\s,]+/).filter(Boolean);
@@ -92,7 +95,7 @@ function cleanDoctorQuery(name) {
 function parseName(fullName) {
   if (!fullName || typeof fullName !== 'string') return {};
   let cleaned = fullName.trim();
-  cleaned = cleaned.replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?)\s+/i, '');
+  cleaned = cleaned.replace(/^(?:(?:dra?s?|mr|mrs|ms)\.\s*|(?:dra?s?|doctor|mr|mrs|ms)\s+)/i, '');
   cleaned = cleaned.replace(/\s+at\s+.+$/i, '');
   cleaned = cleaned.replace(/,?\s+(MD|DO|NP|PA|RN|APRN|DDS|DMD|DPM|OD|DC|PharmD|PhD|ARNP)\.?$/i, '').trim();
 

@@ -70,11 +70,11 @@ function unlabeledDoctors(t, zip) {
   if (!zip) return '';
   const at = t.indexOf(zip);
   if (at < 0) return '';
-  let rest = t.slice(at + zip.length).replace(/^[\s.,;:\-–—]+/, '').replace(/\b(?:Drs?|Dras?|Doc)\.\s+(?=[A-Za-z])/gi, '');
+  let rest = t.slice(at + zip.length).replace(/^[\s.,;:\-–—]+/, '').replace(/\b(?:Drs?|Dras?|Doc)\.\s*(?=[A-Za-z])/gi, '');
   rest = rest.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Za-z])|\n\s*\n/)[0];
   const items = rest.split(/\n|,|;|\band\b(?=\s+[A-Z])/).map((x) => x.replace(/^[\s\-•*\d.)]+/, '').replace(/[\s.]+$/, '').trim()).filter(Boolean);
   const looksLikeName = (x) => {
-    const w = x.replace(/\b(?:Drs?|Dras?|Doc)\.?\s+/i, '').split(/\s+/);
+    const w = x.replace(/\b(?:Drs?|Dras?|Doc)(?:\.\s*|\s+)/i, '').split(/\s+/);
     return w.length >= 2 && w.length <= 5 && /^[A-Z]/.test(w[0]) && /^[A-Z]/.test(w[w.length - 1]) && w.every((y) => /^[A-Za-z][A-Za-z.'’-]*$/.test(y)) &&
       !/^(?:no|none|meds?|medicaid|they|for|has|have|she|he|compare|add)\b/i.test(x);
   };
@@ -90,7 +90,7 @@ function unlabeledMeds(t, zip, doctors) {
   if (!zip) return '';
   const at = t.indexOf(zip);
   if (at < 0) return '';
-  const rest = t.slice(at + zip.length).replace(/^[\s.,;:\-–—]+/, '').replace(/\b(?:Drs?|Dras?|Doc)\.\s+(?=[A-Za-z])/gi, '');
+  const rest = t.slice(at + zip.length).replace(/^[\s.,;:\-–—]+/, '').replace(/\b(?:Drs?|Dras?|Doc)\.\s*(?=[A-Za-z])/gi, '');
   const docNames = new Set((doctors || []).map((d) => d.name.toLowerCase()));
   for (const sentence of rest.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Za-z])|\n/)) {
     const body = sentence.replace(/^\s*(?:takes?|taking|on|meds?|rx)\s*:?\s+/i, '').replace(/[\s.]+$/, '');
@@ -123,7 +123,7 @@ function parseCompareAsk(text) {
   const cut = (s) => s.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Z])|\bcompare\b|\bgive me\b|\bsuggest\b|\bshow me\b/i)[0];
   // "Dr. Jorge Perez" must not be cut at the period after "Dr" (it left the doctor named just "Dr").
   if (!doctorsText) doctorsText = unlabeledDoctors(t, zip);
-  doctorsText = doctorsText.replace(/\b(?:Drs?|Dras?|Doc)\.?\s+(?=[A-Za-z])/gi, '');
+  doctorsText = doctorsText.replace(/\b(?:Drs?|Dras?|Doc)(?:\.\s*|\s+)(?=[A-Za-z])/gi, '');
   doctorsText = cut(doctorsText);
   medsText = cut(medsText);
   if (!medsText) medsText = unlabeledMeds(t, zip, splitList(doctorsText).map((name) => ({ name })));
