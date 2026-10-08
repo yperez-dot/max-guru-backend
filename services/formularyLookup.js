@@ -32,6 +32,7 @@ const MEDICARE_GOV_BASE = 'https://www.medicare.gov/api/v1/data/plan-compare';
 const RXNORM_BASE = 'https://rxnav.nlm.nih.gov/REST';
 const MPF_FE_VER = '2.69.0';
 const PLAN_YEAR = 2027;
+const MEDICARE_GOV_RETRY_DELAY_MS = Number(process.env.MEDICARE_GOV_RETRY_DELAY_MS || 700);
 const FETCH_TIMEOUT_MS = 12_000;
 const PUBLIC_HUMANA_DRUG_LIST = 'https://www.humana.com/pharmacy/medicare-drug-list';
 
@@ -1158,7 +1159,7 @@ async function lookupMedicareGov({ drugName, ndc, hintNdc, planId, year }, fetch
   let exactNotCovered = null;
   let otherCovered = null;
   let otherNotCovered = null;
-  const askCost = (useNdc) => fetchJson(
+  const askCostOnce = (useNdc) => fetchJson(
       `${MEDICARE_GOV_BASE}/drugs/cost`,
       {
         method: 'POST',
@@ -1182,6 +1183,16 @@ async function lookupMedicareGov({ drugName, ndc, hintNdc, planId, year }, fetch
       fetchImpl,
       15_000
     );
+  // medicare.gov drops or throttles some answers when a whole client's meds are priced at once
+  // (Gail's Devoted and Aetna columns, all 7 meds, 2026-10-08). One retry before giving up on an NDC.
+  const askCost = async (useNdc) => {
+    let res = await askCostOnce(useNdc);
+    if (!res.ok || !res.json) {
+      await new Promise((r) => setTimeout(r, MEDICARE_GOV_RETRY_DELAY_MS));
+      res = await askCostOnce(useNdc);
+    }
+    return res;
+  };
   let emptyExact = 0;
   for (const useNdc of resolved.ndcs.slice(0, 8)) {
     const isExact = exactSet.has(useNdc);
@@ -1510,6 +1521,8 @@ async function lookupFormulary(
         byPlanId[displayId] = row;
         lookups.push(row);
       } else {
+        // Railway logs: why a med could not be priced on a plan (nothing else shows it).
+        console.log(`[formulary] ${displayId} ${resolvedName} ${y} unverified: ${reasons.join('|') || (hit && hit.reason) || catalog.error || 'unverified'}`);
         const row = {
           ...emptyPlanResult(id, y, reasons.join('|') || (hit && hit.reason) || catalog.error || 'unverified'),
           note: hit && hit.note ? hit.note : undefined,

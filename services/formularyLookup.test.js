@@ -846,6 +846,23 @@ describe('medicare.gov product matching (brand / ER / ODT never decide a generic
     });
   }
 
+  it('one dropped medicare.gov answer is retried, not read as "not confirmed" (Gail Devoted / Aetna meds, 2026-10-08)', async () => {
+    process.env.MEDICARE_GOV_RETRY_DELAY_MS = '1';
+    const { fetchImpl } = makeFetch('clonazepam');
+    let failed = 0;
+    const flaky = async (url, options) => {
+      if (String(url).includes('/drugs/cost') && failed < 1) {
+        failed += 1;
+        return { ok: false, status: 503, json: async () => ({}), text: async () => '' };
+      }
+      return fetchImpl(url, options);
+    };
+    const hit = await lookupMedicareGov({ drugName: 'Clonazepam 1 mg tablet', planId: 'H1290-037', year: 2027 }, flaky);
+    assert.equal(failed, 1);
+    assert.equal(hit.verified, true);
+    assert.equal(hit.coverage, 'covered');
+  });
+
   it('the exact generic reading not covered is still reported not covered', async () => {
     const { fetchImpl } = makeFetch('clonazepam', { 197527: { covered: false } });
     const hit = await lookupMedicareGov({ drugName: 'Clonazepam 1 mg tablet', planId: 'H4140-023', year: 2027 }, fetchImpl);
