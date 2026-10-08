@@ -321,6 +321,16 @@ function medsFromAsk(askText) {
       if (name && name.length > 2 && name.length < 40 && !isNonDrugAnswer(name) && !out.some((o) => sameDrug(o, name))) out.push(name);
     }
   }
+  // MedicarePro "Prescriptions (5)" paste: one "atorvastatin calcium TAB 10MG" line per drug (with
+  // "30/Monthly", "Quotable", dates around it). Name + dosage form + strength → "Atorvastatin Calcium 10mg"
+  // (Victor, 2026-10-08: none of his 5 meds were read).
+  const FORM = '(?:TAB|TABS|TABLET|CAP|CAPS|CAPSULE|TBEC|TBDR|CPDR|CPEP|TB24|TB12|CP24|CP12|SOL|SOLN|SUSP|INJ|PEN|CREAM|OINT|GEL|PATCH|INH|AERO|SPR|SPRAY|DROPS?|LIQ|POWD|PACK)';
+  const rxLine = new RegExp(`^\\s*([A-Za-z][A-Za-z\\- ]{2,40}?)\\s+${FORM}\\b[^\\d\\n]{0,20}(\\d+(?:\\.\\d+)?)\\s*(MG|MCG|G|ML|UNITS?|%)\\b`, 'gim');
+  for (const m of t.matchAll(rxLine)) {
+    const base = m[1].trim().toLowerCase().replace(/\b([a-z])/g, (c) => c.toUpperCase());
+    const name = `${base.replace(/\bHcl\b/, 'HCl')} ${m[2]}${m[3].toLowerCase()}`;
+    if (!isNonDrugAnswer(name) && !out.some((o) => sameDrug(o, name))) out.push(name);
+  }
   for (const h of CSNP_HINTS) {
     const hit = t.match(h.re);
     if (hit && !out.some((o) => sameDrug(o, hit[0]))) out.push(hit[0]);

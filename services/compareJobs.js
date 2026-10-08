@@ -141,7 +141,11 @@ function parseCompareAsk(text) {
     name = name.replace(/\s{2,}/g, ' ').replace(/[\s.,-]+$/, '').trim();
     return npi ? { name, npi, mustKeep } : { name, mustKeep };
   }).filter((d) => d.name || d.npi).slice(0, MAX_DOCTORS);
-  const meds = splitList(medsText).map((m) => m.replace(/\.$/, '')).slice(0, MAX_MEDS);
+  let meds = splitList(medsText).map((m) => m.replace(/\.$/, '')).slice(0, MAX_MEDS);
+  // A pasted MedicarePro "Prescriptions (5)" block ("atorvastatin calcium TAB 10MG" lines) — the
+  // section parser above caught only the first line (Victor, 2026-10-08). Use the full Rx-line read.
+  const rxMeds = require('./comparisonRules').medsFromAsk(t);
+  if (/^\s*[A-Za-z][A-Za-z\- ]{2,40}?\s+(?:TAB|CAP|TBEC|CPDR|TB24|CP24|SOL|SOLN|INJ|PATCH|INH)\b/im.test(t) && rxMeds.length > meds.length) meds = rxMeds.slice(0, MAX_MEDS);
 
   const skip = constraints.skip;
   const plans = [];

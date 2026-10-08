@@ -129,3 +129,12 @@ describe('a loaded workup’s meds are priced ("it didnt add his meds either")',
     assert.deepEqual(R.medsFromAsk('Meds: Metformin 500mg, Lisinopril 10mg'), ['Metformin 500mg', 'Lisinopril 10mg']);
   });
 });
+
+describe('MedicarePro "Prescriptions (5)" paste (Victor, 9:54 AM)', () => {
+  const R = require('./comparisonRules');
+  const { parseCompareAsk } = require('./compareJobs');
+  const rx = require('fs').readFileSync(require('path').join(__dirname, 'fixtures/victorPrescriptions.txt'), 'utf8');
+  const want = ['Atorvastatin Calcium 10mg', 'Ezetimibe 10mg', 'Pantoprazole Sodium 20mg', 'Tadalafil 2.5mg', 'Tamsulosin HCl 0.4mg'];
+  it('chat reads all 5 meds with strengths', () => assert.deepEqual(R.medsFromAsk(rx), want));
+  it('the new-client form reads all 5 too', () => assert.deepEqual(parseCompareAsk(`Victor Rocha 33143\n${rx}`).meds, want));
+});
