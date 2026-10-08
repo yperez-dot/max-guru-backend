@@ -669,3 +669,8 @@ match … closest: Armando J Rivero, Homero G. Rivero …"). Every title strip r
 after "Dr." (`npiRegistry.js` cleanDoctorQuery + parseName, four places in `compareJobs.js`).
 Now a dotted title may be glued to the name ("Dr.", "Dra.", "Drs.", "Mr.", "Ms.", "Mrs.") while a
 bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.
+
+## 2026-10-08 — Opening a workup carried the previous client's lookups (UI)
+- Gail's PDF listed Victor's doctors (Santa-Cruz, Marcus St John, Armando Rivero, "Urology", "Coral Gables") and his 5 meds. `openWorkup` calls `resetChatSession({keepWorkup:true})`, which skipped clearing `sessionToolResultsRef` / `resumeToolResultsRef`, so every lookup from the earlier client in the same browser session fed the next export.
+- Fix: those two refs are always cleared on a reset. Workaround before this ships: reload the page between clients.
+- Check any workup saved right after switching clients for stray doctors / meds.

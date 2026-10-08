@@ -6749,13 +6749,16 @@ function App() {
     }
     chatGenRef.current += 1;
     clearQueued();
+    // Lookup results belong to the chat that ran them: opening another client's workup must not
+    // carry the previous client's doctors / meds into its export (Gail's PDF listed Victor's
+    // doctors and meds, 2026-10-08).
+    sessionToolResultsRef.current = [];
+    resumeToolResultsRef.current = [];
     if (!keepWorkup) {
       loadedWorkupRef.current = null;
       currentWorkupIdRef.current = null;
       setCurrentWorkupId(null);
       lastComparisonExportRef.current = null;
-      sessionToolResultsRef.current = [];
-      resumeToolResultsRef.current = [];
       lastSavedSigRef.current = "";
     }
     setMessages([]);
