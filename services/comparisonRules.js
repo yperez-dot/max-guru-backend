@@ -429,6 +429,23 @@ function exactDollars(v) {
   return m ? Number(m[1]) : null;
 }
 
+/**
+ * Meds already in the thread (loaded workup, pasted list, earlier answer) → a short system note so the model
+ * never asks for them again or says the workup has none (Paula Harris, 2026-10-08: "i gave them to you already").
+ */
+function knownMedsNote(messages) {
+  try {
+    const { comparisonAskText } = require('./doctorPlanNarrow');
+    const { conversationAskText } = require('./planYear');
+    const msgs = Array.isArray(messages) ? messages : [];
+    const meds = medsFromAsk(comparisonAskText(msgs, conversationAskText(msgs)));
+    if (!meds.length) return '';
+    return `\nMEDS ALREADY ON FILE FOR THIS CLIENT (from the loaded workup or her messages): ${meds.join('; ')}. Never ask her for medications and never say the workup has none — price these with lookup_formulary against the plans in the table.`;
+  } catch (_) {
+    return '';
+  }
+}
+
 module.exports = {
   csnpRunAsk,
   dsnpRunAsk,
@@ -455,6 +472,7 @@ module.exports = {
   planEligibility,
   csnpHintsFromMeds,
   medsFromAsk,
+  knownMedsNote,
   isNonDrugAnswer,
   sameDrug,
   exactDollars,

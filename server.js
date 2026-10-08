@@ -8,7 +8,7 @@ const { requireApiKey } = require('./middleware/auth');
 const { accessEnabled, requireAccessToken, unlockHandler } = require('./middleware/access');
 const { createRateLimiter } = require('./middleware/rateLimit');
 const { loadKnowledge, getKnowledgeSummary } = require('./knowledge/loader');
-const { COMPARISON_TABLE_RULES } = require('./services/comparisonRules');
+const { COMPARISON_TABLE_RULES, knownMedsNote } = require('./services/comparisonRules');
 const { startSepRefreshScheduler, refreshSepTracker, getStatus: getSepRefreshStatus } = require('./services/sepRefresh');
 const drugLookupRouter = require('./routes/drugLookup');
 const formularyLookupRouter = require('./routes/formularyLookup');
@@ -226,7 +226,7 @@ const chatHandler = async (req, res) => {
     }
 
     const priorNote = priorToolResultsNote(req.body.priorToolResults);
-    const mergedSystem = `${system}\n${TOOL_USE_APPENDIX}${priorNote}`;
+    const mergedSystem = `${system}\n${TOOL_USE_APPENDIX}${priorNote}${knownMedsNote(messages)}`;
     try {
       const data = await passThroughChat({
         system: mergedSystem,
