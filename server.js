@@ -15,11 +15,34 @@ const formularyLookupRouter = require('./routes/formularyLookup');
 const providerLookupRouter = require('./routes/providerLookup');
 const workupsRouter = require('./routes/workups');
 const compareRouter = require('./routes/compare');
-const { startChatJob, getChatJob, publicChatJob } = require('./services/chatJobs');
+const path = require('path');
+const { startChatJob, getChatJob, publicChatJob, runningCount, persistJobs, loadPersistedJobs } = require('./services/chatJobs');
+const { queueState: compareQueueState } = require('./services/compareJobs');
+const { createShutdown, createInFlightCounter } = require('./services/shutdown');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
 const budgetGuard = new BudgetGuard();
+
+// Graceful redeploys (railway.json drainingSeconds): on SIGTERM stop taking new chats, let
+// in-flight replies finish (bounded), then hand finished answers to the next process via the volume.
+const CHAT_HANDOFF_FILE = process.env.MAX_CHAT_HANDOFF_FILE || path.join(
+  path.dirname(process.env.MAX_WORKUPS_FILE || path.join(process.cwd(), 'data', 'max-workups.json')),
+  'chat-jobs-handoff.json'
+);
+const syncChats = createInFlightCounter();
+let httpServer = null;
+const shutdown = createShutdown({
+  getInFlight: () => {
+    const q = compareQueueState();
+    return runningCount() + syncChats.count() + q.active + q.waiting;
+  },
+  onDrained: () => persistJobs(CHAT_HANDOFF_FILE),
+  closeServer: (cb) => {
+    if (httpServer) httpServer.close();
+    cb();
+  },
+});
 
 const allowedOrigins = [
   'https://thei-max-guru.netlify.app',
@@ -32,11 +55,13 @@ const chatRateLimit = createRateLimiter({
   windowMs: Number(process.env.MAX_CHAT_RATE_WINDOW_MS || 60 * 60 * 1000),
   max: Number(process.env.MAX_CHAT_RATE_MAX || 40),
   name: 'chat',
+  keyBy: 'agent', // per unlocked agent (req.accessEmail); runs after requireAccessToken
 });
 const unlockRateLimit = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: Number(process.env.MAX_UNLOCK_RATE_MAX || 20),
   name: 'unlock',
+  keyBy: 'ip', // never the client-controlled token header
 });
 
 app.use(cors({
@@ -48,6 +73,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: process.env.MAX_JSON_BODY_LIMIT || '30mb' }));
+app.use(shutdown.rejectNewWork);
 
 app.get('/health', (req, res) => {
   const cfg = providerConfig();
@@ -63,6 +89,7 @@ app.get('/health', (req, res) => {
     openaiConfigured: Boolean(process.env.OPENAI_API_KEY),
     claudeConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
     sepRefresh: getSepRefreshStatus(),
+    draining: shutdown.isDraining(),
     ts: new Date().toISOString(),
   });
 });
@@ -313,7 +340,7 @@ const chatHandler = async (req, res) => {
   }
 };
 
-app.post('/chat', requireApiKey, requireAccessToken, chatRateLimit, chatHandler);
+app.post('/chat', syncChats.track, requireApiKey, requireAccessToken, chatRateLimit, chatHandler);
 
 // Same turn, but in the background: the page polls, so a tab switch or a sleeping phone cannot lose the answer.
 app.post('/chat/start', requireApiKey, requireAccessToken, chatRateLimit, (req, res) => {
@@ -343,7 +370,13 @@ app.use((err, req, res, next) => {
 loadKnowledge();
 startSepRefreshScheduler();
 
-app.listen(PORT, () => {
+// Answers the previous process finished (or cut off) while draining — polls still find them.
+const handedOff = loadPersistedJobs(CHAT_HANDOFF_FILE);
+if (handedOff) console.log(`[startup] restored ${handedOff} chat answer(s) from the restart hand-off`);
+
+httpServer = app.listen(PORT, () => {
   const cfg = providerConfig();
   console.log(`Max Guru backend running on port ${PORT} (provider=${cfg.provider} model=${cfg.model})`);
 });
+process.on('SIGTERM', () => shutdown.begin('SIGTERM'));
+process.on('SIGINT', () => shutdown.begin('SIGINT'));
