@@ -782,6 +782,7 @@ function namedPlanColumns(named, matrix, doctors) {
 // ─── Doctor/Drug Comparison Table Rules (services/comparisonRules.js) ───────
 
 const R = require('./comparisonRules');
+const { restrictionsUnknown } = require('./drugNames');
 
 // Pending-lookup labels that cover each carrier (providerNetwork `pending`).
 const PENDING_FOR = {
@@ -1659,6 +1660,15 @@ function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] }
   return { text: lines.join('\n'), matrix: sel.ranked, questions: sel.questions, selection: sel };
 }
 
+// Short form so long (strength-split) cells don't wrap; explained in the legend when used.
+const PA_QL_UNKNOWN = 'PA/QL ?';
+const PA_QL_LEGEND = "PA/QL ? = source doesn't report prior auth / quantity limits, verify in carrier formulary";
+
+/** The meds legend, plus the "PA/QL ?" line only when a cell in this table uses it. */
+function medsLegendFor(table) {
+  return String(table || '').includes(PA_QL_UNKNOWN) ? `${R.MEDS_LEGEND} · ${PA_QL_LEGEND}` : R.MEDS_LEGEND;
+}
+
 /**
  * No strength asked and the plan's strengths differ: every strength, grouped, never one picked.
  * "2.5/5 mg: T4 40% · PA (verify indication) ‖ 10/20 mg: T6 $0 · QL 8/30 · supplemental".
@@ -1676,6 +1686,8 @@ function strengthSplitCell(row, result) {
     else if (v.ql) bits.push('QL');
     if (v.excludedDrug) bits.push('supplemental');
     if (v.mixedProducts) bits.push('varies by product');
+    // Per strength: the source that answered this strength decides whether PA/QL are known.
+    if (restrictionsUnknown(v)) bits.push(PA_QL_UNKNOWN);
     return bits.join(' · ');
   };
   const groups = [];
@@ -1701,15 +1713,18 @@ function drugCell(row, unsureNotCovered, result) {
   if (Array.isArray(row.strengths) && row.strengths.length > 1) return strengthSplitCell(row, result);
   // A tier with no cost-share on file says so — a bare "T2" read as $0 (Solis H0982-007, 2026-10-09).
   const cost = row.costShare ? ` ${row.costShare}` : ` · cost n/a${/pdf/i.test(String(row.source || '')) ? ' (PDF)' : ''}`;
+  // Every covered cell carries a restriction status from its source: the flags it reported, or
+  // "PA/QL ?" when it reports none at all (medicare.gov; a Sunfire / FHIR answer missing the fields).
+  const unknown = restrictionsUnknown(row) ? ` · ${PA_QL_UNKNOWN}` : '';
   // ED drugs: the per-plan label says what the coverage means (supplemental / BPH-PAH only / …).
   if (result && result.edDrug && row.edLabel) {
     const tier = row.verified && row.tier ? ` · T${row.tier}${cost}` : '';
-    return `${row.edLabel}${tier}`;
+    return `${row.edLabel}${tier}${row.verified && row.tier ? unknown : ''}`;
   }
   if (row.verified && row.coverage === 'not_covered') return unsureNotCovered ? '⚠️ confirm' : '❌ not covered';
   if (row.verified && row.tier) {
-    const flags = [row.pa ? 'PA' : null, row.st ? 'ST' : null, row.ql ? 'QL' : null].filter(Boolean);
-    return `T${row.tier}${cost}${flags.length ? ` · ${flags.join(' · ')}` : ''}`;
+    const flags = [row.pa ? 'PA' : null, row.st ? 'ST' : null, row.qlText || (row.ql ? 'QL' : null)].filter(Boolean);
+    return `T${row.tier}${cost}${flags.length ? ` · ${flags.join(' · ')}` : ''}${unknown}`;
   }
   if (/form_not_found/.test(String(row.reason || ''))) return `${R.NOT_CONFIRMED_CELL} (form not found)`;
   return R.NOT_CONFIRMED_CELL;
@@ -1734,7 +1749,9 @@ function drugAnswers(r, med) {
 /** True when meds were looked up and not one plan answered for any of them. */
 function allDrugLookupsFailed(drugResults) {
   const list = (drugResults || []).filter(Boolean);
-  return list.length > 0 && !list.some((r) => (r.lookups || []).some((l) => l && l.verified));
+  // Answers live in lookups[] and/or byPlanId (tool-result / export shapes carry only byPlanId).
+  const answered = (r) => [...(r.lookups || []), ...Object.values(r.byPlanId || (r.drug && r.drug.byPlanId) || {})].some((l) => l && l.verified);
+  return list.length > 0 && !list.some(answered);
 }
 
 /** Drug rows under the same plan columns. `drugs` = lookup_formulary outputs; `knownMeds` = listed but not looked up yet. */
@@ -1783,7 +1800,7 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
   if (twins.length) lines.push(`Also checked: ${twins.join('; ')}.`);
   for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in /.test(x))) lines.push(f);
   const meds = medsTable(drugs, top, sel.meds);
-  if (meds) lines.push('', '**Meds**', '', meds, '', R.MEDS_LEGEND, ...strengthNotes(drugs, top.map((p) => p.planId)));
+  if (meds) lines.push('', '**Meds**', '', meds, '', medsLegendFor(meds), ...strengthNotes(drugs, top.map((p) => p.planId)));
   // She typed drugs but no list could be read: say so, never drop the section silently.
   else if (medsUnreadable) lines.push('', '**Meds**', '', R.MEDS_UNREADABLE);
   return lines.filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n');
@@ -1847,7 +1864,7 @@ function fallbackAnswer(doctors, askText, { answered = false, drugs = [] } = {})
       lines.push('');
       lines.push(meds);
       lines.push('');
-      lines.push(R.MEDS_LEGEND);
+      lines.push(medsLegendFor(meds));
       strengthNotes(drugs, top.map((p) => p.planId)).forEach((l) => lines.push(l));
       if (sel.medsToCheck.drugs.length) {
         lines.push(`Not checked yet on every plan: ${sel.medsToCheck.drugs.map(titleCase).join(', ')} — send the same ask again to finish the lookup.`);
@@ -1893,6 +1910,7 @@ module.exports = {
   gridTable,
   medsTable,
   strengthNotes,
+  medsLegendFor,
   namedPlansFromAsk,
   namedPlanColumns,
   fallbackAnswer,

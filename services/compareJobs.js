@@ -8,7 +8,7 @@
 const crypto = require('crypto');
 const { lookupDoctor, NOT_CONFIRMED } = require('./providerNetwork');
 const { lookupFormulary, toExportDrug, toExportDrugs, formatFormularyText } = require('./formularyLookup');
-const { askConstraints, gridTable, medsTable, selectComparison, strengthNotes } = require('./doctorPlanNarrow');
+const { askConstraints, gridTable, medsTable, selectComparison, strengthNotes, medsLegendFor } = require('./doctorPlanNarrow');
 const { eligibilityFromAsk, carriersRequested, LEGEND, MEDS_LEGEND, MEDS_FAILED_BANNER, IN_STAR_LEGEND, unlabeledMeds: unlabeledMedsList } = require('./comparisonRules');
 const { expandMedList } = require('./drugNames');
 
@@ -414,7 +414,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     job.result.doctorTable = gridTable(sel.doctors, columns);
     job.result.medsTable = medsTable(drugs, columns, input.meds);
     job.result.legend = LEGEND + (columns.some((p) => (p.inCarrier || []).length) ? ` · ${IN_STAR_LEGEND}` : '');
-    job.result.medsLegend = MEDS_LEGEND;
+    job.result.medsLegend = medsLegendFor(job.result.medsTable);
     // Every lookup failed: the table carries the banner, and the UI shows it in red.
     job.result.medsLookupFailed = drugs.length > 0 && !drugs.some((r) => (r.lookups || []).some((l) => l && l.verified));
     job.result.medsBanner = job.result.medsLookupFailed ? MEDS_FAILED_BANNER.replace(/\*\*/g, '') : null;

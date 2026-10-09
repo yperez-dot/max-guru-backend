@@ -25,7 +25,7 @@ const { getKnowledgeByKey } = require('../knowledge/loader');
 const { solisFormularyLookup, solisStrengthVariants, isSolisPlan } = require('./solisFormulary');
 const { lookupConsumerFormulary } = require('./consumerFormulary');
 const { doctorsPbpAliases, isDoctorsCms } = require('./doctorsFormularyPdf');
-const { resolveDrugName, requestedForm, isNonOralForm, conceptHasForm, formLabel, drugNameBase, isEdDrug, edLabel } = require('./drugNames');
+const { resolveDrugName, requestedForm, isNonOralForm, conceptHasForm, formLabel, drugNameBase, isEdDrug, edLabel, restrictionsKnownFor, restrictionsUnknown } = require('./drugNames');
 
 const SUNFIRE_BASE = 'https://www.sunfirematrix.com';
 const HUMANA_FHIR = 'https://fhir.humana.com/api/MedicationKnowledge';
@@ -1537,6 +1537,7 @@ function logFormularyDebug(result, inputName, nameRxcui) {
     if (row.verified && row.tier) parts.push(`T${row.tier}`);
     if (row.verified && row.coverage === 'not_covered') parts.push('not covered');
     if (row.verified && row.tier) parts.push(row.costShare ? `cost ${row.costShare}` : 'cost n/a');
+    if (restrictionsUnknown(row)) parts.push('PA/QL ?');
     if (row.edLabel) parts.push(row.edLabel);
     if (Array.isArray(row.strengths) && row.strengths.length > 1) parts.push(`by strength: ${row.strengths.map((v) => `${v.strength}${v.indication ? ` (${v.indication})` : ''}=${v.coverage === 'not_covered' ? 'not covered' : `T${v.tier}${v.costShare ? ` ${v.costShare}` : ''}${v.pa ? ' PA' : ''}${v.excludedDrug ? ' supplemental' : ''}${v.mixedProducts ? ' varies-by-product' : ''}`}`).join(', ')}`);
     if (result.nameCheck) parts.push(result.nameCheck.suggestion ? `did you mean ${result.nameCheck.suggestion}?` : 'name not found');
@@ -1810,6 +1811,7 @@ async function lookupFormulary(
           formularyPlanId: hit.formularyPlanId || null,
           ...(hit.strengthNote ? { strengthNote: hit.strengthNote } : {}),
           ...(hit.qlText ? { qlText: hit.qlText } : {}),
+          restrictionsKnown: restrictionsKnownFor(hit),
         };
         // Strengths that differ (tier / coverage / PA / supplemental): keep every one for the cell.
         if (splitWanted) {
@@ -1820,7 +1822,7 @@ async function lookupFormulary(
           if (variants && variants.length > 1 && strengthsDiffer(variants)) {
             row.strengths = variants.map((v) => {
               const vs = v.coverage === 'covered' ? costShareFromKnowledge(id, y, v.tier) : null;
-              return { ...v, costShare: vs ? vs.value : null };
+              return { ...v, costShare: vs ? vs.value : null, restrictionsKnown: restrictionsKnownFor(v) };
             });
           }
         }
@@ -2015,7 +2017,11 @@ function formatFormularyText(result) {
       continue;
     }
     if (row.verified && row.tier) {
-      const flags = [flagLine('PA', row.pa), flagLine('ST', row.st), flagLine('QL', row.ql)]
+      const flags = [
+        flagLine('PA', row.pa), flagLine('ST', row.st), flagLine('QL', row.ql),
+        // Never let a silent source read as "no PA".
+        restrictionsUnknown(row) ? 'PA/QL UNKNOWN (this source does not report restrictions; never say "no PA")' : null,
+      ]
         .filter(Boolean)
         .join(', ');
       const cost =
@@ -2092,6 +2098,8 @@ function toExportDrugs(result) {
 }
 
 module.exports = {
+  restrictionsKnownFor,
+  restrictionsUnknown,
   medicareGovStrengthVariants,
   strengthsDiffer,
   missingStrengthCheck,

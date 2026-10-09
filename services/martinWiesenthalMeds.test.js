@@ -249,7 +249,7 @@ test('full meds table: one row per drug and form, correction shown, ED label, PA
   assert.ok(medRows.some((l) => /^\| acyclovir oral tablet \|/i.test(l)), medRows.join('\n'));
   assert.ok(medRows.some((l) => /^\| acyclovir topical ointment \|/i.test(l)), medRows.join('\n'));
   // No strength typed: tadalafil splits by strength on CarePlus (only 5 mg and the PAH 20 mg are covered).
-  assert.ok(medRows.some((l) => l.startsWith('| tadalafil | 2.5/10/20 mg: ❌ not covered ‖ 5 mg: T4 50% ‖ 20 mg (PAH): T4 50% |')), medRows.join('\n'));
+  assert.ok(medRows.some((l) => l.startsWith('| tadalafil | 2.5/10/20 mg: ❌ not covered ‖ 5 mg: T4 50% · PA/QL ? ‖ 20 mg (PAH): T4 50% · PA/QL ? |')), medRows.join('\n'));
   assert.ok(!/\| rasuvostatin \| ❔ unchecked/i.test(text), 'the typed name is answered by the corrected lookup');
   assert.doesNotMatch(text, /Medication lookup failed/);
   assert.match(R.MEDS_LEGEND, /PA = prior auth · ST = step therapy · QL = quantity limit/);
@@ -301,10 +301,11 @@ test('Solis cost-share comes from the 2027 KB; a tier with no cost says "cost n/
   assert.equal(F.costShareFromKnowledge('H0982-007', 2027, 3).value, '$15');
   assert.equal(F.costShareFromKnowledge('H0982-007', 2027, 4).value, '40%');
   const plans = [{ planId: 'H0982-007', name: 'Solis Healthy Living' }];
-  const pdfRow = { verified: true, tier: 2, coverage: 'covered', costShare: null, source: 'Solis 2027 Comprehensive Formulary PDF (updated 10/05/2026)' };
+  // A real Solis answer: the book prints every row's requirements, so PA/ST/QL are explicit false.
+  const pdfRow = { verified: true, tier: 2, coverage: 'covered', costShare: null, pa: false, st: false, ql: false, source: 'Solis 2027 Comprehensive Formulary PDF (updated 10/05/2026)' };
   assert.equal(N.medsTable([{ drugName: 'x', byPlanId: { 'H0982-007': pdfRow }, lookups: [pdfRow] }], plans).split('\n')[2], '| x | T2 · cost n/a (PDF) |');
-  const apiRow = { ...pdfRow, source: 'medicare_gov' };
-  assert.equal(N.medsTable([{ drugName: 'x', byPlanId: { 'H0982-007': apiRow }, lookups: [apiRow] }], plans).split('\n')[2], '| x | T2 · cost n/a |');
+  const apiRow = { verified: true, tier: 2, coverage: 'covered', costShare: null, pa: null, st: null, ql: null, source: 'medicare_gov' };
+  assert.equal(N.medsTable([{ drugName: 'x', byPlanId: { 'H0982-007': apiRow }, lookups: [apiRow] }], plans).split('\n')[2], '| x | T2 · cost n/a · PA/QL ? |');
 });
 
 test('FORMULARY_DEBUG=1 logs one line per drug per plan; off by default', async () => {
@@ -322,7 +323,7 @@ test('FORMULARY_DEBUG=1 logs one line per drug per plan; off by default', async 
     delete process.env.FORMULARY_DEBUG;
   }
   assert.equal(lines.length, 4, lines.join('\n'));
-  assert.match(lines[0], /^\[formulary-debug\] H1019-001 \| rasuvostatin → rosuvastatin \(\d+\) \| source=medicare_gov \| status=verified_covered \| result=T1 · cost \$0$/);
+  assert.match(lines[0], /^\[formulary-debug\] H1019-001 \| rasuvostatin → rosuvastatin \(\d+\) \| source=medicare_gov \| status=verified_covered \| result=T1 · cost \$0 · PA\/QL \?$/);
   assert.match(lines[2], /^\[formulary-debug\] H1019-001 \| acyclovir ointment → acyclovir topical ointment \(\d+\) \| source=medicare_gov \| status=verified_not_covered \| result=not covered$/);
 });
 
@@ -342,7 +343,10 @@ test('tadalafil with no strength: every strength shown, compact, on Solis and me
   const [r] = await priceAll(['tadalafil'], ['H1019-001', 'H0982-007']);
   const plans = [{ planId: 'H1019-001', name: 'CarePlus CareOne Plus' }, { planId: 'H0982-007', name: 'Solis Healthy Living' }];
   const cells = N.medsTable([r], plans).split('\n')[2].split(' | ');
-  assert.equal(cells[1], '2.5/10/20 mg: ❌ not covered ‖ 5 mg: T4 50% ‖ 20 mg (PAH): T4 50%');
+  // Per strength group: medicare.gov groups are "PA/QL ?", the not-covered group needs no marker,
+  // and Solis groups carry the book's own PA/QL (no marker).
+  assert.equal(cells[1], '2.5/10/20 mg: ❌ not covered ‖ 5 mg: T4 50% · PA/QL ? ‖ 20 mg (PAH): T4 50% · PA/QL ?');
+  assert.doesNotMatch(cells[2], /PA\/QL \?/);
   assert.equal(cells[2], '2.5/5 mg: T4 40% · PA (verify indication) · QL 30/30 ‖ 10/20 mg: T6 $0 · QL 8/30 · supplemental ‖ 20 mg (PAH): T4 40% · PA · QL 60/30 |');
   const text = N.renderedAnswer(docs, `ZIP 33324. Meds: tadalafil. Compare H1019-001, H0982-007.`, { drugs: [r] });
   assert.match(text, /⚠️ tadalafil cost varies by strength — confirm dose/);
@@ -362,7 +366,48 @@ test('tadalafil with a strength: only that strength, no split', async () => {
 test('all strengths alike: one cell as before (trazodone on H1019-001)', async () => {
   const [r] = await priceAll(['trazodone'], ['H1019-001']);
   assert.equal(r.byPlanId['H1019-001'].strengths, undefined);
-  assert.equal(N.medsTable([r], [{ planId: 'H1019-001', name: 'CarePlus' }]).split('\n')[2], '| trazodone | T1 $0 |');
+  assert.equal(N.medsTable([r], [{ planId: 'H1019-001', name: 'CarePlus' }]).split('\n')[2], '| trazodone | T1 $0 · PA/QL ? |');
+});
+
+// ─── restriction status: never a silent cell (2026-10-09 review) ─────────────────
+
+test('medicare.gov cell shows "PA/QL ?"; the legend explains it only when a cell uses it', () => {
+  const plans = [{ planId: 'H1019-001', name: 'CarePlus' }];
+  const row = { verified: true, coverage: 'covered', tier: 4, costShare: '50%', pa: null, st: null, ql: null, source: 'medicare_gov', restrictionsKnown: false };
+  const table = N.medsTable([{ drugName: 'tadalafil 5 mg', byPlanId: { 'H1019-001': row }, lookups: [row] }], plans);
+  assert.equal(table.split('\n')[2], '| tadalafil 5 mg | T4 50% · PA/QL ? |');
+  assert.match(N.medsLegendFor(table), / · PA\/QL \? = source doesn't report prior auth \/ quantity limits, verify in carrier formulary$/);
+  const solis = { verified: true, coverage: 'covered', tier: 1, costShare: '$0', pa: false, st: false, ql: false, source: 'Solis 2027 Comprehensive Formulary PDF' };
+  const clean = N.medsTable([{ drugName: 'trazodone', byPlanId: { 'H1019-001': solis }, lookups: [solis] }], plans);
+  assert.equal(N.medsLegendFor(clean), R.MEDS_LEGEND, 'no "PA/QL ?" legend line when no cell uses it');
+});
+
+test('Solis cell with PA shows its flags and no marker; Solis cell with no PA/QL shows nothing extra', () => {
+  const { solisFormularyLookup } = require('./solisFormulary');
+  const plans = [{ planId: 'H0982-007', name: 'Solis Healthy Living' }];
+  const withPa = { ...solisFormularyLookup('tadalafil 5 mg', 'H0982-007', 2027), costShare: '40%' };
+  assert.equal(N.medsTable([{ drugName: 'sildenafil', byPlanId: { 'H0982-007': withPa }, lookups: [withPa] }], plans).split('\n')[2], '| sildenafil | T4 40% · PA · QL 30/30 |');
+  const none = { ...solisFormularyLookup('trazodone 50 mg', 'H0982-007', 2027), costShare: '$0' };
+  assert.equal(none.pa, false);
+  assert.equal(N.medsTable([{ drugName: 'trazodone 50 mg', byPlanId: { 'H0982-007': none }, lookups: [none] }], plans).split('\n')[2], '| trazodone 50 mg | T1 $0 |');
+});
+
+test('Sunfire / FHIR answer that omits the restriction fields is unknown, never "none"', () => {
+  assert.equal(D.restrictionsKnownFor({ source: 'sunfire:catalog', pa: null, st: null, ql: null }), false);
+  assert.equal(D.restrictionsKnownFor({ source: 'humana_fhir', pa: false, st: null, ql: null }), true);
+  assert.equal(D.restrictionsKnownFor({ source: 'medicare_gov', pa: true }), false);
+  assert.equal(D.restrictionsUnknown({ verified: true, coverage: 'not_covered', source: 'medicare_gov' }), false, 'a not-covered cell needs no marker');
+  const sunfire = { verified: true, coverage: 'covered', tier: 3, costShare: '$47', pa: null, st: null, ql: null, source: 'sunfire:catalog' };
+  assert.equal(N.medsTable([{ drugName: 'Eliquis', byPlanId: { 'H1019-001': sunfire }, lookups: [sunfire] }], [{ planId: 'H1019-001', name: 'CarePlus' }]).split('\n')[2], '| Eliquis | T3 $47 · PA/QL ? |');
+});
+
+test('export (Excel/PDF) cells carry the same marker, synced into the UI page', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'artifacts', 'comparison-export.js'), 'utf8');
+  assert.match(src, /restrictionsUnknown\(status\) \? " · PA\/QL \?" : ""/);
+  const html = fs.readFileSync(path.join(__dirname, '..', 'artifacts', 'max-demo-FINAL-v7.html'), 'utf8');
+  assert.match(html, /restrictionsUnknown\(status\) \? " · PA\/QL \?" : ""/);
 });
 
 test('ranking uses the lowest-cost strength for a split drug', () => {

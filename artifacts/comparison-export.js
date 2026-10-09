@@ -1103,6 +1103,9 @@
         costShare: incoming.costShare || null,
         pa: incoming.pa,
         st: incoming.st,
+        ql: incoming.ql,
+        qlText: incoming.qlText || null,
+        restrictionsKnown: typeof incoming.restrictionsKnown === "boolean" ? incoming.restrictionsKnown : undefined,
         source: incoming.source || null,
         unsure: Boolean(incoming.unsure),
       };
@@ -1198,6 +1201,15 @@
     return drugs;
   }
 
+  // A source that reports no restrictions (medicare.gov; Sunfire / FHIR without the fields) is
+  // "PA/QL ?" — never a silent cell that reads as "no prior auth" (2026-10-09).
+  function restrictionsUnknown(status) {
+    if (!status || !status.verified || status.coverage === "not_covered") return false;
+    if (typeof status.restrictionsKnown === "boolean") return !status.restrictionsKnown;
+    if (/medicare_gov/i.test(String(status.source || ""))) return true;
+    return ![status.pa, status.st, status.ql].some((v) => typeof v === "boolean");
+  }
+
   function formatDrugCell(status, plan) {
     if (!status || !status.verified) return "Unverified";
     if (status.coverage === "not_covered" && status.unsure) return "Confirm in Sunfire";
@@ -1206,9 +1218,9 @@
     const cost =
       status.costShare ||
       formatBenefitValue(plan && plan["tier" + status.tier], "tier" + status.tier);
-    const flags = [status.pa ? "PA" : "", status.st ? "ST" : ""].filter(Boolean).join("/");
+    const flags = [status.pa ? "PA" : "", status.st ? "ST" : "", status.qlText || (status.ql ? "QL" : "")].filter(Boolean).join("/");
     const costBit = cost && cost !== "Not listed" ? " · " + cost : "";
-    return "Tier " + status.tier + costBit + (flags ? " · " + flags : "");
+    return "Tier " + status.tier + costBit + (flags ? " · " + flags : "") + (restrictionsUnknown(status) ? " · PA/QL ?" : "");
   }
 
   function planIdAliases(plan) {

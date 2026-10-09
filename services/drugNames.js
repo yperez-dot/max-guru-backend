@@ -267,6 +267,25 @@ async function drugTokensInText(text, { exclude = [], fetchImpl = fetch, max = 1
   return Promise.race([check, new Promise((r) => setTimeout(() => r([]), timeoutMs))]);
 }
 
+/**
+ * Did the answering source report restrictions at all? medicare.gov never does (its restrictions
+ * list comes back empty even for Ozempic), and a Sunfire / Humana FHIR answer that omits the PA /
+ * ST / QL fields says nothing either — a missing field is never "none". Solis and the Doctors
+ * PDF print every row's requirements, so their false is a real "none".
+ */
+function restrictionsKnownFor(hit) {
+  if (!hit) return false;
+  if (/medicare_gov/i.test(String(hit.source || ''))) return false;
+  return [hit.pa, hit.st, hit.ql].some((v) => typeof v === 'boolean');
+}
+
+/** True when a row's PA/ST/QL were not reported by its source ("PA/QL ?"). */
+function restrictionsUnknown(row) {
+  if (!row || !row.verified || row.coverage === 'not_covered') return false;
+  if (typeof row.restrictionsKnown === 'boolean') return !row.restrictionsKnown;
+  return !restrictionsKnownFor(row);
+}
+
 // ─── Part D excluded drug classes ─────────────────────────────────────────────
 
 // Sexual / erectile dysfunction PDE5 inhibitors: excluded from Part D for ED use. A plan can still
@@ -311,6 +330,8 @@ module.exports = {
   similarity,
   resolveDrugName,
   drugTokensInText,
+  restrictionsKnownFor,
+  restrictionsUnknown,
   isEdDrug,
   edLabel,
   ED_LABELS,
