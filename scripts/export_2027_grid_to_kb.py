@@ -45,6 +45,7 @@ from dental_procedure_rows import (  # noqa: E402
 )
 from thei_grid_common import (  # noqa: E402
     SHEET_ID_2027 as SHEET_ID,
+    require_xlsx,
     carrier_of,
     extract_plan_id,
     is_confirmed_2027_cell,
@@ -422,8 +423,7 @@ def render_overview(plans: list[dict], meta: dict, pulled: str, stats: dict) -> 
     lines.append("")
     lines.append("```bash")
     lines.append(
-        f"curl -sL -o /tmp/thei-2027-grid.xlsx "
-        f"'https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx'"
+        f"# Native Google Sheet {SHEET_ID}: export to .xlsx through Drive (signed in) -> /tmp/thei-2027-grid.xlsx"
     )
     lines.append("python3 scripts/export_2027_grid_to_kb.py")
     lines.append("```")
@@ -453,6 +453,7 @@ def main() -> int:
     if not XLSX_PATH.exists():
         print(f"missing {XLSX_PATH}", file=sys.stderr)
         return 1
+    require_xlsx(XLSX_PATH)
     pulled = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     digest = hashlib.sha256(XLSX_PATH.read_bytes()).hexdigest()
     plans, meta = parse_grid(XLSX_PATH)

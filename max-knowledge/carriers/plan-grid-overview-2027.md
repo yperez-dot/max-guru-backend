@@ -1,6 +1,6 @@
 # 2027 THEI plan grid — what Max can cite
-Source: THEI 2027 Plan Benefit Grid working copy ([Google Sheet](https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit))
-Pulled: 2026-10-08 17:01 UTC
+Source: THEI 2027 Plan Benefit Grid working copy ([Google Sheet](https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit))
+Pulled: 2026-10-09 22:47 UTC
 Sheet stamp: 5454 confirmed (non-yellow) / 240 yellow benefit cells across plan tabs.
 
 Color key on the sheet: **yellow** = leftover / unconfirmed (never cited as 2027 dollars). After the Oct 2026 restyle, confirmed working 2027 numbers are typically **white/uncolored** (classic light-green fills were cleared; green still counts if it returns). Max only cites non-yellow cells.
@@ -98,6 +98,6 @@ These carriers are on the 2027 workbook but every benefit cell is still yellow. 
 ## How to refresh
 
 ```bash
-curl -sL -o /tmp/thei-2027-grid.xlsx 'https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/export?format=xlsx'
+# Native Google Sheet 1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg: export to .xlsx through Drive (signed in) -> /tmp/thei-2027-grid.xlsx
 python3 scripts/export_2027_grid_to_kb.py
 ```

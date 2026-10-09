@@ -33,7 +33,7 @@ Live Max only searches files under `max-knowledge/`. Root `MAX.md` is for Cursor
 
 Live `#plan-data` **defaults to 2027** (non-yellow cells). Also write confirmed 2027 numbers into a `*2027*.md` file so `search_knowledge` can cite them. 2026 stays in `#plan-data-2026`.
 
-The live 2027 working workbook is https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit (yellow = leftover/unconfirmed; white/uncolored or classic green = working 2027). Refresh with `python3 scripts/sync_thei_grid_to_max.py --year 2027` and `python3 scripts/export_2027_grid_to_kb.py`. Index: `carriers/plan-grid-overview-2027`. **HealthSpring / Cigna is not a 2027 Miami-Dade or Broward MA option** — leftover yellow cells are stale; cite `carriers/healthspring-plans-florida-2027`.
+The live 2027 working workbook is https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit (yellow = leftover/unconfirmed; white/uncolored or classic green = working 2027). Refresh with `python3 scripts/sync_thei_grid_to_max.py --year 2027` and `python3 scripts/export_2027_grid_to_kb.py`. Index: `carriers/plan-grid-overview-2027`. **HealthSpring / Cigna is not a 2027 Miami-Dade or Broward MA option** — leftover yellow cells are stale; cite `carriers/healthspring-plans-florida-2027`.
 
 Dental procedure sub-rows (Crowns, Bridges, Implants, …) are kept on export when the cell has a clear frequency, even if still yellow. Vague `$0 varies` is not exported; the clearer sibling county for the same CMS ID is used. CarePlus CareComplete H1019-150: `carriers/careplus-carecomplete-h1019-150`.
 
