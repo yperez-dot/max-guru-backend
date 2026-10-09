@@ -1072,12 +1072,15 @@ async function resolveMedicareGovNdcs({ drugName, ndc, hintNdc }, fetchImpl = fe
   const exact = new Set();
   const seen = new Set();
   const moreExact = [];
-  const push = (value, isExact) => {
+  // NDC → the RxNorm product it belongs to, so products that disagree at one strength are seen.
+  const ndcConcept = {};
+  const push = (value, isExact, concept = null) => {
     const n = normalizeNdc(value);
     if (!n || seen.has(n)) return;
     seen.add(n);
     out.push(n);
     if (isExact) exact.add(n);
+    if (concept) ndcConcept[n] = concept;
   };
   // An NDC the agent typed is the product by definition.
   if (ndc) push(ndc, true);
@@ -1118,6 +1121,16 @@ async function resolveMedicareGovNdcs({ drugName, ndc, hintNdc }, fetchImpl = fe
     // RxNorm writes combinations as "A 20 MG / B 375 MG …"; "0.05 MG/MG" (no spaces) is one strength.
     const conceptIngredients = (name) => (String(name || '').match(/\s\/\s(?=[a-z])/gi) || []).length + 1;
     dedup = dedup.filter((c) => conceptIngredients(c.name) <= askIngredients);
+    // A typed strength is the ordinary product unless she asked for PAH: "tadalafil 20 mg" priced
+    // on "Pulmonary Hypertension tadalafil 20 MG" (NDC 13668-0581-30) read T4 on H1019-001, where
+    // plain tadalafil 20 mg is not covered (Martin Wiesenthal staging run, 2026-10-09).
+    const pahProduct = (c) => /pulmonary hypertension|\(pah\)/i.test(c.name);
+    if (/\b(?:pah|pulmonary)\b/i.test(query)) {
+      // She asked for the PAH product: only that one, when RxNorm has it.
+      if (dedup.some(pahProduct)) dedup = dedup.filter(pahProduct);
+    } else if (queryProductHints(query).strengths.length) {
+      dedup = dedup.filter((c) => !pahProduct(c));
+    }
     // Ointment / cream / gel / drops / patch: only products of that form. No oral fallback.
     if (isNonOralForm(askedForm)) {
       const eye = /\b(?:eye|ophthalmic|ophth)\b/i.test(query);
@@ -1158,7 +1171,7 @@ async function resolveMedicareGovNdcs({ drugName, ndc, hintNdc }, fetchImpl = fe
         continue;
       }
       const all = [...rx, ...ranked.slice(6)];
-      all.slice(0, 3).forEach((n) => push(n, concept.exact));
+      all.slice(0, 3).forEach((n) => push(n, concept.exact, concept));
       // medicare.gov only prices the NDCs in its own drug file: most RxNorm NDCs for a generic
       // answer with empty drug_costs (pregabalin 200 mg on H1036-065C: 13668-0363-30, 46708-0124-30
       // and 50228-0355-30 are all empty, while 00904-7003-04 reads Tier 3). Keep the rest of the
@@ -1180,6 +1193,7 @@ async function resolveMedicareGovNdcs({ drugName, ndc, hintNdc }, fetchImpl = fe
     ndcs,
     moreExactNdcs: moreExact.filter((n) => !ndcs.includes(n)).slice(0, MEDICARE_GOV_EXTRA_NDC_PROBES),
     exactNdcs: ndcs.filter((n) => exact.has(n)),
+    ndcConcepts: Object.fromEntries(ndcs.filter((n) => ndcConcept[n]).map((n) => [n, { rxcui: ndcConcept[n].rxcui, name: ndcConcept[n].name }])),
     rxcui: rxcui ? String(rxcui) : null,
     name: resolvedName || drugName,
     error: out.length ? null : auto.error || 'medicare_gov_no_ndc',
@@ -1395,6 +1409,34 @@ async function lookupMedicareGov({ drugName, ndc, hintNdc, planId, year }, fetch
     }
     return res;
   };
+  // Products that match the ask at the same strength (different RxNorm products) must agree:
+  // "covered beats not covered" would hide that one of them is not covered.
+  const concepts = resolved.ndcConcepts || {};
+  const strengthKey = (n) => {
+    const c = concepts[n];
+    return c ? conceptProductTraits(c.name).strengths.map((s) => `${Number(s.value)}${s.unit}`).sort().join('+') : null;
+  };
+  const answeredByConcept = new Map();
+  const mixedWith = async (useNdc) => {
+    const c = concepts[useNdc];
+    if (!c) return false;
+    const key = strengthKey(useNdc);
+    const others = new Map();
+    for (const n of resolved.exactNdcs || []) {
+      const oc = concepts[n];
+      if (oc && oc.rxcui !== c.rxcui && strengthKey(n) === key && !others.has(oc.rxcui)) others.set(oc.rxcui, n);
+    }
+    for (const [rxcui, n] of others) {
+      let cov = answeredByConcept.get(rxcui);
+      if (cov === undefined) {
+        const r = await askCost(n);
+        const h = r.ok && r.json ? extractMedicareGovCost(r.json, planId, y) : {};
+        cov = h.coverage || null;
+      }
+      if (cov === 'not_covered') return true;
+    }
+    return false;
+  };
   let emptyExact = 0;
   for (const useNdc of resolved.ndcs.slice(0, 8)) {
     const isExact = exactSet.has(useNdc);
@@ -1406,8 +1448,9 @@ async function lookupMedicareGov({ drugName, ndc, hintNdc, planId, year }, fetch
       continue;
     }
     const hit = extractMedicareGovCost(res.json, planId, y);
+    if (concepts[useNdc] && hit.coverage) answeredByConcept.set(concepts[useNdc].rxcui, hit.coverage);
     if (hit.coverage === 'covered' && hit.tier) {
-      if (isExact) return build(hit, useNdc);
+      if (isExact) return build(hit, useNdc, (await mixedWith(useNdc)) ? { mixedProducts: true } : {});
       if (!otherCovered) otherCovered = { hit, useNdc };
       continue;
     }
@@ -1803,6 +1846,7 @@ async function lookupFormulary(
           ql: hit.ql,
           ...(hit.excludedDrug ? { excludedDrug: true } : {}),
           ...(hit.indication ? { indication: hit.indication } : {}),
+          ...(hit.mixedProducts ? { mixedProducts: true } : {}),
           ...(hit.rxcui ? { rxcui: String(hit.rxcui) } : {}),
           costShare: share ? share.value : null,
           costShareSource: share ? share.source : null,

@@ -24,7 +24,7 @@ const MEDS = ['esomeprazole', 'rasuvostatin', 'tadalafil', 'trazodone', 'acyclov
 
 // ─── stub RxNorm + medicare.gov ────────────────────────────────────────────────
 
-const EXACT = { esomeprazole: '283742', tadalafil: '358263', trazodone: '82112', acyclovir: '281', rosuvastatin: '301542' };
+const EXACT = { esomeprazole: '283742', tadalafil: '358263', trazodone: '82112', acyclovir: '281', rosuvastatin: '301542', testamol: '999001' };
 const CONCEPTS = {
   283742: [
     ['433733', 'esomeprazole 20 MG Delayed Release Oral Tablet'], // OTC (Nexium 24HR store brands)
@@ -40,8 +40,10 @@ const CONCEPTS = {
   82112: [['856364', 'trazodone hydrochloride 50 MG Oral Tablet']],
   281: [['197311', 'acyclovir 400 MG Oral Tablet'], ['197312', 'acyclovir 0.05 MG/MG Topical Ointment']],
   1544379: [['1544383', '0.2 ML methotrexate 50 MG/ML Auto-Injector [Rasuvo]']],
+  // Made-up drug: two products at the same strength that disagree on coverage.
+  999001: [['999011', 'testamol 10 MG Oral Tablet'], ['999012', 'testamol 10 MG Oral Capsule']],
 };
-const NDCS = { 433733: ['00363036142'], 994005: ['76420089030'], 606726: ['00093645056'], 859424: ['00093744898'], 757707: ['00093301630'], 403957: ['00093301730'], 484814: ['13668056730'], 402019: ['13668056830'], 2123194: ['13668058130'], 856364: ['00378347301'], 197311: ['00378025301'], 197312: ['00472008216'], 1544383: ['59137050504'] };
+const NDCS = { 433733: ['00363036142'], 994005: ['76420089030'], 606726: ['00093645056'], 859424: ['00093744898'], 757707: ['00093301630'], 403957: ['00093301730'], 484814: ['13668056730'], 402019: ['13668056830'], 2123194: ['13668058130'], 856364: ['00378347301'], 197311: ['00378025301'], 197312: ['00472008216'], 1544383: ['59137050504'], 999011: ['99900000011'], 999012: ['99900000012'] };
 const OTC = new Set(['00363036142']);
 // medicare.gov drug cost answers on H1019-001 2027 (live, 2026-10-09).
 const COST = {
@@ -56,6 +58,8 @@ const COST = {
   '00378347301': { tier: 1, covered: true },
   '00378025301': { tier: 1, covered: true },
   '00472008216': { covered: false, reason: 'NOT_COVERED' },
+  '99900000011': { tier: 2, covered: true }, // testamol tablet
+  '99900000012': { covered: false, reason: 'NOT_IN_FORMULARY' }, // testamol capsule
 };
 
 function stubFetch(log) {
@@ -417,4 +421,35 @@ test('ranking uses the lowest-cost strength for a split drug', () => {
   const sel = N.selectComparison(docs, ASK_TEXT, { drugs: [split] });
   const col = sel.columns.find((c) => c.planId === 'H1019-001');
   assert.equal(col.drugCost, 0);
+});
+
+// ─── staging run fixes (2026-10-09) ─────────────────────────────────────────────
+
+test('typed "tadalafil 20 mg" is never priced on the PAH product (NDC 13668-0581-30)', async () => {
+  const log = [];
+  const [r] = await priceAll(['tadalafil 20 mg'], ['H1019-001'], log);
+  const row = r.byPlanId['H1019-001'];
+  assert.ok(!log.includes('13668058130'), 'the Pulmonary Hypertension product must not be priced');
+  assert.notEqual(row.tier, 4);
+  assert.equal(row.coverage, 'not_covered');
+  assert.equal(row.edLabel, 'Not covered by this plan');
+  // Asking for PAH still reaches it.
+  const [pah] = await priceAll(['tadalafil 20 mg pah'], ['H1019-001'], []);
+  assert.equal(pah.byPlanId['H1019-001'].tier, 4);
+});
+
+test('products at the same strength that disagree read "varies by product", not covered', async () => {
+  const [r] = await priceAll(['testamol 10 mg'], ['H1019-001']);
+  const row = r.byPlanId['H1019-001'];
+  assert.equal(row.mixedProducts, true);
+  assert.match(N.medsTable([r], [{ planId: 'H1019-001', name: 'CarePlus' }]).split('\n')[2], /^\| testamol .*\| T2 .*· varies by product · PA\/QL \? \|$/);
+});
+
+test('a PAH ask prices only the PAH product (no "varies by product" against the ED product)', async () => {
+  const log = [];
+  const [r] = await priceAll(['tadalafil 20 mg pah'], ['H1019-001'], log);
+  assert.equal(r.nameCheck, undefined, '"pah" is not part of the drug name RxNorm checks');
+  assert.equal(r.byPlanId['H1019-001'].tier, 4);
+  assert.equal(r.byPlanId['H1019-001'].mixedProducts, undefined);
+  assert.ok(!log.includes('13668056830'), 'the plain 20 mg product is not priced for a PAH ask');
 });

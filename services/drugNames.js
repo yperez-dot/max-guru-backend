@@ -113,7 +113,7 @@ function expandMedList(list) {
 }
 
 // Strength, form and release words carry the product, not the drug name RxNorm should match.
-const STRIP_RE = /\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|units?|iu|meq|%)\b|\b(?:er|xr|xl|sr|cr|dr|ec|odt|la|hcl|oral|topical|ophthalmic|eye|ear|otic|pen|injection|inhaler|vial|daily|bid|tid|qd|prn)\b/gi;
+const STRIP_RE = /\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|units?|iu|meq|%)\b|\b(?:er|xr|xl|sr|cr|dr|ec|odt|la|hcl|pah|bph|oral|topical|ophthalmic|eye|ear|otic|pen|injection|inhaler|vial|daily|bid|tid|qd|prn)\b/gi;
 
 /** "rasuvostatin 10mg tablets" → "rasuvostatin" (the part RxNorm should match). */
 function drugNameBase(raw) {
