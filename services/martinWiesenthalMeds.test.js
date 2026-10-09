@@ -467,3 +467,19 @@ test('ED-label cells print the source\'s PA/ST/QL flags (Solis tadalafil 10/20 m
   const [r5] = await priceAll(['tadalafil 5 mg'], ['H0982-007']);
   assert.match(N.medsTable([r5], plans), /Covered · PA required \(verify indication\) · T4 40% · PA · QL 30\/30 \|/);
 });
+
+test('the typed strength stays in the row name ("Tadalafil 20 mg", "Rosuvastatin Calcium 10 mg")', async () => {
+  const [t20, r10] = await priceAll(['tadalafil 20 mg', 'rosuvastatin 10 mg'], ['H1019-001']);
+  assert.equal(t20.drugName, 'tadalafil 20 mg');
+  assert.equal(r10.drugName, 'rosuvastatin 10 mg');
+  // With a Sunfire catalog name the strength is added, never doubled.
+  const row = { verified: true, coverage: 'covered', tier: 1, costShare: '$0', source: 'medicare_gov' };
+  const plans = [{ planId: 'H1019-001', name: 'CarePlus' }];
+  assert.match(N.medsTable([{ drugName: 'Rosuvastatin Calcium 10 mg', byPlanId: { 'H1019-001': row }, lookups: [row] }], plans), /\| Rosuvastatin Calcium 10 mg \|/);
+  // The Spanish-style ask keeps both typed strengths through to the table.
+  const msgs = [{ role: 'user', content: 'Martin Wiesenthal, 33324, Dr.Steven Barilla, Dr. Matthew Soff, Dra. Zuhdiyah Darojat, medicamentos esomeprazole, rosuvastatin 10 mg, tadalafil 20 mg, trazodone, acyclovir ointment' }];
+  assert.deepEqual(R.medsFromAsk(N.comparisonAskText(msgs, conversationAskText(msgs))), ['esomeprazole', 'rosuvastatin 10 mg', 'tadalafil 20 mg', 'trazodone', 'acyclovir ointment']);
+  const table = N.medsTable([t20, r10], plans);
+  assert.match(table, /\| tadalafil 20 mg \|/);
+  assert.match(table, /\| rosuvastatin 10 mg \|/);
+});

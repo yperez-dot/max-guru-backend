@@ -1927,7 +1927,13 @@ async function lookupFormulary(
   // the meds table must not fold them into one "acyclovir" row.
   const label = askedForm ? formLabel(askedForm, rawQuery) : '';
   const namesForm = /\b(?:tabs?|tablets?|caps?|capsules?|ointment|cream|gel|lotion|drops?|patch|solution|suspension)\b/i.test(String(resolvedName));
-  const displayName = label && !namesForm ? `${resolvedName} ${label}` : resolvedName;
+  const withForm = label && !namesForm ? `${resolvedName} ${label}` : resolvedName;
+  // A typed strength stays in the row name: the catalog says "Rosuvastatin Calcium", she typed
+  // 10 mg — the agent must see that the 10 mg product was priced (staging, 2026-10-09).
+  const typedStrengths = queryProductHints(rawQuery).strengths.map((s) => `${Number(s.value)} ${s.unit}`);
+  const nameHasStrength = (s) => new RegExp(`\\b${s.split(' ')[0].replace('.', '\\.')}\\s*${s.split(' ')[1]}\\b`, 'i').test(String(withForm));
+  const missing = typedStrengths.filter((s) => !nameHasStrength(s));
+  const displayName = missing.length ? `${withForm} ${missing.join('/')}` : withForm;
 
   const result = {
     drugName: displayName,
