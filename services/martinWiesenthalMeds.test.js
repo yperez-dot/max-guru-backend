@@ -326,7 +326,8 @@ test('Solis cost-share comes from the 2027 KB; a tier with no cost says "cost n/
 test('FORMULARY_DEBUG=1 logs one line per drug per plan; off by default', async () => {
   const lines = [];
   const orig = console.log;
-  console.log = (...a) => { const s = a.join(' '); if (s.startsWith('[formulary-debug]')) lines.push(s); };
+  // The per-lookup timing line is its own format (formularySpeed.test.js).
+  console.log = (...a) => { const s = a.join(' '); if (s.startsWith('[formulary-debug]') && !s.startsWith('[formulary-debug] timing')) lines.push(s); };
   try {
     delete process.env.FORMULARY_DEBUG;
     await priceAll(['rasuvostatin'], ['H1019-001']);
@@ -506,9 +507,15 @@ test('Sunfire: each coverage endpoint is logged under FORMULARY_DEBUG, and its r
   let t20;
   let r10;
   try {
-    [t20, r10] = await priceAll(['tadalafil 20 mg', 'rosuvastatin 10 mg'], ['H1019-001', 'H5431-006']);
+    // Every endpoint 404s here, so the probe breaker would park them after 3 drug x plan passes
+    // (formularySpeed.test.js covers that): start each drug with a clean breaker.
+    F._resetSunfireProbeBreaker();
+    [t20] = await priceAll(['tadalafil 20 mg'], ['H1019-001', 'H5431-006']);
+    F._resetSunfireProbeBreaker();
+    [r10] = await priceAll(['rosuvastatin 10 mg'], ['H1019-001', 'H5431-006']);
   } finally {
     console.log = orig;
+    F._resetSunfireProbeBreaker();
     delete process.env.SUNFIRE_JWT;
     delete process.env.FORMULARY_DEBUG;
   }

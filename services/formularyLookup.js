@@ -428,6 +428,42 @@ async function searchSunfireCatalog(name, fetchImpl = fetch) {
   return { drugs: catalogDrugs(res.json), error: null, status: res.status };
 }
 
+/**
+ * The coverage endpoints below are guesses; on staging all seven answer 404 / HTML for every drug x
+ * plan, one after another (Martin Wiesenthal run, 2026-10-09: most of a 59 s comparison). An
+ * endpoint that answers 404 / 405 / 410 or a non-JSON body 3 times in a row is parked for
+ * SUNFIRE_PROBE_COOLDOWN_MS, then asked once more. 401 / 403, 5xx and timeouts never count: an
+ * expired session must still surface, not get skipped. Keyed by endpoint template, not drug / plan.
+ */
+const SUNFIRE_PROBE_COOLDOWN_MS = Number(process.env.SUNFIRE_PROBE_COOLDOWN_MS) || 30 * 60 * 1000;
+const SUNFIRE_PROBE_DEAD_AFTER = 3;
+const sunfireProbeState = new Map();
+let sunfireProbeNow = () => Date.now();
+
+/** Tests: clear the breaker, optionally with an injected clock. */
+function resetSunfireProbeBreaker(now = null) {
+  sunfireProbeState.clear();
+  sunfireProbeNow = typeof now === 'function' ? now : () => Date.now();
+}
+
+function sunfireProbeParked(template) {
+  const s = sunfireProbeState.get(template);
+  return Boolean(s && s.parkedUntil && sunfireProbeNow() < s.parkedUntil);
+}
+
+function noteSunfireProbe(template, res) {
+  if (res.ok && res.json) { sunfireProbeState.delete(template); return; }
+  const dead = [404, 405, 410].includes(res.status) || (res.ok && !res.json);
+  if (!dead) return;
+  const s = sunfireProbeState.get(template) || { misses: 0, parkedUntil: 0 };
+  s.misses += 1;
+  if (s.misses >= SUNFIRE_PROBE_DEAD_AFTER) {
+    s.parkedUntil = sunfireProbeNow() + SUNFIRE_PROBE_COOLDOWN_MS;
+    console.log(`[formulary] sunfire endpoint parked for ${Math.round(SUNFIRE_PROBE_COOLDOWN_MS / 60000)} min after ${s.misses} dead answers: ${template}`);
+  }
+  sunfireProbeState.set(template, s);
+}
+
 async function lookupSunfireCoverage({ drug, planId, year, sunfirePlanId }, fetchImpl = fetch) {
   if (!hasSunfireCreds()) {
     return { verified: false, reason: 'sunfire_creds_missing', attempted: [] };
@@ -450,18 +486,19 @@ async function lookupSunfireCoverage({ drug, planId, year, sunfirePlanId }, fetc
 
   const attempts = [
     sfId && prefix
-      ? { label: `GET /v2/drug/search/${prefix}/${sfId}`, method: 'GET', url: `${SUNFIRE_BASE}/v2/drug/search/${prefix}/${sfId}` }
+      ? { label: `GET /v2/drug/search/${prefix}/${sfId}`, template: 'GET /v2/drug/search/{prefix}/{sfId}', method: 'GET', url: `${SUNFIRE_BASE}/v2/drug/search/${prefix}/${sfId}` }
       : null,
     sfId && prefix
       ? {
           label: `GET /v2/drug/search/${prefix}/${sfId}/${y}`,
+          template: 'GET /v2/drug/search/{prefix}/{sfId}/{year}',
           method: 'GET',
           url: `${SUNFIRE_BASE}/v2/drug/search/${prefix}/${sfId}/${y}`,
         }
       : null,
-    drugId ? { label: `GET /v2/drug/${drugId}`, method: 'GET', url: `${SUNFIRE_BASE}/v2/drug/${drugId}` } : null,
+    drugId ? { label: `GET /v2/drug/${drugId}`, template: 'GET /v2/drug/{drugId}', method: 'GET', url: `${SUNFIRE_BASE}/v2/drug/${drugId}` } : null,
     drugId && sfId
-      ? { label: `GET /v2/drug/${drugId}/${sfId}`, method: 'GET', url: `${SUNFIRE_BASE}/v2/drug/${drugId}/${sfId}` }
+      ? { label: `GET /v2/drug/${drugId}/${sfId}`, template: 'GET /v2/drug/{drugId}/{sfId}', method: 'GET', url: `${SUNFIRE_BASE}/v2/drug/${drugId}/${sfId}` }
       : null,
     drugId && sfId
       ? {
@@ -482,6 +519,7 @@ async function lookupSunfireCoverage({ drug, planId, year, sunfirePlanId }, fetc
     drugId && sfId
       ? {
           label: `GET /v2/plan/${sfId}/drug/${drugId}`,
+          template: 'GET /v2/plan/{sfId}/drug/{drugId}',
           method: 'GET',
           url: `${SUNFIRE_BASE}/v2/plan/${sfId}/drug/${drugId}?year=${y}`,
         }
@@ -490,10 +528,16 @@ async function lookupSunfireCoverage({ drug, planId, year, sunfirePlanId }, fetc
 
   const debug = process.env.FORMULARY_DEBUG === '1';
   for (const attempt of attempts) {
+    const template = attempt.template || attempt.label;
+    if (sunfireProbeParked(template)) {
+      if (debug) console.log(`[formulary-debug] sunfire ${displayPlanId(planId)} (${sfId || 'unmapped'}) ${attempt.label} → skipped (parked: ${template})`);
+      continue;
+    }
     attempted.push(attempt.label);
     const opts = { method: attempt.method, headers: sunfireHeaders() };
     if (attempt.body) opts.body = JSON.stringify(attempt.body);
     const res = await fetchJson(attempt.url, opts, fetchImpl);
+    noteSunfireProbe(template, res);
     const hit = res.ok && res.json ? firstCoverageHit(res.json) : null;
     if (debug) {
       // Response body only (never our headers); long token-like strings are cut out.
@@ -1214,8 +1258,9 @@ async function resolveMedicareGovNdcs({ drugName, ndc, hintNdc, strictName = fal
 
   // A catalog NDC (Sunfire's first hit) is a hint, never the asked product: duloxetine 30 mg
   // resolved to a 40 mg NDC and read "not covered" (2026-10-07). Never for a non-oral form ask —
-  // the catalog hit is usually the oral product.
-  if (hintNdc && out.length < 8 && !isNonOralForm(askedForm)) push(hintNdc, false);
+  // the catalog hit is usually the oral product. Never for an unverified name either: nothing has
+  // confirmed the catalog hit is the drug she typed (audit, 2026-10-09).
+  if (hintNdc && !strictName && out.length < 8 && !isNonOralForm(askedForm)) push(hintNdc, false);
   const ndcs = out.slice(0, 8);
   return {
     strengthNote,
@@ -1276,15 +1321,18 @@ async function medicareGovStrengthVariants({ drugName, planIds, year }, fetchImp
   for (const g of [...groups.values()].slice(0, 7)) {
     // NDCs from each product at this strength (2 apiece), so products that disagree are seen.
     const picked = [];
+    let failed = false;
     for (const c of g.concepts.slice(0, 2)) {
       const found = await ndcsForRxcui(c.rxcui, fetchImpl);
-      if (found.failed) transient = true;
+      if (found.failed) { transient = true; failed = true; }
       const { rx } = await rxNdcsOnly(rankNdcs(found).slice(0, 4), fetchImpl);
       picked.push(...rx.slice(0, g.concepts.length > 1 ? 2 : 3));
     }
-    if (picked.length) byStrength.push({ strength: g.strength, indication: g.indication, productName: g.concepts[0].name, ndcs: picked });
+    // A strength whose NDC fetch failed stays (no NDCs, so it reads "not found"): dropping it made
+    // the split look complete when it was not (audit, 2026-10-09).
+    if (picked.length || failed) byStrength.push({ strength: g.strength, indication: g.indication, productName: g.concepts[0].name, ndcs: picked });
   }
-  if (byStrength.length < 2) {
+  if (byStrength.filter((b) => b.ndcs.length).length < 2) {
     // Fewer than 2 priceable strengths because an RxNav call failed is not an answer to keep.
     if (!transient) strengthVariantCache.set(key, null);
     return null;
@@ -1386,12 +1434,17 @@ function extractMedicareGovCost(payload, planId, year) {
   return { miss: 'empty_costs' };
 }
 
-async function lookupMedicareGov({ drugName, ndc, hintNdc, planId, year, strictName = false }, fetchImpl = medicareGovFetch) {
+/**
+ * resolve: optional ({ drugName, ndc, hintNdc, strictName }) => Promise of resolveMedicareGovNdcs'
+ * answer. lookupFormulary passes a per-call memo so one drug's NDCs are resolved once, not per plan.
+ */
+async function lookupMedicareGov({ drugName, ndc, hintNdc, planId, year, strictName = false }, fetchImpl = medicareGovFetch, resolve = null) {
   const y = Number(year) || PLAN_YEAR;
   const parts = cmsContractParts(planId);
   if (!parts) return { verified: false, reason: 'medicare_gov_bad_plan_id', source: 'medicare_gov' };
 
-  const resolved = await resolveMedicareGovNdcs({ drugName, ndc, hintNdc, strictName }, fetchImpl);
+  const resolveArgs = { drugName, ndc, hintNdc, strictName };
+  const resolved = await (resolve ? resolve(resolveArgs) : resolveMedicareGovNdcs(resolveArgs, fetchImpl));
   if (!resolved.ndcs.length) {
     return {
       verified: false,
@@ -1707,8 +1760,23 @@ function starBrandName(name) {
 /**
  * Look up one drug against one or more plans.
  * claimedTier is accepted for API compatibility and discarded immediately.
+ * FORMULARY_DEBUG=1 adds one timing line: elapsed ms and how many requests went through fetchImpl.
  */
-async function lookupFormulary(
+async function lookupFormulary(args = {}, fetchImpl = fetch) {
+  const started = Date.now();
+  let fetches = 0;
+  const counted = (fn) => (...a) => { fetches += 1; return fn(...a); };
+  try {
+    // The doctors PDF reader picks its live transport by `fetchImpl === fetch`: it gets the raw one.
+    return await lookupFormularyOnce(args, counted(fetchImpl), counted(fetchImpl === fetch ? medicareGovFetch : fetchImpl), fetchImpl);
+  } finally {
+    if (process.env.FORMULARY_DEBUG === '1') {
+      console.log(`[formulary-debug] timing drug="${String((args && (args.drugName || args.ndc)) || '').trim()}" ms=${Date.now() - started} fetches=${fetches}`);
+    }
+  }
+}
+
+async function lookupFormularyOnce(
   {
     drugName = '',
     ndc = '',
@@ -1720,7 +1788,9 @@ async function lookupFormulary(
     skipGenericFollowup = false,
     skipNameCheck = false,
   } = {},
-  fetchImpl = fetch
+  fetchImpl,
+  medicareFetch,
+  rawFetch
 ) {
   const y = Number(year) || PLAN_YEAR;
   void claimedTier;
@@ -1822,9 +1892,19 @@ async function lookupFormulary(
   const mgovVariants = splitWanted
     ? medicareGovStrengthVariants(
       { drugName: rawQuery, planIds: uniqueIds.filter((id) => !isSolisPlan(id)), year: y },
-      fetchImpl === fetch ? medicareGovFetch : fetchImpl
+      medicareFetch
     ).catch(() => null)
     : Promise.resolve(null);
+
+  // A drug's medicare.gov NDCs do not depend on the plan: resolve once per product for this call,
+  // not once per plan (~20 RxNorm / medicare.gov requests each; Martin Wiesenthal run, 2026-10-09).
+  // The retry with another catalog product has a different name / hint NDC, so its own key.
+  const ndcResolutions = new Map();
+  const resolveNdcsOnce = (a) => {
+    const key = `${a.drugName}|${a.ndc}|${a.hintNdc}|${a.strictName}`;
+    if (!ndcResolutions.has(key)) ndcResolutions.set(key, resolveMedicareGovNdcs(a, medicareFetch));
+    return ndcResolutions.get(key);
+  };
 
   async function lookupPlans(match, resolvedName, resolvedNdc) {
     const byPlanId = {};
@@ -1861,12 +1941,12 @@ async function lookupFormulary(
       }
 
       if (!hit || !hit.verified) {
-        const medicareFetch = fetchImpl === fetch ? medicareGovFetch : fetchImpl;
         // medicare.gov gets the product the agent asked for (strength / form / ER), not the Sunfire
         // catalog's bare name, and only an NDC the agent typed counts as that exact product.
         const mpf = await lookupMedicareGov(
           { drugName: medicareGovQueryName(rawQuery, resolvedName), ndc: ndc || null, hintNdc: ndc ? null : resolvedNdc, planId: id, year: y, strictName: nameUnverified },
-          medicareFetch
+          medicareFetch,
+          resolveNdcsOnce
         );
         if (mpf.verified) hit = mpf;
         else if (mpf.reason) reasons.push(mpf.reason);
@@ -1906,7 +1986,7 @@ async function lookupFormulary(
       if (!nonOral && (!hit || !hit.verified)) {
         const consumer = await lookupConsumerFormulary(
           { drugName: resolvedName, ndc: resolvedNdc, planId: id, year: y },
-          fetchImpl
+          rawFetch
         );
         if (consumer.verified) hit = consumer;
         else if (consumer.reason && consumer.reason !== 'not_doctors' && consumer.reason !== 'no_consumer_source') {
@@ -2079,7 +2159,7 @@ async function lookupFormulary(
 
   const genericName = knownGenericFor(drugName) || knownGenericFor(resolvedName);
   if (!skipGenericFollowup && genericName && brandVerifiedNotCovered(lookups)) {
-    const generic = await lookupFormulary(
+    const generic = await lookupFormularyOnce(
       {
         drugName: genericName,
         planIds: uniqueIds,
@@ -2088,7 +2168,9 @@ async function lookupFormulary(
         skipGenericFollowup: true,
         skipNameCheck: true,
       },
-      fetchImpl
+      fetchImpl,
+      medicareFetch,
+      rawFetch
     );
     result.suggestedGeneric = genericName;
     result.genericFollowup = generic;
@@ -2314,6 +2396,8 @@ module.exports = {
   costShareFromPlanObject,
   lookupFormulary,
   lookupSunfireCoverage,
+  SUNFIRE_PROBE_COOLDOWN_MS,
+  _resetSunfireProbeBreaker: resetSunfireProbeBreaker,
   lookupHumanaFhir,
   lookupMedicareGov,
   lookupConsumerFormulary,
