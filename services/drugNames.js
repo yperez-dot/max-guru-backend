@@ -270,13 +270,19 @@ async function drugTokensInText(text, { exclude = [], fetchImpl = fetch, max = 1
 /**
  * Did the answering source report restrictions at all? medicare.gov never does (its restrictions
  * list comes back empty even for Ozempic), and a Sunfire / Humana FHIR answer that omits the PA /
- * ST / QL fields says nothing either — a missing field is never "none". Solis and the Doctors
- * PDF print every row's requirements, so their false is a real "none".
+ * ST / QL fields says nothing either — a missing field is never "none". Solis, HealthSun and the
+ * Doctors PDF print every row's requirements, so their false is a real "none".
+ * Any other source is known only when it reported all three: a Humana FHIR answer with a PA
+ * extension and no QL one used to read as "no QL" (audit, 2026-10-09).
  */
+const PDF_READER_SOURCE_RE = /solis .*formulary pdf|healthsun .*formulary pdf|doctors_formulary_pdf/i;
+
 function restrictionsKnownFor(hit) {
   if (!hit) return false;
-  if (/medicare_gov/i.test(String(hit.source || ''))) return false;
-  return [hit.pa, hit.st, hit.ql].some((v) => typeof v === 'boolean');
+  const source = String(hit.source || '');
+  if (/medicare_gov/i.test(source)) return false;
+  if (PDF_READER_SOURCE_RE.test(source)) return true;
+  return [hit.pa, hit.st, hit.ql].every((v) => typeof v === 'boolean');
 }
 
 /** True when a row's PA/ST/QL were not reported by its source ("PA/QL ?"). */

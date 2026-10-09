@@ -265,3 +265,29 @@ describe('compare mode: "Dr.Name" with no space (Victor Rocha, 2026-10-08)', () 
     assert.deepEqual(d.map((x) => x.name), ['Armando Rivero', 'Maria Lopez', 'Marcus St John']);
   });
 });
+
+describe('audit 3: the Rx cache keeps only final answers', () => {
+  const { lookupFormularyCached, rxCacheable } = require('./compareJobs');
+  const counted = (value) => { const fn = async () => { fn.calls += 1; return value; }; fn.calls = 0; return fn; };
+  it('one plan failed transiently (medicare_gov_http_0) → asked again next time', async () => {
+    const value = { lookups: [{ planId: 'H1019-001', verified: true, tier: 1 }, { planId: 'H5431-006', verified: false, reason: 'medicare_gov_http_0' }] };
+    const lookup = counted(value);
+    await lookupFormularyCached({ drugName: 'audit3-transient', planIds: ['H1019-001', 'H5431-006'], year: 2027 }, { lookup });
+    await lookupFormularyCached({ drugName: 'audit3-transient', planIds: ['H1019-001', 'H5431-006'], year: 2027 }, { lookup });
+    assert.equal(lookup.calls, 2);
+  });
+  it('every plan verified → cached', async () => {
+    const lookup = counted({ lookups: [{ verified: true, tier: 1 }, { verified: true, coverage: 'not_covered' }] });
+    await lookupFormularyCached({ drugName: 'audit3-final', planIds: ['H1019-001', 'H5431-006'], year: 2027 }, { lookup });
+    await lookupFormularyCached({ drugName: 'audit3-final', planIds: ['H1019-001', 'H5431-006'], year: 2027 }, { lookup });
+    assert.equal(lookup.calls, 1);
+  });
+  it('deterministic failures are final; transient ones are not', () => {
+    assert.ok(rxCacheable({ lookups: [{ verified: true }, { verified: false, reason: 'form_not_found' }] }));
+    assert.ok(rxCacheable({ lookups: [{ verified: false, reason: 'name_unconfirmed' }] }));
+    assert.ok(!rxCacheable({ lookups: [{ verified: false, reason: 'sunfire_no_tier|form_not_found|medicare_gov_http_0' }] }));
+    for (const reason of ['medicare_gov_empty_costs', 'Timeout', 'sunfire_creds_missing', 'medicare_gov_transport_unavailable', 'unverified']) {
+      assert.ok(!rxCacheable({ lookups: [{ verified: true }, { verified: false, reason }] }), reason);
+    }
+  });
+});

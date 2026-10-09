@@ -1081,14 +1081,17 @@ async function ndcsForRxcui(rxcui, fetchImpl = fetch) {
     fetchImpl
   );
   const list = res.json?.ndcGroup?.ndcList?.ndc || [];
-  return Array.isArray(list) ? list.map((n) => normalizeNdc(n)).filter(Boolean) : [];
+  const out = Array.isArray(list) ? list.map((n) => normalizeNdc(n)).filter(Boolean) : [];
+  // An empty list from a failed request is not "this product has no NDCs": callers must not cache it.
+  if (!res.ok) out.failed = true;
+  return out;
 }
 
 // Extra exact-product NDCs asked when the first ones come back empty (not in medicare.gov's drug file).
 const MEDICARE_GOV_EXTRA_NDC_PROBES = 24;
 const MEDICARE_GOV_PROBE_BATCH = 4;
 
-async function resolveMedicareGovNdcs({ drugName, ndc, hintNdc }, fetchImpl = fetch) {
+async function resolveMedicareGovNdcs({ drugName, ndc, hintNdc, strictName = false }, fetchImpl = fetch) {
   const out = [];
   const exact = new Set();
   const seen = new Set();
@@ -1120,8 +1123,13 @@ async function resolveMedicareGovNdcs({ drugName, ndc, hintNdc }, fetchImpl = fe
   // (asked amlodipine/benazepril, first hit amlodipine/valsartan).
   const comboAsk = drugIngredients(drugName || medicareQuery).length >= 2;
   const fallback = comboAsk ? null : auto.drugs?.[0] || null;
-  const rxcui = match?.rxcui || fallback?.rxcui || null;
-  const resolvedName = match?.name || fallback?.name || medicareQuery || drugName;
+  // An unverified name (RxNorm was unreachable) only takes an autocomplete hit with the same first
+  // word: "rasuvostatin" never resolves to "Rasuvo".
+  const typedHead = String(medicareQuery || drugName || '').toLowerCase().split(/\s+/)[0];
+  const sameName = (d) => d && String(d.name || '').toLowerCase().split(/[\s/]+/)[0] === typedHead;
+  const pick = strictName ? [match, fallback].find(sameName) || null : match || fallback;
+  const rxcui = pick?.rxcui || null;
+  const resolvedName = pick?.name || medicareQuery || drugName;
   let query = drugName || resolvedName;
   let strengthNote = null;
 
@@ -1243,6 +1251,8 @@ async function medicareGovStrengthVariants({ drugName, planIds, year }, fetchImp
   const match = pickCatalogMatch((auto.drugs || []).map((d) => ({ name: d.name, rxcui: d.rxcui, id: d.rxcui })), query);
   if (!match || !match.rxcui) return null;
   const rel = await fetchJson(`${RXNORM_BASE}/rxcui/${encodeURIComponent(match.rxcui)}/related.json?tty=SCD`, { headers: { Accept: 'application/json' } }, fetchImpl);
+  // A failed RxNav call is transient: answer "no split" for now, never cache it (audit, 2026-10-09).
+  if (!rel.ok) return null;
   // Same product family the agent means: single ingredient, oral tablet / capsule, release type as asked.
   const groups = new Map();
   for (const c of relatedRxnormConcepts(rel.json)) {
@@ -1259,18 +1269,26 @@ async function medicareGovStrengthVariants({ drugName, planIds, year }, fetchImp
     if (!groups.has(gk)) groups.set(gk, { strength: s, indication, concepts: [] });
     groups.get(gk).concepts.push(c);
   }
+  // One strength only is a fact about the drug: safe to cache.
   if (groups.size < 2) { strengthVariantCache.set(key, null); return null; }
   const byStrength = [];
+  let transient = false;
   for (const g of [...groups.values()].slice(0, 7)) {
     // NDCs from each product at this strength (2 apiece), so products that disagree are seen.
     const picked = [];
     for (const c of g.concepts.slice(0, 2)) {
-      const { rx } = await rxNdcsOnly(rankNdcs(await ndcsForRxcui(c.rxcui, fetchImpl)).slice(0, 4), fetchImpl);
+      const found = await ndcsForRxcui(c.rxcui, fetchImpl);
+      if (found.failed) transient = true;
+      const { rx } = await rxNdcsOnly(rankNdcs(found).slice(0, 4), fetchImpl);
       picked.push(...rx.slice(0, g.concepts.length > 1 ? 2 : 3));
     }
     if (picked.length) byStrength.push({ strength: g.strength, indication: g.indication, productName: g.concepts[0].name, ndcs: picked });
   }
-  if (byStrength.length < 2) { strengthVariantCache.set(key, null); return null; }
+  if (byStrength.length < 2) {
+    // Fewer than 2 priceable strengths because an RxNav call failed is not an answer to keep.
+    if (!transient) strengthVariantCache.set(key, null);
+    return null;
+  }
   const res = await fetchJson(`${MEDICARE_GOV_BASE}/drugs/cost`, {
     method: 'POST',
     headers: medicareGovHeaders(),
@@ -1285,12 +1303,13 @@ async function medicareGovStrengthVariants({ drugName, planIds, year }, fetchImp
   }, fetchImpl, 20_000);
   if (!res.ok || !res.json) return null;
   const out = {};
+  let incomplete = transient;
   for (const p of plans) {
     const row = (res.json.plans || []).find((x) => {
       const pl = x.plan || x;
       return String(pl.contract_id || '').toUpperCase() === p.parts.contractId && String(pl.plan_id || '') === p.parts.planId;
     });
-    if (!row) continue;
+    if (!row) { incomplete = true; continue; }
     const excluded = JSON.stringify(row.excluded_drugs || []);
     const answers = new Map();
     for (const cost of row.costs || []) for (const dc of cost.drug_costs || []) answers.set(normalizeNdc(dc.ndc), dc);
@@ -1308,11 +1327,15 @@ async function medicareGovStrengthVariants({ drugName, planIds, year }, fetchImp
           ...(excluded.includes(String(covered.ndc)) ? { excludedDrug: true } : {}), ...(mixed ? { mixedProducts: true } : {}), source: 'medicare_gov' });
       } else if (notCovered) {
         variants.push({ strength: b.strength, ...(b.indication ? { indication: b.indication } : {}), productName: b.productName, verified: true, coverage: 'not_covered', tier: null, source: 'medicare_gov' });
+      } else {
+        // Asked, not answered: keep the strength so the cell never reads as a complete list.
+        variants.push({ strength: b.strength, ...(b.indication ? { indication: b.indication } : {}), productName: b.productName, verified: false, coverage: null, tier: null, source: 'medicare_gov' });
       }
     }
     out[displayPlanId(p.id)] = variants;
   }
-  strengthVariantCache.set(key, out);
+  // A plan with no row (or a failed NDC fetch) means the answer is partial: use it, don't keep it.
+  if (!incomplete) strengthVariantCache.set(key, out);
   return out;
 }
 
@@ -1363,12 +1386,12 @@ function extractMedicareGovCost(payload, planId, year) {
   return { miss: 'empty_costs' };
 }
 
-async function lookupMedicareGov({ drugName, ndc, hintNdc, planId, year }, fetchImpl = medicareGovFetch) {
+async function lookupMedicareGov({ drugName, ndc, hintNdc, planId, year, strictName = false }, fetchImpl = medicareGovFetch) {
   const y = Number(year) || PLAN_YEAR;
   const parts = cmsContractParts(planId);
   if (!parts) return { verified: false, reason: 'medicare_gov_bad_plan_id', source: 'medicare_gov' };
 
-  const resolved = await resolveMedicareGovNdcs({ drugName, ndc, hintNdc }, fetchImpl);
+  const resolved = await resolveMedicareGovNdcs({ drugName, ndc, hintNdc, strictName }, fetchImpl);
   if (!resolved.ndcs.length) {
     return {
       verified: false,
@@ -1715,6 +1738,7 @@ async function lookupFormulary(
   const inputName = String(drugName || '').trim();
   let nameCorrection = null;
   let nameRxcui = null;
+  let nameUnverified = false;
   if (inputName && !ndc && !skipNameCheck) {
     const nameCheck = await resolveDrugName(inputName, fetchImpl);
     nameRxcui = nameCheck.rxcui || null;
@@ -1742,6 +1766,10 @@ async function lookupFormulary(
       nameCorrection = { from: drugNameBase(inputName), to: nameCheck.name };
       drugName = nameCheck.query;
     }
+    // RxNorm unreachable: price the typed name as typed, flagged. medicare.gov's autocomplete may
+    // only answer for that same name — a typo must never land on another drug ("rasuvostatin" →
+    // "Rasuvo", methotrexate) while nothing has confirmed it (audit, 2026-10-09).
+    if (nameCheck.status === 'unavailable') nameUnverified = true;
   }
 
   const rawQuery = drugName || ndc;
@@ -1789,7 +1817,8 @@ async function lookupFormulary(
 
   // No strength asked: every strength's answer, so tiers that differ by strength are shown, not one picked.
   const askedStrengths = queryProductHints(rawQuery).strengths;
-  const splitWanted = !ndc && !nonOral && !askedStrengths.length;
+  // An unverified name is priced as typed only — never fanned out through autocomplete per strength.
+  const splitWanted = !ndc && !nonOral && !askedStrengths.length && !nameUnverified;
   const mgovVariants = splitWanted
     ? medicareGovStrengthVariants(
       { drugName: rawQuery, planIds: uniqueIds.filter((id) => !isSolisPlan(id)), year: y },
@@ -1836,7 +1865,7 @@ async function lookupFormulary(
         // medicare.gov gets the product the agent asked for (strength / form / ER), not the Sunfire
         // catalog's bare name, and only an NDC the agent typed counts as that exact product.
         const mpf = await lookupMedicareGov(
-          { drugName: medicareGovQueryName(rawQuery, resolvedName), ndc: ndc || null, hintNdc: ndc ? null : resolvedNdc, planId: id, year: y },
+          { drugName: medicareGovQueryName(rawQuery, resolvedName), ndc: ndc || null, hintNdc: ndc ? null : resolvedNdc, planId: id, year: y, strictName: nameUnverified },
           medicareFetch
         );
         if (mpf.verified) hit = mpf;
@@ -2041,6 +2070,7 @@ async function lookupFormulary(
     retriedProduct,
     notCoveredNote,
     ...(nameCorrection ? { nameCorrection } : {}),
+    ...(nameUnverified ? { nameUnverified: true } : {}),
     ...(edDrug ? { edDrug: true } : {}),
     ...(askedForm ? { form: askedForm } : {}),
   };
@@ -2119,6 +2149,9 @@ function formatFormularyText(result) {
     lines.push(nc.suggestion
       ? `NAME NOT CONFIRMED — NOT PRICED: ❓ '${nc.input}' — did you mean ${nc.suggestion}? Ask the agent; do not quote a tier for any guess.`
       : `NAME NOT CONFIRMED — NOT PRICED: ❓ '${nc.input}' is not a drug name RxNorm knows. Ask the agent to check the spelling.`);
+  }
+  if (result.nameUnverified) {
+    lines.push(`NAME NOT VERIFIED: RxNorm was unreachable, so "${result.inputName || result.drugName}" was priced exactly as typed, without a spelling check. Show "(name not verified)" and ask the agent to confirm the drug name.`);
   }
   if (result.nameCorrection) {
     lines.push(`NAME AUTO-CORRECTED: ${result.nameCorrection.from} → ${result.nameCorrection.to} (auto-corrected, verify). Show this correction to the agent.`);
@@ -2240,6 +2273,7 @@ module.exports = {
   restrictionsKnownFor,
   restrictionsUnknown,
   medicareGovStrengthVariants,
+  _strengthVariantCache: strengthVariantCache,
   strengthsDiffer,
   missingStrengthCheck,
   medicareGovQueryName,

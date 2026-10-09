@@ -409,7 +409,9 @@ test('Solis cell with PA shows its flags and no marker; Solis cell with no PA/QL
 
 test('Sunfire / FHIR answer that omits the restriction fields is unknown, never "none"', () => {
   assert.equal(D.restrictionsKnownFor({ source: 'sunfire:catalog', pa: null, st: null, ql: null }), false);
-  assert.equal(D.restrictionsKnownFor({ source: 'humana_fhir', pa: false, st: null, ql: null }), true);
+  // Only one of the three reported is not "known" (audit fix 4, 2026-10-09): all three, or a PDF reader.
+  assert.equal(D.restrictionsKnownFor({ source: 'humana_fhir', pa: false, st: null, ql: null }), false);
+  assert.equal(D.restrictionsKnownFor({ source: 'humana_fhir', pa: false, st: false, ql: false }), true);
   assert.equal(D.restrictionsKnownFor({ source: 'medicare_gov', pa: true }), false);
   assert.equal(D.restrictionsUnknown({ verified: true, coverage: 'not_covered', source: 'medicare_gov' }), false, 'a not-covered cell needs no marker');
   const sunfire = { verified: true, coverage: 'covered', tier: 3, costShare: '$47', pa: null, st: null, ql: null, source: 'sunfire:catalog' };
@@ -523,4 +525,92 @@ test('Sunfire: each coverage endpoint is logged under FORMULARY_DEBUG, and its r
   // Fix 3 with a catalog name: the typed strength is appended to Sunfire's name.
   assert.equal(t20.drugName, 'Tadalafil 20 mg');
   assert.equal(r10.drugName, 'Rosuvastatin Calcium 10 mg');
+});
+
+// ─── audit: silent degrade (2026-10-09) ──────────────────────────────────────────
+
+// RxNorm down: name lookups fail, everything else answers as usual.
+const rxnormDown = (log) => {
+  const base = stubFetch(log);
+  return async (url, opts) => (/\/rxcui\.json\?name=|\/approximateTerm\.json/.test(String(url))
+    ? { ok: false, status: 503, text: async () => '' }
+    : base(url, opts));
+};
+
+test('audit 1: RxNorm unreachable → priced as typed, flagged "(name not verified)", never cached, never Rasuvo', async () => {
+  D._nameCache.clear();
+  const log = [];
+  const typo = await F.lookupFormulary({ drugName: 'rasuvostatin', planIds: ['H1019-001'], year: 2027 }, rxnormDown(log));
+  assert.equal(typo.nameUnverified, true);
+  assert.equal(typo.nameCheck, undefined, 'unverified is not "do not price"');
+  assert.ok(!log.includes('59137050504'), 'the typo must never land on Rasuvo (methotrexate)');
+  assert.equal(typo.byPlanId['H1019-001'].verified, false);
+  assert.ok(!D._nameCache.has('rasuvostatin'), 'unavailable is never cached');
+  assert.match(N.medsTable([typo], [{ planId: 'H1019-001', name: 'CarePlus' }]), /\| rasuvostatin \(name not verified\) \|/);
+  assert.match(F.formatFormularyText(typo), /NAME NOT VERIFIED: RxNorm was unreachable/);
+  // A real name typed while RxNorm is down is still priced, with the same flag.
+  const ok = await F.lookupFormulary({ drugName: 'trazodone', planIds: ['H1019-001'], year: 2027 }, rxnormDown([]));
+  assert.equal(ok.nameUnverified, true);
+  assert.equal(ok.byPlanId['H1019-001'].tier, 1);
+  assert.match(N.medsTable([ok], [{ planId: 'H1019-001', name: 'CarePlus' }]), /\| trazodone \(name not verified\) \| T1 \$0 · PA\/QL \? \|/);
+});
+
+test('audit 2: a failed RxNav NDC fetch is never cached as "no split"; one strength still caches', async () => {
+  F._strengthVariantCache.clear();
+  const ndcsDown = (url, opts) => (/\/ndcs\.json/.test(String(url)) ? { ok: false, status: 0, text: async () => '' } : stubFetch([])(url, opts));
+  assert.equal(await F.medicareGovStrengthVariants({ drugName: 'tadalafil', planIds: ['H1019-001'], year: 2027 }, ndcsDown), null);
+  const split = await F.medicareGovStrengthVariants({ drugName: 'tadalafil', planIds: ['H1019-001'], year: 2027 }, stubFetch([]));
+  assert.ok(split && split['H1019-001'].length === 5, 'second run with a working fetch returns the split');
+  // Deterministic: trazodone has one strength here → null, cached (no fetch on the next call).
+  assert.equal(await F.medicareGovStrengthVariants({ drugName: 'trazodone', planIds: ['H1019-001'], year: 2027 }, stubFetch([])), null);
+  let calls = 0;
+  const counting = (url, opts) => { calls += 1; return stubFetch([])(url, opts); };
+  assert.equal(await F.medicareGovStrengthVariants({ drugName: 'trazodone', planIds: ['H1019-001'], year: 2027 }, counting), null);
+  assert.equal(calls, 0, 'a one-strength drug is cached');
+});
+
+test('audit 2: a plan with no row is not cached; an unanswered strength shows "not found"', async () => {
+  F._strengthVariantCache.clear();
+  // H0982 (Solis) is not in the stubbed medicare.gov data: that plan comes back with no row.
+  const partial = await F.medicareGovStrengthVariants({ drugName: 'tadalafil', planIds: ['H1019-001', 'H0982-007'], year: 2027 }, stubFetch([]));
+  assert.ok(partial['H1019-001'] && !partial['H0982-007']);
+  let calls = 0;
+  const counting = (url, opts) => { calls += 1; return stubFetch([])(url, opts); };
+  await F.medicareGovStrengthVariants({ drugName: 'tadalafil', planIds: ['H1019-001', 'H0982-007'], year: 2027 }, counting);
+  assert.ok(calls > 0, 'a partial answer is not cached');
+  // medicare.gov answers every strength but 2.5 mg.
+  F._strengthVariantCache.clear();
+  const no25 = async (url, opts) => {
+    const res = await stubFetch([])(url, opts);
+    if (!/\/drugs\/cost$/.test(String(url))) return res;
+    const body = JSON.parse(await res.text());
+    for (const p of body.plans) for (const c of p.costs) c.drug_costs = c.drug_costs.filter((d) => d.ndc !== '00093301630');
+    return { ok: true, status: 200, text: async () => JSON.stringify(body) };
+  };
+  const v = await F.medicareGovStrengthVariants({ drugName: 'tadalafil', planIds: ['H1019-001'], year: 2027 }, no25);
+  const missing = v['H1019-001'].find((x) => x.strength === '2.5 mg');
+  assert.deepEqual([missing.verified, missing.coverage], [false, null]);
+  const row = { planId: 'H1019-001', verified: true, coverage: 'covered', tier: 4, strengths: v['H1019-001'] };
+  const cellText = N.medsTable([{ drugName: 'tadalafil', byPlanId: { 'H1019-001': row }, lookups: [row] }], [{ planId: 'H1019-001', name: 'CarePlus' }]).split('\n')[2];
+  assert.match(cellText, /2\.5 mg: ❔ not found/);
+  F._strengthVariantCache.clear();
+});
+
+test('audit 4: a source that reports only some of PA/ST/QL is "PA/QL ?"; all three reported is known', () => {
+  const plans = [{ planId: 'H1036-077', name: 'Humana' }];
+  const paOnly = { verified: true, coverage: 'covered', tier: 3, costShare: '$47', pa: true, st: null, ql: null, source: 'humana_fhir' };
+  assert.equal(D.restrictionsKnownFor(paOnly), false);
+  assert.equal(N.medsTable([{ drugName: 'x', byPlanId: { 'H1036-077': paOnly }, lookups: [paOnly] }], plans).split('\n')[2], '| x | T3 $47 · PA · PA/QL ? |');
+  const allNone = { ...paOnly, pa: false, st: false, ql: false };
+  assert.equal(D.restrictionsKnownFor(allNone), true);
+  assert.equal(N.medsTable([{ drugName: 'x', byPlanId: { 'H1036-077': allNone }, lookups: [allNone] }], plans).split('\n')[2], '| x | T3 $47 |');
+  // Per strength: same rule.
+  const split = { planId: 'H1036-077', verified: true, coverage: 'covered', tier: 3, strengths: [
+    { strength: '5 mg', verified: true, coverage: 'covered', tier: 3, costShare: '$47', pa: true, st: null, ql: null, source: 'humana_fhir' },
+    { strength: '10 mg', verified: true, coverage: 'covered', tier: 4, costShare: '$99', pa: false, st: false, ql: false, source: 'humana_fhir' },
+  ] };
+  assert.equal(N.medsTable([{ drugName: 'x', byPlanId: { 'H1036-077': split }, lookups: [split] }], plans).split('\n')[2], '| x | 5 mg: T3 $47 · PA · PA/QL ? ‖ 10 mg: T4 $99 |');
+  // The PDF readers print every row, so their false is a real "none".
+  assert.equal(D.restrictionsKnownFor({ source: 'Solis 2027 Comprehensive Formulary PDF', pa: false }), true);
+  assert.equal(D.restrictionsKnownFor({ source: 'doctors_formulary_pdf', pa: false }), true);
 });
