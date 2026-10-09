@@ -19,10 +19,15 @@ const path = require('path');
 const { startChatJob, getChatJob, publicChatJob, runningCount, persistJobs, loadPersistedJobs } = require('./services/chatJobs');
 const { queueState: compareQueueState } = require('./services/compareJobs');
 const { createShutdown, createInFlightCounter } = require('./services/shutdown');
+const { createBackupStatus } = require('./services/backupStatus');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
 const budgetGuard = new BudgetGuard();
+// Read-only, cached (5 min) workup backup status for /health: counts and times only.
+const backupStatus = createBackupStatus({
+  filePath: process.env.MAX_WORKUPS_FILE || path.join(process.cwd(), 'data', 'max-workups.json'),
+});
 
 // Graceful redeploys (railway.json drainingSeconds): on SIGTERM stop taking new chats, let
 // in-flight replies finish (bounded), then hand finished answers to the next process via the volume.
@@ -90,6 +95,7 @@ app.get('/health', (req, res) => {
     claudeConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
     sepRefresh: getSepRefreshStatus(),
     draining: shutdown.isDraining(),
+    backups: backupStatus.get(),
     ts: new Date().toISOString(),
   });
 });

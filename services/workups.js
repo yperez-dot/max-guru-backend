@@ -332,6 +332,7 @@ class WorkupStore {
       options.backupKeepDays ?? process.env.MAX_WORKUPS_BACKUP_KEEP_DAYS ?? DEFAULT_BACKUP_KEEP_DAYS
     );
     this.backupsEnabled = options.backups !== false && process.env.MAX_WORKUPS_BACKUPS !== 'off';
+    this.silent = options.silent === true; // read-only probes (/health) must not log a FATAL
     this.loadError = null;
     this.lastWarning = '';
     this._queue = Promise.resolve();
@@ -374,7 +375,7 @@ class WorkupStore {
 
   failLoad(reason) {
     this.loadError = `Workups file ${this.filePath} exists but ${reason}`;
-    console.error(`[workups] FATAL: ${this.loadError} — refusing reads and saves so nothing is overwritten. Restore it from ${this.backupDir}.`);
+    if (!this.silent) console.error(`[workups] FATAL: ${this.loadError} — refusing reads and saves so nothing is overwritten. Restore it from ${this.backupDir}.`);
     return defaultState();
   }
 
@@ -602,4 +603,7 @@ module.exports = {
   slimMedications,
   toSummary,
   DEFAULT_MAX_PER_OWNER,
+  ROLLING_RE,
+  DAILY_RE,
+  stampToMs,
 };
