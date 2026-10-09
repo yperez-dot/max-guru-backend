@@ -9,6 +9,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { requestedForm, expandDosageForms } = require('./drugNames');
 
 const COMPARISON_TABLE_RULES = `
 DOCTOR/DRUG COMPARISON TABLE RULES (HARD RULES — apply on every multi-doctor or multi-plan comparison; they replace any earlier, shorter version and override older table/format instructions where they conflict):
@@ -50,7 +51,10 @@ const NOT_CONFIRMED_CELL = '❔ not confirmed';
 const UNKNOWN_LEGEND = '❔ unchecked = never checked · ❔ not confirmed = checked, no result';
 const LEGEND = `✅ In · ${NOT_LISTED_CELL} = checked in the carrier's directory, not listed for this plan · ${UNKNOWN_LEGEND} (never assume not in network unless checked)`;
 const IN_STAR_LEGEND = '✅ In* = in the carrier network; confirm this specific plan in the carrier directory';
-const MEDS_LEGEND = `T = tier · ⚠️ confirm = read not covered, check the exact product in Sunfire · ${UNKNOWN_LEGEND}`;
+const MEDS_LEGEND = `T = tier (covered) · PA = prior auth · ST = step therapy · QL = quantity limit · ❌ not covered · ⚠️ confirm = read not covered, check the exact product in Sunfire · ${UNKNOWN_LEGEND}`;
+// Every drug lookup failed: nothing to price, so drug cost must not rank plans (2026-10-09).
+const MEDS_FAILED_BANNER = '🛑 **Medication lookup failed — do not rank by drug cost**';
+const MEDS_UNREADABLE = "⚠️ Couldn't read the medication list. Re-send as 'Meds: a, b, c'";
 const RANK_ORDER = 'Ranked by doctors in → fewest out → drug cost → premium.';
 const POSSIBLE_CSNP = 'Possible C-SNP eligibility — agent must confirm diagnosis.';
 
@@ -283,13 +287,17 @@ function csnpHintsFromMeds(medNames) {
   return out;
 }
 
-/** "atorvastatin" and "Atorvastatin Calcium 20 MG" are the same listed med. */
+/** "atorvastatin" and "Atorvastatin Calcium 20 MG" are the same listed med; "acyclovir tablets" and "acyclovir ointment" are not. */
 function sameDrug(a, b) {
   const x = String(a || '').toLowerCase().trim();
   const y = String(b || '').toLowerCase().trim();
   if (!x || !y) return false;
+  if (x === y) return true;
+  const fx = requestedForm(x);
+  const fy = requestedForm(y);
+  if (fx && fy && fx !== fy) return false;
   const head = (s) => s.split(/[\s/(-]+/)[0];
-  return x === y || x.startsWith(y) || y.startsWith(x) || head(x) === head(y);
+  return x.startsWith(y) || y.startsWith(x) || head(x) === head(y);
 }
 
 /** Meds the agent listed: "Meds: …" sections plus any known drug names in her words. */
@@ -304,13 +312,89 @@ function isNonDrugAnswer(text) {
   return !words.length || words.every((w) => NON_DRUG_WORDS.has(w));
 }
 
+// Labels agents put before a med list, English and Spanish, with or without a colon.
+const MED_LABEL = '(?:meds?|medications?|medicines?|rx|drugs?|takes?|taking|medicamentos?|medicinas?)';
+// Labels that are a med list even with one drug and no colon ("Takes Eliquis"). "Rx" / "drugs"
+// without a colon need two items ("Rx tiers", "drug cost" are not lists).
+const STRONG_LABEL_RE = /^(?:meds?|medications?|medicines?|takes?|taking|medicamentos?|medicinas?)$/i;
+// First words that start a sentence, never a drug ("Meds already on file", "Rx tiers are discarded").
+const NOT_DRUG_START_RE = /^(?:no|none|not|already|on|off|file|list|lists|cost|costs|tier|tiers|the|a|an|for|are|is|was|were|of|to|in|with|at|from|covered|coverage|lookup|check|table|section|please|review|or|that|this|any|every|each|below|above|she|he|they|her|his|their|will|can|should|has|have|had|given|listed|named|priced|here|there|medicaid|plan|plans|compare|zip|doctor|doctors|dr|drs|current|currently|wondering|looking|want|wants|need|needs|msp|qmb|slmb|c-?snp|d-?snp|care|same|unchanged|rank|run|show|give|find|add|look|send|use|call|keep|swap|suggest|best|top|all|only|just|yes|ok|okay)$/i;
+const DRUG_ITEM_RE = /^[A-Za-z][A-Za-z0-9'’-]*(?:\s+[A-Za-z0-9.%/'’-]+){0,4}$/;
+// With no label at all, an item is a drug name plus at most a strength / form / release word
+// ("metformin 500mg", "acyclovir ointment") — never a sentence ("Rank all eligible plans").
+const UNLABELED_ITEM_RE = /^[A-Za-z][A-Za-z0-9-]*(?:\s+(?:\d+(?:\.\d+)?\s?(?:mg|mcg|ml|units?|iu)|er|xr|sr|hcl|[a-z]+))?(?:\s+\d+\s?(?:mg|mcg|ml))?$/;
+
+/** "esomeprazole, rasuvostatin, acyclovir tablets & ointment" → one item per drug and per dosage form. */
+function splitMedList(list) {
+  const out = [];
+  for (const seg of String(list || '').split(/[,;]/)) {
+    const s = seg.replace(/\(.*?\)/g, '').replace(/[.\s]+$/, '').trim();
+    if (!s) continue;
+    const forms = expandDosageForms(s);
+    const parts = forms.length > 1 ? forms : s.split(/\band\b|\s&\s|\s\+\s|\sy\s/i);
+    for (const p of parts) {
+      const item = p.replace(/[.\s]+$/, '').trim();
+      if (item) out.push(item);
+    }
+  }
+  return out;
+}
+
+const looksLikeDrugItem = (s) => DRUG_ITEM_RE.test(s) && !NOT_DRUG_START_RE.test(s.split(/\s+/)[0]) && !isNonDrugAnswer(s);
+
+/**
+ * Meds typed as a plain list with no label (ported from compareJobs, 2026-10-09):
+ * "… 33076. Ashwin Mehta. Eliquis, metformin 500mg. No medicaid." The run of drug-like items at the
+ * end of a sentence counts when everything before it in that sentence is a capitalized name
+ * ("…, Dr. Zuhdiyah Darojat, esomeprazole, rasuvostatin").
+ */
+function unlabeledMeds(t, zip, doctors) {
+  if (!zip) return [];
+  const at = t.indexOf(zip);
+  if (at < 0) return [];
+  const rest = t.slice(at + zip.length).replace(/^[\s.,;:\-–—]+/, '').replace(/\b(?:Drs?|Dras?|Doc)\.\s*(?=[A-Za-z])/gi, '');
+  const docNames = new Set((doctors || []).map((d) => String(d.name || d).toLowerCase()));
+  const isName = (x) => /^[A-Z][a-z'’-]+(?:\s+[A-Z]\.?)?(?:\s+[A-Z][a-z'’-]+)+$/.test(x) || docNames.has(x.toLowerCase());
+  for (const sentence of rest.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Za-z])|\n/)) {
+    const body = sentence.replace(/^\s*(?:takes?|taking|on|meds?|rx)\s*:?\s+/i, '').replace(/[\s.]+$/, '');
+    // "…, Medications esomeprazole, …": the label glued to the first drug is not part of its name.
+    const items = splitMedList(body).map((x) => x.replace(new RegExp(`^${MED_LABEL}\\s*:?\\s+`, 'i'), ''));
+    if (!items.length || items.length > 20) continue;
+    let k = items.length;
+    while (k > 0 && UNLABELED_ITEM_RE.test(items[k - 1]) && looksLikeDrugItem(items[k - 1]) && !isName(items[k - 1]) && !NOT_MED_RE.test(items[k - 1])) k -= 1;
+    const drugs = items.slice(k);
+    if (!drugs.length) continue;
+    // Everything before the run must be names (doctors); otherwise this sentence is not a med list.
+    if (k > 0 && !items.slice(0, k).every(isName)) continue;
+    if (k > 0 && drugs.length < 2) continue;
+    return drugs;
+  }
+  return [];
+}
+
+const NOT_MED_RE = /^(?:no|none|not|medicaid|plan|plans|compare|they|their|for|add|has|have|she|he|c-?snp|d-?snp|zip|current|currently|wondering|looking|want|wants|need|needs|please|msp|qmb|slmb|diabetes|chf|copd)\b/i;
+
 function medsFromAsk(askText) {
   const t = String(askText || '');
   const out = [];
-  for (const m of t.matchAll(/\b(?:meds?|medications?|rx|drugs?|medicamentos?)\s*:\s*([^\n]+)/gi)) {
+  const add = (s) => { if (s && s.length > 2 && s.length < 40 && !isNonDrugAnswer(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
+  // "Meds: a, b" / "Medications a, b" / "Medicamentos: a y b" / "Takes a, b" — colon optional
+  // (Martin Wiesenthal, 2026-10-09: "…, Medications esomeprazole, rasuvostatin, …" read 0 meds).
+  for (const m of t.matchAll(new RegExp(`(^|[^A-Za-z])(no\\s+)?\\b(${MED_LABEL})\\b(\\s*:\\s*|\\s+)([^\\n]+)`, 'gi'))) {
+    if (m[2]) continue; // "no meds"
+    const label = m[3];
+    const colon = m[4].includes(':');
     // The list ends at the first sentence break ("… chlorthalidone. Suggest 2-3 plans").
-    const list = m[1].split(/\.\s+(?=[A-Z])|\.\s*$|\b(?:compare|suggest|give me|show me|doctors?|drs?|plans?)\s*[:\b]/i)[0];
-    list.split(/[,;]|\band\b/).map((s) => s.replace(/\(.*?\)/g, '').replace(/[.\s]+$/, '').trim()).filter((s) => s && s.length > 2 && s.length < 40 && !isNonDrugAnswer(s)).forEach((s) => out.push(s));
+    const list = m[5].split(/\.\s+(?=[A-Z])|\.\s*$|\b(?:compare|suggest|give me|show me|doctors?|drs?|plans?)\s*[:\b]/i)[0];
+    const items = splitMedList(list);
+    if (colon) {
+      items.forEach(add);
+      continue;
+    }
+    // No colon: only a real list of drug names counts ("Rx tiers are discarded" is not one).
+    if (!items.length || !items.every(looksLikeDrugItem)) continue;
+    if (items.length < 2 && !STRONG_LABEL_RE.test(label)) continue;
+    items.forEach(add);
   }
   // A list under a header — the loaded workup writes "Medications (tiers shown …):" then one
   // "- Atorvastatin 20mg: H1036-054C Tier 1 …" bullet per med. The one-line pattern above saw
@@ -330,6 +414,11 @@ function medsFromAsk(askText) {
     const base = m[1].trim().toLowerCase().replace(/\b([a-z])/g, (c) => c.toUpperCase());
     const name = `${base.replace(/\bHcl\b/, 'HCl')} ${m[2]}${m[3].toLowerCase()}`;
     if (!isNonDrugAnswer(name) && !out.some((o) => sameDrug(o, name))) out.push(name);
+  }
+  // Nothing labeled: a plain list after the ZIP and the doctors.
+  if (!out.length) {
+    const zip = (t.match(/\b(\d{5})\b/) || [])[1] || '';
+    unlabeledMeds(t, zip, []).forEach(add);
   }
   for (const h of CSNP_HINTS) {
     const hit = t.match(h.re);
@@ -457,6 +546,8 @@ module.exports = {
   UNKNOWN_LEGEND,
   LEGEND,
   MEDS_LEGEND,
+  MEDS_FAILED_BANNER,
+  MEDS_UNREADABLE,
   IN_STAR_LEGEND,
   RANK_ORDER,
   POSSIBLE_CSNP,
@@ -472,6 +563,8 @@ module.exports = {
   planEligibility,
   csnpHintsFromMeds,
   medsFromAsk,
+  unlabeledMeds,
+  splitMedList,
   knownMedsNote,
   isNonDrugAnswer,
   sameDrug,
