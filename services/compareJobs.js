@@ -200,14 +200,32 @@ function parseCompareAsk(text) {
 
 const rxCache = new Map();
 
-async function lookupFormularyCached({ drugName, planIds, year }) {
+// A row failed for a reason that will not change on retry ("not a drug name", "no product of that
+// form"); anything that looks like a network / service hiccup must be asked again next time.
+const DETERMINISTIC_FAIL_RE = /^(?:name_unconfirmed|form_not_found)$/;
+const TRANSIENT_FAIL_RE = /http_|timeout|empty_costs|creds|transport|unavailable|session_expired|abort/i;
+
+/**
+ * Keep a result for RX_CACHE_MS only when every plan row is final: verified (covered or not
+ * covered) or failed deterministically. One plan's medicare_gov_http_0 used to be cached as
+ * "not confirmed" for a day because another plan had answered (audit, 2026-10-09).
+ */
+function rxCacheable(value) {
+  const rows = (value && value.lookups) || [];
+  if (!rows.length) return false;
+  return rows.every((l) => {
+    if (l && l.verified) return true;
+    const parts = String((l && l.reason) || '').split('|').filter(Boolean);
+    return parts.some((r) => DETERMINISTIC_FAIL_RE.test(r)) && !parts.some((r) => TRANSIENT_FAIL_RE.test(r));
+  });
+}
+
+async function lookupFormularyCached({ drugName, planIds, year }, { lookup = lookupFormulary } = {}) {
   const key = `${String(drugName).toLowerCase().trim()}|${year}|${[...planIds].sort().join(',')}`;
   const hit = rxCache.get(key);
   if (hit && hit.expiresAt > Date.now()) return hit.value;
-  const value = await lookupFormulary({ drugName, planIds, year });
-  if (value && value.lookups && value.lookups.some((l) => l.verified)) {
-    rxCache.set(key, { value, expiresAt: Date.now() + RX_CACHE_MS });
-  }
+  const value = await lookup({ drugName, planIds, year });
+  if (rxCacheable(value)) rxCache.set(key, { value, expiresAt: Date.now() + RX_CACHE_MS });
   return value;
 }
 
@@ -484,5 +502,6 @@ module.exports = {
   runJob,
   queueState,
   lookupFormularyCached,
+  rxCacheable,
   NOT_CONFIRMED,
 };

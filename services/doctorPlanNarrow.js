@@ -1678,6 +1678,8 @@ function strengthSplitCell(row, result) {
   const ed = Boolean(result && result.edDrug);
   const describe = (v) => {
     if (v.coverage === 'not_covered') return '❌ not covered';
+    // Priced but not answered for this plan: shown, so the list never looks complete when it isn't.
+    if (!v.verified || !v.coverage) return '❔ not found';
     const cost = v.costShare ? ` ${v.costShare}` : ` · cost n/a${/pdf/i.test(String(v.source || '')) ? ' (PDF)' : ''}`;
     const bits = [`T${v.tier}${cost}`];
     if (v.pa) bits.push(ed && !v.indication ? 'PA (verify indication)' : 'PA');
@@ -1744,6 +1746,8 @@ function drugLabel(r, name) {
     const rest = name.toLowerCase().startsWith(r.nameCorrection.to.toLowerCase()) ? name.slice(r.nameCorrection.to.length).trim() : '';
     return `${r.nameCorrection.from} → ${r.nameCorrection.to}${rest ? ` ${rest}` : ''} (auto-corrected, verify)`;
   }
+  // RxNorm was unreachable: priced as typed, spelling unchecked.
+  if (r && r.nameUnverified) return `${titleCase(name)} (name not verified)`;
   return titleCase(name);
 }
 
