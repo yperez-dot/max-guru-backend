@@ -1065,11 +1065,31 @@ function drugCostFor(planId, drugs) {
   for (const r of drugs) {
     const row = drugRowFor(r, planId);
     if (!row || !row.verified || row.coverage === 'not_covered') return null;
-    const usd = R.exactDollars(row.costShare);
+    // Cost differs by strength and none was asked: the lowest-cost covered strength breaks ties
+    // (a note says to confirm the dose).
+    const usd = Array.isArray(row.strengths) && row.strengths.length > 1
+      ? lowestStrengthCost(row.strengths)
+      : R.exactDollars(row.costShare);
     if (usd == null) return null;
     total += usd;
   }
   return total;
+}
+
+function lowestStrengthCost(strengths) {
+  const costs = strengths.filter((v) => v.coverage === 'covered').map((v) => R.exactDollars(v.costShare)).filter((n) => n != null);
+  return costs.length ? Math.min(...costs) : null;
+}
+
+/** "⚠️ tadalafil cost varies by strength — confirm dose" for every drug split by strength on a table plan. */
+function strengthNotes(drugs, planIds) {
+  const out = [];
+  for (const r of drugs || []) {
+    if (!planIds.some((id) => { const row = drugRowFor(r, id); return row && Array.isArray(row.strengths) && row.strengths.length > 1; })) continue;
+    const name = (r.nameCorrection && r.nameCorrection.to) || drugNameOf(r);
+    out.push(`⚠️ ${name} cost varies by strength — confirm dose`);
+  }
+  return out;
 }
 
 function cmpKnown(a, b) {
@@ -1639,9 +1659,46 @@ function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] }
   return { text: lines.join('\n'), matrix: sel.ranked, questions: sel.questions, selection: sel };
 }
 
+/**
+ * No strength asked and the plan's strengths differ: every strength, grouped, never one picked.
+ * "2.5/5 mg: T4 40% · PA (verify indication) ‖ 10/20 mg: T6 $0 · QL 8/30 · supplemental".
+ * "‖" separates groups — a "|" would split the markdown table cell.
+ */
+function strengthSplitCell(row, result) {
+  const ed = Boolean(result && result.edDrug);
+  const describe = (v) => {
+    if (v.coverage === 'not_covered') return '❌ not covered';
+    const cost = v.costShare ? ` ${v.costShare}` : ` · cost n/a${/pdf/i.test(String(v.source || '')) ? ' (PDF)' : ''}`;
+    const bits = [`T${v.tier}${cost}`];
+    if (v.pa) bits.push(ed && !v.indication ? 'PA (verify indication)' : 'PA');
+    if (v.st) bits.push('ST');
+    if (v.qlText) bits.push(v.qlText);
+    else if (v.ql) bits.push('QL');
+    if (v.excludedDrug) bits.push('supplemental');
+    if (v.mixedProducts) bits.push('varies by product');
+    return bits.join(' · ');
+  };
+  const groups = [];
+  const sorted = [...row.strengths].sort((a, b) => parseFloat(a.strength) - parseFloat(b.strength));
+  for (const v of sorted) {
+    const text = describe(v);
+    const key = `${text}|${v.indication || ''}`;
+    const g = groups.find((x) => x.key === key);
+    if (g) g.strengths.push(v.strength);
+    else groups.push({ key, text, indication: v.indication, strengths: [v.strength] });
+  }
+  const label = (g) => {
+    const units = [...new Set(g.strengths.map((s) => s.split(' ')[1]))];
+    const nums = g.strengths.map((s) => s.split(' ')[0]).join('/');
+    return `${units.length === 1 ? `${nums} ${units[0]}` : g.strengths.join('/')}${g.indication ? ` (${g.indication})` : ''}`;
+  };
+  return groups.map((g) => `${label(g)}: ${g.text}`).join(' ‖ ');
+}
+
 function drugCell(row, unsureNotCovered, result) {
   if (result && result.nameCheck) return '❓ check name';
   if (!row) return R.UNCHECKED;
+  if (Array.isArray(row.strengths) && row.strengths.length > 1) return strengthSplitCell(row, result);
   // A tier with no cost-share on file says so — a bare "T2" read as $0 (Solis H0982-007, 2026-10-09).
   const cost = row.costShare ? ` ${row.costShare}` : ` · cost n/a${/pdf/i.test(String(row.source || '')) ? ' (PDF)' : ''}`;
   // ED drugs: the per-plan label says what the coverage means (supplemental / BPH-PAH only / …).
@@ -1726,7 +1783,7 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
   if (twins.length) lines.push(`Also checked: ${twins.join('; ')}.`);
   for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in /.test(x))) lines.push(f);
   const meds = medsTable(drugs, top, sel.meds);
-  if (meds) lines.push('', '**Meds**', '', meds, '', R.MEDS_LEGEND);
+  if (meds) lines.push('', '**Meds**', '', meds, '', R.MEDS_LEGEND, ...strengthNotes(drugs, top.map((p) => p.planId)));
   // She typed drugs but no list could be read: say so, never drop the section silently.
   else if (medsUnreadable) lines.push('', '**Meds**', '', R.MEDS_UNREADABLE);
   return lines.filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n');
@@ -1791,6 +1848,7 @@ function fallbackAnswer(doctors, askText, { answered = false, drugs = [] } = {})
       lines.push(meds);
       lines.push('');
       lines.push(R.MEDS_LEGEND);
+      strengthNotes(drugs, top.map((p) => p.planId)).forEach((l) => lines.push(l));
       if (sel.medsToCheck.drugs.length) {
         lines.push(`Not checked yet on every plan: ${sel.medsToCheck.drugs.map(titleCase).join(', ')} — send the same ask again to finish the lookup.`);
       }
@@ -1834,6 +1892,7 @@ module.exports = {
   batchSummaryForModel,
   gridTable,
   medsTable,
+  strengthNotes,
   namedPlansFromAsk,
   namedPlanColumns,
   fallbackAnswer,

@@ -32,19 +32,27 @@ const CONCEPTS = {
     ['606726', 'esomeprazole 20 MG Delayed Release Oral Capsule'], // the Rx product
   ],
   301542: [['859424', 'rosuvastatin calcium 10 MG Oral Tablet']],
-  358263: [['402019', 'tadalafil 5 MG Oral Tablet']],
+  // RxNorm's tadalafil products (live): one per strength, plus the PAH-named 20 mg product.
+  358263: [
+    ['757707', 'tadalafil 2.5 MG Oral Tablet'], ['403957', 'tadalafil 5 MG Oral Tablet'], ['484814', 'tadalafil 10 MG Oral Tablet'],
+    ['402019', 'tadalafil 20 MG Oral Tablet'], ['2123194', 'Pulmonary Hypertension tadalafil 20 MG Oral Tablet'],
+  ],
   82112: [['856364', 'trazodone hydrochloride 50 MG Oral Tablet']],
   281: [['197311', 'acyclovir 400 MG Oral Tablet'], ['197312', 'acyclovir 0.05 MG/MG Topical Ointment']],
   1544379: [['1544383', '0.2 ML methotrexate 50 MG/ML Auto-Injector [Rasuvo]']],
 };
-const NDCS = { 433733: ['00363036142'], 994005: ['76420089030'], 606726: ['00093645056'], 859424: ['00093744898'], 402019: ['13668058130'], 856364: ['00378347301'], 197311: ['00378025301'], 197312: ['00472008216'], 1544383: ['59137050504'] };
+const NDCS = { 433733: ['00363036142'], 994005: ['76420089030'], 606726: ['00093645056'], 859424: ['00093744898'], 757707: ['00093301630'], 403957: ['00093301730'], 484814: ['13668056730'], 402019: ['13668056830'], 2123194: ['13668058130'], 856364: ['00378347301'], 197311: ['00378025301'], 197312: ['00472008216'], 1544383: ['59137050504'] };
 const OTC = new Set(['00363036142']);
 // medicare.gov drug cost answers on H1019-001 2027 (live, 2026-10-09).
 const COST = {
   '00093645056': { tier: 3, covered: true }, // esomeprazole DR capsule
   '76420089030': { covered: false, reason: 'NOT_COVERED' }, // Vimovo
   '00093744898': { tier: 1, covered: true },
-  '13668058130': { tier: 4, covered: true },
+  '00093301630': { covered: false, reason: 'NOT_IN_FORMULARY' }, // tadalafil 2.5 mg
+  '00093301730': { tier: 4, covered: true }, // tadalafil 5 mg
+  '13668056730': { covered: false, reason: 'NOT_IN_FORMULARY' }, // tadalafil 10 mg
+  '13668056830': { covered: false, reason: 'NOT_IN_FORMULARY' }, // tadalafil 20 mg
+  '13668058130': { tier: 4, covered: true }, // tadalafil 20 mg (PAH)
   '00378347301': { tier: 1, covered: true },
   '00378025301': { tier: 1, covered: true },
   '00472008216': { covered: false, reason: 'NOT_COVERED' },
@@ -56,12 +64,17 @@ function stubFetch(log) {
     const u = String(url);
     const q = (k) => decodeURIComponent((u.match(new RegExp(`[?&]${k}=([^&]+)`)) || [])[1] || '').replace(/\+/g, ' ');
     if (/\/drugs\/cost$/.test(u)) {
+      // Many NDCs x many plans per request, like medicare.gov. Solis (H0982) is not in its data.
       const body = JSON.parse(opts.body);
-      const ndc = body.prescriptions[0].ndc;
-      log.push(ndc);
-      const c = COST[ndc];
-      const plan = body.plans[0];
-      return json({ plans: [{ plan, costs: [{ drug_costs: c ? [{ ndc, tier: c.tier || null, covered: c.covered, coverage_reason: c.reason || 'COVERED' }] : [] }], restrictions: [], excluded_drugs: [] }] });
+      const ndcs = body.prescriptions.map((x) => x.ndc);
+      if (ndcs.length === 1) log.push(ndcs[0]);
+      const plans = body.plans.filter((pl) => pl.contract_id !== 'H0982').map((plan) => ({
+        plan,
+        costs: [{ drug_costs: ndcs.filter((n) => COST[n]).map((n) => ({ ndc: n, tier: COST[n].tier || null, covered: COST[n].covered, coverage_reason: COST[n].reason || 'COVERED' })) }],
+        restrictions: [],
+        excluded_drugs: [],
+      }));
+      return json({ plans });
     }
     if (u.includes('/rxcui.json?name=')) {
       const id = EXACT[q('name')];
@@ -235,7 +248,8 @@ test('full meds table: one row per drug and form, correction shown, ED label, PA
   assert.ok(medRows.some((l) => l.startsWith('| rasuvostatin → rosuvastatin (auto-corrected, verify) |')), medRows.join('\n'));
   assert.ok(medRows.some((l) => /^\| acyclovir oral tablet \|/i.test(l)), medRows.join('\n'));
   assert.ok(medRows.some((l) => /^\| acyclovir topical ointment \|/i.test(l)), medRows.join('\n'));
-  assert.ok(medRows.some((l) => /^\| tadalafil \| Covered — verify if supplemental benefit · T4/i.test(l)), medRows.join('\n'));
+  // No strength typed: tadalafil splits by strength on CarePlus (only 5 mg and the PAH 20 mg are covered).
+  assert.ok(medRows.some((l) => l.startsWith('| tadalafil | 2.5/10/20 mg: ❌ not covered ‖ 5 mg: T4 50% ‖ 20 mg (PAH): T4 50% |')), medRows.join('\n'));
   assert.ok(!/\| rasuvostatin \| ❔ unchecked/i.test(text), 'the typed name is answered by the corrected lookup');
   assert.doesNotMatch(text, /Medication lookup failed/);
   assert.match(R.MEDS_LEGEND, /PA = prior auth · ST = step therapy · QL = quantity limit/);
@@ -310,4 +324,52 @@ test('FORMULARY_DEBUG=1 logs one line per drug per plan; off by default', async 
   assert.equal(lines.length, 4, lines.join('\n'));
   assert.match(lines[0], /^\[formulary-debug\] H1019-001 \| rasuvostatin → rosuvastatin \(\d+\) \| source=medicare_gov \| status=verified_covered \| result=T1 · cost \$0$/);
   assert.match(lines[2], /^\[formulary-debug\] H1019-001 \| acyclovir ointment → acyclovir topical ointment \(\d+\) \| source=medicare_gov \| status=verified_not_covered \| result=not covered$/);
+});
+
+// ─── strength split (2026-10-09 review: Solis tadalafil T4/PA at 2.5–5 mg, T6 "^" at 10–20 mg) ──
+
+test('Solis "^" is a supplemental (excluded) drug; a typed strength uses only that row', () => {
+  const { solisFormularyLookup } = require('./solisFormulary');
+  const ten = solisFormularyLookup('tadalafil 10 mg', 'H0982-007', 2027);
+  assert.equal(ten.tier, 6);
+  assert.equal(ten.excludedDrug, true);
+  assert.equal(ten.qlText, 'QL 8/30');
+  assert.equal(D.edLabel(ten), D.ED_LABELS.supplemental);
+  assert.equal(solisFormularyLookup('tadalafil 5 mg', 'H0982-007', 2027).tier, 4);
+});
+
+test('tadalafil with no strength: every strength shown, compact, on Solis and medicare.gov plans', async () => {
+  const [r] = await priceAll(['tadalafil'], ['H1019-001', 'H0982-007']);
+  const plans = [{ planId: 'H1019-001', name: 'CarePlus CareOne Plus' }, { planId: 'H0982-007', name: 'Solis Healthy Living' }];
+  const cells = N.medsTable([r], plans).split('\n')[2].split(' | ');
+  assert.equal(cells[1], '2.5/10/20 mg: ❌ not covered ‖ 5 mg: T4 50% ‖ 20 mg (PAH): T4 50%');
+  assert.equal(cells[2], '2.5/5 mg: T4 40% · PA (verify indication) · QL 30/30 ‖ 10/20 mg: T6 $0 · QL 8/30 · supplemental ‖ 20 mg (PAH): T4 40% · PA · QL 60/30 |');
+  const text = N.renderedAnswer(docs, `ZIP 33324. Meds: tadalafil. Compare H1019-001, H0982-007.`, { drugs: [r] });
+  assert.match(text, /⚠️ tadalafil cost varies by strength — confirm dose/);
+});
+
+test('tadalafil with a strength: only that strength, no split', async () => {
+  const [r10] = await priceAll(['tadalafil 10 mg'], ['H0982-007']);
+  const row = r10.byPlanId['H0982-007'];
+  assert.equal(row.strengths, undefined);
+  assert.equal(row.tier, 6);
+  assert.equal(row.edLabel, D.ED_LABELS.supplemental);
+  const [r5] = await priceAll(['tadalafil 5 mg'], ['H1019-001']);
+  assert.equal(r5.byPlanId['H1019-001'].strengths, undefined);
+  assert.equal(r5.byPlanId['H1019-001'].tier, 4);
+});
+
+test('all strengths alike: one cell as before (trazodone on H1019-001)', async () => {
+  const [r] = await priceAll(['trazodone'], ['H1019-001']);
+  assert.equal(r.byPlanId['H1019-001'].strengths, undefined);
+  assert.equal(N.medsTable([r], [{ planId: 'H1019-001', name: 'CarePlus' }]).split('\n')[2], '| trazodone | T1 $0 |');
+});
+
+test('ranking uses the lowest-cost strength for a split drug', () => {
+  const split = { drugName: 'tadalafil', lookups: [{ verified: true }],
+    byPlanId: { 'H1019-001': { planId: 'H1019-001', verified: true, coverage: 'covered', tier: 4, costShare: '$40',
+      strengths: [{ strength: '5 mg', coverage: 'covered', tier: 4, costShare: '$40' }, { strength: '10 mg', coverage: 'covered', tier: 6, costShare: '$0' }] } } };
+  const sel = N.selectComparison(docs, ASK_TEXT, { drugs: [split] });
+  const col = sel.columns.find((c) => c.planId === 'H1019-001');
+  assert.equal(col.drugCost, 0);
 });

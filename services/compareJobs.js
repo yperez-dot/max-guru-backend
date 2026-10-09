@@ -8,7 +8,7 @@
 const crypto = require('crypto');
 const { lookupDoctor, NOT_CONFIRMED } = require('./providerNetwork');
 const { lookupFormulary, toExportDrug, toExportDrugs, formatFormularyText } = require('./formularyLookup');
-const { askConstraints, gridTable, medsTable, selectComparison } = require('./doctorPlanNarrow');
+const { askConstraints, gridTable, medsTable, selectComparison, strengthNotes } = require('./doctorPlanNarrow');
 const { eligibilityFromAsk, carriersRequested, LEGEND, MEDS_LEGEND, MEDS_FAILED_BANNER, IN_STAR_LEGEND, unlabeledMeds: unlabeledMedsList } = require('./comparisonRules');
 const { expandMedList } = require('./drugNames');
 
@@ -423,7 +423,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
       plans: sel.couldNotVerify.slice(0, 3).map((c) => ({ planId: c.planId, name: c.name })),
     };
     job.result.sameNetwork = sel.sameNetwork.map((x) => ({ planId: x.plan.planId, name: x.plan.name, sameAs: x.twin.planId, diff: x.diff }));
-    job.result.flags = sel.flags;
+    job.result.flags = [...sel.flags, ...strengthNotes(drugs, planIds)];
     job.result.questions = sel.questions;
     job.result.notConfirmed = doctorStructs.filter((d) => !['done', 'partial'].includes(d.status)).map((d) => d.requestedName);
     // toolResults in the shape the Excel/PDF export already reads.
