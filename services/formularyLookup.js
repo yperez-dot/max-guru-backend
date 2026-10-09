@@ -487,13 +487,20 @@ async function lookupSunfireCoverage({ drug, planId, year, sunfirePlanId }, fetc
       : null,
   ].filter(Boolean);
 
+  const debug = process.env.FORMULARY_DEBUG === '1';
   for (const attempt of attempts) {
     attempted.push(attempt.label);
     const opts = { method: attempt.method, headers: sunfireHeaders() };
     if (attempt.body) opts.body = JSON.stringify(attempt.body);
     const res = await fetchJson(attempt.url, opts, fetchImpl);
+    const hit = res.ok && res.json ? firstCoverageHit(res.json) : null;
+    if (debug) {
+      // Response body only (never our headers); long token-like strings are cut out.
+      const snippet = String(res.text || res.error || '').replace(/\s+/g, ' ').replace(/[A-Za-z0-9_\-.]{32,}/g, '[redacted]').slice(0, 160);
+      const outcome = hit ? (hit.tier ? `tier ${hit.tier}` : hit.coverage || 'hit') : 'no tier';
+      console.log(`[formulary-debug] sunfire ${displayPlanId(planId)} (${sfId || 'unmapped'}) ${attempt.label} → HTTP ${res.status || 0} ${outcome} | ${snippet || '(empty body)'}`);
+    }
     if (!res.ok || !res.json) continue;
-    const hit = firstCoverageHit(res.json);
     if (!hit) continue;
     if (hit.coverage === 'not_covered') {
       return {
@@ -1575,7 +1582,8 @@ function logFormularyDebug(result, inputName, nameRxcui) {
   if (process.env.FORMULARY_DEBUG !== '1' || !result) return;
   for (const row of result.lookups || []) {
     const rxcui = row.rxcui || nameRxcui || '?';
-    const status = row.verified ? `verified_${row.coverage || 'covered'}` : `unverified:${row.reason || 'unverified'}`;
+    const status = (row.verified ? `verified_${row.coverage || 'covered'}` : `unverified:${row.reason || 'unverified'}`)
+      + (row.sunfireReason ? ` (sunfire: ${row.sunfireReason})` : '');
     const parts = [];
     if (row.verified && row.tier) parts.push(`T${row.tier}`);
     if (row.verified && row.coverage === 'not_covered') parts.push('not covered');
@@ -1780,13 +1788,18 @@ async function lookupFormulary(
       const reasons = [];
 
       // Non-oral form with no catalog product of that form: Sunfire would price the oral one.
+      // Why Sunfire did not answer is kept even when a later source does (it was lost before).
+      let sunfireReason = null;
       if (!nonOral || match) {
         const sunfire = await lookupSunfireCoverage(
           { drug: match || { name: resolvedName, ndc: resolvedNdc }, planId: id, year: y },
           fetchImpl
         );
         if (sunfire.verified) hit = sunfire;
-        else if (sunfire.reason && sunfire.reason !== 'sunfire_creds_missing') reasons.push(sunfire.reason);
+        else if (sunfire.reason && sunfire.reason !== 'sunfire_creds_missing') {
+          reasons.push(sunfire.reason);
+          sunfireReason = sunfire.reason;
+        }
       }
 
       // Humana FHIR, Solis and the consumer PDFs answer by drug name only — they cannot tell an
@@ -1856,6 +1869,7 @@ async function lookupFormulary(
           ...(hit.strengthNote ? { strengthNote: hit.strengthNote } : {}),
           ...(hit.qlText ? { qlText: hit.qlText } : {}),
           restrictionsKnown: restrictionsKnownFor(hit),
+          ...(sunfireReason && !/^sunfire/.test(String(hit.source || '')) ? { sunfireReason } : {}),
         };
         // Strengths that differ (tier / coverage / PA / supplemental): keep every one for the cell.
         if (splitWanted) {

@@ -67,6 +67,17 @@ function stubFetch(log) {
   return async (url, opts = {}) => {
     const u = String(url);
     const q = (k) => decodeURIComponent((u.match(new RegExp(`[?&]${k}=([^&]+)`)) || [])[1] || '').replace(/\+/g, ' ');
+    // Sunfire (only when a test sets SUNFIRE_JWT): catalog search answers, coverage endpoints 404 like staging.
+    if (u.startsWith('https://www.sunfirematrix.com')) {
+      const cat = u.match(/\/v2\/drug\/search\/([^/]+)\/-1$/);
+      if (cat) {
+        const name = decodeURIComponent(cat[1]);
+        const drugs = name.startsWith('tadalafil') ? [{ id: 'D-TADA', name: 'Tadalafil', ndc: '13668056830' }]
+          : name.startsWith('rosuvastatin') ? [{ id: 'D-ROSU', name: 'Rosuvastatin Calcium', ndc: '00093744898' }] : [];
+        return json({ drugs });
+      }
+      return json({ message: 'No coverage found for drug' }, 404);
+    }
     if (/\/drugs\/cost$/.test(u)) {
       // Many NDCs x many plans per request, like medicare.gov. Solis (H0982) is not in its data.
       const body = JSON.parse(opts.body);
@@ -482,4 +493,34 @@ test('the typed strength stays in the row name ("Tadalafil 20 mg", "Rosuvastatin
   const table = N.medsTable([t20, r10], plans);
   assert.match(table, /\| tadalafil 20 mg \|/);
   assert.match(table, /\| rosuvastatin 10 mg \|/);
+});
+
+test('Sunfire: each coverage endpoint is logged under FORMULARY_DEBUG, and its reason survives a later answer', async () => {
+  const lines = [];
+  const orig = console.log;
+  console.log = (...a) => { const s = a.join(' '); if (s.startsWith('[formulary-debug] sunfire')) lines.push(s); };
+  process.env.SUNFIRE_JWT = 'test-jwt-not-a-real-secret-0123456789abcdef0123456789';
+  process.env.FORMULARY_DEBUG = '1';
+  let t20;
+  let r10;
+  try {
+    [t20, r10] = await priceAll(['tadalafil 20 mg', 'rosuvastatin 10 mg'], ['H1019-001', 'H5431-006']);
+  } finally {
+    console.log = orig;
+    delete process.env.SUNFIRE_JWT;
+    delete process.env.FORMULARY_DEBUG;
+  }
+  // 7 coverage endpoints per drug per mapped plan (H1019-001 = 273788, H5431-006 = 275052).
+  for (const [id, sf] of [['H1019-001', '273788'], ['H5431-006', '275052']]) {
+    const mine = lines.filter((l) => l.includes(`sunfire ${id} (${sf}) `));
+    assert.equal(mine.length, 14, `7 endpoints × 2 drugs for ${id}:\n${mine.join('\n')}`);
+    assert.ok(mine.every((l) => / → HTTP 404 no tier \| \{"message":"No coverage found for drug"\}$/.test(l)), mine.join('\n'));
+  }
+  assert.ok(!lines.some((l) => l.includes('test-jwt')), 'no secret in the log');
+  // The reason survives the later medicare.gov answer.
+  assert.equal(t20.byPlanId['H1019-001'].source, 'medicare_gov');
+  assert.equal(t20.byPlanId['H1019-001'].sunfireReason, 'sunfire_no_tier');
+  // Fix 3 with a catalog name: the typed strength is appended to Sunfire's name.
+  assert.equal(t20.drugName, 'Tadalafil 20 mg');
+  assert.equal(r10.drugName, 'Rosuvastatin Calcium 10 mg');
 });
