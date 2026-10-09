@@ -25,6 +25,7 @@ const { getKnowledgeByKey } = require('../knowledge/loader');
 const { solisFormularyLookup } = require('./solisFormulary');
 const { lookupConsumerFormulary } = require('./consumerFormulary');
 const { doctorsPbpAliases, isDoctorsCms } = require('./doctorsFormularyPdf');
+const { resolveDrugName, requestedForm, isNonOralForm, conceptHasForm, formLabel, drugNameBase, isEdDrug, edLabel } = require('./drugNames');
 
 const SUNFIRE_BASE = 'https://www.sunfirematrix.com';
 const HUMANA_FHIR = 'https://fhir.humana.com/api/MedicationKnowledge';
@@ -44,6 +45,13 @@ const KB_2027_KEYS = [
   'carriers/aetna-plans-florida-2027',
   'carriers/doctors-plans-florida-2027',
   'carriers/healthsun-plans-florida-2027',
+  // These five carry the same "| Tier N | $X |" rows but were never read, so every Solis cell
+  // showed a tier with no cost (Martin Wiesenthal, H0982-007, 2026-10-09).
+  'carriers/solis-plans-florida-2027',
+  'carriers/florida-blue-plans-florida-2027',
+  'carriers/gold-kidney-plans-florida-2027',
+  'carriers/simply-plans-florida-2027',
+  'carriers/wellcare-plans-florida-2027',
 ];
 
 let SUNFIRE_PLAN_MAP = {};
@@ -836,6 +844,7 @@ function queryProductHints(query) {
   let form = null;
   if (/\b(tab|tabs|tablet|tablets)\b/.test(q)) form = 'tablet';
   else if (/\b(cap|caps|capsule|capsules)\b/.test(q)) form = 'capsule';
+  else form = requestedForm(q);
   return {
     strengths,
     form,
@@ -858,6 +867,7 @@ function conceptProductTraits(name) {
   let form = null;
   if (/\btablet\b/.test(n)) form = 'tablet';
   else if (/\bcapsule\b/.test(n)) form = 'capsule';
+  else form = ['ointment', 'cream', 'gel', 'lotion', 'drops', 'patch'].find((f) => conceptHasForm(n, f)) || null;
   return {
     strengths,
     form,
@@ -917,6 +927,8 @@ function conceptMatchesQuery(concept, query) {
     if (!hints.strengths.every((h) => traits.strengths.some((t) => sameStrength(h, t)))) return false;
   }
   if (hints.form && traits.form && hints.form !== traits.form) return false;
+  // An ointment / cream / drops ask is only ever that form — never the oral product.
+  if (isNonOralForm(hints.form) && traits.form !== hints.form) return false;
   if (hints.er !== traits.er) return false;
   if (hints.odt !== traits.odt) return false;
   if (hints.dr && !traits.dr) return false;
@@ -934,6 +946,13 @@ function scoreRelatedConcept(concept, query) {
   const traits = conceptProductTraits(name);
   let score = 0;
   if (!hints.form && /oral tablet/.test(name)) score += 20;
+  // No form asked: the adult oral capsule is as likely as the tablet (esomeprazole Rx is the DR
+  // capsule), and pediatric granules / suspensions / injections are the least likely product.
+  if (!hints.form && /oral capsule/.test(name)) score += 15;
+  if (!/granule|suspension|solution|inject/.test(q) && /granules|for oral suspension|\binjection\b|oral solution/.test(name)) score -= 15;
+  // An unrequested salt variant ("esomeprazole strontium") is a different product.
+  const prefix = name.split(/\s\d/)[0].split(/\s+/);
+  if (q && prefix.length > 1 && prefix.slice(1).some((w) => w.length > 3 && !q.includes(w))) score -= 10;
   if (/oral/.test(name)) score += 5;
   if (/(amlodipine|ezetimibe|caduet|vytorin)/.test(name) && !/(amlodipine|ezetimibe)/.test(q)) {
     score -= 40;
@@ -997,6 +1016,29 @@ async function autocompleteMedicareGov(name, fetchImpl = fetch) {
   return { drugs: Array.isArray(list) ? list : [], error: null, status: res.status };
 }
 
+const ndcLabelCache = new Map();
+
+/** "HUMAN OTC DRUG" / "HUMAN PRESCRIPTION DRUG" for an NDC (RxNav), or null when unknown. */
+async function ndcLabelType(ndc, fetchImpl = fetch) {
+  if (ndcLabelCache.has(ndc)) return ndcLabelCache.get(ndc);
+  const res = await fetchJson(`${RXNORM_BASE}/ndcproperties.json?id=${encodeURIComponent(ndc)}`, { headers: { Accept: 'application/json' } }, fetchImpl, 6_000);
+  const props = res.json?.ndcPropertyList?.ndcProperty?.[0]?.propertyConceptList?.propertyConcept || [];
+  const label = (Array.isArray(props) ? props : []).find((p) => p && p.propName === 'LABEL_TYPE');
+  const value = label ? String(label.propValue || '').toUpperCase() : null;
+  if (res.ok) ndcLabelCache.set(ndc, value);
+  return value;
+}
+
+/**
+ * Drop OTC NDCs: Part D does not cover OTC products, and medicare.gov answers them with empty
+ * costs. Esomeprazole 20 mg DR tablets are all store-brand OTC (Nexium 24HR); the Rx product is the
+ * DR capsule (Martin Wiesenthal, 2026-10-09). Unknown label types are kept.
+ */
+async function rxNdcsOnly(ndcs, fetchImpl = fetch) {
+  const labels = await Promise.all(ndcs.map((n) => ndcLabelType(n, fetchImpl).catch(() => null)));
+  return { rx: ndcs.filter((n, i) => labels[i] !== 'HUMAN OTC DRUG'), otc: ndcs.filter((n, i) => labels[i] === 'HUMAN OTC DRUG') };
+}
+
 async function ndcsForRxcui(rxcui, fetchImpl = fetch) {
   if (!rxcui) return [];
   const res = await fetchJson(
@@ -1026,6 +1068,7 @@ async function resolveMedicareGovNdcs({ drugName, ndc, hintNdc }, fetchImpl = fe
   };
   // An NDC the agent typed is the product by definition.
   if (ndc) push(ndc, true);
+  const askedForm = requestedForm(drugName);
 
   const medicareQuery = drugCatalogQuery(drugName) || drugName || '';
   let auto = await autocompleteMedicareGov(medicareQuery, fetchImpl);
@@ -1054,17 +1097,54 @@ async function resolveMedicareGovNdcs({ drugName, ndc, hintNdc }, fetchImpl = fe
     // Every candidate — including the autocomplete concept — is ranked by how
     // well it fits the asked product. Brand / ER / ODT / wrong strength sink.
     const candidates = [{ rxcui: String(rxcui), name: resolvedName, tty: '' }, ...relatedRxnormConcepts(rel.json)];
-    const dedup = [];
+    let dedup = [];
     for (const c of candidates) if (!dedup.some((d) => d.rxcui === c.rxcui)) dedup.push(c);
+    // A single-ingredient ask is never a combination product: "esomeprazole" read not covered from
+    // esomeprazole/naproxen (Vimovo) NDCs that counted as the asked product (Martin, 2026-10-09).
+    const askIngredients = Math.max(1, drugIngredients(drugCatalogQuery(query) || query).length);
+    // RxNorm writes combinations as "A 20 MG / B 375 MG …"; "0.05 MG/MG" (no spaces) is one strength.
+    const conceptIngredients = (name) => (String(name || '').match(/\s\/\s(?=[a-z])/gi) || []).length + 1;
+    dedup = dedup.filter((c) => conceptIngredients(c.name) <= askIngredients);
+    // Ointment / cream / gel / drops / patch: only products of that form. No oral fallback.
+    if (isNonOralForm(askedForm)) {
+      const eye = /\b(?:eye|ophthalmic|ophth)\b/i.test(query);
+      let ofForm = dedup.filter((c) => conceptHasForm(c.name, askedForm));
+      const sameRoute = ofForm.filter((c) => /\bophthalmic\b/i.test(c.name) === eye);
+      if (sameRoute.length) ofForm = sameRoute;
+      if (!ofForm.length) {
+        return { strengthNote: null, ndcs: [], moreExactNdcs: [], exactNdcs: [], rxcui: String(rxcui), name: resolvedName, error: 'form_not_found' };
+      }
+      dedup = ofForm;
+    }
     // A strength no product has (typo): confirm at drug level and say so, never "unverified".
     strengthNote = missingStrengthCheck(query, dedup);
     if (strengthNote) query = withoutStrength(query);
-    const toTry = dedup
+    let sorted = dedup
       .map((c, i) => ({ ...c, i, score: scoreRelatedConcept(c, query), exact: conceptMatchesQuery(c, query) }))
-      .sort((a, b) => Number(b.exact) - Number(a.exact) || b.score - a.score || a.i - b.i)
-      .slice(0, 8);
+      .sort((a, b) => Number(b.exact) - Number(a.exact) || b.score - a.score || a.i - b.i);
+    // No form asked: the best product of each form first (tablet, capsule, …), so one form's
+    // "not covered" never decides a drug the plan covers in another form.
+    if (!queryProductHints(query).form) {
+      const firstOfForm = [];
+      const seenForms = new Set();
+      for (const c of sorted) {
+        const f = conceptProductTraits(c.name).form || 'other';
+        if (c.score > 0 && !seenForms.has(f)) { seenForms.add(f); firstOfForm.push(c); }
+      }
+      sorted = [...firstOfForm, ...sorted.filter((c) => !firstOfForm.includes(c))];
+    }
+    const toTry = sorted.slice(0, 8);
+    const otcOnly = [];
     for (const concept of toTry) {
-      const all = rankNdcs(await ndcsForRxcui(concept.rxcui, fetchImpl));
+      const ranked = rankNdcs(await ndcsForRxcui(concept.rxcui, fetchImpl));
+      // A product whose first NDCs are all OTC is the OTC product (esomeprazole 20 mg DR tablet).
+      const head = ranked.slice(0, 6);
+      const { rx, otc } = head.length ? await rxNdcsOnly(head, fetchImpl) : { rx: [], otc: [] };
+      if (head.length && !rx.length) {
+        otcOnly.push(...otc.slice(0, 2).map((n) => ({ n, exact: concept.exact })));
+        continue;
+      }
+      const all = [...rx, ...ranked.slice(6)];
       all.slice(0, 3).forEach((n) => push(n, concept.exact));
       // medicare.gov only prices the NDCs in its own drug file: most RxNorm NDCs for a generic
       // answer with empty drug_costs (pregabalin 200 mg on H1036-065C: 13668-0363-30, 46708-0124-30
@@ -1073,11 +1153,14 @@ async function resolveMedicareGovNdcs({ drugName, ndc, hintNdc }, fetchImpl = fe
       if (concept.exact) all.slice(3).forEach((n) => { const k = normalizeNdc(n); if (k && !seen.has(k) && !moreExact.includes(k)) moreExact.push(k); });
       if (out.length >= 8) break;
     }
+    // Only OTC products exist for this ask: price them (they will read not covered / empty) rather than nothing.
+    if (!out.length) otcOnly.forEach(({ n, exact: e }) => push(n, e));
   }
 
   // A catalog NDC (Sunfire's first hit) is a hint, never the asked product: duloxetine 30 mg
-  // resolved to a 40 mg NDC and read "not covered" (2026-10-07).
-  if (hintNdc && out.length < 8) push(hintNdc, false);
+  // resolved to a 40 mg NDC and read "not covered" (2026-10-07). Never for a non-oral form ask —
+  // the catalog hit is usually the oral product.
+  if (hintNdc && out.length < 8 && !isNonOralForm(askedForm)) push(hintNdc, false);
   const ndcs = out.slice(0, 8);
   return {
     strengthNote,
@@ -1108,6 +1191,10 @@ function extractMedicareGovCost(payload, planId, year) {
   const pa = /prior\s*auth/i.test(blob) ? true : null;
   const st = /step\s*ther/i.test(blob) ? true : null;
   const ql = /quantity/i.test(blob) ? true : null;
+  // A Part D-excluded drug the plan pays for as a supplemental benefit is listed in
+  // excluded_drugs. An empty list does not prove Part D coverage, so only `true` is ever said.
+  const excluded = Array.isArray(row.excluded_drugs) ? row.excluded_drugs : [];
+  const excludedFor = (ndc) => (excluded.length && ndc && JSON.stringify(excluded).includes(String(ndc)) ? true : null);
   for (const cost of row.costs || []) {
     for (const dc of cost.drug_costs || []) {
       const reason = String(dc.coverage_reason || '').toUpperCase();
@@ -1116,7 +1203,7 @@ function extractMedicareGovCost(payload, planId, year) {
         return { coverage: 'not_covered', tier: null, pa, st, ql, ndc: dc.ndc || null };
       }
       if (tier) {
-        return { coverage: 'covered', tier, pa, st, ql, ndc: dc.ndc || null };
+        return { coverage: 'covered', tier, pa, st, ql, ndc: dc.ndc || null, excludedDrug: excludedFor(dc.ndc) };
       }
     }
   }
@@ -1148,6 +1235,7 @@ async function lookupMedicareGov({ drugName, ndc, hintNdc, planId, year }, fetch
     pa: hit.pa,
     st: hit.st,
     ql: hit.ql,
+    excludedDrug: hit.excludedDrug || null,
     source: 'medicare_gov',
     ndc: hit.ndc || useNdc,
     rxcui: resolved.rxcui,
@@ -1311,6 +1399,36 @@ function costShareFromPlanObject(plan, tier) {
   return { value: formatCostShare(raw), source: 'plan_data' };
 }
 
+/** sunfire | humana_fhir | medicare_gov | solis_pdf | consumer_pdf | none — the debug line's source names. */
+function debugSourceName(source) {
+  const s = String(source || '');
+  if (!s) return 'none';
+  if (/^sunfire/i.test(s)) return 'sunfire';
+  if (/humana_fhir/i.test(s)) return 'humana_fhir';
+  if (/medicare_gov/i.test(s)) return 'medicare_gov';
+  if (/solis/i.test(s)) return 'solis_pdf';
+  return 'consumer_pdf';
+}
+
+/**
+ * FORMULARY_DEBUG=1: one line per drug per plan — what she typed, what it resolved to, which
+ * source answered, and the cell it produced. Off by default.
+ */
+function logFormularyDebug(result, inputName, nameRxcui) {
+  if (process.env.FORMULARY_DEBUG !== '1' || !result) return;
+  for (const row of result.lookups || []) {
+    const rxcui = row.rxcui || nameRxcui || '?';
+    const status = row.verified ? `verified_${row.coverage || 'covered'}` : `unverified:${row.reason || 'unverified'}`;
+    const parts = [];
+    if (row.verified && row.tier) parts.push(`T${row.tier}`);
+    if (row.verified && row.coverage === 'not_covered') parts.push('not covered');
+    if (row.verified && row.tier) parts.push(row.costShare ? `cost ${row.costShare}` : 'cost n/a');
+    if (row.edLabel) parts.push(row.edLabel);
+    if (result.nameCheck) parts.push(result.nameCheck.suggestion ? `did you mean ${result.nameCheck.suggestion}?` : 'name not found');
+    console.log(`[formulary-debug] ${row.planId} | ${inputName || result.drugName} → ${result.drugName} (${rxcui}) | source=${debugSourceName(row.source)} | status=${status} | result=${parts.join(' · ') || '—'}`);
+  }
+}
+
 function emptyPlanResult(planId, year, reason) {
   return {
     planId: displayPlanId(planId),
@@ -1392,6 +1510,7 @@ async function lookupFormulary(
     claimedTier = null,
     plans = [],
     skipGenericFollowup = false,
+    skipNameCheck = false,
   } = {},
   fetchImpl = fetch
 ) {
@@ -1405,7 +1524,45 @@ async function lookupFormulary(
     if (!uniqueIds.some((u) => cmsIdsMatch(u, id))) uniqueIds.push(id);
   }
 
+  // Which drug did she type? RxNorm generic / ingredient names first — never a medicare.gov
+  // autocomplete prefix hit ("rasuvostatin" → "Rasuvo", methotrexate). An unclear name is
+  // asked about, not priced.
+  const inputName = String(drugName || '').trim();
+  let nameCorrection = null;
+  let nameRxcui = null;
+  if (inputName && !ndc && !skipNameCheck) {
+    const nameCheck = await resolveDrugName(inputName, fetchImpl);
+    nameRxcui = nameCheck.rxcui || null;
+    if (nameCheck.status === 'ambiguous' || nameCheck.status === 'not_found') {
+      console.log(`[formulary] name not priced: "${inputName}" ${nameCheck.status}${nameCheck.suggestion ? ` (did you mean ${nameCheck.suggestion}?)` : ''}`);
+      const rows = uniqueIds.map((id) => emptyPlanResult(id, y, 'name_unconfirmed'));
+      const unresolved = {
+        drugName: inputName,
+        inputName,
+        ndc: null,
+        year: y,
+        claimedTier: null,
+        claimedTierDiscarded: true,
+        catalog: [],
+        catalogError: null,
+        lookups: rows,
+        byPlanId: Object.fromEntries(rows.map((r) => [r.planId, r])),
+        verifiedAny: false,
+        nameCheck: { status: nameCheck.status, input: inputName, suggestion: nameCheck.suggestion || null, alternatives: nameCheck.alternatives || [] },
+      };
+      logFormularyDebug(unresolved, inputName, null);
+      return unresolved;
+    }
+    if (nameCheck.status === 'corrected') {
+      nameCorrection = { from: drugNameBase(inputName), to: nameCheck.name };
+      drugName = nameCheck.query;
+    }
+  }
+
   const rawQuery = drugName || ndc;
+  // Ointment / cream / gel / drops / patch asks are priced only on a product of that form.
+  const askedForm = requestedForm(rawQuery);
+  const nonOral = isNonOralForm(askedForm);
   const catalogQuery = drugCatalogQuery(rawQuery) || rawQuery;
   let catalog = await searchSunfireCatalog(catalogQuery, fetchImpl);
   // If the agent pasted strength/form and the stripped query still missed, try the first token.
@@ -1421,7 +1578,8 @@ async function lookupFormulary(
     const retryRaw = await searchSunfireCatalog(rawQuery, fetchImpl);
     if (retryRaw.drugs.length) catalog = retryRaw;
   }
-  const ranked = rankCatalogMatches(catalog.drugs, rawQuery);
+  let ranked = rankCatalogMatches(catalog.drugs, rawQuery);
+  if (nonOral) ranked = ranked.filter((d) => conceptHasForm(d.name, askedForm));
   let match = ranked[0] || null;
   let resolvedName = match?.name || drugCatalogQuery(rawQuery) || rawQuery || 'Unknown drug';
   let resolvedNdc = ndc || match?.ndc || null;
@@ -1452,14 +1610,19 @@ async function lookupFormulary(
       let hit = null;
       const reasons = [];
 
-      const sunfire = await lookupSunfireCoverage(
-        { drug: match || { name: resolvedName, ndc: resolvedNdc }, planId: id, year: y },
-        fetchImpl
-      );
-      if (sunfire.verified) hit = sunfire;
-      else if (sunfire.reason && sunfire.reason !== 'sunfire_creds_missing') reasons.push(sunfire.reason);
+      // Non-oral form with no catalog product of that form: Sunfire would price the oral one.
+      if (!nonOral || match) {
+        const sunfire = await lookupSunfireCoverage(
+          { drug: match || { name: resolvedName, ndc: resolvedNdc }, planId: id, year: y },
+          fetchImpl
+        );
+        if (sunfire.verified) hit = sunfire;
+        else if (sunfire.reason && sunfire.reason !== 'sunfire_creds_missing') reasons.push(sunfire.reason);
+      }
 
-      if (!hit || !hit.verified) {
+      // Humana FHIR, Solis and the consumer PDFs answer by drug name only — they cannot tell an
+      // ointment from a tablet, so a non-oral form never takes their answer.
+      if (!nonOral && (!hit || !hit.verified)) {
         const fhir = await lookupHumanaFhir(
           { drugName: resolvedName, ndc: resolvedNdc, planId: id, year: y },
           fetchImpl
@@ -1481,12 +1644,12 @@ async function lookupFormulary(
       }
 
       // Solis has no API Max can call — its published 2027 formulary PDF index answers instead.
-      if (!hit || !hit.verified) {
+      if (!nonOral && (!hit || !hit.verified)) {
         const solis = solisFormularyLookup(resolvedName, id, y);
         if (solis) hit = solis;
       }
 
-      if (!hit || !hit.verified) {
+      if (!nonOral && (!hit || !hit.verified)) {
         const consumer = await lookupConsumerFormulary(
           { drugName: resolvedName, ndc: resolvedNdc, planId: id, year: y },
           fetchImpl
@@ -1511,6 +1674,9 @@ async function lookupFormulary(
           pa: hit.pa,
           st: hit.st,
           ql: hit.ql,
+          ...(hit.excludedDrug ? { excludedDrug: true } : {}),
+          ...(hit.indication ? { indication: hit.indication } : {}),
+          ...(hit.rxcui ? { rxcui: String(hit.rxcui) } : {}),
           costShare: share ? share.value : null,
           costShareSource: share ? share.source : null,
           source: hit.source,
@@ -1564,8 +1730,22 @@ async function lookupFormulary(
     }
   }
 
+  // Part D excludes ED drugs, but a plan can still cover them: look them up like any other drug,
+  // then say what the answer means (supplemental / BPH-PAH only / not covered / not confirmed).
+  const edDrug = isEdDrug(rawQuery) || isEdDrug(resolvedName);
+  if (edDrug) {
+    for (const row of lookups) row.edLabel = edLabel(row);
+  }
+
+  // One row per asked form: "acyclovir tablets" and "acyclovir ointment" are two products, and
+  // the meds table must not fold them into one "acyclovir" row.
+  const label = askedForm ? formLabel(askedForm, rawQuery) : '';
+  const namesForm = /\b(?:tabs?|tablets?|caps?|capsules?|ointment|cream|gel|lotion|drops?|patch|solution|suspension)\b/i.test(String(resolvedName));
+  const displayName = label && !namesForm ? `${resolvedName} ${label}` : resolvedName;
+
   const result = {
-    drugName: resolvedName,
+    drugName: displayName,
+    inputName: inputName || null,
     ndc: resolvedNdc,
     year: y,
     claimedTier: null,
@@ -1579,7 +1759,12 @@ async function lookupFormulary(
     genericFollowup: null,
     retriedProduct,
     notCoveredNote,
+    ...(nameCorrection ? { nameCorrection } : {}),
+    ...(edDrug ? { edDrug: true } : {}),
+    ...(askedForm ? { form: askedForm } : {}),
   };
+
+  logFormularyDebug(result, inputName, nameRxcui);
 
   const genericName = knownGenericFor(drugName) || knownGenericFor(resolvedName);
   if (!skipGenericFollowup && genericName && brandVerifiedNotCovered(lookups)) {
@@ -1590,6 +1775,7 @@ async function lookupFormulary(
         year: y,
         plans,
         skipGenericFollowup: true,
+        skipNameCheck: true,
       },
       fetchImpl
     );
@@ -1647,6 +1833,18 @@ function formatFormularyText(result) {
   if (!result) return 'Formulary lookup failed.';
   const lines = [];
   lines.push(`${result.drugName}${result.ndc ? ` (NDC ${result.ndc})` : ''} — plan year ${result.year}`);
+  if (result.nameCheck) {
+    const nc = result.nameCheck;
+    lines.push(nc.suggestion
+      ? `NAME NOT CONFIRMED — NOT PRICED: ❓ '${nc.input}' — did you mean ${nc.suggestion}? Ask the agent; do not quote a tier for any guess.`
+      : `NAME NOT CONFIRMED — NOT PRICED: ❓ '${nc.input}' is not a drug name RxNorm knows. Ask the agent to check the spelling.`);
+  }
+  if (result.nameCorrection) {
+    lines.push(`NAME AUTO-CORRECTED: ${result.nameCorrection.from} → ${result.nameCorrection.to} (auto-corrected, verify). Show this correction to the agent.`);
+  }
+  if (result.edDrug) {
+    lines.push('ED DRUG: Part D excludes ED use. Quote each plan with its label below exactly; never call it "not confirmed" when a plan answered.');
+  }
   if (result.retriedProduct) {
     lines.push(`Note: the first catalog product (${result.retriedProduct.from}) read not covered; re-checked as ${result.retriedProduct.to}. Quote this result.`);
   }
@@ -1670,6 +1868,12 @@ function formatFormularyText(result) {
   }
 
   for (const row of result.lookups) {
+    if (row.edLabel) lines.push(`${row.planId}: ${row.edLabel}`);
+    if (!row.verified && /form_not_found/.test(String(row.reason || ''))) {
+      lines.push(`${row.planId}: Not confirmed (form not found) — no ${result.form || 'requested-form'} product found; the oral form was NOT used.`);
+      lines.push(formatPlanLookupLine(result.drugName, row));
+      continue;
+    }
     if (row.verified && row.tier) {
       const flags = [flagLine('PA', row.pa), flagLine('ST', row.st), flagLine('QL', row.ql)]
         .filter(Boolean)

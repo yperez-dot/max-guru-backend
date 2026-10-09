@@ -64,6 +64,8 @@ function solisFormularyLookup(drugName, planId, year) {
         st: /\bST\b/.test(req),
         ql: /\bQL\b/.test(req),
         matchedName: hit.name,
+        // Only an indication the book prints on the row ("tadalafil tab 20 mg (pah)") — never inferred from PA.
+        ...(/\((?:pah|bph)\)/i.test(hit.name) ? { indication: hit.name.match(/\((pah|bph)\)/i)[1].toUpperCase() } : {}),
         source: `Solis 2027 Comprehensive Formulary PDF${idx.asOf ? ` (updated ${idx.asOf})` : ''}`,
       };
     }

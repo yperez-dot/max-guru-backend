@@ -1217,10 +1217,17 @@ function selectComparison(doctors, askText, opts = {}) {
   }
   // Looked-up names first ("Atorvastatin Calcium"), then anything listed but not looked up yet.
   const meds = [];
-  for (const m of [...drugs.map(drugNameOf), ...(opts.meds || []), ...R.medsFromAsk(ask)]) {
+  for (const m of drugs.map(drugNameOf)) {
     const name = String(m || '').trim();
     if (name && !meds.some((x) => R.sameDrug(x, name))) meds.push(name);
   }
+  for (const m of [...(opts.meds || []), ...R.medsFromAsk(ask)]) {
+    const name = String(m || '').trim();
+    // "rasuvostatin" is answered by the rosuvastatin lookup — not another med to check.
+    if (name && !meds.some((x) => R.sameDrug(x, name)) && !drugs.some((r) => drugAnswers(r, name))) meds.push(name);
+  }
+  // Rule 3's drug-cost key only when something was priced: every lookup failing must not rank plans.
+  const pricedDrugs = allDrugLookupsFailed(drugs) ? [] : drugs;
 
   const decorate = (cols) => cols.map((c) => {
     const grid = gridRowFor(c.planId, county);
@@ -1228,7 +1235,7 @@ function selectComparison(doctors, askText, opts = {}) {
     const gridName = grid ? String(grid.planName || '') : '';
     const name = grid && bareId && gridName ? (carrierKey(gridName) ? gridName : `${grid.carrier || ''} ${gridName}`.trim()) : c.name;
     const like = grid || { name: c.name };
-    return { ...c, name, grid, snp: R.snpKind(like), premium: grid ? R.exactDollars(grid.premium) : null, drugCost: drugCostFor(c.planId, drugs) };
+    return { ...c, name, grid, snp: R.snpKind(like), premium: grid ? R.exactDollars(grid.premium) : null, drugCost: drugCostFor(c.planId, pricedDrugs) };
   });
 
   const out = {
@@ -1480,7 +1487,7 @@ function selectComparison(doctors, askText, opts = {}) {
   const tableIds = out.columns.map((c) => c.planId);
   if (tableIds.length && meds.length) {
     const missingDrugs = meds.filter((m) => {
-      const r = drugs.find((x) => R.sameDrug(drugNameOf(x), m));
+      const r = drugs.find((x) => drugAnswers(x, m));
       return !r || tableIds.some((id) => !drugRowFor(r, id));
     });
     out.medsToCheck = { drugs: missingDrugs, planIds: tableIds };
@@ -1632,11 +1639,45 @@ function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] }
   return { text: lines.join('\n'), matrix: sel.ranked, questions: sel.questions, selection: sel };
 }
 
-function drugCell(row, unsureNotCovered) {
+function drugCell(row, unsureNotCovered, result) {
+  if (result && result.nameCheck) return '❓ check name';
   if (!row) return R.UNCHECKED;
+  // A tier with no cost-share on file says so — a bare "T2" read as $0 (Solis H0982-007, 2026-10-09).
+  const cost = row.costShare ? ` ${row.costShare}` : ` · cost n/a${/pdf/i.test(String(row.source || '')) ? ' (PDF)' : ''}`;
+  // ED drugs: the per-plan label says what the coverage means (supplemental / BPH-PAH only / …).
+  if (result && result.edDrug && row.edLabel) {
+    const tier = row.verified && row.tier ? ` · T${row.tier}${cost}` : '';
+    return `${row.edLabel}${tier}`;
+  }
   if (row.verified && row.coverage === 'not_covered') return unsureNotCovered ? '⚠️ confirm' : '❌ not covered';
-  if (row.verified && row.tier) return `T${row.tier}${row.costShare ? ` ${row.costShare}` : ''}${row.pa ? ' · PA' : ''}`;
+  if (row.verified && row.tier) {
+    const flags = [row.pa ? 'PA' : null, row.st ? 'ST' : null, row.ql ? 'QL' : null].filter(Boolean);
+    return `T${row.tier}${cost}${flags.length ? ` · ${flags.join(' · ')}` : ''}`;
+  }
+  if (/form_not_found/.test(String(row.reason || ''))) return `${R.NOT_CONFIRMED_CELL} (form not found)`;
   return R.NOT_CONFIRMED_CELL;
+}
+
+/** The drug column: the corrected name shown as a correction, an unclear name as a question. */
+function drugLabel(r, name) {
+  const nc = r && r.nameCheck;
+  if (nc) return nc.suggestion ? `❓ '${nc.input}' — did you mean ${nc.suggestion}?` : `❓ '${nc.input}' — not a drug name RxNorm knows, check spelling`;
+  if (r && r.nameCorrection) {
+    const rest = name.toLowerCase().startsWith(r.nameCorrection.to.toLowerCase()) ? name.slice(r.nameCorrection.to.length).trim() : '';
+    return `${r.nameCorrection.from} → ${r.nameCorrection.to}${rest ? ` ${rest}` : ''} (auto-corrected, verify)`;
+  }
+  return titleCase(name);
+}
+
+/** The listed med this lookup answers — by its looked-up name or the name the agent typed. */
+function drugAnswers(r, med) {
+  return R.sameDrug(drugNameOf(r), med) || Boolean(r && r.inputName && R.sameDrug(r.inputName, med));
+}
+
+/** True when meds were looked up and not one plan answered for any of them. */
+function allDrugLookupsFailed(drugResults) {
+  const list = (drugResults || []).filter(Boolean);
+  return list.length > 0 && !list.some((r) => (r.lookups || []).some((l) => l && l.verified));
 }
 
 /** Drug rows under the same plan columns. `drugs` = lookup_formulary outputs; `knownMeds` = listed but not looked up yet. */
@@ -1648,8 +1689,10 @@ function medsTable(drugResults, plans, knownMeds = []) {
     const name = drugNameOf(r);
     if (!name || seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
-    const cells = plans.map((p) => drugCell(drugRowFor(r, p.planId), Boolean(r.notCoveredNote)));
-    rows.push(`| ${titleCase(name)} | ${cells.join(' | ')} |`);
+    // "rasuvostatin" was looked up as rosuvastatin: the typed name is answered, not an unchecked row.
+    if (r.inputName) seen.add(String(r.inputName).toLowerCase());
+    const cells = plans.map((p) => drugCell(drugRowFor(r, p.planId), Boolean(r.notCoveredNote), r));
+    rows.push(`| ${drugLabel(r, name)} | ${cells.join(' | ')} |`);
   }
   for (const m of knownMeds || []) {
     const name = String(m || '').trim();
@@ -1660,7 +1703,9 @@ function medsTable(drugResults, plans, knownMeds = []) {
   if (!rows.length) return '';
   const head = `| Drug | ${plans.map(shortPlanHeader).join(' | ')} |`;
   const sep = `|---|${plans.map(() => '---').join('|')}|`;
-  return [head, sep, ...rows].join('\n');
+  const table = [head, sep, ...rows].join('\n');
+  // Every lookup failed: say so above the table — never just a legend under nothing.
+  return allDrugLookupsFailed(drugResults) ? `${R.MEDS_FAILED_BANNER}\n\n${table}` : table;
 }
 
 /** Plain answer used when the model itself ran out of time. */
@@ -1670,7 +1715,7 @@ function medsTable(drugResults, plans, knownMeds = []) {
  * Meds table. Built from tool data only, so the same lookup always renders the same cells — the
  * model never re-lays it out as bullets or flips a cell (Maura Soley, 2026-10-07).
  */
-function renderedAnswer(doctors, askText, { answered = false, drugs = [] } = {}) {
+function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUnreadable = false } = {}) {
   const sel = selectComparison(doctors, askText, { answered, drugs });
   const top = sel.columns;
   if (!top.length) return '';
@@ -1682,6 +1727,8 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [] } = {})
   for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in /.test(x))) lines.push(f);
   const meds = medsTable(drugs, top, sel.meds);
   if (meds) lines.push('', '**Meds**', '', meds, '', R.MEDS_LEGEND);
+  // She typed drugs but no list could be read: say so, never drop the section silently.
+  else if (medsUnreadable) lines.push('', '**Meds**', '', R.MEDS_UNREADABLE);
   return lines.filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n');
 }
 
@@ -1697,12 +1744,19 @@ function enforceRenderedTable(replyText, rendered) {
     .filter((n) => !/^(Doctor|Drug|Med|\*\*Doctors\*\*|---)/i.test(n))
     .map((n) => n.replace(/\s*·\s*NPI\b.*$/i, '').replace(/\*|\(.*$/g, '').trim().split(/\s+/).pop().toLowerCase()).filter((w) => w.length >= 3);
   const statusWord = /\b(in[-\s]?network|not in network|out(?:\s+of\s+network)?|not confirmed|unchecked|not listed|in\*?|tier|covered)\b|✅|❌|❔/i;
+  const serverMeds = /^\*\*Meds\*\*$/m.test(rendered);
   const notes = reply.split('\n').filter((l) => {
     const t = l.trim();
     if (!t) return false;
     if (/^\|/.test(t)) return false;
     if (/^(\*\*)?(Doctors ×|Doctors x|Why these plans|Meds\b|Doctor network|DOCTOR × PLAN)/i.test(t)) return false;
     if (/^(✅ In|T = tier)/.test(t)) return false;
+    // The model's own meds heading ("**Medications (2027)**", "### Meds", "Medicamentos:") never rides
+    // under the server table: its rows were dropped above, so it would stand alone over nothing
+    // (Martin Wiesenthal, 2026-10-09).
+    if (/^(?:#+\s*)?\**\s*(?:medications?|meds|medicamentos?|medicinas?)\b[^|?]{0,50}$/i.test(t)) return false;
+    // Same for its legend lines when the server built no meds table to explain.
+    if (!serverMeds && /^[❔✅❌]/u.test(t)) return false;
     if (/\?\s*$/.test(t)) return true;
     // The model's own per-doctor / per-plan restatement (bullets, "**Plan (ID):** …" lines, plan
     // headers) and any "fell back to saved results" story never ride under the server table.

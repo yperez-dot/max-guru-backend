@@ -9,7 +9,8 @@ const crypto = require('crypto');
 const { lookupDoctor, NOT_CONFIRMED } = require('./providerNetwork');
 const { lookupFormulary, toExportDrug, toExportDrugs, formatFormularyText } = require('./formularyLookup');
 const { askConstraints, gridTable, medsTable, selectComparison } = require('./doctorPlanNarrow');
-const { eligibilityFromAsk, carriersRequested, LEGEND, MEDS_LEGEND, IN_STAR_LEGEND } = require('./comparisonRules');
+const { eligibilityFromAsk, carriersRequested, LEGEND, MEDS_LEGEND, MEDS_FAILED_BANNER, IN_STAR_LEGEND, unlabeledMeds: unlabeledMedsList } = require('./comparisonRules');
+const { expandMedList } = require('./drugNames');
 
 // Candidates priced before the final top 3, so drug cost can break ties (rule 3).
 const RX_SHORTLIST = Number(process.env.MAX_COMPARE_RX_SHORTLIST || 6);
@@ -83,25 +84,28 @@ function unlabeledDoctors(t, zip) {
   return good.join('\n');
 }
 
-const NOT_MED_RE = /^(?:no|none|not|medicaid|plan|plans|compare|they|their|for|add|has|have|she|he|c-?snp|d-?snp|zip|current|currently|wondering|looking|want|wants|need|needs|please|msp|qmb|slmb|diabetes|chf|copd)\b/i;
+const MED_WORD_RE = /^(?:meds?|medications?|medicines?|rx|drugs?|takes?|taking|medicamentos?|medicinas?|zip|plans?|compare|no|and|y)$/i;
 
-/** Meds typed as a plain list after the ZIP/doctors: "… Carlos Ruiz. Eliquis, metformin 500mg. No medicaid." */
-function unlabeledMeds(t, zip, doctors) {
-  if (!zip) return '';
-  const at = t.indexOf(zip);
-  if (at < 0) return '';
-  const rest = t.slice(at + zip.length).replace(/^[\s.,;:\-–—]+/, '').replace(/\b(?:Drs?|Dras?|Doc)\.\s*(?=[A-Za-z])/gi, '');
-  const docNames = new Set((doctors || []).map((d) => d.name.toLowerCase()));
-  for (const sentence of rest.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Za-z])|\n/)) {
-    const body = sentence.replace(/^\s*(?:takes?|taking|on|meds?|rx)\s*:?\s+/i, '').replace(/[\s.]+$/, '');
-    const items = body.split(/,|;|\band\b/i).map((x) => x.trim()).filter(Boolean);
-    if (!items.length || items.length > 15) continue;
-    if (items.some((x) => docNames.has(x.toLowerCase()))) continue;
-    const allNames = items.every((x) => /^[A-Z][a-z'’-]+(?:\s+[A-Z]\.?)?(?:\s+[A-Z][a-z'’-]+)+$/.test(x));
-    if (allNames) continue;
-    if (items.every((x) => !NOT_MED_RE.test(x) && /^[A-Za-z][A-Za-z0-9\-]*(?:\s+(?:\d+(?:\.\d+)?\s?(?:mg|mcg|ml|units?|iu)|er|xr|sr|hcl|[a-z]+))?(?:\s+\d+\s?(?:mg|mcg|ml))?$/.test(x) && x.split(/\s+/).length <= 3)) return items.join('\n');
+/**
+ * Doctors named with a title anywhere in the ask, no "Doctors:" label needed:
+ * "Dr.Steven Barilla, Dr. Matthew Soff, Dra. Ana Ruiz, Doctora María López" (Martin Wiesenthal,
+ * 2026-10-09: three doctors shared a sentence with six meds, so the plain-list reader saw too few names).
+ */
+function titledDoctors(t) {
+  const out = [];
+  const re = /\b(?:Dr|Dra|Drs|Dras|Doc|Doctor|Doctora)\b\.?\s*([A-ZÁÉÍÓÚÑ][A-Za-zÀ-ÿ'’-]+(?:\s+[A-Z]\.)?(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÀ-ÿ'’-]+){0,3})/g;
+  for (const m of String(t || '').matchAll(re)) {
+    const words = m[1].split(/\s+/);
+    while (words.length && MED_WORD_RE.test(words[words.length - 1])) words.pop();
+    const name = words.join(' ').trim();
+    if (words.length >= 2 && !out.some((x) => x.toLowerCase() === name.toLowerCase())) out.push(name);
   }
-  return '';
+  return out.join('\n');
+}
+
+/** Meds typed as a plain list after the ZIP/doctors — one reader shared with the chat path (comparisonRules). */
+function unlabeledMeds(t, zip, doctors) {
+  return unlabeledMedsList(t, zip, doctors).join('\n');
 }
 
 /** "Maria & Gaspar Padron, ZIP 33332 … Doctors: … Meds: … Compare H… " → fields. */
@@ -122,11 +126,23 @@ function parseCompareAsk(text) {
   // Trim trailing sentences ("… Compare Humana …", "Give me 2-3 plans")
   const cut = (s) => s.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Z])|\bcompare\b|\bgive me\b|\bsuggest\b|\bshow me\b/i)[0];
   // "Dr. Jorge Perez" must not be cut at the period after "Dr" (it left the doctor named just "Dr").
-  if (!doctorsText) doctorsText = unlabeledDoctors(t, zip);
+  if (!doctorsText) {
+    // Plain list after the ZIP, plus every titled name ("Dr.Steven Barilla", "Dra. María López").
+    const names = [];
+    for (const n of [...unlabeledDoctors(t, zip).split('\n'), ...titledDoctors(t).split('\n')]) {
+      const k = n.trim().toLowerCase();
+      if (k && !names.some((x) => x.toLowerCase() === k)) names.push(n.trim());
+    }
+    doctorsText = names.join('\n');
+  }
   doctorsText = doctorsText.replace(/\b(?:Drs?|Dras?|Doc)(?:\.\s*|\s+)(?=[A-Za-z])/gi, '');
   doctorsText = cut(doctorsText);
   medsText = cut(medsText);
-  if (!medsText) medsText = unlabeledMeds(t, zip, splitList(doctorsText).map((name) => ({ name })));
+  if (!medsText) {
+    // "Medications esomeprazole, …" (label, no colon) before the unlabeled-list fallback.
+    const labeled = require('./comparisonRules').medsFromAsk(t);
+    medsText = labeled.length ? labeled.join('\n') : unlabeledMeds(t, zip, splitList(doctorsText).map((name) => ({ name })));
+  }
 
   // "Carlos Santa-Cruz, MD (Urology, Coral Gables)": the commas inside the parentheses and the
   // credential after the name are not doctors of their own (Victor, 2026-10-08: 3 doctors read as 5).
@@ -145,11 +161,14 @@ function parseCompareAsk(text) {
     name = name.replace(/\s{2,}/g, ' ').replace(/[\s.,-]+$/, '').trim();
     return npi ? { name, npi, mustKeep } : { name, mustKeep };
   }).filter((d) => d.name || d.npi).slice(0, MAX_DOCTORS);
-  let meds = splitList(medsText).map((m) => m.replace(/\.$/, '')).slice(0, MAX_MEDS);
+  // "acyclovir tablets & ointment" is two products, two rows.
+  let meds = expandMedList(splitList(medsText).map((m) => m.replace(/\.$/, ''))).slice(0, MAX_MEDS);
   // A pasted MedicarePro "Prescriptions (5)" block ("atorvastatin calcium TAB 10MG" lines) — the
   // section parser above caught only the first line (Victor, 2026-10-08). Use the full Rx-line read.
   const rxMeds = require('./comparisonRules').medsFromAsk(t);
   if (/^\s*[A-Za-z][A-Za-z\- ]{2,40}?\s+(?:TAB|CAP|TBEC|CPDR|TB24|CP24|SOL|SOLN|INJ|PATCH|INH)\b/im.test(t) && rxMeds.length > meds.length) meds = rxMeds.slice(0, MAX_MEDS);
+  // "Medications esomeprazole, …" with no colon — the shared reader catches what the section parser missed.
+  if (!meds.length && rxMeds.length) meds = rxMeds.slice(0, MAX_MEDS);
 
   const skip = constraints.skip;
   const plans = [];
@@ -288,7 +307,7 @@ function normalizeInput(raw) {
     .filter((d) => d && String(d.name || d.npi || '').trim())
     .map((d) => ({ name: String(d.name || d.npi).trim(), npi: d.npi ? String(d.npi) : undefined, mustKeep: Boolean(d.mustKeep) }))
     .slice(0, MAX_DOCTORS);
-  const meds = list(src.meds).map((m) => String(m || '').trim()).filter(Boolean).slice(0, MAX_MEDS);
+  const meds = expandMedList(list(src.meds).map((m) => String(m || '').trim()).filter(Boolean)).slice(0, MAX_MEDS);
   const plans = list(src.plans).map((p) => String(p || '').trim().toUpperCase()).filter((p) => /^[HR]\d{4}-\d{3}[A-Z]?$/.test(p)).slice(0, MAX_PLANS);
   return {
     clientName: String(src.clientName || '').trim().slice(0, 80),
@@ -396,6 +415,9 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     job.result.medsTable = medsTable(drugs, columns, input.meds);
     job.result.legend = LEGEND + (columns.some((p) => (p.inCarrier || []).length) ? ` · ${IN_STAR_LEGEND}` : '');
     job.result.medsLegend = MEDS_LEGEND;
+    // Every lookup failed: the table carries the banner, and the UI shows it in red.
+    job.result.medsLookupFailed = drugs.length > 0 && !drugs.some((r) => (r.lookups || []).some((l) => l && l.verified));
+    job.result.medsBanner = job.result.medsLookupFailed ? MEDS_FAILED_BANNER.replace(/\*\*/g, '') : null;
     job.result.couldNotVerify = {
       count: sel.couldNotVerifyCount,
       plans: sel.couldNotVerify.slice(0, 3).map((c) => ({ planId: c.planId, name: c.name })),

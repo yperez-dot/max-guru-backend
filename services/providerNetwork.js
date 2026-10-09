@@ -69,6 +69,7 @@ const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery, 
 const { conversationAskText } = require('./planYear');
 const { batchSummaryForModel, narrowingAnswered, comparisonAskText, selectComparison, renderedAnswer } = require('./doctorPlanNarrow');
 const { medsFromAsk } = require('./comparisonRules');
+const { drugTokensInText } = require('./drugNames');
 // Time held back from the doctor checks so listed meds still get priced in the same chat turn.
 const MEDS_RESERVE_MS = Number(process.env.MAX_CHAT_MEDS_RESERVE_MS || 20_000);
 const {
@@ -884,6 +885,12 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
     const carriersLine = (askText.match(/Carriers requested:[^\n]*/g) || []).pop();
     console.log(`[comparison] ${doctors.length} doctors · ${meds.length} meds · ${carriersLine || 'no carrier ask'}`);
   }
+  // Doctors listed, 0 meds read, but her message names drugs RxNorm knows: the list was typed in a
+  // shape the reader missed. Say so instead of dropping the Meds section (Martin Wiesenthal, 2026-10-09).
+  // Runs alongside the doctor lookups.
+  const unreadableMeds = tableMode && !meds.length
+    ? drugTokensInText(latestText, { exclude: doctors.map((d) => d.doctorName || d.name) }).catch(() => [])
+    : Promise.resolve([]);
   const doctorDeadline = meds.length && deadlineAt - Date.now() > MEDS_RESERVE_MS + 15_000 ? deadlineAt - MEDS_RESERVE_MS : deadlineAt;
   const results = await Promise.all(doctors.map((d) => lookupDoctor(
     { ...common, ...d, planId: undefined, planIds: guestPlanIdsFor([d.planId, common.planId, toolInput.planIds], planAskText) },
@@ -898,6 +905,9 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   const done = results.filter((r) => r.status === 'done').length;
   const doctorsStructured = results.map((r) => ({ ...r.structured, requestedName: r.doctorName, status: r.status }));
   const answered = narrowingAnswered(context.messages);
+  const unreadTokens = await unreadableMeds;
+  const medsUnreadable = unreadTokens.length > 0;
+  if (medsUnreadable) console.warn(`[comparison] WARNING ${doctors.length} doctors, 0 meds read, but the ask names drugs: ${unreadTokens.join(', ')}`);
   let drugs = [];
   if (meds.length) {
     const planIds = selectComparison(doctorsStructured, askText, { answered }).columns.map((c) => c.planId);
@@ -922,8 +932,10 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   const header = `Doctor network batch — ${results.length} doctors, ZIP ${common.zip || '33136'}, year ${Number(common.year) || UHC_PLAN_YEAR}. Finished: ${done}/${results.length}.` +
     (done < results.length ? ` Anything marked ${NOT_CONFIRMED} did not finish (or no NPI match) — never report it as out-of-network.` : '');
   return {
-    text: [header, '', summary.text, notes.length ? `\nNOTES:\n${notes.join('\n')}` : ''].join('\n').slice(0, 12000),
-    structured: { doctors: doctorsStructured, finished: done, total: results.length, questions: summary.questions, rendered: renderedAnswer(doctorsStructured, askText, { answered, drugs }) },
+    text: [header, '', summary.text, notes.length ? `\nNOTES:\n${notes.join('\n')}` : '',
+      medsUnreadable ? `\nMEDS NOT READ: the ask names drugs (${unreadTokens.join(', ')}) but no med list could be read. Tell the agent: "Couldn't read the medication list. Re-send as 'Meds: a, b, c'". Do not write a meds table.` : '',
+    ].join('\n').slice(0, 12000),
+    structured: { doctors: doctorsStructured, finished: done, total: results.length, questions: summary.questions, rendered: renderedAnswer(doctorsStructured, askText, { answered, drugs, medsUnreadable }), medsUnreadable },
     expand: doctorsStructured,
     // Priced meds ride along as their own tool results (fallback tables + Excel/PDF export read them).
     extraToolResults: drugs.map((r) => {
