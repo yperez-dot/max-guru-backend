@@ -23,6 +23,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { getKnowledgeByKey } = require('../knowledge/loader');
 const { solisFormularyLookup, solisStrengthVariants, isSolisPlan } = require('./solisFormulary');
+const { healthsunRestrictions, isHealthSunFormularyPlan } = require('./healthsunFormulary');
 const { lookupConsumerFormulary } = require('./consumerFormulary');
 const { doctorsPbpAliases, isDoctorsCms } = require('./doctorsFormularyPdf');
 const { resolveDrugName, requestedForm, isNonOralForm, conceptHasForm, formLabel, drugNameBase, isEdDrug, edLabel, restrictionsKnownFor, restrictionsUnknown } = require('./drugNames');
@@ -1039,6 +1040,19 @@ async function autocompleteMedicareGov(name, fetchImpl = fetch) {
 const ndcLabelCache = new Map();
 
 /** "HUMAN OTC DRUG" / "HUMAN PRESCRIPTION DRUG" for an NDC (RxNav), or null when unknown. */
+const ndcProductCache = new Map();
+
+/** RxNorm's product name for an NDC ("esomeprazole 20 MG Delayed Release Oral Capsule"), or null. */
+async function ndcProductName(ndc, fetchImpl = fetch) {
+  const n = normalizeNdc(ndc);
+  if (!n) return null;
+  if (ndcProductCache.has(n)) return ndcProductCache.get(n);
+  const res = await fetchJson(`${RXNORM_BASE}/ndcstatus.json?ndc=${encodeURIComponent(n)}`, { headers: { Accept: 'application/json' } }, fetchImpl, 6_000);
+  const name = (res.json && res.json.ndcStatus && res.json.ndcStatus.conceptName) || null;
+  if (res.ok) ndcProductCache.set(n, name);
+  return name;
+}
+
 async function ndcLabelType(ndc, fetchImpl = fetch) {
   if (ndcLabelCache.has(ndc)) return ndcLabelCache.get(ndc);
   const res = await fetchJson(`${RXNORM_BASE}/ndcproperties.json?id=${encodeURIComponent(ndc)}`, { headers: { Accept: 'application/json' } }, fetchImpl, 6_000);
@@ -1254,7 +1268,7 @@ async function medicareGovStrengthVariants({ drugName, planIds, year }, fetchImp
       const { rx } = await rxNdcsOnly(rankNdcs(await ndcsForRxcui(c.rxcui, fetchImpl)).slice(0, 4), fetchImpl);
       picked.push(...rx.slice(0, g.concepts.length > 1 ? 2 : 3));
     }
-    if (picked.length) byStrength.push({ strength: g.strength, indication: g.indication, ndcs: picked });
+    if (picked.length) byStrength.push({ strength: g.strength, indication: g.indication, productName: g.concepts[0].name, ndcs: picked });
   }
   if (byStrength.length < 2) { strengthVariantCache.set(key, null); return null; }
   const res = await fetchJson(`${MEDICARE_GOV_BASE}/drugs/cost`, {
@@ -1290,10 +1304,10 @@ async function medicareGovStrengthVariants({ drugName, planIds, year }, fetchImp
       const tiers = new Set(dcs.filter((d) => d.covered !== false && parseTierNumber(d.tier)).map((d) => parseTierNumber(d.tier)));
       const mixed = (covered && notCovered) || tiers.size > 1;
       if (covered) {
-        variants.push({ strength: b.strength, ...(b.indication ? { indication: b.indication } : {}), verified: true, coverage: 'covered', tier: parseTierNumber(covered.tier), pa: null, st: null, ql: null,
+        variants.push({ strength: b.strength, ...(b.indication ? { indication: b.indication } : {}), productName: b.productName, verified: true, coverage: 'covered', tier: parseTierNumber(covered.tier), pa: null, st: null, ql: null,
           ...(excluded.includes(String(covered.ndc)) ? { excludedDrug: true } : {}), ...(mixed ? { mixedProducts: true } : {}), source: 'medicare_gov' });
       } else if (notCovered) {
-        variants.push({ strength: b.strength, ...(b.indication ? { indication: b.indication } : {}), verified: true, coverage: 'not_covered', tier: null, source: 'medicare_gov' });
+        variants.push({ strength: b.strength, ...(b.indication ? { indication: b.indication } : {}), productName: b.productName, verified: true, coverage: 'not_covered', tier: null, source: 'medicare_gov' });
       }
     }
     out[displayPlanId(p.id)] = variants;
@@ -1871,17 +1885,46 @@ async function lookupFormulary(
           restrictionsKnown: restrictionsKnownFor(hit),
           ...(sunfireReason && !/^sunfire/.test(String(hit.source || '')) ? { sunfireReason } : {}),
         };
+        // HealthSun: medicare.gov gives the tier and cost, its formulary PDF gives PA / ST / QL for
+        // the product that was priced. Covered cells only — a "not covered" is never overridden — and
+        // no matching row leaves "PA/QL ?" (2026-10-09).
+        const healthsunEnrich = (target, productName, strength) => {
+          if (!isHealthSunFormularyPlan(id, y) || !target || target.coverage !== 'covered' || target.restrictionsKnown) return target;
+          const r = healthsunRestrictions({ drugName: rawQuery, productName, strength, indication: target.indication }, id, y);
+          if (!r) return target;
+          return {
+            ...target,
+            pa: r.pa,
+            st: r.st,
+            ql: r.ql,
+            qlText: r.qlText,
+            ...(r.bdPa ? { bdPa: true } : {}),
+            ...(r.hrm ? { hrm: true } : {}),
+            ...(r.excludedDrug ? { excludedDrug: true } : {}),
+            ...(r.indication && !target.indication ? { indication: r.indication } : {}),
+            restrictionsKnown: true,
+            restrictionSource: r.source,
+            restrictionRow: r.matchedName,
+          };
+        };
+        if (isHealthSunFormularyPlan(id, y) && row.coverage === 'covered' && !row.restrictionsKnown) {
+          const productName = hit.ndc ? await ndcProductName(hit.ndc, fetchImpl) : (match && match.name) || null;
+          Object.assign(row, healthsunEnrich(row, productName, askedStrengths.length ? rawQuery : null));
+        }
         // Strengths that differ (tier / coverage / PA / supplemental): keep every one for the cell.
         if (splitWanted) {
           let variants = null;
           if (isSolisPlan(id)) variants = solisStrengthVariants(drugCatalogQuery(rawQuery) || rawQuery, id, y, askedForm);
           else if (hit.strengthVariants) variants = hit.strengthVariants;
           else variants = ((await mgovVariants) || {})[displayId] || null;
-          if (variants && variants.length > 1 && strengthsDiffer(variants)) {
-            row.strengths = variants.map((v) => {
+          if (variants && variants.length > 1) {
+            // Enrich before comparing: a PA that differs only by strength still splits the cell.
+            const priced = variants.map((v) => {
               const vs = v.coverage === 'covered' ? costShareFromKnowledge(id, y, v.tier) : null;
-              return { ...v, costShare: vs ? vs.value : null, restrictionsKnown: restrictionsKnownFor(v) };
+              const out = { ...v, costShare: vs ? vs.value : null, restrictionsKnown: restrictionsKnownFor(v) };
+              return healthsunEnrich(out, v.productName, v.strength);
             });
+            if (strengthsDiffer(priced)) row.strengths = priced;
           }
         }
         byPlanId[displayId] = row;

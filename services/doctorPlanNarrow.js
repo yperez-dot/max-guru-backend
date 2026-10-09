@@ -1684,6 +1684,8 @@ function strengthSplitCell(row, result) {
     if (v.st) bits.push('ST');
     if (v.qlText) bits.push(v.qlText);
     else if (v.ql) bits.push('QL');
+    if (v.bdPa) bits.push('B/D PA');
+    if (v.hrm) bits.push('HRM (PA 65+)');
     if (v.excludedDrug) bits.push('supplemental');
     if (v.mixedProducts) bits.push('varies by product');
     // Per strength: the source that answered this strength decides whether PA/QL are known.
@@ -1719,7 +1721,9 @@ function drugCell(row, unsureNotCovered, result) {
   // Products that match the ask disagree (one covered, one not): say so, never let covered win silently.
   const mixed = row.mixedProducts ? ' · varies by product' : '';
   // The source's own restrictions ("PA · QL 8/30"), the same on ED-label cells as on any other.
-  const flagList = [row.pa ? 'PA' : null, row.st ? 'ST' : null, row.qlText || (row.ql ? 'QL' : null)].filter(Boolean);
+  // "B/D PA" (Part B vs D review) and "HRM" (PA required at 65+) are restrictions too (HealthSun book).
+  const flagList = [row.pa ? 'PA' : null, row.st ? 'ST' : null, row.qlText || (row.ql ? 'QL' : null),
+    row.bdPa ? 'B/D PA' : null, row.hrm ? 'HRM (PA 65+)' : null].filter(Boolean);
   const flags = flagList.length ? ` · ${flagList.join(' · ')}` : '';
   // ED drugs: the per-plan label says what the coverage means (supplemental / BPH-PAH only / …).
   if (result && result.edDrug && row.edLabel) {
