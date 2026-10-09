@@ -76,7 +76,7 @@ Full chat rules: `services/claude.js` `SYSTEM_PROMPT` (also baked into the HTML 
 | Archived **2026** plan dollars | `#plan-data-2026` + `artifacts/plan-data-2026.json` (year toggle / explicit 2026 ask) |
 | 2026 vs 2027 same-plan compare | `artifacts/year-compare.js` (diffs in code) + `#year-compare-cms` / `data/year-compare-cms.json` (CMS 2027 plan crosswalk + CY2026/CY2027 landscape, Dade/Broward). Rebuild with `scripts/build_year_compare_data.py` when CMS posts a new landscape (2027 star ratings are not in the 202609.1 file yet). |
 | Confirmed **2027** plan dollars (KB) | `max-knowledge/carriers/*-plans-florida-2027.md` + `plan-grid-overview-2027.md` (same non-yellow rule) |
-| 2027 working workbook (live, not done) | https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit |
+| 2027 working workbook (live, not done) | https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit?gid=992380461 |
 | Finished client-comp archive (Yahoska) | https://docs.google.com/spreadsheets/d/1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A/edit — **not** the 2027 benefit grid, **not** a formulary source |
 | In-progress client Drs/Rx sheet | https://docs.google.com/spreadsheets/d/17yvEEoToayROnm6jR0sIfk9IbxJwVYWVhiqOJzsiCBc/edit |
 | Refresh 2027 KB from that sheet | `scripts/export_2027_grid_to_kb.py` |
@@ -181,7 +181,7 @@ Plan-ID extractor expects CMS-looking headers (`H1036-054`, `H1032 | 206`, `H542
 
 **2027 grid (this AEP) — working sheet is live, not finished:**
 
-Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit  
+Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit?gid=992380461 (native Google Sheet since 2026-10-09; it replaced the uploaded xlsx `1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N`)  
 Last live sync: **2026-10-02** from Google export of `1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N` (sheet restyled: classic green fills cleared; white/uncolored = working 2027; yellow = leftover). Watch state: `artifacts/reports/2027-grid-watch-state.json`.
 
 - **On file (non-yellow):** Humana, Devoted, UHC/MedicareMax/Preferred/AARP PPO, CarePlus, Aetna, Doctors, HealthSun, plus non-yellow cells now on Florida Blue / Simply / Solis / Wellcare. Cite the `*2027*` KB docs and live `#plan-data`. Do not invent the yellow leftovers.
@@ -217,9 +217,10 @@ The booklet is two-column: **DrMax-Dade left, DrSelect-SFL right**. Reading the 
 ## How to refresh (2027 live Max / AEP)
 
 ```bash
-# Fresh 2027 THEI xlsx
-curl -sL -o /tmp/thei-2027-grid.xlsx \
-  'https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/export?format=xlsx'
+# Fresh 2027 THEI xlsx: the grid is a native Google Sheet (1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg), not link-public.
+# Export it to .xlsx through Drive while signed in (Drive connector DownloadFile, or
+# File > Download > .xlsx) and save it as /tmp/thei-2027-grid.xlsx. An anonymous curl of
+# .../export?format=xlsx returns a 401 login page; both scripts now refuse a non-xlsx file.
 python3 scripts/sync_thei_grid_to_max.py --year 2027   # non-yellow → live #plan-data
 python3 scripts/export_2027_grid_to_kb.py              # same cells → max-knowledge/
 

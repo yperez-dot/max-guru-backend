@@ -5,7 +5,8 @@ Default / `--year 2026`: merge-update live `#plan-data` from the 2026 workbook
 (`/tmp/thei-grid.xlsx`).
 
 `--year 2027`: rebuild live `#plan-data` from the 2027 working workbook
-https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N
+https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit?gid=992380461
+(native Google Sheet since 2026-10-09; export it to .xlsx through Drive first)
 (non-yellow cells only). Yellow leftover cells are never copied as confirmed
 2027 dollars. Archives the previous 2026 `#plan-data` to
 `artifacts/plan-data-2026.json` and `#plan-data-2026` when missing.
@@ -45,6 +46,7 @@ from thei_grid_common import (  # noqa: E402
     is_confirmed_2027_cell,
     is_healthspring_dade_broward,
     is_yellow,
+    require_xlsx,
     resolve_2027_sheets,
 )
 
@@ -623,6 +625,7 @@ def sync_2027(xlsx: Path) -> int:
     if not xlsx.exists():
         print(f"missing {xlsx}", file=sys.stderr)
         return 1
+    require_xlsx(xlsx)
     text = HTML_PATH.read_text(encoding="utf-8")
     m, current = read_plan_data_block(text, "plan-data")
     if not m:

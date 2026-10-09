@@ -1,7 +1,7 @@
 # Solis — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
-Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-08 17:01 UTC
+Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
+Pulled: 2026-10-09 22:47 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H0982-002, H0982-007, H0982-012, H0982-016, H0982-017, H0982-022, H0982-027, H0982-028, H0982-030, H0982-034
 

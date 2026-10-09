@@ -442,9 +442,17 @@ describe('HTML UI wiring', () => {
     const common = fs.readFileSync(path.join(__dirname, '../scripts/thei_grid_common.py'), 'utf8');
     const exporter = fs.readFileSync(path.join(__dirname, '../scripts/export_2027_grid_to_kb.py'), 'utf8');
     const syncer = fs.readFileSync(path.join(__dirname, '../scripts/sync_thei_grid_to_max.py'), 'utf8');
-    assert.match(common, /1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/);
+    assert.match(common, /SHEET_ID_2027 = "1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg"/);
+    // the uploaded xlsx it replaced (2026-10-09) is kept only as SHEET_ID_2027_PREVIOUS_XLSX
+    assert.match(common, /SHEET_ID_2027_PREVIOUS_XLSX = "1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N"/);
+    assert.equal(syncer.includes('1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N'), false);
+    assert.equal(exporter.includes('1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N'), false);
+    // a 401 login page saved as .xlsx must never be parsed as the grid
+    assert.match(common, /def require_xlsx/);
+    assert.match(syncer, /require_xlsx\(xlsx\)/);
+    assert.match(exporter, /require_xlsx\(XLSX_PATH\)/);
     assert.match(exporter, /SHEET_ID_2027 as SHEET_ID/);
-    assert.match(syncer, /SHEET_ID_2027|1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/);
+    assert.match(syncer, /SHEET_ID_2027/);
     assert.equal(common.includes('1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A'), false);
     assert.equal(exporter.includes('1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A'), false);
     assert.equal(syncer.includes('1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A'), false);

@@ -8,7 +8,7 @@ You are **Max**, THEI’s Medicare guru. You are not Igor. Do not send Agent Pul
 
 1. Read [MAX.md](MAX.md) and [AGENTS.md](AGENTS.md). Do not assume last week’s yellow list is still current.
 2. Check whether the THEI comparison workbook (2026 live sheet and **2027 working sheet**) changed:
-   - **2027 working sheet:** https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit — live `#plan-data` defaults to this sheet (non-yellow cells). Export xlsx, compare `sha256` to `artifacts/reports/2027-grid-watch-state.json`. If the hash moved, run `python3 scripts/sync_thei_grid_to_max.py --year 2027` and `python3 scripts/export_2027_grid_to_kb.py` (non-yellow / confirmed cells only).
+   - **2027 working sheet:** https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit?gid=992380461 (native Google Sheet since 2026-10-09) — live `#plan-data` defaults to this sheet (non-yellow cells). Export it to xlsx through Drive (signed in; the anonymous export URL returns a 401 login page) to `/tmp/thei-2027-grid.xlsx`, compare `sha256` to `artifacts/reports/2027-grid-watch-state.json`. If the hash moved, run `python3 scripts/sync_thei_grid_to_max.py --year 2027` and `python3 scripts/export_2027_grid_to_kb.py` (non-yellow / confirmed cells only).
    - **SoB row** still hyperlinks, same pattern as the 2026 sheet (not plain “Summary of Benefits” text).
    - **Humana 2027** files are live — new Humana columns should come from 2027 SoBs, not copied 2026 dollars.
    - Numbers follow MAX.md (money strings vs raw zeros; no ditto `"`; Extra Help framing).

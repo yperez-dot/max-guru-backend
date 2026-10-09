@@ -13,7 +13,27 @@ from pathlib import Path
 
 from dental_procedure_rows import is_clear_dental_value, is_dental_procedure_label
 
-SHEET_ID_2027 = "1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N"
+# Native Google Sheet (converted from the uploaded xlsx 1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N on 2026-10-09).
+# A native Sheet has no raw bytes: download it as a Drive export to .xlsx (Drive connector
+# DownloadFile, or File > Download > .xlsx). The sheet is not link-public, so an anonymous
+# `curl .../export?format=xlsx` returns a 401 login page, not a workbook.
+SHEET_ID_2027 = "1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg"
+SHEET_GID_2027 = "992380461"
+SHEET_ID_2027_PREVIOUS_XLSX = "1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N"
+
+
+def require_xlsx(path: Path) -> None:
+    """Fail clearly when the download is not a real .xlsx (e.g. a Google login page)."""
+    p = Path(path)
+    if not p.exists():
+        raise SystemExit(f"missing {p}: export the 2027 grid (sheet {SHEET_ID_2027}) to .xlsx first")
+    with p.open("rb") as fh:
+        magic = fh.read(4)
+    if magic != b"PK\x03\x04":
+        raise SystemExit(
+            f"{p} is not an .xlsx (got {magic!r}); the anonymous export URL returns a login page. "
+            f"Download sheet {SHEET_ID_2027} as .xlsx through Drive (signed in) instead."
+        )
 
 # Legacy combined DSNP tabs (older workbook) plus the Oct 2026 Full/Partial split.
 SHEET_SPECS_2027 = [

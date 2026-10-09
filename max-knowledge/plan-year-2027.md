@@ -25,7 +25,7 @@ Agents may ask for **2027** anytime. Live `#plan-data` **defaults to 2027** (AEP
 Live `#plan-data` is the **2027** THEI grid (AEP default). 2026 is archived as `#plan-data-2026`.
 
 Working 2027 workbook:  
-https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
+https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
 
 - **Non-yellow cells** (white/uncolored after the Oct 2026 restyle; classic green still counts) are on file in `#plan-data` and the carrier `*2027*` docs. Yellow leftover cells were **not** imported as 2027 dollars.
 - **HealthSpring / Cigna is not a 2027 Miami-Dade or Broward MA option.** No plans to enroll into in those counties (CMS CY2027; grid columns removed). Do not quote 2026 HealthSpring dollars as 2027. A live Cigna directory hit ≠ consider HealthSpring. Leftover yellow workbook cells are stale. Cite `carriers/healthspring-plans-florida-2027`.

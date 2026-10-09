@@ -1,7 +1,7 @@
 # Simply — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
-Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-08 17:01 UTC
+Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
+Pulled: 2026-10-09 22:47 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H5471-125
 

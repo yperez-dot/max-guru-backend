@@ -1,7 +1,7 @@
 # HealthSun — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
-Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit
-Pulled: 2026-10-08 17:01 UTC
+Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
+Pulled: 2026-10-09 22:47 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H5431-001, H5431-006, H5431-012, H5431-017, H5431-018, H5431-019, H5431-021, H5431-026
 

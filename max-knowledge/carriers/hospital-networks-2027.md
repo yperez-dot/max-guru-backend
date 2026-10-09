@@ -1,7 +1,7 @@
 # Hospital networks — 2027 notes (Florida)
 
 Source: THEI 2027 Plan Benefit Grid — Hospitals tab + 2027 NOTES  
-Workbook: https://docs.google.com/spreadsheets/d/1BYhBfOzdeJOMEVXIKJkHrZzEohrOBR-N/edit  
+Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit  
 Pulled: 2026-09-04
 
 The 2026 hospital Yes/— table in `hospital-networks` still stands for current-year quotes. Only the items below are confirmed **2027** changes. Public 2027 directories are due **October 1, 2026** — until then, do not flip other hospitals.
