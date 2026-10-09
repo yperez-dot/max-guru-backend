@@ -1718,16 +1718,16 @@ function drugCell(row, unsureNotCovered, result) {
   const unknown = restrictionsUnknown(row) ? ` · ${PA_QL_UNKNOWN}` : '';
   // Products that match the ask disagree (one covered, one not): say so, never let covered win silently.
   const mixed = row.mixedProducts ? ' · varies by product' : '';
+  // The source's own restrictions ("PA · QL 8/30"), the same on ED-label cells as on any other.
+  const flagList = [row.pa ? 'PA' : null, row.st ? 'ST' : null, row.qlText || (row.ql ? 'QL' : null)].filter(Boolean);
+  const flags = flagList.length ? ` · ${flagList.join(' · ')}` : '';
   // ED drugs: the per-plan label says what the coverage means (supplemental / BPH-PAH only / …).
   if (result && result.edDrug && row.edLabel) {
-    const tier = row.verified && row.tier ? ` · T${row.tier}${cost}` : '';
-    return `${row.edLabel}${tier}${row.verified && row.tier ? `${mixed}${unknown}` : ''}`;
+    if (!(row.verified && row.tier)) return row.edLabel;
+    return `${row.edLabel} · T${row.tier}${cost}${flags}${mixed}${unknown}`;
   }
   if (row.verified && row.coverage === 'not_covered') return unsureNotCovered ? '⚠️ confirm' : '❌ not covered';
-  if (row.verified && row.tier) {
-    const flags = [row.pa ? 'PA' : null, row.st ? 'ST' : null, row.qlText || (row.ql ? 'QL' : null)].filter(Boolean);
-    return `T${row.tier}${cost}${flags.length ? ` · ${flags.join(' · ')}` : ''}${mixed}${unknown}`;
-  }
+  if (row.verified && row.tier) return `T${row.tier}${cost}${flags}${mixed}${unknown}`;
   if (/form_not_found/.test(String(row.reason || ''))) return `${R.NOT_CONFIRMED_CELL} (form not found)`;
   return R.NOT_CONFIRMED_CELL;
 }

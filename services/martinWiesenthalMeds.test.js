@@ -453,3 +453,17 @@ test('a PAH ask prices only the PAH product (no "varies by product" against the 
   assert.equal(r.byPlanId['H1019-001'].mixedProducts, undefined);
   assert.ok(!log.includes('13668056830'), 'the plain 20 mg product is not priced for a PAH ask');
 });
+
+test('ED-label cells print the source\'s PA/ST/QL flags (Solis tadalafil 10/20 mg: QL 8/30)', async () => {
+  const plans = [{ planId: 'H0982-007', name: 'Solis Healthy Living' }];
+  // Typed strength: one ED-label cell with the book's QL.
+  const [r20] = await priceAll(['tadalafil 20 mg'], ['H0982-007']);
+  assert.equal(N.medsTable([r20], plans).split('\n')[2].split(' | ')[1],
+    'Covered — supplemental benefit (excluded drug; not counted toward Part D OOP max) · T6 $0 · QL 8/30 |');
+  // No strength: the split cell shows the same group as "T6 $0 · QL 8/30 · supplemental".
+  const [r] = await priceAll(['tadalafil'], ['H0982-007']);
+  assert.match(N.medsTable([r], plans), /10\/20 mg: T6 \$0 · QL 8\/30 · supplemental/);
+  // PA from the book on an ED cell (5 mg): "PA · QL 30/30", never dropped.
+  const [r5] = await priceAll(['tadalafil 5 mg'], ['H0982-007']);
+  assert.match(N.medsTable([r5], plans), /Covered · PA required \(verify indication\) · T4 40% · PA · QL 30\/30 \|/);
+});
