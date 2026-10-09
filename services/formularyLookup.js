@@ -22,7 +22,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { getKnowledgeByKey } = require('../knowledge/loader');
-const { solisFormularyLookup, solisStrengthVariants, isSolisPlan } = require('./solisFormulary');
+const { solisFormularyLookup, solisStrengthVariants, solisRestrictions, isSolisPlan } = require('./solisFormulary');
 const { healthsunRestrictions, isHealthSunFormularyPlan } = require('./healthsunFormulary');
 const { lookupConsumerFormulary } = require('./consumerFormulary');
 const { doctorsPbpAliases, isDoctorsCms } = require('./doctorsFormularyPdf');
@@ -1316,9 +1316,13 @@ async function medicareGovStrengthVariants({ drugName, planIds, year }, fetchImp
   return out;
 }
 
-/** True when a drug's strengths differ in coverage, tier, PA, supplemental status or indication. */
+/**
+ * True when a drug's strengths differ in coverage, tier, PA, ST, QL, supplemental status or
+ * indication (Solis rosuvastatin: 5/10/20 mg QL 45/30, 40 mg QL 30/30 — same tier, still two answers).
+ */
 function strengthsDiffer(variants) {
-  const keys = new Set((variants || []).map((v) => `${v.coverage}|${v.tier}|${v.pa === true}|${v.excludedDrug === true}|${v.indication || ''}|${v.mixedProducts === true}`));
+  const ql = (v) => v.qlText || (v.ql === true ? 'QL' : '');
+  const keys = new Set((variants || []).map((v) => `${v.coverage}|${v.tier}|${v.pa === true}|${v.st === true}|${ql(v)}|${v.excludedDrug === true}|${v.indication || ''}|${v.mixedProducts === true}`));
   return keys.size > 1;
 }
 
@@ -1839,6 +1843,30 @@ async function lookupFormulary(
         else if (mpf.reason) reasons.push(mpf.reason);
       }
 
+      // Solis: medicare.gov could not confirm (not confirmed / form not found). The book's row for
+      // the asked product answers tier + PA / ST / QL — form-aware, so an ointment ask only ever
+      // takes an ointment row (acyclovir oint 5%: T4 · PA · QL 30 grams/30 days). A medicare.gov
+      // "not covered" is a verified hit and never reaches here.
+      if ((!hit || !hit.verified) && isSolisPlan(id)) {
+        const r = solisRestrictions({ drugName: rawQuery, strength: askedStrengths.length ? rawQuery : null }, id, y);
+        if (r) {
+          hit = {
+            verified: true,
+            coverage: 'covered',
+            tier: r.pdfTier,
+            pa: r.pa,
+            st: r.st,
+            ql: r.ql,
+            qlText: r.qlText,
+            ...(r.bdPa ? { bdPa: true } : {}),
+            ...(r.excludedDrug ? { excludedDrug: true } : {}),
+            ...(r.indication ? { indication: r.indication } : {}),
+            source: r.source,
+            restrictionRow: r.matchedName,
+          };
+        }
+      }
+
       // Solis has no API Max can call — its published 2027 formulary PDF index answers instead.
       if (!nonOral && (!hit || !hit.verified)) {
         // A typed strength must reach the book ("tadalafil 10 mg" is its own row).
@@ -1882,15 +1910,19 @@ async function lookupFormulary(
           formularyPlanId: hit.formularyPlanId || null,
           ...(hit.strengthNote ? { strengthNote: hit.strengthNote } : {}),
           ...(hit.qlText ? { qlText: hit.qlText } : {}),
+          ...(hit.bdPa ? { bdPa: true } : {}),
+          ...(hit.hrm ? { hrm: true } : {}),
+          ...(hit.restrictionRow ? { restrictionRow: hit.restrictionRow } : {}),
           restrictionsKnown: restrictionsKnownFor(hit),
           ...(sunfireReason && !/^sunfire/.test(String(hit.source || '')) ? { sunfireReason } : {}),
         };
-        // HealthSun: medicare.gov gives the tier and cost, its formulary PDF gives PA / ST / QL for
-        // the product that was priced. Covered cells only — a "not covered" is never overridden — and
-        // no matching row leaves "PA/QL ?" (2026-10-09).
+        // HealthSun and Solis: medicare.gov gives the tier and cost, the carrier's formulary PDF gives
+        // PA / ST / QL for the product that was priced. Covered cells only — a "not covered" is never
+        // overridden — and no matching row leaves "PA/QL ?" (2026-10-09).
+        const pdfReader = isHealthSunFormularyPlan(id, y) ? healthsunRestrictions : isSolisPlan(id) ? solisRestrictions : null;
         const healthsunEnrich = (target, productName, strength) => {
-          if (!isHealthSunFormularyPlan(id, y) || !target || target.coverage !== 'covered' || target.restrictionsKnown) return target;
-          const r = healthsunRestrictions({ drugName: rawQuery, productName, strength, indication: target.indication }, id, y);
+          if (!pdfReader || !target || target.coverage !== 'covered' || target.restrictionsKnown) return target;
+          const r = pdfReader({ drugName: rawQuery, productName, strength, indication: target.indication }, id, y);
           if (!r) return target;
           return {
             ...target,
@@ -1907,7 +1939,7 @@ async function lookupFormulary(
             restrictionRow: r.matchedName,
           };
         };
-        if (isHealthSunFormularyPlan(id, y) && row.coverage === 'covered' && !row.restrictionsKnown) {
+        if (pdfReader && row.coverage === 'covered' && !row.restrictionsKnown) {
           const productName = hit.ndc ? await ndcProductName(hit.ndc, fetchImpl) : (match && match.name) || null;
           Object.assign(row, healthsunEnrich(row, productName, askedStrengths.length ? rawQuery : null));
         }

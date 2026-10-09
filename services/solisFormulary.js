@@ -147,4 +147,95 @@ function solisStrengthVariants(drugName, planId, year, askedForm = null) {
     .map((h) => hitFromRow(h, idx));
 }
 
-module.exports = { solisFormularyLookup, solisStrengthVariants, strengthOf, isSolisPlan, keysFor, INDEX_PATH };
+// ─── PA / ST / QL for the product medicare.gov priced (same matching as HealthSun) ─────────────
+
+const { strengthsIn, matchRows } = require('./formularyRowMatch');
+
+// The book abbreviates: "tab", "cap", "oint", "susp", "soln", "iv soln", "ophth".
+const SOLIS_FORMS = [['tablet', /\b(?:tab|tabs|chew)\b/], ['capsule', /\bcap\b/], ['ointment', /\boint\b/], ['cream', /\bcream\b/],
+  ['gel', /\bgel\b/], ['lotion', /\blotion\b/], ['suspension', /\bsusp\b/], ['solution', /\b(?:soln|sol)\b/], ['syrup', /\bsyrup\b/],
+  ['patch', /\bpatch\b/], ['spray', /\bspray\b/], ['aerosol', /\baero\b/], ['pen', /\bpen\b/], ['kit', /\bkit\b/]];
+
+function solisRoute(n) {
+  if (/\b(?:iv|inj)\b/.test(n)) return 'injection';
+  if (/\bophth\b/.test(n)) return 'ophthalmic';
+  if (/\botic\b/.test(n)) return 'otic';
+  if (/\bnasal\b/.test(n)) return 'nasal';
+  if (/\b(?:aero|inh)\b/.test(n)) return 'inhalation';
+  if (/\b(?:oint|cream|gel|lotion|patch)\b/.test(n)) return 'external';
+  return 'oral';
+}
+
+function parseSolisRow(hit) {
+  const raw = String(hit.name || '').toLowerCase();
+  const name = raw.replace(/[*^#†‡]+/g, '');
+  // "SKYLA - levonorgestrel releasing iud …": brand first, the generic after " - ".
+  const [head, generic] = name.split(/\s+-\s+/);
+  const req = String(hit.req || '');
+  const qlText = qlShort(req);
+  return {
+    row: hit,
+    first: (head.match(/^[a-z][a-z'’-]*/) || [''])[0],
+    alt: generic ? (generic.match(/^[a-z][a-z'’-]*/) || [''])[0] : null,
+    base: head.replace(STRENGTH_RE, ' ').replace(/\s+/g, ' ').trim(),
+    route: solisRoute(name),
+    form: (SOLIS_FORMS.find(([, re]) => re.test(name)) || [null])[0],
+    release: /\b(?:er|24hr|12hr|extended release)\b/.test(name) ? 'er' : /\b(?:dr|ec|delayed release)\b/.test(name) ? 'dr' : null,
+    otc: false,
+    rx: false,
+    pah: /\((?:pah)\)/.test(name),
+    strengths: strengthsIn(name),
+    flags: {
+      pa: /\bPA\b/.test(req),
+      st: /\bST\b/.test(req),
+      ql: /\bQL\b/.test(req),
+      qlText,
+      bdPa: /\bBD\b|B\/D/.test(req),
+      hrm: false,
+      // "^" = "not normally covered in a Medicare Prescription Drug Plan" (Tier 6 Supplemental Drugs, p. 25).
+      ed: /\^/.test(raw),
+    },
+  };
+}
+
+let parsedRows = null;
+function solisParsedRows() {
+  if (parsedRows) return parsedRows;
+  const idx = loadIndex();
+  const seen = new Set();
+  parsedRows = [];
+  for (const hit of Object.values((idx && idx.drugs) || {})) {
+    if (seen.has(hit.name)) continue;
+    seen.add(hit.name);
+    parsedRows.push(parseSolisRow(hit));
+  }
+  return parsedRows;
+}
+
+/**
+ * The Solis book's row for the product medicare.gov priced (or the agent's words): tier and
+ * PA / ST / QL. null when no row matches that product / strength, or candidate rows disagree.
+ */
+function solisRestrictions(query, planId, year) {
+  const idx = loadIndex();
+  if (!idx || !isSolisPlan(planId)) return null;
+  if (idx.year && Number(year) && Number(year) !== Number(idx.year)) return null;
+  const hit = matchRows(solisParsedRows(), query);
+  if (!hit) return null;
+  const f = hit.flags;
+  return {
+    pa: f.pa,
+    st: f.st,
+    ql: f.ql,
+    qlText: f.qlText,
+    bdPa: f.bdPa,
+    hrm: false,
+    excludedDrug: f.ed,
+    indication: hit.pah ? 'PAH' : null,
+    pdfTier: hit.row.tier,
+    matchedName: hit.row.name,
+    source: `Solis 2027 Comprehensive Formulary PDF${idx.asOf ? ` (updated ${idx.asOf})` : ''}`,
+  };
+}
+
+module.exports = { solisFormularyLookup, solisStrengthVariants, solisRestrictions, strengthOf, isSolisPlan, keysFor, INDEX_PATH };
