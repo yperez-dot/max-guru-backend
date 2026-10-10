@@ -1,6 +1,62 @@
 const { describe, it, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { buildAnthropicBody, toAnthropicMessages, fromAnthropicResponse } = require('./anthropicChat');
+const fs = require('node:fs');
+const path = require('node:path');
+const { buildAnthropicBody, splitSystemForCache, toAnthropicMessages, fromAnthropicResponse } = require('./anthropicChat');
+
+// Same shape as buildSystemPrompt() (UI) + TOOL_USE_APPENDIX + priorToolResultsNote + knownMedsNote (server).
+const sysFor = ({ county = '', plans = '[]', prior = '', meds = '' } = {}) =>
+  'RULES\n\nFILTERED PLAN ATTACHMENT — subset.\n\n' + county + 'ATTACHED_PLAN_YEAR=2027\nPLAN DATA (n plans):\n' + plans +
+  '\n\nHOSPITAL NETWORK DATA (83):\n[HOSPITALS]\n\nCARRIER-LEVEL CHRONIC CONDITION QUALIFYING RULES\n{CHRONIC}' +
+  '\n\nADDITIONAL RUNTIME RULES (server-enforced):\n- APPENDIX' + prior + meds;
+const COUNTY = "COUNTY SCOPE: PLAN DATA is limited to Broward plans (from the client's ZIP). Quote Broward only.\n\n";
+const PRIOR = '\n\nFINISHED LOOKUPS FROM THE PREVIOUS ATTEMPT (it hit the chat wait):\n- lookup_formulary: Eliquis T3';
+const MEDS = '\nMEDS ALREADY ON FILE FOR THIS CLIENT (from the loaded workup): Eliquis.';
+
+describe('system prompt split for prompt caching', () => {
+  it('keeps the cached block identical across asks; per-ask rows, lookups and meds go in the uncached block', () => {
+    const a = splitSystemForCache(sysFor({ county: COUNTY, plans: '[{"id":"H1036-054"}]', prior: PRIOR, meds: MEDS }));
+    const b = splitSystemForCache(sysFor({ plans: '[{"id":"H5420-001"},{"id":"H4140-023"}]' }));
+    assert.equal(a.length, 2);
+    assert.equal(a[0].text, b[0].text, 'stable block must not change between asks');
+    assert.deepEqual(a[0].cache_control, { type: 'ephemeral' });
+    assert.equal('cache_control' in a[1], false);
+    for (const keep of ['RULES', 'HOSPITAL NETWORK DATA', '{CHRONIC}', 'APPENDIX']) assert.ok(a[0].text.includes(keep), keep);
+    for (const move of ['COUNTY SCOPE', 'ATTACHED_PLAN_YEAR=2027', 'H1036-054', 'FINISHED LOOKUPS', 'MEDS ALREADY ON FILE']) assert.ok(a[1].text.includes(move), move);
+    for (const out of ['H1036-054', 'COUNTY SCOPE', 'FINISHED LOOKUPS', 'MEDS ALREADY ON FILE', 'ATTACHED_PLAN_YEAR']) assert.equal(a[0].text.includes(out), false, `${out} must not be in the cached block`);
+    assert.equal(a[1].text.includes('HOSPITAL NETWORK DATA'), false);
+  });
+
+  it('does not lose or duplicate any text of the prompt', () => {
+    const sys = sysFor({ county: COUNTY, plans: '[{"id":"X"}]', prior: PRIOR, meds: MEDS });
+    const [s, p] = splitSystemForCache(sys);
+    assert.equal([...(s.text + p.text)].sort().join(''), [...sys].sort().join(''));
+  });
+
+  it('falls back to one cached block when the prompt has no plan-data markers', () => {
+    assert.equal(splitSystemForCache('GRID'), null);
+    assert.equal(splitSystemForCache('ATTACHED_PLAN_YEAR=2027 but no hospitals marker'), null);
+    const body = buildAnthropicBody({ model: 'claude-sonnet-5-5', system: 'GRID', messages: [{ role: 'user', content: 'hi' }] });
+    assert.deepEqual(body.system, [{ type: 'text', text: 'GRID', cache_control: { type: 'ephemeral' } }]);
+  });
+
+  it('builds a two-block system in the request body', () => {
+    const body = buildAnthropicBody({ model: 'claude-sonnet-5-5', system: sysFor({ plans: '[{"id":"X"}]' }), messages: [{ role: 'user', content: 'hi' }] });
+    assert.equal(body.system.length, 2);
+    assert.deepEqual(body.messages[0].content[0].cache_control, { type: 'ephemeral' });
+  });
+
+  it('markers still match the real prompt builders (fails if someone rewords them)', () => {
+    const root = path.join(__dirname, '..');
+    const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
+    const html = read('artifacts/max-demo-FINAL-v7.html');
+    for (const m of ['ATTACHED_PLAN_YEAR=', 'COUNTY SCOPE: PLAN DATA is limited', '\n\nHOSPITAL NETWORK DATA']) {
+      assert.ok(html.includes(m.replace(/\n/g, '\n')), `UI prompt lost marker: ${JSON.stringify(m)}`);
+    }
+    assert.ok(read('server.js').includes('FINISHED LOOKUPS FROM THE PREVIOUS ATTEMPT'));
+    assert.ok(read('services/comparisonRules.js').includes('MEDS ALREADY ON FILE FOR THIS CLIENT'));
+  });
+});
 
 describe('OpenAI-shaped chat → Claude Messages API', () => {
   it('maps text, images, assistant tool_calls and tool results; merges same-role turns', () => {
