@@ -83,10 +83,44 @@ function toAnthropicTools(tools) {
   });
 }
 
+// The system prompt Max receives is rules + PER-ASK plan rows + hospitals + carrier rules + runtime
+// rules + (sometimes) previous-attempt lookups and known meds. The per-ask pieces change on almost
+// every request, and the cache only matches an unchanged PREFIX — one changed character near the
+// middle misses everything after it (the ~45KB hospitals/carrier block included), so each ask paid
+// the 1.25x cache-WRITE price on the whole prompt. Fix: keep the stable text first (one cached
+// block) and move the per-ask pieces into a second, uncached system block.
+// These markers come from buildSystemPrompt() in the UI html, priorToolResultsNote() in server.js
+// and knownMedsNote() in comparisonRules.js; anthropicChat.test.js fails if they drift.
+const PLAN_DATA_START = 'ATTACHED_PLAN_YEAR=';
+const COUNTY_SCOPE_START = 'COUNTY SCOPE: PLAN DATA is limited';
+const PLAN_DATA_END = '\n\nHOSPITAL NETWORK DATA';
+const TAIL_MARKERS = ['\n\nFINISHED LOOKUPS FROM THE PREVIOUS ATTEMPT', '\nMEDS ALREADY ON FILE FOR THIS CLIENT'];
+
+/** → [stable block (cached), per-ask block] or null when the prompt doesn't have the expected shape. */
+function splitSystemForCache(system) {
+  const text = String(system || '');
+  const yearAt = text.indexOf(PLAN_DATA_START);
+  if (yearAt === -1) return null;
+  const endAt = text.indexOf(PLAN_DATA_END, yearAt);
+  if (endAt === -1) return null;
+  let start = yearAt;
+  const countyAt = text.lastIndexOf(COUNTY_SCOPE_START, yearAt);
+  if (countyAt !== -1 && yearAt - countyAt < 1200) start = countyAt;
+  const tailHits = TAIL_MARKERS.map((m) => text.indexOf(m, endAt)).filter((i) => i !== -1);
+  const tailAt = tailHits.length ? Math.min(...tailHits) : text.length;
+  const stable = text.slice(0, start) + text.slice(endAt, tailAt);
+  const perAsk = text.slice(start, endAt) + text.slice(tailAt);
+  if (!stable.trim() || !perAsk.trim()) return null;
+  return [
+    { type: 'text', text: stable, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: perAsk },
+  ];
+}
+
 /**
- * Build the Messages API body. Cache breakpoints: the system prompt (tools + grid are
- * the same every round of a turn) and the latest message (each tool round reuses the
- * conversation so far).
+ * Build the Messages API body. Cache breakpoints: the stable part of the system prompt (tools +
+ * rules + hospitals are the same across asks; the per-ask plan rows ride in a second, uncached
+ * block) and the latest message (each tool round reuses the conversation so far).
  */
 function buildAnthropicBody({ model, system, messages, tools, maxTokens }) {
   // No `temperature`: current Claude models reject it ("deprecated for this model", live 2026-10-06).
@@ -95,7 +129,7 @@ function buildAnthropicBody({ model, system, messages, tools, maxTokens }) {
     max_tokens: maxTokens || 8000,
     messages: toAnthropicMessages(messages),
   };
-  if (system) body.system = [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }];
+  if (system) body.system = splitSystemForCache(system) || [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }];
   if (tools && tools.length) {
     body.tools = toAnthropicTools(tools);
     body.tool_choice = { type: 'auto' };
@@ -165,6 +199,7 @@ async function callAnthropic({ base, key, model, system, messages, tools, maxTok
 module.exports = {
   callAnthropic,
   buildAnthropicBody,
+  splitSystemForCache,
   toAnthropicMessages,
   toAnthropicTools,
   fromAnthropicResponse,
