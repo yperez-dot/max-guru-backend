@@ -76,6 +76,10 @@ function cleanDoctorQuery(name) {
   // so "Drake" / "Drew" are left alone. "Dra." is the Spanish title.
   s = s.replace(/^(?:(?:dra?s?|mr|mrs|ms)\.\s*|(?:dra?s?|doctor|mr|mrs|ms)\s+)/i, '');
   s = s.replace(/\(([^)]*)\)/g, ' ').replace(/\s+/g, ' ').trim();
+  // "Natalie Regalado - Baptist Medical Group", "Charles Kaiser - Ophthalmologist": the office / specialty after a
+  // dash is a hint, not part of the name; sent to NPPES it matched nobody (Jackie Alexander, 2026-10-13).
+  const dashHead = s.split(/\s+[-–—]\s+/)[0].replace(/\*+$/, '').trim();
+  if (dashHead !== s && dashHead.split(/\s+/).length >= 2 && !ORG_HINT_RE.test(dashHead)) s = dashHead;
   const isOrg = ORG_HINT_RE.test(s);
   const parts = s.split(/[\s,]+/).filter(Boolean);
   while (parts.length > 1) {

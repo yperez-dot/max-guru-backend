@@ -167,7 +167,7 @@ function parseCompareAsk(text) {
     name = name.replace(/\s*\*+\s*$/, '').replace(/\s+[-–—]\s+(?:primary(?:\s+care)?|pcp|ent|um|u\.m\.|[a-z]+ologist|surgeon|dentist|dds|dmd)\s*$/i, '');
     name = name.replace(/\s{2,}/g, ' ').replace(/[\s.,-]+$/, '').trim();
     return npi ? { name, npi, mustKeep } : { name, mustKeep };
-  }).filter((d) => (d.name || d.npi) && !/^(?:here|this|the|my|list)\b/i.test(d.name || '') && !CRED_ONLY_RE.test(d.name || '')).slice(0, MAX_DOCTORS);
+  }).filter((d) => (d.name || d.npi) && !/^(?:here|this|the|my|list)\b/i.test(d.name || '') && !CRED_ONLY_RE.test(d.name || '') && !/^(?:MD|DO|DDS|DMD|DPM|OD)\b\s*[-–—]/i.test(d.name || '')).slice(0, MAX_DOCTORS);
   // "acyclovir tablets & ointment" is two products, two rows.
   let meds = expandMedList(splitList(medsText).map((m) => require('./comparisonRules').cleanMedItem(m.replace(/\.$/, ''))).filter(Boolean)).slice(0, MAX_MEDS);
   // A sentence is a note, not a drug: "UM means University of Miami", "only Humana has those doctors".
