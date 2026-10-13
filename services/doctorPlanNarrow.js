@@ -1284,11 +1284,28 @@ function selectComparison(doctors, askText, opts = {}) {
   let snpUnknownKinds = new Set();
 
   if (named.length) {
-    const cols = decorate(namedPlanColumns(named, matrix, docs));
+    let cols = decorate(namedPlanColumns(named, matrix, docs));
+    // A client grid never carries a pile of plans (5+ are cut to 3; up to 4 she typed herself stay): her CURRENT plan (if she has one) + the 1–2 best others
+    // by doctors in network (Jackie Alexander, 2026-10-13: six columns, "no way I can send this to my client").
+    // The rest are offered, not shown.
+    let trimmed = 0;
+    if (cols.length > 4) {
+      const curText = (ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '';
+      const curIds = new Set([...curText.matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((m) => m[1].toUpperCase()));
+      const isCur = (c) => curIds.has(String(c.planId || '').toUpperCase().slice(0, 9));
+      const score = (c) => ((c.in || []).length * 100) - ((c.out || []).length * 10) - ((c.unknown || []).length);
+      const current = cols.filter(isCur).slice(0, 1);
+      const others = cols.filter((c) => !current.includes(c)).sort((a, b) => score(b) - score(a));
+      const keep = new Set([...current, ...others.slice(0, 3 - current.length)]);
+      trimmed = cols.length - keep.size;
+      cols = cols.filter((c) => keep.has(c));
+    }
     out.columns = cols;
     out.poolSize = cols.length;
     out.header = '**Doctors × your plans**';
-    out.whyLine = `Why these plans: the ${cols.length} plan${cols.length === 1 ? '' : 's'} you named — no plans added or swapped.`;
+    out.whyLine = trimmed
+      ? `Why these plans: her current plan plus the best ${cols.length - 1} of the other ${trimmed + cols.length - 1} plans in this case — ${trimmed} more available, say "add another" and I will.`
+      : `Why these plans: the ${cols.length} plan${cols.length === 1 ? '' : 's'} you named — no plans added or swapped.`;
     // A plan or plan type she named is always a column — eligibility is confirmed at enrollment (one line).
     const snpNamed = [];
     for (const c of cols) {
@@ -1714,12 +1731,47 @@ function strengthSplitCell(row, result) {
   return groups.map((g) => `${label(g)}: ${g.text}`).join(' ‖ ');
 }
 
+// Usual strengths (mg) per drug, for the one line shown when no strength was asked.
+const USUAL_STRENGTH_MG = {
+  atorvastatin: 40, gabapentin: 300, levothyroxine: 0.05, metoprolol: 50, pantoprazole: 40, telmisartan: 40,
+  lisinopril: 10, amlodipine: 5, metformin: 500, losartan: 50, sertraline: 50, omeprazole: 20, simvastatin: 20,
+  rosuvastatin: 10, hydrochlorothiazide: 25, carvedilol: 12.5, furosemide: 20, montelukast: 10, escitalopram: 10,
+};
+const strengthMg = (str) => {
+  const m = String(str || '').match(/([\d.]+)\s*(mcg|mg)/i);
+  return m ? (/mcg/i.test(m[2]) ? Number(m[1]) / 1000 : Number(m[1])) : NaN;
+};
+
+/**
+ * No strength asked and the strengths differ: ONE line per drug — the usual strength when it has a verified
+ * covered answer, else the verified covered strength most plans' strengths share. "Not covered" / "not found"
+ * from a split is never printed as the answer (Jackie Alexander, 2026-10-13: Medicare.gov showed gabapentin
+ * 300 mg T2 $0 and levothyroxine 50 mcg T1 $0 where Max printed "not found" / "not covered").
+ */
+function oneStrengthCell(row, result) {
+  const covered = row.strengths.filter((v) => v && v.verified && v.tier && v.coverage !== 'not_covered');
+  if (!covered.length) return '❔ check Medicare.gov (strength not confirmed)';
+  const name = String(row.drugName || row.name || row.query || '').toLowerCase();
+  const key = Object.keys(USUAL_STRENGTH_MG).find((k) => name.includes(k));
+  let pick = null;
+  if (key) pick = covered.find((v) => Math.abs(strengthMg(v.strength) - USUAL_STRENGTH_MG[key]) < 1e-6) || null;
+  if (!pick) pick = covered.slice().sort((a, b) => Math.abs(Math.log((strengthMg(a.strength) || 1) / ((key && USUAL_STRENGTH_MG[key]) || strengthMg(covered[Math.floor(covered.length / 2)].strength) || 1))) - Math.abs(Math.log((strengthMg(b.strength) || 1) / ((key && USUAL_STRENGTH_MG[key]) || strengthMg(covered[Math.floor(covered.length / 2)].strength) || 1))))[0];
+  const cell = strengthSplitCell({ strengths: [pick] }, result);
+  const differ = covered.some((v) => `${v.tier}|${v.costShare}` !== `${pick.tier}|${pick.costShare}`);
+  return differ ? `${cell} · other strengths differ — confirm dose` : cell;
+}
+
 const OTC_SUPPLEMENT_CELL = 'Not on this plan\'s formulary · OTC vitamin — see the plan\'s OTC allowance';
 
 function drugCell(row, unsureNotCovered, result) {
   if (result && result.nameCheck) return '❓ check name';
   if (!row) return R.UNCHECKED;
-  if (Array.isArray(row.strengths) && row.strengths.length > 1) return strengthSplitCell(row, result);
+  if (Array.isArray(row.strengths) && row.strengths.length > 1) {
+    // Every strength answered and covered (different cost / QL): the split is real information, keep it.
+    // A split with "not found" / "not covered" strengths in it is lookup noise: one usual-strength line instead.
+    const allAnswered = row.strengths.every((v) => v && v.verified && v.tier && v.coverage !== 'not_covered');
+    return allAnswered || (result && result.edDrug) ? strengthSplitCell(row, result) : oneStrengthCell(row, result);
+  }
   // A tier with no cost-share on file says so — a bare "T2" read as $0 (Solis H0982-007, 2026-10-09).
   const cost = row.costShare ? ` ${row.costShare}` : ` · cost n/a${/pdf/i.test(String(row.source || '')) ? ' (PDF)' : ''}`;
   // Every covered cell carries a restriction status from its source: the flags it reported, or
