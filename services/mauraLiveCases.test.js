@@ -214,3 +214,15 @@ test('2027 plan-data carries the 23 EOC links wired into the grid (Aetna, Doctor
   for (const id of ['Miami-Dade', 'Broward']) all.push(...R.gridPlansForCounty(id));
   assert.ok(all.filter((p) => p.eocUrl).length >= 109, String(all.filter((p) => p.eocUrl).length));
 });
+
+test('export: current plan first even with no loaded workup; same-network twin is not a column (Candy)', () => {
+  const mk = (id, nm) => ({ planId: id, id, planName: nm, county: 'Miami-Dade' });
+  const cat = [mk('H5420-001', 'UHC MedicareMax FL-0028'), mk('H1036-054', 'Humana Gold Plus'), mk('H4140-022', 'DrMax-Dade'), mk('H4140-023', 'DrSelect')];
+  const user = 'Her current plan: UHC MedicareMax H5420-001. Compare Humana H1036-054 and Doctors H4140-022.';
+  const reply = '| Doctor | H1036-054 | H4140-022 | H5420-001 |\n|---|---|---|---|\nAlso checked: H4140-023 = same doctor results as H4140-022.';
+  const plans = [cat[1], cat[3], cat[0], cat[2]];
+  const payload = E.buildExportPayload(plans, reply, { catalog: cat, userMessages: [user], latestUserText: user });
+  assert.deepEqual(payload.plans.map((p) => p.planId), ['H5420-001', 'H1036-054', 'H4140-022']);
+  assert.deepEqual(E.sameNetworkTwinIds(reply), ['H4140-023']);
+  assert.deepEqual(E.currentPlanIdsFromText(user), ['H5420-001']);
+});
