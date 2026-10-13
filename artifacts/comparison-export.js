@@ -2822,7 +2822,8 @@
       });
       added.forEach((id) => { if (id && !ids.some((x) => x.slice(0, 9) === id.slice(0, 9))) ids.push(id.slice(0, 9)); });
     }
-    const current = (Array.isArray(o.currentPlanIds) ? o.currentPlanIds : []).map((x) => String(x).toUpperCase().slice(0, 9)).filter(Boolean);
+    const userText = (messages || []).filter((m) => m && m.role === "user").map((m) => toText(m.content)).join("\n");
+    const current = (Array.isArray(o.currentPlanIds) && o.currentPlanIds.length ? o.currentPlanIds : currentPlanIdsFromText(userText)).map((x) => String(x).toUpperCase().slice(0, 9)).filter(Boolean);
     const rest = ids.filter((id) => !current.includes(id.slice(0, 9)));
     return [...current, ...rest];
   }
@@ -3086,7 +3087,46 @@
     return set || [];
   }
 
+  /** "Also checked: H4140-023 = same doctor results as H4140-022" — the twin is not its own column. */
+  function sameNetworkTwinIds(text) {
+    const out = [];
+    const re = /\b([HR]\d{4}-\d{3}[A-Z]?)\b[^;.\n]{0,80}?=\s*same doctor results as\b/gi;
+    let m;
+    while ((m = re.exec(String(text || "")))) out.push(m[1].toUpperCase().slice(0, 9));
+    return out;
+  }
+
+  /** The plan she is ON ("current plan UHC MedicareMax H5420-001"), from her own words. */
+  function currentPlanIdsFromText(text) {
+    const ids = [];
+    const re = /\b(?:current(?:ly)?(?:\s+plan)?|is\s+on|stay(?:ing)?\s+on|her\s+plan|his\s+plan)\b[^.\n]{0,60}?\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
+    let m;
+    while ((m = re.exec(String(text || "")))) {
+      if (/\b(?:with|vs\.?|versus|against|to|and|or|instead)\b/i.test(m[0].slice(0, m[0].length - m[1].length))) continue;
+      const id = m[1].toUpperCase().slice(0, 9);
+      if (!ids.includes(id)) ids.push(id);
+    }
+    return ids.slice(0, 3);
+  }
+
+  /** Drop same-network twins she did not name, and put her current plan first. */
+  function tidyExportPlans(resolved, threadText, meta) {
+    let list = Array.isArray(resolved) ? resolved.slice() : [];
+    const mine = (Array.isArray(meta.userMessages) ? meta.userMessages.join("\n") : "") + "\n" + String(meta.latestUserText || "");
+    const key = (p) => String(p.planId || p.id || "").toUpperCase().slice(0, 9);
+    const named = new Set(citedPlanIdsFromText(mine).map((x) => String(x).toUpperCase().slice(0, 9)));
+    const twins = new Set(sameNetworkTwinIds(threadText));
+    if (twins.size) list = list.filter((p) => !twins.has(key(p)) || named.has(key(p)));
+    const cur = (Array.isArray(meta.currentPlanIds) && meta.currentPlanIds.length ? meta.currentPlanIds : currentPlanIdsFromText(mine)).map((x) => String(x).toUpperCase().slice(0, 9));
+    if (cur.length) list = [...list.filter((p) => cur.includes(key(p))), ...list.filter((p) => !cur.includes(key(p)))];
+    return list;
+  }
+
   function resolveExportPlans(plans, threadText, extra) {
+    return tidyExportPlans(resolveExportPlansRaw(plans, threadText, extra), threadText, extra && typeof extra === "object" ? extra : {});
+  }
+
+  function resolveExportPlansRaw(plans, threadText, extra) {
     const meta = extra && typeof extra === "object" ? extra : {};
     const catalog = meta.catalog || meta.planCatalog || [];
     const pool = catalog.length ? catalog : plans;
@@ -3239,6 +3279,9 @@
     isNarrowingReply,
     latestChatTable,
     exportPlanIdsFromThread,
+    sameNetworkTwinIds,
+    currentPlanIdsFromText,
+    tidyExportPlans,
     finalizeExportDoctors,
     doctorExportLabel,
     hasComparisonTable,
