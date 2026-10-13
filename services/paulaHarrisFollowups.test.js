@@ -75,3 +75,13 @@ test('doctor names with an office / specialty after a dash search by the name al
   assert.equal(cleanDoctorQuery('Neeta Erinjerri - Surgeon at Baptist Cancer Institute'), 'Neeta Erinjerri');
   assert.equal(cleanDoctorQuery('Dr. Mary Smith'), 'Mary Smith');
 });
+
+test('a combination product answering a single-drug ask is flagged, never priced as the drug (Melmoth, 2026-10-13)', () => {
+  const plans = [{ planId: 'H5420-001', name: 'UHC MedicareMax' }];
+  const row = { planId: 'H5420-001', verified: true, coverage: 'covered', tier: 2, costShare: '$0' };
+  const combo = N.medsTable([{ drugName: 'Tramadol-Acetaminophen', byPlanId: { 'H5420-001': row }, lookups: [row] }], plans, ['Tramadol']);
+  assert.match(combo, /Tramadol ⚠️/);
+  assert.doesNotMatch(combo, /T2/);
+  const plain = N.medsTable([{ drugName: 'Tramadol HCL', byPlanId: { 'H5420-001': row }, lookups: [row] }], plans, ['Tramadol']);
+  assert.match(plain, /T2/);
+});

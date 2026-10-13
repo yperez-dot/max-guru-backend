@@ -1931,6 +1931,15 @@ function medsTable(drugResults, plans, knownMeds = []) {
       continue;
     }
     const cells = plans.map((p) => drugCell(drugRowFor(r, p.planId), Boolean(r.notCoveredNote), r));
+    // She asked for one drug and the lookup answered a combination product ("tramadol" -> "Tramadol-Acetaminophen"):
+    // those tiers are not the drug she asked about (Melmoth Alexander, 2026-10-13).
+    const lowName = name.toLowerCase();
+    const asked = String(r.inputName || '').trim()
+      || (knownMeds || []).map((m) => String(m || '').trim()).find((m) => m && !/[-\/+]/.test(m) && lowName.startsWith(m.toLowerCase()) && lowName.length > m.length) || '';
+    if (asked && !/[-\/+]/.test(asked) && /^[A-Za-z]{4,}(?:\s+[A-Za-z]+)?\s*[-\/]\s*[A-Za-z]{4,}/.test(name)) {
+      rows.push(`| ${titleCase(asked)} ⚠️ | ${plans.map(() => `❔ lookup matched ${name} — check ${titleCase(asked)} alone on Medicare.gov`).join(' | ')} |`);
+      continue;
+    }
     rows.push(`| ${drugLabel(r, name)} | ${cells.join(' | ')} |`);
   }
   for (const m of knownMeds || []) {
