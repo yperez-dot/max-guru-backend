@@ -44,3 +44,25 @@ test('a typed NPI settles a "different name" flag', () => {
   const out = N.selectComparison([doc('1306218243')], ask, {});
   assert.ok(!out.docs || !out.docs.some((d) => d.identityPending));
 });
+
+test('Excel meds print the on-screen Meds table words (Paula Harris export, 2026-10-13)', () => {
+  const E = require('../artifacts/comparison-export.js');
+  const grid = R.gridPlansForCounty('Miami-Dade');
+  const plans = ['H5420-014', 'H1609-094'].map((id) => grid.find((p) => p.planId === id));
+  const reply = [
+    '| Doctor | UHC · H5420-014 | Aetna · H1609-094 |', '|---|---|---|',
+    '| Hoa N. Nguyen · NPI 1669452983 | ✅ In | ✅ In |', '| Doctors | 1 in | 1 in |', '',
+    'Meds', '', '| Drug | UHC · H5420-014 | Aetna · H1609-094 |', '|---|---|---|',
+    '| Gabapentin | ❔ check Medicare.gov (strength not confirmed) | ❔ check Medicare.gov (strength not confirmed) |',
+    '| Ergocalciferol | 1.25 mg: T2 $0 · supplemental | ❔ check Medicare.gov (strength not confirmed) |',
+  ].join('\n');
+  const msgs = [{ role: 'user', content: 'Doctors: Hoa Nguyen\nMedications: gabapentin, ergocalciferol' }, { role: 'assistant', content: reply }];
+  const tbl = E.latestChatTable(msgs);
+  assert.equal(tbl.meds.length, 2);
+  const payload = E.buildExportPayload(plans, msgs.map((m) => m.content).join('\n'), { chatTable: tbl, planSetFixed: true });
+  const gaba = payload.drugs.find((d) => /gabapentin/i.test(d.name));
+  assert.equal(gaba.screen['H5420-014'], 'Check Medicare.gov (strength not confirmed)');
+  const ergo = payload.drugs.find((d) => /ergocalciferol/i.test(d.name));
+  assert.equal(ergo.screen['H1609-094'], 'Check Medicare.gov (strength not confirmed)');
+  assert.equal(ergo.screen['H5420-014'], '1.25 mg: T2 $0 · supplemental');
+});
