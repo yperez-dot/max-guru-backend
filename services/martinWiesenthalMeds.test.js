@@ -569,7 +569,7 @@ test('audit 2: a failed RxNav NDC fetch is never cached as "no split"; one stren
   assert.equal(calls, 0, 'a one-strength drug is cached');
 });
 
-test('audit 2: a plan with no row is not cached; an unanswered strength shows "not found"', async () => {
+test('audit 2: a plan with no row is not cached; an unanswered strength collapses to one covered line', async () => {
   F._strengthVariantCache.clear();
   // H0982 (Solis) is not in the stubbed medicare.gov data: that plan comes back with no row.
   const partial = await F.medicareGovStrengthVariants({ drugName: 'tadalafil', planIds: ['H1019-001', 'H0982-007'], year: 2027 }, stubFetch([]));
@@ -592,7 +592,9 @@ test('audit 2: a plan with no row is not cached; an unanswered strength shows "n
   assert.deepEqual([missing.verified, missing.coverage], [false, null]);
   const row = { planId: 'H1019-001', verified: true, coverage: 'covered', tier: 4, strengths: v['H1019-001'] };
   const cellText = N.medsTable([{ drugName: 'tadalafil', byPlanId: { 'H1019-001': row }, lookups: [row] }], [{ planId: 'H1019-001', name: 'CarePlus' }]).split('\n')[2];
-  assert.match(cellText, /2\.5 mg: ❔ not found/);
+  // A split with an unanswered strength is lookup noise: one covered line, never "not found" as the answer.
+  assert.doesNotMatch(cellText, /not found/);
+  assert.match(cellText, /T4/);
   F._strengthVariantCache.clear();
 });
 
@@ -622,4 +624,18 @@ test('cells the source gave no PA/QL for carry no "PA/QL ?" mark in the rendered
   assert.match(q, /\| metformin \| T1 \$0 \|/);
   assert.match(q, /T4 50% · PA · QL 30\/30/);
   assert.match(q, /5 mg: T4 50% ‖ 20 mg: T4 50% \|/);
+});
+
+test('Jackie: gabapentin / levothyroxine noisy splits show ONE usual-strength line, never "not found" / "not covered"', () => {
+  const plans = [{ planId: 'H5420-001', name: 'UHC MedicareMax' }];
+  const mk = (strength, o) => ({ strength, verified: true, coverage: 'covered', tier: 2, costShare: '$0', pa: false, st: false, ql: false, source: 'medicare.gov', ...o });
+  const gaba = { planId: 'H5420-001', verified: true, coverage: 'covered', tier: 2, strengths: [
+    mk('100 mg', { verified: false, coverage: null, tier: null }), mk('300 mg'), mk('600 mg', { verified: false, coverage: null, tier: null }), mk('450 mg', { coverage: 'not_covered', tier: null })] };
+  const levo = { planId: 'H5420-001', verified: true, coverage: 'covered', tier: 1, strengths: [
+    mk('0.05 mg', { tier: 1 }), mk('0.1 mg', { coverage: 'not_covered', tier: null }), mk('0.2 mg', { coverage: 'not_covered', tier: null })] };
+  const t = (name, row) => N.medsTable([{ drugName: name, byPlanId: { 'H5420-001': row }, lookups: [row] }], plans).split('\n')[2];
+  assert.equal(t('Gabapentin', gaba), '| Gabapentin | 300 mg: T2 $0 |');
+  assert.equal(t('Levothyroxine Sodium', levo), '| Levothyroxine Sodium | 0.05 mg: T1 $0 |');
+  const none = { planId: 'H5420-001', verified: true, coverage: 'covered', tier: 2, strengths: [mk('100 mg', { verified: false, coverage: null, tier: null }), mk('450 mg', { coverage: 'not_covered', tier: null })] };
+  assert.match(t('Gabapentin', none), /check Medicare\.gov/);
 });
