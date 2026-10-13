@@ -519,6 +519,8 @@ function wantsOtherCarrier(message) {
 function carriersRequested(message) {
   const t = String(message || '')
     .replace(/\b(?:doctors?|drs?|providers?)\s*:[^\n]*/gi, ' ')
+    // "she is with UHC" says where a doctor / the client is, it is not a carrier ask.
+    .replace(/\b(?:she|he|they)(?:'s|\s+is|\s+are)?\s+(?:with|on|takes?|accepts?)\s+[A-Za-z]+/gi, ' ')
     // "Current plan H1045-005 UHC Preferred MA FL-0002" names her client's plan, it is not a carrier ask.
     // No commas inside: "Current plan H1045-005 UHC Preferred" is her client's plan, but
     // "compare his current plan with Humana, HealthSun and Doctors" is a carrier ask (2026-10-07).

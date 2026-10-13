@@ -542,7 +542,70 @@ function comparisonFollowUp(messages) {
     const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
     if (wk && wk.doctors.length >= 2) return { reason: reasons.join(' + '), doctors: wk.doctors, zip: wk.zip || newestZip(msgs.slice(0, lastUserAt + 1)) };
   }
+  // A loaded workup + a doctor correction / NPI / confirmation: re-run ALL her saved doctors with the
+  // corrections applied. The model used to run only the corrected two and swap the plans (Paula Harris, 2026-10-13).
+  const fixed = workupDoctorFixes(msgs, lastUserAt, reasons.includes('numbered answers'));
+  if (fixed) return fixed;
   return null;
+}
+
+/** Fuzzy "same doctor" for typo'd names: "Hoa Nguyne" ≈ "Hoa Nguyen", "Gloria St" ⊂ "Theresa Gloria St. Phillipe". */
+function looseSameDoctor(known, said) {
+  if (sameDoctorName(known, said)) return true;
+  const a = plainWords(known);
+  const b = plainWords(said);
+  if (a.length < 2 || b.length < 2) return false;
+  const lev = (x, y) => {
+    let row = Array.from({ length: y.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= x.length; i += 1) {
+      const cur = [i];
+      for (let j = 1; j <= y.length; j += 1) cur[j] = Math.min(row[j] + 1, cur[j - 1] + 1, row[j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+      row = cur;
+    }
+    return row[y.length];
+  };
+  return a[0] === b[0] && lev(a[a.length - 1], b[b.length - 1]) <= 2;
+}
+
+const FIX_STOP_RE = /^(?:its|it's|it|is|use|this|for|the|npi|dr|doctor|her|his|she|he|with|actually|should|be|that|no|yes)$/i;
+
+function workupDoctorFixes(msgs, lastUserAt, numbered) {
+  const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
+  if (!wk || wk.doctors.length < 2) return null;
+  const wkAt = msgs.findIndex((m) => m && m.role === 'user' && isWorkupMessage(messageText(m)));
+  const people = wk.doctors.map((name) => ({ name, npi: '' }));
+  let touched = false;
+  for (let i = wkAt + 1; i <= lastUserAt; i += 1) {
+    const m = msgs[i];
+    if (!m || m.role !== 'user') continue;
+    const prev = msgs.slice(0, i).reverse().find((x) => x && x.role === 'assistant');
+    const asked = prev && /No exact match|No NPI match|did you mean|Confirm the (?:doctor )?match|confirm match|right provider/i.test(messageText(prev));
+    const t = messageText(m);
+    const npis = [...t.matchAll(/\b(\d{10})\b/g)];
+    if (!asked && !npis.length && !(i === lastUserAt && numbered)) continue;
+    touched = true;
+    // 1) NPI next to a name: "use this for Theresa 1306218243".
+    for (const n of npis) {
+      const before = t.slice(0, n.index).split(/[\s,;]+/).filter(Boolean).reverse();
+      const words = [];
+      for (const w of before) { if (FIX_STOP_RE.test(w) || /\d/.test(w)) break; words.unshift(w); if (words.length >= 4) break; }
+      const who = people.find((p) => words.length && (looseSameDoctor(p.name, words.join(' ')) || plainWords(p.name).includes(plainWords(words[words.length - 1])[0] || '#')));
+      if (who) who.npi = n[1];
+    }
+    // 2) "its Theresa Gloria St. Phillipe APRN, and Hoa Nguyen": each named part replaces the doctor it matches.
+    if (asked && !npis.length) {
+      for (const raw of t.split(/,|;|\band\b/i)) {
+        const part = raw.replace(/^\s*(?:its|it's|it is|is|use|this is|actually|yes[,.]?)\s+/i, '').replace(/[.!]+\s*$/, '').trim();
+        if (plainWords(part).length < 2 || /\b(correct|match|right|yes|no)\b/i.test(part)) continue;
+        const who = people.find((p) => !p.npi && looseSameDoctor(p.name, part));
+        if (who) who.name = part;
+      }
+    }
+  }
+  if (!touched) return null;
+  const npis = {};
+  for (const p of people) if (p.npi) npis[p.name] = p.npi;
+  return { reason: 'doctor corrections (saved workup)', doctors: people.map((p) => p.name), zip: wk.zip || newestZip(msgs.slice(0, lastUserAt + 1)), npis };
 }
 
 function lastNameOnly(d) {
