@@ -113,3 +113,22 @@ test('"change to Alan Dal Pra" / "switch to …" / "should be …" all answer th
     assert.deepEqual(fu.doctors, ['Elias Feanny', 'Alan Chu', 'Alan Dal Pra', 'John Morytko'], said);
   }
 });
+
+test('a chiropractor matched for "Natalie Regalado - Baptist Medical Group" is flagged to confirm, never shown as her result', () => {
+  const mk = (requestedName, doctorName) => ({ requestedName, doctorName, npi: '1396060109', status: 'done', pending: [], failed: [], networks: [], carriersIn: [], inNetworkPlans: [], outOfNetworkPlans: ['UHC MedicareMax (H5420-001)'] });
+  const out = N.selectComparison([mk('Natalie Regalado - Baptist Medical Group', 'Natalie C Regalado Dc')], 'Named plan set: UHC MedicareMax (H5420-001).', {});
+  assert.ok((out.doctors || []).some((d) => d.identityPending === 'confirm'), JSON.stringify(out.doctors && out.doctors.map((d) => d.identityPending)));
+  const dental = N.selectComparison([mk('Elvin Silvestry - Dental Associates', 'Elvin J Silvestry Dds')], 'Named plan set: UHC MedicareMax (H5420-001).', {});
+  assert.ok(!(dental.docs || []).some((d) => d.identityPending));
+});
+
+test('export keeps the full doctor table when a later follow-up table shows only one doctor', () => {
+  const ex = require('../artifacts/comparison-export.js');
+  const full = '| Doctor | A · H5420-001 | B · H1609-093 |\n|---|---|---|\n| Ann One · NPI 1111111111 | ✅ In | ✅ In |\n| Bob Two · NPI 2222222222 | ❌ Not in network (not listed) | ✅ In |\n| Doctors | 1 in | 2 in |\n';
+  const narrow = '| Doctor | B · H1609-093 | A · H5420-001 |\n|---|---|---|\n| Bob Two · NPI 2222222222 | ✅ In | ✅ In |\n| Doctors | 1 in | 1 in |\n';
+  const t = ex.latestChatTable([{ role: 'assistant', content: full }, { role: 'user', content: 'x' }, { role: 'assistant', content: narrow }], (x) => x);
+  assert.strictEqual(t.rows.length, 2);
+  assert.deepStrictEqual(t.planIds, ['H5420-001', 'H1609-093']);
+  assert.strictEqual(t.rows[0].byPlan['H1609-093'], 'In network');
+  assert.strictEqual(t.rows[1].byPlan['H5420-001'], 'In network');
+});

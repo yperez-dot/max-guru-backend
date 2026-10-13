@@ -2799,9 +2799,10 @@
   const ROLE_WORD_RE = /^(?:pcp|primary|care|physician|internist|internal|medicine|family|cardiologist|cardiology|dermatologist|dermatology|ophthalmologist|ophthalmology|optometrist|gynecologist|gynecology|obgyn|ob\/gyn|ob|gyn|neurologist|neurology|endocrinologist|rheumatologist|gastroenterologist|urologist|oncologist|nephrologist|pulmonologist|podiatrist|psychiatrist|orthopedist|orthopedic|surgeon|specialist|dentist|allergist|hematologist|ent)$/i;
 
   /** Newest assistant message with a doctor × plan table: plan IDs (header order) and each row's cells. */
-  function latestChatTable(messages, textFn) {
+  function parseChatTables(messages, textFn) {
     const toText = typeof textFn === "function" ? textFn : messageContentToText;
     const list = Array.isArray(messages) ? messages : [];
+    const found = [];
     for (let i = list.length - 1; i >= 0; i--) {
       const m = list[i];
       if (!m || m.role !== "assistant") continue;
@@ -2811,7 +2812,8 @@
       const h = lines.findIndex((l) => /^\s*\|\s*\**Doctor\**\s*\|/i.test(l));
       if (h < 0) {
         const ids = [...new Set((t.match(/\b[HR]\d{4}-\d{3}[A-Z]?\b/gi) || []).map((x) => x.toUpperCase()))];
-        return { at: i, planIds: ids, rows: [] };
+        found.push({ at: i, planIds: ids, rows: [] });
+        continue;
       }
       const cellsOf = (l) => l.split("|").slice(1, -1).map((c) => c.trim());
       const planIds = cellsOf(lines[h]).slice(1).map((c) => ((c.match(/\b[HR]\d{4}-\d{3}[A-Z]?\b/i) || [])[0] || "").toUpperCase());
@@ -2851,9 +2853,35 @@
           if (cells[0]) meds.push({ name: cells[0].replace(/\*+$/, "").trim(), byPlan });
         }
       }
-      return { at: i, planIds: planIds.filter(Boolean), rows, meds };
+      found.push({ at: i, planIds: planIds.filter(Boolean), rows, meds });
     }
-    return null;
+    return found;
+  }
+
+  /**
+   * The table the export prints. A narrow follow-up ("Try Alan Dal Pra" -> one doctor row) must not replace the
+   * full table: base = the latest table with the most doctors; later narrower tables only overwrite the rows
+   * (same doctor) and plan cells they actually show.
+   */
+  function latestChatTable(messages, textFn) {
+    const found = parseChatTables(messages, textFn);
+    if (!found.length) return null;
+    const latest = found[0];
+    const most = Math.max.apply(null, found.map((f) => f.rows.length));
+    if (latest.rows.length >= most) return latest;
+    const base = found.find((f) => f.rows.length === most);
+    const key = (r) => String(r.npi || r.name || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const rows = base.rows.map((r) => Object.assign({}, r, { byPlan: Object.assign({}, r.byPlan) }));
+    found.filter((f) => f.at > base.at).reverse().forEach((f) => {
+      f.rows.forEach((nr) => {
+        const hit = rows.find((r) => key(r) === key(nr) || (r.npi && r.npi === nr.npi));
+        if (hit) Object.assign(hit.byPlan, nr.byPlan);
+      });
+    });
+    const meds = latest.meds && latest.meds.length ? latest.meds : base.meds;
+    const planIds = base.planIds.slice();
+    latest.planIds.forEach((id) => { if (!planIds.includes(id)) planIds.push(id); });
+    return { at: latest.at, planIds: latest.planIds.every((id) => base.planIds.includes(id)) ? base.planIds : planIds, rows, meds };
   }
 
   /**

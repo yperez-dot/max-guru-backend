@@ -1025,6 +1025,13 @@ function identityIssue(d) {
   const asked = plainWords(shortDoctor(d));
   const matched = plainWords(d.doctorName);
   if (asked.length >= 2 && !matched.includes(asked[0])) return 'mismatch';
+  // She named a medical practice ("Natalie Regalado - Baptist Medical Group") and the name search found a chiropractor /
+  // optometrist / podiatrist / dentist with the same name: not the doctor she means (Jackie Alexander, 2026-10-13).
+  const credTail = (String(d.doctorName || '').trim().match(/\b(dc|od|dpm|dds|dmd)\.?$/i) || [])[1];
+  const askedRaw = String(d.requestedName || '');
+  if (credTail && / [-–—] /.test(askedRaw)
+    && /\b(?:medical|hospital|institute|baptist|health|clinic|gastro|cardio\w*|surgeon|surgery|specialist|group|primary)\b/i.test(askedRaw)
+    && !/\b(?:dent\w*|dds|dmd|chiro\w*|optom\w*|eye|vision|podiat\w*|ophthal\w*)\b/i.test(askedRaw)) return 'confirm';
   // A full middle word she gave ("Carlos SANTA Cruz") that the match does not carry — not as a
   // word, not as its initial — is a different person (Carlos A Cruz ≠ Carlos Santa-Cruz).
   const orgTest = require('./npiRegistry').looksLikeOrganization;
