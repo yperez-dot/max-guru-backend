@@ -1711,6 +1711,8 @@ function strengthSplitCell(row, result) {
   return groups.map((g) => `${label(g)}: ${g.text}`).join(' ‖ ');
 }
 
+const OTC_SUPPLEMENT_CELL = 'Not on this plan\'s formulary · OTC vitamin — see the plan\'s OTC allowance';
+
 function drugCell(row, unsureNotCovered, result) {
   if (result && result.nameCheck) return '❓ check name';
   if (!row) return R.UNCHECKED;
@@ -1775,6 +1777,17 @@ function medsTable(drugResults, plans, knownMeds = []) {
     seen.add(name.toLowerCase());
     // "rasuvostatin" was looked up as rosuvastatin: the typed name is answered, not an unchecked row.
     if (r.inputName) seen.add(String(r.inputName).toLowerCase());
+    // A vitamin / supplement is OFTEN not on a formulary (OTC), but some plans do list it: a covered answer
+    // always shows as-is; only a cell with no covered answer says "OTC vitamin" (Paula Harris, 2026-10-13).
+    if (R.isOtcSupplement(r.inputName || name)) {
+      const covered = (row) => Boolean(row && ((row.verified && row.tier) || (Array.isArray(row.strengths) && row.strengths.some((v) => v && v.verified && v.tier))));
+      const cells = plans.map((p) => {
+        const row = drugRowFor(r, p.planId);
+        return covered(row) ? drugCell(row, Boolean(r.notCoveredNote), r) : OTC_SUPPLEMENT_CELL;
+      });
+      rows.push(`| ${drugLabel(r, name)} | ${cells.join(' | ')} |`);
+      continue;
+    }
     const cells = plans.map((p) => drugCell(drugRowFor(r, p.planId), Boolean(r.notCoveredNote), r));
     rows.push(`| ${drugLabel(r, name)} | ${cells.join(' | ')} |`);
   }

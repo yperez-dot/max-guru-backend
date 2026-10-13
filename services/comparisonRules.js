@@ -304,8 +304,14 @@ function sameDrug(a, b) {
 // Reply words that are never a medication ("both", "yes", "same") — a numbered answer
 // like "2. both" must not become a drug lookup / export row (Gail Carreno, 2026-10-07).
 const NON_DRUG_WORDS = new Set(
-  'both all none no nope yes yeah yep ok okay sure same correct right wrong those these them they it this that either neither each other others another any meds med medication medications drug drugs rx generic brand unknown na idk she he her his their unchanged covered'.split(' ')
+  'both all none no nope yes yeah yep ok okay sure same correct right wrong those these them they it this that either neither each other others another any meds med medication medications drug drugs rx generic brand unknown na idk she he her his their unchanged covered check checks checked checking verify verifies verified confirm confirms confirmed options pricing prices price done thanks thank'.split(' ')
 );
+
+// Over-the-counter vitamins and supplements are not Part D drugs: a formulary lookup reads "not covered" or
+// "not found" for them, which looked like a real answer (Vitamin D on Paula Harris's grid, 2026-10-13).
+// Typing the Rx form ("ergocalciferol") is still looked up.
+const OTC_SUPPLEMENT_RE = /^\s*(?:vitamins?\s*(?:[a-ek]\d{0,2}|b[\s-]?complex)\b|multi-?vitamins?\b|cholecalciferol\b|fish\s+oil\b|omega[\s-]?3\b|probiotics?\b|melatonin\b|biotin\b)/i;
+const isOtcSupplement = (name) => OTC_SUPPLEMENT_RE.test(String(name || ''));
 
 function isNonDrugAnswer(text) {
   const words = String(text || '').toLowerCase().replace(/[^a-z0-9\s/-]+/g, ' ').split(/[\s/]+/).filter(Boolean);
@@ -318,7 +324,7 @@ const MED_LABEL = '(?:meds?|medications?|medicines?|rx|drugs?|takes?|taking|medi
 // without a colon need two items ("Rx tiers", "drug cost" are not lists).
 const STRONG_LABEL_RE = /^(?:meds?|medications?|medicines?|takes?|taking|medicamentos?|medicinas?)$/i;
 // First words that start a sentence, never a drug ("Meds already on file", "Rx tiers are discarded").
-const NOT_DRUG_START_RE = /^(?:no|none|not|already|on|off|file|list|lists|cost|costs|tier|tiers|the|a|an|for|are|is|was|were|of|to|in|with|at|from|covered|coverage|lookup|check|table|section|please|review|or|that|this|any|every|each|below|above|she|he|they|her|his|their|will|can|should|has|have|had|given|listed|named|priced|here|there|medicaid|plan|plans|compare|zip|doctor|doctors|dr|drs|current|currently|wondering|looking|want|wants|need|needs|msp|qmb|slmb|c-?snp|d-?snp|care|same|unchanged|rank|run|show|give|find|add|look|send|use|call|keep|swap|suggest|best|top|all|only|just|yes|ok|okay)$/i;
+const NOT_DRUG_START_RE = /^(?:no|none|not|already|on|off|file|list|lists|cost|costs|tier|tiers|the|a|an|for|are|is|was|were|of|to|in|with|at|from|covered|coverage|lookup|check|checks|checked|checking|verify|verifies|confirm|confirms|options|pricing|table|section|please|review|or|that|this|any|every|each|below|above|she|he|they|her|his|their|will|can|should|has|have|had|given|listed|named|priced|here|there|medicaid|plan|plans|compare|zip|doctor|doctors|dr|drs|current|currently|wondering|looking|want|wants|need|needs|msp|qmb|slmb|c-?snp|d-?snp|care|same|unchanged|rank|run|show|give|find|add|look|send|use|call|keep|swap|suggest|best|top|all|only|just|yes|ok|okay)$/i;
 const DRUG_ITEM_RE = /^[A-Za-z][A-Za-z0-9'’-]*(?:\s+[A-Za-z0-9.%/'’-]+){0,4}$/;
 // With no label at all, an item is a drug name plus at most a strength / form / release word
 // ("metformin 500mg", "acyclovir ointment") — never a sentence ("Rank all eligible plans").
@@ -573,6 +579,7 @@ module.exports = {
   exactDollars,
   CARRIER_WORDS,
   carriersRequested,
+  isOtcSupplement,
   carriersRejected,
   wantsOtherCarrier,
   carrierOfPlan,
