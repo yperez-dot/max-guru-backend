@@ -162,11 +162,16 @@ function parseCompareAsk(text) {
     }
     // "Yusleidi Gil MD (primary care)" -> "Yusleidi Gil (primary care)": a trailing credential is not part of the name.
     name = name.replace(/,?\s+(?:MD|M\.D\.?|DO|D\.O\.?|DPM|DDS|DMD|OD)\.?(?=\s*(?:\(|$))/i, '');
+    // "Elias Feanny - Primary *", "Alan Chu - ENT", "Alan DelPar - UM": a one-word role / marker after a dash is not part of the name
+    // (Melmoth Alexander, 2026-10-13: all four read "not found").
+    name = name.replace(/\s*\*+\s*$/, '').replace(/\s+[-–—]\s+(?:primary(?:\s+care)?|pcp|ent|um|u\.m\.|[a-z]+ologist|surgeon|dentist|dds|dmd)\s*$/i, '');
     name = name.replace(/\s{2,}/g, ' ').replace(/[\s.,-]+$/, '').trim();
     return npi ? { name, npi, mustKeep } : { name, mustKeep };
   }).filter((d) => (d.name || d.npi) && !/^(?:here|this|the|my|list)\b/i.test(d.name || '') && !CRED_ONLY_RE.test(d.name || '')).slice(0, MAX_DOCTORS);
   // "acyclovir tablets & ointment" is two products, two rows.
   let meds = expandMedList(splitList(medsText).map((m) => require('./comparisonRules').cleanMedItem(m.replace(/\.$/, ''))).filter(Boolean)).slice(0, MAX_MEDS);
+  // A sentence is a note, not a drug: "UM means University of Miami", "only Humana has those doctors".
+  meds = meds.filter((m) => !/\b(?:means|only|has|have|those|doctors?|wants?|please)\b/i.test(m));
   // A pasted MedicarePro "Prescriptions (5)" block ("atorvastatin calcium TAB 10MG" lines) — the
   // section parser above caught only the first line (Victor, 2026-10-08). Use the full Rx-line read.
   const rxMeds = require('./comparisonRules').medsFromAsk(t);
