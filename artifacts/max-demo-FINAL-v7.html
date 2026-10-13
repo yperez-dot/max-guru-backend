@@ -5674,6 +5674,14 @@ async function hydrateExportSobBenefits(payload) {
 }
 
 async function runComparisonExport(kind, history, plans, extras) {
+  // The table on screen IS the export. Every Export button (the loaded-workup card at the top, the card under the
+  // result) built its sheet from the plans / doctors / drugs stored on THAT card — an older saved workup — so two
+  // clicks gave two different files (Jackie, 2026-10-13: columns in the old order, "Need more info", "Not covered").
+  const tableSet = exportTablePlanSet(history);
+  if (tableSet.length >= 2) {
+    plans = tableSet;
+    extras = { ...(extras || {}), doctors: [], drugs: [], rememberedPlans: tableSet, planSetFixed: true };
+  }
   const payload = await hydrateExportSobBenefits(collectComparisonExport(history, plans, extras));
   if (kind === "pdf") exportComparisonToPdf(payload);
   else exportComparisonToExcel(payload);
