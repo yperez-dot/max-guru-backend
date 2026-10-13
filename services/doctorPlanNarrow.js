@@ -567,6 +567,7 @@ function looseSameDoctor(known, said) {
   return a[0] === b[0] && lev(a[a.length - 1], b[b.length - 1]) <= 2;
 }
 
+const ADD_DOCTOR_RE = /\b(?:add|added|also|include|forgot|missing|primary|pcp|her doctor)\b/i;
 const FIX_STOP_RE = /^(?:its|it's|it|is|use|this|for|the|npi|dr|doctor|her|his|she|he|with|actually|should|be|that|no|yes)$/i;
 
 function workupDoctorFixes(msgs, lastUserAt, numbered) {
@@ -581,6 +582,11 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
     const prev = msgs.slice(0, i).reverse().find((x) => x && x.role === 'assistant');
     const asked = prev && /No exact match|No NPI match|did you mean|Confirm the (?:doctor )?match|confirm match|right provider/i.test(messageText(prev));
     const t = messageText(m);
+    // "it didnt add her primary… Dr. Kelys Caballero" / "add Dr. Kelys Caballero": a doctor added to the saved list.
+    if (ADD_DOCTOR_RE.test(t) && !/\b[HR]\d{4}-\d{3}/i.test(t) && !R.carriersRequested(t).length) {
+      const nm = (t.match(/\b(?:dr|dra|doctor|doctora)\.?\s+([A-ZÀ-Ý][\wÀ-ÿ'.-]+(?:\s+[A-ZÀ-Ý][\wÀ-ÿ'.-]+){0,3})/) || [])[1];
+      if (nm && !people.some((p) => looseSameDoctor(p.name, nm) || sameDoctorName(p.name, nm))) { people.push({ name: nm.trim(), npi: '' }); touched = true; }
+    }
     const npis = [...t.matchAll(/\b(\d{10})\b/g)];
     if (!asked && !npis.length && !(i === lastUserAt && numbered)) continue;
     touched = true;
@@ -596,7 +602,7 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
     if (asked && !npis.length) {
       for (const raw of t.split(/,|;|\band\b/i)) {
         const part = raw.replace(/^\s*(?:its|it's|it is|is|use|this is|actually|yes[,.]?)\s+/i, '').replace(/[.!]+\s*$/, '').trim();
-        if (plainWords(part).length < 2 || /\b(correct|match|right|yes|no)\b/i.test(part)) continue;
+        if (plainWords(part).length < 2 || /\b(correct|match|right|yes|no)\b/i.test(part) || ADD_DOCTOR_RE.test(part)) continue;
         const who = people.find((p) => !p.npi && looseSameDoctor(p.name, part));
         if (who) who.name = part;
       }
@@ -1231,6 +1237,7 @@ function selectComparison(doctors, askText, opts = {}) {
     .flatMap((m) => m[1].split(/[,;]/)).map((x) => x.replace(/\.$/, '').trim()).filter(Boolean);
   const wrongMatches = [...ask0.matchAll(/Doctor matches wrong:\s*([^\n]+)/gi)]
     .flatMap((m) => m[1].split(/[,;]/)).map((x) => x.replace(/\.$/, '').trim()).filter(Boolean);
+  const typedNpisText = ask0.split('\n').filter((l) => !/^Doctor NPIs/.test(l)).join('\n');
   const docs = (Array.isArray(doctors) ? doctors : []).map((d) => {
     const who = shortDoctor(d);
     // Her latest word wins: a wrong match is never counted, even if an older reply said yes.
@@ -1238,7 +1245,10 @@ function selectComparison(doctors, askText, opts = {}) {
       return { ...d, identityPending: 'wrong', inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] };
     }
     const issue = identityIssue(d);
-    if (!issue || confirmedMatches.some((nm) => sameDoctorName(nm, who))) return { ...d, identityPending: '' };
+    // She typed this exact NPI ("use this for Theresa 1306218243"): that is the confirmation. Her cells
+    // were hidden as "not confirmed" behind a "different name" flag she had already settled (Paula Harris, 2026-10-13).
+    const typedNpi = d.npi && new RegExp(`\\b${String(d.npi).replace(/\D/g, '')}\\b`).test(typedNpisText);
+    if (!issue || typedNpi || confirmedMatches.some((nm) => sameDoctorName(nm, who))) return { ...d, identityPending: '' };
     return { ...d, identityPending: issue, inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] };
   });
   const n = docs.length;
@@ -1818,7 +1828,12 @@ const strengthMg = (str) => {
  */
 function oneStrengthCell(row, result) {
   const covered = row.strengths.filter((v) => v && v.verified && v.tier && v.coverage !== 'not_covered');
-  if (!covered.length) return '❔ check Medicare.gov (strength not confirmed)';
+  if (!covered.length) {
+    // The plan-level answer says covered but no single strength was confirmed: say the tier, flag the strength
+    // (Paula Harris, 2026-10-13: gabapentin printed "check Medicare.gov" where the plan answered T2).
+    if (row.verified && row.coverage === 'covered' && row.tier) return `T${row.tier}${row.costShare ? ` ${row.costShare}` : ''} · strength not confirmed — confirm dose`;
+    return '❔ check Medicare.gov (strength not confirmed)';
+  }
   const name = String(row.drugName || row.name || row.query || '').toLowerCase();
   const key = Object.keys(USUAL_STRENGTH_MG).find((k) => name.includes(k));
   let pick = null;
