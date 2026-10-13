@@ -313,6 +313,17 @@ const NON_DRUG_WORDS = new Set(
 const OTC_SUPPLEMENT_RE = /^\s*(?:vitamins?\s*(?:[a-ek]\d{0,2}|b[\s-]?complex)\b|multi-?vitamins?\b|cholecalciferol\b|fish\s+oil\b|omega[\s-]?3\b|probiotics?\b|melatonin\b|biotin\b)/i;
 const isOtcSupplement = (name) => OTC_SUPPLEMENT_RE.test(String(name || ''));
 
+// A pasted med line carries brand names, doses and how often it is taken ("Metformin ER (glucophage) 500mg one daily",
+// "ipratropium nasal spray 0.03% 2 sprays bid"): only name + strength + form go to the lookup. Devices are not drugs.
+const MED_DEVICE_RE = /\b(?:c-?pap|bipap|machine|device|walker|wheelchair|oxygen|nebulizer|glucometer|monitor)\b/i;
+function cleanMedItem(raw) {
+  let s = String(raw || '').replace(/^[\s\-\u2022*]+/, '').replace(/^\d{1,2}[.)]\s+/, '').replace(/\([^)]*\)/g, ' ');
+  s = s.replace(/\s+\d+\s+(?:sprays?|puffs?|drops?|tablets?|capsules?|pills?)\b.*$/i, '');
+  s = s.replace(/\s+(?:one|once|two|twice|three|daily|every|each|at|bid|tid|qid|qd|qhs|qam|qpm|prn|weekly|monthly|nightly|per)\b.*$/i, '');
+  s = s.replace(/\s{2,}/g, ' ').replace(/[\s.,;-]+$/, '').trim();
+  return !s || MED_DEVICE_RE.test(s) ? '' : s;
+}
+
 function isNonDrugAnswer(text) {
   const words = String(text || '').toLowerCase().replace(/[^a-z0-9\s/-]+/g, ' ').split(/[\s/]+/).filter(Boolean);
   return !words.length || words.every((w) => NON_DRUG_WORDS.has(w));
@@ -383,7 +394,7 @@ const NOT_MED_RE = /^(?:no|none|not|medicaid|plan|plans|compare|they|their|for|a
 function medsFromAsk(askText) {
   const t = String(askText || '');
   const out = [];
-  const add = (s) => { if (s && s.length > 2 && s.length < 40 && !isNonDrugAnswer(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
+  const add = (s0) => { const s = cleanMedItem(s0); if (s && s.length > 2 && s.length < 40 && !isNonDrugAnswer(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
   // "Meds: a, b" / "Medications a, b" / "Medicamentos: a y b" / "Takes a, b" — colon optional
   // (Martin Wiesenthal, 2026-10-09: "…, Medications esomeprazole, rasuvostatin, …" read 0 meds).
   for (const m of t.matchAll(new RegExp(`(^|[^A-Za-z])(no\\s+)?\\b(${MED_LABEL})\\b(\\s*:\\s*|\\s+)([^\\n]+)`, 'gi'))) {
@@ -405,9 +416,10 @@ function medsFromAsk(askText) {
   // A list under a header — the loaded workup writes "Medications (tiers shown …):" then one
   // "- Atorvastatin 20mg: H1036-054C Tier 1 …" bullet per med. The one-line pattern above saw
   // nothing after the colon, so a loaded client's meds were never priced (Victor, 2026-10-08).
-  for (const m of t.matchAll(/^\s*(?:meds?|medications?|rx|drugs?|medicamentos?)\b[^\n:]*:\s*\n((?:[ \t]*[-•*][^\n]*(?:\n|$))+)/gim)) {
+  for (const m of t.matchAll(/^[^\n:]{0,40}?\b(?:meds?|medications?|rx|drugs?|medicamentos?)\b[^\n:]*:\s*\n((?:\s*[-•*][^\n]*(?:\n|$))+)/gim)) {
     for (const line of m[1].split('\n')) {
-      const name = line.replace(/^\s*[-•*]\s*/, '').split(/:\s/)[0].replace(/\(.*?\)/g, '').replace(/[.\s]+$/, '').trim();
+      if (!line.trim()) continue;
+      const name = cleanMedItem(line.replace(/^\s*[-•*]\s*/, '').split(/:\s/)[0]);
       if (name && name.length > 2 && name.length < 40 && !isNonDrugAnswer(name) && !out.some((o) => sameDrug(o, name))) out.push(name);
     }
   }
@@ -580,6 +592,7 @@ module.exports = {
   CARRIER_WORDS,
   carriersRequested,
   isOtcSupplement,
+  cleanMedItem,
   carriersRejected,
   wantsOtherCarrier,
   carrierOfPlan,
