@@ -291,3 +291,21 @@ describe('audit 3: the Rx cache keeps only final answers', () => {
     }
   });
 });
+
+describe('pasted lists with headers and bullets (Candy Winfrey, 2026-10-13)', () => {
+  const { parseCompareAsk } = require('./compareJobs');
+  const paste = [
+    'Candy Winfrey, ZIP 33157, plan H5420-001.',
+    'Here is the list of my physicians:', '-Yusleidi Gil MD (primary care)', '', '-Radomir Kosanovic, MD (spine specialist)', '', '-Peter Citron MD (oncologist)', '',
+    'Here is a list of my medications:', '', '-Meclizine 25mg tid', '', '-Metformin hydrochloride ER (glucophage) 500mg one daily', '',
+    '-Ipratropium Bromide 0.03% nasal spray (Atrovent) 2 sprays bid', '', '-Mounjaro 5mg weekly', '', '-C-Pap machine',
+  ].join('\n');
+  it('reads "my physicians" as the doctor list, without credentials as extra doctors or preamble', () => {
+    const r = parseCompareAsk(paste);
+    assert.deepEqual(r.doctors.map((d) => d.name), ['Yusleidi Gil (primary care)', 'Radomir Kosanovic (spine specialist)', 'Peter Citron (oncologist)']);
+  });
+  it('keeps name + strength + form in meds, drops dosing words and devices', () => {
+    const r = parseCompareAsk(paste);
+    assert.deepEqual(r.meds, ['Meclizine 25mg', 'Metformin hydrochloride ER 500mg', 'Ipratropium Bromide 0.03% nasal spray', 'Mounjaro 5mg']);
+  });
+});

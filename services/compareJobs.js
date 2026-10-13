@@ -121,7 +121,7 @@ function parseCompareAsk(text) {
   const clientName = (looseName && looseName.toLowerCase().startsWith(strictName.toLowerCase()) ? looseName : (strictName || looseName)).replace(/^the\s+/i, '');
   const terminatingPlan = ((t.match(/\b([HR]\d{4}-\d{3}[A-Z]?)\b[^.\n]{0,25}?\b(?:terminat|ending)/i) || [])[1] || '').toUpperCase();
 
-  let doctorsText = section(t, '(?:doctors?|drs?|providers?)', stops.filter((s) => !/doctor|dr|provider/.test(s)));
+  let doctorsText = section(t, '(?:doctors?|drs?|providers?|physicians?|specialists?)', stops.filter((s) => !/doctor|dr|provider/.test(s)));
   let medsText = section(t, '(?:meds?|medications?|rx|drugs?)', stops.filter((s) => !/med|rx|drug/.test(s)));
   // Trim trailing sentences ("… Compare Humana …", "Give me 2-3 plans")
   const cut = (s) => s.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Z])|\bcompare\b|\bgive me\b|\bsuggest\b|\bshow me\b/i)[0];
@@ -137,6 +137,8 @@ function parseCompareAsk(text) {
   }
   doctorsText = doctorsText.replace(/\b(?:Drs?|Dras?|Doc)(?:\.\s*|\s+)(?=[A-Za-z])/gi, '');
   doctorsText = cut(doctorsText);
+  // "Radomir Kosanovic, MD (spine specialist)": a credential after a comma is not a second doctor.
+  doctorsText = doctorsText.replace(/,\s*(?:MD|M\.D\.?|DO|D\.O\.?|DPM|DDS|DMD|OD)\b\.?(?=\s*(?:\(|\n|;|,|$))/gi, '');
   medsText = cut(medsText);
   if (!medsText) {
     // "Medications esomeprazole, …" (label, no colon) before the unlabeled-list fallback.
@@ -158,11 +160,13 @@ function parseCompareAsk(text) {
       npi = m[1];
       name = name.replace(m[0], ' ').replace(/\bnpi\b\s*#?\s*:?/i, ' ');
     }
+    // "Yusleidi Gil MD (primary care)" -> "Yusleidi Gil (primary care)": a trailing credential is not part of the name.
+    name = name.replace(/,?\s+(?:MD|M\.D\.?|DO|D\.O\.?|DPM|DDS|DMD|OD)\.?(?=\s*(?:\(|$))/i, '');
     name = name.replace(/\s{2,}/g, ' ').replace(/[\s.,-]+$/, '').trim();
     return npi ? { name, npi, mustKeep } : { name, mustKeep };
-  }).filter((d) => d.name || d.npi).slice(0, MAX_DOCTORS);
+  }).filter((d) => (d.name || d.npi) && !/^(?:here|this|the|my|list)\b/i.test(d.name || '') && !CRED_ONLY_RE.test(d.name || '')).slice(0, MAX_DOCTORS);
   // "acyclovir tablets & ointment" is two products, two rows.
-  let meds = expandMedList(splitList(medsText).map((m) => m.replace(/\.$/, ''))).slice(0, MAX_MEDS);
+  let meds = expandMedList(splitList(medsText).map((m) => require('./comparisonRules').cleanMedItem(m.replace(/\.$/, ''))).filter(Boolean)).slice(0, MAX_MEDS);
   // A pasted MedicarePro "Prescriptions (5)" block ("atorvastatin calcium TAB 10MG" lines) — the
   // section parser above caught only the first line (Victor, 2026-10-08). Use the full Rx-line read.
   const rxMeds = require('./comparisonRules').medsFromAsk(t);
