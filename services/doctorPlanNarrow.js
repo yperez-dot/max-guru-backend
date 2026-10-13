@@ -285,6 +285,12 @@ function comparisonAskText(messages, baseText) {
       break;
     }
   }
+  // A loaded workup that names the client's current plan: it is the first column on every follow-up
+  // (Jackie: UHC H5420-001 vanished after the three doctor corrections, 2026-10-13).
+  if (!lines.some((l) => /^Her current plan:/m.test(l))) {
+    const wk0 = workupFacts(msgs);
+    if (wk0 && wk0.current.length) lines.unshift(`Her current plan: ${wk0.current.join(', ')}.`);
+  }
   // "any other plans comparable to what she has?" — her saved/named plan is the CURRENT plan; add alternatives around it.
   // It stays true for the whole thread: answering Max's follow-up questions must not drop her current plan.
   for (let i = msgs.length - 1; i >= 0; i -= 1) {

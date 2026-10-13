@@ -191,3 +191,9 @@ test('page: a workspace run saves the single typed plan as the client\'s current
   const src = require('fs').readFileSync(require('path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
   assert.match(src, /currentPlanIds: \(\(\) => \{\s*const ids = \[\.\.\.new Set\(\(String\(ws\.fields\.plans/);
 });
+
+test('loaded workup current plan stays first column after doctor corrections (Jackie)', () => {
+  const ctx = 'LOADED CLIENT WORKUP (structured facts only — not a prior chat transcript).\nClient: Jackie Alexander\nZIP/county: 33178 / Miami-Dade\nCurrent plan: H5420-001\nPlans:\n- UHC (H5420-001)\n- Aetna (H1609-093)\nDoctors (names only — pass exactly these names to lookup_provider_network): Dr. Pasquel DeSantis; Dr. Neeta Erinjerri';
+  const msgs = [{ role: 'user', content: ctx }, { role: 'user', content: 'Pasquel DeSantis = Dr. Pascual De Santis, MD' }];
+  assert.match(N.comparisonAskText(msgs), /^Her current plan: H5420-001\.$/m);
+});
