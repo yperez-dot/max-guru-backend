@@ -593,9 +593,11 @@ function comparisonFollowUp(messages) {
       if (!qa || qa.role !== 'assistant' || !ua || ua.role !== 'user') continue;
       const q = messageText(qa);
       const yesText = messageText(ua);
-      const startsYes = /^\s*(?:yes|yep|yeah|correct|ok(?:ay)?)\b/i.test(yesText);
+      // A bare "yes" on its own line counts even when her other corrections share the message
+      // ("yes\nPasquel … = Dr. Pascual De Santis, MD\nYes, Natalie C Regalado Dc" — Jacqueline Alexander, 2026-10-13).
+      const startsYes = /^\s*(?:yes|yep|yeah|correct|ok(?:ay)?)\b/i.test(yesText) || /^\s*(?:yes|yep|yeah|correct|ok(?:ay)?)[.!,]?\s*$/im.test(yesText);
       if (!/No exact match for/i.test(q) || (!startsYes && !/\byes\b/i.test(yesText))) continue;
-      for (const x of q.matchAll(/"([^"]+)"\s*—\s*did you mean\s+([^(?]+?)\s*(?:\(|\?)/g)) {
+      for (const x of q.matchAll(/["“]([^"”]+)["”]\s*[—–-]\s*did you mean\s+([^(?]+?)\s*(?:\(|\?)/g)) {
         // "Pascual De Santis MD. yes to Neeta": a yes later in the message counts when it names that doctor.
         if (!startsYes && !yesText.toLowerCase().includes(String(x[2]).trim().split(/\s+/)[0].toLowerCase())) continue;
         const to = x[2].replace(/,\s*(?:MD|DO|DDS|DMD|DPM|OD|ARNP|PA-C?)\b.*$/i, '').trim();
@@ -603,10 +605,31 @@ function comparisonFollowUp(messages) {
       }
     }
     if (WANTS_ALTERNATIVES_RE.test(latest) && /\b[HR]\d{4}-\d{3}[A-Z]?\b/i.test(latest)) reasons.push('alternatives to her current plan');
+    // "Confirm the doctor match: Natalie Regalado - Baptist Medical Group → Natalie C Regalado Dc (NPI 1396060109). Right doctor?"
+    // + "Yes, Natalie C Regalado Dc": that NPI is looked up on every plan. Re-running the name alone left her
+    // unchecked / not confirmed on every column (Jacqueline Alexander, 2026-10-13).
+    const confirmed = {};
+    for (let k = i + 1; k < lastUserAt; k += 1) {
+      const qa = msgs[k];
+      const ua = msgs[k + 1];
+      if (!qa || qa.role !== 'assistant' || !ua || ua.role !== 'user') continue;
+      const yesText = messageText(ua);
+      const bareYes = /^\s*(?:yes|yep|yeah|correct|ok(?:ay)?)[.!]?\s*$/i.test(yesText);
+      for (const x of messageText(qa).matchAll(/(?:^|[:;\n]\s*)([^:;\n→]+?)\s*→\s*([^(\n→]+?)\s*\(NPI\s*(\d{10})\)/g)) {
+        const mw = plainWords(x[2]);
+        const last = mw[mw.length - 1] === 'dc' || mw[mw.length - 1] === 'md' ? mw[mw.length - 2] : mw[mw.length - 1];
+        const ok = bareYes || yesText.split('\n').some((l) => /\b(?:yes|yeah|yep|correct|right|confirm(?:ed)?)\b/i.test(l)
+          && !/\b(?:no|not|wrong)\b/i.test(l) && last && plainWords(l).includes(last));
+        if (ok) confirmed[x[1].replace(/^\s*(?:[•*-]|also)\s*/i, '').trim()] = x[3];
+      }
+    }
+    if (Object.keys(confirmed).length && !reasons.includes('doctor corrections')) reasons.push('doctor match confirmed');
     if (!reasons.length) return null;
     for (const [from, to] of subs) names = names.map((nm) => (sameDoctorName(nm, from) ? to : nm));
     const zip = f.zip || (msgs.slice(0, lastUserAt + 1).map(messageText).join(' ').match(/\b(3\d{4})\b/) || [])[1] || '';
-    return { reason: reasons.join(' + '), doctors: [...new Set(names)], zip };
+    const npis = {};
+    for (const nm of names) for (const [asked, npi] of Object.entries(confirmed)) if (sameDoctorName(nm, asked)) npis[nm] = npi;
+    return { reason: reasons.join(' + '), doctors: [...new Set(names)], zip, ...(Object.keys(npis).length ? { npis } : {}) };
   }
   // "check on another plan" on a loaded workup (no "Doctors:" line in the chat): its doctors.
   if (wantsOther) {
@@ -1401,6 +1424,14 @@ function selectComparison(doctors, askText, opts = {}) {
     const current = (ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '';
     pinFromAsk = [...current.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
   }
+  // A pinned plan she skipped / is terminating / whose carrier she excluded, or "without the current plan"
+  // / "not that plan", is never pinned (it would lead the table anyway).
+  const dropsCurrent = /\b(?:without|not|exclude|excluding|skip|drop|remove|no)\s+(?:her\s+|the\s+|my\s+|his\s+)?(?:current plan|that plan|this plan|it)\b/i.test(ask.replace(/^Her current plan:[^\n]*$/gm, ''));
+  pinFromAsk = dropsCurrent ? [] : pinFromAsk.filter((id) => {
+    const key = String(id).toUpperCase().slice(0, 9);
+    if ([...constraints.skip].some((s) => s.slice(0, 9) === key)) return false;
+    return !(excludedSet.size && excludedSet.has(R.carrierOfPlan(gridRowFor(id, county) || { name: '' })));
+  });
   // Looked-up names first ("Atorvastatin Calcium"), then anything listed but not looked up yet.
   const meds = [];
   for (const m of drugs.map(drugNameOf)) {
@@ -1448,6 +1479,11 @@ function selectComparison(doctors, askText, opts = {}) {
   let csnpInPlay = false;
   let snpUnknownKinds = new Set();
 
+  // "compare without the current plan": her plan is not a named column either.
+  if (dropsCurrent && !Array.isArray(opts.named)) {
+    const cur = new Set([...(((ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '').matchAll(/\b([HR]\d{4}-\d{3})/gi))].map((m) => m[1].toUpperCase()));
+    named = named.filter((p) => !cur.has(String(p.planId).toUpperCase().slice(0, 9)));
+  }
   if (named.length) {
     let cols = decorate(namedPlanColumns(named, matrix, docs));
     // A client grid never carries a pile of plans (5+ are cut to 3; up to 4 she typed herself stay): her CURRENT plan (if she has one) + the 1–2 best others
@@ -1457,6 +1493,19 @@ function selectComparison(doctors, askText, opts = {}) {
     const curText = (ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '';
     const curIds = new Set([...curText.matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((m) => m[1].toUpperCase()));
     const isCur = (c) => curIds.has(String(c.planId || '').toUpperCase().slice(0, 9));
+    // Her current plan persists across follow-up turns: a later turn whose plan set came from the previous
+    // table's other columns still leads with it (Jacqueline Alexander, 2026-10-13: answering the doctor
+    // questions dropped H5420-001). Not when she skipped it / it is terminating / its carrier is excluded.
+    if (!dropsCurrent) {
+      for (const id of curIds) {
+        if (cols.some((c) => String(c.planId || '').toUpperCase().slice(0, 9) === id)) continue;
+        if ([...constraints.skip].some((x) => x.slice(0, 9) === id)) continue;
+        if (excludedSet.size && excludedSet.has(R.carrierOfPlan(gridRowFor(id, county) || { name: '' }))) continue;
+        const row = gridRowFor(id, county);
+        const nm = row ? (carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim()) : id;
+        cols = [...decorate(namedPlanColumns([{ planId: (curText.match(new RegExp(`${id}[A-Z]?`, 'i')) || [id])[0].toUpperCase(), name: nm || id }], matrix, docs)), ...cols];
+      }
+    }
     if (cols.length > 4) {
       const score = (c) => ((c.in || []).length * 100) - ((c.out || []).length * 10) - ((c.unknown || []).length);
       const current = cols.filter(isCur).slice(0, 1);

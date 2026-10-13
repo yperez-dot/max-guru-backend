@@ -2846,6 +2846,10 @@
     const most = Math.max.apply(null, found.map((f) => f.rows.length));
     if (latest.rows.length >= most) return latest;
     const base = found.find((f) => f.rows.length === most);
+    // She removed doctors after the wide table ("remove Dr. C and D", "without Dr. X"): the newer, smaller table is the truth.
+    const removedAfter = (messages || []).some((m, idx) => idx > base.at && m && m.role === "user"
+      && /\b(remove|removed|drop|dropped|delete|without|take (?:off|out)|get rid of|exclude|no longer|not seeing)\b/i.test(String((typeof textFn === "function" ? textFn : messageContentToText)(m.content) || "")));
+    if (removedAfter) return latest;
     const key = (r) => String(r.npi || r.name || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
     const rows = base.rows.map((r) => Object.assign({}, r, { byPlan: Object.assign({}, r.byPlan) }));
     found.filter((f) => f.at > base.at).reverse().forEach((f) => {
