@@ -1135,7 +1135,15 @@ async function resolveMedicareGovNdcs({ drugName, ndc, hintNdc, strictName = fal
   // word: "rasuvostatin" never resolves to "Rasuvo".
   const typedHead = String(medicareQuery || drugName || '').toLowerCase().split(/\s+/)[0];
   const sameName = (d) => d && String(d.name || '').toLowerCase().split(/[\s/]+/)[0] === typedHead;
-  const pick = strictName ? [match, fallback].find(sameName) || null : match || fallback;
+  // A plain generic ask ("tramadol") is never a generic combination ("tramadol-acetaminophen"): no
+  // plain product in the list means unverified, not the combination's tier (Melmoth, 2026-10-13).
+  const wrongCombo = (d) => {
+    if (!d || comboAsk || /\(/.test(String(d.name || ''))) return false;
+    const qi = drugIngredients(drugName || medicareQuery);
+    return qi.length === 1 && drugIngredients(d.name).length > 1;
+  };
+  const okPick = (d) => (d && !wrongCombo(d) ? d : null);
+  const pick = strictName ? [okPick(match), okPick(fallback)].find(sameName) || null : okPick(match) || okPick(fallback);
   const rxcui = pick?.rxcui || null;
   const resolvedName = pick?.name || medicareQuery || drugName;
   let query = drugName || resolvedName;

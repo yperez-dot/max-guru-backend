@@ -909,3 +909,15 @@ __t('a pen named by concentration and volume has its dose as a strength (Mounjar
   assert.deepEqual(F.conceptProductTraits('pregabalin 20 MG/ML Oral Solution').strengths, [], 'a bare concentration is still not a dose');
   assert.deepEqual(F.conceptProductTraits('metformin hydrochloride 500 MG Oral Tablet').strengths, [{ value: '500', unit: 'mg' }]);
 });
+
+describe('device words and combination products (Melmoth, 2026-10-13)', () => {
+  const { drugNameBase } = require('./drugNames');
+  it('Trelegy Ellipta is the brand name, not a misspelling', () => {
+    assert.equal(drugNameBase('Trelegy Ellipta'), 'trelegy');
+    assert.equal(drugNameBase('Ozempic FlexTouch pen'), 'ozempic');
+  });
+  it('plain tramadol still ranks above tramadol-acetaminophen', () => {
+    const pick = pickCatalogMatch([{ name: 'Tramadol-Acetaminophen' }, { name: 'Tramadol' }], 'tramadol');
+    assert.equal(pick.name, 'Tramadol');
+  });
+});
