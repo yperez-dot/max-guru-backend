@@ -377,6 +377,27 @@ describe('carriersRequested: her client\'s current plan is not a carrier ask', (
   });
 });
 
+describe('"search her pcp in humana" is a Humana ask (Paula Harris, 2026-10-13)', () => {
+  it('search / look up read as carrier asks', () => {
+    assert.deepEqual(R.carriersRequested('search her pcp in humana'), ['Humana']);
+    assert.deepEqual(R.carriersRequested('look up her doctor in Humana'), ['Humana']);
+    assert.deepEqual(R.carriersRequested('lookup her pcp on humana and aetna').sort(), ['Aetna', 'Humana']);
+  });
+  it('the ask text asks for Humana instead of falling back to the 4 plans named earlier', () => {
+    const { comparisonAskText } = require('./doctorPlanNarrow');
+    const msgs = [
+      { role: 'user', content: 'Compare UHC MedicareMax Complete Care FL-30 H5420-014, HealthSun VitalCare H5431-021, CarePlus CareComplete H1019-150, Solis Wellness H0982-016 for Paula Harris ZIP 33169. Her doctor Elda Pilar Lauderman Regalado NPI 1487756722' },
+      { role: 'assistant', content: '| Doctor | UHC · H5420-014 | HealthSun · H5431-021 | CarePlus · H1019-150 | Solis · H0982-016 |\n|---|---|---|---|---|\n| Elda Pilar Lauderman Regalado · NPI 1487756722 | ❌ | ✅ In | ✅ In | ✅ In |' },
+      { role: 'user', content: 'search her pcp in humana' },
+    ];
+    assert.match(comparisonAskText(msgs), /^Carriers requested: Humana\.$/m);
+  });
+  it('still not a carrier ask without a request verb or when Humana is ruled out', () => {
+    assert.deepEqual(R.carriersRequested('Humana is her current carrier'), []);
+    assert.deepEqual(R.carriersRequested('search for something other than Humana'), []);
+  });
+});
+
 describe('carrier asks next to a plan ID (Martin/Cleusa, 2026-10-07)', () => {
   it('"compare his current plan with Humana, HealthSun and Doctors (DrSelect H4140-023)" asks for Humana + HealthSun', () => {
     const got = R.carriersRequested('Martin Wiesenthal, 33324. Current plan: Solis Healthy Living H0982-007. Compare his current plan with Humana, HealthSun and Doctors (DrSelect-SFL H4140-023). Doctors: Dr. Randeep Gadh (PCP).');
