@@ -170,3 +170,19 @@ test('Jackie: a bare corrected name goes to the one asked doctor it resembles, h
     assert.ok(!r.doctors.some((n) => /Pasquel/.test(n)), reply);
   }
 });
+
+test('export doctors are exactly the screen table: no stale saved rows, no glued "Yes", table order', () => {
+  const ex = require('../artifacts/comparison-export.js');
+  const tbl = { rows: [
+    { name: 'Natalie C Regalado Dc', npi: '1396060109', byPlan: { 'H5420-001': 'Not in network (not listed)' } },
+    { name: 'Neeta Jane Erinjeri', npi: '1427310424', byPlan: { 'H5420-001': 'In network' } },
+  ] };
+  const doctors = [
+    { name: 'Dr. Neeta Jane Erinjeri Yes', npi: '1427310424' },
+    { name: 'Natalie Regalado - Baptist Medical Group', npi: '1396060109' },
+    { name: 'Neeta Erinjerri - Surgeon at Baptist Cancer Institute' },
+  ];
+  const out = ex.finalizeExportDoctors(doctors, [{ planId: 'H5420-001' }], { savedDoctors: [], table: tbl });
+  assert.deepStrictEqual(out.map((d) => d.name), ['Dr. Natalie C Regalado', 'Dr. Neeta Jane Erinjeri']);
+  assert.strictEqual(out[0].statuses[0], 'Not in network (not listed)');
+});

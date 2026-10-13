@@ -2921,7 +2921,7 @@
     const saved = Array.isArray(o.savedDoctors) ? o.savedDoctors : [];
     const tbl = o.table || null;
     const titleCaseWords = (ws) => ws.map((w) => (w === w.toUpperCase() || w === w.toLowerCase() ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w)).join(" ");
-    return (Array.isArray(doctors) ? doctors : []).map((d) => {
+    const all = (Array.isArray(doctors) ? doctors : []).map((d) => {
       const row = Object.assign({}, d);
       const raw = String(row.name || "");
       const npiInName = (raw.match(/\b(\d{10})\b/) || [])[1] || "";
@@ -2961,6 +2961,21 @@
       }
       return row;
     }).concat(tableOnlyRows());
+    // The table on screen is the truth: its doctors, in its order, once each. Stale saved rows (a name she corrected,
+    // "Yes" / "Confirm Match" glued onto a name) never reach the sheet (Jackie Alexander, 2026-10-13: 12 rows for 10 doctors).
+    if (!tbl || !Array.isArray(tbl.rows) || !tbl.rows.length) return all;
+    const out = [];
+    tbl.rows.forEach((r) => {
+      const ident = doctorIdentity(r.name, r.npi);
+      const hit = all.find((d) => out.indexOf(d) < 0 && ((r.npi && String(d.npi || "") === r.npi) || sameDoctorIdentity(doctorIdentity(d.name, d.npi), ident)));
+      if (!hit) return;
+      if (r.npi) {
+        const tw = doctorNameWords(r.name);
+        if (tw.length >= 2) hit.name = "Dr. " + titleCaseWords(tw);
+      }
+      out.push(hit);
+    });
+    return out.length ? out : all;
 
     // A doctor in the latest chat table that no other source carried still gets its row.
     function tableOnlyRows() {
