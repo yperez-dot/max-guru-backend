@@ -408,3 +408,22 @@ describe('carrier asks next to a plan ID (Martin/Cleusa, 2026-10-07)', () => {
     assert.deepEqual(R.carriersRequested('Current plan H1045-005 UHC Preferred MA FL-0002. Doctors: Ana Lee.'), []);
   });
 });
+
+describe('stray words after "Meds:" and OTC vitamins (Paula Harris, 2026-10-13)', () => {
+  it('"checks" / "verify" after a med list is not a drug', () => {
+    assert.deepEqual(R.medsFromAsk('Meds: gabapentin, vitamin d, checks'), ['gabapentin', 'vitamin d']);
+    assert.deepEqual(R.medsFromAsk('Medications: Gabapentin, Pravastatin, check'), ['Gabapentin', 'Pravastatin']);
+    assert.deepEqual(R.medsFromAsk('Meds: metformin, verify'), ['metformin']);
+  });
+  it('vitamins and supplements are OTC, an Rx name is not', () => {
+    for (const x of ['Vitamin D', 'vitamin d3', 'Vitamin D (Ergocalciferol)', 'multivitamin', 'vitamin b12', 'fish oil', 'melatonin']) assert.equal(R.isOtcSupplement(x), true, x);
+    for (const x of ['ergocalciferol', 'metformin', 'Eliquis', 'folic acid']) assert.equal(R.isOtcSupplement(x), false, x);
+  });
+  it('the meds table says OTC supplement instead of "not covered" / "not found"', () => {
+    const plans = [{ planId: 'H0982-007', name: 'Solis Healthy Living' }, { planId: 'H1036-065C', name: 'Humana Gold Plus' }];
+    const t = n.medsTable([], plans, ['Vitamin D', 'metformin']);
+    assert.match(t, /\| Vitamin D \| OTC supplement[^|\n]*\| OTC supplement/);
+    assert.doesNotMatch(t, /Vitamin D[^\n]*not covered/);
+    assert.match(t, /\| metformin \| ❔ unchecked/i);
+  });
+});

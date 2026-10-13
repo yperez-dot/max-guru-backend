@@ -1711,6 +1711,8 @@ function strengthSplitCell(row, result) {
   return groups.map((g) => `${label(g)}: ${g.text}`).join(' ‖ ');
 }
 
+const OTC_SUPPLEMENT_CELL = 'OTC supplement · not a Part D drug — see the plan\'s OTC allowance';
+
 function drugCell(row, unsureNotCovered, result) {
   if (result && result.nameCheck) return '❓ check name';
   if (!row) return R.UNCHECKED;
@@ -1775,6 +1777,11 @@ function medsTable(drugResults, plans, knownMeds = []) {
     seen.add(name.toLowerCase());
     // "rasuvostatin" was looked up as rosuvastatin: the typed name is answered, not an unchecked row.
     if (r.inputName) seen.add(String(r.inputName).toLowerCase());
+    // Vitamins / supplements are not Part D drugs: say so instead of "not covered" / "not found".
+    if (R.isOtcSupplement(r.inputName || name)) {
+      rows.push(`| ${titleCase(String(r.inputName || name).replace(/\s*\(.*\)\s*$/, ''))} | ${plans.map(() => OTC_SUPPLEMENT_CELL).join(' | ')} |`);
+      continue;
+    }
     const cells = plans.map((p) => drugCell(drugRowFor(r, p.planId), Boolean(r.notCoveredNote), r));
     rows.push(`| ${drugLabel(r, name)} | ${cells.join(' | ')} |`);
   }
@@ -1782,7 +1789,7 @@ function medsTable(drugResults, plans, knownMeds = []) {
     const name = String(m || '').trim();
     if (!name || [...seen].some((x) => R.sameDrug(x, name))) continue;
     seen.add(name.toLowerCase());
-    rows.push(`| ${titleCase(name)} | ${plans.map(() => R.UNCHECKED).join(' | ')} |`);
+    rows.push(`| ${titleCase(name)} | ${plans.map(() => (R.isOtcSupplement(name) ? OTC_SUPPLEMENT_CELL : R.UNCHECKED)).join(' | ')} |`);
   }
   if (!rows.length) return '';
   const head = `| Drug | ${plans.map(shortPlanHeader).join(' | ')} |`;
