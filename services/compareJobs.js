@@ -93,7 +93,7 @@ const MED_WORD_RE = /^(?:meds?|medications?|medicines?|rx|drugs?|takes?|taking|m
  */
 function titledDoctors(t) {
   const out = [];
-  const re = /\b(?:Dr|Dra|Drs|Dras|Doc|Doctor|Doctora)\b\.?\s*([A-ZÁÉÍÓÚÑ][A-Za-zÀ-ÿ'’-]+(?:\s+[A-Z]\.)?(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÀ-ÿ'’-]+){0,3})/g;
+  const re = /\b(?:Dr|Dra|Drs|Dras|Doc|Doctor|Doctora)\b\.?[ \t]*([A-ZÁÉÍÓÚÑ][A-Za-zÀ-ÿ'’-]+(?:[ \t]+[A-Z]\.)?(?:[ \t]+(?!(?:Dr|Dra|Drs|Dras|Doc|Doctor|Doctora)\b)[A-ZÁÉÍÓÚÑ][A-Za-zÀ-ÿ'’-]+){0,3})/g;
   for (const m of String(t || '').matchAll(re)) {
     const words = m[1].split(/\s+/);
     while (words.length && MED_WORD_RE.test(words[words.length - 1])) words.pop();

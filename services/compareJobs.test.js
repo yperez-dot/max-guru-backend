@@ -1,4 +1,4 @@
-const { describe, it } = require('node:test');
+const { describe, it, test } = require('node:test');
 const assert = require('node:assert/strict');
 const { parseCompareAsk, normalizeInput, runJob, createJob, getJob } = require('./compareJobs');
 
@@ -327,4 +327,11 @@ describe('pasted lists with headers and bullets (Candy Winfrey, 2026-10-13)', ()
     const r = parseCompareAsk(paste);
     assert.deepEqual(r.meds, ['Meclizine 25mg', 'Metformin hydrochloride ER 500mg', 'Ipratropium Bromide 0.03% nasal spray', 'Mounjaro 5mg']);
   });
+});
+
+test('Jackie: a "Dr. Name" line with no specialty does not swallow the next line', () => {
+  const t = 'Jackie Alexander, 33187. Her current plan is UHC MedicareMax FL-0028 (H5420-001).\nDr. Elvin Sylvestri - Dental Associates\nDr. James Esserman\nDr. Neeta Jane Erinjeri, Dr. Alan Chu - ENT, Medications: Atorvastatin\nGabapentin';
+  const p = parseCompareAsk(t);
+  assert.deepEqual(p.doctors.map((d) => d.name), ['Elvin Sylvestri', 'James Esserman', 'Neeta Jane Erinjeri', 'Alan Chu']);
+  assert.deepEqual(p.meds, ['Atorvastatin', 'Gabapentin']);
 });
