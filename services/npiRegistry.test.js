@@ -145,6 +145,7 @@ describe('doctor match never swaps in a different person (2026-10-06 live bugs)'
     person('1111111111', 'IAN', '', 'DEL CONDE', 'MD', '33176'),
     person('1073390662', 'AMANDA', 'C', 'SOSA', 'RBT', '33172', 'Behavior Technician'),
     person('2222222222', 'MARIA', '', 'SOSA', 'MD', '33172'),
+    person('1366495566', 'GERMAN', 'ALBERTO', 'OJEDA CORREAL', 'MD', '33176', 'Neurological Surgery'),
   ];
   async function withNppes(fn) {
     const saved = global.fetch;
@@ -175,6 +176,11 @@ describe('doctor match never swaps in a different person (2026-10-06 live bugs)'
       const r = await resolveNpiRecords({ doctorName: 'Cheryl Diaz', zip: '33018' });
       assert.deepEqual(r.map((x) => x.number), ['1184615874', '1740843937'], 'Case-Diaz first, Cher Diaz kept only as a candidate');
     } finally { global.fetch = saved; }
+  });
+
+  it('"German Ojeda-Correal" (typed with a hyphen) finds NPPES "OJEDA CORREAL" (Candy Winfrey, 2026-10-13)', async () => {
+    const r = await withNppes(() => resolveNpiRecords({ doctorName: 'German Ojeda-Correal MD', zip: '33157' }));
+    assert.equal(r[0] && r[0].number, '1366495566');
   });
 
   it('"Ian Del Conde" → Ian Del Conde, not Cesar A Conde', async () => {

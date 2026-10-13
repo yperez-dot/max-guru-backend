@@ -884,6 +884,14 @@ function conceptProductTraits(name) {
   const re = /(\d+(?:\.\d+)?)\s*(mg|mcg|g|unit|units|meq|%)\b(?!\s*\/\s*(?:ml|actuat))/g;
   let m;
   while ((m = re.exec(n))) strengths.push({ value: m[1], unit: m[2] });
+  // A pen / vial is named by concentration and volume ("0.5 ML tirzepatide 10 MG/ML Auto-Injector [Mounjaro]") but
+  // asked for by dose ("Mounjaro 5 mg", medicare.gov "5mg/0.5ml"): dose = volume x concentration (Candy Winfrey, 2026-10-13).
+  const perMl = n.match(/(?:^|\s)(\d+(?:\.\d+)?)\s*ml\b[^/]*?\b(\d+(?:\.\d+)?)\s*(mg|mcg|unt|unit|units)\s*\/\s*ml\b/);
+  if (perMl) {
+    const dose = Math.round(Number(perMl[1]) * Number(perMl[2]) * 1000) / 1000;
+    const unit = perMl[3] === 'unt' || perMl[3] === 'units' ? 'unit' : perMl[3];
+    if (dose > 0 && !strengths.some((x) => Number(x.value) === dose && x.unit === unit)) strengths.push({ value: String(dose), unit });
+  }
   const brand = (n.match(/\[([^\]]+)\]\s*$/) || [])[1] || null;
   let form = null;
   if (/\btablet\b/.test(n)) form = 'tablet';
@@ -2306,6 +2314,7 @@ module.exports = {
   cmsContractParts,
   scoreRelatedConcept,
   queryProductHints,
+  conceptProductTraits,
   conceptMatchesQuery,
   resolveMedicareGovNdcs,
   rankNdcs,
