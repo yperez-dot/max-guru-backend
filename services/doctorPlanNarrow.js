@@ -1260,7 +1260,15 @@ function selectComparison(doctors, askText, opts = {}) {
     // She typed this exact NPI ("use this for Theresa 1306218243"): that is the confirmation. Her cells
     // were hidden as "not confirmed" behind a "different name" flag she had already settled (Paula Harris, 2026-10-13).
     const typedNpi = d.npi && new RegExp(`\\b${String(d.npi).replace(/\D/g, '')}\\b`).test(typedNpisText);
-    if (!issue || typedNpi || confirmedMatches.some((nm) => sameDoctorName(nm, who))) return { ...d, identityPending: '' };
+    // "yes Zubair Ansari" / "Zubair Ansari is correct": her own words naming the matched doctor with a yes confirm it,
+    // whatever wording Max's question used (Melmoth Alexander, 2026-10-13).
+    const matchedWords = plainWords(d.doctorName || '');
+    const saidYes = matchedWords.length >= 2 && ask0.split('\n').some((l) => {
+      const lw = ` ${plainWords(l).join(' ')} `;
+      return /\b(?:yes|yeah|yep|correct|right|confirm(?:ed)?|match|same)\b/i.test(l) && !/\b(?:no|not|wrong)\b/i.test(l)
+        && lw.includes(` ${matchedWords[0]} `) && lw.includes(` ${matchedWords[matchedWords.length - 1]} `) && l.length < 120;
+    });
+    if (!issue || typedNpi || saidYes || confirmedMatches.some((nm) => sameDoctorName(nm, who))) return { ...d, identityPending: '' };
     return { ...d, identityPending: issue, inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] };
   });
   const n = docs.length;

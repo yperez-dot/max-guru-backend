@@ -94,3 +94,12 @@ test('"Try Alan Dal Pra" answers the single "No exact match" doctor and keeps th
   assert.equal(fu.doctors.length, 5);
   assert.ok(fu.doctors.includes('Alan Dal Pra') && !fu.doctors.includes('Alan Del Par'), JSON.stringify(fu.doctors));
 });
+
+test('"yes Zubair Ansari" confirms the doctor match without the canonical question wording (Melmoth, 2026-10-13)', () => {
+  const doc = { requestedName: 'Dr. Zubain Ansari', doctorName: 'Zubair Ansari', npi: '1992124929', status: 'done', pending: [], failed: [], networks: [], carriersIn: [], inNetworkPlans: ['UHC MedicareMax (H5420-001)'], outOfNetworkPlans: [] };
+  const plain = N.selectComparison([doc], 'Named plan set: UHC MedicareMax (H5420-001).\nZubain Ansari', {});
+  const yes = N.selectComparison([doc], 'Named plan set: UHC MedicareMax (H5420-001).\nZubain Ansari\nyes Zubair Ansari', {});
+  const flagged = (o) => (o.docs || []).some((d) => d.identityPending);
+  assert.ok(flagged(plain) || !yes.docs || !flagged(yes));
+  assert.ok(!yes.docs || !flagged(yes));
+});
