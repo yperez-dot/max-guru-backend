@@ -531,6 +531,18 @@ function comparisonFollowUp(messages) {
       ...[...comparisonAskText(msgs).matchAll(/Doctor substitution: (.+?) => (.+?)\.$/gm)].map((x) => [x[1], x[2]]),
     ];
     if (substitutionsIn(latest, names).length) reasons.push('doctor corrections');
+    // "Try Alan Dal Pra" / "its Zubair Ansari" in answer to ONE "No exact match" doctor: that name replaces it, and the
+    // other doctors stay in the run (Melmoth Alexander, 2026-10-13: the reply re-ran only the new doctor).
+    const prevQ = prevAssistant ? messageText(prevAssistant) : '';
+    if (/No exact match for/i.test(prevQ) && !Object.keys(numberedAnswers(latest)).length) {
+      const askedNames = [...prevQ.matchAll(/"([^"]+)"\s*—/g)].map((x) => x[1].trim());
+      const said = latest.replace(/^\s*(?:try|use|maybe|its|it's|it is|is|=|check|add)\s+/i, '').replace(/^dr\.?\s+/i, '').replace(/[.!?]+\s*$/, '').trim();
+      const wordsSaid = said.split(/\s+/).filter(Boolean);
+      if (askedNames.length === 1 && wordsSaid.length >= 2 && wordsSaid.length <= 5 && /^[A-Za-zÀ-ÿ'.,\- ]+$/.test(said) && !carriers.length) {
+        subs.push([askedNames[0], said]);
+        reasons.push('doctor corrections');
+      }
+    }
     if (WANTS_ALTERNATIVES_RE.test(latest) && /\b[HR]\d{4}-\d{3}[A-Z]?\b/i.test(latest)) reasons.push('alternatives to her current plan');
     if (!reasons.length) return null;
     for (const [from, to] of subs) names = names.map((nm) => (sameDoctorName(nm, from) ? to : nm));
