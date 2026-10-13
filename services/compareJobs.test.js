@@ -335,3 +335,10 @@ test('Jackie: a "Dr. Name" line with no specialty does not swallow the next line
   assert.deepEqual(p.doctors.map((d) => d.name), ['Elvin Sylvestri', 'James Esserman', 'Neeta Jane Erinjeri', 'Alan Chu']);
   assert.deepEqual(p.meds, ['Atorvastatin', 'Gabapentin']);
 });
+
+test('Melmoth: " - Primary *" / " - ENT" / " - UM" markers are not part of the doctor name, and note sentences are not meds', () => {
+  const t = 'Melmoth Leslie Alexander · ZIP 33186\nDoctors: Elias Feanny - Primary *; Alan Chu - ENT; Alan DelPar - UM; Natalie Regalado - Baptist Medical Group\nMeds: Metformin; Tramadol; UM means University of Miami; and only Humana has those doctors\nPlans: H5420-001';
+  const f = parseCompareAsk(t);
+  assert.deepEqual(f.doctors.map((d) => d.name), ['Elias Feanny', 'Alan Chu', 'Alan DelPar', 'Natalie Regalado - Baptist Medical Group']);
+  assert.deepEqual(f.meds, ['Metformin', 'Tramadol']);
+});
