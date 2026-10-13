@@ -915,7 +915,11 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   if (medsUnreadable) console.warn(`[comparison] WARNING ${doctors.length} doctors, 0 meds read, but the ask names drugs: ${unreadTokens.join(', ')}`);
   let drugs = [];
   if (meds.length) {
-    const planIds = selectComparison(doctorsStructured, askText, { answered }).columns.map((c) => c.planId);
+    const chosen = selectComparison(doctorsStructured, askText, { answered });
+    // A same-network twin ("Also checked: H4140-023 = same doctor results as H4140-022") gets its own drug
+    // prices too: the export lists it as a column, and its meds read "Unverified" when only the lead plan was priced
+    // (Candy Winfrey, 2026-10-13). Doctors are shared; tiers can differ between plan benefit packages.
+    const planIds = [...new Set([...chosen.columns.map((c) => c.planId), ...(chosen.sameNetwork || []).map((x) => x.plan.planId)])];
     if (planIds.length) {
       const { lookupFormularyCached } = require('./compareJobs'); // lazy: compareJobs requires this file
       const year = Number(common.year) || Number(UHC_PLAN_YEAR) || 2027;
