@@ -200,8 +200,8 @@ function matchVerdicts(names, answer) {
  */
 function substitutionsIn(text, knownNames) {
   const out = [];
-  for (const part of String(text || '').split(/[;\n]|,(?=\s*[A-Za-z][^,]*?(?:=|→|->|\bis\b))/)) {
-    const m = part.match(/^\s*(?:\d+[.)]\s*)?(?:dr\.?\s*)?([A-Za-z][A-Za-z .'-]{1,40}?)\s*(?:=|→|->|\bis actually\b|\bis really\b|\bshould be\b|\bmeans\b|\bis\b)\s*(?:dr\.?\s*)?([A-Za-z][A-Za-z .'-]{2,60}?)\s*[.!]?\s*$/i);
+  for (const part of String(text || '').replace(/^\s*(?:yes|yep|yeah|correct|ok(?:ay)?)\b[\s.,!:;-]*/i, '').split(/[;\n]|,(?=\s*[A-Za-z][^,]*?(?:=|→|->|\bis\b))/)) {
+    const m = part.match(/^\s*(?:\d+[.)]\s*)?(?:dr\.?\s*)?([A-Za-z][A-Za-z .'-]{1,70}?)\s*(?:=|→|->|\bis actually\b|\bis really\b|\bshould be\b|\bmeans\b|\bis\b)\s*(?:dr\.?\s*)?([A-Za-z][A-Za-z .,'-]{2,60}?)\s*[.!]?\s*$/i);
     if (!m) continue;
     const from = (knownNames || []).find((k) => sameDoctorName(k, m[1]));
     if (from && !sameDoctorName(from, m[2])) out.push([from, m[2].trim()]);
@@ -271,6 +271,19 @@ function comparisonAskText(messages, baseText) {
     if (!reply) continue;
     const answers = numberedAnswers(messageText(reply));
     qs.forEach((q, k) => { if (q && answers[k]) statementsFor(q, answers[k]).forEach((st) => lines.push(st)); });
+  }
+  // A workspace result pasted into chat ("Doctors: …\nPlans: H5420-001"): that single plan is the client's current plan.
+  // Without this line the follow-up turns dropped it and showed three other plans (Jackie Alexander, 2026-10-13).
+  if (!lines.some((l) => /^Her current plan:/m.test(l))) {
+    for (let i = msgs.length - 1; i >= 0; i -= 1) {
+      const m = msgs[i];
+      if (!m || m.role !== 'user') continue;
+      const t = messageText(m);
+      if (isWorkupMessage(t) || !/\b(?:doctors?|drs?)\s*:/i.test(t)) continue;
+      const ids = [...new Set([...(t.match(/^Plans?:\s*([^\n]+)$/im) || ['', ''])[1].matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase()))];
+      if (ids.length === 1) lines.unshift(`Her current plan: ${ids[0]}.`);
+      break;
+    }
   }
   // "any other plans comparable to what she has?" — her saved/named plan is the CURRENT plan; add alternatives around it.
   // It stays true for the whole thread: answering Max's follow-up questions must not drop her current plan.
@@ -541,6 +554,19 @@ function comparisonFollowUp(messages) {
       if (askedNames.length === 1 && wordsSaid.length >= 2 && wordsSaid.length <= 5 && /^[A-Za-zÀ-ÿ'.,\- ]+$/.test(said) && !carriers.length) {
         subs.push([askedNames[0], said]);
         reasons.push('doctor corrections');
+      }
+    }
+    // "yes" to "did you mean Neeta Jane Erinjeri, MD (…)?" — in this reply or any earlier one: the spelling Max found
+    // replaces the name she typed.
+    for (let k = i + 1; k < lastUserAt; k += 1) {
+      const qa = msgs[k];
+      const ua = msgs[k + 1];
+      if (!qa || qa.role !== 'assistant' || !ua || ua.role !== 'user') continue;
+      const q = messageText(qa);
+      if (!/No exact match for/i.test(q) || !/^\s*(?:yes|yep|yeah|correct|ok(?:ay)?)\b/i.test(messageText(ua))) continue;
+      for (const x of q.matchAll(/"([^"]+)"\s*—\s*did you mean\s+([^(?]+?)\s*(?:\(|\?)/g)) {
+        const to = x[2].replace(/,\s*(?:MD|DO|DDS|DMD|DPM|OD|ARNP|PA-C?)\b.*$/i, '').trim();
+        if (to && !subs.some(([f]) => sameDoctorName(f, x[1]))) { subs.push([x[1].trim(), to]); if (!reasons.includes('doctor corrections')) reasons.push('doctor corrections'); }
       }
     }
     if (WANTS_ALTERNATIVES_RE.test(latest) && /\b[HR]\d{4}-\d{3}[A-Z]?\b/i.test(latest)) reasons.push('alternatives to her current plan');
@@ -1334,6 +1360,11 @@ function selectComparison(doctors, askText, opts = {}) {
   }
   // Carrier ask ("show me Doctors HealthCare"): her current plan is still a column.
   if (!Array.isArray(opts.named) && !wantsOther && carriers.length && !pinFromAsk.length) {
+    const current = (ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '';
+    pinFromAsk = [...current.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
+  }
+  // Her current plan is a column in every table, not only in carrier / rank asks.
+  if (!Array.isArray(opts.named) && !wantsOther && !pinFromAsk.length) {
     const current = (ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '';
     pinFromAsk = [...current.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
   }
