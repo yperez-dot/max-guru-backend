@@ -900,3 +900,12 @@ describe('tier cost-share formatting (HealthSun bare numbers, 2026-10-07)', () =
     assert.equal(formatCostShare(null), null);
   });
 });
+
+const { test: __t } = require('node:test');
+__t('a pen named by concentration and volume has its dose as a strength (Mounjaro 5 mg, 2026-10-13)', () => {
+  const assert = require('node:assert/strict');
+  const F = require('./formularyLookup');
+  assert.deepEqual(F.conceptProductTraits('0.5 ML tirzepatide 10 MG/ML Auto-Injector [Mounjaro]').strengths, [{ value: '5', unit: 'mg' }]);
+  assert.deepEqual(F.conceptProductTraits('pregabalin 20 MG/ML Oral Solution').strengths, [], 'a bare concentration is still not a dose');
+  assert.deepEqual(F.conceptProductTraits('metformin hydrochloride 500 MG Oral Tablet').strengths, [{ value: '500', unit: 'mg' }]);
+});

@@ -431,6 +431,16 @@ async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limi
     }
   }
   attempts.push(parsed);
+  // "Ojeda-Correal" typed with a hyphen, registered as "OJEDA CORREAL" (medicare.gov: "German Ojeda Correal"): try the
+  // space form, then each half, before giving up (Candy Winfrey, 2026-10-13).
+  if (parsed.lastName && /[-–]/.test(parsed.lastName)) {
+    const parts = parsed.lastName.split(/[-–]/).map((x) => x.trim()).filter(Boolean);
+    attempts.push({ ...parsed, lastName: parts.join(' ') });
+    if (parts.length === 2) {
+      attempts.push({ ...parsed, lastName: parts[0] });
+      attempts.push({ ...parsed, lastName: parts[1] });
+    }
+  }
   if (tokens.length >= 3) {
     attempts.push({ firstName: tokens[0], lastName: tokens.slice(1).join(' ') });
     attempts.push({ firstName: tokens[0], lastName: tokens.slice(-2).join(' ') });
