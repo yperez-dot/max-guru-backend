@@ -115,3 +115,24 @@ describe('only the plan she is on is her current plan', () => {
     assert.match(workupsUi.compactWorkupContext(w), /Inbar Saporta \(Cardiologist\) NPI 1234567893/);
   });
 });
+
+describe('a full final table replaces the saved doctor list (Jackie, 2026-10-13)', () => {
+  it('replaceDoctors drops the old misspelled rows; without it saves still merge', () => {
+    const { store, cleanup } = tempStore();
+    try {
+      const first = store.upsert(OWNER, { ...maura(), clientName: 'Jackie', doctors: [
+        { name: 'Pasquel DeSantis - Endocrinologist - Baptist', byPlanId: {} },
+        { name: 'Neeta Erinjerri - Surgeon at Baptist Cancer Institute', byPlanId: {} },
+      ] });
+      const id = (first.workup || first).id;
+      const fixed = [
+        { name: 'Pascual De Santis', npi: '1225156565', byPlanId: { 'H1045-001': 'in' } },
+        { name: 'Neeta Jane Erinjeri', npi: '1427310424', byPlanId: { 'H1045-001': 'in' } },
+      ];
+      const merged = store.upsert(OWNER, { ...maura(), id, clientName: 'Jackie', doctors: fixed });
+      assert.equal((merged.workup || merged).doctors.length, 4);
+      const replaced = store.upsert(OWNER, { ...maura(), id, clientName: 'Jackie', doctors: fixed, replaceDoctors: true });
+      assert.deepEqual((replaced.workup || replaced).doctors.map((d) => d.name), ['Pascual De Santis', 'Neeta Jane Erinjeri']);
+    } finally { cleanup(); }
+  });
+});

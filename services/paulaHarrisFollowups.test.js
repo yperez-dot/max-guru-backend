@@ -197,3 +197,8 @@ test('loaded workup current plan stays first column after doctor corrections (Ja
   const msgs = [{ role: 'user', content: ctx }, { role: 'user', content: 'Pasquel DeSantis = Dr. Pascual De Santis, MD' }];
   assert.match(N.comparisonAskText(msgs), /^Her current plan: H5420-001\.$/m);
 });
+
+test('page save replaces the saved doctors when the table is full (marker)', () => {
+  const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
+  assert.match(html, /built\.replaceDoctors = true/);
+});

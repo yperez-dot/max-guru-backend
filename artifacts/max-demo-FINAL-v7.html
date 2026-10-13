@@ -7073,7 +7073,10 @@ function App() {
         if (x.npi && y.npi) return false;
         return a.length >= 2 && b.length >= 2 && near(a[0], b[0]) && near(a[a.length - 1], b[b.length - 1]);
       };
-      if (Array.isArray(prev.doctors) && prev.doctors.length) {
+      if (Array.isArray(prev.doctors) && prev.doctors.length && built.doctors.length >= prev.doctors.length) {
+        // A full table (as many doctors as saved): it IS the list, corrections included.
+        built.replaceDoctors = true;
+      } else if (Array.isArray(prev.doctors) && prev.doctors.length) {
         const keep = prev.doctors.filter((d) => !built.doctors.some((n) => sameDoctor(n, d)));
         // Keep her original order where a row was only updated; new rows go after.
         const ordered = prev.doctors.map((d) => built.doctors.find((n) => sameDoctor(n, d)) || d);

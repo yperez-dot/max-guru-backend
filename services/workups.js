@@ -196,6 +196,9 @@ function normalizeWorkupInput(input) {
       .map((x) => String(x || '').toUpperCase().trim())
       .filter((x) => /^[HR]\d{4}-\d{3}[A-Z]?$/.test(x)))].slice(0, 3),
     compareResult: slimCompareResult(src.compareResult),
+    // The page sends the FINAL table's doctors (corrections applied): they replace the saved list instead of
+    // merging, so a reopened workup never exports the old misspelled rows (Jackie, 2026-10-13).
+    replaceDoctors: src.replaceDoctors === true,
   };
 }
 
@@ -513,7 +516,7 @@ class WorkupStore {
       contacts: body.contacts || prev.contacts || '',
       plans: body.plans.length ? body.plans : (prev.plans || []),
       planIds: body.plans.length ? body.planIds : (prev.planIds || []),
-      doctors: mergeDoctors(prev.doctors, body.doctors),
+      doctors: body.replaceDoctors && body.doctors.length ? body.doctors : mergeDoctors(prev.doctors, body.doctors),
       medications: mergeMedications(prev.medications, body.medications),
       needs: slimNeeds([...(prev.needs || []), ...body.needs]),
       terminatingPlan: body.terminatingPlan || prev.terminatingPlan || '',
