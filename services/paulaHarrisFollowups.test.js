@@ -132,3 +132,30 @@ test('export keeps the full doctor table when a later follow-up table shows only
   assert.strictEqual(t.rows[0].byPlan['H1609-093'], 'In network');
   assert.strictEqual(t.rows[1].byPlan['H5420-001'], 'In network');
 });
+
+test('Jackie: "yes. X = Dr. Y" applies both the spelling and the correction, and the pasted Plans line stays her current plan', () => {
+  const D = require('./doctorPlanNarrow');
+  const first = 'Jacqueline Alexander · ZIP 33186\nDoctors: Pasquel DeSantis - Endocrinologist - Baptist; Neeta Erinjerri - Surgeon at Baptist Cancer Institute; Alan Chu\nMeds: Rinvoq\nPlans: H5420-001\nComparison results';
+  const q = 'Answer these first:\n1. No exact match for:\n• "Pasquel DeSantis - Endocrinologist - Baptist" — closest: Joseph Desantis, ARNP (Nurse Practitioner, Miami)\n• "Neeta Erinjerri - Surgeon at Baptist Cancer Institute" — did you mean Neeta Jane Erinjeri, MD (Surgery, Miami)? (looks like a spelling difference)\nReply "yes" to use the spelling found.';
+  const msgs = [{ role: 'user', content: first }, { role: 'assistant', content: q }, { role: 'user', content: 'yes. Pasquel DeSantis - Endocrinologist - Baptist = Dr. Pascual De Santis, MD' }];
+  const r = D.comparisonFollowUp(msgs);
+  assert.ok(r.doctors.some((n) => /^Pascual De Santis/.test(n)), JSON.stringify(r.doctors));
+  assert.ok(r.doctors.includes('Neeta Jane Erinjeri'), JSON.stringify(r.doctors));
+  assert.ok(/^Her current plan: H5420-001\./m.test(D.comparisonAskText(msgs)));
+});
+
+test('Jackie: earlier "yes" + "X = Y" corrections stay applied on a later confirmation turn (no duplicate doctors)', () => {
+  const D = require('./doctorPlanNarrow');
+  const first = 'Jacqueline Alexander · ZIP 33186\nDoctors: Natalie Regalado - Baptist; Pasquel DeSantis - Endocrinologist - Baptist; Neeta Erinjerri - Surgeon at Baptist Cancer Institute; Alan Chu\nMeds: Rinvoq\nPlans: H5420-001\nComparison results';
+  const q = '1. No exact match for:\n• "Pasquel DeSantis - Endocrinologist - Baptist" — closest: Joseph Desantis, ARNP (Nurse Practitioner, Miami)\n• "Neeta Erinjerri - Surgeon at Baptist Cancer Institute" — did you mean Neeta Jane Erinjeri, MD (Surgery, Miami)? (looks like a spelling difference)\nReply "yes" to use the spelling found.';
+  const msgs = [
+    { role: 'user', content: first }, { role: 'assistant', content: q },
+    { role: 'user', content: 'yes. Pasquel DeSantis - Endocrinologist - Baptist = Dr. Pascual De Santis, MD' },
+    { role: 'assistant', content: 'Doctors × top plans\n2. Is Natalie C Regalado Dc the doctor you meant?' },
+    { role: 'user', content: 'YES, Dr. Natalie C Regalado Dc' },
+  ];
+  const r = D.comparisonFollowUp(msgs);
+  assert.strictEqual(r.doctors.length, 4, JSON.stringify(r.doctors));
+  assert.ok(r.doctors.some((n) => /^Pascual De Santis/.test(n)) && r.doctors.includes('Neeta Jane Erinjeri'));
+  assert.ok(!r.doctors.some((n) => /Pasquel|Erinjerri/.test(n)));
+});
