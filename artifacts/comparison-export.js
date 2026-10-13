@@ -1220,7 +1220,7 @@
       formatBenefitValue(plan && plan["tier" + status.tier], "tier" + status.tier);
     const flags = [status.pa ? "PA" : "", status.st ? "ST" : "", status.qlText || (status.ql ? "QL" : "")].filter(Boolean).join("/");
     const costBit = cost && cost !== "Not listed" ? " · " + cost : "";
-    return "Tier " + status.tier + costBit + (flags ? " · " + flags : "") + (restrictionsUnknown(status) ? " · PA/QL ?" : "");
+    return "Tier " + status.tier + costBit + (flags ? " · " + flags : "");
   }
 
   function planIdAliases(plan) {
@@ -2757,6 +2757,7 @@
     [/^✅\s*In\*/, "In network*"],
     [/^✅\s*In\b/, NETWORK_IN],
     [/^❌/, NETWORK_OUT],
+    [/^❔\s*not confirmed/i, NETWORK_NOT_CONFIRMED],
   ];
   const ROLE_WORD_RE = /^(?:pcp|primary|care|physician|internist|internal|medicine|family|cardiologist|cardiology|dermatologist|dermatology|ophthalmologist|ophthalmology|optometrist|gynecologist|gynecology|obgyn|ob\/gyn|ob|gyn|neurologist|neurology|endocrinologist|rheumatologist|gastroenterologist|urologist|oncologist|nephrologist|pulmonologist|podiatrist|psychiatrist|orthopedist|orthopedic|surgeon|specialist|dentist|allergist|hematologist|ent)$/i;
 

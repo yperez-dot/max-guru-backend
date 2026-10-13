@@ -1244,7 +1244,7 @@
       formatBenefitValue(plan && plan["tier" + status.tier], "tier" + status.tier);
     const flags = [status.pa ? "PA" : "", status.st ? "ST" : "", status.qlText || (status.ql ? "QL" : "")].filter(Boolean).join("/");
     const costBit = cost && cost !== "Not listed" ? " · " + cost : "";
-    return "Tier " + status.tier + costBit + (flags ? " · " + flags : "") + (restrictionsUnknown(status) ? " · PA/QL ?" : "");
+    return "Tier " + status.tier + costBit + (flags ? " · " + flags : "");
   }
 
   function planIdAliases(plan) {
@@ -2781,6 +2781,7 @@
     [/^✅\s*In\*/, "In network*"],
     [/^✅\s*In\b/, NETWORK_IN],
     [/^❌/, NETWORK_OUT],
+    [/^❔\s*not confirmed/i, NETWORK_NOT_CONFIRMED],
   ];
   const ROLE_WORD_RE = /^(?:pcp|primary|care|physician|internist|internal|medicine|family|cardiologist|cardiology|dermatologist|dermatology|ophthalmologist|ophthalmology|optometrist|gynecologist|gynecology|obgyn|ob\/gyn|ob|gyn|neurologist|neurology|endocrinologist|rheumatologist|gastroenterologist|urologist|oncologist|nephrologist|pulmonologist|podiatrist|psychiatrist|orthopedist|orthopedic|surgeon|specialist|dentist|allergist|hematologist|ent)$/i;
 
@@ -7639,7 +7640,8 @@ function App() {
             ? window.MaxComparisonExport.citedPlanIdsFromText(latestAsk)
             : [];
         // "add X too, then the excel": the new table's plans (+ added plans), current plan first.
-        const replySet = window.MaxComparisonExport.wantsComparisonExport(userMessageText(apiContent)) ? exportTablePlanSet([...newHistory, assistantMsg]) : [];
+        // The table on screen IS the export: its plans, in its order, with her current plan first — whether or not she asked for the Excel in this message.
+        const replySet = (tableReply || window.MaxComparisonExport.wantsComparisonExport(userMessageText(apiContent))) ? exportTablePlanSet([...newHistory, assistantMsg]) : [];
         // "Pls add Humana … H1036-054C and UHC … H5420-001 to the grid": the 2 cited plans are ADDED to the
         // table, not the new set — the export / Show benefits must keep every table column (Victor, 2026-10-08).
         const addAsk = /\b(add|also|include|plus|too|as well)\b/i.test(latestAsk) && found.length > latestCited.length;

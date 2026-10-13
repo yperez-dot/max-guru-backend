@@ -418,13 +418,13 @@ test('Sunfire / FHIR answer that omits the restriction fields is unknown, never 
   assert.equal(N.medsTable([{ drugName: 'Eliquis', byPlanId: { 'H1019-001': sunfire }, lookups: [sunfire] }], [{ planId: 'H1019-001', name: 'CarePlus' }]).split('\n')[2], '| Eliquis | T3 $47 · PA/QL ? |');
 });
 
-test('export (Excel/PDF) cells carry the same marker, synced into the UI page', () => {
+test('export (Excel/PDF) cells print no "PA/QL ?" (the screen does not either), synced into the UI page', () => {
   const fs = require('fs');
   const path = require('path');
   const src = fs.readFileSync(path.join(__dirname, '..', 'artifacts', 'comparison-export.js'), 'utf8');
-  assert.match(src, /restrictionsUnknown\(status\) \? " · PA\/QL \?" : ""/);
+  assert.doesNotMatch(src, /PA\/QL \?" : ""/);
   const html = fs.readFileSync(path.join(__dirname, '..', 'artifacts', 'max-demo-FINAL-v7.html'), 'utf8');
-  assert.match(html, /restrictionsUnknown\(status\) \? " · PA\/QL \?" : ""/);
+  assert.doesNotMatch(html, /PA\/QL \?" : ""/);
 });
 
 test('ranking uses the lowest-cost strength for a split drug', () => {

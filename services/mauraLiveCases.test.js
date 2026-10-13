@@ -226,3 +226,11 @@ test('export: current plan first even with no loaded workup; same-network twin i
   assert.deepEqual(E.sameNetworkTwinIds(reply), ['H4140-023']);
   assert.deepEqual(E.currentPlanIdsFromText(user), ['H5420-001']);
 });
+
+test('export follows the on-screen table: its columns, current plan first, its In/Out cells (Jackie Alexander)', () => {
+  const reply = '| Doctor | UHC MedicareMax MA FL-0028 HMO · H5420-001 | Humana Gold Plus · H1036-054C | Doctors DrMax-Dade · H4140-022 |\n|---|---|---|---|\n| James N Esserman · NPI 1699719997 | ❌ Not in network (not listed) | ✅ In | ✅ In |\n| Dr. Elvin Sylvestri | ❔ not confirmed | ❔ not confirmed | ❔ not confirmed |\n| Doctors | 1 in | 1 in | 1 in |\n';
+  const msgs = [{ role: 'user', content: 'Jackie Alexander, 33187. Her current plan is UHC MedicareMax FL-0028 (H5420-001).' }, { role: 'assistant', content: reply }];
+  assert.deepEqual(E.exportPlanIdsFromThread(msgs, null, {}), ['H5420-001', 'H1036-054C', 'H4140-022']);
+  const t = E.latestChatTable(msgs);
+  assert.equal(t.rows[1].byPlan['H5420-001'], 'Not confirmed');
+});
