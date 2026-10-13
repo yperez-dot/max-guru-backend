@@ -7393,6 +7393,12 @@ function App() {
       const payload = await hydrateExportSobBenefits(collectComparisonExport(queueHistory(entry), plans, queueExportExtras(entry)));
       const body = window.MaxClientWorkups.buildWorkupFromExport(payload, {
         id, threadText: compareAskText(ws.fields), clientName: ws.fields.clientName, zip: ws.fields.zip, terminatingPlan: ws.fields.terminatingPlan,
+        // The single plan typed in "Plans:" IS the client's current plan: the saved workup carries it, so every later
+        // chat turn keeps it as the first column (Jackie Alexander, 2026-10-13: UHC H5420-001 dropped after the first reply).
+        currentPlanIds: (() => {
+          const ids = [...new Set((String(ws.fields.plans || "").match(/\b[HR]\d{4}-\d{3}[A-Z]?\b/gi) || []).map((x) => x.toUpperCase()))];
+          return ids.length === 1 ? ids : [];
+        })(),
       });
       body.id = id;
       body.compareResult = job.result;
