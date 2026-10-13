@@ -6962,8 +6962,36 @@ function App() {
       if (!built.contacts) built.contacts = prev.contacts || "";
       if (!built.terminatingPlan) built.terminatingPlan = prev.terminatingPlan || "";
       if (!built.needs.length && Array.isArray(prev.needs)) built.needs = prev.needs;
-      if (!built.doctors.length && Array.isArray(prev.doctors)) built.doctors = prev.doctors;
-      if (!built.medications.length && Array.isArray(prev.medications)) built.medications = prev.medications;
+      // A narrowed re-run (one corrected doctor, two plans) updates the rows it checked and never
+      // deletes the rest of the saved list: Paula Harris lost 4 of 6 doctors and all meds this way (2026-10-13).
+      const words = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(dr|md|do|dds|dmd|aprn|arnp|np|pa|pcp)\b\.?/g, " ").split(/[^a-z]+/).filter((w) => w.length > 1);
+      const near = (a, b) => {
+        if (a === b) return true;
+        if (a.length < 4 || b.length < 4) return false;
+        const m = a.length, n = b.length; let row = Array.from({ length: n + 1 }, (_, j) => j);
+        for (let i = 1; i <= m; i += 1) { const cur = [i]; for (let j = 1; j <= n; j += 1) cur[j] = Math.min(row[j] + 1, cur[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); row = cur; }
+        return row[n] <= 2;
+      };
+      const sameDoctor = (x, y) => {
+        if (x.npi && y.npi) return String(x.npi) === String(y.npi);
+        const a = words(x.name), b = words(y.name);
+        if (!a.length || !b.length) return false;
+        const A = a.join(" "), B = b.join(" ");
+        if (a.length >= 2 && b.length >= 2 && (A.includes(B) || B.includes(A))) return true;
+        return a.length >= 2 && b.length >= 2 && near(a[0], b[0]) && near(a[a.length - 1], b[b.length - 1]);
+      };
+      if (Array.isArray(prev.doctors) && prev.doctors.length) {
+        const keep = prev.doctors.filter((d) => !built.doctors.some((n) => sameDoctor(n, d)));
+        // Keep her original order where a row was only updated; new rows go after.
+        const ordered = prev.doctors.map((d) => built.doctors.find((n) => sameDoctor(n, d)) || d);
+        const fresh = built.doctors.filter((n) => !prev.doctors.some((d) => sameDoctor(n, d)));
+        built.doctors = keep.length || fresh.length || ordered.length ? ordered.concat(fresh) : built.doctors;
+      }
+      if (Array.isArray(prev.medications) && prev.medications.length) {
+        const key = (m) => words(m && m.name).join(" ");
+        const have = new Set(built.medications.map(key));
+        built.medications = built.medications.concat(prev.medications.filter((m) => !have.has(key(m))));
+      }
     }
     if (built.clientName && payload && !payload.clientName) payload.clientName = built.clientName;
     return built;

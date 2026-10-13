@@ -309,7 +309,7 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
     console.log(`[AutoTool/${CONFIG.provider}] comparison follow-up: ${followUp.reason}; ${followUp.doctors.length} doctors, ZIP ${followUp.zip || '?'}`);
     const result = await raceUntil(
       Promise.resolve().then(() => runTool('lookup_provider_network', {
-        doctors: followUp.doctors.map((doctorName) => ({ doctorName })),
+        doctors: followUp.doctors.map((doctorName) => ({ doctorName, ...(followUp.npis && followUp.npis[doctorName] ? { npi: followUp.npis[doctorName] } : {}) })),
         zip: followUp.zip || undefined,
       }, { messages, system, remainingMs: toolTimeLeft(), deadlineAt: toolDeadlineAt })).catch((e) => `lookup_provider_network error: ${e.message}`),
       toolDeadlineAt + toolGraceMs,
