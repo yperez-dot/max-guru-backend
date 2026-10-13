@@ -867,10 +867,15 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   // One doctor checked against a named plan / carrier / ranking is still a table (same layout as many).
   const latestUser = [...(context.messages || [])].reverse().find((m) => m && m.role === 'user');
   const latestText = latestUser ? (typeof latestUser.content === 'string' ? latestUser.content : JSON.stringify(latestUser.content || '')) : '';
-  const tableMode = doctors.length > 1 || /\b[HR]\d{4}-\d{3}/i.test(latestText) || Boolean(toolInput.planId) || (Array.isArray(toolInput.planIds) && toolInput.planIds.length > 0);
+  // ONE doctor + a bare carrier ask ("search her pcp in humana") is a question about that carrier, not a request
+  // to re-print the plan grid: answer it from that doctor's lookup only (Paula Harris, 2026-10-13).
+  const carrierOnlyFollowup = doctors.length === 1 && !/\b[HR]\d{4}-\d{3}/i.test(latestText) && !toolInput.planId
+    && !(Array.isArray(toolInput.planIds) && toolInput.planIds.length > 0)
+    && require('./comparisonRules').carriersRequested(latestText).length > 0;
+  const tableMode = !carrierOnlyFollowup && (doctors.length > 1 || /\b[HR]\d{4}-\d{3}/i.test(latestText) || Boolean(toolInput.planId) || (Array.isArray(toolInput.planIds) && toolInput.planIds.length > 0));
   // A loaded workup with saved meds + ONE doctor she just named (Paula Harris, 2026-10-08): still the full comparison —
   // the meds are priced here, so Max never asks for meds she already has.
-  const workupWithMeds = !tableMode && (context.messages || []).some((m) => m && m.role === 'user' && /structured facts only/i.test(typeof m.content === 'string' ? m.content : JSON.stringify(m.content || '')))
+  const workupWithMeds = !tableMode && !carrierOnlyFollowup && (context.messages || []).some((m) => m && m.role === 'user' && /structured facts only/i.test(typeof m.content === 'string' ? m.content : JSON.stringify(m.content || '')))
     && medsFromAsk(comparisonAskText(context.messages || [], conversationAskText(context.messages || []))).length > 0;
   let askText = tableMode || workupWithMeds ? comparisonAskText(context.messages || [], conversationAskText(context.messages || [])) : '';
   // Her county decides which grid plans can be columns: the tool's ZIP fills in when the ask text has none

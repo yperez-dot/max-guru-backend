@@ -443,7 +443,9 @@ const CARRIER_WORDS = [
   ['HealthSun', /\bhealth\s*sun\b/i],
 ];
 // "add doctors, devoted, and aetna to her plan comp" is a carrier ask too (Gail, 2026-10-08).
-const REQUEST_VERBS = /\b(show|compare|instead|use|switch|swap|look at|what about|how about|wants?|prefers?|only|give me|pull|run|check|try|those|these|add|include|plus|also)\b/i;
+// "search her pcp in humana" is a carrier ask too — it fell back to the 4 plans named earlier and re-printed
+// the whole grid instead of checking Humana (Paula Harris, 2026-10-13).
+const REQUEST_VERBS = /\b(show|compare|instead|use|switch|swap|look at|look ?up|search|what about|how about|wants?|prefers?|only|give me|pull|run|check|try|those|these|add|include|plus|also)\b/i;
 
 // "HUMANA WONT WORK", "not Humana", "other than Humana", "instead of Humana" — a carrier
 // she rules out. Words right after the carrier name, or right before it.
