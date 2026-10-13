@@ -54,7 +54,7 @@ describe('Gail Carreno: a pasted plan list that wraps inside quotes', () => {
 
   it('a named-plan message decides the columns even with no "compare/show" verb', () => {
     const sel = select(T2);
-    assert.match(sel.header, /your plans/);
+    assert.match(sel.whyLine, /you named|current plan first/); // named-plan mode (not the carriers-asked header)
     assert.doesNotMatch(sel.header, /carriers you asked for/);
   });
 });

@@ -306,8 +306,8 @@ describe('no exact doctor match → closest real doctors, never "send the NPI"',
     const sel = n.selectComparison([missing, ghost, doc('Juan D Cedeno', 'JUAN DIEGO CEDENO', '1043665177', [], [])], 'Client ZIP 33172. No Medicaid. No C-SNP. Doctors: Carlos Sosa, John Mortyko, Juan D Cedeno.', { answered: true });
     const q = sel.questions.find((x) => /No exact match/.test(x));
     assert.match(q, /"Carlos Sosa" — closest: Glenda Sosa, MD \(Internal Medicine, Nephrology, Miami\); Andres Fernando Sosa, MD/);
-    assert.match(q, /"John Mortyko" — no similar name on file \(check the spelling, or give the specialty \/ office\)/);
-    assert.match(q, /like "Carlos Sosa = Dr\. Full Name"\. No NPI needed\.$/);
+    assert.match(q, /"John Mortyko" — not found\. Spelling, or specialty \/ office\?/);
+    assert.match(q, /"Carlos Sosa = Dr\. Full Name"\.$/);
     assert.doesNotMatch(sel.questions.join(' '), /send (me )?the NPI|if you have NPIs/i);
   });
 
@@ -331,7 +331,7 @@ describe('misspelled doctor → "did you mean?" (John Mortyko → John A Morytko
     const sel = n.selectComparison([typo, doc('Juan D Cedeno', 'JUAN DIEGO CEDENO', '1043665177', [], [])], 'ZIP 33172. No Medicaid. No C-SNP.', { answered: true });
     const q = sel.questions.find((x) => /No exact match/.test(x));
     assert.match(q, /"John Mortyko" — did you mean John A Morytko, MD \(Internal Medicine, Cardiovascular Disease, Miami\)\? \(looks like a spelling difference\)/);
-    assert.match(q, /Reply "yes" to use the spelling I found/);
+    assert.match(q, /Reply "yes" to use the spelling found/);
     const msgs = [
       { role: 'user', content: 'Client ZIP 33172. Doctors: Juan D Cedeno, John Mortyko. Meds: Eliquis.' },
       { role: 'assistant', content: `**To narrow to 2–3 plans:**\n1. ${q}` },
