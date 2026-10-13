@@ -1284,11 +1284,28 @@ function selectComparison(doctors, askText, opts = {}) {
   let snpUnknownKinds = new Set();
 
   if (named.length) {
-    const cols = decorate(namedPlanColumns(named, matrix, docs));
+    let cols = decorate(namedPlanColumns(named, matrix, docs));
+    // A client grid never carries a pile of plans (5+ are cut to 3; up to 4 she typed herself stay): her CURRENT plan (if she has one) + the 1–2 best others
+    // by doctors in network (Jackie Alexander, 2026-10-13: six columns, "no way I can send this to my client").
+    // The rest are offered, not shown.
+    let trimmed = 0;
+    if (cols.length > 4) {
+      const curText = (ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '';
+      const curIds = new Set([...curText.matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((m) => m[1].toUpperCase()));
+      const isCur = (c) => curIds.has(String(c.planId || '').toUpperCase().slice(0, 9));
+      const score = (c) => ((c.in || []).length * 100) - ((c.out || []).length * 10) - ((c.unknown || []).length);
+      const current = cols.filter(isCur).slice(0, 1);
+      const others = cols.filter((c) => !current.includes(c)).sort((a, b) => score(b) - score(a));
+      const keep = new Set([...current, ...others.slice(0, 3 - current.length)]);
+      trimmed = cols.length - keep.size;
+      cols = cols.filter((c) => keep.has(c));
+    }
     out.columns = cols;
     out.poolSize = cols.length;
     out.header = '**Doctors × your plans**';
-    out.whyLine = `Why these plans: the ${cols.length} plan${cols.length === 1 ? '' : 's'} you named — no plans added or swapped.`;
+    out.whyLine = trimmed
+      ? `Why these plans: her current plan plus the best ${cols.length - 1} of the other ${trimmed + cols.length - 1} plans in this case — ${trimmed} more available, say "add another" and I will.`
+      : `Why these plans: the ${cols.length} plan${cols.length === 1 ? '' : 's'} you named — no plans added or swapped.`;
     // A plan or plan type she named is always a column — eligibility is confirmed at enrollment (one line).
     const snpNamed = [];
     for (const c of cols) {

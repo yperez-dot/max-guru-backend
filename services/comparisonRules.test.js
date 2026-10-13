@@ -431,3 +431,18 @@ describe('stray words after "Meds:" and OTC vitamins (Paula Harris, 2026-10-13)'
     assert.match(t, /\| metformin \| ❔ unchecked/i);
   });
 });
+
+describe('client grid never carries a pile of plans (Jackie Alexander, 2026-10-13)', () => {
+  it('six named plans → her current plan + the 2 best others, with an offer to add more', () => {
+    const ids = ['H5420-001', 'H4140-022', 'H1045-001', 'H4140-023', 'H1036-054C', 'H1036-305'];
+    const docs = [
+      doc('A Doc', 'A DOC', '1000000011', [A]),
+      doc('B Doc', 'B DOC', '1000000012', [A]),
+    ];
+    const ask = `ZIP 33187. Her current plan: ${A}.\nNamed plan set: ${ids.map((i) => `Plan ${i} (${i})`).join('; ')}.\nMeds: metformin`;
+    const sel = n.selectComparison(docs, ask, {});
+    assert.ok(sel.columns.length <= 3, sel.columns.map((c) => c.planId).join(','));
+    assert.equal(sel.columns[0].planId.slice(0, 9), 'H5420-001');
+    assert.match(sel.whyLine, /more available/);
+  });
+});
