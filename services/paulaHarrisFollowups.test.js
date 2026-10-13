@@ -186,3 +186,8 @@ test('export doctors are exactly the screen table: no stale saved rows, no glued
   assert.deepStrictEqual(out.map((d) => d.name), ['Dr. Natalie C Regalado', 'Dr. Neeta Jane Erinjeri']);
   assert.strictEqual(out[0].statuses[0], 'Not in network (not listed)');
 });
+
+test('page: a workspace run saves the single typed plan as the client\'s current plan', () => {
+  const src = require('fs').readFileSync(require('path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
+  assert.match(src, /currentPlanIds: \(\(\) => \{\s*const ids = \[\.\.\.new Set\(\(String\(ws\.fields\.plans/);
+});
