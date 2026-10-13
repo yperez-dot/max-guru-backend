@@ -637,5 +637,6 @@ test('Jackie: gabapentin / levothyroxine noisy splits show ONE usual-strength li
   assert.equal(t('Gabapentin', gaba), '| Gabapentin | 300 mg: T2 $0 |');
   assert.equal(t('Levothyroxine Sodium', levo), '| Levothyroxine Sodium | 0.05 mg: T1 $0 |');
   const none = { planId: 'H5420-001', verified: true, coverage: 'covered', tier: 2, strengths: [mk('100 mg', { verified: false, coverage: null, tier: null }), mk('450 mg', { coverage: 'not_covered', tier: null })] };
-  assert.match(t('Gabapentin', none), /check Medicare\.gov/);
+  // The plan answered "covered, T2" but no strength was confirmed: say the tier and flag the strength.
+  assert.equal(t('Gabapentin', none), '| Gabapentin | T2 $0 · strength not confirmed — confirm dose |'.replace('T2 $0', 'T2'));
 });

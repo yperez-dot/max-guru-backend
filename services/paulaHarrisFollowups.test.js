@@ -30,3 +30,17 @@ test('the page keeps saved doctors and meds when a narrowed table is saved', () 
   const src = require('fs').readFileSync(require('path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
   assert.match(src, /deletes the rest of the saved list: Paula Harris/);
 });
+
+test('"add her primary Dr. Kelys Caballero" on a loaded workup adds her to the six saved doctors', () => {
+  const fu = N.comparisonFollowUp([...base, { role: 'user', content: 'it didnt add her primary... dr. Kelys Caballero' }]);
+  assert.ok(fu);
+  assert.equal(fu.doctors.length, 7);
+  assert.equal(fu.doctors[6], 'Kelys Caballero');
+});
+
+test('a typed NPI settles a "different name" flag', () => {
+  const doc = (npi) => ({ requestedName: 'Theresa Gloria St. Phillipe, APRN', doctorName: 'Theresa Gloria St Philippe', npi, status: 'done', pending: [], failed: [], networks: [], carriersIn: [], inNetworkPlans: ['UHC X (H5420-014)'], outOfNetworkPlans: [] });
+  const ask = 'Named plan set: UHC X (H5420-014).\nuse this for Theresa 1306218243';
+  const out = N.selectComparison([doc('1306218243')], ask, {});
+  assert.ok(!out.docs || !out.docs.some((d) => d.identityPending));
+});

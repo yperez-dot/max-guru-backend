@@ -6973,11 +6973,13 @@ function App() {
         return row[n] <= 2;
       };
       const sameDoctor = (x, y) => {
-        if (x.npi && y.npi) return String(x.npi) === String(y.npi);
+        if (x.npi && y.npi && String(x.npi) === String(y.npi)) return true;
         const a = words(x.name), b = words(y.name);
         if (!a.length || !b.length) return false;
         const A = a.join(" "), B = b.join(" ");
+        // "Gloria St" → "Theresa Gloria St Philippe" is her correction even though the NPI changed.
         if (a.length >= 2 && b.length >= 2 && (A.includes(B) || B.includes(A))) return true;
+        if (x.npi && y.npi) return false;
         return a.length >= 2 && b.length >= 2 && near(a[0], b[0]) && near(a[a.length - 1], b[b.length - 1]);
       };
       if (Array.isArray(prev.doctors) && prev.doctors.length) {
