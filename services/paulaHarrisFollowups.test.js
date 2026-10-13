@@ -66,3 +66,12 @@ test('Excel meds print the on-screen Meds table words (Paula Harris export, 2026
   assert.equal(ergo.screen['H1609-094'], 'Check Medicare.gov (strength not confirmed)');
   assert.equal(ergo.screen['H5420-014'], '1.25 mg: T2 $0 · supplemental');
 });
+
+test('doctor names with an office / specialty after a dash search by the name alone (Jackie Alexander, 2026-10-13)', () => {
+  const { cleanDoctorQuery } = require('./npiRegistry');
+  assert.equal(cleanDoctorQuery('Natalie Regalado - Baptist Medical Group'), 'Natalie Regalado');
+  assert.equal(cleanDoctorQuery('Pasquel DeSantis - Endocrinologist - Baptist'), 'Pasquel DeSantis');
+  assert.equal(cleanDoctorQuery('Charles Kaiser - Ophthalmologist'), 'Charles Kaiser');
+  assert.equal(cleanDoctorQuery('Neeta Erinjerri - Surgeon at Baptist Cancer Institute'), 'Neeta Erinjerri');
+  assert.equal(cleanDoctorQuery('Dr. Mary Smith'), 'Mary Smith');
+});

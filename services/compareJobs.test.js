@@ -342,3 +342,8 @@ test('Melmoth: " - Primary *" / " - ENT" / " - UM" markers are not part of the d
   assert.deepEqual(f.doctors.map((d) => d.name), ['Elias Feanny', 'Alan Chu', 'Alan DelPar', 'Natalie Regalado - Baptist Medical Group']);
   assert.deepEqual(f.meds, ['Metformin', 'Tramadol']);
 });
+
+test('Jackie: "Elvin Silvestry, DDS - Dental Associates" is one doctor, not a doctor called "DDS"', () => {
+  const f = parseCompareAsk('Jackie Alexander ZIP 33186\nDoctors: Alan Chu - ENT; Elvin Silvestry; DDS - Dental Associates; James Esserman\nPlans: H5420-001');
+  assert.deepEqual(f.doctors.map((d) => d.name), ['Alan Chu', 'Elvin Silvestry', 'James Esserman']);
+});
