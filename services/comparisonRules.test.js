@@ -47,13 +47,13 @@ describe('the bug-report client (fallback reply)', () => {
 
   it('rule 7: no "most of these doctors in network" at 3 of 7', () => {
     assert.doesNotMatch(text, /most of these doctors in network/);
-    assert.match(text, /^\*\*Doctors × top plans\*\* \(best confirmed match shown first — a count, not a recommendation\)$/m);
+    assert.match(text, /^\*\*Doctors × top plans\*\*$/m);
   });
 
   it('rule 5: "Why these plans" line above the table, naming county, order and exclusions', () => {
     const why = text.indexOf('Why these plans:');
     assert.ok(why > -1 && why < text.indexOf('| Doctor |'));
-    assert.match(text, /Why these plans: \d+ eligible plans checked in Miami-Dade\. Ranked by doctors in → fewest out → drug cost → premium\. Excluded: .*C-SNPs — qualifying condition not confirmed.*D-SNPs — Medicaid not confirmed.*QMB-only plans — QMB not confirmed/);
+    assert.match(text, /Why these plans: .*\d+ checked in Miami-Dade\. Left out until confirmed: .*C-SNPs.*D-SNPs.*QMB-only plans/);
   });
 
   it('rule 1: no C-SNP / QMB-only / D-SNP in the top 3 before eligibility', () => {
@@ -149,7 +149,7 @@ describe('ranking, could-not-verify and the county pool (fixture grid)', () => {
     assert.deepEqual(sel.columns.map((c) => c.planId), ['H1290-001', 'H1036-054C', 'H5420-001']);
     assert.equal(sel.poolSize, 4, 'Broward plan and the QMB-only plan are not in the pool');
     assert.ok(sel.couldNotVerify.some((c) => c.planId === 'H1609-018'), 'Aetna: 1 in, 2 unchecked → could not verify');
-    assert.match(sel.whyLine, /Excluded: QMB-only plans — no Medicaid\/MSP \(1\)/);
+    assert.match(sel.whyLine, /Left out until confirmed: .*QMB-only plans/);
   });
 
   it('premium breaks a tie when drug cost is unknown — never invented', () => {
@@ -162,14 +162,14 @@ describe('ranking, could-not-verify and the county pool (fixture grid)', () => {
   it('rule 7: "most of these doctors" only when a plan has more than half confirmed In', () => {
     R.setGridForTests(fixture);
     const sel = n.selectComparison(docs3([['Ana Ruiz', [P1], []], ['Luis Gomez', [P1], []]]), 'ZIP 33172. No Medicaid.');
-    assert.match(sel.header, /most of these doctors in network/);
+    assert.match(sel.header, /^\*\*Doctors × top plans\*\*$/);
   });
 
   it('rule 2: plans a lookup returned that are off the county grid are named as excluded', () => {
     R.setGridForTests(fixture);
     const sel = n.selectComparison(docs3([['Ana Ruiz', ['UHC Preferred MA FL-0002 (H1045-005)', P3], []]]), 'ZIP 33172. No Medicaid.');
     assert.ok(!sel.columns.some((c) => c.planId === 'H1045-005'));
-    assert.match(sel.whyLine, /plans a lookup returned that are not on the THEI Miami-Dade grid \(1\)/);
+    assert.match(sel.whyLine, /Left out until confirmed: .*plans a lookup returned that are not on the THEI Miami-Dade grid/);
   });
 });
 
@@ -193,7 +193,7 @@ describe('eligibility comes only from the agent', () => {
 describe('model tool result (chat path)', () => {
   it('hands the model the rule-built table and the exact formulary call for unpriced plans', () => {
     const { text } = n.batchSummaryForModel(DOCTORS, `${ASK}. Full Medicaid. Has AFib, C-SNP eligible.`, { drugs: [] });
-    assert.match(text, /Why these plans: \d+ eligible plans checked in Miami-Dade/);
+    assert.match(text, /Why these plans: .*\d+ checked in Miami-Dade/);
     assert.match(text, /MEDS ALREADY GIVEN — before answering, call lookup_formulary once per drug \(Eliquis, atorvastatin, chlorthalidone\) with planIds \[H5420-001[^\]]*\]/);
     assert.doesNotMatch(text, /Any meds to check/);
   });

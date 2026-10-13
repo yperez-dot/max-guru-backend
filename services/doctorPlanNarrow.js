@@ -1496,16 +1496,20 @@ function selectComparison(doctors, askText, opts = {}) {
       : `${county || 'the lookup results'} (THEI grid unavailable — only plans a doctor lookup returned)`;
     const excludedText = out.excluded.length ? out.excluded.map((x) => `${x.reason} (${x.count})`).join('; ') : 'none';
     const leftOut = excludedSet.size ? ` Left out: ${[...excludedSet].join(', ')} (you said it won't work).` : '';
+    // One short line (Yahoska, 2026-10-13: "this is too long"): who is first, how many were checked,
+    // and only the plan TYPES left out — the per-type counts and the ranking recipe are not for the agent's screen.
+    const leftTypes = out.excluded.length ? [...new Set(out.excluded.map((x) => String(x.reason).split(/\s+[—-]\s+/)[0].trim()))].join(', ') : '';
+    const leftTail = leftTypes ? ` Left out until confirmed: ${leftTypes}.` : '';
     out.whyLine = pinnedCols.length
-      ? `Why these plans: ${pinnedWhy(pinnedCols, ask)} first, then the best of ${out.poolSize} eligible plans checked in ${where}. ${R.RANK_ORDER} Excluded: ${excludedText}.${leftOut}`
-      : `Why these plans: ${out.poolSize} eligible plans checked in ${where}. ${R.RANK_ORDER} Excluded: ${excludedText}.${leftOut}`;
+      ? `Why these plans: ${pinnedWhy(pinnedCols, ask)} first, then the best of ${out.poolSize} checked in ${where}.${leftTail}${leftOut}`
+      : `Why these plans: the best of ${out.poolSize} checked in ${where}.${leftTail}${leftOut}`;
     const majority = out.columns.some((c) => c.counts.inN * 2 > n);
     const anyIn = out.columns.some((c) => c.counts.inN + c.counts.star > 0);
     out.header = (n > 0 && !anyIn)
       ? '**Doctors × plans** (none of these doctors confirmed in network on the plans checked — shown by lowest drug cost, then premium; not a recommendation)'
       : majority
-      ? '**Doctors × top plans** (most of these doctors in network — a count, not a recommendation)'
-      : '**Doctors × top plans** (best confirmed match shown first — a count, not a recommendation)';
+      ? '**Doctors × top plans**'
+      : '**Doctors × top plans**';
     }
   }
 
@@ -1757,6 +1761,10 @@ function oneStrengthCell(row, result) {
   if (key) pick = covered.find((v) => Math.abs(strengthMg(v.strength) - USUAL_STRENGTH_MG[key]) < 1e-6) || null;
   if (!pick) pick = covered.slice().sort((a, b) => Math.abs(Math.log((strengthMg(a.strength) || 1) / ((key && USUAL_STRENGTH_MG[key]) || strengthMg(covered[Math.floor(covered.length / 2)].strength) || 1))) - Math.abs(Math.log((strengthMg(b.strength) || 1) / ((key && USUAL_STRENGTH_MG[key]) || strengthMg(covered[Math.floor(covered.length / 2)].strength) || 1))))[0];
   const cell = strengthSplitCell({ strengths: [pick] }, result);
+  // The usual strength was not among the answered ones: the strength shown is a different one — say so
+  // (Jackie, 2026-10-13: atorvastatin 80 mg and levothyroxine 0.3 mg read as the answer for her dose).
+  const isUsual = key && Math.abs(strengthMg(pick.strength) - USUAL_STRENGTH_MG[key]) < 1e-6;
+  if (key && !isUsual) return `${cell} · usual strength not confirmed — check Medicare.gov`;
   const differ = covered.some((v) => `${v.tier}|${v.costShare}` !== `${pick.tier}|${pick.costShare}`);
   return differ ? `${cell} · other strengths differ — confirm dose` : cell;
 }

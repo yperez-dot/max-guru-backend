@@ -179,7 +179,7 @@ describe('lookup_provider_network batch (Padron 8 doctors)', () => {
       for (const d of out.expand) assert.ok(!d.carriersIn.includes('Cigna'), 'Cigna must not be a 2027 option');
       assert.doesNotMatch(out.text.split('Carrier-only hits')[0], /Cigna/);
       assert.match(out.text, /Humana Gold Plus \(H1036-065C\) — 8 in · 0 not in network · 0 unchecked/);
-      assert.match(out.text, /Why these plans: \d+ eligible plans checked in Broward\./);
+      assert.match(out.text, /Why these plans: .*\d+ checked in Broward\./);
       assert.doesNotMatch(out.text.split('Why these plans')[1], /\b\d+\/8\b/, 'plan counts are "X in · Y out · Z unchecked", never "X/8"');
       assert.match(out.text, /Do Maria and Gaspar have Medicaid/);
       assert.match(out.text, /HMO OK|meds/i);
@@ -197,7 +197,7 @@ describe('lookup_provider_network batch (Padron 8 doctors)', () => {
     const out = await lookupProviderNetwork({ doctors: [{ doctorName: 'Ernesto Padron' }, { doctorName: 'Howard Bush' }], zip: '33332' }, { deadlineAt: Date.now() + 2000, messages });
     // "1 no" → No Medicaid; must-keep and HMO answered. Only the C-SNP eligibility question (rule 1) stays open.
     assert.doesNotMatch(out.text, /Medicaid or a Medicare Savings Program\?|must-keep\?|HMO OK/);
-    assert.match(out.text, /D-SNPs — no Medicaid\/MSP/);
+    assert.match(out.text, /Left out until confirmed: .*D-SNPs/);
     assert.equal(out.structured.questions.length, 1);
     assert.match(out.structured.questions[0], /C-SNP qualifying chronic condition/);
   });
