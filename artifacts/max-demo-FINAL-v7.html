@@ -6447,13 +6447,10 @@ function CompareResult({ result: rawResult, onExport, askedEligibility }) {
   const result = askedEligibility && rawResult ? { ...rawResult, questions: (rawResult.questions || []).filter((q) => !ELIGIBILITY_Q_RE.test(String(q))) } : rawResult;
   return (
     <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--ink)" }}>
-                {((result.questions || []).length > 0 || (result.notConfirmed || []).length > 0) && (
+                {(result.questions || []).length > 0 && (
                   <div style={{ fontSize: 13, margin: "6px 0 10px", padding: "10px 12px", border: "2px solid #d97706", background: "#fffbeb", color: "#78350f", borderRadius: 8 }}>
                     <b>Answer these first — the results below are not final:</b>
-                    {(result.questions || []).map((q, i) => <div key={"q" + i} style={{ marginTop: 4 }}>{i + 1}. {q}</div>)}
-                    {(result.notConfirmed || []).length > 0 && (
-                      <div style={{ marginTop: 4 }}>No NPI match: {result.notConfirmed.join(", ")} — try the NPI or practice name.</div>
-                    )}
+                    {(result.questions || []).map((q, i) => <div key={"q" + i} style={{ marginTop: 4, whiteSpace: "pre-line" }}>{i + 1}. {q}</div>)}
                   </div>
                 )}
                 {result.header && <div style={{ margin: "6px 0 2px" }}>{renderMessageText(result.header)}</div>}

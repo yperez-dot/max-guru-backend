@@ -156,7 +156,8 @@ function numberedAnswers(text) {
 function askedQuestions(text) {
   const t = String(text || '');
   const qs = [];
-  for (const m of t.matchAll(/(?:^|\n|\s)(?:Q)?([1-9])[.)]\s+([^\n]*?)(?=(?:\s(?:Q)?[1-9][.)]\s)|\n|$)/g)) qs[Number(m[1])] = m[2];
+  // A question may run over several lines (a doctor question lists one bullet per doctor): it ends at the next number or a blank line.
+  for (const m of t.matchAll(/(?:^|\n|\s)(?:Q)?([1-9])[.)]\s+([\s\S]*?)(?=(?:\n\s*(?:Q)?[1-9][.)]\s)|(?:\s(?:Q)?[1-9][.)]\s)|\n\s*\n|$)/g)) qs[Number(m[1])] = m[2].trim();
   return qs;
 }
 
@@ -1289,10 +1290,10 @@ function selectComparison(doctors, askText, opts = {}) {
     // by doctors in network (Jackie Alexander, 2026-10-13: six columns, "no way I can send this to my client").
     // The rest are offered, not shown.
     let trimmed = 0;
+    const curText = (ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '';
+    const curIds = new Set([...curText.matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((m) => m[1].toUpperCase()));
+    const isCur = (c) => curIds.has(String(c.planId || '').toUpperCase().slice(0, 9));
     if (cols.length > 4) {
-      const curText = (ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '';
-      const curIds = new Set([...curText.matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((m) => m[1].toUpperCase()));
-      const isCur = (c) => curIds.has(String(c.planId || '').toUpperCase().slice(0, 9));
       const score = (c) => ((c.in || []).length * 100) - ((c.out || []).length * 10) - ((c.unknown || []).length);
       const current = cols.filter(isCur).slice(0, 1);
       const others = cols.filter((c) => !current.includes(c)).sort((a, b) => score(b) - score(a));
@@ -1300,11 +1301,13 @@ function selectComparison(doctors, askText, opts = {}) {
       trimmed = cols.length - keep.size;
       cols = cols.filter((c) => keep.has(c));
     }
+    // Her current plan is always the first column, like every other table.
+    cols = [...cols.filter(isCur), ...cols.filter((c) => !isCur(c))];
     out.columns = cols;
     out.poolSize = cols.length;
-    out.header = '**Doctors × your plans**';
+    out.header = '**Doctors × top plans**';
     out.whyLine = trimmed
-      ? `Why these plans: her current plan plus the best ${cols.length - 1} of the other ${trimmed + cols.length - 1} plans in this case — ${trimmed} more available, say "add another" and I will.`
+      ? `Why these plans: her current plan first, then the best ${cols.length - 1} of the other ${trimmed + cols.length - 1} in this case. ${trimmed} more available — say "add another".`
       : `Why these plans: the ${cols.length} plan${cols.length === 1 ? '' : 's'} you named — no plans added or swapped.`;
     // A plan or plan type she named is always a column — eligibility is confirmed at enrollment (one line).
     const snpNamed = [];
@@ -1554,19 +1557,17 @@ function selectComparison(doctors, askText, opts = {}) {
     const missing = docs.filter((d) => d.status === 'not_found');
     if (missing.length) {
       const fmt = (x) => `${x.name}${x.specialty ? ` (${x.specialty}${x.city ? `, ${x.city}` : ''})` : ''}`;
+      // One short bullet per doctor, newest-first reading order kept; the parts the answer parser reads
+      // ("No exact match", "\"Name\" — did you mean X (", "closest:") are unchanged.
       const per = missing.map((d) => {
-        const sug = (d.suggestions || []).slice(0, 3);
+        const sug = (d.suggestions || []).slice(0, 2);
         const asked = `"${titleCase(shortDoctor(d))}"`;
-        // Likely typo ("Mortyko" → Morytko): ask about that one doctor first.
-        if (sug[0] && sug[0].spelling) {
-          const others = sug.slice(1).map(fmt);
-          return `${asked} — did you mean ${fmt(sug[0])}? (looks like a spelling difference)${others.length ? ` Other close names: ${others.join('; ')}` : ''}`;
-        }
-        return `${asked}${sug.length ? ` — closest: ${sug.map(fmt).join('; ')}` : ' — no similar name on file (check the spelling, or give the specialty / office)'}`;
+        if (sug[0] && sug[0].spelling) return `${asked} — did you mean ${fmt(sug[0])}? (looks like a spelling difference)`;
+        return `${asked}${sug.length ? ` — closest: ${sug.map(fmt).join('; ')}` : ' — not found. Spelling, or specialty / office?'}`;
       });
       const anyTypo = missing.some((d) => d.suggestions && d.suggestions[0] && d.suggestions[0].spelling);
       const example = `${titleCase(shortDoctor(missing[0]))} = Dr. Full Name`;
-      doctorQs.push(`No exact match for: ${per.join(' · ')}. ${anyTypo ? 'Reply "yes" to use the spelling I found, or give the right name' : 'Which doctor is it? Reply'} like "${example}". No NPI needed.`);
+      doctorQs.push(`No exact match for:\n${per.map((x) => `• ${x}`).join('\n')}\n${anyTypo ? 'Reply "yes" to use the spelling found, or' : 'Reply'} "${example}".`);
     }
     const wrong = docs.filter((d) => d.identityPending === 'wrong');
     if (wrong.length) {
