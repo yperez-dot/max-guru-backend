@@ -6438,10 +6438,23 @@ function queueStatus(e) {
   return { text: "Meds " + j.progress.meds.done + "/" + j.progress.meds.total, tone: "run" };
 }
 
-function CompareResult({ result, onExport }) {
+// The workspace already asked Medicaid/MSP and C-SNP with tap buttons before it ran — never ask them again below.
+const ELIGIBILITY_Q_RE = /C-SNP qualifying chronic condition|Medicaid or a Medicare Savings Program|Which MSP level/i;
+
+function CompareResult({ result: rawResult, onExport, askedEligibility }) {
   const btn = queueBtn;
+  const result = askedEligibility && rawResult ? { ...rawResult, questions: (rawResult.questions || []).filter((q) => !ELIGIBILITY_Q_RE.test(String(q))) } : rawResult;
   return (
     <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--ink)" }}>
+                {((result.questions || []).length > 0 || (result.notConfirmed || []).length > 0) && (
+                  <div style={{ fontSize: 13, margin: "6px 0 10px", padding: "10px 12px", border: "2px solid #d97706", background: "#fffbeb", color: "#78350f", borderRadius: 8 }}>
+                    <b>Answer these first — the results below are not final:</b>
+                    {(result.questions || []).map((q, i) => <div key={"q" + i} style={{ marginTop: 4 }}>{i + 1}. {q}</div>)}
+                    {(result.notConfirmed || []).length > 0 && (
+                      <div style={{ marginTop: 4 }}>No NPI match: {result.notConfirmed.join(", ")} — try the NPI or practice name.</div>
+                    )}
+                  </div>
+                )}
                 {result.header && <div style={{ margin: "6px 0 2px" }}>{renderMessageText(result.header)}</div>}
                 {result.whyLine && (
                   <div style={{ fontSize: 12.5, color: "var(--muted)", margin: "2px 0 6px" }}>{result.whyLine}</div>
@@ -6462,15 +6475,6 @@ function CompareResult({ result, onExport }) {
                   </div>
                 )}
                 {(result.flags || []).map((f, i) => <div key={"flag" + i} style={{ fontSize: 12.5, color: "#92400e", marginTop: 6 }}>{f}</div>)}
-                {(result.questions || []).length > 0 && (
-                  <div style={{ fontSize: 12.5, marginTop: 8 }}>
-                    <b>Before this narrows to 2–3 plans:</b>
-                    {result.questions.map((q, i) => <div key={"q" + i}>{i + 1}. {q}</div>)}
-                  </div>
-                )}
-                {(result.notConfirmed || []).length > 0 && (
-                  <div style={{ fontSize: 12.5, color: "#92400e", marginTop: 6 }}>No NPI match: {result.notConfirmed.join(", ")} — try the NPI or practice name.</div>
-                )}
                 {onExport && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
                   <button onClick={() => void onExport("excel")} style={btn(true)}>Export Excel</button>
                   <button onClick={() => void onExport("pdf")} style={btn(false)}>Export PDF</button>
@@ -6663,7 +6667,7 @@ function ClientWsCard({ ws, onSubmit, onAnswer, onToggleMust, onExport, onCancel
         {stage === "done" && (
           <div data-testid="ws-done" style={{ marginTop: 10 }}>
             <div style={{ fontWeight: 700, marginBottom: 4 }}>Comparison results</div>
-            {result ? <CompareResult result={result} onExport={onExport} /> : <div style={{ fontSize: 13, color: "var(--muted)" }}>Results aren't available on this device. Run the client again to see them.</div>}
+            {result ? <CompareResult result={result} onExport={onExport} askedEligibility /> : <div style={{ fontSize: 13, color: "var(--muted)" }}>Results aren't available on this device. Run the client again to see them.</div>}
           </div>
         )}
         {stage !== "done" && stage !== "running" && stage !== "starting" && onCancel && (
