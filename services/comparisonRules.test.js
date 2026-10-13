@@ -71,8 +71,8 @@ describe('the bug-report client (fallback reply)', () => {
 
   it('rule 8: meds already listed are never asked for again', () => {
     assert.doesNotMatch(text, /Any meds/);
-    // No PA/ST/QL in the fixture: "PA/QL ?", never a cell that reads as no restrictions.
-    assert.match(text, /\| Eliquis \| T3 \$25 · PA\/QL \? \|/);
+    // No PA/ST/QL in the fixture: nothing is added where the source shows none (Yahoska, 2026-10-13).
+    assert.match(text, /\| Eliquis \| T3 \$25 \|/);
     assert.doesNotMatch(text, /Medication lookup failed/);
   });
 

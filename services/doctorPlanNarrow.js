@@ -1662,7 +1662,10 @@ function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] }
 
 // Short form so long (strength-split) cells don't wrap; explained in the legend when used.
 const PA_QL_UNKNOWN = 'PA/QL ?';
-const PA_QL_LEGEND = "PA/QL ? = source doesn't report prior auth / quantity limits, verify in carrier formulary";
+const PA_QL_LEGEND = 'PA / QL shown only when the carrier source reports one';
+// A cell the source gave no PA / ST / QL for carries no marker (Yahoska, 2026-10-13: "if the formulary or
+// medicare.gov don't show it, don't add it"); the legend says restrictions appear only when reported.
+const quietRestrictionMarks = (table) => String(table || '').replace(new RegExp(` · ${PA_QL_UNKNOWN.replace('?', '\\?')}`, 'g'), '');
 
 /** The meds legend, plus the "PA/QL ?" line only when a cell in this table uses it. */
 function medsLegendFor(table) {
@@ -1823,7 +1826,7 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
   if (twins.length) lines.push(`Also checked: ${twins.join('; ')}.`);
   for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in /.test(x))) lines.push(f);
   const meds = medsTable(drugs, top, sel.meds);
-  if (meds) lines.push('', '**Meds**', '', meds, '', medsLegendFor(meds), ...strengthNotes(drugs, top.map((p) => p.planId)));
+  if (meds) lines.push('', '**Meds**', '', quietRestrictionMarks(meds), '', medsLegendFor(meds), ...strengthNotes(drugs, top.map((p) => p.planId)));
   // She typed drugs but no list could be read: say so, never drop the section silently.
   else if (medsUnreadable) lines.push('', '**Meds**', '', R.MEDS_UNREADABLE);
   return lines.filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n');
@@ -1885,7 +1888,7 @@ function fallbackAnswer(doctors, askText, { answered = false, drugs = [] } = {})
       lines.push('');
       lines.push('**Meds**');
       lines.push('');
-      lines.push(meds);
+      lines.push(quietRestrictionMarks(meds));
       lines.push('');
       lines.push(medsLegendFor(meds));
       strengthNotes(drugs, top.map((p) => p.planId)).forEach((l) => lines.push(l));
@@ -1934,6 +1937,7 @@ module.exports = {
   medsTable,
   strengthNotes,
   medsLegendFor,
+  quietRestrictionMarks,
   namedPlansFromAsk,
   namedPlanColumns,
   fallbackAnswer,

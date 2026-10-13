@@ -53,7 +53,7 @@ describe('compare mode: job', () => {
     assert.match(job.result.doctorTable, /\| Ernesto Padron Pcp · NPI 1234567890 \| ✅ In \|/);
     assert.match(job.result.whyLine, /^Why these plans: the 3 plans you named/);
     // Fixture rows carry no PA/ST/QL fields, so each cell says the restrictions are unknown.
-    assert.match(job.result.medsTable, /\| Jardiance 10mg \| T1 \$0 · PA\/QL \? \| T1 \$0 · PA\/QL \? \| T1 \$0 · PA\/QL \? \|/);
+    assert.match(job.result.medsTable, /\| Jardiance 10mg \| T1 \$0 \| T1 \$0 \| T1 \$0 \|/);
     assert.equal(job.result.toolResults.filter((t) => t.tool === 'lookup_provider_network').length, 9);
     assert.equal(job.result.toolResults.filter((t) => t.tool === 'lookup_formulary').length, 6);
   });
