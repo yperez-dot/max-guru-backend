@@ -85,3 +85,12 @@ test('a combination product answering a single-drug ask is flagged, never priced
   const plain = N.medsTable([{ drugName: 'Tramadol HCL', byPlanId: { 'H5420-001': row }, lookups: [row] }], plans, ['Tramadol']);
   assert.match(plain, /T2/);
 });
+
+test('"Try Alan Dal Pra" answers the single "No exact match" doctor and keeps the other doctors (Melmoth, 2026-10-13)', () => {
+  const ask = 'Melmoth Leslie Alexander · ZIP 33186\nDoctors: Elias Feanny *; Alan Chu; Robert Puig; Alan Del Par; John Morytko\nMeds: Metformin; Omeprazole\nPlans: H5420-001';
+  const reply = '1. No exact match for:\n• "Alan Del Par" — not found. Spelling, or specialty / office?\nReply "Alan Del Par = Dr. Full Name".\nDoctors × top plans';
+  const fu = N.comparisonFollowUp([{ role: 'user', content: ask }, { role: 'assistant', content: reply }, { role: 'user', content: 'Try Alan Dal Pra' }]);
+  assert.ok(fu, 'server must re-run');
+  assert.equal(fu.doctors.length, 5);
+  assert.ok(fu.doctors.includes('Alan Dal Pra') && !fu.doctors.includes('Alan Del Par'), JSON.stringify(fu.doctors));
+});
