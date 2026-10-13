@@ -291,3 +291,22 @@ describe('audit 3: the Rx cache keeps only final answers', () => {
     }
   });
 });
+
+describe('one plan + doctors + meds means compare against others (Candy Winfrey, 2026-10-13)', () => {
+  const { parseCompareAsk } = require('./compareJobs');
+  const n = require('./doctorPlanNarrow');
+  const base = 'Candy Winfrey, ZIP 33157. Doctors: Yusleidi Gil; Peter Citron. Meds: metformin; losartan. ';
+  it('a single named plan is her current plan; alternatives are wanted', () => {
+    assert.equal(parseCompareAsk(`${base}Plans: H5420-001`).wantsAlternatives, true);
+  });
+  it('"only", a yes/no network question, or two plans keep it as named', () => {
+    assert.equal(parseCompareAsk(`${base}Only H5420-001`).wantsAlternatives, false);
+    assert.equal(parseCompareAsk(`${base}Is Dr Gil in network on H5420-001`).wantsAlternatives, false);
+    assert.equal(parseCompareAsk(`${base}Compare H5420-001, H1036-065`).wantsAlternatives, false);
+  });
+  it('the chat path pins the plan as current and asks for alternatives', () => {
+    const ask = n.comparisonAskText([{ role: 'user', content: `${base}Plans: H5420-001` }]);
+    assert.match(ask, /^Her current plan: H5420-001\.$/m);
+    assert.match(ask, /^Wants alternatives to the named plan\(s\)\.$/m);
+  });
+});

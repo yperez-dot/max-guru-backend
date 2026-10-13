@@ -280,7 +280,7 @@ function comparisonAskText(messages, baseText) {
     // The loaded-workup message is not her ask: its rules text says "other, comparable or better
     // plans" and its plan list held the Aetna comparison column (Maura, 2026-10-07).
     if (/structured facts only/i.test(mt)) continue;
-    if (!WANTS_ALTERNATIVES_RE.test(mt)) continue;
+    if (!WANTS_ALTERNATIVES_RE.test(mt) && !R.impliesCompareToCurrentPlan(mt)) continue;
     lines.push('Wants alternatives to the named plan(s).');
     // Plan IDs she typed with that ask — unless the recent messages already carry them.
     const idsHere = [...new Set([...mt.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase()))];

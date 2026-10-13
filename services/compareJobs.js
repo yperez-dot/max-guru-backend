@@ -186,7 +186,7 @@ function parseCompareAsk(text) {
     meds,
     plans: plans.slice(0, MAX_PLANS),
     terminatingPlan,
-    wantsAlternatives: ALTERNATIVES_RE.test(t),
+    wantsAlternatives: ALTERNATIVES_RE.test(t) || (doctors.length > 0 && meds.length > 0 && require('./comparisonRules').impliesCompareToCurrentPlan(t, plans.length)),
     carriers: carriersRequested(t),
     noMedicaid: constraints.noMedicaid,
     // Medicaid / MSP level / C-SNP condition exactly as the agent stated them (never inferred).
