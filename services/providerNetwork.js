@@ -346,6 +346,11 @@ function startNpiChecks(rec, { zip, planYear, guestPlanIds, rank = 0 }) {
     humanaResult: undefined,
   };
   const npi = rec.npi;
+  // A guest directory that errors is asked once more before it is reported as "not confirmed".
+  const retried = (name, fn) => limited(name, fn, rank).then(
+    (v) => (v && v.error ? limited(name, fn, rank).then((v2) => (v2 && !v2.error ? v2 : v), () => v) : v),
+    () => limited(name, fn, rank),
+  );
   const track = (field, promise, fallback) => promise
     .then((v) => { state[field] = v; }, () => { state[field] = fallback; });
   const done = Promise.all([
@@ -354,10 +359,10 @@ function startNpiChecks(rec, { zip, planYear, guestPlanIds, rank = 0 }) {
       () => { state.fhirFailed = FHIR_CARRIERS.map((c) => c.name); state.fhir = []; },
     ),
     track('doctorsResult', limited('doctors', () => queryDoctorsHcp(npi, { zip }), rank), { inNetwork: false, error: 'request_failed' }),
-    track('aetnaResult', limited('aetna', () => queryAetnaPublic(npi, { zip, lastName: rec.lastName, year: planYear }), rank), { inNetwork: false, plans: [], error: 'request_failed' }),
-    track('simplyResult', limited('simply', () => querySimplyFindcare(npi, { zip, lastName: rec.lastName }), rank), { inNetwork: false, plans: [], error: 'request_failed' }),
-    track('uhcResult', limited('uhc', () => queryUhcGuest(npi, { zip, year: planYear, planIds: guestPlanIds }), rank), { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'request_failed', year: String(planYear) }),
-    track('humanaResult', limited('humana', () => queryHumanaFindcare(npi, { zip, year: planYear, planIds: guestPlanIds }), rank), { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'request_failed', year: String(planYear) }),
+    track('aetnaResult', retried('aetna', () => queryAetnaPublic(npi, { zip, lastName: rec.lastName, year: planYear })), { inNetwork: false, plans: [], error: 'request_failed' }),
+    track('simplyResult', retried('simply', () => querySimplyFindcare(npi, { zip, lastName: rec.lastName })), { inNetwork: false, plans: [], error: 'request_failed' }),
+    track('uhcResult', retried('uhc', () => queryUhcGuest(npi, { zip, year: planYear, planIds: guestPlanIds })), { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'request_failed', year: String(planYear) }),
+    track('humanaResult', retried('humana', () => queryHumanaFindcare(npi, { zip, year: planYear, planIds: guestPlanIds })), { inNetwork: false, plans: [], outOfNetworkPlans: [], error: 'request_failed', year: String(planYear) }),
   ]);
   return { state, done };
 }
