@@ -556,6 +556,35 @@ function comparisonFollowUp(messages) {
         reasons.push('doctor corrections');
       }
     }
+    // Several "No exact match" doctors and she just types the right name ("Pascual De Santis, MD", "yes, and the
+    // endocrinologist is Pascual De Santis"): it goes to the one asked name it plainly resembles.
+    if (/No exact match for/i.test(prevQ) && !carriers.length) {
+      const asked = [...prevQ.matchAll(/"([^"]+)"\s*—/g)].map((x) => x[1].trim());
+      if (asked.length > 1) {
+        const letters = (w) => String(w || '').toLowerCase().replace(/[^a-z]/g, '');
+        const lev = (x, y) => {
+          let row = Array.from({ length: y.length + 1 }, (_, j) => j);
+          for (let a = 1; a <= x.length; a += 1) { const cur = [a]; for (let b = 1; b <= y.length; b += 1) cur[b] = Math.min(row[b] + 1, cur[b - 1] + 1, row[b - 1] + (x[a - 1] === y[b - 1] ? 0 : 1)); row = cur; }
+          return row[y.length];
+        };
+        const segs = latest.replace(/,\s*(?:MD|DO|DDS|DMD|DPM|OD|ARNP)\b\.?/gi, '').split(/[\n;.]|\band\b/i);
+        for (let seg of segs) {
+          seg = seg.replace(/^\s*(?:yes|yep|yeah|ok(?:ay)?|correct|try|use|the\s+[a-z]+\s+(?:is|=)|[a-z]+\s+is)[\s,:-]*/i, '').replace(/^\s*dr\.?\s+/i, '').trim();
+          const w = seg.split(/\s+/).filter(Boolean);
+          if (w.length < 2 || w.length > 4 || !/^[A-Za-zÀ-ÿ'\- ]+$/.test(seg)) continue;
+          const first = letters(w[0]);
+          const last = w.slice(1).map(letters).join('');
+          const hits = asked.filter((nm) => {
+            const t = nm.split(/\s+[-–—]\s+/)[0].split(/\s+/).filter(Boolean);
+            if (t.length < 2) return false;
+            const af = letters(t[0]);
+            const al = t.slice(1).map(letters).join('');
+            return lev(first, af) <= 3 && lev(last, al) <= 2;
+          });
+          if (hits.length === 1 && !subs.some(([f]) => f === hits[0])) { subs.push([hits[0], seg]); if (!reasons.includes('doctor corrections')) reasons.push('doctor corrections'); }
+        }
+      }
+    }
     // "yes" to "did you mean Neeta Jane Erinjeri, MD (…)?" — in this reply or any earlier one: the spelling Max found
     // replaces the name she typed.
     for (let k = i + 1; k < lastUserAt; k += 1) {
@@ -563,8 +592,12 @@ function comparisonFollowUp(messages) {
       const ua = msgs[k + 1];
       if (!qa || qa.role !== 'assistant' || !ua || ua.role !== 'user') continue;
       const q = messageText(qa);
-      if (!/No exact match for/i.test(q) || !/^\s*(?:yes|yep|yeah|correct|ok(?:ay)?)\b/i.test(messageText(ua))) continue;
+      const yesText = messageText(ua);
+      const startsYes = /^\s*(?:yes|yep|yeah|correct|ok(?:ay)?)\b/i.test(yesText);
+      if (!/No exact match for/i.test(q) || (!startsYes && !/\byes\b/i.test(yesText))) continue;
       for (const x of q.matchAll(/"([^"]+)"\s*—\s*did you mean\s+([^(?]+?)\s*(?:\(|\?)/g)) {
+        // "Pascual De Santis MD. yes to Neeta": a yes later in the message counts when it names that doctor.
+        if (!startsYes && !yesText.toLowerCase().includes(String(x[2]).trim().split(/\s+/)[0].toLowerCase())) continue;
         const to = x[2].replace(/,\s*(?:MD|DO|DDS|DMD|DPM|OD|ARNP|PA-C?)\b.*$/i, '').trim();
         if (to && !subs.some(([f]) => sameDoctorName(f, x[1]))) { subs.push([x[1].trim(), to]); if (!reasons.includes('doctor corrections')) reasons.push('doctor corrections'); }
       }

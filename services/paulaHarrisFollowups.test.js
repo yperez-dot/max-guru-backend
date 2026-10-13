@@ -159,3 +159,14 @@ test('Jackie: earlier "yes" + "X = Y" corrections stay applied on a later confir
   assert.ok(r.doctors.some((n) => /^Pascual De Santis/.test(n)) && r.doctors.includes('Neeta Jane Erinjeri'));
   assert.ok(!r.doctors.some((n) => /Pasquel|Erinjerri/.test(n)));
 });
+
+test('Jackie: a bare corrected name goes to the one asked doctor it resembles, however she phrases it', () => {
+  const D = require('./doctorPlanNarrow');
+  const first = 'Jacqueline Alexander · ZIP 33186\nDoctors: Pasquel DeSantis - Endocrinologist - Baptist; Neeta Erinjerri - Surgeon at Baptist; Alan Chu\nPlans: H5420-001\nComparison results';
+  const q = '1. No exact match for:\n• "Pasquel DeSantis - Endocrinologist - Baptist" — closest: Joseph Desantis, ARNP (Miami)\n• "Neeta Erinjerri - Surgeon at Baptist" — did you mean Neeta Jane Erinjeri, MD (Surgery, Miami)? (looks like a spelling difference)';
+  for (const reply of ['Pascual De Santis, MD', 'yes, and the endocrinologist is Pascual De Santis', 'Pascual De Santis MD. yes to Neeta']) {
+    const r = D.comparisonFollowUp([{ role: 'user', content: first }, { role: 'assistant', content: q }, { role: 'user', content: reply }]);
+    assert.ok(r && r.doctors.some((n) => /^Pascual De Santis/.test(n)), reply);
+    assert.ok(!r.doctors.some((n) => /Pasquel/.test(n)), reply);
+  }
+});
