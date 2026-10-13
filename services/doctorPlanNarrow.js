@@ -238,7 +238,7 @@ function statementsFor(question, answer) {
       if (subs.length) return subs.map(([from, to]) => `Doctor substitution: ${from} => ${to}.`);
     }
     if (!subs.length && asked.length === 1 && /[a-z]{3}/i.test(a) && !NO_RE.test(a)) {
-      subs.push([asked[0], a.replace(/^\s*(?:it'?s|its|is|=)\s*/i, '').replace(/^dr\.?\s*/i, '').replace(/[.]+$/, '').trim()]);
+      subs.push([asked[0], a.replace(/^\s*(?:try|use|maybe|it'?s|its|is|=|check|add|change(?:\s+(?:it|him|her|that))?\s+to|switch(?:\s+(?:it|him|her))?\s+to|replace(?:\s+(?:it|him|her))?\s+with|should\s+be|spelled|instead)\s*/i, '').replace(/^dr\.?\s*/i, '').replace(/[.]+$/, '').trim()]);
     }
     return subs.map(([from, to]) => `Doctor substitution: ${from} => ${to}.`);
   }
@@ -536,7 +536,7 @@ function comparisonFollowUp(messages) {
     const prevQ = prevAssistant ? messageText(prevAssistant) : '';
     if (/No exact match for/i.test(prevQ) && !Object.keys(numberedAnswers(latest)).length) {
       const askedNames = [...prevQ.matchAll(/"([^"]+)"\s*—/g)].map((x) => x[1].trim());
-      const said = latest.replace(/^\s*(?:try|use|maybe|its|it's|it is|is|=|check|add)\s+/i, '').replace(/^dr\.?\s+/i, '').replace(/[.!?]+\s*$/, '').trim();
+      const said = latest.replace(/^\s*(?:try|use|maybe|its|it's|it is|is|=|check|add|change(?:\s+(?:it|him|her|that))?\s+to|switch(?:\s+(?:it|him|her))?\s+to|replace(?:\s+(?:it|him|her))?\s+with|should\s+be|spelled|instead)\s+/i, '').replace(/^dr\.?\s+/i, '').replace(/[.!?]+\s*$/, '').trim();
       const wordsSaid = said.split(/\s+/).filter(Boolean);
       if (askedNames.length === 1 && wordsSaid.length >= 2 && wordsSaid.length <= 5 && /^[A-Za-zÀ-ÿ'.,\- ]+$/.test(said) && !carriers.length) {
         subs.push([askedNames[0], said]);

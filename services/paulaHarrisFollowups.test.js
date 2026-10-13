@@ -103,3 +103,13 @@ test('"yes Zubair Ansari" confirms the doctor match without the canonical questi
   assert.ok(flagged(plain) || !yes.docs || !flagged(yes));
   assert.ok(!yes.docs || !flagged(yes));
 });
+
+test('"change to Alan Dal Pra" / "switch to …" / "should be …" all answer the one unmatched doctor', () => {
+  const ask = 'Melmoth Leslie Alexander · ZIP 33186\nDoctors: Elias Feanny; Alan Chu; Alan Del Par; John Morytko\nMeds: Metformin\nPlans: H5420-001';
+  const reply = '1. No exact match for:\n• "Alan Del Par" — not found. Spelling, or specialty / office?\nDoctors × top plans';
+  for (const said of ['change to Alan Dal Pra', 'switch to Alan Dal Pra', 'should be Alan Dal Pra', 'Dr Alan Dal Pra']) {
+    const fu = N.comparisonFollowUp([{ role: 'user', content: ask }, { role: 'assistant', content: reply }, { role: 'user', content: said }]);
+    assert.ok(fu, said);
+    assert.deepEqual(fu.doctors, ['Elias Feanny', 'Alan Chu', 'Alan Dal Pra', 'John Morytko'], said);
+  }
+});
