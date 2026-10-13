@@ -2255,6 +2255,16 @@
       });
     }
     drugs = settleBrandNotCovered(applyKnownGenericSuggestions(drugs, resolvedPlans));
+    // The on-screen Meds table is the truth (Paula Harris, 2026-10-13: the sheet said "Confirm in Sunfire" /
+    // "Not covered" where the screen said "check Medicare.gov").
+    if (extra.chatTable && Array.isArray(extra.chatTable.meds) && extra.chatTable.meds.length) {
+      extra.chatTable.meds.forEach((m) => {
+        const key = drugIdentityKey(m.name);
+        let hit = drugs.find((d) => drugIdentityKey(d.name) === key);
+        if (!hit) { hit = { name: m.name, byPlanId: {} }; drugs.push(hit); }
+        hit.screen = m.byPlan;
+      });
+    }
     const payload = {
       plans: resolvedPlans,
       clientName: clientName || "",
@@ -2411,7 +2421,10 @@
           const rawId = String(p.planId || p.id || "");
           return (drug.byPlanId && (drug.byPlanId[id] || drug.byPlanId[rawId] || lookupPlanStatus(drug.byPlanId, p))) || { verified: false };
         });
-        const cells = statuses.map((s, i) => formatDrugCell(s, plans[i]));
+        const cells = statuses.map((s, i) => {
+          const shown = drug.screen && drug.screen[String(displayContractPbp(plans[i]) || "").toUpperCase().slice(0, 9)];
+          return shown || formatDrugCell(s, plans[i]);
+        });
         const values = [drug.name, ...cells];
         const rowKinds = ["label", ...cells.map((c) => (c === "Unverified" ? "pending" : "text"))];
         const rowStyles = [makeStyle({ font: { bold: true } })];
@@ -2820,7 +2833,25 @@
         });
         rows.push({ name, npi, byPlan });
       }
-      return { at: i, planIds: planIds.filter(Boolean), rows };
+      // The Meds table in the same reply: the export prints these words, not its own re-read of the lookups.
+      const meds = [];
+      const mh = lines.findIndex((l) => /^\s*\|\s*\**Drug\**\s*\|/i.test(l));
+      if (mh >= 0) {
+        const mPlanIds = cellsOf(lines[mh]).slice(1).map((c) => ((c.match(/\b[HR]\d{4}-\d{3}[A-Z]?\b/i) || [])[0] || "").toUpperCase());
+        for (let k = mh + 1; k < lines.length; k++) {
+          const l = lines[k];
+          if (!/^\s*\|/.test(l)) break;
+          if (/^\s*\|\s*-{3}/.test(l)) continue;
+          const cells = cellsOf(l);
+          const byPlan = {};
+          mPlanIds.forEach((id, j) => {
+            const c = String(cells[j + 1] || "").replace(/^[✅❌❔❓⚠️\s]+/u, "").replace(/\s+/g, " ").trim();
+            if (id && c) byPlan[id.slice(0, 9)] = c.charAt(0).toUpperCase() + c.slice(1);
+          });
+          if (cells[0]) meds.push({ name: cells[0].replace(/\*+$/, "").trim(), byPlan });
+        }
+      }
+      return { at: i, planIds: planIds.filter(Boolean), rows, meds };
     }
     return null;
   }
