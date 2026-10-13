@@ -313,6 +313,17 @@ const NON_DRUG_WORDS = new Set(
 const OTC_SUPPLEMENT_RE = /^\s*(?:vitamins?\s*(?:[a-ek]\d{0,2}|b[\s-]?complex)\b|multi-?vitamins?\b|cholecalciferol\b|fish\s+oil\b|omega[\s-]?3\b|probiotics?\b|melatonin\b|biotin\b)/i;
 const isOtcSupplement = (name) => OTC_SUPPLEMENT_RE.test(String(name || ''));
 
+// The point of a comparison: one plan + a doctor list + a med list is her CURRENT plan to compare other plans
+// against, not "check only this plan" (Candy Winfrey, 2026-10-13). Wording that limits it to the named plan
+// ("only", "just", "is Dr. X in network on H...") keeps it single.
+const ONLY_THIS_PLAN_RE = /\b(?:only|just|this plan|that plan|these plans|as is|no other|don'?t (?:add|swap)|is (?:she|he|dr)|are they|does (?:it|she|he)|check (?:if|whether)|in[- ]network on)\b/i;
+function impliesCompareToCurrentPlan(text, planCount) {
+  const t = String(text || '');
+  const ids = new Set((t.match(/\b[HR]\d{4}-\d{3}/gi) || []).map((x) => x.toUpperCase()));
+  if ((planCount != null ? planCount : ids.size) !== 1) return false;
+  return /\b(?:doctors?|physicians?|providers?|specialists?|drs?)\b/i.test(t) && /\b(?:meds?|medications?|rx)\b/i.test(t) && !ONLY_THIS_PLAN_RE.test(t);
+}
+
 // A pasted med line carries brand names, doses and how often it is taken ("Metformin ER (glucophage) 500mg one daily",
 // "ipratropium nasal spray 0.03% 2 sprays bid"): only name + strength + form go to the lookup. Devices are not drugs.
 const MED_DEVICE_RE = /\b(?:c-?pap|bipap|machine|device|walker|wheelchair|oxygen|nebulizer|glucometer|monitor)\b/i;
@@ -592,6 +603,7 @@ module.exports = {
   CARRIER_WORDS,
   carriersRequested,
   isOtcSupplement,
+  impliesCompareToCurrentPlan,
   cleanMedItem,
   carriersRejected,
   wantsOtherCarrier,
