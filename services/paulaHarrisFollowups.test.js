@@ -202,3 +202,8 @@ test('page save replaces the saved doctors when the table is full (marker)', () 
   const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
   assert.match(html, /built\.replaceDoctors = true/);
 });
+
+test('every Export button builds the sheet from the table on screen (marker)', () => {
+  const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
+  assert.match(html, /const tableSet = exportTablePlanSet\(history\);\s*if \(tableSet\.length >= 2\)/);
+});
