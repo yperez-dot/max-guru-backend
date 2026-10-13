@@ -78,3 +78,27 @@ test('5. "Yes, Natalie C Regalado Dc" looks her up by the confirmed NPI and keep
   const fu2 = N.comparisonFollowUp(msgs('yes\nPasquel DeSantis - Endocrinologist - Baptist = Dr. Pascual De Santis, MD'));
   assert.ok(!fu2.npis);
 });
+
+test('regression: carrier words do not count as removing doctors in the export', () => {
+  const t = (rows) => `| Doctor | UHC MedicareMax · H5420-001 | Doctors DrMax · H4140-022 |\n|---|---|---|\n${rows.map((r) => `| ${r} | ✅ In | ✅ In |`).join('\n')}`;
+  const wide = t(['Alan Chu', 'Andrew Sable', 'Charles Kaiser', 'James Esserman']);
+  const one = t(['Alan Dal Pra']);
+  const run = (say, small) => E.latestChatTable([{ role: 'assistant', content: wide }, { role: 'user', content: say }, { role: 'assistant', content: small || one }], (x) => x);
+  assert.equal(run('exclude Humana, try Alan Dal Pra').rows.length, 4);
+  assert.equal(run('without Aetna please').rows.length, 4);
+  const two = t(['Alan Chu', 'Andrew Sable']);
+  assert.equal(run('without Dr. Kaiser', two).rows.length, 2);
+  assert.equal(run('drop Kaiser and Esserman', two).rows.length, 2);
+});
+
+test('regression: "it" in a reply does not drop the current plan', () => {
+  const docs = ['A One', 'B Two'].map((n) => mk(n));
+  const base = 'Her current plan: H5420-001.\nMaria ZIP 33186.';
+  for (const extra of ["no it's Zubair Ansari", 'drop it']) {
+    assert.equal(N.selectComparison(docs, `${base}\n${extra}`, {}).columns[0].planId, 'H5420-001', extra);
+  }
+  for (const extra of ['without this plan', 'exclude the current plan']) {
+    const cols = N.selectComparison(docs, `${base}\n${extra}`, {}).columns.map((c) => c.planId);
+    assert.ok(!cols.some((id) => id.startsWith('H5420-001')), extra);
+  }
+});

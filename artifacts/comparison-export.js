@@ -2847,8 +2847,21 @@
     if (latest.rows.length >= most) return latest;
     const base = found.find((f) => f.rows.length === most);
     // She removed doctors after the wide table ("remove Dr. C and D", "without Dr. X"): the newer, smaller table is the truth.
+    // Only wording that names a doctor counts ("remove Dr. X", "without Dr. X", "drop Kaiser" where Kaiser is a row
+    // in the wide table). Carrier / plan words ("exclude Humana, try Alan Dal Pra") are not a doctor removal.
+    const baseNameWords = new Set();
+    base.rows.forEach((r) => String(r.name || "").toLowerCase().replace(/\(.*?\)/g, " ").split(/[^a-z]+/)
+      .forEach((w) => { if (w.length >= 3 && !/^(?:asked|npi|confirm|match|dds|dc|md|arnp|aprn|the|and)$/.test(w)) baseNameWords.add(w); }));
+    const REMOVE_WORD = /\b(?:remove|removed|drop|dropped|delete|without|take (?:off|out)|get rid of|exclude|no longer(?: seeing)?|not seeing)\s+((?:dr\.?|doctor)\s+)?([a-z][a-z'\-]*)/gi;
+    const namesDoctor = (text) => {
+      for (const m of String(text || "").matchAll(REMOVE_WORD)) {
+        if (m[1]) return true;
+        if (baseNameWords.has(m[2].toLowerCase())) return true;
+      }
+      return false;
+    };
     const removedAfter = (messages || []).some((m, idx) => idx > base.at && m && m.role === "user"
-      && /\b(remove|removed|drop|dropped|delete|without|take (?:off|out)|get rid of|exclude|no longer|not seeing)\b/i.test(String((typeof textFn === "function" ? textFn : messageContentToText)(m.content) || "")));
+      && namesDoctor((typeof textFn === "function" ? textFn : messageContentToText)(m.content)));
     if (removedAfter) return latest;
     const key = (r) => String(r.npi || r.name || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
     const rows = base.rows.map((r) => Object.assign({}, r, { byPlan: Object.assign({}, r.byPlan) }));

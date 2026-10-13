@@ -1426,7 +1426,7 @@ function selectComparison(doctors, askText, opts = {}) {
   }
   // A pinned plan she skipped / is terminating / whose carrier she excluded, or "without the current plan"
   // / "not that plan", is never pinned (it would lead the table anyway).
-  const dropsCurrent = /\b(?:without|not|exclude|excluding|skip|drop|remove|no)\s+(?:her\s+|the\s+|my\s+|his\s+)?(?:current plan|that plan|this plan|it)\b/i.test(ask.replace(/^Her current plan:[^\n]*$/gm, ''));
+  const dropsCurrent = /\b(?:without|not|exclude|excluding|skip|drop|remove|no)\s+(?:her\s+|the\s+|my\s+|his\s+)?(?:current plan|that plan|this plan)\b/i.test(ask.replace(/^Her current plan:[^\n]*$/gm, ''));
   pinFromAsk = dropsCurrent ? [] : pinFromAsk.filter((id) => {
     const key = String(id).toUpperCase().slice(0, 9);
     if ([...constraints.skip].some((s) => s.slice(0, 9) === key)) return false;
