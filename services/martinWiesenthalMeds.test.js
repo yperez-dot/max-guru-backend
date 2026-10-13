@@ -264,7 +264,7 @@ test('full meds table: one row per drug and form, correction shown, ED label, PA
   assert.ok(medRows.some((l) => /^\| acyclovir oral tablet \|/i.test(l)), medRows.join('\n'));
   assert.ok(medRows.some((l) => /^\| acyclovir topical ointment \|/i.test(l)), medRows.join('\n'));
   // No strength typed: tadalafil splits by strength on CarePlus (only 5 mg and the PAH 20 mg are covered).
-  assert.ok(medRows.some((l) => l.startsWith('| tadalafil | 2.5/10/20 mg: ❌ not covered ‖ 5 mg: T4 50% · PA/QL ? ‖ 20 mg (PAH): T4 50% · PA/QL ? |')), medRows.join('\n'));
+  assert.ok(medRows.some((l) => l.startsWith('| tadalafil | 2.5/10/20 mg: ❌ not covered ‖ 5 mg: T4 50% ‖ 20 mg (PAH): T4 50% |')), medRows.join('\n'));
   assert.ok(!/\| rasuvostatin \| ❔ unchecked/i.test(text), 'the typed name is answered by the corrected lookup');
   assert.doesNotMatch(text, /Medication lookup failed/);
   assert.match(R.MEDS_LEGEND, /PA = prior auth · ST = step therapy · QL = quantity limit/);
@@ -391,7 +391,7 @@ test('medicare.gov cell shows "PA/QL ?"; the legend explains it only when a cell
   const row = { verified: true, coverage: 'covered', tier: 4, costShare: '50%', pa: null, st: null, ql: null, source: 'medicare_gov', restrictionsKnown: false };
   const table = N.medsTable([{ drugName: 'tadalafil 5 mg', byPlanId: { 'H1019-001': row }, lookups: [row] }], plans);
   assert.equal(table.split('\n')[2], '| tadalafil 5 mg | T4 50% · PA/QL ? |');
-  assert.match(N.medsLegendFor(table), / · PA\/QL \? = source doesn't report prior auth \/ quantity limits, verify in carrier formulary$/);
+  assert.match(N.medsLegendFor(table), / · PA \/ QL shown only when the carrier source reports one$/);
   const solis = { verified: true, coverage: 'covered', tier: 1, costShare: '$0', pa: false, st: false, ql: false, source: 'Solis 2027 Comprehensive Formulary PDF' };
   const clean = N.medsTable([{ drugName: 'trazodone', byPlanId: { 'H1019-001': solis }, lookups: [solis] }], plans);
   assert.equal(N.medsLegendFor(clean), R.MEDS_LEGEND, 'no "PA/QL ?" legend line when no cell uses it');
@@ -613,4 +613,13 @@ test('audit 4: a source that reports only some of PA/ST/QL is "PA/QL ?"; all thr
   // The PDF readers print every row, so their false is a real "none".
   assert.equal(D.restrictionsKnownFor({ source: 'Solis 2027 Comprehensive Formulary PDF', pa: false }), true);
   assert.equal(D.restrictionsKnownFor({ source: 'doctors_formulary_pdf', pa: false }), true);
+});
+
+test('cells the source gave no PA/QL for carry no "PA/QL ?" mark in the rendered answer (Yahoska, 2026-10-13)', () => {
+  const t = '| Drug | A |\n|---|---|\n| metformin | T1 $0 · PA/QL ? |\n| tadalafil | T4 50% · PA · QL 30/30 |\n| x | 5 mg: T4 50% · PA/QL ? ‖ 20 mg: T4 50% · PA/QL ? |';
+  const q = N.quietRestrictionMarks(t);
+  assert.doesNotMatch(q, /PA\/QL \?/);
+  assert.match(q, /\| metformin \| T1 \$0 \|/);
+  assert.match(q, /T4 50% · PA · QL 30\/30/);
+  assert.match(q, /5 mg: T4 50% ‖ 20 mg: T4 50% \|/);
 });
