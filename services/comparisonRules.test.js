@@ -419,11 +419,15 @@ describe('stray words after "Meds:" and OTC vitamins (Paula Harris, 2026-10-13)'
     for (const x of ['Vitamin D', 'vitamin d3', 'Vitamin D (Ergocalciferol)', 'multivitamin', 'vitamin b12', 'fish oil', 'melatonin']) assert.equal(R.isOtcSupplement(x), true, x);
     for (const x of ['ergocalciferol', 'metformin', 'Eliquis', 'folic acid']) assert.equal(R.isOtcSupplement(x), false, x);
   });
-  it('the meds table says OTC supplement instead of "not covered" / "not found"', () => {
+  it('a vitamin a plan covers shows its tier; one it does not says OTC vitamin; unchecked stays unchecked', () => {
     const plans = [{ planId: 'H0982-007', name: 'Solis Healthy Living' }, { planId: 'H1036-065C', name: 'Humana Gold Plus' }];
-    const t = n.medsTable([], plans, ['Vitamin D', 'metformin']);
-    assert.match(t, /\| Vitamin D \| OTC supplement[^|\n]*\| OTC supplement/);
-    assert.doesNotMatch(t, /Vitamin D[^\n]*not covered/);
+    const d = { drugName: 'Vitamin D (Ergocalciferol)', inputName: 'vitamin d', byPlanId: {
+      'H0982-007': { verified: true, coverage: 'covered', tier: 2, costShare: '$0' },
+      'H1036-065C': { verified: true, coverage: 'not_covered' },
+    } };
+    const t = n.medsTable([d], plans, ['metformin']);
+    assert.match(t, /\| Vitamin D[^|]*\| T2 \$0[^|\n]*\| Not on this plan's formulary · OTC vitamin/);
+    assert.doesNotMatch(t, /not covered/);
     assert.match(t, /\| metformin \| ❔ unchecked/i);
   });
 });
