@@ -111,6 +111,16 @@ function slimDoctors(doctors, plans) {
   return out;
 }
 
+function slimScreen(screen) {
+  if (!screen || typeof screen !== 'object') return null;
+  const out = {};
+  Object.keys(screen).slice(0, 8).forEach((id) => {
+    const v = clip(screen[id], 120);
+    if (v) out[clip(id, 12)] = v;
+  });
+  return Object.keys(out).length ? out : null;
+}
+
 function slimMedications(drugs) {
   if (!Array.isArray(drugs)) return [];
   const out = [];
@@ -141,6 +151,10 @@ function slimMedications(drugs) {
     const row = { name, byPlanId };
     const dose = clip(d.dose || d.strength || '', 40);
     if (dose) row.dose = dose;
+    // The exact words the agent saw on screen per plan ("80 mg: T1 $0", "Check Medicare.gov"), so a
+    // reopened workup exports the same sheet as the live screen did.
+    const screen = slimScreen(d.screen);
+    if (screen) row.screen = screen;
     out.push(row);
     if (out.length >= MAX_MEDS) break;
   }
@@ -245,6 +259,7 @@ function mergeMedications(existing, incoming) {
     if (!hit) { out.push({ ...m, byPlanId: { ...(m.byPlanId || {}) } }); continue; }
     Object.assign(hit.byPlanId, m.byPlanId || {});
     if (m.dose && !hit.dose) hit.dose = m.dose;
+    if (m.screen) hit.screen = { ...(hit.screen || {}), ...m.screen }; // newest screen wording wins
   }
   return out.slice(0, MAX_MEDS);
 }

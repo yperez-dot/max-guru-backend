@@ -136,3 +136,19 @@ describe('a full final table replaces the saved doctor list (Jackie, 2026-10-13)
     } finally { cleanup(); }
   });
 });
+
+describe('saved meds keep the on-screen wording', () => {
+  const { slimMedications, mergeMedications } = require('./workups');
+  it('slimMedications keeps screen strings and a newer screen replaces the older wording', () => {
+    const slim = slimMedications([{ name: 'Gabapentin', byPlanId: {}, screen: { 'H5420-001': 'Check Medicare.gov', 'H4140-022': '80 mg: T1 $0' } }]);
+    assert.equal(slim[0].screen['H5420-001'], 'Check Medicare.gov');
+    const merged = mergeMedications(slim, slimMedications([{ name: 'Gabapentin', byPlanId: {}, screen: { 'H5420-001': 'T3 $25' } }]));
+    assert.equal(merged[0].screen['H5420-001'], 'T3 $25');
+    assert.equal(merged[0].screen['H4140-022'], '80 mg: T1 $0');
+  });
+  it('a reopened workup hands the screen strings back to the export', () => {
+    const W = require('../artifacts/client-workups.js');
+    const out = W.workupToExportPayload({ plans: [], medications: [{ name: 'Gabapentin', byPlanId: {}, screen: { 'H5420-001': 'Check Medicare.gov' } }] }, []);
+    assert.equal(out.drugs[0].screen['H5420-001'], 'Check Medicare.gov');
+  });
+});
