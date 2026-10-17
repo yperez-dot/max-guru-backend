@@ -371,6 +371,7 @@ function comparisonAskText(messages, baseText) {
       if (excluded.length) lines.push(`Carriers excluded: ${excluded.join(', ')}.`);
       if (carriers.length) lines.push(`Carriers requested: ${carriers.join(', ')}.`);
       else lines.push('Wants another carrier.');
+      if (R.carriersUnresolved(t).length) lines.push(`Carriers not recognized: ${R.carriersUnresolved(t).join(' | ')}.`);
       const current = currentPlanOf(msgs.slice(0, i + 1));
       if (current.length && !/^Her current plan:/m.test(lines.join('\n'))) lines.unshift(`Her current plan: ${current.join(', ')}.`);
       if (!/\b3\d{4}\b/.test(lines.join('\n'))) {
@@ -379,8 +380,12 @@ function comparisonAskText(messages, baseText) {
       }
       break;
     }
-    if (carriers.length) {
-      lines.push(`Carriers requested: ${carriers.join(', ')}.`);
+    // Unmatched names count on their own only in a "compare … to X" ask; otherwise next to a carrier she named.
+    const unmatched = carriers.length || /\bcompar/i.test(t) ? R.carriersUnresolved(t) : [];
+    if (carriers.length || unmatched.length) {
+      if (carriers.length) lines.push(`Carriers requested: ${carriers.join(', ')}.`);
+      // A name she listed that matches no carrier is said, never dropped (Robin Forte, 2026-10-17).
+      if (unmatched.length) lines.push(`Carriers not recognized: ${unmatched.join(' | ')}.`);
       // Her current plan stays a column in a carrier ask (Doctors HealthCare dropped H1045-001 — Enrique, 2026-10-07).
       const current = currentPlanOf(msgs.slice(0, i + 1));
       if (current.length && !/^Her current plan:/m.test(lines.join('\n'))) lines.unshift(`Her current plan: ${current.join(', ')}.`);
@@ -1863,7 +1868,13 @@ function selectComparison(doctors, askText, opts = {}) {
       if (carriers.includes('CarePlus')) out.flags.push(careplusFlag(docs));
       const where = county || 'Miami-Dade + Broward (no ZIP/county given)';
       const excludedText = out.excluded.length ? out.excluded.map((x) => `${x.reason} (${x.count})`).join('; ') : 'none';
-      out.whyLine = `Why these plans: you asked for ${carriers.join(', ')} — ${perCarrier === 1 ? 'best eligible plan per carrier' : `top ${perCarrier} eligible ${carriers[0]} plans`} from ${out.poolSize} eligible ${carriers.join(' / ')} plans in ${where}. ${R.RANK_ORDER} Excluded: ${excludedText}.`;
+      // "top 3 … from 2 eligible" claimed a top 3 that does not exist (Robin Forte, 2026-10-17): say what is there.
+      const pool = out.poolSize;
+      const picked = perCarrier === 1 ? 'best eligible plan per carrier'
+        : pool <= perCarrier ? (pool === 1 ? `the only eligible ${carriers[0]} plan` : `all ${pool} eligible ${carriers[0]} plans`)
+          : `top ${perCarrier} eligible ${carriers[0]} plans`;
+      const fromPool = perCarrier !== 1 && pool <= perCarrier ? `in ${where}` : `from ${pool} eligible ${carriers.join(' / ')} plan${pool === 1 ? '' : 's'} in ${where}`;
+      out.whyLine = `Why these plans: you asked for ${carriers.join(', ')} — ${picked} ${fromPool}. ${R.RANK_ORDER} Excluded: ${excludedText}.`;
       out.header = `**Doctors × ${carriers.join(', ')}** (the carriers you asked for — a count, not a recommendation)`;
       out.ranked = cols.filter((c) => out.columns.includes(c));
       out.couldNotVerify = [];
@@ -2366,7 +2377,10 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
   // A checked plan with the same doctor results as a column (H1045-018 vs H1045-001) is named, not dropped.
   const twins = (sel.sameNetwork || []).slice(0, 4).map((x) => `${x.plan.planId} = same doctor results as ${x.twin.planId}`);
   if (twins.length) lines.push(`Also checked: ${twins.join('; ')}.`);
-  for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in /.test(x))) lines.push(f);
+  for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in |^⚠️ [^:\n]+: no eligible plan/.test(x))) lines.push(f);
+  // A carrier name she typed that matches no carrier: said, never dropped silently.
+  const notRecognized = ((String(askText || '').match(/^Carriers not recognized:\s*([^\n]+?)\.?$/gm) || []).pop() || '').replace(/^Carriers not recognized:\s*/, '').replace(/\.$/, '');
+  for (const name of notRecognized.split(' | ').filter(Boolean)) lines.push(`⚠️ Couldn't match "${name}" to a carrier — not included. Tell me the carrier name and I'll add it.`);
   for (const q of duplicateQuestions(doctors)) lines.push(q);
   const meds = medsTable(drugs, top, sel.meds);
   if (meds) lines.push('', '**Meds**', '', quietRestrictionMarks(meds), '', medsLegendFor(meds), ...strengthNotes(drugs, top.map((p) => p.planId)));

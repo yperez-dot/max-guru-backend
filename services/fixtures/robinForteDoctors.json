@@ -1,0 +1,434 @@
+[
+ {
+  "doctorName": "STEPHANIE SASHA DE LA GUARDA",
+  "requestedName": "Stephanie Sasha De La Guarda",
+  "npi": "1447909296",
+  "specialty": "Family Medicine",
+  "status": "done",
+  "pending": [],
+  "failed": [],
+  "inNetworkPlans": [
+   "Cigna",
+   "UHC MedicareMax Complete Care FL-30 (HMO C-SNP) (H5420-014)",
+   "UHC MedicareMax Medicare Advantage FL-0028 (HMO) (H5420-001)",
+   "BlueMedicare Classic (HMO) (Florida Blue)",
+   "UHC MedicareMax Medicare Advantage FL-0028 (HMO) (UnitedHealthcare)",
+   "UHC MedicareMax Complete Care FL-30 (HMO C-SNP) (UnitedHealthcare)"
+  ],
+  "outOfNetworkPlans": [
+   "AARP Medicare Advantage from UHC FL-0031 (Regional PPO) (R0759-001)",
+   "AARP Medicare Advantage Patriot No Rx FL-MA01 (Regional PPO) (R0759-002)",
+   "UHC Dual Complete FL-Q1 (PPO D-SNP) (H1889-002)",
+   "UHC Dual Complete FL-Q3 (Regional PPO D-SNP) (R0759-003)",
+   "UHC Dual Complete FL-Y7 (PPO D-SNP) (H1889-026)",
+   "UHC Dual Complete FL-YL (HMO-POS D-SNP) (H2509-001)",
+   "UHC Preferred Complete Care FL-0003 (HMO C-SNP) (H1045-018)",
+   "UHC Preferred Dual Complete FL-QV4 (HMO D-SNP) (H1045-012)",
+   "UHC Preferred Dual Complete FL-QV5 (HMO D-SNP) (H1045-061)",
+   "UHC Preferred Dual Complete FL-Y6 (HMO-POS D-SNP) (H1045-063)",
+   "UHC Preferred Medicare Advantage FL-0001 (HMO) (H1045-001)",
+   "Humana Gold Plus (H1036-054C)",
+   "Humana Gold Plus Giveback (H1036-305)",
+   "Humana Gold Plus Diabetes & Heart (H1036-121)",
+   "Humana Gold Plus Lung (H1036-297)",
+   "Humana Dual Select (H1036-077)",
+   "Humana Dual Select (H1036-304)",
+   "Humana Dual Integrated (H1036-339)",
+   "HumanaChoice (H7617-107)",
+   "HumanaChoice Giveback (H7617-110)",
+   "HumanaChoice Giveback (H7617-145)",
+   "Devoted CORE 001 (H1290-001)",
+   "Devoted CORE 002 (H1290-002)",
+   "Devoted GIVEBACK 013 (H1290-013)",
+   "Devoted GIVEBACK 014 (H1290-014)",
+   "Devoted CORE 037 (H1290-037)",
+   "Devoted CORE 056 (H1290-056)",
+   "Devoted CORE 062 (H1290-062)",
+   "Devoted GIVEBACK EXTRAS 110 (H1290-110)",
+   "Devoted GIVEBACK EXTRAS 117 (H1290-117)",
+   "Devoted DUAL 019 D-SNP (H1290-019)",
+   "Devoted DUAL 020 D-SNP (H1290-020)",
+   "Devoted DUAL QMB 053 D-SNP (H1290-053)",
+   "Devoted DUAL QMB 054 D-SNP (H1290-054)",
+   "Devoted DUAL FULL 077 D-SNP (H1290-077)",
+   "Devoted DUAL FULL 078 D-SNP (H1290-078)",
+   "Devoted C-SNP ENHANCED 067 (H1290-067)",
+   "Devoted C-SNP ENHANCED 073 (H1290-073)",
+   "Devoted C-SNP PLUS 084 (H1290-084)",
+   "Devoted C-SNP PLUS 085 (H1290-085)"
+  ],
+  "networks": [
+   {
+    "carrier": "Florida Blue",
+    "inNetwork": false,
+    "status": "checked"
+   },
+   {
+    "carrier": "Cigna",
+    "inNetwork": true,
+    "status": "checked"
+   },
+   {
+    "carrier": "HealthSun",
+    "inNetwork": false,
+    "status": "checked",
+    "directoryStatus": "checked",
+    "directoryMatches": [],
+    "partialList": true
+   },
+   {
+    "carrier": "Devoted Health",
+    "inNetwork": false,
+    "status": "checked",
+    "plans": [],
+    "outOfNetworkPlans": [
+     "Devoted CORE 001 (H1290-001)",
+     "Devoted CORE 002 (H1290-002)",
+     "Devoted GIVEBACK 013 (H1290-013)",
+     "Devoted GIVEBACK 014 (H1290-014)",
+     "Devoted CORE 037 (H1290-037)",
+     "Devoted CORE 056 (H1290-056)",
+     "Devoted CORE 062 (H1290-062)",
+     "Devoted GIVEBACK EXTRAS 110 (H1290-110)",
+     "Devoted GIVEBACK EXTRAS 117 (H1290-117)",
+     "Devoted DUAL 019 D-SNP (H1290-019)",
+     "Devoted DUAL 020 D-SNP (H1290-020)",
+     "Devoted DUAL QMB 053 D-SNP (H1290-053)",
+     "Devoted DUAL QMB 054 D-SNP (H1290-054)",
+     "Devoted DUAL FULL 077 D-SNP (H1290-077)",
+     "Devoted DUAL FULL 078 D-SNP (H1290-078)",
+     "Devoted C-SNP ENHANCED 067 (H1290-067)",
+     "Devoted C-SNP ENHANCED 073 (H1290-073)",
+     "Devoted C-SNP PLUS 084 (H1290-084)",
+     "Devoted C-SNP PLUS 085 (H1290-085)"
+    ]
+   },
+   {
+    "carrier": "Solis Health Plans",
+    "inNetwork": false,
+    "status": "checked",
+    "directoryMatches": []
+   },
+   {
+    "carrier": "CarePlus",
+    "inNetwork": false,
+    "status": "checked",
+    "partialList": true,
+    "directoryMatches": []
+   },
+   {
+    "carrier": "Doctors HealthCare Plans",
+    "inNetwork": false,
+    "status": "checked"
+   },
+   {
+    "carrier": "Aetna Medicare",
+    "inNetwork": false,
+    "status": "checked"
+   },
+   {
+    "carrier": "Simply Healthcare",
+    "inNetwork": false,
+    "status": "unchecked"
+   },
+   {
+    "carrier": "Wellcare",
+    "inNetwork": false,
+    "status": "checked"
+   },
+   {
+    "carrier": "UnitedHealthcare",
+    "inNetwork": true,
+    "status": "in_network",
+    "plans": [
+     "UHC MedicareMax Complete Care FL-30 (HMO C-SNP) (H5420-014)",
+     "UHC MedicareMax Medicare Advantage FL-0028 (HMO) (H5420-001)"
+    ],
+    "outOfNetworkPlans": [
+     "AARP Medicare Advantage from UHC FL-0031 (Regional PPO) (R0759-001)",
+     "AARP Medicare Advantage Patriot No Rx FL-MA01 (Regional PPO) (R0759-002)",
+     "UHC Dual Complete FL-Q1 (PPO D-SNP) (H1889-002)",
+     "UHC Dual Complete FL-Q3 (Regional PPO D-SNP) (R0759-003)",
+     "UHC Dual Complete FL-Y7 (PPO D-SNP) (H1889-026)",
+     "UHC Dual Complete FL-YL (HMO-POS D-SNP) (H2509-001)",
+     "UHC Preferred Complete Care FL-0003 (HMO C-SNP) (H1045-018)",
+     "UHC Preferred Dual Complete FL-QV4 (HMO D-SNP) (H1045-012)",
+     "UHC Preferred Dual Complete FL-QV5 (HMO D-SNP) (H1045-061)",
+     "UHC Preferred Dual Complete FL-Y6 (HMO-POS D-SNP) (H1045-063)",
+     "UHC Preferred Medicare Advantage FL-0001 (HMO) (H1045-001)"
+    ],
+    "year": "2027"
+   },
+   {
+    "carrier": "Humana",
+    "inNetwork": false,
+    "status": "checked",
+    "plans": [],
+    "outOfNetworkPlans": [
+     "Humana Gold Plus (H1036-054C)",
+     "Humana Gold Plus Giveback (H1036-305)",
+     "Humana Gold Plus Diabetes & Heart (H1036-121)",
+     "Humana Gold Plus Lung (H1036-297)",
+     "Humana Dual Select (H1036-077)",
+     "Humana Dual Select (H1036-304)",
+     "Humana Dual Integrated (H1036-339)",
+     "HumanaChoice (H7617-107)",
+     "HumanaChoice Giveback (H7617-110)",
+     "HumanaChoice Giveback (H7617-145)"
+    ],
+    "year": "2027"
+   }
+  ],
+  "carriersIn": [
+   "UnitedHealthcare",
+   "Florida Blue"
+  ],
+  "cignaDirectoryOnly": true
+ },
+ {
+  "doctorName": "GEORGE DEMETRIOS GLINOS MD",
+  "requestedName": "George Demetrios Glinos",
+  "npi": "1881199586",
+  "specialty": "Dermatology",
+  "status": "done",
+  "pending": [],
+  "failed": [],
+  "inNetworkPlans": [
+   "Cigna",
+   "HealthSun",
+   "Doctors HealthCare Plans",
+   "Solis Health Plans",
+   "Aetna Medicare Chronic Care (HMO C-SNP) - H1609-094 (H1609-094)",
+   "Aetna Medicare Full Dual Select (HMO D-SNP) - H1609-073 (H1609-073)",
+   "Aetna Medicare Partial Dual Select (HMO D-SNP) - H1609-103 (H1609-103)",
+   "Aetna Medicare Plan (HMO)",
+   "Aetna Medicare QMB Only Select (HMO D-SNP) - H1609-043 (H1609-043)",
+   "Aetna Medicare Select Care (HMO) - H1609-093 (H1609-093)",
+   "Aetna Medicare Plan (PPO)",
+   "Aetna Medicare Plan (PPO) with Extended Service Area (ESA)",
+   "AARP Medicare Advantage from UHC FL-0031 (Regional PPO) (R0759-001)",
+   "AARP Medicare Advantage Patriot No Rx FL-MA01 (Regional PPO) (R0759-002)",
+   "UHC Dual Complete FL-Q1 (PPO D-SNP) (H1889-002)",
+   "UHC Dual Complete FL-Q3 (Regional PPO D-SNP) (R0759-003)",
+   "UHC Dual Complete FL-Y7 (PPO D-SNP) (H1889-026)",
+   "UHC Dual Complete FL-YL (HMO-POS D-SNP) (H2509-001)",
+   "Humana Gold Plus (H1036-054C)",
+   "Humana Gold Plus Giveback (H1036-305)",
+   "Humana Gold Plus Diabetes & Heart (H1036-121)",
+   "Humana Gold Plus Lung (H1036-297)",
+   "Humana Dual Select (H1036-077)",
+   "Humana Dual Select (H1036-304)",
+   "Humana Dual Integrated (H1036-339)",
+   "HumanaChoice (H7617-107)",
+   "HumanaChoice Giveback (H7617-110)",
+   "HumanaChoice Giveback (H7617-145)",
+   "Aetna Medicare QMB Only Select (HMO D-SNP) H1609-043 (Aetna Inc.)",
+   "Aetna Medicare Full Dual Select (HMO D-SNP) H1609-073 (Aetna Inc.)",
+   "Aetna Medicare Select Care (HMO) (Aetna Inc.)",
+   "Aetna Medicare Chronic Care (HMO C-SNP) (Aetna Inc.)",
+   "Aetna Medicare Partial Dual Select (HMO D-SNP) (Aetna Inc.)",
+   "AmeriHealth Caritas VIP Care (HMO D-SNP) (AmeriHealth Caritas)",
+   "BlueMedicare Classic (HMO) (Florida Blue)",
+   "HealthSun HealthAdvantage Plan (HMO) (HealthSun Health Plans, Inc)",
+   "HealthSun MediMax (HMO) (HealthSun Health Plans, Inc)",
+   "HealthSun HealthAdvantage Plus (HMO) (HealthSun Health Plans, Inc)",
+   "HealthSun MediSun Extra (HMO D-SNP) (HealthSun Health Plans, Inc)",
+   "HealthSun VitalCare (HMO C-SNP) (HealthSun Health Plans, Inc)",
+   "HealthSun MediSun Full Dual Extra (HMO D-SNP) (HealthSun Health Plans, Inc)",
+   "Wellcare Sunshine Health Dual Align (HMO D-SNP) (WellCare Health Plans, Inc.)",
+   "Wellcare Sunshine Health Dual Align Unity (HMO D-SNP) (WellCare Health Plans, Inc.)",
+   "Gold Heart & Diabetes Complete (HMO-POS C-SNP) (Gold Kidney Health Plan)",
+   "Gold Dialysis & Kidney Complete (HMO-POS C-SNP) (Gold Kidney Health Plan)",
+   "Gold Dialysis & Kidney (HMO-POS C-SNP) (Gold Kidney Health Plan)",
+   "Gold Heart & Diabetes (HMO-POS C-SNP) (Gold Kidney Health Plan)",
+   "Wellcare Giveback (HMO-POS) (WellCare Health Plans, Inc.)",
+   "Wellcare Simple (HMO-POS) (WellCare Health Plans, Inc.)",
+   "Wellcare Sunshine Health Dual Reserve (HMO-POS D-SNP) (WellCare Health Plans, Inc.)",
+   "Wellcare Sunshine Health Dual Access (HMO-POS D-SNP) (WellCare Health Plans, Inc.)",
+   "BlueMedicare Select (PPO) (Florida Blue)",
+   "BlueMedicare Patriot (PPO) (Florida Blue)"
+  ],
+  "outOfNetworkPlans": [
+   "UHC MedicareMax Complete Care FL-30 (HMO C-SNP) (H5420-014)",
+   "UHC MedicareMax Medicare Advantage FL-0028 (HMO) (H5420-001)",
+   "UHC Preferred Complete Care FL-0003 (HMO C-SNP) (H1045-018)",
+   "UHC Preferred Dual Complete FL-QV4 (HMO D-SNP) (H1045-012)",
+   "UHC Preferred Dual Complete FL-QV5 (HMO D-SNP) (H1045-061)",
+   "UHC Preferred Dual Complete FL-Y6 (HMO-POS D-SNP) (H1045-063)",
+   "UHC Preferred Medicare Advantage FL-0001 (HMO) (H1045-001)",
+   "Devoted CORE 001 (H1290-001)",
+   "Devoted CORE 002 (H1290-002)",
+   "Devoted GIVEBACK 013 (H1290-013)",
+   "Devoted GIVEBACK 014 (H1290-014)",
+   "Devoted CORE 037 (H1290-037)",
+   "Devoted CORE 056 (H1290-056)",
+   "Devoted CORE 062 (H1290-062)",
+   "Devoted GIVEBACK EXTRAS 110 (H1290-110)",
+   "Devoted GIVEBACK EXTRAS 117 (H1290-117)",
+   "Devoted DUAL 019 D-SNP (H1290-019)",
+   "Devoted DUAL 020 D-SNP (H1290-020)",
+   "Devoted DUAL QMB 053 D-SNP (H1290-053)",
+   "Devoted DUAL QMB 054 D-SNP (H1290-054)",
+   "Devoted DUAL FULL 077 D-SNP (H1290-077)",
+   "Devoted DUAL FULL 078 D-SNP (H1290-078)",
+   "Devoted C-SNP ENHANCED 067 (H1290-067)",
+   "Devoted C-SNP ENHANCED 073 (H1290-073)",
+   "Devoted C-SNP PLUS 084 (H1290-084)",
+   "Devoted C-SNP PLUS 085 (H1290-085)"
+  ],
+  "networks": [
+   {
+    "carrier": "Florida Blue",
+    "inNetwork": false,
+    "status": "checked"
+   },
+   {
+    "carrier": "Cigna",
+    "inNetwork": true,
+    "status": "checked"
+   },
+   {
+    "carrier": "HealthSun",
+    "inNetwork": true,
+    "status": "checked",
+    "directoryStatus": "checked",
+    "directoryMatches": [
+     {
+      "name": "GLINOS, GEORGE MD",
+      "pages": [
+       363
+      ],
+      "county": "miamiDade"
+     }
+    ],
+    "partialList": true
+   },
+   {
+    "carrier": "Devoted Health",
+    "inNetwork": false,
+    "status": "checked",
+    "plans": [],
+    "outOfNetworkPlans": [
+     "Devoted CORE 001 (H1290-001)",
+     "Devoted CORE 002 (H1290-002)",
+     "Devoted GIVEBACK 013 (H1290-013)",
+     "Devoted GIVEBACK 014 (H1290-014)",
+     "Devoted CORE 037 (H1290-037)",
+     "Devoted CORE 056 (H1290-056)",
+     "Devoted CORE 062 (H1290-062)",
+     "Devoted GIVEBACK EXTRAS 110 (H1290-110)",
+     "Devoted GIVEBACK EXTRAS 117 (H1290-117)",
+     "Devoted DUAL 019 D-SNP (H1290-019)",
+     "Devoted DUAL 020 D-SNP (H1290-020)",
+     "Devoted DUAL QMB 053 D-SNP (H1290-053)",
+     "Devoted DUAL QMB 054 D-SNP (H1290-054)",
+     "Devoted DUAL FULL 077 D-SNP (H1290-077)",
+     "Devoted DUAL FULL 078 D-SNP (H1290-078)",
+     "Devoted C-SNP ENHANCED 067 (H1290-067)",
+     "Devoted C-SNP ENHANCED 073 (H1290-073)",
+     "Devoted C-SNP PLUS 084 (H1290-084)",
+     "Devoted C-SNP PLUS 085 (H1290-085)"
+    ]
+   },
+   {
+    "carrier": "Solis Health Plans",
+    "inNetwork": true,
+    "status": "checked",
+    "directoryMatches": [
+     {
+      "name": "GLINOS, GEORGE MD",
+      "pages": [
+       96
+      ],
+      "county": "miamiDade"
+     }
+    ]
+   },
+   {
+    "carrier": "CarePlus",
+    "inNetwork": false,
+    "status": "checked",
+    "partialList": true,
+    "directoryMatches": []
+   },
+   {
+    "carrier": "Doctors HealthCare Plans",
+    "inNetwork": true,
+    "status": "checked"
+   },
+   {
+    "carrier": "Aetna Medicare",
+    "inNetwork": true,
+    "status": "in_network"
+   },
+   {
+    "carrier": "Simply Healthcare",
+    "inNetwork": false,
+    "status": "unchecked"
+   },
+   {
+    "carrier": "Wellcare",
+    "inNetwork": true,
+    "status": "checked"
+   },
+   {
+    "carrier": "UnitedHealthcare",
+    "inNetwork": true,
+    "status": "in_network",
+    "plans": [
+     "AARP Medicare Advantage from UHC FL-0031 (Regional PPO) (R0759-001)",
+     "AARP Medicare Advantage Patriot No Rx FL-MA01 (Regional PPO) (R0759-002)",
+     "UHC Dual Complete FL-Q1 (PPO D-SNP) (H1889-002)",
+     "UHC Dual Complete FL-Q3 (Regional PPO D-SNP) (R0759-003)",
+     "UHC Dual Complete FL-Y7 (PPO D-SNP) (H1889-026)",
+     "UHC Dual Complete FL-YL (HMO-POS D-SNP) (H2509-001)"
+    ],
+    "outOfNetworkPlans": [
+     "UHC MedicareMax Complete Care FL-30 (HMO C-SNP) (H5420-014)",
+     "UHC MedicareMax Medicare Advantage FL-0028 (HMO) (H5420-001)",
+     "UHC Preferred Complete Care FL-0003 (HMO C-SNP) (H1045-018)",
+     "UHC Preferred Dual Complete FL-QV4 (HMO D-SNP) (H1045-012)",
+     "UHC Preferred Dual Complete FL-QV5 (HMO D-SNP) (H1045-061)",
+     "UHC Preferred Dual Complete FL-Y6 (HMO-POS D-SNP) (H1045-063)",
+     "UHC Preferred Medicare Advantage FL-0001 (HMO) (H1045-001)"
+    ],
+    "year": "2027"
+   },
+   {
+    "carrier": "Humana",
+    "inNetwork": true,
+    "status": "in_network",
+    "plans": [
+     "Humana Gold Plus (H1036-054C)",
+     "Humana Gold Plus Giveback (H1036-305)",
+     "Humana Gold Plus Diabetes & Heart (H1036-121)",
+     "Humana Gold Plus Lung (H1036-297)",
+     "Humana Dual Select (H1036-077)",
+     "Humana Dual Select (H1036-304)",
+     "Humana Dual Integrated (H1036-339)",
+     "HumanaChoice (H7617-107)",
+     "HumanaChoice Giveback (H7617-110)",
+     "HumanaChoice Giveback (H7617-145)"
+    ],
+    "outOfNetworkPlans": [],
+    "year": "2027"
+   }
+  ],
+  "carriersIn": [
+   "HealthSun",
+   "Solis Health Plans",
+   "Doctors HealthCare Plans",
+   "Aetna Medicare",
+   "Wellcare",
+   "UnitedHealthcare",
+   "Humana",
+   "Aetna Inc.",
+   "AmeriHealth Caritas",
+   "Florida Blue",
+   "HealthSun Health Plans, Inc",
+   "WellCare Health Plans, Inc.",
+   "Gold Kidney Health Plan"
+  ],
+  "cignaDirectoryOnly": true
+ }
+]

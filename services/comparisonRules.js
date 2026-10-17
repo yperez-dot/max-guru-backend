@@ -462,8 +462,10 @@ const CARRIER_WORDS = [
   ['Doctors HealthCare', /\bdoc?to?r?s?'?\s*(?:health\s*care|healthcare|health|hc|plans?)\b|\bdrmax\b|\bdrselect\b|(?:[,&]|\band\b|\bwith\b)\s*doctors\b(?!\s*:)(?!\s+(?:i|are|is|who|names?|lists?|here|below))|\bdoctors\s*,\s*(?:solis|care\s*plus|uhc|humana|devoted|aetna|simply|wellcare)/i],
   ['Solis', /\bsol[iy]s\b/i],
   ['Devoted', /\b[cd]evoted\b|\bdevote\b/i],
-  ['Humana', /\bhumana\b/i],
-  ['Aetna', /\baetna\b/i],
+  // "Human Gold" / "Humanna" / "Humna" (Robin Forte, 2026-10-17: "Compare it to Doctors Health Plan and Human Gold" —
+  // Humana was silently dropped). Bare "human" counts only when a Humana plan word follows.
+  ['Humana', /\bhu+m+a+n+n?a\b|\bhumn?a\b|\bhum(?:an|na)n?a?\b(?=\s+(?:gold|choice|plans?|medicare|ppo|hmo|honor|healthy|dual|cash|value|full\s+access|ga\b))/i],
+  ['Aetna', /\b(?:aetna|aentna|aeatna|atena|aetan|aetnna)\b/i],
   ['UnitedHealthcare', /\buhc\b|\bunited\s*health|\baarp\b|\bmedicaremax\b/i],
   ['Simply', /\bsimply\b/i],
   ['Wellcare', /\bwell\s*care\b/i],
@@ -501,6 +503,30 @@ function carriersRejected(message) {
         break;
       }
     }
+  }
+  return out;
+}
+
+/**
+ * Names in a carrier list that match no carrier ("Compare it to Doctors Health Plan and Xyz Care" -> ['Xyz Care']).
+ * A named carrier is never dropped silently: Max says it could not match it (Robin Forte, 2026-10-17).
+ */
+const LIST_LEAD_RE = /\b(?:compare|comparing|compared)\b[^.\n]*?\b(?:to|with|against|vs\.?|versus)\s+([^.;\n?!]+)|\b(?:show\s+me|add|include|what\s+about|how\s+about|also\s+check|check)\s+([^.;\n?!]+)/i;
+const NOT_A_CARRIER_RE = /^(?:it|her|his|them|that|this|the|a|an|plans?|current|other|others|another|same|doctors?|meds?|drugs?|both|all|one|ones|best|top|\d+|her\s+(?:current\s+)?plan|his\s+(?:current\s+)?plan|the\s+(?:current\s+)?plan|current\s+plan|ppos?|hmos?|d-?snps?|c-?snps?|gold|plus|zip|county|miami|broward|dade|network|in\s+network|cheaper|better|more|options?)$/i;
+function carriersUnresolved(message) {
+  const t = String(message || '').replace(/\b(?:doctors?|drs?|providers?)\s*:[^\n]*/gi, ' ');
+  const m = t.match(LIST_LEAD_RE);
+  if (!m) return [];
+  const list = (m[1] || m[2] || '').replace(/\b[HR]\d{4}-\d{3}[A-Z]?\b/gi, ' ');
+  const out = [];
+  for (const raw of list.split(/,|\band\b|&|\bor\b|\//i)) {
+    const part = raw.replace(/\b(?:plans?|options?|too|also|instead|please|pls|for\s+her|for\s+him)\b/gi, ' ').replace(/\s+/g, ' ').trim();
+    if (!part || part.length < 3 || NOT_A_CARRIER_RE.test(part)) continue;
+    if (/\b(?:dr|dra|doctora?|results?|table|grid|export|excel|pdf|meds?|drugs?|npi|zip)\b|'s\b|\d/i.test(part)) continue;
+    if (CARRIER_WORDS.some(([, re]) => re.test(part) || re.test(`${part} plan`))) continue;
+    // Only something that reads like a name she typed (a capitalised word), not a sentence about the client.
+    if (!/^[A-Z]/.test(part) || part.split(' ').length > 4) continue;
+    out.push(part);
   }
   return out;
 }
@@ -604,6 +630,7 @@ module.exports = {
   exactDollars,
   CARRIER_WORDS,
   carriersRequested,
+  carriersUnresolved,
   isOtcSupplement,
   impliesCompareToCurrentPlan,
   cleanMedItem,

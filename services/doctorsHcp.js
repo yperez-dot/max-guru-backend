@@ -132,11 +132,34 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * The Doctors API answers bursts with HTTP 404 (probed 2026-10-06: back-to-back
  * calls 404, the same call 2.5s apart returns 200). One retry after a pause.
  */
+// Robin Forte, 2026-10-17 11:51 AM: from Railway every Doctors call came back HTTP 404 or "socket other side closed"
+// while other agents' 7-doctor runs were hitting the same API — De La Guarda read ❔ unchecked on both Doctors plans.
+// A dropped socket was never retried (no status), and one retry 1.5 s later landed in the same burst.
+// Now: every call is spaced from the last one (process-wide), a dropped socket / timeout is retried like a 404,
+// and there are two retries with a growing pause.
+const RETRIES = Number(process.env.MAX_DOCTORS_HCP_RETRIES || 2);
+const MIN_GAP_MS = Number(process.env.MAX_DOCTORS_HCP_GAP_MS || 600);
+let lastCallAt = 0;
+let gate = Promise.resolve();
+function spaced() {
+  const turn = gate.then(async () => {
+    const wait = lastCallAt + MIN_GAP_MS - Date.now();
+    if (wait > 0) await sleep(wait);
+    lastCallAt = Date.now();
+  });
+  gate = turn.catch(() => {});
+  return turn;
+}
+const retryable = (r) => !r.ok && (r.status == null || RETRY_STATUS.has(r.status));
 async function postSearch(body) {
-  const first = await postSearchOnce(body);
-  if (first.ok || !RETRY_STATUS.has(first.status || 0)) return first;
-  await sleep(RETRY_DELAY_MS);
-  return postSearchOnce(body);
+  let r = null;
+  for (let attempt = 0; attempt <= RETRIES; attempt += 1) {
+    if (attempt) await sleep(RETRY_DELAY_MS * attempt);
+    await spaced();
+    r = await postSearchOnce(body);
+    if (!retryable(r)) return r;
+  }
+  return r;
 }
 
 async function postSearchOnce(body) {
@@ -173,7 +196,7 @@ async function postSearchOnce(body) {
     const cause = err.cause ? ` (${err.cause.code || err.cause.name || ''} ${err.cause.message || ''})`.replace(/\s+\)/, ')') : '';
     const label = err.name === 'AbortError' ? 'Timeout' : `${err.message}${cause}`;
     console.warn(`[doctorsHcp] ${label} type=${body.ProviderType}`);
-    return { ok: false, hits: [] };
+    return { ok: false, status: null, hits: [] };
   } finally {
     clearTimeout(timer);
   }
@@ -183,7 +206,28 @@ async function postSearchOnce(body) {
  * Search Doctors as PCP and specialist in parallel.
  * Zip is omitted on purpose: NPI identity must not be dropped by radius.
  */
-async function queryDoctorsHcp(npi, { zip } = {}) {
+// The same NPI asked twice at once (the model's two parallel lookup_provider_network calls) shares one check; an
+// answered check is reused for a few minutes. A failed check is never cached.
+const ANSWER_TTL_MS = Number(process.env.MAX_DOCTORS_HCP_CACHE_MS || 10 * 60_000);
+const answers = new Map();
+async function queryDoctorsHcp(npi, opts = {}) {
+  if (!npi) return queryDoctorsHcpUncached(npi, opts);
+  const key = `${npi}|${opts.zip || ''}`;
+  const hit = answers.get(key);
+  if (hit && (hit.pending || Date.now() - hit.at < ANSWER_TTL_MS)) return hit.promise;
+  const promise = queryDoctorsHcpUncached(npi, opts);
+  answers.set(key, { promise, pending: true });
+  try {
+    const out = await promise;
+    if (out && !out.error) answers.set(key, { promise, at: Date.now() });
+    else answers.delete(key);
+    return out;
+  } catch (e) {
+    answers.delete(key);
+    throw e;
+  }
+}
+async function queryDoctorsHcpUncached(npi, { zip } = {}) {
   if (!npi) {
     return { inNetwork: false, matches: [], error: 'missing_npi', planLabel: PLAN_LABEL };
   }
@@ -259,6 +303,7 @@ async function probeDoctors(npi) {
 }
 
 module.exports = {
+  _resetForTests: () => { answers.clear(); lastCallAt = 0; },
   doctorsPdfCheck,
   doctorsPdfScoped,
   doctorsIndexKeysForZip,
