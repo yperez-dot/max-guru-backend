@@ -102,3 +102,29 @@ test('regression: "it" in a reply does not drop the current plan', () => {
     assert.ok(!cols.some((id) => id.startsWith('H5420-001')), extra);
   }
 });
+
+test.describe('Excel keeps the screen order and wording (Jackie, 2026-10-17)', () => {
+  const E2 = require('../artifacts/comparison-export.js');
+  const R2 = require('./comparisonRules.js');
+  test.it('a screen-built payload keeps column order, doctor cells and med wording in the sheet', () => {
+    const grid = R2.gridPlansForCounty('Miami-Dade');
+    const plans = ['H5420-001', 'H4140-022', 'H4140-023'].map((id) => grid.find((p) => p.planId === id));
+    const table = [
+      'Doctors × top plans', '',
+      '| Doctor | UHC · H5420-001 | Doctors DrMax-Dade · H4140-022 | Doctors DrSelect-SFL · H4140-023 |', '|---|---|---|---|',
+      '| James N Esserman · NPI 1699719997 | ❌ Not in network (not listed) | ✅ In | ✅ In |',
+      '| Pascual De Santis · NPI 1225156565 | ✅ In | ✅ In | ✅ In |', '',
+      'Meds', '',
+      '| Drug | UHC · H5420-001 | Doctors DrMax-Dade · H4140-022 | Doctors DrSelect-SFL · H4140-023 |', '|---|---|---|---|',
+      '| Gabapentin | ❔ check Medicare.gov (strength not confirmed) | ❔ check Medicare.gov (strength not confirmed) | ❔ check Medicare.gov (strength not confirmed) |',
+    ].join('\n');
+    const tbl = E2.latestChatTable([{ role: 'assistant', content: table }]);
+    const payload = E2.buildExportPayload(plans, table, { chatTable: tbl, planSetFixed: true, doctors: [], drugs: [] });
+    const model = E2.buildComparisonModel(payload);
+    assert.match(model.aoa.find((r) => /H5420-001/.test(r.join('|'))).join('|'), /H5420-001.*H4140-022.*H4140-023/s);
+    const ess = model.aoa.find((r) => /Esserman/.test(r[0]));
+    assert.deepEqual(ess.slice(1), ['Not in network (not listed)', 'In network', 'In network']);
+    const gaba = model.aoa.find((r) => r[0] === 'Gabapentin');
+    assert.match(gaba[1], /^Check Medicare\.gov/);
+  });
+});

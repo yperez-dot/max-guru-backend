@@ -1189,6 +1189,8 @@
       if (!row) return;
       if (d.brandNotCovered) row.brandNotCovered = true;
       if (d.genericOf) row.genericOf = d.genericOf;
+      // The on-screen wording per plan ("80 mg: T1 $0") wins over a recomputed "Tier 1 · $0".
+      if (d.screen && typeof d.screen === "object") row.screen = Object.assign({}, row.screen || {}, d.screen);
       const map = d.byPlanId || d.statusByPlanId || {};
       Object.keys(map).forEach((planId) => {
         const incoming = map[planId] || {};
@@ -1847,7 +1849,9 @@
     }
     if (plansOrPayload && typeof plansOrPayload === "object") {
       const plans = Array.isArray(plansOrPayload.plans) ? plansOrPayload.plans : [];
-      const kept = uniq(plans);
+      // A payload built from the table on screen keeps that column order (UHC, DrMax, DrSelect); the
+      // preferred-order sort re-ordered it and then mapped the doctors' positional statuses onto the wrong plans.
+      const kept = plansOrPayload.keepPlanOrder === true ? uniquePlansKeepOrder(plans) : uniq(plans);
       const aligned = realignDoctorStatuses(plansOrPayload.doctors, plans, kept);
       const out = {
         ...plansOrPayload,
@@ -2001,6 +2005,18 @@
       byPbp.set(id, prev ? preferPlanForSlot(prev, p) : p);
     });
     return orderComparisonPlans([...byPbp.values()]);
+  }
+
+  // Same de-duplication, but the columns stay in the order given (the order on her screen).
+  function uniquePlansKeepOrder(plans) {
+    const byPbp = new Map();
+    (plans || []).forEach((p) => {
+      const id = planColumnId(p);
+      if (!id) return;
+      const prev = byPbp.get(id);
+      byPbp.set(id, prev ? preferPlanForSlot(prev, p) : p);
+    });
+    return [...byPbp.values()];
   }
 
   function dedupeComparisonPlans(plans) {
@@ -2277,6 +2293,7 @@
       // What SHE typed (not Max's replies): the only text that can ask for an extra benefit row.
       askText: extra.askText != null ? String(extra.askText) : text,
       sobBenefits: extra.sobBenefits || extra.sobExtras || {},
+      keepPlanOrder: extra.planSetFixed === true,
       askedExportSob: extra.askedExportSob === true || askedExportSobBenefits(extra.askText != null ? extra.askText : text),
     };
     if (drugs.some((d) => d.brandNotCovered || /\*$/.test(d.name || "") || d.genericOf)) {
