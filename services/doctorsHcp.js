@@ -151,12 +151,27 @@ function spaced() {
   return turn;
 }
 const retryable = (r) => !r.ok && (r.status == null || RETRY_STATUS.has(r.status));
+// Robin Forte, 2026-10-17 12:06 PM: all 12 live calls from Railway (2 NPIs × pcp/spe × 3 tries) died with
+// "UND_ERR_SOCKET other side closed" in ~9 s, while the same calls from another network answer 200. The site drops
+// Railway's connections outright; retrying only adds load. After a run of dropped connections the live search is
+// skipped for a cool-down, and the county directory PDF answers instead (see queryDoctorsHcpUncached).
+const BREAKER_FAILS = Number(process.env.MAX_DOCTORS_HCP_BREAKER_FAILS || 4);
+const BREAKER_MS = Number(process.env.MAX_DOCTORS_HCP_BREAKER_MS || 5 * 60_000);
+let droppedInARow = 0;
+let breakerUntil = 0;
+function liveSearchDown() { return Date.now() < breakerUntil; }
 async function postSearch(body) {
   let r = null;
   for (let attempt = 0; attempt <= RETRIES; attempt += 1) {
+    if (liveSearchDown()) return { ok: false, status: null, hits: [], skipped: true };
     if (attempt) await sleep(RETRY_DELAY_MS * attempt);
     await spaced();
     r = await postSearchOnce(body);
+    if (r.ok) droppedInARow = 0;
+    else if (r.status == null && ++droppedInARow >= BREAKER_FAILS) {
+      breakerUntil = Date.now() + BREAKER_MS;
+      console.warn(`[doctorsHcp] live search unreachable (${droppedInARow} dropped connections in a row) — skipping it for ${Math.round(BREAKER_MS / 1000)}s; county PDF answers`);
+    }
     if (!retryable(r)) return r;
   }
   return r;
@@ -284,6 +299,23 @@ async function queryDoctorsHcpUncached(npi, { zip } = {}) {
 
   // A miss only counts as "checked" when every list answered; a failed list is not a miss.
   const allOk = results.every((r) => r.ok);
+  // The live search could not be reached (dropped connections / bursts), but her county's 2027 directory PDF was
+  // searched and does not list the NPI: that is a checked "not listed" from the carrier's own directory, with its date —
+  // not "didn't finish" (Robin Forte, 2026-10-17: De La Guarda read ❔ on both Doctors plans every run from Railway,
+  // while Glinos, who is in the PDF, read ✅). Without a ZIP / county PDF it stays a failed check.
+  if (!matches.length && !allOk && scoped && scoped.searched) {
+    const asOf = [...new Set((scoped.keys || []).map((k) => (loadIndex().counties[k] || {}).asOf).filter(Boolean))].join(', ');
+    return {
+      inNetwork: false,
+      matches: [],
+      error: null,
+      source: 'pdf_miss',
+      liveUnreachable: true,
+      pdfAsOf: asOf || null,
+      pdfCounties: (scoped.keys || []).map((k) => COUNTY_LABEL[k] || k),
+      planLabel: PLAN_LABEL,
+    };
+  }
   return {
     inNetwork: matches.length > 0,
     matches,
@@ -303,7 +335,8 @@ async function probeDoctors(npi) {
 }
 
 module.exports = {
-  _resetForTests: () => { answers.clear(); lastCallAt = 0; },
+  _resetForTests: () => { answers.clear(); lastCallAt = 0; droppedInARow = 0; breakerUntil = 0; },
+  liveSearchDown,
   doctorsPdfCheck,
   doctorsPdfScoped,
   doctorsIndexKeysForZip,

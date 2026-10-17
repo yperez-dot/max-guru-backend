@@ -130,10 +130,21 @@ function chatResult({ lastData, text, collectedToolResults, usageCalls, deadline
     provider: CONFIG.provider,
     role: 'assistant',
     content: [{ type: 'text', text: text || fallback }],
+  };
+  // The grid is one chat message; notes / warnings / questions after it are a second one (page renders 2 bubbles).
+  {
+    const { splitFollowUp } = require('./doctorPlanNarrow');
+    const parts = splitFollowUp(text || fallback);
+    if (parts.followUp) {
+      out.content = [{ type: 'text', text: parts.grid }];
+      out.followUp = { text: parts.followUp };
+    }
+  }
+  Object.assign(out, {
     stop_reason: deadlineHit ? 'deadline' : 'end_turn',
     usage: lastData?.usage,
     usageCalls,
-  };
+  });
   if (deadlineHit) {
     out.deadline = true;
     out.resume = { resumable, finished: collectedToolResults.length };
@@ -569,6 +580,7 @@ async function chat(messages, systemPrompt) {
 }
 
 module.exports = {
+  _chatResultForTests: chatResult,
   callChatCompletions,
   passThroughChat,
   coveredByFollowUp,

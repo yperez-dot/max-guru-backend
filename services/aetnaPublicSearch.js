@@ -143,6 +143,17 @@ function lastNameFromDisplay(name) {
   return parts[parts.length - 1] || '';
 }
 
+/** "Stephanie Sasha De La Guarda, DO" -> "De La Guarda"; "Glinos, George, MD" -> "" (no particle: use lastNameFromDisplay). */
+function compoundLastName(name) {
+  if (!name || typeof name !== 'string') return '';
+  const cleaned = name.replace(/,?\s+(MD|DO|NP|PA|RN|APRN|DDS|DMD|DPM|OD|DC|MA|MS|MSN|MED|PharmD|PhD)\.?$/i, '').trim();
+  const noComma = cleaned.includes(',') ? cleaned.slice(0, cleaned.indexOf(',')).trim() : cleaned;
+  const parts = noComma.split(/\s+/).filter(Boolean);
+  const head = cleaned.includes(',') ? 0 : 1;
+  const at = parts.findIndex((w, i) => i >= head && i < parts.length - 1 && /^(?:de|del|da|das|do|dos|di|du|la|las|los|le|van|von|der|den|st\.?|san|santa|mc|mac|bin|ben|al|el|y)$/i.test(w));
+  return at >= 0 ? parts.slice(at).join(' ') : '';
+}
+
 function npiMatches(value, npi) {
   return String(value || '') === String(npi || '');
 }
@@ -220,8 +231,13 @@ async function taxonomyByNpi(session, { npi, latlng, countyCode, state, year = P
   return (data.find_care || []).filter((row) => npiMatches(row.npi, npi));
 }
 
-async function searchMedicarePages(session, { lastName, latlng, countyCode, npi, year = PLAN_YEAR }) {
+async function searchMedicarePages(session, opts) {
+  return (await searchMedicarePagesFull(session, opts)).matches;
+}
+/** → { matches, complete }: complete = every page answered and the whole result list was read. */
+async function searchMedicarePagesFull(session, { lastName, latlng, countyCode, npi, year = PLAN_YEAR }) {
   const matches = [];
+  let complete = false;
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const offset = page * PAGE_SIZE;
     const res = await fetchJar(session.jar, `${API03}/v4/ahpublic_search`, {
@@ -243,10 +259,33 @@ async function searchMedicarePages(session, { lastName, latlng, countyCode, npi,
       if (npiMatches(site.npi, npi)) matches.push(site);
     }
     const total = Number(data.metadata?.total_results || 0);
-    if (!sites.length || offset + sites.length >= total) break;
+    if (!sites.length || offset + sites.length >= total) { complete = true; break; }
     if (matches.length) break;
   }
-  return matches;
+  return { matches, complete };
+}
+
+/**
+ * Aetna Medicare plans on the THEI grid for the ZIP's county ("Aetna Medicare Select Care (HMO) (H1609-093)").
+ * Used when Aetna's own Medicare search, read to the end, does not list the NPI: every one of these is "not listed".
+ */
+function gridAetnaPlansFor(zip, year = PLAN_YEAR) {
+  try {
+    const R = require('./comparisonRules');
+    const counties = require('./flZipCounty').countiesForZip(zip);
+    const out = [];
+    for (const county of counties) {
+      for (const p of R.gridPlansForCounty(county, Number(year) || 2027)) {
+        if (!/aetna/i.test(String(p.carrier || p.planName || ''))) continue;
+        const id = String(p.planId || p.id || '').toUpperCase();
+        const label = `${String(p.planName || 'Aetna Medicare').replace(/\s*\*\*.*$/, '').trim()} (${id})`;
+        if (id && !out.includes(label)) out.push(label);
+      }
+    }
+    return out;
+  } catch {
+    return [];
+  }
 }
 
 async function fetchMedicarePlans(session, site, countyCode, year = PLAN_YEAR) {
@@ -333,32 +372,37 @@ async function queryAetnaPublic(npi, { zip = '33176', state = 'FL', lastName = '
       };
     }
 
-    let sites = await searchMedicarePages(session, {
-      lastName: searchLast,
-      latlng: geo.latlng,
-      countyCode: geo.countyCode,
-      npi,
-      year,
-    });
+    // A compound surname ("Stephanie Sasha De La Guarda, DO") is searched whole: "Guarda" alone returns nothing.
+    const fullLast = compoundLastName(taxHits[0]?.name) || searchLast;
+    const first = await searchMedicarePagesFull(session, { lastName: fullLast, latlng: geo.latlng, countyCode: geo.countyCode, npi, year });
+    let sites = first.matches;
+    let complete = first.complete;
+    if (!sites.length && fullLast !== searchLast) {
+      const again = await searchMedicarePagesFull(session, { lastName: searchLast, latlng: geo.latlng, countyCode: geo.countyCode, npi, year });
+      sites = again.matches;
+      complete = complete && again.complete;
+    }
 
     const taxZip = String(taxHits[0]?.address?.zipCode || '').slice(0, 5);
     if (!sites.length && taxZip && taxZip !== String(zip).slice(0, 5)) {
       const geo2 = await geocodeZip(session, taxZip);
       if (geo2?.latlng && geo2.countyCode) {
-        sites = await searchMedicarePages(session, {
-          lastName: searchLast,
-          latlng: geo2.latlng,
-          countyCode: geo2.countyCode,
-          npi,
-          year,
-        });
-      }
+        const r2 = await searchMedicarePagesFull(session, { lastName: fullLast, latlng: geo2.latlng, countyCode: geo2.countyCode, npi, year });
+        sites = r2.matches;
+        complete = complete && r2.complete;
+      } else complete = false;
     }
 
     if (!sites.length) {
+      // In Aetna's general directory, but its Medicare search for her county — read to the last page — does not list
+      // this NPI: a checked "not listed" on every Aetna Medicare plan there, not "no plan-level result"
+      // (De La Guarda NPI 1447909296, 2026-10-17: ❔ on H1609-093 on every run). A search that broke off stays unknown.
       return {
         inNetwork: false,
         plans: [],
+        outOfNetworkPlans: complete ? gridAetnaPlansFor(zip, year) : [],
+        notInMedicareSearch: complete,
+        year: String(year),
         matches: [],
         directoryHit: true,
         error: null,
@@ -418,6 +462,8 @@ module.exports = {
   API03,
   formatLatLng,
   lastNameFromDisplay,
+  compoundLastName,
+  gridAetnaPlansFor,
   npiMatches,
   isInNetworkStatus,
   formatPlanLabel,

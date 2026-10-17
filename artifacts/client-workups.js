@@ -432,9 +432,17 @@
   }
 
   function messagesForApi(history, loadedWorkup) {
-    const chat = (history || [])
-      .filter((m) => m && (m.role === "user" || m.role === "assistant"))
-      .map((m) => ({ role: m.role, content: m.content }));
+    // A grid and its follow-up bubble (notes / questions) are ONE assistant turn for the server.
+    const chat = [];
+    for (const m of history || []) {
+      if (!m || (m.role !== "user" && m.role !== "assistant")) continue;
+      const prev = chat[chat.length - 1];
+      if (m.role === "assistant" && prev && prev.role === "assistant" && typeof prev.content === "string" && typeof m.content === "string") {
+        prev.content = prev.content + "\n\n" + m.content;
+        continue;
+      }
+      chat.push({ role: m.role, content: m.content });
+    }
     if (!loadedWorkup) return chat;
     const compact = compactWorkupContext(loadedWorkup);
     if (!compact) return chat;

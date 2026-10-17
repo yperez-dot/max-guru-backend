@@ -49,6 +49,9 @@ function shortDoctor(d) {
  */
 /** "other plans comparable to what she has", "something better", "alternatives", "what else" — shop around from her current plan. */
 // A ranking ask over the whole county ("plans that cover the most of her doctors", "top 3", "rank").
+// "all Dade Core plans", "every core plan in Broward", "core plans in Miami-Dade".
+const CORE_ALL_RE = /\b(?:all|every|each)\s+(?:the\s+|of\s+the\s+)?(?:(?:miami[-\s]?)?dade\s+|broward\s+)?core\s+plans?\b|\bcore\s+plans?\s+(?:in|for|across)\s+(?:miami[-\s]?)?(?:dade|broward)\b/i;
+const CORE_ALL_LINE = 'Core plans: every regular (non-SNP) plan on the county grid, every carrier.';
 const RANK_ASK_RE = /\bcover(?:s|ing)?\s+(?:the\s+)?most\b|\bmost\s+of\s+(?:her|his|their|the)\s+(?:\d+\s+)?doctors\b|\btop\s+\d\b|\brank(?:ed|ing)?\b|\bbest\s+plans?\s+for\s+(?:her|his)\s+doctors\b/i;
 const WANTS_ALTERNATIVES_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\b(?:any\s+)?other\s+(?:options?|plans?)\b|\balternatives?\b|\bwhat\s+else\b|\bsee\s+what\s+else\b|\bshop(?:ping)?\s+around\b|\bsomething\s+else\b|\b(?:comparable|similar)\s+(?:to|plans?|options?)\b|\bplans?\s+(?:comparable|similar)\b/i;
 
@@ -332,6 +335,16 @@ function comparisonAskText(messages, baseText) {
     // "Find the plans that cover the most of her 5 doctors … Include UHC MedicareMax FL-0028.
     // Exclude Humana. Show the top 3": rank every eligible plan in the county — a carrier she
     // names inside "include <plan>" / "exclude <carrier>" is not a carrier ask (Maura, 2026-10-07).
+    // "Search all Dade Core plans for Dr X. What does she take?": every regular (non-SNP) plan on the county grid,
+    // every carrier — not Devoted's "CORE" plans, not the last comparison's plans, no Medicaid / C-SNP questions
+    // (Yahoska, 2026-10-17: "I asked what core plans, not just Devoted … I want to see what's in network").
+    if (CORE_ALL_RE.test(t)) {
+      lines.push('Rank all eligible plans.');
+      lines.push(CORE_ALL_LINE);
+      if (/\b(?:miami[-\s]?)?dade\b/i.test(t)) lines.push('County: Miami-Dade.');
+      else if (/\bbroward\b/i.test(t)) lines.push('County: Broward.');
+      break;
+    }
     const typeSet = planTypeSetFromAsk(t, msgs.slice(0, i + 1));
     if (typeSet.length) {
       lines.push(`Named plan set: ${typeSet.map((pl) => `${pl.name} (${pl.planId})`).join('; ')}.`);
@@ -1875,7 +1888,7 @@ function selectComparison(doctors, askText, opts = {}) {
           : `top ${perCarrier} eligible ${carriers[0]} plans`;
       const fromPool = perCarrier !== 1 && pool <= perCarrier ? `in ${where}` : `from ${pool} eligible ${carriers.join(' / ')} plan${pool === 1 ? '' : 's'} in ${where}`;
       out.whyLine = `Why these plans: you asked for ${carriers.join(', ')} — ${picked} ${fromPool}. ${R.RANK_ORDER} Excluded: ${excludedText}.`;
-      out.header = `**Doctors × ${carriers.join(', ')}** (the carriers you asked for — a count, not a recommendation)`;
+      out.header = `**Doctors × ${carriers.join(', ')}**`;
       out.ranked = cols.filter((c) => out.columns.includes(c));
       out.couldNotVerify = [];
       out.couldNotVerifyCount = 0;
@@ -1958,7 +1971,7 @@ function selectComparison(doctors, askText, opts = {}) {
     const majority = out.columns.some((c) => c.counts.inN * 2 > n);
     const anyIn = out.columns.some((c) => c.counts.inN + c.counts.star > 0);
     out.header = (n > 0 && !anyIn)
-      ? '**Doctors × plans** (none of these doctors confirmed in network on the plans checked — shown by lowest drug cost, then premium; not a recommendation)'
+      ? '**Doctors × plans** (none confirmed in network)'
       : majority
       ? '**Doctors × top plans**'
       : '**Doctors × top plans**';
@@ -2368,25 +2381,86 @@ function medsTable(drugResults, plans, knownMeds = []) {
  * Meds table. Built from tool data only, so the same lookup always renders the same cells — the
  * model never re-lays it out as bullets or flips a cell (Maura Soley, 2026-10-07).
  */
+/**
+ * "Search all Dade Core plans for Dr X": every regular (non-SNP) plan on the county grid, every carrier. A short list
+ * of the plans where the doctor(s) are In, the rest counted by carrier — no grid of 40 columns, no narrowing questions.
+ */
+function coreAllAnswer(doctors, askText) {
+  const county = R.countyFromAsk(askText) || 'Miami-Dade';
+  const docs = (doctors || []).filter(Boolean);
+  const rows = R.gridPlansForCounty(county).filter((g) => !R.snpKind(g));
+  const plans = rows.map((g) => ({ planId: String(g.planId || g.id).toUpperCase().slice(0, 9), name: carrierKey(String(g.planName || '')) ? String(g.planName) : `${g.carrier || ''} ${g.planName || ''}`.trim(), grid: g }));
+  const cols = namedPlanColumns(plans, coverageMatrix(docs), docs);
+  const who = docs.map((d) => shortDoctor(d));
+  const cellOf = (p, d, k) => (p.in.includes(who[k]) ? 'in' : (p.inCarrier || []).includes(who[k]) ? 'in' : p.out.includes(who[k]) ? 'out' : 'unknown');
+  const label = (p) => `${String(p.name || '').replace(/\s*\*\*.*$/, '').trim()} · ${p.planId}`;
+  const carrierOf = (p) => R.carrierOfPlan(p.grid || { name: p.name }) || carrierKey(p.name) || 'Other';
+  const title = docs.length === 1 ? `**${titleCase(who[0])} × ${county} core plans**` : `**Doctors × ${county} core plans**`;
+  const lines = [title, `${cols.length} regular plans, all carriers (no C-SNP / D-SNP / QMB).`, ''];
+  const inList = [];
+  const outBy = new Map();
+  const unkBy = new Map();
+  for (const p of cols) {
+    const cells = docs.map((d, k) => cellOf(p, d, k));
+    const nIn = cells.filter((c) => c === 'in').length;
+    if (nIn) inList.push({ p, nIn });
+    else {
+      const bucket = cells.every((c) => c === 'out') ? outBy : unkBy;
+      const c = carrierOf(p);
+      bucket.set(c, (bucket.get(c) || 0) + 1);
+    }
+  }
+  inList.sort((a, b) => b.nIn - a.nIn || a.p.planId.localeCompare(b.p.planId));
+  lines.push(`✅ **In network (${inList.length})**`);
+  if (inList.length) for (const { p, nIn } of inList) lines.push(`- ${label(p)}${docs.length > 1 ? ` — ${nIn}/${docs.length} in` : ''}`);
+  else lines.push('- none confirmed');
+  const sum = (m) => [...m.entries()].sort((a, b) => b[1] - a[1]).map(([c, n]) => `${c} (${n})`).join(', ');
+  const nOut = [...outBy.values()].reduce((a, b) => a + b, 0);
+  const nUnk = [...unkBy.values()].reduce((a, b) => a + b, 0);
+  if (nOut) lines.push('', `❌ Not listed (${nOut}): ${sum(outBy)}`);
+  if (nUnk) lines.push('', `❔ Not confirmed (${nUnk}): ${sum(unkBy)} — never assume not in network`);
+  return lines.join('\n');
+}
+
 function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUnreadable = false } = {}) {
+  if (String(askText || '').includes(CORE_ALL_LINE)) {
+    const list = coreAllAnswer(doctors, askText);
+    const dup = duplicateQuestions(doctors);
+    return dup.length ? `${list}\n\n${FOLLOW_UP_MARKER}\n${dup.join('\n')}` : list;
+  }
   const sel = selectComparison(doctors, askText, { answered, drugs });
   const top = sel.columns;
   if (!top.length) return '';
-  const lines = [sel.header, sel.whyLine, '', gridTable(sel.doctors, top), '',
+  // The grid message is the title, the grid, its legend and the meds — nothing else. "Why these plans" (and its
+  // Excluded list) is gone; notes, warnings and questions go in a SEPARATE message after the grid (Yahoska,
+  // 2026-10-17: "TOO MUCH TEXT … questions underneath the grid, I'm not looking at that … 2 separate messages").
+  const lines = [sel.header, '', gridTable(sel.doctors, top), '',
     R.LEGEND + (top.some((p) => (p.inCarrier || []).length) ? ` · ${R.IN_STAR_LEGEND}` : '')];
-  // A checked plan with the same doctor results as a column (H1045-018 vs H1045-001) is named, not dropped.
-  const twins = (sel.sameNetwork || []).slice(0, 4).map((x) => `${x.plan.planId} = same doctor results as ${x.twin.planId}`);
-  if (twins.length) lines.push(`Also checked: ${twins.join('; ')}.`);
-  for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in |^⚠️ [^:\n]+: no eligible plan/.test(x))) lines.push(f);
-  // A carrier name she typed that matches no carrier: said, never dropped silently.
-  const notRecognized = ((String(askText || '').match(/^Carriers not recognized:\s*([^\n]+?)\.?$/gm) || []).pop() || '').replace(/^Carriers not recognized:\s*/, '').replace(/\.$/, '');
-  for (const name of notRecognized.split(' | ').filter(Boolean)) lines.push(`⚠️ Couldn't match "${name}" to a carrier — not included. Tell me the carrier name and I'll add it.`);
-  for (const q of duplicateQuestions(doctors)) lines.push(q);
   const meds = medsTable(drugs, top, sel.meds);
   if (meds) lines.push('', '**Meds**', '', quietRestrictionMarks(meds), '', medsLegendFor(meds), ...strengthNotes(drugs, top.map((p) => p.planId)));
   // She typed drugs but no list could be read: say so, never drop the section silently.
   else if (medsUnreadable) lines.push('', '**Meds**', '', R.MEDS_UNREADABLE);
-  return lines.filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n');
+  const follow = [];
+  // A checked plan with the same doctor results as a column (H1045-018 vs H1045-001) is named, not dropped.
+  const twins = (sel.sameNetwork || []).slice(0, 4).map((x) => `${x.plan.planId} = same doctor results as ${x.twin.planId}`);
+  if (twins.length) follow.push(`Also checked: ${twins.join('; ')}.`);
+  for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in |^⚠️ [^:\n]+: no eligible plan/.test(x))) follow.push(f);
+  // A carrier name she typed that matches no carrier: said, never dropped silently.
+  const notRecognized = ((String(askText || '').match(/^Carriers not recognized:\s*([^\n]+?)\.?$/gm) || []).pop() || '').replace(/^Carriers not recognized:\s*/, '').replace(/\.$/, '');
+  for (const name of notRecognized.split(' | ').filter(Boolean)) follow.push(`⚠️ Couldn't match "${name}" to a carrier — not included. Tell me the carrier name and I'll add it.`);
+  for (const q of duplicateQuestions(doctors)) follow.push(q);
+  const grid = lines.filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n');
+  return follow.length ? `${grid}\n\n${FOLLOW_UP_MARKER}\n${follow.join('\n')}` : grid;
+}
+
+// Everything after this marker in a reply goes out as its own chat message, after the grid message.
+const FOLLOW_UP_MARKER = '<!-- max:follow-up -->';
+/** Split a reply into the grid message and the follow-up message (notes / warnings / questions). */
+function splitFollowUp(text) {
+  const t = String(text || '');
+  const at = t.indexOf(FOLLOW_UP_MARKER);
+  if (at < 0) return { grid: t, followUp: '' };
+  return { grid: t.slice(0, at).replace(/\s+$/, ''), followUp: t.slice(at + FOLLOW_UP_MARKER.length).replace(new RegExp(FOLLOW_UP_MARKER, 'g'), '').trim() };
 }
 
 /**
@@ -2396,7 +2470,13 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
 function enforceRenderedTable(replyText, rendered) {
   if (!rendered) return replyText;
   const reply = String(replyText || '');
-  if (reply.includes(rendered)) return reply;
+  if (reply.includes(rendered)) {
+    // The model copied the table and wrote its notes under it: those notes are the follow-up message.
+    if (rendered.includes(FOLLOW_UP_MARKER)) return reply;
+    const rest = reply.slice(reply.indexOf(rendered) + rendered.length).trim();
+    const before = reply.slice(0, reply.indexOf(rendered)).trim();
+    return rest || before ? `${rendered}\n\n${FOLLOW_UP_MARKER}\n${[before, rest].filter(Boolean).join('\n')}` : rendered;
+  }
   const rowNames = [...rendered.matchAll(/^\| ([^|]+?) \|/gm)].map((m) => m[1].trim())
     .filter((n) => !/^(Doctor|Drug|Med|\*\*Doctors\*\*|---)/i.test(n))
     .map((n) => n.replace(/\s*·\s*NPI\b.*$/i, '').replace(/\*|\(.*$/g, '').trim().split(/\s+/).pop().toLowerCase()).filter((w) => w.length >= 3);
@@ -2422,8 +2502,10 @@ function enforceRenderedTable(replyText, rendered) {
     if (/^[-•*]|^\d+[.)]\s/.test(t) && (mentionsRow || statusWord.test(t))) return false;
     if (mentionsRow && (statusWord.test(t) || /^\**[^a-z]*\b[HR]\d{4}-\d{3}[^|]{0,60}:?\**:?$/i.test(t) || t.length <= 90)) return false;
     return true;
-  }).slice(0, 4);
-  return notes.length ? `${rendered}\n\n${notes.join('\n')}` : rendered;
+    // "Why these plans" / excluded lists are not repeated by the model either.
+  }).filter((l) => !/^\**\s*(?:why these plans|excluded:)/i.test(l.trim())).slice(0, 4);
+  if (!notes.length) return rendered;
+  return rendered.includes(FOLLOW_UP_MARKER) ? `${rendered}\n${notes.join('\n')}` : `${rendered}\n\n${FOLLOW_UP_MARKER}\n${notes.join('\n')}`;
 }
 
 function fallbackAnswer(doctors, askText, { answered = false, drugs = [] } = {}) {
@@ -2480,6 +2562,10 @@ module.exports = {
   removedByClauses,
   renderedAnswer,
   enforceRenderedTable,
+  splitFollowUp,
+  coreAllAnswer,
+  CORE_ALL_RE,
+  FOLLOW_UP_MARKER,
   corePlanIdsFor,
   manualCheckNotes,
   planIdOf,
