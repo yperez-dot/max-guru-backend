@@ -200,6 +200,11 @@ function matchVerdicts(names, answer) {
  */
 function substitutionsIn(text, knownNames) {
   const out = [];
+  // "Replace Dr. Natalie Regalado with Dr. Nathalie Regalado, Baptist Medical Group, NPI 1467795633".
+  for (const r of String(text || '').replace(/\b(dr|dra)\./gi, '$1').matchAll(/\b(?:replace|change|swap|correct)\s+(?:dr\s+)?([A-Za-zÀ-ÿ'.-]+(?:\s+[A-Za-zÀ-ÿ'.-]+){1,3}?)\s+(?:with|to|by)\s+(?:dr\s+)?([A-Za-zÀ-ÿ'.-]+(?:\s+[A-Za-zÀ-ÿ'.-]+){1,2}?)(?=\s*(?:[,.;(\n]|$|\s+(?:npi|from|at|of)\b))/gi)) {
+    const from = (knownNames || []).find((k) => sameDoctorName(k, r[1]) || sameDoctorName(String(k).split(/\s+[-–—]\s+/)[0], r[1]));
+    if (from && !sameDoctorName(from, r[2])) out.push([from, r[2].trim()]);
+  }
   for (const part of String(text || '').replace(/^\s*(?:yes|yep|yeah|correct|ok(?:ay)?)\b[\s.,!:;-]*/i, '').split(/[;\n]|,(?=\s*[A-Za-z][^,]*?(?:=|→|->|\bis\b))/)) {
     const m = part.match(/^\s*(?:\d+[.)]\s*)?(?:dr\.?\s*)?([A-Za-z][A-Za-z .'-]{1,70}?)\s*(?:=|→|->|\bis actually\b|\bis really\b|\bshould be\b|\bmeans\b|\bis\b)\s*(?:dr\.?\s*)?([A-Za-z][A-Za-z .,'-]{2,60}?)\s*[.!]?\s*$/i);
     if (!m) continue;
@@ -366,6 +371,7 @@ function comparisonAskText(messages, baseText) {
       if (excluded.length) lines.push(`Carriers excluded: ${excluded.join(', ')}.`);
       if (carriers.length) lines.push(`Carriers requested: ${carriers.join(', ')}.`);
       else lines.push('Wants another carrier.');
+      if (R.carriersUnresolved(t).length) lines.push(`Carriers not recognized: ${R.carriersUnresolved(t).join(' | ')}.`);
       const current = currentPlanOf(msgs.slice(0, i + 1));
       if (current.length && !/^Her current plan:/m.test(lines.join('\n'))) lines.unshift(`Her current plan: ${current.join(', ')}.`);
       if (!/\b3\d{4}\b/.test(lines.join('\n'))) {
@@ -374,8 +380,12 @@ function comparisonAskText(messages, baseText) {
       }
       break;
     }
-    if (carriers.length) {
-      lines.push(`Carriers requested: ${carriers.join(', ')}.`);
+    // Unmatched names count on their own only in a "compare … to X" ask; otherwise next to a carrier she named.
+    const unmatched = carriers.length || /\bcompar/i.test(t) ? R.carriersUnresolved(t) : [];
+    if (carriers.length || unmatched.length) {
+      if (carriers.length) lines.push(`Carriers requested: ${carriers.join(', ')}.`);
+      // A name she listed that matches no carrier is said, never dropped (Robin Forte, 2026-10-17).
+      if (unmatched.length) lines.push(`Carriers not recognized: ${unmatched.join(' | ')}.`);
       // Her current plan stays a column in a carrier ask (Doctors HealthCare dropped H1045-001 — Enrique, 2026-10-07).
       const current = currentPlanOf(msgs.slice(0, i + 1));
       if (current.length && !/^Her current plan:/m.test(lines.join('\n'))) lines.unshift(`Her current plan: ${current.join(', ')}.`);
@@ -632,6 +642,13 @@ function comparisonFollowUp(messages) {
       }
     }
     if (Object.keys(confirmed).length && !reasons.includes('doctor corrections')) reasons.push('doctor match confirmed');
+    // Her yes to "'X' looks like a duplicate of Y. Remove it?": that row leaves the run.
+    const dupYes = confirmedDuplicateRemovals(msgs, lastUserAt);
+    if (dupYes.length) {
+      const before = names.length;
+      names = names.filter((nm) => !dupYes.some((x) => plainWords(x).join(' ') === plainWords(nm).join(' ')));
+      if (names.length < before) reasons.push('duplicate removal confirmed');
+    }
     // "Remove Dr. X" after the list: only the doctors she named leave the run.
     const removals = later.flatMap(doctorRemovalClauses);
     if (removals.length) {
@@ -644,7 +661,9 @@ function comparisonFollowUp(messages) {
     const zip = f.zip || (msgs.slice(0, lastUserAt + 1).map(messageText).join(' ').match(/\b(3\d{4})\b/) || [])[1] || '';
     const npis = {};
     for (const nm of names) for (const [asked, npi] of Object.entries(confirmed)) if (sameDoctorName(nm, asked)) npis[nm] = npi;
-    return { reason: reasons.join(' + '), doctors: [...new Set(names)], zip, ...(Object.keys(npis).length ? { npis } : {}) };
+    // One entry per doctor: a corrected spelling that lands on a name already listed is that name.
+    const unique = names.filter((nm, k) => names.findIndex((o) => plainWords(o).join(' ') === plainWords(nm).join(' ')) === k);
+    return { reason: reasons.join(' + '), doctors: unique, zip, ...(Object.keys(npis).length ? { npis } : {}) };
   }
   // "check on another plan" on a loaded workup (no "Doctors:" line in the chat): its doctors.
   if (wantsOther) {
@@ -693,17 +712,96 @@ function doctorRemovalClauses(text) {
     // about a doctor who stays, not a target.
     const parts = clause.split(/,|\band\b|&/i).filter((x) => !/\b(?:is|are|stays?|staying|remains?|already|keep)\b/i.test(x));
     const words = plainWords(parts.join(' '));
+    words.raw = rawWords(parts.join(' '));
     if (words.length) out.push(words);
   }
   return out;
 }
+// Words that start the description after a doctor's name when it was saved without " - " ("Dr. Neeta Erinjerri Surgeon
+// At Baptist Cancer Institute", "Pasquel DeSantis Endocrinologist Baptist"): the name ends there.
+const NAME_TAIL_RE = /^(?:at|of|from|with|in|for|surgeon|surgeons|surgery|surgical|baptist|institute|cancer|center|centre|hospital|group|medical|medicine|clinic|health|healthcare|associates|dental|spine|university|memorial|practice|physicians?|care|internist|internal|family|general|pediatric\w*|hematolog\w*|radiolog\w*|anesthes\w*|pain|sports|vascular|plastic|breast|cardio\w*|neuro\w*|gyn\w*|obgyn|ortho\w*|derm\w*|uro\w*|gastro\w*|onc\w*|endo\w*|rheum\w*|pulm\w*|nephro\w*|podiat\w*|ophth\w*|optom\w*|ent|psych\w*|specialist|pcp|primary|md|np|aprn|pa-c|llc|inc|pllc)$/;
+// Specialty / role words: a removal that names one ("both Neeta Erinjerri Surgeon rows") only matches a row that
+// carries a matching one, when the row carries any.
+const SPECIALTY_RE = /^(?:surg\w*|cardio\w*|neuro\w*|gyn\w*|obgyn|ortho\w*|derm\w*|uro\w*|gastro\w*|onc\w*|endo\w*|rheum\w*|pulm\w*|nephro\w*|podiat\w*|ophth\w*|optom\w*|ent|psych\w*|internist|internal|family|pediatric\w*|hematolog\w*|radiolog\w*|anesthes\w*|pcp|primary)$/;
+function rawWords(t) {
+  return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[^a-z'-]+/).map((w) => w.replace(/^[-']+|[-']+$/g, '')).filter(Boolean);
+}
+/** The name part of a saved doctor row: before " - practice", and before the first descriptive word. */
 function doctorCoreWords(name) {
-  return plainWords(String(name || '').split(/\s+[-–—]\s+/)[0]);
+  const head = String(name || '').split(/\s+[-–—]\s+/)[0];
+  const words = rawWords(head).filter((w, i) => !(i === 0 && /^(?:dr|dra|doctor|doctora)$/.test(w)));
+  const cut = words.findIndex((w, i) => i >= 1 && NAME_TAIL_RE.test(w));
+  return plainWords((cut >= 0 ? words.slice(0, cut) : words).join(' '));
+}
+/** Specialty words a row or a clause carries (after the name). */
+function specialtyWords(text) {
+  return rawWords(text).filter((w) => SPECIALTY_RE.test(w)).map((w) => w.slice(0, 5));
 }
 function removedByClauses(name, clauses) {
   const core = doctorCoreWords(name);
   if (core.length < 2) return false;
-  return clauses.some((words) => core.every((w) => words.includes(w)));
+  const rowSpec = specialtyWords(String(name || '').replace(/^\s*(?:dr|dra)\.?\s+/i, ''));
+  return clauses.some((words) => {
+    if (!core.every((w) => words.includes(w))) return false;
+    const said = specialtyWords((words.raw || words).join(' '));
+    return !said.length || !rowSpec.length || said.some((w) => rowSpec.includes(w));
+  });
+}
+
+/** Same person by name: the name parts of both rows (descriptions dropped), first name equal, last name ≤2 edits. */
+function sameCoreDoctor(a, b) {
+  const x = doctorCoreWords(a);
+  const y = doctorCoreWords(b);
+  if (x.length < 2 || y.length < 2) return false;
+  return looseSameDoctor(x.join(' '), y.join(' '));
+}
+const RESOLVED_DOCTOR = (d) => Boolean(d && d.npi && !['not_found', 'timeout', 'error'].includes(d.status));
+/**
+ * One row per doctor in the comparison (Jacqueline Alexander, 2026-10-17): two rows with the same NPI collapse into one,
+ * and an unresolved row whose saved name is a description of a resolved doctor ("Dr. Neeta Erinjerri Surgeon At Baptist
+ * Cancer Institute" next to "Neeta Jane Erinjeri · NPI 1427310424") goes. Two resolved doctors with different NPIs
+ * always both stay.
+ */
+function dedupeDoctorRows(rows) {
+  const list = (rows || []).filter(Boolean);
+  const out = [];
+  for (const d of list) {
+    const at = d.npi ? out.findIndex((o) => o.npi && String(o.npi) === String(d.npi)) : -1;
+    if (at >= 0) {
+      if (!RESOLVED_DOCTOR(out[at]) && RESOLVED_DOCTOR(d)) out[at] = d;
+      continue;
+    }
+    out.push(d);
+  }
+  // An unresolved row that reads like a description of a resolved doctor is NOT dropped: Max asks the agent first
+  // (Yahoska, 2026-10-17: "no auto drop, have her confirm"). It goes only on her yes, or when she names it for removal.
+  return out.map((d) => {
+    if (RESOLVED_DOCTOR(d)) return d;
+    const asked = d.requestedName || d.doctorName || '';
+    const described = doctorCoreWords(asked).length < plainWords(String(asked).replace(/^\s*(?:dr|dra)\.?\s+/i, '')).length;
+    const twin = described && out.find((o) => o !== d && RESOLVED_DOCTOR(o) && sameCoreDoctor(o.requestedName || o.doctorName, asked));
+    return twin ? { ...d, duplicateOf: { name: cleanName(twin.doctorName || twin.requestedName), npi: String(twin.npi) } } : d;
+  });
+}
+
+const DUPLICATE_Q_RE = /'([^'\n]{3,140})' looks like a duplicate of [^\n]*?Remove it\?/g;
+/** The confirm questions for rows dedupeDoctorRows flagged. */
+function duplicateQuestions(doctors) {
+  return (doctors || []).filter((d) => d && d.duplicateOf)
+    .map((d) => `❓ '${String(d.requestedName || d.doctorName).replace(/'/g, '’')}' looks like a duplicate of ${d.duplicateOf.name} (NPI ${d.duplicateOf.npi}). Remove it?`);
+}
+/** Names she said yes to removing, from Max's duplicate questions in the assistant turn right before `userAt`. */
+function confirmedDuplicateRemovals(msgs, userAt) {
+  const u = msgs[userAt];
+  if (!u || u.role !== 'user') return [];
+  const prev = msgs.slice(0, userAt).reverse().find((m) => m && m.role === 'assistant');
+  if (!prev) return [];
+  const asked = [...messageText(prev).matchAll(DUPLICATE_Q_RE)].map((m) => m[1].replace(/’/g, "'"));
+  if (!asked.length) return [];
+  const t = messageText(u).trim();
+  if (/^\s*(?:no|nope|keep|don'?t)\b/i.test(t)) return [];
+  if (!/^\s*(?:yes|yep|yeah|si|sí|correct|ok(?:ay)?|sure|remove(?:\s+(?:it|them|both|all))?|delete(?:\s+it)?|drop(?:\s+it)?)\b/i.test(t)) return [];
+  return asked;
 }
 
 const ADD_DOCTOR_RE = /\b(?:add|added|also|include|forgot|missing|primary|pcp|her doctor)\b/i;
@@ -753,6 +851,12 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
         touched = true;
       }
     }
+    // Her yes to Max's duplicate question removes exactly that row.
+    const dupYes = confirmedDuplicateRemovals(msgs, i);
+    for (let k = people.length - 1; k >= 0; k -= 1) {
+      if (dupYes.some((x) => plainWords(x).join(' ') === plainWords(people[k].name).join(' '))) { people.splice(k, 1); touched = true; }
+    }
+    if (dupYes.length) continue;
     // "Remove Dr. X …": named saved rows leave the run (only the doctors she named).
     const removals = doctorRemovalClauses(t);
     if (removals.length) {
@@ -783,6 +887,16 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
     }
   }
   if (!touched) return null;
+  // A corrected spelling can land on a name already saved ("Natalie Regalado" -> "Nathalie Regalado", NPI 1467795633,
+  // when both were on the list): one row per doctor — same NPI or same name.
+  for (let k = people.length - 1; k > 0; k -= 1) {
+    const p = people[k];
+    if (people.slice(0, k).some((q) => (p.npi && q.npi === p.npi) || plainWords(q.name).join(' ') === plainWords(p.name).join(' '))) {
+      const first = people.slice(0, k).find((q) => (p.npi && q.npi === p.npi) || plainWords(q.name).join(' ') === plainWords(p.name).join(' '));
+      if (!first.npi && p.npi) first.npi = p.npi;
+      people.splice(k, 1);
+    }
+  }
   const npis = {};
   for (const p of people) if (p.npi) npis[p.name] = p.npi;
   return { reason: 'doctor corrections (saved workup)', doctors: people.map((p) => p.name), zip: wk.zip || newestZip(msgs.slice(0, lastUserAt + 1)), npis };
@@ -1754,7 +1868,13 @@ function selectComparison(doctors, askText, opts = {}) {
       if (carriers.includes('CarePlus')) out.flags.push(careplusFlag(docs));
       const where = county || 'Miami-Dade + Broward (no ZIP/county given)';
       const excludedText = out.excluded.length ? out.excluded.map((x) => `${x.reason} (${x.count})`).join('; ') : 'none';
-      out.whyLine = `Why these plans: you asked for ${carriers.join(', ')} — ${perCarrier === 1 ? 'best eligible plan per carrier' : `top ${perCarrier} eligible ${carriers[0]} plans`} from ${out.poolSize} eligible ${carriers.join(' / ')} plans in ${where}. ${R.RANK_ORDER} Excluded: ${excludedText}.`;
+      // "top 3 … from 2 eligible" claimed a top 3 that does not exist (Robin Forte, 2026-10-17): say what is there.
+      const pool = out.poolSize;
+      const picked = perCarrier === 1 ? 'best eligible plan per carrier'
+        : pool <= perCarrier ? (pool === 1 ? `the only eligible ${carriers[0]} plan` : `all ${pool} eligible ${carriers[0]} plans`)
+          : `top ${perCarrier} eligible ${carriers[0]} plans`;
+      const fromPool = perCarrier !== 1 && pool <= perCarrier ? `in ${where}` : `from ${pool} eligible ${carriers.join(' / ')} plan${pool === 1 ? '' : 's'} in ${where}`;
+      out.whyLine = `Why these plans: you asked for ${carriers.join(', ')} — ${picked} ${fromPool}. ${R.RANK_ORDER} Excluded: ${excludedText}.`;
       out.header = `**Doctors × ${carriers.join(', ')}** (the carriers you asked for — a count, not a recommendation)`;
       out.ranked = cols.filter((c) => out.columns.includes(c));
       out.couldNotVerify = [];
@@ -2085,6 +2205,7 @@ const strengthMg = (str) => {
  * from a split is never printed as the answer (Jackie Alexander, 2026-10-13: Medicare.gov showed gabapentin
  * 300 mg T2 $0 and levothyroxine 50 mcg T1 $0 where Max printed "not found" / "not covered").
  */
+const SAME_ACROSS_STRENGTHS = 'cost same across strengths';
 function oneStrengthCell(row, result) {
   const covered = row.strengths.filter((v) => v && v.verified && v.tier && v.coverage !== 'not_covered');
   if (!covered.length) {
@@ -2099,6 +2220,14 @@ function oneStrengthCell(row, result) {
   if (key) pick = covered.find((v) => Math.abs(strengthMg(v.strength) - USUAL_STRENGTH_MG[key]) < 1e-6) || null;
   if (!pick) pick = covered.slice().sort((a, b) => Math.abs(Math.log((strengthMg(a.strength) || 1) / ((key && USUAL_STRENGTH_MG[key]) || strengthMg(covered[Math.floor(covered.length / 2)].strength) || 1))) - Math.abs(Math.log((strengthMg(b.strength) || 1) / ((key && USUAL_STRENGTH_MG[key]) || strengthMg(covered[Math.floor(covered.length / 2)].strength) || 1))))[0];
   const cell = strengthSplitCell({ strengths: [pick] }, result);
+  // Every strength the plan answered sits on the same tier and cost, and none was answered "not covered": that IS the
+  // answer, whatever dose she takes (Jacqueline Alexander, 2026-10-17: "idk why gabapentin is such a diff drug for max" —
+  // 100/300/600/800 mg all T2 $0 on H5420-001 and T1 $0 on H4140-022/-023 while the row read "check Medicare.gov").
+  // Strengths medicare.gov did not answer are not a difference (and never "doesn't exist").
+  const noneNotCovered = !row.strengths.some((v) => v && v.verified && v.coverage === 'not_covered');
+  const sameAll = covered.length >= 2 && noneNotCovered
+    && covered.every((v) => strengthSplitCell({ strengths: [v] }, result).replace(/^[^:]+:\s*/, '') === cell.replace(/^[^:]+:\s*/, ''));
+  if (sameAll) return `${cell.replace(/^[^:]+:\s*/, '')} · ${SAME_ACROSS_STRENGTHS}`;
   // The usual strength was not among the answered ones: the strength shown is a different one — say so
   // (Jackie, 2026-10-13: atorvastatin 80 mg and levothyroxine 0.3 mg read as the answer for her dose).
   const isUsual = key && Math.abs(strengthMg(pick.strength) - USUAL_STRENGTH_MG[key]) < 1e-6;
@@ -2136,7 +2265,7 @@ function drugCell(row, unsureNotCovered, result) {
     return `${row.edLabel} · T${row.tier}${cost}${flags}${mixed}${unknown}`;
   }
   if (row.verified && row.coverage === 'not_covered') return unsureNotCovered ? '⚠️ confirm' : '❌ not covered';
-  if (row.verified && row.tier) return `T${row.tier}${cost}${flags}${mixed}${unknown}`;
+  if (row.verified && row.tier) return `T${row.tier}${cost}${flags}${mixed}${unknown}${row.sameAcrossStrengths ? ` · ${SAME_ACROSS_STRENGTHS}` : ''}`;
   if (/form_not_found/.test(String(row.reason || ''))) return `${R.NOT_CONFIRMED_CELL} (form not found)`;
   return R.NOT_CONFIRMED_CELL;
 }
@@ -2248,7 +2377,11 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
   // A checked plan with the same doctor results as a column (H1045-018 vs H1045-001) is named, not dropped.
   const twins = (sel.sameNetwork || []).slice(0, 4).map((x) => `${x.plan.planId} = same doctor results as ${x.twin.planId}`);
   if (twins.length) lines.push(`Also checked: ${twins.join('; ')}.`);
-  for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in /.test(x))) lines.push(f);
+  for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in |^⚠️ [^:\n]+: no eligible plan/.test(x))) lines.push(f);
+  // A carrier name she typed that matches no carrier: said, never dropped silently.
+  const notRecognized = ((String(askText || '').match(/^Carriers not recognized:\s*([^\n]+?)\.?$/gm) || []).pop() || '').replace(/^Carriers not recognized:\s*/, '').replace(/\.$/, '');
+  for (const name of notRecognized.split(' | ').filter(Boolean)) lines.push(`⚠️ Couldn't match "${name}" to a carrier — not included. Tell me the carrier name and I'll add it.`);
+  for (const q of duplicateQuestions(doctors)) lines.push(q);
   const meds = medsTable(drugs, top, sel.meds);
   if (meds) lines.push('', '**Meds**', '', quietRestrictionMarks(meds), '', medsLegendFor(meds), ...strengthNotes(drugs, top.map((p) => p.planId)));
   // She typed drugs but no list could be read: say so, never drop the section silently.
@@ -2364,6 +2497,10 @@ module.exports = {
   batchSummaryForModel,
   gridTable,
   medsTable,
+  dedupeDoctorRows,
+  duplicateQuestions,
+  confirmedDuplicateRemovals,
+  doctorCoreWords,
   strengthNotes,
   medsLegendFor,
   quietRestrictionMarks,

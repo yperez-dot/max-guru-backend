@@ -869,7 +869,8 @@ function queryProductHints(query) {
   return {
     strengths,
     form,
-    er: /\b(er|xr|xl|cr|sr|la|extended|24\s*h(?:r|our)?|12\s*h(?:r|our)?)\b/.test(q),
+    // "Once-daily" / Gralise is the gastroretentive once-a-day gabapentin: a modified-release product, asked by name.
+    er: /\b(er|xr|xl|cr|sr|la|extended|24\s*h(?:r|our)?|12\s*h(?:r|our)?|once[-\s]daily|gralise)\b/.test(q),
     dr: /\b(dr|delayed|ec|enteric)\b/.test(q),
     odt: /\b(odt|disintegrat\w*)\b/.test(q),
     words: q.replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(Boolean),
@@ -900,7 +901,11 @@ function conceptProductTraits(name) {
   return {
     strengths,
     form,
-    er: /extended release|\b24 hr\b|\b12 hr\b/.test(n),
+    // RxNorm names the Gralise generic "Once-Daily gabapentin 300 MG Oral Tablet" (no "Extended Release"): it is a
+    // modified-release product, not the plain gabapentin tablet/capsule an agent means by "Gabapentin". Read as a plain
+    // tablet it led the no-strength lookup, came back not covered on every plan, and gabapentin read "check Medicare.gov"
+    // where the plans cover it T1/T2 $0 (Jacqueline Alexander, 2026-10-17).
+    er: /extended release|\b24 hr\b|\b12 hr\b|^once-daily\b|\bonce-daily\b/.test(n),
     dr: /delayed release/.test(n),
     odt: /disintegrating/.test(n),
     brand,
@@ -1246,6 +1251,8 @@ async function resolveMedicareGovNdcs({ drugName, ndc, hintNdc, strictName = fal
 }
 
 const strengthVariantCache = new Map();
+// NDCs asked per product and strength in the one batched medicare.gov request.
+const VARIANT_NDCS_PER_PRODUCT = 6;
 
 /**
  * Every oral strength of a drug priced on every plan in ONE medicare.gov request (it takes many
@@ -1295,8 +1302,10 @@ async function medicareGovStrengthVariants({ drugName, planIds, year }, fetchImp
     for (const c of g.concepts.slice(0, 2)) {
       const found = await ndcsForRxcui(c.rxcui, fetchImpl);
       if (found.failed) transient = true;
-      const { rx } = await rxNdcsOnly(rankNdcs(found).slice(0, 4), fetchImpl);
-      picked.push(...rx.slice(0, g.concepts.length > 1 ? 2 : 3));
+      // medicare.gov prices only the NDCs in its own drug file, and most RxNorm NDCs of a big generic answer empty:
+      // with 2–3 NDCs per strength every gabapentin strength came back unanswered (2026-10-17). Ask with more.
+      const { rx } = await rxNdcsOnly(rankNdcs(found).slice(0, VARIANT_NDCS_PER_PRODUCT + 2), fetchImpl);
+      picked.push(...rx.slice(0, VARIANT_NDCS_PER_PRODUCT));
     }
     if (picked.length) byStrength.push({ strength: g.strength, indication: g.indication, productName: g.concepts[0].name, ndcs: picked });
   }
@@ -2002,6 +2011,8 @@ async function lookupFormulary(
               return healthsunEnrich(out, v.productName, v.strength);
             });
             if (strengthsDiffer(priced)) row.strengths = priced;
+            // Every strength answered, all on this row's tier and cost: the cell says the dose does not matter.
+            else if (priced.filter((v) => v.verified && v.coverage === 'covered').length >= 2) row.sameAcrossStrengths = true;
           }
         }
         byPlanId[displayId] = row;
