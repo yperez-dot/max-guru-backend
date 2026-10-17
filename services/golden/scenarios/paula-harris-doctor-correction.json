@@ -1,0 +1,147 @@
+{
+  "name": "Paula Harris — a doctor correction re-runs ALL saved doctors with the fix; plans stay",
+  "source": "Max chat 2026-10-13",
+  "workup": {
+    "clientName": "Paula Harris",
+    "zip": "33169",
+    "county": "Miami-Dade",
+    "plans": [
+      {
+        "carrier": "UHC",
+        "planName": "UHC MedicareMax Complete Care FL-30",
+        "planId": "H5420-014"
+      },
+      {
+        "carrier": "Aetna",
+        "planName": "Aetna Medicare Chronic Care",
+        "planId": "H1609-094"
+      }
+    ],
+    "doctors": [
+      {
+        "name": "Gloria St"
+      },
+      {
+        "name": "Hoa Nguyne"
+      },
+      {
+        "name": "Justin Townsend"
+      },
+      {
+        "name": "George Munoz"
+      },
+      {
+        "name": "Patricia Neuman Guerra"
+      },
+      {
+        "name": "Wen Wu"
+      }
+    ],
+    "medications": [
+      {
+        "name": "amlodipine"
+      }
+    ]
+  },
+  "replies": [
+    "**Doctors × top plans**\nNo NPI match: Hoa Nguyne — try the NPI or practice name."
+  ],
+  "messages": [
+    "re-run her doctors",
+    "its Theresa Gloria St. Phillipe APRN, and Hoa Nguyen"
+  ],
+  "doctorResults": {
+    "Theresa Gloria St. Phillipe": {
+      "npi": "1306218243",
+      "matched": "THERESA GLORIA ST PHILIPPE APRN",
+      "in": [
+        "H5420-014"
+      ],
+      "out": []
+    },
+    "Hoa Nguyen": {
+      "npi": "1700000010",
+      "in": [
+        "H5420-014",
+        "H1609-094"
+      ],
+      "out": []
+    },
+    "Justin Townsend": {
+      "npi": "1700000011",
+      "in": [
+        "H1609-094"
+      ],
+      "out": []
+    },
+    "George Munoz": {
+      "npi": "1700000012",
+      "in": [
+        "H5420-014"
+      ],
+      "out": []
+    },
+    "Patricia Neuman Guerra": {
+      "npi": "1700000013",
+      "in": [
+        "H5420-014"
+      ],
+      "out": [
+        "H1609-094"
+      ]
+    },
+    "Wen Wu": {
+      "npi": "1700000014",
+      "in": [],
+      "out": []
+    }
+  },
+  "drugResults": {
+    "amlodipine": {
+      "H5420-014": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1609-094": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    }
+  },
+  "expect": {
+    "plans": [
+      "H5420-014",
+      "H1609-094"
+    ],
+    "gridPlans": [
+      "H5420-014",
+      "H1609-094"
+    ],
+    "doctors": {
+      "include": [
+        "Hoa Nguyen",
+        "Justin Townsend",
+        "George Munoz",
+        "Patricia Neuman Guerra",
+        "Wen Wu"
+      ],
+      "exclude": [
+        "Hoa Nguyne"
+      ]
+    },
+    "gridRows": 6,
+    "meds": [
+      "amlodipine"
+    ]
+  },
+  "doctorNames": [
+    {
+      "name": "Theresa Gloria St. Phillipe APRN",
+      "query": "Theresa Gloria St. Phillipe"
+    },
+    {
+      "name": "Patricia Neuman Guerra",
+      "org": false
+    }
+  ]
+}

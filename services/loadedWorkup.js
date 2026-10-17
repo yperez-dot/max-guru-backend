@@ -278,6 +278,14 @@ function sameCoreDoctor(a, b) {
   return looseSameDoctor(x.join(' '), y.join(' '));
 }
 
+/** Two rows name the same doctor: a shared last name across what she typed and what the registry returned. */
+function sameNamedDoctor(a, b) {
+  const lasts = (r) => [r.requestedName, r.doctorName].map((n) => doctorCoreWords(n || '')).filter((w) => w.length)
+    .map((w) => w[w.length - 1].toLowerCase());
+  const x = lasts(a);
+  return lasts(b).some((l) => x.includes(l));
+}
+
 const RESOLVED_DOCTOR = (d) => Boolean(d && d.npi && !['not_found', 'timeout', 'error'].includes(d.status));
 
 /**
@@ -290,7 +298,9 @@ function dedupeDoctorRows(rows) {
   const list = (rows || []).filter(Boolean);
   const out = [];
   for (const d of list) {
-    const at = d.npi ? out.findIndex((o) => o.npi && String(o.npi) === String(d.npi)) : -1;
+    // Merge only on the exact same NPI AND a name for the same doctor ("Dr. Garcia" and "Lazaro Garcia"). Two
+    // different typed names that came back with one NPI both stay; a lookup mix-up is not hers to lose.
+    const at = d.npi ? out.findIndex((o) => o.npi && String(o.npi) === String(d.npi) && sameNamedDoctor(o, d)) : -1;
     if (at >= 0) {
       if (!RESOLVED_DOCTOR(out[at]) && RESOLVED_DOCTOR(d)) out[at] = d;
       continue;
