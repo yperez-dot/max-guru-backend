@@ -3940,6 +3940,24 @@
     return ids ? "Unnamed — " + ids : "Unnamed workup";
   }
 
+  /**
+   * Saved plans a saved comparison grid is missing (empty = the grid still fits the workup). Robin Forte, 2026-10-17:
+   * the first New-client run's 1-plan grid (H5420-001) reopened under her 4 saved plans every time she loaded her.
+   */
+  function stalePlansForResult(workup, result) {
+    const key = (x) => String(x || "").toUpperCase().slice(0, 9);
+    const saved = [...new Set(((workup && workup.planIds && workup.planIds.length) ? workup.planIds : ((workup && workup.plans) || []).map((p) => p && p.planId)).map((x) => String(x || "").toUpperCase().trim()).filter(Boolean))];
+    const had = ((result && result.planIds) || []).map(key).filter(Boolean);
+    if (!had.length || !saved.length) return [];
+    return saved.filter((id) => !had.includes(key(id)));
+  }
+
+  function staleResultNote(workup, result) {
+    const key = (x) => String(x || "").toUpperCase().slice(0, 9);
+    const n = new Set(((workup && workup.planIds && workup.planIds.length) ? workup.planIds : ((workup && workup.plans) || []).map((p) => p && p.planId)).map(key).filter(Boolean)).size;
+    return "That last grid only had " + ((result && result.planIds) || []).map((x) => String(x || "").toUpperCase()).join(", ") + ". Ask me to check the doctors and I'll run all " + n + " saved plans.";
+  }
+
   function formatUpdatedAt(iso) {
     if (!iso) return "";
     try {
@@ -3973,6 +3991,8 @@
     workupListLabel,
     formatUpdatedAt,
     rehydratePlans,
+    stalePlansForResult,
+    staleResultNote,
   };
 });
 </script>
@@ -6595,9 +6615,7 @@ function CompareResult({ result: rawResult, onExport, askedEligibility }) {
                   </div>
                 )}
                 {result.header && <div style={{ margin: "6px 0 2px" }}>{renderMessageText(result.header)}</div>}
-                {result.whyLine && (
-                  <div style={{ fontSize: 12.5, color: "var(--muted)", margin: "2px 0 6px" }}>{result.whyLine}</div>
-                )}
+                {/* No "Why these plans" line — saved results from before 2026-10-17 still carry one; it is never shown. */}
                 {result.doctorTable ? <>{renderMessageText("**Doctors**\n\n" + result.doctorTable)}</> : <div>{result.doctorCount === 0 ? "No doctors were entered for this client, so there are no In/Out results. Add the doctors and run it again to compare networks." : 'No eligible plan has a verifiable doctor result yet — see "Could not verify" and the questions below.'}</div>}
                 <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
                   {result.legend || "✅ In · ❌ Out · ❔ unchecked = never checked · ❔ not confirmed = checked, no result (never assume Out)"}
@@ -7267,12 +7285,19 @@ function App() {
         });
       }
       const wsHere = wsMapRef.current[workup.id];
+      // A saved comparison grid that is missing saved plans is stale: Robin Forte (2026-10-17) had 4 saved plans and
+      // the first New-client run's 1-plan grid ("Plans: H5420-001") reopened under them every time. Don't show it.
+      const missingFrom = (r) => window.MaxClientWorkups.stalePlansForResult(workup, r);
+      const staleNote = (r) => ({ role: "assistant", content: window.MaxClientWorkups.staleResultNote(workup, r), time: nowLabel() });
       if (wsHere && wsHere.stage) {
         if (wsHere.stage === "done" && !(wsHere.job && wsHere.job.result) && workup.compareResult) setWs(workup.id, { result: workup.compareResult });
         if (wsHere.stage === "done" && !wsHere.seen) setWs(workup.id, { seen: true });
-        next.push({ role: "clientWs", wsId: workup.id, time: nowLabel() });
+        const wsResult = (wsHere.job && wsHere.job.result) || wsHere.result || workup.compareResult;
+        if (wsHere.stage === "done" && missingFrom(wsResult).length) next.push(staleNote(wsResult));
+        else next.push({ role: "clientWs", wsId: workup.id, time: nowLabel() });
       } else if (workup.compareResult) {
-        next.push({ role: "queueResult", result: workup.compareResult, time: nowLabel() });
+        if (missingFrom(workup.compareResult).length) next.push(staleNote(workup.compareResult));
+        else next.push({ role: "queueResult", result: workup.compareResult, time: nowLabel() });
       }
       messagesRef.current = next;
       setMessages(next);

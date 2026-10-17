@@ -50,10 +50,9 @@ describe('the bug-report client (fallback reply)', () => {
     assert.match(text, /^\*\*Doctors × top plans\*\*$/m);
   });
 
-  it('rule 5: "Why these plans" line above the table, naming county, order and exclusions', () => {
-    const why = text.indexOf('Why these plans:');
-    assert.ok(why > -1 && why < text.indexOf('| Doctor |'));
-    assert.match(text, /Why these plans: .*\d+ checked in Miami-Dade\. Left out until confirmed: .*C-SNPs.*D-SNPs.*QMB-only plans/);
+  it('rule 5: no "Why these plans" line or Excluded list in the reply; the selection still knows why (Yahoska, 2026-10-17)', () => {
+    assert.doesNotMatch(text, /Why these plans|Excluded:/);
+    assert.match(n.selectComparison(DOCTORS, ASK, { drugs: DRUGS }).whyLine, /\d+ checked in Miami-Dade\. Left out until confirmed: .*C-SNPs.*D-SNPs.*QMB-only plans/);
   });
 
   it('rule 1: no C-SNP / QMB-only / D-SNP in the top 3 before eligibility', () => {
@@ -193,7 +192,8 @@ describe('eligibility comes only from the agent', () => {
 describe('model tool result (chat path)', () => {
   it('hands the model the rule-built table and the exact formulary call for unpriced plans', () => {
     const { text } = n.batchSummaryForModel(DOCTORS, `${ASK}. Full Medicaid. Has AFib, C-SNP eligible.`, { drugs: [] });
-    assert.match(text, /Why these plans: .*\d+ checked in Miami-Dade/);
+    assert.doesNotMatch(text, /^Why these plans/m);
+    assert.match(text, /^\| Doctor \|/m);
     assert.match(text, /MEDS ALREADY GIVEN — before answering, call lookup_formulary once per drug \(Eliquis, atorvastatin, chlorthalidone\) with planIds \[H5420-001[^\]]*\]/);
     assert.doesNotMatch(text, /Any meds to check/);
   });
@@ -228,8 +228,10 @@ describe('agent follow-ups (2026-10-06 replay: carriers by name, numbered answer
     const header = text.split('\n').find((l) => l.startsWith('| Doctor |'));
     assert.match(header, /\| Doctors [^|]*H4140-\d{3}[^|]*\| Solis [^|]*H0982-\d{3}[^|]*\| Devoted [^|]*H1290-\d{3}[^|]*\|$/);
     assert.doesNotMatch(header, /UHC|Humana/);
-    assert.match(text, /^Why these plans: you asked for Doctors HealthCare, Solis, Devoted — best eligible plan per carrier/m);
-    assert.match(text, /D-SNPs — no Medicaid\/MSP/);
+    assert.doesNotMatch(text, /Why these plans|Excluded:/);
+    const why = n.selectComparison(docs, n.comparisonAskText(msgs), { answered: n.narrowingAnswered(msgs) }).whyLine;
+    assert.match(why, /^Why these plans: you asked for Doctors HealthCare, Solis, Devoted — best eligible plan per carrier/);
+    assert.match(why, /D-SNPs — no Medicaid\/MSP/);
     assert.doesNotMatch(text, /Medicaid or a Medicare Savings Program\?|C-SNP qualifying chronic condition, confirmed/, 'answered — not asked again');
     assert.match(text, /Solis: checked by name against the 2027 Solis county provider directory/);
   });

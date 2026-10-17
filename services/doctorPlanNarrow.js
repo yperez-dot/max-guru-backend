@@ -687,7 +687,37 @@ function comparisonFollowUp(messages) {
   // corrections applied. The model used to run only the corrected two and swap the plans (Paula Harris, 2026-10-13).
   const fixed = workupDoctorFixes(msgs, lastUserAt, reasons.includes('numbered answers'));
   if (fixed) return fixed;
+  // A loaded workup + "check Glinos on H5420-001" / "is Glinos in on UHC FL-0028?" / "add George Glinos": re-run
+  // EVERY saved doctor on EVERY saved plan (plus a plan or doctor she adds). The model used to look up only the doctor
+  // she named and the table collapsed to the one plan she mentioned (Robin Forte, 2026-10-17).
+  const check = workupDoctorCheck(msgs, lastUserAt);
+  if (check) return check;
   return null;
+}
+
+const NETWORK_CHECK_RE = /\b(?:check|re-?check|re-?run|run|look\s*up|verify|confirm|in[-\s]?network|in\s+on|is\s+(?:he|she|they|it|dr\.?\s+\S+|\S+)\s+in\b|takes?|accepts?|participat\w*|listed|covered|add(?:ed)?|include)\b/i;
+function workupDoctorCheck(msgs, lastUserAt) {
+  const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
+  if (!wk || !wk.doctors.length || !wk.plans.length) return null;
+  const latest = messageText(msgs[lastUserAt]);
+  if (isWorkupMessage(latest) || !NETWORK_CHECK_RE.test(latest)) return null;
+  const core = (nm) => plainWords(String(nm || '').split(/\s+[-–—]\s+/)[0]);
+  const words = plainWords(latest);
+  const named = wk.doctors.filter((d) => { const c = core(d); const last = c[c.length - 1]; return last && last.length >= 3 && words.includes(last); });
+  const doctors = wk.doctors.slice();
+  // "add George Glinos" / "add Dr. Jane Roe": a doctor not on the saved list joins the run.
+  const add = latest.match(/\b(?:add|include)\s+(?:(?:[Dd]ra?|[Dd]octora?)\.?\s+)?([A-ZÀ-Ý][\wÀ-ÿ'.-]+(?:\s+[A-ZÀ-Ý][\wÀ-ÿ'.-]+){1,3})/);
+  let added = '';
+  if (add && !carrierKey(add[1]) && !/\b[HR]\d{4}-\d{3}/i.test(add[1])) {
+    const nm = add[1].trim();
+    if (!doctors.some((d) => sameDoctorName(d, nm) || looseSameDoctor(d, nm) || core(d).slice(-1)[0] === plainWords(nm).slice(-1)[0])) { doctors.push(nm); added = nm; }
+  }
+  if (!named.length && !added) return null;
+  return {
+    reason: `check on her saved workup — all ${doctors.length} saved doctors on all saved plans${added ? ` (added ${added})` : ''}`,
+    doctors,
+    zip: wk.zip || newestZip(msgs.slice(0, lastUserAt + 1)),
+  };
 }
 
 /** Fuzzy "same doctor" for typo'd names: "Hoa Nguyne" ≈ "Hoa Nguyen", "Gloria St" ⊂ "Theresa Gloria St. Phillipe". */
@@ -1017,22 +1047,30 @@ const REMOVE_RE = /\b(?:remove|drop|take out|delete|no more|get rid of|without)\
 // (Aetna H1609-093 …) and must never become columns (Jacqueline Alexander, 2026-10-17: her 3 named plans
 // were added to 4 stale IDs from those lines, then cut to "best 2 of the other 5").
 const WORKUP_LINE_RE = /^\s*(?:Client|ZIP\/county|Contacts|Current plan(?:\(s\))?|Plan Terminating):|^\s*(?:Plans|Needs):\s*$|^\s*Doctors \(names only|^\s*Doctor NPIs\b|^\s*Saved In\/Out results\b|^\s*Medications \(tiers\b/;
-// A plan-set edit needs a plan (ID or carrier) in the same sentence as the edit verb: "Replace Dr. Natalie
-// Regalado with …" / "Remove Dr. Pasquel DeSantis …" edit doctors, not the plan list.
-const PLAN_EDIT_VERB_RE = /\b(add|also|include|plus|instead|swap|replace|in place of|remove|drop|take out|delete|no more|get rid of|without)\b/i;
 // "Keep the same 3 plans (UHC H5420-001, …)" / "only these plans: …": that list IS the set — nothing added.
 const KEEP_EXACT_RE = /\b(?:keep|same|only|just|exactly|these)\b[^.;\n]{0,30}\bplans?\b|\bplans?\s+(?:only|exactly)\b/i;
 
+// A plan-set edit needs a plan (ID or carrier) in the same sentence as the edit verb: "Replace Dr. Natalie
+// Regalado with …" / "Remove Dr. Pasquel DeSantis …" edit doctors, not the plan list.
+const PLAN_EDIT_VERB_RE = /\b(add|also|include|plus|instead|swap|replace|in place of|remove|drop|take out|delete|no more|get rid of|without)\b/i;
 function isPlanEditLine(line) {
   return String(line || '').split(/(?<=[.!?])\s+/).some((s) => PLAN_EDIT_VERB_RE.test(s)
     && (/\b[HR]\d{4}-\d{3}/i.test(s) || Boolean(carrierKey(s.replace(/\b(?:dr|dra|doctor|doctora)\.?\s+[A-Z][^,.;]*/g, ' ')))));
 }
+// A pasted list of 2+ plans with a "use these" verb is a new set: "okao lets do H5420-014, H4140-022, …" (Gail Carreno).
+const PLAN_START = String.raw`(?=["“]|[HR]\d{4}-|(?:uhc|united\w*|humana|aetna|devoted|doctors|solis|careplus|simply|wellcare|healthsun|florida\s+blue|these|those|this|plans?)\b)`;
+const NEW_SET_VERB_RE = new RegExp(String.raw`\blet'?s\s+do\s+` + PLAN_START + String.raw`|^\s*(?:ok\w*[\s,]+)?do\s+` + PLAN_START + String.raw`|\buse\s+` + PLAN_START + String.raw`|\bgo\s+with\b|\bswitch\s+to\b|\bchange\s+(?:it\s+)?to\b|\brun\s+(?:these|them|it\s+on)\b`, 'i');
+
+// A new plan set needs clear intent: "only H5420-001", "H5420-001 only", "just these plans", "just H1609-093".
+// "just check Glinos on H5420-001" is not a new set ("just" there means "simply").
+const ONLY_PLANS_RE = /\bonly\b|\bexclusively\b|\bjust\s+(?:(?:the|these|this|that|on|use|keep|show|compare|run)\s+)*(?:[HR]\d{4}-\d{3}|plans?\b|one\s+plan\b)/i;
 
 function namedPlansFromAsk(askText, constraints) {
   let current = [];
   let workup = null; // { plans: [], inPlans: bool } while reading the loaded-workup block
+  let fromWorkup = false; // the current set is her saved workup's plans (plus plans she added)
   const endWorkup = () => {
-    if (workup && workup.plans.length) current = workup.plans.slice();
+    if (workup && workup.plans.length) { current = workup.plans.slice(); fromWorkup = true; }
     workup = null;
   };
   for (const line of joinWrappedQuotes(askText).split('\n')) {
@@ -1077,17 +1115,28 @@ function namedPlansFromAsk(askText, constraints) {
           const row = R.gridPlansForCounty('').find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === f.planId.slice(0, 9));
           return row ? { ...f, name: carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim() } : f;
         });
+        fromWorkup = false;
         continue;
       }
     }
     const found = plansInLine(line, constraints).filter((f) => !dropped.has(f.planId.slice(0, 9)));
     if (!found.length) continue;
     const keepExact = found.length >= 2 && KEEP_EXACT_RE.test(line);
+    // On a loaded workup, a line that only MENTIONS a plan ("check Glinos on H5420-001", "is Glinos in on UHC
+    // FL-0028?") keeps every saved plan; a plan not saved yet is added. Only a clear new set replaces them:
+    // "only H5420-001", "just these plans", "compare X and Y", "lets do X, Y, Z" (Robin Forte, 2026-10-17: 4 saved
+    // plans came back as one column).
+    const newSet = keepExact || ONLY_PLANS_RE.test(line) || (found.length >= 2 && NEW_SET_VERB_RE.test(line) && !isPlanEditLine(line));
+    if (fromWorkup && current.length && !newSet) {
+      for (const f of found) if (!current.some((p) => p.planId.slice(0, 9) === f.planId.slice(0, 9))) current.push(f);
+      continue;
+    }
     const isEdit = !keepExact && isPlanEditLine(line);
     if (isEdit && current.length) {
       for (const f of found) if (!current.some((p) => p.planId.slice(0, 9) === f.planId.slice(0, 9))) current.push(f);
     } else {
       current = found;
+      fromWorkup = false;
     }
   }
   if (workup) endWorkup();
@@ -2111,9 +2160,8 @@ function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] }
     lines.push('');
     lines.push(sel.named
       ? 'DOCTOR × PLAN TABLE (the plans the agent named — use exactly these columns; copy it as-is):'
-      : 'DOCTOR × PLAN TABLE (selected by the Doctor/Drug Comparison Table Rules — copy the header, the "Why these plans" line and the table as-is):');
+      : 'DOCTOR × PLAN TABLE (selected by the Doctor/Drug Comparison Table Rules — copy the header and the table as-is):');
     lines.push(sel.header);
-    lines.push(sel.whyLine);
     lines.push('');
     lines.push(gridTable(sel.doctors, sel.columns));
     lines.push(R.LEGEND + (sel.columns.some((p) => (p.inCarrier || []).length) ? ` · ${R.IN_STAR_LEGEND}` : ''));
@@ -2122,14 +2170,13 @@ function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] }
     extrasLines(sel).forEach((l) => lines.push(l));
   } else if (sel.whyLine) {
     lines.push('');
-    lines.push(sel.whyLine);
     lines.push(`No eligible plan has a verifiable doctor result yet${sel.couldNotVerifyCount ? ` (${sel.couldNotVerifyCount} could not be verified)` : ''}. Do not invent a top 3.`);
     extrasLines(sel).forEach((l) => lines.push(l));
   }
   sel.flags.forEach((f) => lines.push(f));
   lines.push('');
   lines.push('ANSWER FORMAT (required for multi-doctor asks — Doctor/Drug Comparison Table Rules):');
-  lines.push('1) Lead with the header, the "Why these plans" line and the DOCTOR × PLAN TABLE above, exactly as given (cells ✅ In / ❌ Out / ❔ unchecked / ❔ not confirmed — never a bare ❔; count row "X in · Y out · Z unchecked" — never "X/N"). Doctor names as matched in the table. Then "Could not verify" / ⚠️ flags if present. Never add a "Same network as above" list. Never re-rank or swap plans.');
+  lines.push('1) Lead with the header and the DOCTOR × PLAN TABLE above, exactly as given (never write a "Why these plans" line or an Excluded list) (cells ✅ In / ❌ Out / ❔ unchecked / ❔ not confirmed — never a bare ❔; count row "X in · Y out · Z unchecked" — never "X/N"). Doctor names as matched in the table. Then "Could not verify" / ⚠️ flags if present. Never add a "Same network as above" list. Never re-rank or swap plans.');
   if (sel.medsToCheck.drugs.length) {
     lines.push(`2) MEDS ALREADY GIVEN — before answering, call lookup_formulary once per drug (${sel.medsToCheck.drugs.join(', ')}) with planIds [${sel.medsToCheck.planIds.join(', ')}] (every table plan). Then add the meds table (Drug | same plan columns | "T1 $0" cells; ❔ unchecked / ❔ not confirmed for unknowns). Never ask for meds that are already listed.`);
   } else if (sel.meds.length) {
@@ -2377,7 +2424,7 @@ function medsTable(drugResults, plans, knownMeds = []) {
 /** Plain answer used when the model itself ran out of time. */
 /**
  * The ONE fixed layout for every doctor/med network answer (1 plan or many, ranking or single
- * check): header, "Why these plans", Doctor × Plan table with the counts row, legend, then the
+ * check): header, Doctor × Plan table with the counts row, legend, then the
  * Meds table. Built from tool data only, so the same lookup always renders the same cells — the
  * model never re-lays it out as bullets or flips a cell (Maura Soley, 2026-10-07).
  */
@@ -2453,6 +2500,13 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
   return follow.length ? `${grid}\n\n${FOLLOW_UP_MARKER}\n${follow.join('\n')}` : grid;
 }
 
+// "Why these plans" lines (and a bare "Excluded: …" line) never go out in a reply, whoever wrote them — the server
+// tables dropped them in PR #232 but the model and the compare-job card still printed one (Robin Forte, 2026-10-17).
+const WHY_LINE_RE = /^[ \t>*_-]*(?:\*\*)?\s*(?:why these plans|excluded)\s*(?:\*\*)?\s*:.*(?:\r?\n|$)/gim;
+function stripWhyThesePlans(text) {
+  return String(text || '').replace(WHY_LINE_RE, '').replace(/\n{3,}/g, '\n\n');
+}
+
 // Everything after this marker in a reply goes out as its own chat message, after the grid message.
 const FOLLOW_UP_MARKER = '<!-- max:follow-up -->';
 /** Split a reply into the grid message and the follow-up message (notes / warnings / questions). */
@@ -2514,7 +2568,6 @@ function fallbackAnswer(doctors, askText, { answered = false, drugs = [] } = {})
   const lines = [];
   if (top.length) {
     lines.push(sel.header);
-    lines.push(sel.whyLine);
     lines.push('');
     lines.push(gridTable(sel.doctors, top));
     lines.push('');
@@ -2536,7 +2589,6 @@ function fallbackAnswer(doctors, askText, { answered = false, drugs = [] } = {})
       }
     }
   } else {
-    if (sel.whyLine) lines.push(sel.whyLine, '');
     lines.push('**Doctors — carriers in network**');
     doctors.forEach((d) => lines.push(doctorLine(d)));
     const extras = extrasLines(sel);
@@ -2563,6 +2615,7 @@ module.exports = {
   renderedAnswer,
   enforceRenderedTable,
   splitFollowUp,
+  stripWhyThesePlans,
   coreAllAnswer,
   CORE_ALL_RE,
   FOLLOW_UP_MARKER,

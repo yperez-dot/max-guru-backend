@@ -436,7 +436,9 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
 
     // 4) Tables (same look as chat) + the rule lines the UI shows above / below them.
     job.result.header = sel.header;
-    job.result.whyLine = sel.whyLine;
+    // No "Why these plans" line in the result: the UI rendered it above the grid (Robin Forte, 2026-10-17 — PR #232
+    // removed it from chat only). The selection reason is kept for logs/tests, never shown.
+    job.result.selection = String(sel.whyLine || '').replace(/^Why these plans:\s*/i, '');
     job.result.doctorCount = input.doctors.length;
     job.result.doctorTable = gridTable(sel.doctors, columns);
     const medsFull = medsTable(drugs, columns, input.meds);
