@@ -2279,6 +2279,8 @@
         let hit = drugs.find((d) => drugIdentityKey(d.name) === key);
         if (!hit) { hit = { name: m.name, byPlanId: {} }; drugs.push(hit); }
         hit.screen = m.byPlan;
+        // "Atorvastatin Calcium 80 mg": the screen shows the strength in the drug name, so the sheet does too.
+        if (m.name && hit.name && m.name.length > hit.name.length && m.name.toLowerCase().startsWith(String(hit.name).toLowerCase())) hit.name = m.name;
       });
     }
     const payload = {

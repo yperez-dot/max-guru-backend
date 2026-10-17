@@ -2056,6 +2056,23 @@ function drugCell(row, unsureNotCovered, result) {
   return R.NOT_CONFIRMED_CELL;
 }
 
+/**
+ * "80 mg: T1 $0" on some rows and "T1 $0" on others looked messy (Jackie Alexander, 2026-10-17): when every cell of a
+ * row names the same single strength, the strength moves into the drug column ("Atorvastatin Calcium 80 mg") and the
+ * cells read "T# $cost" like every other row. Different strengths per plan, or a split cell, stay as they are.
+ */
+const STRENGTH_PREFIX_RE = /^(\d[\d.,]*\s*(?:mg|mcg|g|ml|units?|iu)(?:\/[\d.,]*\s*(?:ml|mg|g|hr))?)\s*:\s*(.+)$/i;
+function strengthInLabel(label, cells) {
+  const parsed = cells.map((c) => String(c).match(STRENGTH_PREFIX_RE));
+  const prefixed = parsed.filter(Boolean);
+  if (!prefixed.length) return { label, cells };
+  const strengths = new Set(prefixed.map((m) => m[1].toLowerCase().replace(/\s+/g, ' ')));
+  if (strengths.size !== 1) return { label, cells };
+  if (prefixed.some((m) => /\d\s*(?:mg|mcg|ml|g|iu)\s*:/i.test(m[2]))) return { label, cells };
+  const out = cells.map((c, i) => (parsed[i] ? parsed[i][2].trim() : c));
+  return { label: `${label} ${prefixed[0][1].replace(/\s+/g, ' ')}`, cells: out };
+}
+
 /** The drug column: the corrected name shown as a correction, an unclear name as a question. */
 function drugLabel(r, name) {
   const nc = r && r.nameCheck;
@@ -2101,7 +2118,7 @@ function medsTable(drugResults, plans, knownMeds = []) {
         const row = drugRowFor(r, p.planId);
         return covered(row) ? drugCell(row, Boolean(r.notCoveredNote), r) : OTC_SUPPLEMENT_CELL;
       });
-      rows.push(`| ${drugLabel(r, name)} | ${cells.join(' | ')} |`);
+      { const o = strengthInLabel(drugLabel(r, name), cells); rows.push(`| ${o.label} | ${o.cells.join(' | ')} |`); }
       continue;
     }
     const cells = plans.map((p) => drugCell(drugRowFor(r, p.planId), Boolean(r.notCoveredNote), r));
@@ -2114,7 +2131,7 @@ function medsTable(drugResults, plans, knownMeds = []) {
       rows.push(`| ${titleCase(asked)} ⚠️ | ${plans.map(() => `❔ lookup matched ${name} — check ${titleCase(asked)} alone on Medicare.gov`).join(' | ')} |`);
       continue;
     }
-    rows.push(`| ${drugLabel(r, name)} | ${cells.join(' | ')} |`);
+    { const o = strengthInLabel(drugLabel(r, name), cells); rows.push(`| ${o.label} | ${o.cells.join(' | ')} |`); }
   }
   for (const m of knownMeds || []) {
     const name = String(m || '').trim();
@@ -2238,6 +2255,7 @@ function fallbackAnswer(doctors, askText, { answered = false, drugs = [] } = {})
 }
 
 module.exports = {
+  strengthInLabel,
   renderedAnswer,
   enforceRenderedTable,
   corePlanIdsFor,
