@@ -17,6 +17,10 @@
  *     or the agent, not from inventing a marketing name.
  */
 
+// Names are read through the one normalizer (artifacts/doctor-name.js).
+const DN = require('../artifacts/doctor-name.js');
+const { CREDENTIAL_RE, ORG_HINT_RE, CRED_TOKEN_RE, SPECIALTY_HINT_RE, SURNAME_PARTICLES, cleanDoctorQuery, parseName, looksLikeOrganization, joinedParticleSplits } = DN;
+
 const NPI_REGISTRY_BASE = 'https://npiregistry.cms.hhs.gov/api/';
 const FETCH_TIMEOUT_MS = 12_000;
 const NPI_RETRIES = 2;
@@ -24,9 +28,7 @@ const NPI_RETRY_DELAY_MS = Number(process.env.NPPES_RETRY_DELAY_MS || 400);
 const CMS_PAGE_LIMIT = 20;
 const DEFAULT_RETURN_LIMIT = 5;
 
-const CREDENTIAL_RE = /^(MD|DO|NP|PA|RN|APRN|DDS|DMD|DPM|OD|DC|PharmD|PhD|ARNP|FNP|DNP)$/i;
 
-const ORG_HINT_RE = /\b(clinic|clinics|group|groups|specialists?|rehab|rehabilitation|therap(?:y|ies)|physical|neurology|neuro|associates?|centers?|centres?|institute|hospital|hospitals|medical|health|physicians?|practice|practices|llc|inc|pllc|dba|corp|corporation|services)\b|&/i;
 
 const ORG_STOP = new Set(['and', 'of', 'the', 'at', 'for', 'a', 'an', 'llc', 'inc', 'pllc', 'dba', 'pa', '&']);
 
@@ -60,72 +62,8 @@ function extractNpi(text) {
   return m ? m[1] : null;
 }
 
-const CRED_TOKEN_RE = /^(MD|DO|NP|PA|PAC|RN|APRN|DDS|DMD|DPM|OD|DC|PHARMD|PHD|ARNP|FNP|DNP|FACC|FACP|FACS|FAAFP|MPH|MBA|MS|JR|SR|II|III)$/i;
-const SPECIALTY_HINT_RE = /^(gynecologist|gynecology|gynecologic|obgyn|internist|internal|family|medicine|physician|allergist|hematologist|surgeon|pcp|primary|care|cardio|cardiology|cardiologist|ortho|orthopedic|orthopedics|orthopedist|gyn|obgyn|ob|derm|dermatology|dermatologist|eye|ophthalmologist|ophthalmology|optometrist|neuro|neurologist|gi|gastro|gastroenterologist|uro|urologist|endo|endocrinologist|onc|oncologist|pulm|pulmonologist|nephro|nephrologist|podiatrist|rheum|rheumatologist|ent|psych|psychiatrist|specialist|doctor|dr)$/i;
 
-/**
- * "HOWARD BUSH M.D.", "Dr. Howard Bush, MD, FACC", "Howard Bush Cardio" → "Howard Bush".
- * Saved workups store NPPES display names with dotted credentials; NPPES search
- * misses them unless the credential and specialty hints are stripped.
- */
-function cleanDoctorQuery(name) {
-  let s = String(name || '').replace(/\s+/g, ' ').trim();
-  if (!s || /^\d{10}$/.test(s)) return s;
-  // "Dr.Armando Rivero" (no space after the period) went to NPPES as-is and matched nobody
-  // (Victor Rocha, 2026-10-08). A dotted title may be glued to the name; a bare one needs a space
-  // so "Drake" / "Drew" are left alone. "Dra." is the Spanish title.
-  s = s.replace(/^(?:(?:dra?s?|mr|mrs|ms)\.\s*|(?:dra?s?|doctor|mr|mrs|ms)\s+)/i, '');
-  s = s.replace(/\(([^)]*)\)/g, ' ').replace(/\s+/g, ' ').trim();
-  // "Natalie Regalado - Baptist Medical Group", "Charles Kaiser - Ophthalmologist": the office / specialty after a
-  // dash is a hint, not part of the name; sent to NPPES it matched nobody (Jackie Alexander, 2026-10-13).
-  const dashHead = s.split(/\s+[-–—]\s+/)[0].replace(/\*+$/, '').trim();
-  if (dashHead !== s && dashHead.split(/\s+/).length >= 2 && !ORG_HINT_RE.test(dashHead)) s = dashHead;
-  const isOrg = ORG_HINT_RE.test(s);
-  const parts = s.split(/[\s,]+/).filter(Boolean);
-  while (parts.length > 1) {
-    const raw = parts[parts.length - 1];
-    const bare = raw.replace(/[.\-/]/g, '');
-    if (CRED_TOKEN_RE.test(bare) || (!isOrg && SPECIALTY_HINT_RE.test(bare))) parts.pop();
-    else break;
-  }
-  if (isOrg) {
-    while (parts.length > 1 && /^(llc|inc|pllc|pa|corp|co)\.?$/i.test(parts[parts.length - 1])) parts.pop();
-  }
-  let out = parts.join(' ');
-  if (out === out.toUpperCase() && /[A-Z]/.test(out)) {
-    out = out.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
-  }
-  return out;
-}
 
-function parseName(fullName) {
-  if (!fullName || typeof fullName !== 'string') return {};
-  let cleaned = fullName.trim();
-  cleaned = cleaned.replace(/^(?:(?:dra?s?|mr|mrs|ms)\.\s*|(?:dra?s?|doctor|mr|mrs|ms)\s+)/i, '');
-  cleaned = cleaned.replace(/\s+at\s+.+$/i, '');
-  cleaned = cleaned.replace(/,?\s+(MD|DO|NP|PA|RN|APRN|DDS|DMD|DPM|OD|DC|PharmD|PhD|ARNP)\.?$/i, '').trim();
-
-  if (cleaned.includes(',')) {
-    const commaIdx = cleaned.indexOf(',');
-    const last = cleaned.slice(0, commaIdx).trim();
-    const rest = cleaned.slice(commaIdx + 1).trim().split(/\s+/).filter(Boolean);
-    return {
-      firstName: rest[0] || '',
-      middleName: rest.slice(1).join(' '),
-      lastName: last,
-    };
-  }
-
-  const parts = cleaned.split(/\s+/).filter(Boolean);
-  while (parts.length && CREDENTIAL_RE.test(parts[parts.length - 1])) parts.pop();
-  if (!parts.length) return {};
-  if (parts.length === 1) return { lastName: parts[0] };
-  return {
-    firstName: parts[0],
-    middleName: parts.slice(1, -1).join(' '),
-    lastName: parts[parts.length - 1],
-  };
-}
 
 function allLocationAddresses(result) {
   const addrs = [...(result?.addresses || []), ...(result?.practiceLocations || [])];
@@ -138,16 +76,6 @@ function locationZip(result) {
   return String(loc.postal_code || '').slice(0, 5);
 }
 
-function looksLikeOrganization(name) {
-  const s = String(name || '').trim();
-  if (!s) return false;
-  if (/^\d{10}$/.test(s)) return false;
-  if (/\b(MD|DO|NP|ARNP|APRN)\b/i.test(s) && !ORG_HINT_RE.test(s)) return false;
-  if (/^[A-Za-z][A-Za-z'.-]+,\s+[A-Za-z]/.test(s) && !ORG_HINT_RE.test(s)) return false;
-  // Only a clinic word (or &) makes it a clinic. Four plain words is a person with two
-  // surnames ("Carlos Alberto Sosa Rosales"), not a company — live bug 2026-10-06.
-  return ORG_HINT_RE.test(s);
-}
 
 function orgQueryVariants(name) {
   const raw = String(name || '').trim();
@@ -399,30 +327,12 @@ function hasExactFirstName(results, firstName) {
 }
 
 // "Ian Del Conde", "Maria De La Cruz", "Juan Dos Santos" — the particle belongs to the last name.
-const SURNAME_PARTICLES = new Set(['de', 'del', 'della', 'dela', 'la', 'las', 'los', 'da', 'das', 'do', 'dos', 'di', 'du', 'van', 'von', 'der', 'den', 'le', 'st', 'san', 'santa', 'mac', 'y']);
 
 /**
  * Resolve CMS NPI-1 and NPI-2 records from a pasted NPI and/or a name.
  * ZIP ranks matches; it does not filter them out. Clinic/group names try
  * organization search first (or as a fallback when the individual search misses).
  */
-// "Dearriba" → "De Arriba", "De-Arriba"; "Delaguarda" → "De La Guarda", "Del Aguarda"…; "Vanhorn" → "Van Horn".
-const JOINED_PARTICLES = ['de la', 'de los', 'de las', 'del', 'de', 'da', 'das', 'do', 'dos', 'di', 'du', 'van der', 'van', 'von', 'le', 'la'];
-function joinedParticleSplits(lastName) {
-  const raw = String(lastName || '').trim();
-  if (!raw || /[\s-]/.test(raw)) return [];
-  const low = raw.toLowerCase();
-  const out = [];
-  const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-  for (const p of JOINED_PARTICLES) {
-    const glued = p.replace(/\s+/g, '');
-    if (!low.startsWith(glued) || low.length - glued.length < 3) continue;
-    const rest = raw.slice(glued.length);
-    const words = p.split(' ').map(cap);
-    out.push([...words, cap(rest)].join(' '), [...words, cap(rest)].join('-'));
-  }
-  return [...new Set(out)].slice(0, 4);
-}
 
 async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limit = DEFAULT_RETURN_LIMIT } = {}) {
   const number = extractNpi(npi) || extractNpi(doctorName);

@@ -1,0 +1,156 @@
+{
+  "name": "Nancy Blanco De Pajaro — \"she stopped taking Farxiga\" removes only Farxiga; every other saved med stays",
+  "source": "Yahoska rule, 2026-10-17 (overhaul)",
+  "workup": {
+    "clientName": "Nancy Blanco De Pajaro",
+    "zip": "33193",
+    "county": "Miami-Dade",
+    "plans": [
+      {
+        "carrier": "UHC",
+        "planName": "UHC MedicareMax FL-0028",
+        "planId": "H5420-001"
+      },
+      {
+        "carrier": "Doctors",
+        "planName": "Doctors DrMax-Dade",
+        "planId": "H4140-022"
+      },
+      {
+        "carrier": "CarePlus",
+        "planName": "CarePlus CareOne Plus",
+        "planId": "H1019-006"
+      }
+    ],
+    "doctors": [
+      {
+        "name": "Edgardo Dearriba"
+      },
+      {
+        "name": "Humberto Machado",
+        "npi": "1225079668"
+      },
+      {
+        "name": "Vision Unlimited",
+        "npi": "1003187568"
+      },
+      {
+        "name": "Ciro Martin",
+        "npi": "1093855256"
+      }
+    ],
+    "medications": [
+      {
+        "name": "BRIMONIDINE TARTRATE/TIMOLOL MALEATE SOLUTION 0.2/0.5%"
+      },
+      {
+        "name": "Entresto"
+      },
+      {
+        "name": "Farxiga"
+      }
+    ]
+  },
+  "messages": [
+    "she stopped taking Farxiga, re-run her doctors"
+  ],
+  "doctorResults": {
+    "Edgardo de Arriba": {
+      "npi": "1111111111",
+      "matched": "EDGARDO DE ARRIBA MD",
+      "in": [
+        "H4140-022",
+        "H1036-054C"
+      ],
+      "out": [
+        "H5420-001"
+      ]
+    },
+    "Humberto Machado": {
+      "npi": "1225079668",
+      "matched": "HUMBERTO C MACHADO MD",
+      "in": [
+        "H4140-022",
+        "H1036-054C"
+      ],
+      "out": []
+    },
+    "Vision Unlimited": {
+      "npi": "1003187568",
+      "org": true,
+      "in": [
+        "H5420-001"
+      ],
+      "out": []
+    },
+    "Ciro Martin": {
+      "npi": "1093855256",
+      "matched": "CIRO MARTIN MD",
+      "in": [
+        "H5420-001",
+        "H4140-022",
+        "H1036-054C"
+      ],
+      "out": []
+    }
+  },
+  "drugResults": {
+    "brimonidine / timolol": {
+      "H5420-001": {
+        "tier": 3,
+        "cost": "$47"
+      },
+      "H4140-022": {
+        "tier": 3,
+        "cost": "$40"
+      },
+      "H1036-054C": {
+        "tier": 3,
+        "cost": "$47"
+      }
+    },
+    "Entresto": {
+      "H5420-001": {
+        "tier": 3,
+        "cost": "$47"
+      },
+      "H4140-022": {
+        "tier": 3,
+        "cost": "$25"
+      },
+      "H1036-054C": {
+        "tier": 3,
+        "cost": "$47",
+        "pa": false
+      }
+    },
+    "Farxiga": {
+      "H5420-001": {
+        "tier": 3,
+        "cost": "$25"
+      },
+      "H4140-022": {
+        "tier": 3,
+        "cost": "$25"
+      },
+      "H1036-054C": {
+        "tier": 3,
+        "cost": "$47"
+      }
+    }
+  },
+  "expect": {
+    "plans": [
+      "H5420-001",
+      "H4140-022",
+      "H1019-006"
+    ],
+    "meds": [
+      "brimonidine / timolol 0.2%/0.5% ophthalmic solution",
+      "Entresto"
+    ],
+    "medCells": {
+      "Entresto": "T3"
+    }
+  }
+}

@@ -144,7 +144,10 @@ function samePerson(entry, { first, middle, last }) {
   if (!eLast.length || !dLast.length) return false;
   // Surname: the directory's surname words are all in hers (+ middle), or hers are all in the directory's.
   const hers = new Set([...dLast, ...dMiddle]);
-  const surnameOk = eLast.every((w) => hers.has(w)) || dLast.every((w) => eLast.includes(w));
+  // "DE ARRIBA" in the directory, "Dearriba" in NPPES (or the reverse): same surname letters (doctor-name.js).
+  const { surnameKey } = require('../artifacts/doctor-name.js');
+  const sameLetters = surnameKey(entry.last) && surnameKey(entry.last) === surnameKey(last);
+  const surnameOk = sameLetters || eLast.every((w) => hers.has(w)) || dLast.every((w) => eLast.includes(w));
   if (!surnameOk) return false;
   const eFirst = words(entry.first)[0];
   const firsts = [words(first)[0], words(middle)[0]].filter(Boolean);

@@ -7,6 +7,13 @@
 // (UHC / Humana) finished and listed the plan as out-of-network. Everything
 // else that is not In is "not confirmed".
 
+// Doctor names: one normalizer for the grid, the lookups and the exports.
+const DN = require('../artifacts/doctor-name.js');
+const { plainWords, cleanName, titleCase, sameDoctorName, ROLE_WORDS_RE } = DN;
+// Loaded-workup set rules (plans / doctors / meds) live in one module.
+const LW = require('./loadedWorkup');
+const { workupFacts, workupCarrierEditSet, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START, NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, respelledDoctors, looseSameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords, doctorCoreWords, specialtyWords, removedByClauses, sameCoreDoctor, RESOLVED_DOCTOR, dedupeDoctorRows, DUPLICATE_Q_RE, duplicateQuestions, confirmedDuplicateRemovals } = LW;
+
 const PLAN_ID_RE = /\(([HR]\d{4}-\d{3}[A-Z]?)\)\s*$/i;
 
 function planIdOf(label) {
@@ -313,7 +320,11 @@ function comparisonAskText(messages, baseText) {
     if (!WANTS_ALTERNATIVES_RE.test(mt) && !R.impliesCompareToCurrentPlan(mt)) continue;
     lines.push('Wants alternatives to the named plan(s).');
     // Plan IDs she typed with that ask — unless the recent messages already carry them.
-    const idsHere = [...new Set([...mt.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase()))];
+    // "compare Humana H1036-054C and DrMax H4140-022 with her current plan": those IDs are the other side, not hers
+    // (golden suite, Edward Kennedy shape — they were read as her current plan and UHC H5420-001 vanished).
+    const idsHere = LW.lineKeepsCurrentPlan(mt)
+      ? currentPlanIdsIn(mt)
+      : [...new Set([...mt.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase()))];
     const wk = workupFacts(msgs);
     const current = idsHere.length ? idsHere : (wk ? wk.current : []);
     // First, so any plan she names later in the thread (a swap / add) still wins over it.
@@ -464,69 +475,7 @@ function newestZip(msgs) {
   return wk && wk.zip ? wk.zip : '';
 }
 
-/**
- * Is the newest agent message a comparison follow-up the server must re-run?
- * Yes when it asks for carriers by name or answers Max's numbered narrowing
- * questions, and an earlier message listed 2+ doctors. Returns
- * { reason, doctors, zip } or null.
- */
-/** Names / ZIP / plan IDs from the saved-workup context message the UI sends ("Loaded client workup …"). */
-function workupFacts(msgs) {
-  for (let i = msgs.length - 1; i >= 0; i -= 1) {
-    const t = messageText(msgs[i]);
-    if (!/Doctors \(names only/.test(t) && !/^Plans:/m.test(t)) continue;
-    if (!/structured facts only/i.test(t)) continue;
-    const docLine = (t.match(/^Doctors \(names only[^)]*\):\s*(.+)$/m) || [])[1] || '';
-    const doctors = docLine.split(';').map((x) => x.replace(/\s*\*\s*$/, '').trim()).filter(Boolean);
-    const plansBlock = (t.match(/^Plans:\s*\n((?:- .*\n?)+)/m) || [])[1] || '';
-    const plans = [...plansBlock.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
-    const zip = ((t.match(/^ZIP\/county:\s*(\d{5})/m) || [])[1]) || '';
-    // Only the "Current plan:" line is her plan; the other saved plans are comparison columns
-    // (Aetna H1609-093 was called her current plan — Maura, 2026-10-07). An old save with one plan: that one.
-    const curLine = (t.match(/^Current plan(?:\(s\))?:\s*(.+)$/m) || [])[1] || '';
-    const current = curLine
-      ? [...curLine.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase())
-      : (plans.length === 1 ? plans : []);
-    return { doctors, plans, zip, current };
-  }
-  return null;
-}
 
-function workupCarrierEditSet(text, msgs) {
-  const t = String(text || '');
-  const wk = workupFacts(msgs);
-  if (!wk || !wk.plans.length) return [];
-  // Plan IDs typed: the named-plan logic already handles "drop H5420-001, add H1036-054C" (Maura, 2026-10-07).
-  if (/\b[HR]\d{4}-\d{3}/i.test(t)) return [];
-  const county = R.countyFromAsk(msgs.map(messageText).join('\n')) || 'Miami-Dade';
-  const dropped = R.carriersRejected(t);
-  const addCarriers = [];
-  const addIds = [];
-  for (const m of t.matchAll(/\b(?:add|include|plus)\s+([^.;\n]+?)(?=\s+(?:and\s+)?(?:drop|remove|delete|re-?\s*t?un|re-?run|run|then)\b|[.;\n]|$)/gi)) {
-    const seg = m[1];
-    const ids = [...seg.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase());
-    if (ids.length) { ids.forEach((id) => addIds.push(id)); continue; }
-    if (/\b(?:dr|dra|doctor|doctora)\b\.?\s+[A-Z]/i.test(seg)) continue; // "add Dr. X" adds a doctor
-    for (const c of R.carriersRequested(`add ${seg}`)) if (!addCarriers.includes(c)) addCarriers.push(c);
-  }
-  // An edit of the saved set needs a carrier drop. A bare "add doctors, devoted, and aetna" stays a carrier ask
-  // (best plans per carrier — Gail Carreno, 2026-10-08).
-  if (!dropped.length) return [];
-  const rows = R.gridPlansForCounty(county);
-  const rowOf = (id) => rows.find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9)) || gridRowFor(id, '');
-  const carrierOfId = (id) => { const g = rowOf(id); return g ? R.carrierOfPlan(g) : ''; };
-  const nameOf = (id) => { const g = rowOf(id); if (!g) return id; return carrierKey(String(g.planName || '')) ? String(g.planName) : `${g.carrier || ''} ${g.planName || ''}`.trim(); };
-  const fullId = (id) => { const g = rowOf(id); return g ? String(g.planId || g.id).toUpperCase() : String(id).toUpperCase(); };
-  let ids = wk.plans.filter((id) => !dropped.includes(carrierOfId(id)));
-  for (const c of addCarriers) {
-    if (dropped.includes(c) || ids.some((id) => carrierOfId(id) === c)) continue;
-    const core = corePlanIdsFor(c, county)[0];
-    if (core) ids.push(fullId(core));
-  }
-  for (const id of addIds) if (!ids.some((x) => x.slice(0, 9) === id.slice(0, 9))) ids.push(id);
-  ids = ids.filter((id, k) => ids.findIndex((x) => x.slice(0, 9) === id.slice(0, 9)) === k);
-  return ids.map((id) => ({ planId: fullId(id), name: nameOf(id) }));
-}
 
 // "show me aetna csnp, aetna core, and her current plan on a grid\" (Maura, 2026-10-07): each part names
 // a plan TYPE of a carrier. Those plans are the columns — never dropped for eligibility, nothing added.
@@ -570,19 +519,6 @@ function planTypeSetFromAsk(text, msgs) {
   return out;
 }
 
-// "Dr. Edgardo de Arriba …" in her message: the same doctor as the saved "Edgardo Dearriba" (same letters, spaces /
-// hyphens / particles aside). Her spelling replaces the stale saved row in the re-run (Nancy Blanco De Pajaro, 2026-10-17).
-function respelledDoctors(latest, doctors) {
-  const said = [...String(latest || '').matchAll(/\b(?:Dr|Dra|Doctor|Doctora)\.?\s+([A-ZÀ-Ý][\wÀ-ÿ'’-]*(?:\s+(?:(?:de|del|la|las|los|da|das|do|dos|di|du|van|von|der|le|y)\s+)*[A-ZÀ-Ý][\wÀ-ÿ'’-]*){1,4})/g)].map((m) => m[1].trim());
-  if (!said.length) return doctors;
-  const letters = (x) => plainWords(String(x || '').split(/\s+[-–—]\s+/)[0]).join('');
-  return doctors.map((nm) => {
-    const have = letters(nm);
-    if (have.length < 6) return nm;
-    const hit = said.find((s) => letters(s) === have && s.replace(/\s+/g, ' ') !== nm);
-    return hit || nm;
-  });
-}
 
 function comparisonFollowUp(messages) {
   const out = comparisonFollowUpRaw(messages);
@@ -792,132 +728,9 @@ function workupDoctorCheck(msgs, lastUserAt) {
   };
 }
 
-/** Fuzzy "same doctor" for typo'd names: "Hoa Nguyne" ≈ "Hoa Nguyen", "Gloria St" ⊂ "Theresa Gloria St. Phillipe". */
-function looseSameDoctor(known, said) {
-  if (sameDoctorName(known, said)) return true;
-  const a = plainWords(known);
-  const b = plainWords(said);
-  if (a.length < 2 || b.length < 2) return false;
-  const lev = (x, y) => {
-    let row = Array.from({ length: y.length + 1 }, (_, j) => j);
-    for (let i = 1; i <= x.length; i += 1) {
-      const cur = [i];
-      for (let j = 1; j <= y.length; j += 1) cur[j] = Math.min(row[j] + 1, cur[j - 1] + 1, row[j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
-      row = cur;
-    }
-    return row[y.length];
-  };
-  return a[0] === b[0] && lev(a[a.length - 1], b[b.length - 1]) <= 2;
-}
 
-// "Remove Dr. Pasquel DeSantis Endocrinologist Baptist and both Neeta Erinjerri Surgeon rows, since Pascual De Santis
-// and Neeta Jane Erinjeri are already on the list" (Jacqueline Alexander, 2026-10-17). A removal counts only for a
-// doctor she NAMED: a saved row goes when every word of its name (before " - practice", role words dropped) is in
-// the removal clause, spelled the same. So "Neeta Erinjerri - Surgeon …" (both rows) goes and "Neeta Jane Erinjeri"
-// stays; the "since … already on the list" part is not a removal.
-const DOCTOR_REMOVE_RE = /\b(?:remove|delete|drop|take\s+out|get\s+rid\s+of|take\s+off)\s+([^.;\n]+)/gi;
-function doctorRemovalClauses(text) {
-  const out = [];
-  // "Dr." is not a sentence end.
-  for (const m of String(text || '').replace(/\b(dr|dra|mr|mrs|ms|st)\./gi, '$1 ').matchAll(DOCTOR_REMOVE_RE)) {
-    const clause = m[1].split(/\b(?:since|because|as\s+(?:they|she|he|both)|keep|but|they(?:'re| are)|already)\b/i)[0];
-    // A plan removal ("drop H1290-073", "remove devoted") is not a doctor removal.
-    if (/\b[HR]\d{4}-\d{3}/i.test(clause) && !/\b(?:dr|dra|doctor)\b\.?/i.test(clause)) continue;
-    // "Remove Dr. A, Dr. B and both C rows": list parts. "…, Pascual De Santis is already on the list" is a statement
-    // about a doctor who stays, not a target.
-    const parts = clause.split(/,|\band\b|&/i).filter((x) => !/\b(?:is|are|stays?|staying|remains?|already|keep)\b/i.test(x));
-    const words = plainWords(parts.join(' '));
-    words.raw = rawWords(parts.join(' '));
-    if (words.length) out.push(words);
-  }
-  return out;
-}
-// Words that start the description after a doctor's name when it was saved without " - " ("Dr. Neeta Erinjerri Surgeon
-// At Baptist Cancer Institute", "Pasquel DeSantis Endocrinologist Baptist"): the name ends there.
-const NAME_TAIL_RE = /^(?:at|of|from|with|in|for|surgeon|surgeons|surgery|surgical|baptist|institute|cancer|center|centre|hospital|group|medical|medicine|clinic|health|healthcare|associates|dental|spine|university|memorial|practice|physicians?|care|internist|internal|family|general|pediatric\w*|hematolog\w*|radiolog\w*|anesthes\w*|pain|sports|vascular|plastic|breast|cardio\w*|neuro\w*|gyn\w*|obgyn|ortho\w*|derm\w*|uro\w*|gastro\w*|onc\w*|endo\w*|rheum\w*|pulm\w*|nephro\w*|podiat\w*|ophth\w*|optom\w*|ent|psych\w*|specialist|pcp|primary|md|np|aprn|pa-c|llc|inc|pllc)$/;
-// Specialty / role words: a removal that names one ("both Neeta Erinjerri Surgeon rows") only matches a row that
-// carries a matching one, when the row carries any.
-const SPECIALTY_RE = /^(?:surg\w*|cardio\w*|neuro\w*|gyn\w*|obgyn|ortho\w*|derm\w*|uro\w*|gastro\w*|onc\w*|endo\w*|rheum\w*|pulm\w*|nephro\w*|podiat\w*|ophth\w*|optom\w*|ent|psych\w*|internist|internal|family|pediatric\w*|hematolog\w*|radiolog\w*|anesthes\w*|pcp|primary)$/;
-function rawWords(t) {
-  return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[^a-z'-]+/).map((w) => w.replace(/^[-']+|[-']+$/g, '')).filter(Boolean);
-}
-/** The name part of a saved doctor row: before " - practice", and before the first descriptive word. */
-function doctorCoreWords(name) {
-  const head = String(name || '').split(/\s+[-–—]\s+/)[0];
-  const words = rawWords(head).filter((w, i) => !(i === 0 && /^(?:dr|dra|doctor|doctora)$/.test(w)));
-  const cut = words.findIndex((w, i) => i >= 1 && NAME_TAIL_RE.test(w));
-  return plainWords((cut >= 0 ? words.slice(0, cut) : words).join(' '));
-}
-/** Specialty words a row or a clause carries (after the name). */
-function specialtyWords(text) {
-  return rawWords(text).filter((w) => SPECIALTY_RE.test(w)).map((w) => w.slice(0, 5));
-}
-function removedByClauses(name, clauses) {
-  const core = doctorCoreWords(name);
-  if (core.length < 2) return false;
-  const rowSpec = specialtyWords(String(name || '').replace(/^\s*(?:dr|dra)\.?\s+/i, ''));
-  return clauses.some((words) => {
-    if (!core.every((w) => words.includes(w))) return false;
-    const said = specialtyWords((words.raw || words).join(' '));
-    return !said.length || !rowSpec.length || said.some((w) => rowSpec.includes(w));
-  });
-}
 
-/** Same person by name: the name parts of both rows (descriptions dropped), first name equal, last name ≤2 edits. */
-function sameCoreDoctor(a, b) {
-  const x = doctorCoreWords(a);
-  const y = doctorCoreWords(b);
-  if (x.length < 2 || y.length < 2) return false;
-  return looseSameDoctor(x.join(' '), y.join(' '));
-}
-const RESOLVED_DOCTOR = (d) => Boolean(d && d.npi && !['not_found', 'timeout', 'error'].includes(d.status));
-/**
- * One row per doctor in the comparison (Jacqueline Alexander, 2026-10-17): two rows with the same NPI collapse into one,
- * and an unresolved row whose saved name is a description of a resolved doctor ("Dr. Neeta Erinjerri Surgeon At Baptist
- * Cancer Institute" next to "Neeta Jane Erinjeri · NPI 1427310424") goes. Two resolved doctors with different NPIs
- * always both stay.
- */
-function dedupeDoctorRows(rows) {
-  const list = (rows || []).filter(Boolean);
-  const out = [];
-  for (const d of list) {
-    const at = d.npi ? out.findIndex((o) => o.npi && String(o.npi) === String(d.npi)) : -1;
-    if (at >= 0) {
-      if (!RESOLVED_DOCTOR(out[at]) && RESOLVED_DOCTOR(d)) out[at] = d;
-      continue;
-    }
-    out.push(d);
-  }
-  // An unresolved row that reads like a description of a resolved doctor is NOT dropped: Max asks the agent first
-  // (Yahoska, 2026-10-17: "no auto drop, have her confirm"). It goes only on her yes, or when she names it for removal.
-  return out.map((d) => {
-    if (RESOLVED_DOCTOR(d)) return d;
-    const asked = d.requestedName || d.doctorName || '';
-    const described = doctorCoreWords(asked).length < plainWords(String(asked).replace(/^\s*(?:dr|dra)\.?\s+/i, '')).length;
-    const twin = described && out.find((o) => o !== d && RESOLVED_DOCTOR(o) && sameCoreDoctor(o.requestedName || o.doctorName, asked));
-    return twin ? { ...d, duplicateOf: { name: cleanName(twin.doctorName || twin.requestedName), npi: String(twin.npi) } } : d;
-  });
-}
 
-const DUPLICATE_Q_RE = /'([^'\n]{3,140})' looks like a duplicate of [^\n]*?Remove it\?/g;
-/** The confirm questions for rows dedupeDoctorRows flagged. */
-function duplicateQuestions(doctors) {
-  return (doctors || []).filter((d) => d && d.duplicateOf)
-    .map((d) => `❓ '${String(d.requestedName || d.doctorName).replace(/'/g, '’')}' looks like a duplicate of ${d.duplicateOf.name} (NPI ${d.duplicateOf.npi}). Remove it?`);
-}
-/** Names she said yes to removing, from Max's duplicate questions in the assistant turn right before `userAt`. */
-function confirmedDuplicateRemovals(msgs, userAt) {
-  const u = msgs[userAt];
-  if (!u || u.role !== 'user') return [];
-  const prev = msgs.slice(0, userAt).reverse().find((m) => m && m.role === 'assistant');
-  if (!prev) return [];
-  const asked = [...messageText(prev).matchAll(DUPLICATE_Q_RE)].map((m) => m[1].replace(/’/g, "'"));
-  if (!asked.length) return [];
-  const t = messageText(u).trim();
-  if (/^\s*(?:no|nope|keep|don'?t)\b/i.test(t)) return [];
-  if (!/^\s*(?:yes|yep|yeah|si|sí|correct|ok(?:ay)?|sure|remove(?:\s+(?:it|them|both|all))?|delete(?:\s+it)?|drop(?:\s+it)?)\b/i.test(t)) return [];
-  return asked;
-}
 
 const ADD_DOCTOR_RE = /\b(?:add|added|also|include|forgot|missing|primary|pcp|her doctor)\b/i;
 const FIX_STOP_RE = /^(?:its|it's|it|is|use|this|for|the|npi|dr|doctor|her|his|she|he|with|actually|should|be|that|no|yes)$/i;
@@ -1034,10 +847,6 @@ function personalize(questions, askText) {
     .replace(/\{client\}/g, who));
 }
 
-function titleCase(t) {
-  const s = String(t || '').trim();
-  return s === s.toUpperCase() ? s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()) : s;
-}
 
 function shortPlanHeader(p) {
   const name = String(p.name || '')
@@ -1106,39 +915,25 @@ function plansInLine(line, constraints) {
 }
 
 const LEAD_VERB_RE = /^(?:(?:pls|please|can you|could you|now|also|then)\s+)*(?:re-?check|check|re-?run|run|try|look at|look up|verify|do|use|go with)\s+(?:(?:on|for|the)\s+)?(?:again\s+)?/i;
-const REMOVE_RE = /\b(?:remove|drop|take out|delete|no more|get rid of|without)\s+(?:the\s+)?([^,.;\n]+?)(?=\s+(?:from|and|,)|[,.;\n]|$)/gi;
 
-/**
- * Plans the agent asked to compare, following her edits across the thread:
- * "Compare Humana H1036-065C, Aetna H1609-018, Devoted H1290-073" then
- * "remove devoted, add UHC H1045-005 instead" → Humana, Aetna, UHC.
- * Named plans are the columns — Max never swaps in its own top 3.
- */
-// Lines of the loaded-workup context message (client-workups.js compactWorkupContext). Only its "Plans:"
-// list is a plan set; the saved In/Out and medication lines carry the IDs of OLD comparison columns
-// (Aetna H1609-093 …) and must never become columns (Jacqueline Alexander, 2026-10-17: her 3 named plans
-// were added to 4 stale IDs from those lines, then cut to "best 2 of the other 5").
-const WORKUP_LINE_RE = /^\s*(?:Client|ZIP\/county|Contacts|Current plan(?:\(s\))?|Plan Terminating):|^\s*(?:Plans|Needs):\s*$|^\s*Doctors \(names only|^\s*Doctor NPIs\b|^\s*Saved In\/Out results\b|^\s*Medications \(tiers\b/;
-// "Keep the same 3 plans (UHC H5420-001, …)" / "only these plans: …": that list IS the set — nothing added.
-const KEEP_EXACT_RE = /\b(?:keep|same|only|just|exactly|these)\b[^.;\n]{0,30}\bplans?\b|\bplans?\s+(?:only|exactly)\b/i;
 
-// A plan-set edit needs a plan (ID or carrier) in the same sentence as the edit verb: "Replace Dr. Natalie
-// Regalado with …" / "Remove Dr. Pasquel DeSantis …" edit doctors, not the plan list.
-const PLAN_EDIT_VERB_RE = /\b(add|also|include|plus|instead|swap|replace|in place of|remove|drop|take out|delete|no more|get rid of|without)\b/i;
-function isPlanEditLine(line) {
-  return String(line || '').split(/(?<=[.!?])\s+/).some((s) => PLAN_EDIT_VERB_RE.test(s)
-    && (/\b[HR]\d{4}-\d{3}/i.test(s) || Boolean(carrierKey(s.replace(/\b(?:dr|dra|doctor|doctora)\.?\s+[A-Z][^,.;]*/g, ' ')))));
-}
-// A pasted list of 2+ plans with a "use these" verb is a new set: "okao lets do H5420-014, H4140-022, …" (Gail Carreno).
-const PLAN_START = String.raw`(?=["“]|[HR]\d{4}-|(?:uhc|united\w*|humana|aetna|devoted|doctors|solis|careplus|simply|wellcare|healthsun|florida\s+blue|these|those|this|plans?)\b)`;
-const NEW_SET_VERB_RE = new RegExp(String.raw`\blet'?s\s+do\s+` + PLAN_START + String.raw`|^\s*(?:ok\w*[\s,]+)?do\s+` + PLAN_START + String.raw`|\buse\s+` + PLAN_START + String.raw`|\bgo\s+with\b|\bswitch\s+to\b|\bchange\s+(?:it\s+)?to\b|\brun\s+(?:these|them|it\s+on)\b`, 'i');
 
-// A new plan set needs clear intent: "only H5420-001", "H5420-001 only", "just these plans", "just H1609-093".
-// "just check Glinos on H5420-001" is not a new set ("just" there means "simply").
-const ONLY_PLANS_RE = /\bonly\b|\bexclusively\b|\bjust\s+(?:(?:the|these|this|that|on|use|keep|show|compare|run)\s+)*(?:[HR]\d{4}-\d{3}|plans?\b|one\s+plan\b)/i;
 
 function namedPlansFromAsk(askText, constraints) {
   let current = [];
+  // Her current plan (comparisonAskText's "Her current plan:" line): a new set that mentions it keeps it, first.
+  const currentIds = [...String((String(askText || '').match(/^Her current plan:\s*([^\n]+)$/m) || ['', ''])[1]).matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
+  // The loaded workup's "Current plan:" line: a carrier drop never takes that plan off (loadedWorkup.currentPlanRemovedBy).
+  const workupCurrentIds = [...String((String(askText || '').match(/^\s*Current plan(?:\(s\))?:\s*([^\n]+)$/m) || ['', ''])[1]).matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
+  const withCurrent = (set, line) => {
+    if (!currentIds.length || !LW.lineKeepsCurrentPlan(line)) return set;
+    const missing = currentIds.filter((id) => !set.some((p) => p.planId.slice(0, 9) === id.slice(0, 9)));
+    const named = (id) => {
+      const row = gridRowFor(id, '');
+      return { planId: id, name: row ? (carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim()) : id };
+    };
+    return LW.currentPlanFirst([...missing.map(named), ...set], currentIds);
+  };
   let workup = null; // { plans: [], inPlans: bool } while reading the loaded-workup block
   let fromWorkup = false; // the current set is her saved workup's plans (plus plans she added)
   const endWorkup = () => {
@@ -1158,58 +953,36 @@ function namedPlansFromAsk(askText, constraints) {
       endWorkup();
     }
     if (!line.trim()) continue;
-    // Removals first ("remove devoted", "drop H1290-073").
-    let r;
-    REMOVE_RE.lastIndex = 0;
-    while ((r = REMOVE_RE.exec(line)) !== null) {
-      const target = r[1].trim().toLowerCase();
-      if (!target) continue;
-      // "Remove Dr. Pasquel DeSantis …" removes a doctor row, not a plan.
-      if (/^(?:dr|dra|doctor|doctora)\b/.test(target) || /\brows?\b/.test(target)) continue;
-      current = current.filter((p) => {
-        const hay = `${p.name} ${p.planId} ${carrierOf(p.name)}`.toLowerCase();
-        return !(hay.includes(target) || target.includes(p.planId.toLowerCase()) || (carrierOf(target) && carrierOf(target) === carrierOf(p.name)));
-      });
-    }
+    // Removals first ("remove devoted", "drop H1290-073") — loadedWorkup.js rules: whole words / carrier / ID; a pronoun
+    // ("remove it") never removes a plan.
+    current = LW.removePlansNamedIn(current, line, [...currentIds, ...workupCurrentIds]);
     // IDs she drops in this line ("Drop MedicareMax H5420-001") never come back as columns.
-    const dropped = new Set();
-    for (const r2 of line.matchAll(/\b(?:remove|drop|take out|delete|no more|get rid of|without)\s+([^.;\n]*)/gi)) {
-      const target = r2[1].split(/[,]|\b(?:and\s+)?(?:add|instead|but|then|show|keep|include|plus|with)\b/i)[0];
-      for (const idm of target.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)) dropped.add(idm[1].toUpperCase().slice(0, 9));
-    }
+    const dropped = LW.droppedIdsIn(line);
     // "Show her current plan H1045-001, Aetna H1609-093 and H1036-054C in the table": that list IS the set.
     const showAt = [...line.matchAll(/\b(?:show|compare)\b(?=[^.]*\b[HR]\d{4}-\d{3})/gi)].pop();
     if (showAt) {
       const shown = plansInLine(line.slice(showAt.index), constraints).filter((f) => !dropped.has(f.planId.slice(0, 9)));
       if (shown.length >= 2) {
-        current = shown.map((f) => {
+        current = withCurrent(shown.map((f) => {
           if (f.name.split(/\s+/).length >= 3 && f.name !== f.planId) return f;
           const row = R.gridPlansForCounty('').find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === f.planId.slice(0, 9));
           return row ? { ...f, name: carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim() } : f;
-        });
+        }), line);
         fromWorkup = false;
         continue;
       }
     }
     const found = plansInLine(line, constraints).filter((f) => !dropped.has(f.planId.slice(0, 9)));
     if (!found.length) continue;
-    const keepExact = found.length >= 2 && KEEP_EXACT_RE.test(line);
-    // On a loaded workup, a line that only MENTIONS a plan ("check Glinos on H5420-001", "is Glinos in on UHC
-    // FL-0028?") keeps every saved plan; a plan not saved yet is added. Only a clear new set replaces them:
-    // "only H5420-001", "just these plans", "compare X and Y", "lets do X, Y, Z" (Robin Forte, 2026-10-17: 4 saved
-    // plans came back as one column).
-    const newSet = keepExact || ONLY_PLANS_RE.test(line) || (found.length >= 2 && NEW_SET_VERB_RE.test(line) && !isPlanEditLine(line));
-    if (fromWorkup && current.length && !newSet) {
+    // On a loaded workup, a line that only MENTIONS a plan ("check Glinos on H5420-001") keeps every saved plan and adds
+    // what is new; only a clear new set replaces them (Robin Forte, 2026-10-17). Rules: loadedWorkup.planLineVerdict.
+    const verdict = LW.planLineVerdict(line, found, { fromWorkup, haveSet: current.length > 0 });
+    if (verdict === 'add' || verdict === 'edit') {
       for (const f of found) if (!current.some((p) => p.planId.slice(0, 9) === f.planId.slice(0, 9))) current.push(f);
       continue;
     }
-    const isEdit = !keepExact && isPlanEditLine(line);
-    if (isEdit && current.length) {
-      for (const f of found) if (!current.some((p) => p.planId.slice(0, 9) === f.planId.slice(0, 9))) current.push(f);
-    } else {
-      current = found;
-      fromWorkup = false;
-    }
+    current = withCurrent(found, line);
+    fromWorkup = false;
   }
   if (workup) endWorkup();
   return current;
@@ -1444,20 +1217,8 @@ function unknownCell(d, carrier) {
   return R.NOT_CONFIRMED_CELL;
 }
 
-function cleanName(n) {
-  return titleCase(String(n || ''))
-    .replace(/,?\s*\b(m\.?\s?d|d\.?\s?o|md|do|pa-?c|aprn|arnp|np|dpm|od|phd|facc|facp|facs)\b\.?/gi, '')
-    .replace(/[\s,]+$/, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
-const ROLE_WORDS_RE = /\b(dr|md|m\.d|do|d\.o|pcp|primary|cardio\w*|neuro\w*|gyn\w*|obgyn|ortho\w*|derm\w*|uro\w*|gastro\w*|onc\w*|endo\w*|rheum\w*|pulm\w*|nephro\w*|podiat\w*|ophth\w*|optom\w*|ent|psych\w*|specialist|doctor)\b\.?/gi;
 
-function plainWords(t) {
-  return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-    .replace(ROLE_WORDS_RE, ' ').split(/[^a-z']+/).filter((w) => w.length > 1);
-}
 
 /**
  * Rule 10: is the NPI match the doctor she asked for?
@@ -1492,11 +1253,6 @@ function identityIssue(d) {
   return '';
 }
 
-function sameDoctorName(a, b) {
-  const x = plainWords(a).join(' ');
-  const y = plainWords(b).join(' ');
-  return Boolean(x) && (x === y || x.includes(y) || y.includes(x));
-}
 
 /** Rule 10: the doctor as matched — full name + specialty/NPI; unconfirmed matches flagged. */
 function doctorLabel(d) {
@@ -1744,6 +1500,14 @@ function selectComparison(doctors, askText, opts = {}) {
   if (constraints.noMedicaid) { elig.medicaid = 'none'; elig.levels = []; }
   const county = R.countyFromAsk(ask);
   const matrix = coverageMatrix(docs);
+  // An excluded carrier ("drop UHC") never takes her current plan off; "remove uhc off the grid" does (Yahoska, 2026-10-17).
+  const curAskIds = [...String((ask.match(/^Her current plan:\s*([^\n]+)$/m) || ['', ''])[1]).matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((m) => m[1].toUpperCase());
+  const offGridCurrent = LW.currentPlanRemovedBy(ask.replace(/^Her current plan:[^\n]*$/gm, ''), curAskIds, (id) => R.carrierOfPlan(gridRowFor(id, county) || { name: '' }));
+  const carrierExcludes = (id) => {
+    const key = String(id).toUpperCase().slice(0, 9);
+    if (curAskIds.includes(key) && !offGridCurrent.has(key)) return false;
+    return excludedSet.size > 0 && excludedSet.has(R.carrierOfPlan(gridRowFor(id, county) || { name: '' }));
+  };
   let named = Array.isArray(opts.named) ? opts.named : (carriers.length ? [] : namedPlansFromAsk(ask, constraints));
   if (!Array.isArray(opts.named) && namedSetLine) {
     named = namedSetLine.replace(/\.$/, '').split(';').map((x) => {
@@ -1763,6 +1527,7 @@ function selectComparison(doctors, askText, opts = {}) {
     const ids = pinFromAsk.length ? pinFromAsk : [...current.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
     pinFromAsk = ids.filter((id) => {
       const row = gridRowFor(id, county);
+      if (curAskIds.includes(String(id).toUpperCase().slice(0, 9)) && !offGridCurrent.has(String(id).toUpperCase().slice(0, 9))) return true;
       return !excludedSet.has(R.carrierOfPlan(row || { name: (named.find((p) => p.planId.slice(0, 9) === id.slice(0, 9)) || {}).name || '' }));
     });
     named = [];
@@ -1775,7 +1540,7 @@ function selectComparison(doctors, askText, opts = {}) {
       const line = (ask.match(lineRe) || [])[1] || '';
       for (const m of line.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)) if (!ids.includes(m[1].toUpperCase())) ids.push(m[1].toUpperCase());
     }
-    pinFromAsk = ids.filter((id) => !excludedSet.has(R.carrierOfPlan(gridRowFor(id, county) || { name: '' })));
+    pinFromAsk = ids.filter((id) => !carrierExcludes(id));
     named = [];
   }
   // Carrier ask ("show me Doctors HealthCare"): her current plan is still a column.
@@ -1794,7 +1559,7 @@ function selectComparison(doctors, askText, opts = {}) {
   pinFromAsk = dropsCurrent ? [] : pinFromAsk.filter((id) => {
     const key = String(id).toUpperCase().slice(0, 9);
     if ([...constraints.skip].some((s) => s.slice(0, 9) === key)) return false;
-    return !(excludedSet.size && excludedSet.has(R.carrierOfPlan(gridRowFor(id, county) || { name: '' })));
+    return !carrierExcludes(id);
   });
   // Looked-up names first ("Atorvastatin Calcium"), then anything listed but not looked up yet.
   const meds = [];
@@ -1864,7 +1629,7 @@ function selectComparison(doctors, askText, opts = {}) {
       for (const id of curIds) {
         if (cols.some((c) => String(c.planId || '').toUpperCase().slice(0, 9) === id)) continue;
         if ([...constraints.skip].some((x) => x.slice(0, 9) === id)) continue;
-        if (excludedSet.size && excludedSet.has(R.carrierOfPlan(gridRowFor(id, county) || { name: '' }))) continue;
+        if (carrierExcludes(id) || offGridCurrent.has(id)) continue;
         const row = gridRowFor(id, county);
         const nm = row ? (carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim()) : id;
         cols = [...decorate(namedPlanColumns([{ planId: (curText.match(new RegExp(`${id}[A-Z]?`, 'i')) || [id])[0].toUpperCase(), name: nm || id }], matrix, docs)), ...cols];
@@ -2283,7 +2048,7 @@ function medsLegendFor(table) {
  * "2.5/5 mg: T4 40% · PA (verify indication) ‖ 10/20 mg: T6 $0 · QL 8/30 · supplemental".
  * "‖" separates groups — a "|" would split the markdown table cell.
  */
-function strengthSplitCell(row, result) {
+function strengthSplitCell(row, result, opts = {}) {
   const ed = Boolean(result && result.edDrug);
   const describe = (v) => {
     if (v.coverage === 'not_covered') return '❌ not covered';
@@ -2317,6 +2082,8 @@ function strengthSplitCell(row, result) {
     const nums = g.strengths.map((s) => s.split(' ')[0]).join('/');
     return `${units.length === 1 ? `${nums} ${units[0]}` : g.strengths.join('/')}${g.indication ? ` (${g.indication})` : ''}`;
   };
+  // Every strength reads the same: just tier · cost, no "100/300/600/800 mg:" list (Yahoska, 2026-10-17).
+  if (groups.length === 1 && !groups[0].indication && !opts.keepLabel) return groups[0].text;
   return groups.map((g) => `${label(g)}: ${g.text}`).join(' ‖ ');
 }
 
@@ -2337,7 +2104,6 @@ const strengthMg = (str) => {
  * from a split is never printed as the answer (Jackie Alexander, 2026-10-13: Medicare.gov showed gabapentin
  * 300 mg T2 $0 and levothyroxine 50 mcg T1 $0 where Max printed "not found" / "not covered").
  */
-const SAME_ACROSS_STRENGTHS = 'cost same across strengths';
 function oneStrengthCell(row, result) {
   const covered = row.strengths.filter((v) => v && v.verified && v.tier && v.coverage !== 'not_covered');
   if (!covered.length) {
@@ -2351,15 +2117,16 @@ function oneStrengthCell(row, result) {
   let pick = null;
   if (key) pick = covered.find((v) => Math.abs(strengthMg(v.strength) - USUAL_STRENGTH_MG[key]) < 1e-6) || null;
   if (!pick) pick = covered.slice().sort((a, b) => Math.abs(Math.log((strengthMg(a.strength) || 1) / ((key && USUAL_STRENGTH_MG[key]) || strengthMg(covered[Math.floor(covered.length / 2)].strength) || 1))) - Math.abs(Math.log((strengthMg(b.strength) || 1) / ((key && USUAL_STRENGTH_MG[key]) || strengthMg(covered[Math.floor(covered.length / 2)].strength) || 1))))[0];
-  const cell = strengthSplitCell({ strengths: [pick] }, result);
+  const cell = strengthSplitCell({ strengths: [pick] }, result, { keepLabel: true });
   // Every strength the plan answered sits on the same tier and cost, and none was answered "not covered": that IS the
   // answer, whatever dose she takes (Jacqueline Alexander, 2026-10-17: "idk why gabapentin is such a diff drug for max" —
   // 100/300/600/800 mg all T2 $0 on H5420-001 and T1 $0 on H4140-022/-023 while the row read "check Medicare.gov").
   // Strengths medicare.gov did not answer are not a difference (and never "doesn't exist").
   const noneNotCovered = !row.strengths.some((v) => v && v.verified && v.coverage === 'not_covered');
   const sameAll = covered.length >= 2 && noneNotCovered
-    && covered.every((v) => strengthSplitCell({ strengths: [v] }, result).replace(/^[^:]+:\s*/, '') === cell.replace(/^[^:]+:\s*/, ''));
-  if (sameAll) return `${cell.replace(/^[^:]+:\s*/, '')} · ${SAME_ACROSS_STRENGTHS}`;
+    && covered.every((v) => strengthSplitCell({ strengths: [v] }, result, { keepLabel: true }).replace(/^[^:]+:\s*/, '') === cell.replace(/^[^:]+:\s*/, ''));
+  // Just tier · cost: no "cost same across strengths" note (Yahoska, 2026-10-17 — replaces the #231 note).
+  if (sameAll) return cell.replace(/^[^:]+:\s*/, '');
   // The usual strength was not among the answered ones: the strength shown is a different one — say so
   // (Jackie, 2026-10-13: atorvastatin 80 mg and levothyroxine 0.3 mg read as the answer for her dose).
   const isUsual = key && Math.abs(strengthMg(pick.strength) - USUAL_STRENGTH_MG[key]) < 1e-6;
@@ -2397,7 +2164,7 @@ function drugCell(row, unsureNotCovered, result) {
     return `${row.edLabel} · T${row.tier}${cost}${flags}${mixed}${unknown}`;
   }
   if (row.verified && row.coverage === 'not_covered') return unsureNotCovered ? '⚠️ confirm' : '❌ not covered';
-  if (row.verified && row.tier) return `T${row.tier}${cost}${flags}${mixed}${unknown}${row.sameAcrossStrengths ? ` · ${SAME_ACROSS_STRENGTHS}` : ''}`;
+  if (row.verified && row.tier) return `T${row.tier}${cost}${flags}${mixed}${unknown}`;
   if (/form_not_found/.test(String(row.reason || ''))) return `${R.NOT_CONFIRMED_CELL} (form not found)`;
   return R.NOT_CONFIRMED_CELL;
 }
@@ -2575,8 +2342,14 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
 // "Why these plans" lines (and a bare "Excluded: …" line) never go out in a reply, whoever wrote them — the server
 // tables dropped them in PR #232 but the model and the compare-job card still printed one (Robin Forte, 2026-10-17).
 const WHY_LINE_RE = /^[ \t>*_-]*(?:\*\*)?\s*(?:why these plans|excluded)\s*(?:\*\*)?\s*:.*(?:\r?\n|$)/gim;
+// Drug cells are tier · cost only: the "cost same across strengths" note never shows, even copied from an old saved
+// result (Yahoska, 2026-10-17).
+const SAME_STRENGTH_NOTE_RE = /\s*[·,;-]?\s*\(?cost (?:is )?(?:the )?same across (?:all )?strengths\)?/gi;
+function stripStrengthSameNote(text) {
+  return String(text || '').replace(SAME_STRENGTH_NOTE_RE, '');
+}
 function stripWhyThesePlans(text) {
-  return String(text || '').replace(WHY_LINE_RE, '').replace(/\n{3,}/g, '\n\n');
+  return stripStrengthSameNote(String(text || '').replace(WHY_LINE_RE, '')).replace(/\n{3,}/g, '\n\n');
 }
 
 // Everything after this marker in a reply goes out as its own chat message, after the grid message.
@@ -2679,6 +2452,11 @@ function fallbackAnswer(doctors, askText, { answered = false, drugs = [] } = {})
 }
 
 module.exports = {
+  carrierOf,
+  carrierKey,
+  gridRowFor,
+  currentPlanOf,
+  workupFacts,
   strengthInLabel,
   sameDoctorName,
   looseSameDoctor,
@@ -2688,6 +2466,7 @@ module.exports = {
   enforceRenderedTable,
   splitFollowUp,
   stripWhyThesePlans,
+  stripStrengthSameNote,
   coreAllAnswer,
   CORE_ALL_RE,
   FOLLOW_UP_MARKER,

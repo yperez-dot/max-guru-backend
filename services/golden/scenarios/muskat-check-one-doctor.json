@@ -1,0 +1,112 @@
+{
+  "name": "Muskat — \"is Dr. Garcia in on H1045-012?\" keeps both saved plans and every saved doctor; carrier + short plan name labels",
+  "source": "workups fixture (Yahoska's saved client)",
+  "workup": {
+    "clientName": "Muskat",
+    "zip": "33176",
+    "county": "Miami-Dade",
+    "plans": [
+      {
+        "carrier": "Humana",
+        "planName": "Gold Plus",
+        "planId": "H1036-054C"
+      },
+      {
+        "carrier": "UHC Preferred",
+        "planName": "Dual Complete FL-D001",
+        "planId": "H1045-012"
+      }
+    ],
+    "doctors": [
+      {
+        "name": "Dr. Garcia"
+      },
+      {
+        "name": "MNRS"
+      }
+    ],
+    "medications": [
+      {
+        "name": "Trintellix"
+      },
+      {
+        "name": "Lorazepam"
+      }
+    ]
+  },
+  "messages": [
+    "is Dr. Garcia in on H1045-012?"
+  ],
+  "doctorResults": {
+    "Garcia": {
+      "npi": "1598792707",
+      "matched": "LAZARO MIGUEL GARCIA MD",
+      "in": [
+        "H1036-054C"
+      ],
+      "out": [
+        "H1045-012"
+      ]
+    },
+    "MNRS": {
+      "npi": "1700000020",
+      "org": true,
+      "matched": "MIAMI NEUROLOGY & REHAB SPECIALISTS",
+      "in": [
+        "H1036-054C",
+        "H1045-012"
+      ],
+      "out": []
+    }
+  },
+  "drugResults": {
+    "Trintellix": {
+      "H1036-054C": {
+        "tier": 5,
+        "cost": "33%"
+      },
+      "H1045-012": {
+        "tier": 4,
+        "cost": "$0"
+      }
+    },
+    "Lorazepam": {
+      "H1036-054C": {
+        "tier": 2,
+        "cost": "$0"
+      },
+      "H1045-012": {
+        "tier": 2,
+        "cost": "$0"
+      }
+    }
+  },
+  "expect": {
+    "plans": [
+      "H1036-054C",
+      "H1045-012"
+    ],
+    "gridPlans": [
+      "H1036-054C",
+      "H1045-012"
+    ],
+    "doctors": [
+      "Dr. Garcia",
+      "MNRS"
+    ],
+    "meds": [
+      "Trintellix",
+      "Lorazepam"
+    ],
+    "medCells": {
+      "Trintellix": "T5 33%"
+    }
+  },
+  "doctorNames": [
+    {
+      "name": "Miami Neurology & Rehab Specialists",
+      "org": true,
+      "export": "Miami Neurology & Rehab Specialists"
+    }
+  ]
+}

@@ -26,7 +26,7 @@ const { solisFormularyLookup, solisStrengthVariants, solisRestrictions, isSolisP
 const { healthsunRestrictions, isHealthSunFormularyPlan } = require('./healthsunFormulary');
 const { lookupConsumerFormulary } = require('./consumerFormulary');
 const { doctorsPbpAliases, isDoctorsCms } = require('./doctorsFormularyPdf');
-const { resolveDrugName, requestedForm, isNonOralForm, conceptHasForm, formLabel, drugNameBase, isEdDrug, edLabel, restrictionsKnownFor, restrictionsUnknown } = require('./drugNames');
+const { normalizeMedName, resolveDrugName, requestedForm, isNonOralForm, conceptHasForm, formLabel, drugNameBase, isEdDrug, edLabel, restrictionsKnownFor, restrictionsUnknown } = require('./drugNames');
 
 const SUNFIRE_BASE = 'https://www.sunfirematrix.com';
 const HUMANA_FHIR = 'https://fhir.humana.com/api/MedicationKnowledge';
@@ -1764,8 +1764,15 @@ async function lookupFormulary(
   let nameCorrection = null;
   let nameRxcui = null;
   let nameUnverified = false;
+  // One med-name normalizer first: "BRIMONIDINE TARTRATE/TIMOLOL MALEATE SOLUTION 0.2/0.5%" is searched as medicare.gov
+  // lists it ("brimonidine / timolol 0.2%/0.5% ophthalmic solution"), with fallbacks if the catalog misses (2026-10-17).
+  let medName = null;
+  if (inputName && !ndc) {
+    medName = await normalizeMedName(inputName, fetchImpl);
+    if (medName.query && medName.query !== inputName) drugName = medName.query;
+  }
   if (inputName && !ndc && !skipNameCheck) {
-    const nameCheck = await resolveDrugName(inputName, fetchImpl);
+    const nameCheck = await resolveDrugName(drugName || inputName, fetchImpl);
     nameRxcui = nameCheck.rxcui || null;
     if (nameCheck.status === 'ambiguous' || nameCheck.status === 'not_found') {
       console.log(`[formulary] name not priced: "${inputName}" ${nameCheck.status}${nameCheck.suggestion ? ` (did you mean ${nameCheck.suggestion}?)` : ''}`);
@@ -1815,6 +1822,13 @@ async function lookupFormulary(
     // last resort: original string (keeps prior behavior for odd names)
     const retryRaw = await searchSunfireCatalog(rawQuery, fetchImpl);
     if (retryRaw.drugs.length) catalog = retryRaw;
+  }
+  // Normalized name missed: the combo without strength, the salt-kept combo, then what she typed.
+  if (!catalog.drugs.length && medName && medName.fallbacks.length) {
+    for (const fb of medName.fallbacks) {
+      const retry = await searchSunfireCatalog(drugCatalogQuery(fb) || fb, fetchImpl);
+      if (retry.drugs.length) { catalog = retry; break; }
+    }
   }
   let ranked = rankCatalogMatches(catalog.drugs, rawQuery);
   if (nonOral) ranked = ranked.filter((d) => conceptHasForm(d.name, askedForm));

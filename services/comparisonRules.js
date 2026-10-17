@@ -338,24 +338,12 @@ function cleanMedItem(raw) {
 // A pharmacy-label name too long for the med list ("BRIMONIDINE TARTRATE/TIMOLOL MALEATE SOLUTION 0.2/0.5%") is
 // shortened to the name RxNorm prices ("brimonidine tartrate/timolol ophthalmic solution") instead of being dropped from a
 // loaded workup's re-run (Nancy Blanco De Pajaro, 2026-10-17).
-const MED_SALT_WORDS = new Set(['maleate', 'tartrate', 'hydrochloride', 'hcl', 'sodium', 'potassium', 'calcium', 'magnesium', 'besylate', 'mesylate', 'succinate', 'citrate', 'sulfate', 'acetate', 'phosphate', 'fumarate', 'bromide', 'chloride', 'propionate', 'furoate', 'monohydrate', 'dihydrate']);
-const MED_FORM_WORDS = new Set(['solution', 'soln', 'sol', 'suspension', 'susp', 'drops', 'drop', 'tablet', 'tablets', 'tab', 'tabs', 'capsule', 'capsules', 'cap', 'caps', 'ophthalmic', 'opth', 'oph', 'cream', 'ointment', 'gel', 'inhaler', 'injection', 'pen']);
-const EYE_DRUG_RE = /\b(?:brimonidine|timolol|latanoprost|dorzolamide|travoprost|bimatoprost|brinzolamide|netarsudil|tafluprost)\b/i;
+
+// A pharmacy-label name too long for the med list reads the way medicare.gov lists it, via the one med-name normalizer
+// (drugNames.localMedDisplay) — never dropped from a loaded workup's re-run (Nancy Blanco De Pajaro, 2026-10-17).
 function tidyLongMedName(name) {
   const raw = String(name || '').trim();
-  if (raw.length < 40) return raw;
-  const low = raw.toLowerCase().replace(/\b\d[\d.\/\s]*(?:%|mg|mcg|ml|units?)?(?=\s|$)/g, ' ').replace(/\s+/g, ' ').trim();
-  const forms = [];
-  const comps = low.split(/\s*\/\s*/).map((c, k) => c.split(/\s+/).filter((w) => {
-    if (!w) return false;
-    if (MED_FORM_WORDS.has(w)) { forms.push(w); return false; }
-    return k === 0 || !MED_SALT_WORDS.has(w);
-  }).join(' ')).filter(Boolean);
-  if (!comps.length) return raw;
-  let form = '';
-  if (forms.some((f) => /^(?:solution|soln|sol|drops?|ophthalmic|opth|oph)$/.test(f))) form = EYE_DRUG_RE.test(low) ? 'ophthalmic solution' : 'solution';
-  else if (forms.length) form = forms[0];
-  return `${comps.join('/')}${form ? ` ${form}` : ''}`;
+  return raw.length < 40 ? raw : require('./drugNames').localMedDisplay(raw);
 }
 
 function isNonDrugAnswer(text) {
@@ -428,7 +416,7 @@ const NOT_MED_RE = /^(?:no|none|not|medicaid|plan|plans|compare|they|their|for|a
 function medsFromAsk(askText) {
   const t = String(askText || '');
   const out = [];
-  const add = (s0) => { const s = tidyLongMedName(cleanMedItem(s0)); if (s && s.length > 2 && s.length < 60 && !isNonDrugAnswer(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
+  const add = (s0) => { const s = tidyLongMedName(cleanMedItem(s0)); if (s && s.length > 2 && s.length < 60 && !isNonDrugAnswer(s) && !/\b[HR]\d{4}-\d{3}|\b(?:grid|table|columns?)\b/i.test(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
   // "Meds: a, b" / "Medications a, b" / "Medicamentos: a y b" / "Takes a, b" — colon optional
   // (Martin Wiesenthal, 2026-10-09: "…, Medications esomeprazole, rasuvostatin, …" read 0 meds).
   for (const m of t.matchAll(new RegExp(`(^|[^A-Za-z])(no\\s+)?\\b(${MED_LABEL})\\b(\\s*:\\s*|\\s+)([^\\n]+)`, 'gi'))) {
@@ -475,6 +463,13 @@ function medsFromAsk(askText) {
   for (const h of CSNP_HINTS) {
     const hit = t.match(h.re);
     if (hit && !out.some((o) => sameDrug(o, hit[0]))) out.push(hit[0]);
+  }
+  // Loaded workup: every saved med stays unless she names it for removal ("remove Farxiga", "she stopped metformin") —
+  // loadedWorkup.medRemovalsIn, read from her own lines only (not the saved-workup block).
+  if (/structured facts only/i.test(t)) {
+    const own = t.split('\n').filter((l) => !/^\s*(?:-\s|LOADED CLIENT WORKUP|Client:|ZIP\/county:|Plans:|Doctors \(|Doctor NPIs|Medications \(|Current plan|Saved In\/Out)/.test(l)).join('\n');
+    const gone = require('./loadedWorkup').medRemovalsIn(own, out);
+    if (gone.length) return out.filter((m) => !gone.includes(m));
   }
   return out;
 }

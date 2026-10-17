@@ -1,0 +1,84 @@
+{
+  "name": "Gail Carreno — a pasted list that wraps inside quotes is the new set",
+  "source": "Max chat 2026-10-08",
+  "workup": {
+    "clientName": "Gail Carreno",
+    "zip": "33186",
+    "county": "Miami-Dade",
+    "plans": [
+      {
+        "carrier": "Humana",
+        "planName": "Humana Gold Plus",
+        "planId": "H1036-054C"
+      },
+      {
+        "carrier": "UHC",
+        "planName": "UHC MedicareMax FL-0028",
+        "planId": "H5420-001"
+      },
+      {
+        "carrier": "UHC",
+        "planName": "UHC MedicareMax Complete Care FL-30",
+        "planId": "H5420-014"
+      },
+      {
+        "carrier": "Aetna",
+        "planName": "Aetna Medicare Select Care",
+        "planId": "H1609-093"
+      },
+      {
+        "carrier": "HealthSun",
+        "planName": "HealthSun HealthAdvantage",
+        "planId": "H5431-001"
+      },
+      {
+        "carrier": "HealthSun",
+        "planName": "HealthSun MediMax",
+        "planId": "H5431-006"
+      }
+    ],
+    "doctors": [
+      {
+        "name": "Natalia Rincon Buendia"
+      },
+      {
+        "name": "Yanelis Martin"
+      }
+    ],
+    "medications": []
+  },
+  "messages": [
+    "add doctors, devoted, and aetna to her plan comp.",
+    "okao lets do \"UHC MedicareMax Complete Care FL-30\n H5420-014\"m Doctors DrMax-Dade · H4140-022, \"Devoted CORE 037 \nH1290-037\", Aetna Medicare Select Care H1609-093"
+  ],
+  "doctorResults": {
+    "Natalia Rincon Buendia": {
+      "npi": "1000000001",
+      "in": [
+        "H1036-054C"
+      ],
+      "out": []
+    },
+    "Yanelis Martin": {
+      "npi": "1000000002",
+      "in": [
+        "H4140-022"
+      ],
+      "out": []
+    }
+  },
+  "expect": {
+    "plans": [
+      "H5420-014",
+      "H4140-022",
+      "H1290-037",
+      "H1609-093"
+    ],
+    "gridPlans": [
+      "H5420-014",
+      "H4140-022",
+      "H1290-037",
+      "H1609-093"
+    ]
+  }
+}

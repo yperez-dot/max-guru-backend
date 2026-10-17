@@ -1,0 +1,115 @@
+{
+  "name": "Edward Kennedy — \"remove uhc off the grid\" removes every UHC plan, her current one too",
+  "source": "Yahoska's rule 2026-10-17 (Edward Kennedy workup)",
+  "workup": {
+    "clientName": "Edward Kennedy",
+    "zip": "33165",
+    "county": "Miami-Dade",
+    "currentPlanIds": [
+      "H5420-001"
+    ],
+    "plans": [
+      {
+        "carrier": "UHC",
+        "planName": "UHC MedicareMax FL-0028",
+        "planId": "H5420-001"
+      },
+      {
+        "carrier": "UHC",
+        "planName": "UHC MedicareMax Complete Care FL-30",
+        "planId": "H5420-014"
+      },
+      {
+        "carrier": "Humana",
+        "planName": "Humana Gold Plus",
+        "planId": "H1036-054C"
+      },
+      {
+        "carrier": "Doctors HealthCare",
+        "planName": "Doctors DrMax-Dade",
+        "planId": "H4140-022"
+      }
+    ],
+    "doctors": [
+      {
+        "name": "Miami Healthy Smiles",
+        "npi": "1306462213"
+      },
+      {
+        "name": "Dr. David A Rodriguez M D",
+        "npi": "1700000003"
+      }
+    ],
+    "medications": [
+      {
+        "name": "Farxiga"
+      }
+    ]
+  },
+  "messages": [
+    "remove uhc off the grid"
+  ],
+  "doctorResults": {
+    "Miami Healthy Smiles": {
+      "npi": "1306462213",
+      "org": true,
+      "in": [
+        "H5420-001",
+        "H1036-054C",
+        "H5420-014"
+      ],
+      "out": []
+    },
+    "David A Rodriguez": {
+      "npi": "1700000003",
+      "matched": "DAVID A RODRIGUEZ M D",
+      "in": [
+        "H5420-001",
+        "H4140-022",
+        "H1036-054C",
+        "H5420-014"
+      ],
+      "out": []
+    }
+  },
+  "drugResults": {
+    "Farxiga": {
+      "H5420-001": {
+        "tier": 3,
+        "cost": "$47"
+      },
+      "H5420-014": {
+        "tier": 3,
+        "cost": "$47"
+      },
+      "H1036-054C": {
+        "tier": 3,
+        "cost": "$47"
+      },
+      "H4140-022": {
+        "tier": 3,
+        "cost": "$47"
+      }
+    }
+  },
+  "expect": {
+    "plans": [
+      "H1036-054C",
+      "H4140-022"
+    ],
+    "gridPlans": [
+      "H1036-054C",
+      "H4140-022"
+    ],
+    "doctors": [
+      "Miami Healthy Smiles",
+      "Dr. David A Rodriguez M D"
+    ],
+    "meds": [
+      "Farxiga"
+    ],
+    "medCells": {
+      "Farxiga": "T3 \\$47"
+    }
+  }
+}

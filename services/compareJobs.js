@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const { lookupDoctor, NOT_CONFIRMED } = require('./providerNetwork');
 const { lookupFormulary, toExportDrug, toExportDrugs, formatFormularyText } = require('./formularyLookup');
 const { askConstraints, gridTable, medsTable, selectComparison, strengthNotes, medsLegendFor, quietRestrictionMarks } = require('./doctorPlanNarrow');
+const { dedupeDoctorRows, duplicateQuestions } = require('./loadedWorkup');
 const { eligibilityFromAsk, carriersRequested, LEGEND, MEDS_LEGEND, MEDS_FAILED_BANNER, IN_STAR_LEGEND, unlabeledMeds: unlabeledMedsList } = require('./comparisonRules');
 const { expandMedList } = require('./drugNames');
 
@@ -386,6 +387,9 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
       job.progress.doctors.done += 1;
       return { ...(r.structured || {}), requestedName: d.name, status: r.status, mustKeep: Boolean(d.mustKeep) };
     }));
+    // Same doctor-set rules as the chat (loadedWorkup.js): one row per NPI; a look-alike without an NPI is asked about.
+    const dedupedDoctors = dedupeDoctorRows(doctorStructs);
+    doctorStructs.splice(0, doctorStructs.length, ...dedupedDoctors);
     job.result.doctors = doctorStructs;
 
     // 2) + 3) Plans and meds — Doctor/Drug Comparison Table Rules (doctorPlanNarrow.selectComparison).
@@ -460,7 +464,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     };
     job.result.sameNetwork = sel.sameNetwork.map((x) => ({ planId: x.plan.planId, name: x.plan.name, sameAs: x.twin.planId, diff: x.diff }));
     job.result.flags = [...sel.flags, ...strengthNotes(drugs, planIds)];
-    job.result.questions = sel.questions;
+    job.result.questions = [...(sel.questions || []), ...duplicateQuestions(sel.doctors || doctorStructs).filter((q) => !(sel.questions || []).includes(q))];
     job.result.notConfirmed = doctorStructs.filter((d) => !['done', 'partial'].includes(d.status)).map((d) => d.requestedName);
     // toolResults in the shape the Excel/PDF export already reads.
     job.result.toolResults = [

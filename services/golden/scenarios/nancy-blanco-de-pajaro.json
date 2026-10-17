@@ -1,0 +1,231 @@
+{
+  "name": "Nancy Blanco De Pajaro — drop CarePlus, add Humana, respelled doctor, pharmacy-label med",
+  "source": "Max chat 2026-10-17 (Yahoska)",
+  "workup": {
+    "clientName": "Nancy Blanco De Pajaro",
+    "zip": "33193",
+    "county": "Miami-Dade",
+    "plans": [
+      {
+        "carrier": "UHC",
+        "planName": "UHC MedicareMax FL-0028",
+        "planId": "H5420-001"
+      },
+      {
+        "carrier": "Doctors",
+        "planName": "Doctors DrMax-Dade",
+        "planId": "H4140-022"
+      },
+      {
+        "carrier": "CarePlus",
+        "planName": "CarePlus CareOne Plus",
+        "planId": "H1019-006"
+      }
+    ],
+    "doctors": [
+      {
+        "name": "Edgardo Dearriba"
+      },
+      {
+        "name": "Humberto Machado",
+        "npi": "1225079668"
+      },
+      {
+        "name": "Vision Unlimited",
+        "npi": "1003187568"
+      },
+      {
+        "name": "Ciro Martin",
+        "npi": "1093855256"
+      }
+    ],
+    "medications": [
+      {
+        "name": "BRIMONIDINE TARTRATE/TIMOLOL MALEATE SOLUTION 0.2/0.5%"
+      },
+      {
+        "name": "Entresto"
+      },
+      {
+        "name": "Farxiga"
+      }
+    ]
+  },
+  "messages": [
+    "Dr. Edgardo de Arriba and Dr. Humberto Carlos Machado are part of Cano Health.  They are in network witth Humana and Doctors. Drop careplus and add Humana. Re tun this"
+  ],
+  "doctorResults": {
+    "Edgardo de Arriba": {
+      "npi": "1111111111",
+      "matched": "EDGARDO DE ARRIBA MD",
+      "in": [
+        "H4140-022",
+        "H1036-054C"
+      ],
+      "out": [
+        "H5420-001"
+      ]
+    },
+    "Humberto Machado": {
+      "npi": "1225079668",
+      "matched": "HUMBERTO C MACHADO MD",
+      "in": [
+        "H4140-022",
+        "H1036-054C"
+      ],
+      "out": []
+    },
+    "Vision Unlimited": {
+      "npi": "1003187568",
+      "org": true,
+      "in": [
+        "H5420-001"
+      ],
+      "out": []
+    },
+    "Ciro Martin": {
+      "npi": "1093855256",
+      "matched": "CIRO MARTIN MD",
+      "in": [
+        "H5420-001",
+        "H4140-022",
+        "H1036-054C"
+      ],
+      "out": []
+    }
+  },
+  "drugResults": {
+    "brimonidine / timolol": {
+      "H5420-001": {
+        "tier": 3,
+        "cost": "$47"
+      },
+      "H4140-022": {
+        "tier": 3,
+        "cost": "$40"
+      },
+      "H1036-054C": {
+        "tier": 3,
+        "cost": "$47"
+      }
+    },
+    "Entresto": {
+      "H5420-001": {
+        "tier": 3,
+        "cost": "$47"
+      },
+      "H4140-022": {
+        "tier": 3,
+        "cost": "$25"
+      },
+      "H1036-054C": {
+        "tier": 3,
+        "cost": "$47",
+        "pa": false
+      }
+    },
+    "Farxiga": {
+      "H5420-001": {
+        "tier": 3,
+        "cost": "$25"
+      },
+      "H4140-022": {
+        "tier": 3,
+        "cost": "$25"
+      },
+      "H1036-054C": {
+        "tier": 3,
+        "cost": "$47"
+      }
+    }
+  },
+  "expect": {
+    "plans": [
+      "H5420-001",
+      "H4140-022",
+      "H1036-054C"
+    ],
+    "gridPlans": [
+      "H5420-001",
+      "H4140-022",
+      "H1036-054C"
+    ],
+    "doctors": [
+      "Edgardo de Arriba",
+      "Humberto Machado",
+      "Vision Unlimited",
+      "Ciro Martin"
+    ],
+    "meds": [
+      "brimonidine / timolol 0.2%/0.5% ophthalmic solution",
+      "Entresto",
+      "Farxiga"
+    ],
+    "cells": {
+      "Edgardo de Arriba": {
+        "H4140-022": "In",
+        "H1036-054C": "In"
+      }
+    },
+    "medCells": {
+      "Farxiga": "T3 \\$25"
+    }
+  },
+  "rxnorm": {
+    "rxcui.json?name=brimonidine / timolol": {
+      "idGroup": {
+        "rxnormId": [
+          "597142"
+        ]
+      }
+    },
+    "rxcui.json?name=brimonidine timolol": {
+      "idGroup": {
+        "rxnormId": [
+          "597142"
+        ]
+      }
+    }
+  },
+  "medNames": [
+    {
+      "typed": "BRIMONIDINE TARTRATE/TIMOLOL MALEATE SOLUTION 0.2/0.5%",
+      "display": "brimonidine / timolol 0.2%/0.5% ophthalmic solution",
+      "rxcui": "597142",
+      "fallbacks": [
+        "brimonidine / timolol",
+        "brimonidine tartrate / timolol maleate"
+      ],
+      "nameStatus": "exact"
+    }
+  ],
+  "doctorNames": [
+    {
+      "name": "Edgardo Dearriba",
+      "surnameVariants": [
+        "De Arriba",
+        "De-Arriba"
+      ],
+      "sameAs": [
+        "Dr. Edgardo de Arriba"
+      ]
+    },
+    {
+      "name": "Dr. Edgardo de Arriba",
+      "query": "Edgardo de Arriba"
+    },
+    {
+      "name": "Vision Unlimited",
+      "org": true,
+      "export": "Vision Unlimited"
+    },
+    {
+      "name": "Dr. EDGARDO DE ARRIBA MD",
+      "export": "Dr. Edgardo De Arriba"
+    },
+    {
+      "name": "Stephanie Sasha De La Guarda, DO",
+      "query": "Stephanie Sasha De La Guarda"
+    }
+  ]
+}

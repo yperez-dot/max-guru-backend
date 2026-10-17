@@ -1,0 +1,94 @@
+{
+  "name": "Med-name normalizer — medicare.gov naming via RxNorm (stubbed)",
+  "source": "Yahoska rule, 2026-10-17 (overhaul)",
+  "rxnorm": {
+    "rxcui.json?name=sacubitril / valsartan": {
+      "idGroup": {
+        "rxnormId": [
+          "1656339"
+        ]
+      }
+    },
+    "rxcui.json?name=farxiga": {
+      "idGroup": {
+        "rxnormId": [
+          "1488564"
+        ]
+      }
+    },
+    "rxcui.json?name=entresto": {
+      "idGroup": {
+        "rxnormId": [
+          "1656349"
+        ]
+      }
+    },
+    "rxcui.json?name=gabapentin": {
+      "idGroup": {
+        "rxnormId": [
+          "25480"
+        ]
+      }
+    },
+    "rxcui.json?name=brimonidine / timolol": {
+      "idGroup": {
+        "rxnormId": [
+          "597142"
+        ]
+      }
+    },
+    "rxcui.json?name=brimonidine timolol": {
+      "idGroup": {
+        "rxnormId": [
+          "597142"
+        ]
+      }
+    }
+  },
+  "medNames": [
+    {
+      "typed": "BRIMONIDINE TARTRATE/TIMOLOL MALEATE SOLUTION 0.2/0.5%",
+      "display": "brimonidine / timolol 0.2%/0.5% ophthalmic solution",
+      "rxcui": "597142",
+      "nameStatus": "exact"
+    },
+    {
+      "typed": "GABAPENTIN 300 MG CAP",
+      "display": "Gabapentin 300 mg capsule",
+      "nameStatus": "exact"
+    },
+    {
+      "typed": "gabapentin 300 mg",
+      "display": "gabapentin 300 mg",
+      "nameStatus": "exact"
+    },
+    {
+      "typed": "FARXIGA 10 MG TAB",
+      "display": "Farxiga 10 mg tablet",
+      "nameStatus": "exact"
+    },
+    {
+      "typed": "Farxiga",
+      "display": "Farxiga",
+      "nameStatus": "exact"
+    },
+    {
+      "typed": "Entresto",
+      "display": "Entresto",
+      "nameStatus": "exact"
+    },
+    {
+      "typed": "ENTRESTO 24-26 MG TAB",
+      "display": "Entresto 24-26 mg tablet",
+      "nameStatus": "exact"
+    },
+    {
+      "typed": "SACUBITRIL/VALSARTAN 24/26 MG",
+      "display": "sacubitril / valsartan 24/26 mg",
+      "rxcui": "1656339",
+      "fallbacks": [
+        "sacubitril / valsartan"
+      ]
+    }
+  ]
+}
