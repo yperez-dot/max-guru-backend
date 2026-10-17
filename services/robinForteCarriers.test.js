@@ -42,9 +42,15 @@ test('table has her current plan + each named carrier, header does not claim a m
   assert.match(head, /H5420-001/);
   assert.match(head, /H4140-02[23]/);
   assert.match(head, /Humana[^|]*H1036-/);
-  const one = N.renderedAnswer(DOCS, 'Her current plan: H5420-001.\nZIP/county: 33176 / Miami-Dade\nCarriers requested: Doctors HealthCare.', {});
-  assert.doesNotMatch(one, /top 3 eligible Doctors HealthCare plans from 2/);
-  assert.match(one, /all 2 eligible Doctors HealthCare plans/);
+  const askOne = 'Her current plan: H5420-001.\nZIP/county: 33176 / Miami-Dade\nCarriers requested: Doctors HealthCare.';
+  // The grid message carries no "Why these plans" paragraph and no tagline (Yahoska: "TOO MUCH TEXT").
+  const one = N.renderedAnswer(DOCS, askOne, {});
+  assert.doesNotMatch(one, /Why these plans|Excluded:|a count, not a recommendation/);
+  assert.match(one.split('\n')[0], /^\*\*Doctors × Doctors HealthCare\*\*$/);
+  // The model's summary still knows why (if she asks), without claiming a missing top 3.
+  const why = N.selectComparison(DOCS, askOne, {}).whyLine;
+  assert.doesNotMatch(why, /top 3 eligible Doctors HealthCare plans from 2/);
+  assert.match(why, /all 2 eligible Doctors HealthCare plans/);
 });
 
 test('a carrier name that matches nothing is said, never dropped silently', () => {

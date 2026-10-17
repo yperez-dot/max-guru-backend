@@ -3916,9 +3916,17 @@
   }
 
   function messagesForApi(history, loadedWorkup) {
-    const chat = (history || [])
-      .filter((m) => m && (m.role === "user" || m.role === "assistant"))
-      .map((m) => ({ role: m.role, content: m.content }));
+    // A grid and its follow-up bubble (notes / questions) are ONE assistant turn for the server.
+    const chat = [];
+    for (const m of history || []) {
+      if (!m || (m.role !== "user" && m.role !== "assistant")) continue;
+      const prev = chat[chat.length - 1];
+      if (m.role === "assistant" && prev && prev.role === "assistant" && typeof prev.content === "string" && typeof m.content === "string") {
+        prev.content = prev.content + "\n\n" + m.content;
+        continue;
+      }
+      chat.push({ role: m.role, content: m.content });
+    }
     if (!loadedWorkup) return chat;
     const compact = compactWorkupContext(loadedWorkup);
     if (!compact) return chat;
@@ -6317,6 +6325,8 @@ async function askGuru(conversationHistory, opts) {
       resume: data.resume && typeof data.resume === "object" ? data.resume : null,
       // The server re-ran every saved doctor with her corrections / removals: that list is the workup's doctors now.
       doctorList: data.doctorList && data.doctorList.final && Array.isArray(data.doctorList.doctors) ? data.doctorList : null,
+      // Notes / warnings / questions after the grid: their own chat bubble (Yahoska, 2026-10-17).
+      followUp: data.followUp && typeof data.followUp.text === "string" && data.followUp.text.trim() ? data.followUp.text.trim() : null,
     };
   } finally {
     if (timer) clearTimeout(timer);
@@ -7881,6 +7891,11 @@ function App() {
         } else {
           nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg];
         }
+      }
+      // The grid is one message; Max's notes and questions follow as a separate bubble right after it.
+      if (result.followUp) {
+        const at = nextMsgs.indexOf(assistantMsg);
+        if (at >= 0) nextMsgs = [...nextMsgs.slice(0, at + 1), { role: "assistant", content: result.followUp, time: nowLabel(), followUpOf: true }, ...nextMsgs.slice(at + 1)];
       }
       messagesRef.current = nextMsgs;
       setMessages(nextMsgs);

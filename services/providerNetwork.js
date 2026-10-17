@@ -514,6 +514,9 @@ function formatDoctorText({ doctorName, zip, planYear, providerResults, sunfire,
       out += 'CarePlus: no 2027 directory index for this county yet — check CarePlusHealthPlans.com/FindCare.\n';
     }
     const dr = pr.doctorsResult;
+    if (dr && dr.source === 'pdf_miss') {
+      out += `Doctors HealthCare: not listed in the 2027 ${(dr.pdfCounties || []).join(' / ')} directory PDF${dr.pdfAsOf ? ` (as of ${dr.pdfAsOf})` : ''} — checked, Not in network (not listed). The live search site was unreachable from the server, so the PDF answered. Do not call it "didn't finish".\n`;
+    }
     if (dr && dr.error === 'other_county_only' && (dr.otherCountyOnly || []).length) {
       out += `Doctors HealthCare 2027 directory: listed only outside the client's area (${dr.otherCountyOnly.join('; ')}) — UNCHECKED for her plans, not Out. Confirm with Doctors HealthCare.\n`;
     }
@@ -879,7 +882,9 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   const carrierOnlyFollowup = doctors.length === 1 && !/\b[HR]\d{4}-\d{3}/i.test(latestText) && !toolInput.planId
     && !(Array.isArray(toolInput.planIds) && toolInput.planIds.length > 0)
     && require('./comparisonRules').carriersRequested(latestText).length > 0;
-  const tableMode = !carrierOnlyFollowup && (doctors.length > 1 || /\b[HR]\d{4}-\d{3}/i.test(latestText) || Boolean(toolInput.planId) || (Array.isArray(toolInput.planIds) && toolInput.planIds.length > 0));
+  // "Search all Dade Core plans for Dr X": one doctor, every core plan in the county — the server list, not a single-doctor dump.
+  const coreAllAsk = require('./doctorPlanNarrow').CORE_ALL_RE.test(latestText);
+  const tableMode = !carrierOnlyFollowup && (coreAllAsk || doctors.length > 1 || /\b[HR]\d{4}-\d{3}/i.test(latestText) || Boolean(toolInput.planId) || (Array.isArray(toolInput.planIds) && toolInput.planIds.length > 0));
   // A loaded workup with saved meds + ONE doctor she just named (Paula Harris, 2026-10-08): still the full comparison —
   // the meds are priced here, so Max never asks for meds she already has.
   const workupWithMeds = !tableMode && !carrierOnlyFollowup && (context.messages || []).some((m) => m && m.role === 'user' && /structured facts only/i.test(typeof m.content === 'string' ? m.content : JSON.stringify(m.content || '')))
@@ -918,7 +923,7 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   // One row per doctor: same NPI twice, or an unresolved description of a resolved doctor, is one row — in the table,
   // the export (expand) and the doctor list the page saves (Jacqueline Alexander, 2026-10-17).
   const doctorsStructured = dedupeDoctorRows(results.map((r) => ({ ...r.structured, requestedName: r.doctorName, status: r.status })));
-  const answered = narrowingAnswered(context.messages);
+  const answered = coreAllAsk || narrowingAnswered(context.messages);
   const unreadTokens = await unreadableMeds;
   const medsUnreadable = unreadTokens.length > 0;
   if (medsUnreadable) console.warn(`[comparison] WARNING ${doctors.length} doctors, 0 meds read, but the ask names drugs: ${unreadTokens.join(', ')}`);
