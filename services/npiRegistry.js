@@ -406,6 +406,24 @@ const SURNAME_PARTICLES = new Set(['de', 'del', 'della', 'dela', 'la', 'las', 'l
  * ZIP ranks matches; it does not filter them out. Clinic/group names try
  * organization search first (or as a fallback when the individual search misses).
  */
+// "Dearriba" → "De Arriba", "De-Arriba"; "Delaguarda" → "De La Guarda", "Del Aguarda"…; "Vanhorn" → "Van Horn".
+const JOINED_PARTICLES = ['de la', 'de los', 'de las', 'del', 'de', 'da', 'das', 'do', 'dos', 'di', 'du', 'van der', 'van', 'von', 'le', 'la'];
+function joinedParticleSplits(lastName) {
+  const raw = String(lastName || '').trim();
+  if (!raw || /[\s-]/.test(raw)) return [];
+  const low = raw.toLowerCase();
+  const out = [];
+  const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+  for (const p of JOINED_PARTICLES) {
+    const glued = p.replace(/\s+/g, '');
+    if (!low.startsWith(glued) || low.length - glued.length < 3) continue;
+    const rest = raw.slice(glued.length);
+    const words = p.split(' ').map(cap);
+    out.push([...words, cap(rest)].join(' '), [...words, cap(rest)].join('-'));
+  }
+  return [...new Set(out)].slice(0, 4);
+}
+
 async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limit = DEFAULT_RETURN_LIMIT } = {}) {
   const number = extractNpi(npi) || extractNpi(doctorName);
   doctorName = cleanDoctorQuery(doctorName);
@@ -432,6 +450,8 @@ async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limi
       // NPPES often stores the compound hyphenated ("SANTA-CRUZ"); try that BEFORE splitting the
       // name, or "Carlos Santa Cruz" falls through to Carlos A Cruz — a different doctor (Victor, 2026-10-08).
       attempts.push({ firstName: tokens[0], middleName, lastName: tokens.slice(particleAt).join('-') });
+      // …and joined ("de Arriba" registered as "DEARRIBA").
+      attempts.push({ firstName: tokens[0], middleName, lastName: tokens.slice(particleAt).join('') });
     }
   }
   attempts.push(parsed);
@@ -445,6 +465,8 @@ async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limi
       attempts.push({ ...parsed, lastName: parts[1] });
     }
   }
+  // A particle surname typed joined: "Edgardo Dearriba" is NPPES "DE ARRIBA" (Nancy Blanco De Pajaro, 2026-10-17).
+  for (const v of joinedParticleSplits(parsed.lastName)) attempts.push({ ...parsed, lastName: v });
   if (tokens.length >= 3) {
     attempts.push({ firstName: tokens[0], lastName: tokens.slice(1).join(' ') });
     attempts.push({ firstName: tokens[0], lastName: tokens.slice(-2).join(' ') });
@@ -609,6 +631,7 @@ async function suggestSimilarProviders({ doctorName = '', zip, state = 'FL', lim
 }
 
 module.exports = {
+  joinedParticleSplits,
   suggestSimilarProviders,
   spellingDistance,
   cleanDoctorQuery,

@@ -345,6 +345,15 @@ function comparisonAskText(messages, baseText) {
       else if (/\bbroward\b/i.test(t)) lines.push('County: Broward.');
       break;
     }
+    // Loaded workup + "Drop careplus and add Humana": her saved plans minus the dropped carrier plus the added
+    // carrier's core plan — nothing else. "They are in network with Humana and Doctors" is not a carrier ask, and a
+    // carrier already in the set never pulls in its sibling plans (Nancy Blanco De Pajaro, 2026-10-17: DrSelect-SFL
+    // H4140-023 appeared unasked and UHC H5420-001 was dropped).
+    const editSet = workupCarrierEditSet(t, msgs.slice(0, i + 1));
+    if (editSet.length) {
+      lines.push(`Named plan set: ${editSet.map((pl) => `${pl.name} (${pl.planId})`).join('; ')}.`);
+      break;
+    }
     const typeSet = planTypeSetFromAsk(t, msgs.slice(0, i + 1));
     if (typeSet.length) {
       lines.push(`Named plan set: ${typeSet.map((pl) => `${pl.name} (${pl.planId})`).join('; ')}.`);
@@ -483,7 +492,43 @@ function workupFacts(msgs) {
   return null;
 }
 
-// "show me aetna csnp, aetna core, and her current plan on a grid" (Maura, 2026-10-07): each part names
+function workupCarrierEditSet(text, msgs) {
+  const t = String(text || '');
+  const wk = workupFacts(msgs);
+  if (!wk || !wk.plans.length) return [];
+  // Plan IDs typed: the named-plan logic already handles "drop H5420-001, add H1036-054C" (Maura, 2026-10-07).
+  if (/\b[HR]\d{4}-\d{3}/i.test(t)) return [];
+  const county = R.countyFromAsk(msgs.map(messageText).join('\n')) || 'Miami-Dade';
+  const dropped = R.carriersRejected(t);
+  const addCarriers = [];
+  const addIds = [];
+  for (const m of t.matchAll(/\b(?:add|include|plus)\s+([^.;\n]+?)(?=\s+(?:and\s+)?(?:drop|remove|delete|re-?\s*t?un|re-?run|run|then)\b|[.;\n]|$)/gi)) {
+    const seg = m[1];
+    const ids = [...seg.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase());
+    if (ids.length) { ids.forEach((id) => addIds.push(id)); continue; }
+    if (/\b(?:dr|dra|doctor|doctora)\b\.?\s+[A-Z]/i.test(seg)) continue; // "add Dr. X" adds a doctor
+    for (const c of R.carriersRequested(`add ${seg}`)) if (!addCarriers.includes(c)) addCarriers.push(c);
+  }
+  // An edit of the saved set needs a carrier drop. A bare "add doctors, devoted, and aetna" stays a carrier ask
+  // (best plans per carrier — Gail Carreno, 2026-10-08).
+  if (!dropped.length) return [];
+  const rows = R.gridPlansForCounty(county);
+  const rowOf = (id) => rows.find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9)) || gridRowFor(id, '');
+  const carrierOfId = (id) => { const g = rowOf(id); return g ? R.carrierOfPlan(g) : ''; };
+  const nameOf = (id) => { const g = rowOf(id); if (!g) return id; return carrierKey(String(g.planName || '')) ? String(g.planName) : `${g.carrier || ''} ${g.planName || ''}`.trim(); };
+  const fullId = (id) => { const g = rowOf(id); return g ? String(g.planId || g.id).toUpperCase() : String(id).toUpperCase(); };
+  let ids = wk.plans.filter((id) => !dropped.includes(carrierOfId(id)));
+  for (const c of addCarriers) {
+    if (dropped.includes(c) || ids.some((id) => carrierOfId(id) === c)) continue;
+    const core = corePlanIdsFor(c, county)[0];
+    if (core) ids.push(fullId(core));
+  }
+  for (const id of addIds) if (!ids.some((x) => x.slice(0, 9) === id.slice(0, 9))) ids.push(id);
+  ids = ids.filter((id, k) => ids.findIndex((x) => x.slice(0, 9) === id.slice(0, 9)) === k);
+  return ids.map((id) => ({ planId: fullId(id), name: nameOf(id) }));
+}
+
+// "show me aetna csnp, aetna core, and her current plan on a grid\" (Maura, 2026-10-07): each part names
 // a plan TYPE of a carrier. Those plans are the columns — never dropped for eligibility, nothing added.
 const PLAN_TYPE_RE = /\b(c-?snps?|chronic(?:\s+care)?|d-?snps?|dual|core|flagship|hmo|ppo)\b/i;
 function planTypeSetFromAsk(text, msgs) {
@@ -525,7 +570,34 @@ function planTypeSetFromAsk(text, msgs) {
   return out;
 }
 
+// "Dr. Edgardo de Arriba …" in her message: the same doctor as the saved "Edgardo Dearriba" (same letters, spaces /
+// hyphens / particles aside). Her spelling replaces the stale saved row in the re-run (Nancy Blanco De Pajaro, 2026-10-17).
+function respelledDoctors(latest, doctors) {
+  const said = [...String(latest || '').matchAll(/\b(?:Dr|Dra|Doctor|Doctora)\.?\s+([A-ZÀ-Ý][\wÀ-ÿ'’-]*(?:\s+(?:(?:de|del|la|las|los|da|das|do|dos|di|du|van|von|der|le|y)\s+)*[A-ZÀ-Ý][\wÀ-ÿ'’-]*){1,4})/g)].map((m) => m[1].trim());
+  if (!said.length) return doctors;
+  const letters = (x) => plainWords(String(x || '').split(/\s+[-–—]\s+/)[0]).join('');
+  return doctors.map((nm) => {
+    const have = letters(nm);
+    if (have.length < 6) return nm;
+    const hit = said.find((s) => letters(s) === have && s.replace(/\s+/g, ' ') !== nm);
+    return hit || nm;
+  });
+}
+
 function comparisonFollowUp(messages) {
+  const out = comparisonFollowUpRaw(messages);
+  if (!out || !Array.isArray(out.doctors)) return out;
+  const msgs = Array.isArray(messages) ? messages : [];
+  const lastUserAt = msgs.map((m) => m && m.role).lastIndexOf('user');
+  const latest = lastUserAt >= 0 ? messageText(msgs[lastUserAt]) : '';
+  const doctors = respelledDoctors(latest, out.doctors);
+  if (doctors.every((d, k) => d === out.doctors[k])) return out;
+  const npis = { ...(out.npis || {}) };
+  out.doctors.forEach((d, k) => { if (doctors[k] !== d && npis[d]) { npis[doctors[k]] = npis[d]; delete npis[d]; } });
+  return { ...out, doctors, reason: `${out.reason} + doctor corrections`, ...(Object.keys(npis).length ? { npis } : {}) };
+}
+
+function comparisonFollowUpRaw(messages) {
   const msgs = Array.isArray(messages) ? messages : [];
   const lastUserAt = msgs.map((m) => m && m.role).lastIndexOf('user');
   if (lastUserAt < 0) return null;
