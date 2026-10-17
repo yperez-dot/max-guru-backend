@@ -637,6 +637,13 @@ function comparisonFollowUp(messages) {
       }
     }
     if (Object.keys(confirmed).length && !reasons.includes('doctor corrections')) reasons.push('doctor match confirmed');
+    // Her yes to "'X' looks like a duplicate of Y. Remove it?": that row leaves the run.
+    const dupYes = confirmedDuplicateRemovals(msgs, lastUserAt);
+    if (dupYes.length) {
+      const before = names.length;
+      names = names.filter((nm) => !dupYes.some((x) => plainWords(x).join(' ') === plainWords(nm).join(' ')));
+      if (names.length < before) reasons.push('duplicate removal confirmed');
+    }
     // "Remove Dr. X" after the list: only the doctors she named leave the run.
     const removals = later.flatMap(doctorRemovalClauses);
     if (removals.length) {
@@ -761,12 +768,35 @@ function dedupeDoctorRows(rows) {
     }
     out.push(d);
   }
-  return out.filter((d) => {
-    if (RESOLVED_DOCTOR(d)) return true;
+  // An unresolved row that reads like a description of a resolved doctor is NOT dropped: Max asks the agent first
+  // (Yahoska, 2026-10-17: "no auto drop, have her confirm"). It goes only on her yes, or when she names it for removal.
+  return out.map((d) => {
+    if (RESOLVED_DOCTOR(d)) return d;
     const asked = d.requestedName || d.doctorName || '';
     const described = doctorCoreWords(asked).length < plainWords(String(asked).replace(/^\s*(?:dr|dra)\.?\s+/i, '')).length;
-    return !(described && out.some((o) => o !== d && RESOLVED_DOCTOR(o) && sameCoreDoctor(o.requestedName || o.doctorName, asked)));
+    const twin = described && out.find((o) => o !== d && RESOLVED_DOCTOR(o) && sameCoreDoctor(o.requestedName || o.doctorName, asked));
+    return twin ? { ...d, duplicateOf: { name: cleanName(twin.doctorName || twin.requestedName), npi: String(twin.npi) } } : d;
   });
+}
+
+const DUPLICATE_Q_RE = /'([^'\n]{3,140})' looks like a duplicate of [^\n]*?Remove it\?/g;
+/** The confirm questions for rows dedupeDoctorRows flagged. */
+function duplicateQuestions(doctors) {
+  return (doctors || []).filter((d) => d && d.duplicateOf)
+    .map((d) => `❓ '${String(d.requestedName || d.doctorName).replace(/'/g, '’')}' looks like a duplicate of ${d.duplicateOf.name} (NPI ${d.duplicateOf.npi}). Remove it?`);
+}
+/** Names she said yes to removing, from Max's duplicate questions in the assistant turn right before `userAt`. */
+function confirmedDuplicateRemovals(msgs, userAt) {
+  const u = msgs[userAt];
+  if (!u || u.role !== 'user') return [];
+  const prev = msgs.slice(0, userAt).reverse().find((m) => m && m.role === 'assistant');
+  if (!prev) return [];
+  const asked = [...messageText(prev).matchAll(DUPLICATE_Q_RE)].map((m) => m[1].replace(/’/g, "'"));
+  if (!asked.length) return [];
+  const t = messageText(u).trim();
+  if (/^\s*(?:no|nope|keep|don'?t)\b/i.test(t)) return [];
+  if (!/^\s*(?:yes|yep|yeah|si|sí|correct|ok(?:ay)?|sure|remove(?:\s+(?:it|them|both|all))?|delete(?:\s+it)?|drop(?:\s+it)?)\b/i.test(t)) return [];
+  return asked;
 }
 
 const ADD_DOCTOR_RE = /\b(?:add|added|also|include|forgot|missing|primary|pcp|her doctor)\b/i;
@@ -816,6 +846,12 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
         touched = true;
       }
     }
+    // Her yes to Max's duplicate question removes exactly that row.
+    const dupYes = confirmedDuplicateRemovals(msgs, i);
+    for (let k = people.length - 1; k >= 0; k -= 1) {
+      if (dupYes.some((x) => plainWords(x).join(' ') === plainWords(people[k].name).join(' '))) { people.splice(k, 1); touched = true; }
+    }
+    if (dupYes.length) continue;
     // "Remove Dr. X …": named saved rows leave the run (only the doctors she named).
     const removals = doctorRemovalClauses(t);
     if (removals.length) {
@@ -2331,6 +2367,7 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
   const twins = (sel.sameNetwork || []).slice(0, 4).map((x) => `${x.plan.planId} = same doctor results as ${x.twin.planId}`);
   if (twins.length) lines.push(`Also checked: ${twins.join('; ')}.`);
   for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in /.test(x))) lines.push(f);
+  for (const q of duplicateQuestions(doctors)) lines.push(q);
   const meds = medsTable(drugs, top, sel.meds);
   if (meds) lines.push('', '**Meds**', '', quietRestrictionMarks(meds), '', medsLegendFor(meds), ...strengthNotes(drugs, top.map((p) => p.planId)));
   // She typed drugs but no list could be read: say so, never drop the section silently.
@@ -2447,6 +2484,8 @@ module.exports = {
   gridTable,
   medsTable,
   dedupeDoctorRows,
+  duplicateQuestions,
+  confirmedDuplicateRemovals,
   doctorCoreWords,
   strengthNotes,
   medsLegendFor,

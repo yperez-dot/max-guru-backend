@@ -31,7 +31,7 @@ test('doctor name core stops at the first descriptive word', () => {
   assert.deepStrictEqual(N.doctorCoreWords('Pascual De Santis'), ['pascual', 'de', 'santis']);
 });
 
-test('server table: same NPI collapses, a described unresolved twin of a resolved doctor goes', () => {
+test('server table: same NPI collapses, a described unresolved twin of a resolved doctor stays and is flagged', () => {
   const rows = [
     { requestedName: 'Nathalie Regalado', npi: '1467795633', status: 'done' },
     { requestedName: 'Andrew I Sable', npi: '1111111111', status: 'done' },
@@ -44,7 +44,39 @@ test('server table: same NPI collapses, a described unresolved twin of a resolve
     { requestedName: 'Hoa Nguyne', npi: '3333333333', status: 'done' },
   ];
   assert.deepStrictEqual(N.dedupeDoctorRows(rows).map((r) => r.requestedName),
-    ['Nathalie Regalado', 'Andrew I Sable', 'Neeta Jane Erinjeri', 'Pascual De Santis', 'Maria Lopez', 'Hoa Nguyen', 'Hoa Nguyne']);
+    ['Nathalie Regalado', 'Andrew I Sable', 'Dr. Neeta Erinjerri Surgeon At Baptist Cancer Institute', 'Neeta Jane Erinjeri', 'Pascual De Santis', 'Maria Lopez', 'Hoa Nguyen', 'Hoa Nguyne']);
+  const out = N.dedupeDoctorRows(rows);
+  const dup = out.find((r) => /Surgeon At/.test(r.requestedName));
+  assert.deepStrictEqual(dup.duplicateOf.npi, '1427310424');
+  assert.ok(!out.find((r) => r.requestedName === 'Maria Lopez').duplicateOf);
+  assert.deepStrictEqual(N.duplicateQuestions(out),
+    ["❓ 'Dr. Neeta Erinjerri Surgeon At Baptist Cancer Institute' looks like a duplicate of Neeta Jane Erinjeri (NPI 1427310424). Remove it?"]);
+});
+
+const WORKUP = 'STRUCTURED FACTS ONLY\nZIP: 33156\nDoctors:\n- Nathalie Regalado\n- Andrew I Sable\n- Dr. Neeta Erinjerri Surgeon At Baptist Cancer Institute\n- Neeta Jane Erinjeri\nPlans: H5420-001, H4140-022';
+const Q = "❓ 'Dr. Neeta Erinjerri Surgeon At Baptist Cancer Institute' looks like a duplicate of Neeta Jane Erinjeri (NPI 1427310424). Remove it?";
+
+test('duplicate confirm: her yes removes exactly that row; no keeps it', () => {
+  const base = [{ role: 'user', content: WORKUP }, { role: 'assistant', content: `| Doctor | H5420-001 |\n|---|---|\n${Q}` }];
+  const yes = N.comparisonFollowUp([...base, { role: 'user', content: 'yes' }]);
+  assert.ok(yes, 'yes re-runs the comparison');
+  const names = yes.doctors.map((d) => d.toLowerCase());
+  assert.ok(!names.some((d) => /surgeon/.test(d)), names.join(' / '));
+  assert.ok(names.includes('neeta jane erinjeri'));
+  assert.strictEqual(names.length, 3);
+  assert.deepStrictEqual(N.confirmedDuplicateRemovals([...base, { role: 'user', content: 'no, keep it' }], 2), []);
+  // Without her answer nothing is removed.
+  assert.deepStrictEqual(N.confirmedDuplicateRemovals([...base, { role: 'user', content: 'compare to Humana' }], 2), []);
+});
+
+test('duplicate row is not dropped silently: the rendered table keeps it and asks', () => {
+  const rows = N.dedupeDoctorRows([
+    { requestedName: 'Neeta Jane Erinjeri', doctorName: 'NEETA JANE ERINJERI', npi: '1427310424', status: 'done', networks: [{ planId: 'H5420-001', status: 'in_network' }] },
+    { requestedName: 'Dr. Neeta Erinjerri Surgeon At Baptist Cancer Institute', status: 'not_found', networks: [] },
+  ]);
+  assert.strictEqual(rows.length, 2);
+  const text = N.renderedAnswer(rows, 'Plans: H5420-001', {});
+  if (text) assert.match(text, /looks like a duplicate of .*\(NPI 1427310424\)\. Remove it\?/);
 });
 
 test('saved-workup correction: a rename onto a saved name leaves one row', () => {
