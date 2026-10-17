@@ -1,7 +1,7 @@
 # Devoted — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
-Pulled: 2026-10-09 22:47 UTC
+Pulled: 2026-10-17 14:33 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1290-001, H1290-002, H1290-013, H1290-014, H1290-019, H1290-020, H1290-037, H1290-053, H1290-054, H1290-056, H1290-062, H1290-067, H1290-073, H1290-077, H1290-078, H1290-084, H1290-085, H1290-110, H1290-117
 
@@ -567,7 +567,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
-| Chronic Conditions | •Diabetes •Congestive / chronic heart failure •Cardiac arrhythmias (incl. AFib) •Coronary artery disease •Peripheral vascular disease / chronic VTE •Valvular heart disease |
+| Chronic Conditions | •Diabetes Mellitus •Cardiovascular disorders •Chronic heart failure |
 | Premium | $0 |
 | Part B Giveback | $0 |
 | Referrals Needed? | Yes |
@@ -622,7 +622,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
-| Chronic Conditions | •Diabetes •Congestive / chronic heart failure •Cardiac arrhythmias (incl. AFib) •Coronary artery disease •Peripheral vascular disease / chronic VTE •Valvular heart disease |
+| Chronic Conditions | •Diabetes Mellitus •Cardiovascular disorders •Chronic heart failure |
 | Premium | $0 |
 | Part B Giveback | $0 |
 | Referrals Needed? | Yes |
@@ -848,6 +848,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| . | Devoted CORE 001 H1290-001 |
 | Premium | $0 |
 | Part B Giveback | $10 |
 | Referrals Needed? | Yes |
@@ -882,7 +883,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 6 | n/a |
 | OTC | Not listed on 2027 SOB |
 | Grocery Card | N/A |
-| SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | $0 · chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
 | Chiropractic | $0; routine: not covered |
 | Fitness | SilverSneakers |
@@ -956,6 +956,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| . | Devoted CORE 037 H1290-037 |
 | Premium | $0 |
 | Part B Giveback | $4.80 |
 | Referrals Needed? | Yes |
@@ -1010,6 +1011,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| . | Devoted CORE 062 H1290-062 |
 | Premium | $0 |
 | Part B Giveback | $18 |
 | Referrals Needed? | Yes |
@@ -1044,7 +1046,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 6 | n/a |
 | OTC | $93/quarter |
 | Grocery Card | N/A |
-| SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | $0 · chronic LBP acupuncture · up to 12 visits/90 days (max 20/yr) |
 | Chiropractic | $0; routine: not covered |
 | Fitness | SilverSneakers |

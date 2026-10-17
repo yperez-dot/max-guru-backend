@@ -1,13 +1,13 @@
 # Florida Blue — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
-Pulled: 2026-10-09 22:47 UTC
+Pulled: 2026-10-17 14:33 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1035-017, H1035-019, H1035-025, H5434-002, H5434-026
 
 Yellow leftover 2026 cells are **not** in this file. If a benefit is missing here, Max does not have a confirmed 2027 figure yet.
 
-## FL Blue Classic (H1035-019) — Broward HMO — NON-COMMISSIONABLE (new sales)
+## FL Blue Classic (H1035-019) — Broward HMO
 **County:** Broward
 **Type:** HMO
 **Plan year:** 2027
@@ -61,7 +61,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 ---
 
-## FL Blue Premier HMO (H1035-025) — Broward HMO — NON-COMMISSIONABLE (new sales)
+## FL Blue Premier HMO (H1035-025) — Broward HMO
 **County:** Broward
 **Type:** HMO
 **Plan year:** 2027
@@ -115,12 +115,11 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 ---
 
-## FL Blue Blue Medicare Select (H5434-002) — Broward PPO — NON-COMMISSIONABLE (new sales)
+## FL Blue Blue Medicare Select (H5434-002) — Broward PPO
 **County:** Broward
 **Type:** PPO
 **Plan year:** 2027
 **CMS ID:** H5434-002
-**Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** $173
 **Part B Giveback:** N/A
 **MOOP:** $7,500
@@ -166,14 +165,31 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Other | N/A |
 | Evidence of Coverage | EOC — BlueMedicare Select |
 
+Out-of-network (confirmed):
+
+| Benefit | 2027 OON |
+|---------|----------|
+| Part B Giveback | N/A |
+| Medical Deductible | 1500 |
+| Max Out of Pocket | $10,100 combined IN + OON |
+| Inpatient Hospital | 50% after you reach $1,500 deductible |
+| Outpatient Hospital | 50% after deductible |
+| PCP | 50% after deductible |
+| Specialist | 50% after deductible |
+| Advanced Imaging (MRI, CT, PET) | 50% after deductible |
+| Hearing Services | 50% after deductible · routine: reimbursed at 50% of allowed |
+| Dental | Reimbursement up to 50% |
+| Implants | No |
+| Vision Allowance | Reimbursement up to 50% |
+| Chiropractic | 50% after $1,500 deductible |
+
 ---
 
-## FL Blue Blue Medicare Value (H5434-026) — Broward PPO — NON-COMMISSIONABLE (new sales)
+## FL Blue Blue Medicare Value (H5434-026) — Broward PPO
 **County:** Broward
 **Type:** PPO
 **Plan year:** 2027
 **CMS ID:** H5434-026
-**Still yellow on the working grid:** 12 field(s) — not cited below.
 **Premium:** 0
 **Part B Giveback:** N/A
 **MOOP:** 9250
@@ -219,9 +235,27 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Other | N/A |
 | Evidence of Coverage | EOC — BlueMedicare Value |
 
+Out-of-network (confirmed):
+
+| Benefit | 2027 OON |
+|---------|----------|
+| Medical Deductible | 950 |
+| Max Out of Pocket | $13,900 combined IN + OON |
+| Inpatient Hospital | 50% after you reach $950 deductible |
+| Outpatient Hospital | 50% after deductible |
+| PCP | 50% after deductible |
+| Specialist | 50% after deductible |
+| Advanced Imaging (MRI, CT, PET) | 50% after deductible |
+| Hearing Services | 50% after deductible · routine: reimbursed at 50% of allowed |
+| Dental | Reimbursement up to 50% |
+| Implants | No |
+| Vision Allowance | Reimbursement up to 50% |
+| RX Deductible | Out-of-network pharmacy only in limited situations (reimbursed at in-network rate); otherwise not covered |
+| Chiropractic | 50% after $950 deductible |
+
 ---
 
-## FL Blue BlueMedicare (H1035-017) — Miami-Dade HMO — NON-COMMISSIONABLE (new sales)
+## FL Blue BlueMedicare (H1035-017) — Miami-Dade HMO
 **County:** Miami-Dade
 **Type:** HMO
 **Plan year:** 2027
@@ -232,6 +266,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| . | FL Blue BlueMedicare H1035-017 |
 | Premium | 0 |
 | Part B Giveback | 0 |
 | Referrals Needed? | Yes |

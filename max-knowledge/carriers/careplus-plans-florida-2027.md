@@ -1,7 +1,7 @@
 # CarePlus — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
-Pulled: 2026-10-09 22:47 UTC
+Pulled: 2026-10-17 14:33 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1019-001, H1019-006, H1019-023, H1019-065, H1019-121, H1019-123, H1019-124, H1019-130, H1019-135, H1019-136, H1019-148, H1019-150, H1019-154
 
@@ -804,6 +804,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| . | CarePlus CareOne Plus H1019-006 |
 | Premium | $0 |
 | Part B Giveback | $13.50 |
 | Referrals Needed? | Yes |
@@ -912,6 +913,7 @@ Dental procedure rows on the THEI 2027 working grid (yellow — not SoB-green). 
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| . | CarePlus CareAccess H1019-148 |
 | Premium | $0 |
 | Part B Giveback | $10.50 |
 | Referrals Needed? | No |

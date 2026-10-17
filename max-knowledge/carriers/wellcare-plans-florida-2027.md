@@ -1,7 +1,7 @@
 # Wellcare — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
-Pulled: 2026-10-09 22:47 UTC
+Pulled: 2026-10-17 14:33 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1032-195, H1032-196, H1032-202, H1032-250
 
@@ -12,13 +12,14 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1032-202
-**Still yellow on the working grid:** 7 field(s) — not cited below.
+**Premium:** 0
 **Part B Giveback:** N/A
 **MOOP:** 3000
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | MSP Levels | SLMB, QI, QDWI |
+| Premium | 0 |
 | Part B Giveback | N/A |
 | Referrals Needed? | Yes |
 | Medical Deductible | $0 |
@@ -46,6 +47,11 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Companionship | Social Suppport Platform (app) |
 | Custodial Care | Not covered |
 | RX Deductible | $700 Tiers 3 & 5 (Extra Help may reduce to $0) |
+| Tier 1 | Std $15 · Pref $0 |
+| Tier 2 | Std 25% · Pref 20% |
+| Tier 3 | Std 43% · Pref 42% |
+| Tier 4 | Std 15% · Pref 0% |
+| Tier 5 | Std 25% · Pref 25% |
 | Tier 6 | 0 |
 | OTC | $67 x month |
 | Grocery Card | Combined with OTC Card ($67/mo) |
@@ -53,6 +59,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Acupuncture | $0 |
 | Chiropractic | $0; routine 12 visits/yr $0 |
 | Fitness | 0 |
+| Other | N/A |
 | Evidence of Coverage | EOC — Dual Reserve |
 
 ---
@@ -172,7 +179,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H1032-196
-**Still yellow on the working grid:** 2 field(s) — not cited below.
 **Premium:** 0
 **Part B Giveback:** N/A
 **MOOP:** $2,700
@@ -203,6 +209,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Implants | 2 / year |
 | Vision Allowance | 400 |
 | Ambulance | $200 ground & air |
+| Transportation | Not listed |
 | RX Deductible | $700 (Tiers 2–5) |
 | Tier 1 | 0 |
 | Tier 2 | 25% |
@@ -216,6 +223,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Acupuncture | $0 PCP / $5 chiro or specialist |
 | Chiropractic | $5; routine 12 visits/yr $5 |
 | Fitness | 0 |
+| Other | N/A |
 | Evidence of Coverage | EOC — Simple |
 
 ---

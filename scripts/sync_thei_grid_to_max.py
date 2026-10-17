@@ -46,6 +46,7 @@ from thei_grid_common import (  # noqa: E402
     is_confirmed_2027_cell,
     is_healthspring_dade_broward,
     is_yellow,
+    cell_link,
     require_xlsx,
     resolve_2027_sheets,
 )
@@ -266,9 +267,9 @@ def format_money_string(field: str, n: float, cur) -> object:
     whole = float(n) == int(n)
     iv = int(n) if whole else n
     if field == "premium":
-        return f"${iv}"
+        return f"${iv}" if whole else f"${n:,.2f}"
     if field in ("moop", "vision"):
-        return f"${iv:,}" if whole else f"${iv}"
+        return f"${iv:,}" if whole else f"${n:,.2f}"
     return n
 
 
@@ -496,8 +497,8 @@ def parse_grid_2027(xlsx: Path) -> list[dict]:
                         fields["other"] = f"{fields['other']}\n{val}"
                     else:
                         fields[key] = val
-                    if key == "ssbciChronicConditions" and cell.hyperlink and cell.hyperlink.target:
-                        fields["ssbciChronicConditionsUrl"] = str(cell.hyperlink.target).strip()
+                    if key == "ssbciChronicConditions" and cell_link(cell):
+                        fields["ssbciChronicConditionsUrl"] = cell_link(cell)
                 elif is_yellow(cell):
                     yellow_left += 1
                     # Yellow dental procedure with a clear frequency — keep (existing helper rule)
@@ -506,19 +507,8 @@ def parse_grid_2027(xlsx: Path) -> list[dict]:
                         if val is not None and key not in fields:
                             fields[key] = val
                             fields.setdefault("_dentalWorkingKeys", []).append(key)
-            sob_url = eoc_url = None
-            if sob_row:
-                sob_cell = ws.cell(sob_row, c)
-                if sob_cell.hyperlink and sob_cell.hyperlink.target:
-                    sob_url = str(sob_cell.hyperlink.target).strip()
-                elif isinstance(sob_cell.value, str) and sob_cell.value.strip().startswith("http"):
-                    sob_url = sob_cell.value.strip()
-            if eoc_row:
-                eoc_cell = ws.cell(eoc_row, c)
-                if eoc_cell.hyperlink and eoc_cell.hyperlink.target:
-                    eoc_url = str(eoc_cell.hyperlink.target).strip()
-                elif isinstance(eoc_cell.value, str) and eoc_cell.value.strip().startswith("http"):
-                    eoc_url = eoc_cell.value.strip()
+            sob_url = cell_link(ws.cell(sob_row, c)) if sob_row else None
+            eoc_url = cell_link(ws.cell(eoc_row, c)) if eoc_row else None
             grid_plans.append(
                 {
                     "id": pid,
@@ -610,6 +600,28 @@ SOB_URL_OVERRIDES_2027 = {
 }
 
 
+# Grid doc links pasted into the wrong plan's column. Dropped only while the
+# grid still carries that exact link, so a fixed grid cell syncs on its own.
+# (plan id, county, field) -> URL fragment of the misplaced link
+MISPLACED_LINKS_2027 = {
+    # BWD-DSNP Full K44: Wellcare Dual Align Unity shows the UHC Preferred Dual
+    # Complete FL-Y6 (H1045-063) SOB (seen 2026-10-17).
+    ("H1032-250", "Broward", "sobUrl"): "PCFL27HP0412434",
+}
+
+
+def drop_misplaced_links_2027(plans: list) -> int:
+    dropped = 0
+    for plan in plans:
+        pid = str(plan.get("planId") or plan.get("id") or "")[:9].upper()
+        for field in ("sobUrl", "eocUrl"):
+            frag = MISPLACED_LINKS_2027.get((pid, plan.get("county"), field))
+            if frag and frag in str(plan.get(field) or ""):
+                plan[field] = None
+                dropped += 1
+    return dropped
+
+
 def apply_sob_overrides_2027(plans: list) -> int:
     fixed = 0
     for plan in plans:
@@ -664,6 +676,7 @@ def sync_2027(xlsx: Path) -> int:
     print(f"pending_sob stubs={pending} healthspring_in_output={hs}")
 
     print(f"sob url overrides applied: {apply_sob_overrides_2027(plans)}")
+    print(f"misplaced grid links dropped: {drop_misplaced_links_2027(plans)}")
     text = replace_or_insert_script_json(text, "plan-data", plans)
     if existing_2026:
         text = replace_or_insert_script_json(text, "plan-data-2026", existing_2026, after_id="plan-data")

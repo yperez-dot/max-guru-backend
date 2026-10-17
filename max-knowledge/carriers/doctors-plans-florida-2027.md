@@ -1,7 +1,7 @@
 # Doctors — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
-Pulled: 2026-10-09 22:47 UTC
+Pulled: 2026-10-17 14:33 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H4140-013, H4140-020, H4140-022, H4140-023, H4140-024
 
@@ -171,7 +171,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Acupuncture | $0 x 20 visits |
 | Chiropractic | $0; routine 12 visits/yr $0 |
 | Fitness | Prepaid Card (SSBCI fitness) |
-| Other | N/A |
+| Other | 2027 Re-enrollment link for current members ONLY |
 | Evidence of Coverage | EOC — DrPartialDual |
 
 ---
@@ -225,7 +225,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Acupuncture | $0 x 20 visits |
 | Chiropractic | $0; routine 12 visits/yr $0 |
 | Fitness | $0 fitness facilities / healthy aging |
-| Other | N/A |
+| Other | 2027 Re-enrollment link for current members ONLY |
 | Evidence of Coverage | EOC — DrSelect-SFL |
 
 ---
@@ -280,7 +280,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Acupuncture | $0 x 20 visits |
 | Chiropractic | $0; routine 12 visits/yr $0 |
 | Fitness | $0 fitness facilities / healthy aging / kits |
-| Other | $188/mo Prepaid Card SSBCI (food/meals/OTC/personal care/pet) · fitness |
+| Other | 2027 Re-enrollment link for current members ONLY |
 | Evidence of Coverage | EOC — DrExtraCare |
 
 ---
@@ -337,7 +337,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Acupuncture | $0 x 20 visits |
 | Chiropractic | $0; routine 12 visits/yr $0 (+ up to 12 more visits and x-rays under some Medicaid levels) |
 | Fitness | Prepaid card (SSBCI: gym access + catalog fitness kits) |
-| Other | N/A |
+| Other | 2027 Re-enrollment link for current members ONLY |
 | Evidence of Coverage | EOC — DrFullDual |
 
 ---
@@ -394,7 +394,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Acupuncture | $0 x 20 visits |
 | Chiropractic | $0; routine 12 visits/yr $0 |
 | Fitness | Prepaid Card (SSBCI fitness) |
-| Other | N/A |
+| Other | 2027 Re-enrollment link for current members ONLY |
 | Evidence of Coverage | EOC — DrPartialDual |
 
 ---
@@ -410,6 +410,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| . | Doctors DrMax-Dade H4140-022 |
 | Premium | $0 |
 | Part B Giveback | $17 |
 | Referrals Needed? | No |
@@ -444,11 +445,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 6 | $0 |
 | OTC | $80 x month |
 | Grocery Card | N/A |
-| SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | $0 x 20 visits |
 | Chiropractic | $0; routine 12 visits/yr $0 (self-refer to participating chiropractor) |
 | Fitness | $0 fitness facilities / healthy aging |
-| Other | N/A |
+| Other | 2027 Re-enrollment link for current members ONLY |
 | Evidence of Coverage | EOC — DrMax-Dade |
 
 ---
@@ -464,6 +464,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| . | Doctors DrSelect-SFL H4140-023 |
 | Premium | $0 |
 | Part B Giveback | No |
 | Referrals Needed? | Yes |
@@ -502,7 +503,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Acupuncture | $0 x 20 visits |
 | Chiropractic | $0; routine 12 visits/yr $0 |
 | Fitness | $0 fitness facilities / healthy aging |
-| Other | N/A |
+| Other | 2027 Re-enrollment link for current members ONLY |
 | Evidence of Coverage | EOC — DrSelect-SFL |
 
 ---

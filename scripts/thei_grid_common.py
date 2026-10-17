@@ -149,7 +149,66 @@ def resolve_2027_sheets(workbook) -> list[tuple[str, str, str]]:
     return out
 
 
+_HYPERLINK_FORMULA = re.compile(r'^\s*=\s*HYPERLINK\(\s*"([^"]+)"', re.I)
+
+
+def formula_link(value) -> str | None:
+    """URL inside an =HYPERLINK("url", ...) formula string."""
+    if isinstance(value, str):
+        m = _HYPERLINK_FORMULA.match(value)
+        if m and m.group(1).strip().lower().startswith("http"):
+            return m.group(1).strip()
+    return None
+
+
+def cell_link(cell) -> str | None:
+    """URL behind a grid doc cell.
+
+    The native Google Sheet export carries links three ways: a cell hyperlink,
+    an =HYPERLINK("url","label") formula (Gold Kidney Oct docs), or a bare URL.
+    """
+    if cell is None:
+        return None
+    link = getattr(cell, "hyperlink", None)
+    if link is not None and getattr(link, "target", None):
+        return str(link.target).strip()
+    val = getattr(cell, "value", None)
+    if isinstance(val, str):
+        if formula_link(val):
+            return formula_link(val)
+        if val.strip().startswith("http"):
+            return val.strip()
+    return None
+
+
+_HYPERLINK_LABEL = re.compile(r'^\s*=\s*HYPERLINK\(\s*"[^"]*"\s*[,;]\s*"([^"]*)"', re.I)
+
+
+def cell_caption(value):
+    """Visible text of a cell; =HYPERLINK("url","label") shows its label."""
+    if isinstance(value, str):
+        m = _HYPERLINK_LABEL.match(value)
+        if m:
+            return m.group(1)
+    return value
+
+
+def _glued_plan_id(s: str) -> str | None:
+    """'...HMO-POS-DSNPH1045-063' — id glued to a word, so \\b never matches."""
+    m = re.search(r"(?<![0-9])([HR]\d{4})\s*-\s*(\d{3}[A-Z]?)(?![0-9])", s)
+    if not m:
+        return None
+    return f"{m.group(1).upper()}-{m.group(2)}"
+
+
 def extract_plan_id(header: object) -> str | None:
+    pid = _extract_plan_id(header)
+    if pid or not header:
+        return pid
+    return _glued_plan_id(str(header).replace("‑", "-").replace("–", "-"))
+
+
+def _extract_plan_id(header: object) -> str | None:
     if not header:
         return None
     s = str(header).replace("‑", "-").replace("–", "-")

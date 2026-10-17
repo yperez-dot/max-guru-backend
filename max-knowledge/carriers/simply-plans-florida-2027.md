@@ -1,7 +1,7 @@
 # Simply — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
-Pulled: 2026-10-09 22:47 UTC
+Pulled: 2026-10-17 14:33 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H5471-125
 
@@ -54,7 +54,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | LIS $0–$14.40 OR No LIS 29% |
 | Tier 6 | $0 |
 | OTC | $50 every month |
-| Grocery Card | $228/ MONTH |
+| Grocery Card | $228 x month |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | $0 (chronic low back pain) |
 | Chiropractic | $0; routine: not covered |
