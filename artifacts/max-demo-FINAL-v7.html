@@ -3725,7 +3725,17 @@
         };
       });
       // Every med is kept (verified tiers only) — an unverified med used to vanish on save.
-      out.push({ name: name, byPlanId: byPlanId });
+      const row = { name: name, byPlanId: byPlanId };
+      // Keep the on-screen wording per plan so a reopened workup exports what the screen showed.
+      if (d.screen && typeof d.screen === "object") {
+        const screen = {};
+        Object.keys(d.screen).slice(0, 8).forEach((id) => {
+          const v = clip(d.screen[id], 120);
+          if (v) screen[clip(id, 12)] = v;
+        });
+        if (Object.keys(screen).length) row.screen = screen;
+      }
+      out.push(row);
     });
     return out;
   }
@@ -3813,6 +3823,7 @@
     const drugs = (w.medications || []).map((m) => ({
       name: m.name,
       byPlanId: m.byPlanId || {},
+      screen: m.screen || undefined,
     }));
     return {
       plans: plans,
