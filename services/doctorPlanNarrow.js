@@ -320,7 +320,11 @@ function comparisonAskText(messages, baseText) {
     if (!WANTS_ALTERNATIVES_RE.test(mt) && !R.impliesCompareToCurrentPlan(mt)) continue;
     lines.push('Wants alternatives to the named plan(s).');
     // Plan IDs she typed with that ask — unless the recent messages already carry them.
-    const idsHere = [...new Set([...mt.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase()))];
+    // "compare Humana H1036-054C and DrMax H4140-022 with her current plan": those IDs are the other side, not hers
+    // (golden suite, Edward Kennedy shape — they were read as her current plan and UHC H5420-001 vanished).
+    const idsHere = LW.lineKeepsCurrentPlan(mt)
+      ? currentPlanIdsIn(mt)
+      : [...new Set([...mt.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase()))];
     const wk = workupFacts(msgs);
     const current = idsHere.length ? idsHere : (wk ? wk.current : []);
     // First, so any plan she names later in the thread (a swap / add) still wins over it.
@@ -917,7 +921,17 @@ const LEAD_VERB_RE = /^(?:(?:pls|please|can you|could you|now|also|then)\s+)*(?:
 
 function namedPlansFromAsk(askText, constraints) {
   let current = [];
+  // Her current plan (comparisonAskText's "Her current plan:" line): a new set that mentions it keeps it, first.
   const currentIds = [...String((String(askText || '').match(/^Her current plan:\s*([^\n]+)$/m) || ['', ''])[1]).matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
+  const withCurrent = (set, line) => {
+    if (!currentIds.length || !LW.lineKeepsCurrentPlan(line)) return set;
+    const missing = currentIds.filter((id) => !set.some((p) => p.planId.slice(0, 9) === id.slice(0, 9)));
+    const named = (id) => {
+      const row = gridRowFor(id, '');
+      return { planId: id, name: row ? (carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim()) : id };
+    };
+    return LW.currentPlanFirst([...missing.map(named), ...set], currentIds);
+  };
   let workup = null; // { plans: [], inPlans: bool } while reading the loaded-workup block
   let fromWorkup = false; // the current set is her saved workup's plans (plus plans she added)
   const endWorkup = () => {
@@ -937,9 +951,9 @@ function namedPlansFromAsk(askText, constraints) {
       endWorkup();
     }
     if (!line.trim()) continue;
-    // Removals first ("remove devoted", "drop H1290-073") — loadedWorkup.js rules: whole words / carrier / ID, a pronoun
-    // never removes a plan, her current plan goes only when she names it.
-    current = LW.removePlansNamedIn(current, line, currentIds);
+    // Removals first ("remove devoted", "drop H1290-073") — loadedWorkup.js rules: whole words / carrier / ID; a pronoun
+    // ("remove it") never removes a plan.
+    current = LW.removePlansNamedIn(current, line);
     // IDs she drops in this line ("Drop MedicareMax H5420-001") never come back as columns.
     const dropped = LW.droppedIdsIn(line);
     // "Show her current plan H1045-001, Aetna H1609-093 and H1036-054C in the table": that list IS the set.
@@ -947,11 +961,11 @@ function namedPlansFromAsk(askText, constraints) {
     if (showAt) {
       const shown = plansInLine(line.slice(showAt.index), constraints).filter((f) => !dropped.has(f.planId.slice(0, 9)));
       if (shown.length >= 2) {
-        current = shown.map((f) => {
+        current = withCurrent(shown.map((f) => {
           if (f.name.split(/\s+/).length >= 3 && f.name !== f.planId) return f;
           const row = R.gridPlansForCounty('').find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === f.planId.slice(0, 9));
           return row ? { ...f, name: carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim() } : f;
-        });
+        }), line);
         fromWorkup = false;
         continue;
       }
@@ -965,7 +979,7 @@ function namedPlansFromAsk(askText, constraints) {
       for (const f of found) if (!current.some((p) => p.planId.slice(0, 9) === f.planId.slice(0, 9))) current.push(f);
       continue;
     }
-    current = found;
+    current = withCurrent(found, line);
     fromWorkup = false;
   }
   if (workup) endWorkup();

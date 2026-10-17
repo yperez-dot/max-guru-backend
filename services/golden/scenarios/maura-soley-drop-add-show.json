@@ -1,0 +1,120 @@
+{
+  "name": "Maura Soley — drop a plan by ID, add one, show the listed set",
+  "source": "Max chat 2026-10-07 5:20 PM ET",
+  "workup": {
+    "clientName": "Maura Soley",
+    "zip": "33018",
+    "county": "Miami-Dade",
+    "currentPlanIds": [
+      "H1045-001"
+    ],
+    "plans": [
+      {
+        "carrier": "UHC",
+        "planName": "MedicareMax FL-0028",
+        "planId": "H5420-001"
+      },
+      {
+        "carrier": "UHC",
+        "planName": "Preferred Care Preferred MA",
+        "planId": "H1045-001"
+      },
+      {
+        "carrier": "Aetna",
+        "planName": "Medicare Select Care",
+        "planId": "H1609-093"
+      }
+    ],
+    "doctors": [
+      {
+        "name": "Cheryl Case-Diaz",
+        "npi": "1184615874"
+      },
+      {
+        "name": "Barbara Martinez",
+        "npi": "1649435041"
+      },
+      {
+        "name": "Nathan Hirsch",
+        "npi": "1720196454"
+      },
+      {
+        "name": "Cynthia Golomb",
+        "npi": "1619900388"
+      },
+      {
+        "name": "Allister G Gibbons Fell",
+        "npi": "1548524465"
+      }
+    ],
+    "medications": []
+  },
+  "messages": [
+    "Maura Soley, ZIP 33018. Drop MedicareMax H5420-001. Add Humana Gold Plus H1036-054C. Show her current plan H1045-001, Aetna H1609-093 and H1036-054C in the table with her 5 doctors and 3 meds."
+  ],
+  "doctorResults": {
+    "Cheryl Case-Diaz": {
+      "npi": "1184615874",
+      "in": [
+        "H1609-093",
+        "H1045-001"
+      ],
+      "out": [
+        "H1036-054C"
+      ]
+    },
+    "Barbara Martinez": {
+      "npi": "1649435041",
+      "in": [
+        "H1045-001"
+      ],
+      "out": [
+        "H1036-054C"
+      ]
+    },
+    "Nathan Hirsch": {
+      "npi": "1720196454",
+      "in": [],
+      "out": [
+        "H1045-001",
+        "H1036-054C"
+      ]
+    },
+    "Cynthia Golomb": {
+      "npi": "1619900388",
+      "in": [
+        "H1609-093",
+        "H1036-054C"
+      ],
+      "out": [
+        "H1045-001"
+      ]
+    },
+    "Allister G Gibbons Fell": {
+      "npi": "1548524465",
+      "in": [],
+      "out": [
+        "H1045-001",
+        "H1036-054C"
+      ]
+    }
+  },
+  "expect": {
+    "plans": [
+      "H1045-001",
+      "H1609-093",
+      "H1036-054C"
+    ],
+    "gridPlans": [
+      "H1045-001",
+      "H1609-093",
+      "H1036-054C"
+    ],
+    "cells": {
+      "Golomb": {
+        "H1036-054C": "In",
+        "H1045-001": "Not in network"
+      }
+    }
+  }
+}

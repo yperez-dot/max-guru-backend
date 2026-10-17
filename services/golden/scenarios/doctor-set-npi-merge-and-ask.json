@@ -1,0 +1,88 @@
+{
+  "name": "Doctor set — same NPI merges into one row; a look-alike without an NPI is asked about, never auto-dropped",
+  "source": "Yahoska rules (Jacqueline Alexander, 2026-10-17)",
+  "workup": {
+    "clientName": "Katy client 1",
+    "zip": "33186",
+    "county": "Miami-Dade",
+    "currentPlanIds": [
+      "H5420-001"
+    ],
+    "plans": [
+      {
+        "carrier": "UHC",
+        "planName": "UHC MedicareMax FL-0028",
+        "planId": "H5420-001"
+      },
+      {
+        "carrier": "Humana",
+        "planName": "Humana Gold Plus",
+        "planId": "H1036-054C"
+      }
+    ],
+    "doctors": [
+      {
+        "name": "Humberto Machado",
+        "npi": "1225079668"
+      },
+      {
+        "name": "Humberto C Machado",
+        "npi": "1225079668"
+      },
+      {
+        "name": "Neeta Jane Erinjeri",
+        "npi": "1427310424"
+      },
+      {
+        "name": "Dr. Neeta Erinjerri Surgeon At Baptist Cancer Institute"
+      }
+    ],
+    "medications": []
+  },
+  "messages": [
+    "re-run her doctors on both plans"
+  ],
+  "doctorResults": {
+    "Humberto Machado": {
+      "npi": "1225079668",
+      "matched": "HUMBERTO C MACHADO MD",
+      "in": [
+        "H5420-001"
+      ],
+      "out": []
+    },
+    "Humberto C Machado": {
+      "npi": "1225079668",
+      "matched": "HUMBERTO C MACHADO MD",
+      "in": [
+        "H5420-001"
+      ],
+      "out": []
+    },
+    "Neeta Jane Erinjeri": {
+      "npi": "1427310424",
+      "in": [
+        "H5420-001",
+        "H1036-054C"
+      ],
+      "out": []
+    }
+  },
+  "expect": {
+    "plans": [
+      "H5420-001",
+      "H1036-054C"
+    ],
+    "doctors": {
+      "include": [
+        "Humberto Machado",
+        "Neeta Jane Erinjeri",
+        "Dr. Neeta Erinjerri Surgeon At Baptist Cancer Institute"
+      ]
+    },
+    "gridRows": 3,
+    "followUpIncludes": [
+      "looks like a duplicate of Neeta"
+    ]
+  }
+}

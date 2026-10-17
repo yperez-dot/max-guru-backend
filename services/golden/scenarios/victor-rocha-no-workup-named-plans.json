@@ -1,0 +1,48 @@
+{
+  "name": "Victor Rocha — fresh chat, five plans named by ID: the set is all five, the grid shows the best 3 by doctors (5+ are cut to 3)",
+  "source": "Max chat 2026-10-08",
+  "workup": null,
+  "messages": [
+    "Victor Rocha 33143. Compare Humana Gold Plus H1036-054C, UHC MedicareMax FL-0028 H5420-001, CarePlus CareOne Plus H1019-006, CarePlus H1019-136, Doctors DrMax-Dade H4140-022. Doctors: Marcus St John, Armando J Rivero"
+  ],
+  "doctorResults": {
+    "Marcus St John": {
+      "npi": "1073510269",
+      "matched": "MARCUS E ST JOHN MD",
+      "in": [
+        "H1019-006",
+        "H1019-136",
+        "H4140-022"
+      ],
+      "out": []
+    },
+    "Armando J Rivero": {
+      "npi": "1982668323",
+      "matched": "ARMANDO J RIVERO MD",
+      "in": [
+        "H4140-022"
+      ],
+      "out": []
+    }
+  },
+  "expect": {
+    "plans": [
+      "H1036-054C",
+      "H5420-001",
+      "H1019-006",
+      "H1019-136",
+      "H4140-022"
+    ],
+    "gridPlans": [
+      "H1019-006",
+      "H1019-136",
+      "H4140-022"
+    ],
+    "cells": {
+      "Marcus": {
+        "H1019-006": "In",
+        "H4140-022": "In"
+      }
+    }
+  }
+}

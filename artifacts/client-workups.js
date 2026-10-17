@@ -56,7 +56,11 @@
 
   function marketingLabel(plan) {
     if (!plan) return "";
-    const name = [plan.carrier, plan.planName].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+    // "UHC" + "UHC MedicareMax FL-0028" is "UHC MedicareMax FL-0028", never "UHC UHC …" (golden suite, 2026-10-17).
+    const carrier = String(plan.carrier || "").trim();
+    const pname = String(plan.planName || "").trim();
+    const first = carrier.toLowerCase().split(/\s+/)[0];
+    const name = (first && pname.toLowerCase().startsWith(first) ? pname : [carrier, pname].filter(Boolean).join(" ")).replace(/\s+/g, " ").trim();
     const id = displayPlanId(plan);
     if (name && id) return name + " (" + id + ")";
     return name || id;

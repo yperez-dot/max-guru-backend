@@ -1,0 +1,183 @@
+{
+  "name": "Jacqueline Alexander — remove only the doctors she names; look-alikes she keeps stay — gabapentin cells are tier · cost (no 'same across strengths' note)",
+  "source": "Max chat 2026-10-17",
+  "workup": {
+    "clientName": "Jacqueline Alexander",
+    "zip": "33186",
+    "county": "Miami-Dade",
+    "currentPlanIds": [
+      "H5420-001"
+    ],
+    "plans": [
+      {
+        "carrier": "UHC",
+        "planName": "UHC MedicareMax FL-0028",
+        "planId": "H5420-001"
+      },
+      {
+        "carrier": "Doctors",
+        "planName": "Doctors DrMax-Dade",
+        "planId": "H4140-022"
+      },
+      {
+        "carrier": "Humana",
+        "planName": "Humana Gold Plus",
+        "planId": "H1036-054C"
+      }
+    ],
+    "doctors": [
+      {
+        "name": "Natalie Regalado - Baptist Medical Group"
+      },
+      {
+        "name": "Pasquel DeSantis Endocrinologist Baptist"
+      },
+      {
+        "name": "Pascual De Santis",
+        "npi": "1700000001"
+      },
+      {
+        "name": "Dr. Neeta Erinjerri Surgeon At Baptist Cancer Institute"
+      },
+      {
+        "name": "Neeta Erinjerri - Surgeon"
+      },
+      {
+        "name": "Neeta Jane Erinjeri",
+        "npi": "1427310424"
+      },
+      {
+        "name": "Alan Chu",
+        "npi": "1700000002"
+      }
+    ],
+    "medications": [
+      {
+        "name": "Atorvastatin"
+      },
+      {
+        "name": "Gabapentin"
+      },
+      {
+        "name": "Levothyroxine"
+      }
+    ]
+  },
+  "messages": [
+    "Remove Dr. Pasquel DeSantis Endocrinologist Baptist and both Neeta Erinjerri Surgeon rows, since Pascual De Santis and Neeta Jane Erinjeri are already on the list"
+  ],
+  "doctorResults": {
+    "Natalie Regalado": {
+      "npi": "1467795633",
+      "matched": "NATHALIE REGALADO MD",
+      "in": [
+        "H5420-001"
+      ],
+      "out": []
+    },
+    "Pascual De Santis": {
+      "npi": "1700000001",
+      "in": [
+        "H5420-001",
+        "H4140-022"
+      ],
+      "out": []
+    },
+    "Neeta Jane Erinjeri": {
+      "npi": "1427310424",
+      "in": [
+        "H5420-001",
+        "H1036-054C"
+      ],
+      "out": []
+    },
+    "Alan Chu": {
+      "npi": "1700000002",
+      "in": [
+        "H5420-001",
+        "H4140-022",
+        "H1036-054C"
+      ],
+      "out": []
+    }
+  },
+  "expect": {
+    "plans": [
+      "H5420-001",
+      "H4140-022",
+      "H1036-054C"
+    ],
+    "doctors": {
+      "include": [
+        "Pascual De Santis",
+        "Neeta Jane Erinjeri",
+        "Alan Chu",
+        "Natalie Regalado - Baptist Medical Group"
+      ],
+      "exclude": [
+        "Pasquel DeSantis Endocrinologist Baptist",
+        "Neeta Erinjerri - Surgeon",
+        "Dr. Neeta Erinjerri Surgeon At Baptist Cancer Institute"
+      ]
+    },
+    "meds": [
+      "Atorvastatin",
+      "Gabapentin",
+      "Levothyroxine"
+    ],
+    "medCells": {
+      "Gabapentin": "T2 \\$0[^|]*\\|[^|]*T1 \\$0[^|]*\\|[^|]*600 mg: T3 \\$47"
+    }
+  },
+  "drugResults": {
+    "Gabapentin": {
+      "H5420-001": {
+        "tier": 2,
+        "cost": "$0",
+        "strengths": [
+          "100 mg",
+          "300 mg",
+          "600 mg",
+          "800 mg"
+        ]
+      },
+      "H4140-022": {
+        "tier": 1,
+        "cost": "$0",
+        "strengths": [
+          "100 mg",
+          "300 mg",
+          "600 mg",
+          "800 mg"
+        ]
+      },
+      "H1036-054C": {
+        "tier": 1,
+        "cost": "$0",
+        "strengths": [
+          "100 mg",
+          "300 mg",
+          {
+            "strength": "600 mg",
+            "tier": 3,
+            "cost": "$47"
+          }
+        ]
+      }
+    },
+    "Atorvastatin": {
+      "H5420-001": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H4140-022": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-054C": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    }
+  }
+}

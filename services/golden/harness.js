@@ -72,7 +72,16 @@ function stubRx(sc) {
       byPlanId[id] = v === 'not_covered'
         ? { planId: id, verified: true, coverage: 'not_covered', source: 'medicare_gov', restrictionsKnown: true }
         : v
-          ? { planId: id, verified: true, coverage: 'covered', tier: v.tier, costShare: v.cost || null, pa: Boolean(v.pa), st: Boolean(v.st), ql: Boolean(v.ql), qlText: v.ql || null, source: 'sunfire', restrictionsKnown: true }
+          ? {
+            planId: id, verified: true, coverage: 'covered', tier: v.tier, costShare: v.cost || null, pa: Boolean(v.pa), st: Boolean(v.st), ql: Boolean(v.ql), qlText: typeof v.ql === 'string' ? v.ql : null, source: 'sunfire', restrictionsKnown: true,
+            // "strengths": every strength the plan answered (same tier/cost unless one says otherwise).
+            ...(Array.isArray(v.strengths) ? {
+              sameAcrossStrengths: v.strengths.every((x) => typeof x === 'string'),
+              strengths: v.strengths.map((x) => (typeof x === 'string'
+                ? { strength: x, verified: true, coverage: 'covered', tier: v.tier, costShare: v.cost || null, source: 'medicare_gov', restrictionsKnown: true }
+                : { strength: x.strength, verified: true, coverage: x.coverage || 'covered', tier: x.tier, costShare: x.cost || null, source: 'medicare_gov', restrictionsKnown: true })),
+            } : {}),
+          }
           : { planId: id, verified: false, coverage: null, reason: 'not_stubbed' };
     }
     return { drugName, byPlanId, lookups: Object.values(byPlanId) };
@@ -86,12 +95,19 @@ async function runScenario(sc) {
   const npis = { ...(sets.npis || {}) };
   for (const d of (sc.workup && sc.workup.doctors) || []) if (d.npi && sets.doctors.includes(d.name)) npis[d.name] = d.npi;
   const zip = (sc.workup && sc.workup.zip) || (sets.askText.match(/\b(3[234]\d{3})\b/) || [])[1] || '';
+  // A carrier / rank ask picks plans from the county (best per carrier); an explicit set is the columns.
+  const carrierLine = (sets.askText.match(/^Carriers requested:\s*([^\n.]+)/m) || [])[1];
+  const lastUser = [...msgs].reverse().find((m) => m.role === 'user');
+  const typedIds = /\b[HR]\d{4}-\d{3}/i.test(LW.messageText(lastUser));
+  const carrierMode = !typedIds && (Boolean(carrierLine) || /^Rank all eligible plans\./m.test(sets.askText) || /^Wants another carrier\./m.test(sets.askText));
   const input = normalizeInput({
+    carriers: carrierLine ? carrierLine.split(/,\s*/) : [],
     clientName: (sc.workup && sc.workup.clientName) || '',
     zip,
     doctors: sets.doctors.map((name) => ({ name, npi: npis[name] })),
     meds: sets.meds,
-    plans: sets.plans.map((p) => p.planId),
+    plans: carrierMode ? (sets.currentPlan || []) : sets.plans.map((p) => p.planId),
+    wantsAlternatives: carrierMode && (sets.currentPlan || []).length > 0,
     planNames: Object.fromEntries(sets.plans.map((p) => [p.planId, p.name])),
   });
   const job = { input, status: 'queued', progress: { doctors: { done: 0, total: input.doctors.length }, meds: { done: 0, total: input.meds.length } }, result: {} };

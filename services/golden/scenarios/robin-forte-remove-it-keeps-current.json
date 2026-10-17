@@ -1,0 +1,88 @@
+{
+  "name": "Robin Forte — \"remove it\" never drops a plan (current plan stays); \"drop devoted\" drops only Devoted",
+  "source": "Yahoska rule, 2026-10-17 (overhaul)",
+  "workup": {
+    "clientName": "Robin Forte",
+    "zip": "33176",
+    "county": "Miami-Dade",
+    "currentPlanIds": [
+      "H5420-001"
+    ],
+    "plans": [
+      {
+        "carrier": "UHC",
+        "planName": "UHC MedicareMax FL-0028",
+        "planId": "H5420-001"
+      },
+      {
+        "carrier": "Devoted",
+        "planName": "Devoted CORE 001",
+        "planId": "H1290-001"
+      },
+      {
+        "carrier": "Humana",
+        "planName": "Humana Gold Plus",
+        "planId": "H1036-054C"
+      },
+      {
+        "carrier": "Aetna",
+        "planName": "Aetna Medicare Select Care",
+        "planId": "H1609-093"
+      }
+    ],
+    "doctors": [
+      {
+        "name": "Stephanie Sasha De La Guarda",
+        "npi": "1447909296"
+      },
+      {
+        "name": "George Demetrios Glinos",
+        "npi": "1881199586"
+      }
+    ],
+    "medications": []
+  },
+  "messages": [
+    "check Glinos on H5420-001",
+    "remove it and drop devoted"
+  ],
+  "doctorResults": {
+    "Stephanie Sasha De La Guarda": {
+      "npi": "1447909296",
+      "matched": "STEPHANIE SASHA DE LA GUARDA DO",
+      "in": [
+        "H5420-001",
+        "H1036-054C"
+      ],
+      "out": [
+        "H1609-093"
+      ]
+    },
+    "George Demetrios Glinos": {
+      "npi": "1881199586",
+      "matched": "GEORGE DEMETRIOS GLINOS MD",
+      "in": [
+        "H5420-001",
+        "H1290-001",
+        "H1036-054C",
+        "H1609-093"
+      ],
+      "out": []
+    }
+  },
+  "expect": {
+    "plans": [
+      "H5420-001",
+      "H1036-054C",
+      "H1609-093"
+    ],
+    "gridPlans": {
+      "include": [
+        "H5420-001"
+      ],
+      "exclude": [
+        "H1290-001"
+      ]
+    }
+  }
+}

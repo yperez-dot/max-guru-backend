@@ -1,0 +1,110 @@
+{
+  "name": "Edward Kennedy — current plan first, Plans line = grid columns, practice is not \"Dr.\"",
+  "source": "Max chat 2026-10-17",
+  "workup": {
+    "clientName": "Edward Kennedy",
+    "zip": "33165",
+    "county": "Miami-Dade",
+    "currentPlanIds": [
+      "H5420-001"
+    ],
+    "plans": [
+      {
+        "carrier": "UHC",
+        "planName": "UHC MedicareMax FL-0028",
+        "planId": "H5420-001"
+      }
+    ],
+    "doctors": [
+      {
+        "name": "Miami Healthy Smiles",
+        "npi": "1306462213"
+      },
+      {
+        "name": "Dr. David A Rodriguez M D",
+        "npi": "1700000003"
+      }
+    ],
+    "medications": [
+      {
+        "name": "Farxiga"
+      }
+    ]
+  },
+  "messages": [
+    "any other plans comparable to what she has? compare Humana Gold Plus H1036-054C and Doctors DrMax-Dade H4140-022 with her current plan"
+  ],
+  "doctorResults": {
+    "Miami Healthy Smiles": {
+      "npi": "1306462213",
+      "org": true,
+      "in": [
+        "H5420-001",
+        "H1036-054C"
+      ],
+      "out": []
+    },
+    "David A Rodriguez": {
+      "npi": "1700000003",
+      "matched": "DAVID A RODRIGUEZ M D",
+      "in": [
+        "H5420-001",
+        "H4140-022",
+        "H1036-054C"
+      ],
+      "out": []
+    }
+  },
+  "drugResults": {
+    "Farxiga": {
+      "H5420-001": {
+        "tier": 3,
+        "cost": "$25"
+      },
+      "H4140-022": {
+        "tier": 3,
+        "cost": "$25"
+      },
+      "H1036-054C": {
+        "tier": 3,
+        "cost": "$47"
+      }
+    }
+  },
+  "expect": {
+    "plans": {
+      "include": [
+        "H5420-001",
+        "H1036-054C",
+        "H4140-022"
+      ]
+    },
+    "gridPlans": {
+      "include": [
+        "H5420-001"
+      ]
+    },
+    "firstGridPlan": "H5420-001",
+    "medCells": {
+      "Farxiga": "T3 \\$25 \\|"
+    }
+  },
+  "doctorNames": [
+    {
+      "name": "Dr. David A Rodriguez M D",
+      "export": "Dr. David A Rodriguez",
+      "query": "David A Rodriguez",
+      "org": false
+    },
+    {
+      "name": "Dr. Miami Healthy Smiles",
+      "export": "Miami Healthy Smiles",
+      "org": true
+    },
+    {
+      "name": "Miami Healthy Smiles",
+      "export": "Miami Healthy Smiles",
+      "org": true
+    }
+  ]
+}

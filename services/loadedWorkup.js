@@ -136,12 +136,11 @@ function droppedIdsIn(line) {
 }
 /**
  * The plans a line's "remove devoted" / "drop H1290-073" leaves. A target matches a plan by its ID, its carrier, or
- * whole words of its name — never a substring ("remove it" used to drop every "United…" plan) — and her current plan
- * goes only when she names it by ID or by name.
+ * whole words of its name — never a substring: "remove it" used to drop every plan whose name holds "it" (UnITed…,
+ * so her current UHC plan went). A pronoun never removes anything.
  */
-function removePlansNamedIn(current, line, currentIds = []) {
+function removePlansNamedIn(current, line) {
   let out = current.slice();
-  const cur = new Set((currentIds || []).map((x) => String(x).toUpperCase().slice(0, 9)));
   for (const r of String(line || '').matchAll(REMOVE_RE)) {
     const target = r[1].trim().toLowerCase();
     if (!target || PRONOUN_TARGET_RE.test(target)) continue;
@@ -154,10 +153,7 @@ function removePlansNamedIn(current, line, currentIds = []) {
       const byCarrier = carrierOf(target) && carrierOf(target) === carrierOf(p.name);
       const nameWords = `${p.name} ${carrierOf(p.name)}`.toLowerCase().split(/[^a-z0-9-]+/);
       const byName = tWords.length > 0 && tWords.every((w) => nameWords.includes(w));
-      if (!byCarrier && !byName) return true;
-      // Her current plan: only her naming it (ID or plan name, not just its carrier) drops it.
-      if (cur.has(p.planId.toUpperCase().slice(0, 9)) && !byName) return true;
-      return false;
+      return !byCarrier && !byName;
     });
   }
   return out;
@@ -173,6 +169,11 @@ function planLineVerdict(line, found, { fromWorkup = false, haveSet = false } = 
   if (fromWorkup && haveSet && !newSet) return 'add';
   if (!keepExact && isPlanEditLine(line) && haveSet) return 'edit';
   return newSet ? 'new' : 'replace';
+}
+// "compare X and Y with her current plan" / "… vs what she has": a new set that still holds her current plan.
+const KEEPS_CURRENT_RE = /\b(?:(?:her|his|the|their)\s+current(?:\s+plan)?|current\s+plan|what\s+(?:she|he)\s+(?:has|have)|(?:her|his)\s+(?:own\s+)?plan)\b/i;
+function lineKeepsCurrentPlan(line) {
+  return KEEPS_CURRENT_RE.test(String(line || '')) && !/\b(?:without|not|drop|remove|except|no)\s+(?:(?:her|his|the)\s+)?current\b/i.test(String(line || ''));
 }
 /** Her current plan first, the rest in order. */
 function currentPlanFirst(plans, currentIds) {
@@ -368,7 +369,14 @@ function resolveWorkupSets(messages) {
   const currentPlan = n.currentPlanOf ? n.currentPlanOf(msgs) : (wk ? wk.current : []);
   const plans = currentPlanFirst(n.namedPlansFromAsk(askText, n.askConstraints(askText)), currentPlan);
   const fu = n.comparisonFollowUp(msgs);
-  const doctors = fu && fu.doctors ? fu.doctors : (wk ? wk.doctors : []);
+  let doctors = fu && fu.doctors ? fu.doctors : (wk ? wk.doctors : []);
+  if (!doctors.length) {
+    // A fresh chat: the doctors she listed ("Doctors: A, B") in her newest message that lists any.
+    const { parseCompareAsk } = require('./compareJobs');
+    for (let i = msgs.length - 1; i >= 0 && !doctors.length; i -= 1) {
+      if (msgs[i] && msgs[i].role === 'user') doctors = (parseCompareAsk(messageText(msgs[i])).doctors || []).map((d) => d.name);
+    }
+  }
   const meds = R.medsFromAsk(askText);
   return { plans, currentPlan, doctors, npis: (fu && fu.npis) || {}, meds, askText, followUp: fu };
 }
@@ -377,7 +385,7 @@ module.exports = {
   messageText,
   // plans
   workupFacts, workupCarrierEditSet, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,
-  NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, PRONOUN_TARGET_RE, droppedIdsIn, removePlansNamedIn, planLineVerdict, currentPlanFirst,
+  NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, PRONOUN_TARGET_RE, KEEPS_CURRENT_RE, lineKeepsCurrentPlan, droppedIdsIn, removePlansNamedIn, planLineVerdict, currentPlanFirst,
   // doctors
   respelledDoctors, looseSameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords,
   doctorCoreWords, specialtyWords, removedByClauses, sameCoreDoctor, RESOLVED_DOCTOR, dedupeDoctorRows, DUPLICATE_Q_RE,

@@ -113,6 +113,9 @@
     const parts = s.split(/[\s,]+/).filter(Boolean);
     while (parts.length > 1) {
       const bare = parts[parts.length - 1].replace(/[.\-/]/g, '');
+      // "David A Rodriguez M D": a degree typed as two letters (NPPES was searched for last name "D").
+      const pair = parts.length > 3 ? (parts[parts.length - 2] + parts[parts.length - 1]).replace(/[.\-/]/g, '') : '';
+      if (pair && bare.length === 1 && parts[parts.length - 2].replace(/[.\-/]/g, '').length === 1 && CRED_TOKEN_RE.test(pair)) { parts.splice(-2, 2); continue; }
       if (CRED_TOKEN_RE.test(bare) || (!isOrg && SPECIALTY_HINT_RE.test(bare))) parts.pop();
       else break;
     }
