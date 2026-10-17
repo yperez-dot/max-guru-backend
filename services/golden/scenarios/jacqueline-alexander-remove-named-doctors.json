@@ -126,7 +126,7 @@
       "Levothyroxine"
     ],
     "medCells": {
-      "Gabapentin": "T2 \\$0[^|]*\\|[^|]*T1 \\$0[^|]*\\|[^|]*600 mg: T3 \\$47"
+      "Gabapentin": "\\| T2 \\$0 \\| T1 \\$0 \\| [^|]*600 mg: T3 \\$47"
     }
   },
   "drugResults": {

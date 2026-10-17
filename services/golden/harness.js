@@ -124,6 +124,8 @@ const FORBIDDEN_RE = [
   [/why these plans/i, '"Why these plans" text'],
   [/^\s*\**excluded\**\s*:/im, '"Excluded:" line'],
   [/cost same across strengths/i, '"cost same across strengths" note'],
+  // A cell where every strength reads the same is just tier · cost: no "100/300/600/800 mg:" list in front.
+  [/\|\s*[\d.\/]+\s*(?:mg|mcg|%)\s*:\s*[^|‖]*\|/i, 'a strength list before a same-for-every-strength cell'],
 ];
 function gridHeaderIds(table) {
   const head = String(table || '').split('\n').find((l) => /^\|\s*Doctor\s*\|/.test(l)) || '';

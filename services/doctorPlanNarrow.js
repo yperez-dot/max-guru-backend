@@ -923,6 +923,8 @@ function namedPlansFromAsk(askText, constraints) {
   let current = [];
   // Her current plan (comparisonAskText's "Her current plan:" line): a new set that mentions it keeps it, first.
   const currentIds = [...String((String(askText || '').match(/^Her current plan:\s*([^\n]+)$/m) || ['', ''])[1]).matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
+  // The loaded workup's "Current plan:" line: a carrier drop never takes that plan off (loadedWorkup.currentPlanRemovedBy).
+  const workupCurrentIds = [...String((String(askText || '').match(/^\s*Current plan(?:\(s\))?:\s*([^\n]+)$/m) || ['', ''])[1]).matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
   const withCurrent = (set, line) => {
     if (!currentIds.length || !LW.lineKeepsCurrentPlan(line)) return set;
     const missing = currentIds.filter((id) => !set.some((p) => p.planId.slice(0, 9) === id.slice(0, 9)));
@@ -953,7 +955,7 @@ function namedPlansFromAsk(askText, constraints) {
     if (!line.trim()) continue;
     // Removals first ("remove devoted", "drop H1290-073") — loadedWorkup.js rules: whole words / carrier / ID; a pronoun
     // ("remove it") never removes a plan.
-    current = LW.removePlansNamedIn(current, line);
+    current = LW.removePlansNamedIn(current, line, [...currentIds, ...workupCurrentIds]);
     // IDs she drops in this line ("Drop MedicareMax H5420-001") never come back as columns.
     const dropped = LW.droppedIdsIn(line);
     // "Show her current plan H1045-001, Aetna H1609-093 and H1036-054C in the table": that list IS the set.
@@ -1498,6 +1500,14 @@ function selectComparison(doctors, askText, opts = {}) {
   if (constraints.noMedicaid) { elig.medicaid = 'none'; elig.levels = []; }
   const county = R.countyFromAsk(ask);
   const matrix = coverageMatrix(docs);
+  // An excluded carrier ("drop UHC") never takes her current plan off; "remove uhc off the grid" does (Yahoska, 2026-10-17).
+  const curAskIds = [...String((ask.match(/^Her current plan:\s*([^\n]+)$/m) || ['', ''])[1]).matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((m) => m[1].toUpperCase());
+  const offGridCurrent = LW.currentPlanRemovedBy(ask.replace(/^Her current plan:[^\n]*$/gm, ''), curAskIds, (id) => R.carrierOfPlan(gridRowFor(id, county) || { name: '' }));
+  const carrierExcludes = (id) => {
+    const key = String(id).toUpperCase().slice(0, 9);
+    if (curAskIds.includes(key) && !offGridCurrent.has(key)) return false;
+    return excludedSet.size > 0 && excludedSet.has(R.carrierOfPlan(gridRowFor(id, county) || { name: '' }));
+  };
   let named = Array.isArray(opts.named) ? opts.named : (carriers.length ? [] : namedPlansFromAsk(ask, constraints));
   if (!Array.isArray(opts.named) && namedSetLine) {
     named = namedSetLine.replace(/\.$/, '').split(';').map((x) => {
@@ -1517,6 +1527,7 @@ function selectComparison(doctors, askText, opts = {}) {
     const ids = pinFromAsk.length ? pinFromAsk : [...current.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
     pinFromAsk = ids.filter((id) => {
       const row = gridRowFor(id, county);
+      if (curAskIds.includes(String(id).toUpperCase().slice(0, 9)) && !offGridCurrent.has(String(id).toUpperCase().slice(0, 9))) return true;
       return !excludedSet.has(R.carrierOfPlan(row || { name: (named.find((p) => p.planId.slice(0, 9) === id.slice(0, 9)) || {}).name || '' }));
     });
     named = [];
@@ -1529,7 +1540,7 @@ function selectComparison(doctors, askText, opts = {}) {
       const line = (ask.match(lineRe) || [])[1] || '';
       for (const m of line.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)) if (!ids.includes(m[1].toUpperCase())) ids.push(m[1].toUpperCase());
     }
-    pinFromAsk = ids.filter((id) => !excludedSet.has(R.carrierOfPlan(gridRowFor(id, county) || { name: '' })));
+    pinFromAsk = ids.filter((id) => !carrierExcludes(id));
     named = [];
   }
   // Carrier ask ("show me Doctors HealthCare"): her current plan is still a column.
@@ -1548,7 +1559,7 @@ function selectComparison(doctors, askText, opts = {}) {
   pinFromAsk = dropsCurrent ? [] : pinFromAsk.filter((id) => {
     const key = String(id).toUpperCase().slice(0, 9);
     if ([...constraints.skip].some((s) => s.slice(0, 9) === key)) return false;
-    return !(excludedSet.size && excludedSet.has(R.carrierOfPlan(gridRowFor(id, county) || { name: '' })));
+    return !carrierExcludes(id);
   });
   // Looked-up names first ("Atorvastatin Calcium"), then anything listed but not looked up yet.
   const meds = [];
@@ -1618,7 +1629,7 @@ function selectComparison(doctors, askText, opts = {}) {
       for (const id of curIds) {
         if (cols.some((c) => String(c.planId || '').toUpperCase().slice(0, 9) === id)) continue;
         if ([...constraints.skip].some((x) => x.slice(0, 9) === id)) continue;
-        if (excludedSet.size && excludedSet.has(R.carrierOfPlan(gridRowFor(id, county) || { name: '' }))) continue;
+        if (carrierExcludes(id) || offGridCurrent.has(id)) continue;
         const row = gridRowFor(id, county);
         const nm = row ? (carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim()) : id;
         cols = [...decorate(namedPlanColumns([{ planId: (curText.match(new RegExp(`${id}[A-Z]?`, 'i')) || [id])[0].toUpperCase(), name: nm || id }], matrix, docs)), ...cols];
@@ -2037,7 +2048,7 @@ function medsLegendFor(table) {
  * "2.5/5 mg: T4 40% · PA (verify indication) ‖ 10/20 mg: T6 $0 · QL 8/30 · supplemental".
  * "‖" separates groups — a "|" would split the markdown table cell.
  */
-function strengthSplitCell(row, result) {
+function strengthSplitCell(row, result, opts = {}) {
   const ed = Boolean(result && result.edDrug);
   const describe = (v) => {
     if (v.coverage === 'not_covered') return '❌ not covered';
@@ -2071,6 +2082,8 @@ function strengthSplitCell(row, result) {
     const nums = g.strengths.map((s) => s.split(' ')[0]).join('/');
     return `${units.length === 1 ? `${nums} ${units[0]}` : g.strengths.join('/')}${g.indication ? ` (${g.indication})` : ''}`;
   };
+  // Every strength reads the same: just tier · cost, no "100/300/600/800 mg:" list (Yahoska, 2026-10-17).
+  if (groups.length === 1 && !groups[0].indication && !opts.keepLabel) return groups[0].text;
   return groups.map((g) => `${label(g)}: ${g.text}`).join(' ‖ ');
 }
 
@@ -2104,14 +2117,14 @@ function oneStrengthCell(row, result) {
   let pick = null;
   if (key) pick = covered.find((v) => Math.abs(strengthMg(v.strength) - USUAL_STRENGTH_MG[key]) < 1e-6) || null;
   if (!pick) pick = covered.slice().sort((a, b) => Math.abs(Math.log((strengthMg(a.strength) || 1) / ((key && USUAL_STRENGTH_MG[key]) || strengthMg(covered[Math.floor(covered.length / 2)].strength) || 1))) - Math.abs(Math.log((strengthMg(b.strength) || 1) / ((key && USUAL_STRENGTH_MG[key]) || strengthMg(covered[Math.floor(covered.length / 2)].strength) || 1))))[0];
-  const cell = strengthSplitCell({ strengths: [pick] }, result);
+  const cell = strengthSplitCell({ strengths: [pick] }, result, { keepLabel: true });
   // Every strength the plan answered sits on the same tier and cost, and none was answered "not covered": that IS the
   // answer, whatever dose she takes (Jacqueline Alexander, 2026-10-17: "idk why gabapentin is such a diff drug for max" —
   // 100/300/600/800 mg all T2 $0 on H5420-001 and T1 $0 on H4140-022/-023 while the row read "check Medicare.gov").
   // Strengths medicare.gov did not answer are not a difference (and never "doesn't exist").
   const noneNotCovered = !row.strengths.some((v) => v && v.verified && v.coverage === 'not_covered');
   const sameAll = covered.length >= 2 && noneNotCovered
-    && covered.every((v) => strengthSplitCell({ strengths: [v] }, result).replace(/^[^:]+:\s*/, '') === cell.replace(/^[^:]+:\s*/, ''));
+    && covered.every((v) => strengthSplitCell({ strengths: [v] }, result, { keepLabel: true }).replace(/^[^:]+:\s*/, '') === cell.replace(/^[^:]+:\s*/, ''));
   // Just tier · cost: no "cost same across strengths" note (Yahoska, 2026-10-17 — replaces the #231 note).
   if (sameAll) return cell.replace(/^[^:]+:\s*/, '');
   // The usual strength was not among the answered ones: the strength shown is a different one — say so

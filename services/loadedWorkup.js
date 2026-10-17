@@ -77,7 +77,9 @@ function workupCarrierEditSet(text, msgs) {
   const carrierOfId = (id) => { const g = rowOf(id); return g ? R.carrierOfPlan(g) : ''; };
   const nameOf = (id) => { const g = rowOf(id); if (!g) return id; return carrierKey(String(g.planName || '')) ? String(g.planName) : `${g.carrier || ''} ${g.planName || ''}`.trim(); };
   const fullId = (id) => { const g = rowOf(id); return g ? String(g.planId || g.id).toUpperCase() : String(id).toUpperCase(); };
-  let ids = wk.plans.filter((id) => !dropped.includes(carrierOfId(id)));
+  const offGrid = currentPlanRemovedBy(t, wk.current, carrierOfId);
+  const isCur = (id) => (wk.current || []).some((c) => String(c).toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9));
+  let ids = wk.plans.filter((id) => !dropped.includes(carrierOfId(id)) || (isCur(id) && !offGrid.has(String(id).toUpperCase().slice(0, 9))));
   for (const c of addCarriers) {
     if (dropped.includes(c) || ids.some((id) => carrierOfId(id) === c)) continue;
     const core = corePlanIdsFor(c, county)[0];
@@ -121,7 +123,7 @@ const NEW_SET_VERB_RE = new RegExp(String.raw`\blet'?s\s+do\s+` + PLAN_START + S
 // "just check Glinos on H5420-001" is not a new set ("just" there means "simply").
 const ONLY_PLANS_RE = /\bonly\b|\bexclusively\b|\bjust\s+(?:(?:the|these|this|that|on|use|keep|show|compare|run)\s+)*(?:[HR]\d{4}-\d{3}|plans?\b|one\s+plan\b)/i;
 
-const REMOVE_RE = /\b(?:remove|drop|take out|delete|no more|get rid of|without)\s+(?:the\s+)?([^,.;\n]+?)(?=\s+(?:from|and|,)|[,.;\n]|$)/gi;
+const REMOVE_RE = /\b(?:remove|drop|take out|delete|no more|get rid of|without|exclude|excluding)\s+(?:the\s+)?([^,.;\n]+?)(?=\s+(?:from|and|,)|[,.;\n]|$)/gi;
 
 // "remove it" / "drop that one" / "take this off": a pronoun never names a plan — and never drops her current plan.
 const PRONOUN_TARGET_RE = /^(?:it|that|this|them|those|these|that one|this one|the other(?: one)?|one)\b/i;
@@ -132,15 +134,44 @@ function droppedIdsIn(line) {
     const target = r2[1].split(/[,]|\b(?:and\s+)?(?:add|instead|but|then|show|keep|include|plus|with)\b/i)[0];
     for (const idm of target.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)) dropped.add(idm[1].toUpperCase().slice(0, 9));
   }
+  // "take H5420-001 off the grid"
+  for (const m of String(line || '').matchAll(OFF_GRID_RE)) {
+    for (const idm of String(m[1] || '').matchAll(/\b([HR]\d{4}-\d{3})/gi)) dropped.add(idm[1].toUpperCase());
+  }
   return dropped;
 }
+// Her current plan leaves the grid only when she says so outright (Yahoska, 2026-10-17): "remove uhc off the grid",
+// "remove the current plan", "take H5420-001 off the grid", or a drop that types its ID. "drop UHC" / "exclude UHC"
+// drops UHC's other plans and keeps her current one.
+const OFF_GRID_RE = /\b(?:remove|take|drop|delete|pull|get)\b([^.;\n]{0,60}?)\b(?:off|out\s+of|from)\s+(?:of\s+)?(?:the\s+|her\s+|this\s+)?(?:grid|table|comparison|columns?)\b/gi;
+const DROPS_CURRENT_RE = /\b(?:without|not|exclude|excluding|skip|drop|remove|take\s+out|delete|no)\s+(?:her\s+|the\s+|my\s+|his\s+)?current(?:\s+plans?)?\b/i;
+/** Her current plan IDs (first 9 chars) this line takes off the grid. carrierOfId(id) → that plan's carrier. */
+function currentPlanRemovedBy(line, currentIds, carrierOfId) {
+  const t = String(line || '');
+  const cur = (currentIds || []).map((x) => String(x).toUpperCase().slice(0, 9));
+  const out = new Set();
+  if (!cur.length) return out;
+  if (DROPS_CURRENT_RE.test(t)) cur.forEach((id) => out.add(id));
+  for (const id of droppedIdsIn(t)) if (cur.includes(id)) out.add(id);
+  for (const m of t.matchAll(OFF_GRID_RE)) {
+    const seg = m[1] || '';
+    if (/\bcurrent\b/i.test(seg)) cur.forEach((id) => out.add(id));
+    for (const idm of seg.matchAll(/\b([HR]\d{4}-\d{3})/gi)) if (cur.includes(idm[1].toUpperCase())) out.add(idm[1].toUpperCase());
+    const c = carrierOf(seg);
+    if (c && carrierOfId) cur.filter((id) => carrierOfId(id) === c).forEach((id) => out.add(id));
+  }
+  return out;
+}
+
 /**
  * The plans a line's "remove devoted" / "drop H1290-073" leaves. A target matches a plan by its ID, its carrier, or
  * whole words of its name — never a substring: "remove it" used to drop every plan whose name holds "it" (UnITed…,
  * so her current UHC plan went). A pronoun never removes anything.
  */
-function removePlansNamedIn(current, line) {
+function removePlansNamedIn(current, line, currentIds) {
   let out = current.slice();
+  const cur = (currentIds || []).map((x) => String(x).toUpperCase().slice(0, 9));
+  const offGrid = currentPlanRemovedBy(line, cur, (id) => { const p = current.find((q) => q.planId.slice(0, 9).toUpperCase() === id); const g = gridRowFor(id, ''); return p ? carrierOf(p.name) : (g ? R.carrierOfPlan(g) : ''); });
   for (const r of String(line || '').matchAll(REMOVE_RE)) {
     const target = r[1].trim().toLowerCase();
     if (!target || PRONOUN_TARGET_RE.test(target)) continue;
@@ -153,10 +184,19 @@ function removePlansNamedIn(current, line) {
       const byCarrier = carrierOf(target) && carrierOf(target) === carrierOf(p.name);
       const nameWords = `${p.name} ${carrierOf(p.name)}`.toLowerCase().split(/[^a-z0-9-]+/);
       const byName = tWords.length > 0 && tWords.every((w) => nameWords.includes(w));
+      // A carrier or name drop never takes her current plan; only an off-the-grid / current-plan / ID removal does.
+      if ((byCarrier || byName) && cur.includes(id.slice(0, 9).toUpperCase()) && !offGrid.has(id.slice(0, 9).toUpperCase())) return true;
       return !byCarrier && !byName;
     });
   }
-  return out;
+  // "take H5420-014 off the grid" / "remove uhc off the grid" / "remove the current plan".
+  for (const m of String(line || '').matchAll(OFF_GRID_RE)) {
+    const seg = m[1] || '';
+    const ids = [...seg.matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((x) => x[1].toUpperCase());
+    const c = ids.length ? '' : carrierOf(seg);
+    out = out.filter((p) => !ids.includes(p.planId.slice(0, 9).toUpperCase()) && !(c && carrierOf(p.name) === c));
+  }
+  return out.filter((p) => !offGrid.has(p.planId.slice(0, 9).toUpperCase()));
 }
 /**
  * How a line that names plans changes the set: 'new' (replace: only / just / keep the same N / compare these /
@@ -395,7 +435,7 @@ module.exports = {
   messageText,
   // plans
   workupFacts, workupCarrierEditSet, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,
-  NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, PRONOUN_TARGET_RE, KEEPS_CURRENT_RE, lineKeepsCurrentPlan, droppedIdsIn, removePlansNamedIn, planLineVerdict, currentPlanFirst,
+  NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, PRONOUN_TARGET_RE, KEEPS_CURRENT_RE, lineKeepsCurrentPlan, droppedIdsIn, removePlansNamedIn, OFF_GRID_RE, DROPS_CURRENT_RE, currentPlanRemovedBy, planLineVerdict, currentPlanFirst,
   // doctors
   respelledDoctors, looseSameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords,
   doctorCoreWords, specialtyWords, removedByClauses, sameCoreDoctor, RESOLVED_DOCTOR, dedupeDoctorRows, DUPLICATE_Q_RE,

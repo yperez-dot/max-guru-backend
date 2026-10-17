@@ -416,7 +416,7 @@ const NOT_MED_RE = /^(?:no|none|not|medicaid|plan|plans|compare|they|their|for|a
 function medsFromAsk(askText) {
   const t = String(askText || '');
   const out = [];
-  const add = (s0) => { const s = tidyLongMedName(cleanMedItem(s0)); if (s && s.length > 2 && s.length < 60 && !isNonDrugAnswer(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
+  const add = (s0) => { const s = tidyLongMedName(cleanMedItem(s0)); if (s && s.length > 2 && s.length < 60 && !isNonDrugAnswer(s) && !/\b[HR]\d{4}-\d{3}|\b(?:grid|table|columns?)\b/i.test(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
   // "Meds: a, b" / "Medications a, b" / "Medicamentos: a y b" / "Takes a, b" — colon optional
   // (Martin Wiesenthal, 2026-10-09: "…, Medications esomeprazole, rasuvostatin, …" read 0 meds).
   for (const m of t.matchAll(new RegExp(`(^|[^A-Za-z])(no\\s+)?\\b(${MED_LABEL})\\b(\\s*:\\s*|\\s+)([^\\n]+)`, 'gi'))) {
