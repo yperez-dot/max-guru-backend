@@ -203,6 +203,8 @@ function substitutionsIn(text, knownNames) {
   for (const part of String(text || '').replace(/^\s*(?:yes|yep|yeah|correct|ok(?:ay)?)\b[\s.,!:;-]*/i, '').split(/[;\n]|,(?=\s*[A-Za-z][^,]*?(?:=|→|->|\bis\b))/)) {
     const m = part.match(/^\s*(?:\d+[.)]\s*)?(?:dr\.?\s*)?([A-Za-z][A-Za-z .'-]{1,70}?)\s*(?:=|→|->|\bis actually\b|\bis really\b|\bshould be\b|\bmeans\b|\bis\b)\s*(?:dr\.?\s*)?([A-Za-z][A-Za-z .,'-]{2,60}?)\s*[.!]?\s*$/i);
     if (!m) continue;
+    // "Pascual De Santis is already on the list" / "is fine" / "is in network" is a statement, not a new name.
+    if (/^(?:already|also|still|on|in|not|the|a|an|fine|ok(?:ay)?|good|right|correct|covered|listed|there|staying|her|his|my|our)\b/i.test(m[2].trim())) continue;
     const from = (knownNames || []).find((k) => sameDoctorName(k, m[1]));
     if (from && !sameDoctorName(from, m[2])) out.push([from, m[2].trim()]);
   }
@@ -630,6 +632,13 @@ function comparisonFollowUp(messages) {
       }
     }
     if (Object.keys(confirmed).length && !reasons.includes('doctor corrections')) reasons.push('doctor match confirmed');
+    // "Remove Dr. X" after the list: only the doctors she named leave the run.
+    const removals = later.flatMap(doctorRemovalClauses);
+    if (removals.length) {
+      const before = names.length;
+      names = names.filter((nm) => !removedByClauses(nm, removals));
+      if (names.length < before && doctorRemovalClauses(latest).length) reasons.push('doctor removals');
+    }
     if (!reasons.length) return null;
     for (const [from, to] of subs) names = names.map((nm) => (sameDoctorName(nm, from) ? to : nm));
     const zip = f.zip || (msgs.slice(0, lastUserAt + 1).map(messageText).join(' ').match(/\b(3\d{4})\b/) || [])[1] || '';
@@ -665,6 +674,36 @@ function looseSameDoctor(known, said) {
     return row[y.length];
   };
   return a[0] === b[0] && lev(a[a.length - 1], b[b.length - 1]) <= 2;
+}
+
+// "Remove Dr. Pasquel DeSantis Endocrinologist Baptist and both Neeta Erinjerri Surgeon rows, since Pascual De Santis
+// and Neeta Jane Erinjeri are already on the list" (Jacqueline Alexander, 2026-10-17). A removal counts only for a
+// doctor she NAMED: a saved row goes when every word of its name (before " - practice", role words dropped) is in
+// the removal clause, spelled the same. So "Neeta Erinjerri - Surgeon …" (both rows) goes and "Neeta Jane Erinjeri"
+// stays; the "since … already on the list" part is not a removal.
+const DOCTOR_REMOVE_RE = /\b(?:remove|delete|drop|take\s+out|get\s+rid\s+of|take\s+off)\s+([^.;\n]+)/gi;
+function doctorRemovalClauses(text) {
+  const out = [];
+  // "Dr." is not a sentence end.
+  for (const m of String(text || '').replace(/\b(dr|dra|mr|mrs|ms|st)\./gi, '$1 ').matchAll(DOCTOR_REMOVE_RE)) {
+    const clause = m[1].split(/\b(?:since|because|as\s+(?:they|she|he|both)|keep|but|they(?:'re| are)|already)\b/i)[0];
+    // A plan removal ("drop H1290-073", "remove devoted") is not a doctor removal.
+    if (/\b[HR]\d{4}-\d{3}/i.test(clause) && !/\b(?:dr|dra|doctor)\b\.?/i.test(clause)) continue;
+    // "Remove Dr. A, Dr. B and both C rows": list parts. "…, Pascual De Santis is already on the list" is a statement
+    // about a doctor who stays, not a target.
+    const parts = clause.split(/,|\band\b|&/i).filter((x) => !/\b(?:is|are|stays?|staying|remains?|already|keep)\b/i.test(x));
+    const words = plainWords(parts.join(' '));
+    if (words.length) out.push(words);
+  }
+  return out;
+}
+function doctorCoreWords(name) {
+  return plainWords(String(name || '').split(/\s+[-–—]\s+/)[0]);
+}
+function removedByClauses(name, clauses) {
+  const core = doctorCoreWords(name);
+  if (core.length < 2) return false;
+  return clauses.some((words) => core.every((w) => words.includes(w)));
 }
 
 const ADD_DOCTOR_RE = /\b(?:add|added|also|include|forgot|missing|primary|pcp|her doctor)\b/i;
@@ -714,8 +753,15 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
         touched = true;
       }
     }
+    // "Remove Dr. X …": named saved rows leave the run (only the doctors she named).
+    const removals = doctorRemovalClauses(t);
+    if (removals.length) {
+      for (let k = people.length - 1; k >= 0; k -= 1) {
+        if (removedByClauses(people[k].name, removals)) { people.splice(k, 1); touched = true; }
+      }
+    }
     const npis = [...t.matchAll(/\b(\d{10})\b/g)];
-    if (spellFixes.length) continue;
+    if (spellFixes.length || removals.length) continue;
     if (!asked && !npis.length && !(i === lastUserAt && numbered)) continue;
     touched = true;
     // 1) NPI next to a name: "use this for Theresa 1306218243".
@@ -839,9 +885,41 @@ const REMOVE_RE = /\b(?:remove|drop|take out|delete|no more|get rid of|without)\
  * "remove devoted, add UHC H1045-005 instead" → Humana, Aetna, UHC.
  * Named plans are the columns — Max never swaps in its own top 3.
  */
+// Lines of the loaded-workup context message (client-workups.js compactWorkupContext). Only its "Plans:"
+// list is a plan set; the saved In/Out and medication lines carry the IDs of OLD comparison columns
+// (Aetna H1609-093 …) and must never become columns (Jacqueline Alexander, 2026-10-17: her 3 named plans
+// were added to 4 stale IDs from those lines, then cut to "best 2 of the other 5").
+const WORKUP_LINE_RE = /^\s*(?:Client|ZIP\/county|Contacts|Current plan(?:\(s\))?|Plan Terminating):|^\s*(?:Plans|Needs):\s*$|^\s*Doctors \(names only|^\s*Doctor NPIs\b|^\s*Saved In\/Out results\b|^\s*Medications \(tiers\b/;
+// A plan-set edit needs a plan (ID or carrier) in the same sentence as the edit verb: "Replace Dr. Natalie
+// Regalado with …" / "Remove Dr. Pasquel DeSantis …" edit doctors, not the plan list.
+const PLAN_EDIT_VERB_RE = /\b(add|also|include|plus|instead|swap|replace|in place of|remove|drop|take out|delete|no more|get rid of|without)\b/i;
+// "Keep the same 3 plans (UHC H5420-001, …)" / "only these plans: …": that list IS the set — nothing added.
+const KEEP_EXACT_RE = /\b(?:keep|same|only|just|exactly|these)\b[^.;\n]{0,30}\bplans?\b|\bplans?\s+(?:only|exactly)\b/i;
+
+function isPlanEditLine(line) {
+  return String(line || '').split(/(?<=[.!?])\s+/).some((s) => PLAN_EDIT_VERB_RE.test(s)
+    && (/\b[HR]\d{4}-\d{3}/i.test(s) || Boolean(carrierKey(s.replace(/\b(?:dr|dra|doctor|doctora)\.?\s+[A-Z][^,.;]*/g, ' ')))));
+}
+
 function namedPlansFromAsk(askText, constraints) {
   let current = [];
+  let workup = null; // { plans: [], inPlans: bool } while reading the loaded-workup block
+  const endWorkup = () => {
+    if (workup && workup.plans.length) current = workup.plans.slice();
+    workup = null;
+  };
   for (const line of joinWrappedQuotes(askText).split('\n')) {
+    if (/^\s*LOADED CLIENT WORKUP\b/.test(line)) { workup = { plans: [], inPlans: false }; continue; }
+    if (workup) {
+      if (WORKUP_LINE_RE.test(line)) { workup.inPlans = /^\s*Plans:\s*$/.test(line); continue; }
+      if (/^\s*-\s/.test(line)) {
+        if (workup.inPlans) {
+          for (const f of plansInLine(line, constraints)) if (!workup.plans.some((p) => p.planId.slice(0, 9) === f.planId.slice(0, 9))) workup.plans.push(f);
+        }
+        continue;
+      }
+      endWorkup();
+    }
     if (!line.trim()) continue;
     // Removals first ("remove devoted", "drop H1290-073").
     let r;
@@ -849,6 +927,8 @@ function namedPlansFromAsk(askText, constraints) {
     while ((r = REMOVE_RE.exec(line)) !== null) {
       const target = r[1].trim().toLowerCase();
       if (!target) continue;
+      // "Remove Dr. Pasquel DeSantis …" removes a doctor row, not a plan.
+      if (/^(?:dr|dra|doctor|doctora)\b/.test(target) || /\brows?\b/.test(target)) continue;
       current = current.filter((p) => {
         const hay = `${p.name} ${p.planId} ${carrierOf(p.name)}`.toLowerCase();
         return !(hay.includes(target) || target.includes(p.planId.toLowerCase()) || (carrierOf(target) && carrierOf(target) === carrierOf(p.name)));
@@ -875,14 +955,15 @@ function namedPlansFromAsk(askText, constraints) {
     }
     const found = plansInLine(line, constraints).filter((f) => !dropped.has(f.planId.slice(0, 9)));
     if (!found.length) continue;
-    const isEdit = /\b(add|also|include|plus|instead|swap|replace|in place of)\b/i.test(line) || REMOVE_RE.test(line);
-    REMOVE_RE.lastIndex = 0;
+    const keepExact = found.length >= 2 && KEEP_EXACT_RE.test(line);
+    const isEdit = !keepExact && isPlanEditLine(line);
     if (isEdit && current.length) {
       for (const f of found) if (!current.some((p) => p.planId.slice(0, 9) === f.planId.slice(0, 9))) current.push(f);
     } else {
       current = found;
     }
   }
+  if (workup) endWorkup();
   return current;
 }
 
@@ -980,6 +1061,7 @@ function namedPlanColumns(named, matrix, doctors) {
 // ─── Doctor/Drug Comparison Table Rules (services/comparisonRules.js) ───────
 
 const R = require('./comparisonRules');
+const GROUPS = require('./medicalGroupRules');
 const { restrictionsUnknown } = require('./drugNames');
 
 // Pending-lookup labels that cover each carrier (providerNetwork `pending`).
@@ -1393,7 +1475,7 @@ function selectComparison(doctors, askText, opts = {}) {
     });
     if (!issue || typedNpi || saidYes || confirmedMatches.some((nm) => sameDoctorName(nm, who))) return { ...d, identityPending: '' };
     return { ...d, identityPending: issue, inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] };
-  });
+  }).map((d) => (d.identityPending ? d : GROUPS.applyGroupRuleToDoctor(d, ask0, (label) => carrierKey(label))));
   const n = docs.length;
   // "Carriers requested: Doctors HealthCare, Solis, Devoted" (comparisonAskText) — newest wins.
   const carrierAsks = [...ask0.matchAll(/Carriers requested:\s*([^\n.]+)/gi)];
@@ -1857,6 +1939,9 @@ function selectComparison(doctors, askText, opts = {}) {
     if (out.ranked) out.ranked = out.ranked.filter((c) => out.columns.includes(c) || countyIds.has(String(c.planId || '').toUpperCase().slice(0, 9)));
     if (away.length) out.flags.push(`⚠️ Not offered in ${county}: ${away.join(', ')}.`);
   }
+  // Medical-group carrier rules win over a directory In (BHMG primary care — Yahoska, 2026-10-17).
+  const cols = [...new Set([...(out.columns || []), ...(out.ranked || [])])];
+  for (const line of GROUPS.applyGroupRulesToColumns(cols, docs, shortDoctor)) out.flags.push(line);
   return out;
 }
 
@@ -2256,6 +2341,10 @@ function fallbackAnswer(doctors, askText, { answered = false, drugs = [] } = {})
 
 module.exports = {
   strengthInLabel,
+  sameDoctorName,
+  looseSameDoctor,
+  doctorRemovalClauses,
+  removedByClauses,
   renderedAnswer,
   enforceRenderedTable,
   corePlanIdsFor,

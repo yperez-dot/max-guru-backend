@@ -6315,6 +6315,8 @@ async function askGuru(conversationHistory, opts) {
       banners: Array.isArray(data.banners) ? data.banners : [],
       toolResults: Array.isArray(data.toolResults) ? data.toolResults : [],
       resume: data.resume && typeof data.resume === "object" ? data.resume : null,
+      // The server re-ran every saved doctor with her corrections / removals: that list is the workup's doctors now.
+      doctorList: data.doctorList && data.doctorList.final && Array.isArray(data.doctorList.doctors) ? data.doctorList : null,
     };
   } finally {
     if (timer) clearTimeout(timer);
@@ -6891,6 +6893,8 @@ function App() {
   // Finished lookups from a reply that hit the chat wait — sent once with the next ask.
   const resumeToolResultsRef = useRef([]);
   const loadedWorkupRef = useRef(null);
+  // Doctors the server re-ran this turn as the full saved list (corrections + removals applied), else null.
+  const finalDoctorListRef = useRef(null);
   const currentWorkupIdRef = useRef(null);
   const lastSavedSigRef = useRef("");
   const autoSaveTimerRef = useRef(null);
@@ -7030,6 +7034,7 @@ function App() {
     // doctors and meds, 2026-10-08).
     sessionToolResultsRef.current = [];
     resumeToolResultsRef.current = [];
+    finalDoctorListRef.current = null;
     if (!keepWorkup) {
       loadedWorkupRef.current = null;
       currentWorkupIdRef.current = null;
@@ -7111,7 +7116,12 @@ function App() {
         if (x.npi && y.npi) return false;
         return a.length >= 2 && b.length >= 2 && near(a[0], b[0]) && near(a[a.length - 1], b[b.length - 1]);
       };
-      if (Array.isArray(prev.doctors) && prev.doctors.length && built.doctors.length >= prev.doctors.length) {
+      const finalList = finalDoctorListRef.current;
+      if (Array.isArray(finalList) && finalList.length && built.doctors.length) {
+        // The server re-ran ALL her saved doctors this turn with her corrections and removals ("Remove Dr. Pasquel
+        // DeSantis …", Jacqueline Alexander 2026-10-17): the screen table is the list, even when it is shorter now.
+        built.replaceDoctors = true;
+      } else if (Array.isArray(prev.doctors) && prev.doctors.length && built.doctors.length >= prev.doctors.length) {
         // A full table (as many doctors as saved): it IS the list, corrections included.
         built.replaceDoctors = true;
       } else if (Array.isArray(prev.doctors) && prev.doctors.length) {
@@ -7767,6 +7777,7 @@ function App() {
         loadedWorkupRef.current
       ), { priorToolResults });
       if (gen !== chatGenRef.current) return;
+      finalDoctorListRef.current = result.doctorList ? result.doctorList.doctors : null;
       resumeToolResultsRef.current = result.resume && result.resume.resumable
         ? window.MaxComparisonExport.mergeToolResults(priorToolResults, result.toolResults, 40)
         : [];

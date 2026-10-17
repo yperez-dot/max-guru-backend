@@ -2,7 +2,7 @@
 const { TOOLS, processTool } = require('./claude');
 const { callAnthropic } = require('./anthropicChat');
 const { countImagesInMessages, normalizeMessages } = require('./chatImages');
-const { fallbackAnswer, narrowingAnswered, comparisonAskText, comparisonFollowUp, enforceRenderedTable } = require('./doctorPlanNarrow');
+const { fallbackAnswer, narrowingAnswered, comparisonAskText, comparisonFollowUp, enforceRenderedTable, sameDoctorName, looseSameDoctor } = require('./doctorPlanNarrow');
 const { conversationAskText } = require('./planYear');
 const {
   shouldAutoLookupComparisonSob,
@@ -140,6 +140,16 @@ function chatResult({ lastData, text, collectedToolResults, usageCalls, deadline
   }
   if (collectedToolResults.length) out.toolResults = collectedToolResults;
   return out;
+}
+
+/** Every doctor this lookup asks for is already in the server's follow-up re-run (no new doctor). */
+function coveredByFollowUp(input, doctors) {
+  const list = Array.isArray(input && input.doctors) ? input.doctors : [];
+  const asked = [...list, ...(input && (input.doctorName || input.npi) ? [{ doctorName: input.doctorName, npi: input.npi }] : [])]
+    .map((d) => (typeof d === 'string' ? d : String((d && (d.doctorName || d.name)) || '')).trim())
+    .filter(Boolean);
+  if (!asked.length) return true;
+  return asked.every((nm) => (doctors || []).some((d) => sameDoctorName(d, nm) || looseSameDoctor(d, nm)));
 }
 
 /** Short doctor answer from finished tool results — used only when the model itself ran out of time. */
@@ -283,10 +293,15 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
   // per-doctor `expand` items land in collectedToolResults — keep the table here so the reply
   // always leads with it (Maura, 2026-10-07 5:20 PM: the model's markdown list went out instead).
   let lastRendered = '';
+  // The server's follow-up re-run (every saved doctor, her named plans) is the answer for this turn. A later model
+  // call with fewer doctors must not replace its table: Jacqueline Alexander, 2026-10-17 — the model re-looked up
+  // only Neeta Jane Erinjeri and that one-doctor table (auto-picked plans, meds unchecked) went out instead.
+  let followUpRun = null; // { doctors: [names], count }
+  const renderedDoctorCount = (result) => (result && result.structured && Array.isArray(result.structured.doctors) ? result.structured.doctors.length : 0);
   const pushToolResult = (name, result) => {
     const text = resolveToolResult(result);
     if (name === 'lookup_provider_network' && result && typeof result === 'object' && result.structured && result.structured.rendered) {
-      lastRendered = result.structured.rendered;
+      if (!followUpRun || !lastRendered || renderedDoctorCount(result) >= followUpRun.count) lastRendered = result.structured.rendered;
     }
     if (result && typeof result === 'object' && Array.isArray(result.expand) && result.expand.length) {
       // Batch doctor lookup → one entry per doctor so Export Excel/PDF sees each one.
@@ -317,6 +332,7 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
     );
     if (result) {
       const text = pushToolResult('lookup_provider_network', result);
+      if (lastRendered) followUpRun = { doctors: followUp.doctors.slice(), count: renderedDoctorCount(result) || followUp.doctors.length };
       apiMessages.push({
         role: 'user',
         content:
@@ -428,6 +444,10 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
         input = {};
       }
       input = capToolPlanIds(name, input);
+      // The server already re-ran these doctors this turn: a narrower re-check would only replace the full table.
+      if (followUpRun && name === 'lookup_provider_network' && coveredByFollowUp(input, followUpRun.doctors)) {
+        return { tc, name, result: `Skipped ${name} — the server already re-ran the comparison for all ${followUpRun.count} doctors this turn with her corrections and her plans. Copy that table as-is; do not narrow it to fewer doctors or other plans.`, skipped: true };
+      }
       if (toolTimeLeft() < minToolStartMs) {
         return { tc, name, result: `Skipped ${name} — chat wait. NOT CONFIRMED. Answer with finished tool results. Do not invent dollars.`, skipped: true };
       }
@@ -448,7 +468,7 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
     });
     for (const { tc, name, result, skipped } of outcomes) {
       const text = skipped
-        ? (collectedToolResults.push({ tool: name, output: { text: result } }), result)
+        ? (/^Skipped lookup_provider_network — the server already/.test(result) ? result : (collectedToolResults.push({ tool: name, output: { text: result } }), result))
         : pushToolResult(name, result);
       apiMessages.push({
         role: 'tool',
@@ -486,7 +506,9 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
     } catch (_) {}
     toolInput = capToolPlanIds(toolName, toolInput);
     console.log(`[ReactiveToolCall/${CONFIG.provider}] ${toolName}`);
-    const toolResult = await runTool(toolName, toolInput, {
+    const toolResult = followUpRun && toolName === 'lookup_provider_network' && coveredByFollowUp(toolInput, followUpRun.doctors)
+      ? 'The server already re-ran this comparison for every doctor this turn. Copy that table as-is.'
+      : await runTool(toolName, toolInput, {
       messages,
       system,
       remainingMs: toolTimeLeft(),
@@ -528,7 +550,10 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
     .find((t) => t && t.tool === 'lookup_provider_network' && t.output && t.output.rendered);
   const table = lastRendered || (rendered && rendered.output.rendered) || '';
   if (table) text = enforceRenderedTable(text, table);
-  return chatResult({ lastData, text, collectedToolResults, usageCalls, deadlineHit: false });
+  const out = chatResult({ lastData, text, collectedToolResults, usageCalls, deadlineHit: false });
+  // The page saves this list as the workup's doctors (replace, not merge): corrections and removals stick.
+  if (followUpRun) out.doctorList = { final: true, doctors: followUpRun.doctors };
+  return out;
 }
 
 async function chat(messages, systemPrompt) {
@@ -543,6 +568,7 @@ async function chat(messages, systemPrompt) {
 module.exports = {
   callChatCompletions,
   passThroughChat,
+  coveredByFollowUp,
   chat,
   normalizeMessages,
   toOpenAITools,
