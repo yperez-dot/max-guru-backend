@@ -51,7 +51,8 @@ describe('compare mode: job', () => {
     assert.equal(job.progress.meds.done, 6);
     assert.deepEqual(job.result.planIds, ['H1036-065C', 'H1609-018', 'H1290-073']);
     assert.match(job.result.doctorTable, /\| Ernesto Padron Pcp · NPI 1234567890 \| ✅ In \|/);
-    assert.match(job.result.whyLine, /^Why these plans: the 3 plans you named/);
+    assert.equal(job.result.whyLine, undefined, 'no "Why these plans" line in a compare-job result');
+    assert.match(job.result.selection, /^the 3 plans you named/);
     // Fixture rows carry no PA/ST/QL fields, so each cell says the restrictions are unknown.
     assert.match(job.result.medsTable, /\| Jardiance 10mg \| T1 \$0 \| T1 \$0 \| T1 \$0 \|/);
     assert.equal(job.result.toolResults.filter((t) => t.tool === 'lookup_provider_network').length, 9);
@@ -162,7 +163,7 @@ describe('current plan + "is there something better?"', () => {
     assert.equal(job.result.planSource, 'current_plus_alternatives');
     assert.equal(job.result.planIds[0], 'H1045-005');
     assert.ok(job.result.planIds.length >= 2, `got ${job.result.planIds}`);
-    assert.match(job.result.whyLine, /current plan \(H1045-005\) first/);
+    assert.match(job.result.selection, /current plan \(H1045-005\) first/);
   });
   it('without the intent, a named plan stays the only column', async () => {
     const job = mkJob({});

@@ -456,6 +456,24 @@
     return ids ? "Unnamed — " + ids : "Unnamed workup";
   }
 
+  /**
+   * Saved plans a saved comparison grid is missing (empty = the grid still fits the workup). Robin Forte, 2026-10-17:
+   * the first New-client run's 1-plan grid (H5420-001) reopened under her 4 saved plans every time she loaded her.
+   */
+  function stalePlansForResult(workup, result) {
+    const key = (x) => String(x || "").toUpperCase().slice(0, 9);
+    const saved = [...new Set(((workup && workup.planIds && workup.planIds.length) ? workup.planIds : ((workup && workup.plans) || []).map((p) => p && p.planId)).map((x) => String(x || "").toUpperCase().trim()).filter(Boolean))];
+    const had = ((result && result.planIds) || []).map(key).filter(Boolean);
+    if (!had.length || !saved.length) return [];
+    return saved.filter((id) => !had.includes(key(id)));
+  }
+
+  function staleResultNote(workup, result) {
+    const key = (x) => String(x || "").toUpperCase().slice(0, 9);
+    const n = new Set(((workup && workup.planIds && workup.planIds.length) ? workup.planIds : ((workup && workup.plans) || []).map((p) => p && p.planId)).map(key).filter(Boolean)).size;
+    return "That last grid only had " + ((result && result.planIds) || []).map((x) => String(x || "").toUpperCase()).join(", ") + ". Ask me to check the doctors and I'll run all " + n + " saved plans.";
+  }
+
   function formatUpdatedAt(iso) {
     if (!iso) return "";
     try {
@@ -489,5 +507,7 @@
     workupListLabel,
     formatUpdatedAt,
     rehydratePlans,
+    stalePlansForResult,
+    staleResultNote,
   };
 });

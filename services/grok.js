@@ -133,8 +133,11 @@ function chatResult({ lastData, text, collectedToolResults, usageCalls, deadline
   };
   // The grid is one chat message; notes / warnings / questions after it are a second one (page renders 2 bubbles).
   {
-    const { splitFollowUp } = require('./doctorPlanNarrow');
-    const parts = splitFollowUp(text || fallback);
+    const { splitFollowUp, stripWhyThesePlans } = require('./doctorPlanNarrow');
+    // No "Why these plans" / "Excluded:" line in any reply (Yahoska, 2026-10-17).
+    const clean = stripWhyThesePlans(text || fallback).trim() || fallback;
+    out.content = [{ type: 'text', text: clean }];
+    const parts = splitFollowUp(clean);
     if (parts.followUp) {
       out.content = [{ type: 'text', text: parts.grid }];
       out.followUp = { text: parts.followUp };
@@ -351,7 +354,7 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
         role: 'user',
         content:
           `Server re-ran the doctor/plan comparison for the agent's latest message (${followUp.reason}). ` +
-          'This result already applies her answers and carrier choice. Copy its header, "Why these plans" line and tables as-is; ' +
+          'This result already applies her answers and carrier choice. Copy its header and tables as-is (no "Why these plans" line); ' +
           'do not re-rank, swap plans, or reuse the previous table. Do not call lookup_provider_network again for these doctors.\n' +
           text,
       });

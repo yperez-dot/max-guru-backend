@@ -183,7 +183,9 @@ function slimCompareResult(raw) {
   try {
     const text = JSON.stringify(raw);
     if (text.length > MAX_COMPARE_RESULT_CHARS) return null;
-    return JSON.parse(text);
+    const out = JSON.parse(text);
+    delete out.whyLine; // "Why these plans" is never shown (Yahoska, 2026-10-17)
+    return out;
   } catch (_) {
     return null;
   }
