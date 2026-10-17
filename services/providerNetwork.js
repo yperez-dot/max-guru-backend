@@ -570,6 +570,8 @@ function structuredFor(doctorName, providerResults, { status, sunfireLabels = []
     doctorName: firstProvider.name,
     requestedName: doctorName,
     npi: firstProvider.npi,
+    // NPI taxonomy ("Internal Medicine"): medical-group rules apply to primary care only.
+    ...(firstProvider.specialty ? { specialty: firstProvider.specialty } : {}),
     status,
     pending: firstProvider.pending || [],
     // Carrier checks that ran but failed (HTTP error) — shown as ❔ unchecked, never a miss.

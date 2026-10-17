@@ -117,7 +117,7 @@ describe('only the plan she is on is her current plan', () => {
 });
 
 describe('a full final table replaces the saved doctor list (Jackie, 2026-10-13)', () => {
-  it('replaceDoctors drops the old misspelled rows; without it saves still merge', () => {
+  it('replaceDoctors drops the old misspelled rows; a merge save replaces respelled rows too', () => {
     const { store, cleanup } = tempStore();
     try {
       const first = store.upsert(OWNER, { ...maura(), clientName: 'Jackie', doctors: [
@@ -130,7 +130,9 @@ describe('a full final table replaces the saved doctor list (Jackie, 2026-10-13)
         { name: 'Neeta Jane Erinjeri', npi: '1427310424', byPlanId: { 'H1045-001': 'in' } },
       ];
       const merged = store.upsert(OWNER, { ...maura(), id, clientName: 'Jackie', doctors: fixed });
-      assert.equal((merged.workup || merged).doctors.length, 4);
+      // A respelled doctor replaces the saved misspelled row even on a merge save: the screen spelling is the truth
+      // (Jacqueline Alexander, 2026-10-17: "Pasquel DeSantis" / "Neeta Erinjerri" stayed next to the fixed rows).
+      assert.deepEqual((merged.workup || merged).doctors.map((d) => d.name), ['Pascual De Santis', 'Neeta Jane Erinjeri']);
       const replaced = store.upsert(OWNER, { ...maura(), id, clientName: 'Jackie', doctors: fixed, replaceDoctors: true });
       assert.deepEqual((replaced.workup || replaced).doctors.map((d) => d.name), ['Pascual De Santis', 'Neeta Jane Erinjeri']);
     } finally { cleanup(); }

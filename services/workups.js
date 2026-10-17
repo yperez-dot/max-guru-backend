@@ -236,17 +236,63 @@ function sameDoctorRow(a, b) {
   return nameKey(a.name) === nameKey(b.name);
 }
 
+/** Name words before " - practice", "Dr." / credentials / role words dropped. */
+function coreNameWords(name) {
+  return String(name || '').split(/\s+[-–—]\s+/)[0].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/\b(dr|dra|md|do|np|pa|aprn|arnp|dpm|od|dds|dmd|dc|pcp)\b\.?/g, ' ')
+    .split(/[^a-z]+/).filter((w) => w.length > 1);
+}
+
+function editDistance(a, b) {
+  let row = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i += 1) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j += 1) cur[j] = Math.min(row[j] + 1, cur[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    row = cur;
+  }
+  return row[b.length];
+}
+
+/**
+ * The incoming (on-screen) row is a corrected spelling of a saved row: "Nathalie Regalado" for
+ * "Natalie Regalado - Baptist Medical Group", "Pascual De Santis" for "Pasquel DeSantis - Endocrinologist".
+ * Pushing it as a new row left the old misspelled one in the saved list (Jacqueline Alexander, 2026-10-17).
+ */
+function correctedSpelling(saved, incoming) {
+  const a = coreNameWords(saved.name);
+  const b = coreNameWords(incoming.name);
+  if (a.length < 2 || b.length < 2) return false;
+  const A = a.join(' ');
+  const B = b.join(' ');
+  if (A === B) return true;
+  const lastA = a.slice(1).join('');
+  const lastB = b.slice(1).join('');
+  return editDistance(a[0], b[0]) <= 2 && (editDistance(a[a.length - 1], b[b.length - 1]) <= 2 || editDistance(lastA, lastB) <= 2);
+}
+
 /** Never drop a saved doctor: incoming results win per plan, older plans' results stay. */
 function mergeDoctors(existing, incoming) {
   const out = (existing || []).map((d) => ({ ...d, byPlanId: { ...(d.byPlanId || {}) } }));
   for (const d of incoming || []) {
-    const hit = out.find((x) => sameDoctorRow(x, d));
+    let hit = out.find((x) => sameDoctorRow(x, d));
+    if (!hit) {
+      // A respelled saved doctor: the screen row replaces it (name, NPI and results), never a second row.
+      const fix = out.find((x) => correctedSpelling(x, d) && !(incoming || []).some((o) => o !== d && sameDoctorRow(x, o)));
+      if (fix) {
+        const at = out.indexOf(fix);
+        out[at] = { ...fix, ...d, byPlanId: { ...(d.byPlanId || {}) } };
+        continue;
+      }
+    }
     if (!hit) { out.push({ ...d, byPlanId: { ...(d.byPlanId || {}) } }); continue; }
     Object.assign(hit.byPlanId, d.byPlanId || {});
     if (d.npi && !hit.npi) hit.npi = d.npi;
     if (d.role && !hit.role) hit.role = d.role;
     // The longer spelling is usually the fuller name ("Dr. Cheryl L Case-Diaz" over "Cheryl Diaz").
     if (String(d.name).length > String(hit.name).length && nameKey(d.name) !== nameKey(hit.name)) hit.name = d.name;
+    // Same NPI, she re-spelled the name on screen ("Nathalie" for "Natalie"): the screen spelling wins.
+    else if (d.npi && hit.npi === d.npi && nameKey(d.name) !== nameKey(hit.name)
+      && !coreNameWords(d.name).every((w) => coreNameWords(hit.name).includes(w))) hit.name = d.name;
   }
   return out.slice(0, MAX_DOCTORS);
 }
@@ -616,6 +662,7 @@ module.exports = {
   normalizeWorkupInput,
   normalizeNetworkBucket,
   mergeDoctors,
+  correctedSpelling,
   mergeMedications,
   differentClient,
   slimMedications,
