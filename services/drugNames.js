@@ -229,10 +229,25 @@ async function resolveDrugName(raw, fetchImpl = fetch) {
     const others = [...new Set(ingredientSets.slice(1).map((s) => s[0]))].filter((n) => n !== topName);
     return remember(base, input, { status: 'ambiguous', name: base, suggestion: topName, alternatives: others, reason: 'different_ingredients' });
   }
+  // A pharmacy-label spelling of the same drug ("BRIMONIDINE TARTRATE/TIMOLOL MALEATE SOLUTION 0.2/0.5%" vs
+  // RxNorm's "brimonidine tartrate 0.2 % / timolol maleate 0.5 % ophthalmic solution") is a correction, not a
+  // "check name" row on every re-run (Nancy Blanco De Pajaro, 2026-10-17).
+  if (sim < MIN_SIMILARITY && sameCoreDrug(base, topName)) {
+    return remember(base, input, { status: 'corrected', name: topName, rxcui: top.rxcui, from: base, similarity: Number(sim.toFixed(2)) });
+  }
   if (sim < MIN_SIMILARITY) {
     return remember(base, input, { status: 'ambiguous', name: base, suggestion: topName, alternatives: [], reason: 'low_confidence' });
   }
   return remember(base, input, { status: 'corrected', name: topName, rxcui: top.rxcui, from: base, similarity: Number(sim.toFixed(2)) });
+}
+
+const CORE_SKIP_WORDS = new Set(('maleate tartrate hydrochloride hcl sodium potassium calcium magnesium besylate mesylate succinate citrate sulfate acetate phosphate fumarate bromide chloride propionate furoate monohydrate dihydrate ' +
+  'solution soln sol suspension susp drops drop tablet tablets tab tabs capsule capsules cap caps ophthalmic oral topical extended release er xr sr dr cream ointment gel injection pen mg mcg ml').split(/\s+/));
+/** Same ingredient words, salts / forms / strengths aside. */
+function sameCoreDrug(a, b) {
+  const core = (x) => [...new Set(String(x || '').toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 2 && !CORE_SKIP_WORDS.has(w)))].sort().join('+');
+  const ca = core(a);
+  return !!ca && ca === core(b);
 }
 
 function swapName(input, base, res) {
@@ -335,6 +350,7 @@ module.exports = {
   drugNameBase,
   similarity,
   resolveDrugName,
+  sameCoreDrug,
   drugTokensInText,
   restrictionsKnownFor,
   restrictionsUnknown,

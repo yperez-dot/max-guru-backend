@@ -1300,14 +1300,55 @@
     return out;
   }
 
+  // A practice / organization, not a person: never "Dr. Miami Healthy Smiles" (Edward Kennedy export, 2026-10-17).
+  const ORG_NAME_RE = /\b(?:dental|dentistry|smiles?|orthodontics?|family\s+practice|practice|pharmacy|wellness|services|partners|physicians|surgery|surgical|urgent|labs?|vision|eye\s+care|care|llc|inc|pllc|corp|ltd|p\.a\.)(?=\s|$|,)|&/i;
+  function isOrganizationName(name, opts) {
+    const o = opts && typeof opts === "object" ? opts : {};
+    if (o.organization === true || /^(?:NPI-?2|organization|org)$/i.test(String(o.entityType || ""))) return true;
+    const body = String(name || "").replace(/^(?:dr|doctor)\.?\s+/i, "").trim();
+    if (!body) return false;
+    return looksLikeOrganization(body) || ORG_NAME_RE.test(body);
+  }
+  // Trailing degrees on a person's name: "M D", "MD", "M.D.", "DO", "D.O.", ", MD, PhD" …
+  const DEGREE_TOKEN_RE = /^(?:MD|DO|DDS|DMD|DPM|OD|DC|NP|PA|PAC|APRN|ARNP|FNP|DNP|RN|PHD|PHARMD|FACC|FACP|FACS|JR\.?|SR\.?)$/i;
+  function stripDegreeSuffix(body) {
+    const parts = String(body || "").replace(/,/g, " ").split(/\s+/).filter(Boolean);
+    let changed = true;
+    while (changed && parts.length > 2) {
+      changed = false;
+      const last = parts[parts.length - 1].replace(/[.\-/]/g, "");
+      const two = parts.length > 3 ? (parts[parts.length - 2] + parts[parts.length - 1]).replace(/[.\-/]/g, "") : "";
+      if (/^(?:JR|SR)$/i.test(last)) break; // a name suffix stays
+      if (two && /^[A-Za-z]$/.test(parts[parts.length - 1].replace(/\./g, "")) && /^[A-Za-z]$/.test(parts[parts.length - 2].replace(/\./g, "")) && DEGREE_TOKEN_RE.test(two)) { parts.splice(-2, 2); changed = true; continue; }
+      if (DEGREE_TOKEN_RE.test(last)) { parts.pop(); changed = true; }
+    }
+    return parts.join(" ");
+  }
+  /** Export display name: "Dr. David A Rodriguez M D" → "Dr. David A Rodriguez"; "Dr. Miami Healthy Smiles" → "Miami Healthy Smiles". */
+  function formatDoctorExportName(name, opts) {
+    const n = String(name || "").replace(/\s+/g, " ").trim();
+    const hasDr = /^(?:dr|doctor)\.?\s+/i.test(n);
+    let body = n.replace(/^(?:dr|doctor)\.?\s+/i, "").trim();
+    if (!body) return n;
+    if (isOrganizationName(body, opts)) {
+      if (body === body.toUpperCase() && /[A-Z]{2}/.test(body)) body = body.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
+      return body;
+    }
+    if (!hasDr) return n;
+    let person = stripDegreeSuffix(body);
+    if (person === person.toUpperCase() && /[A-Z]{2}/.test(person)) person = person.toLowerCase().replace(/(^|[\s'-])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+    return "Dr. " + person;
+  }
+
   function normalizeDoctors(doctors, plans) {
     if (!Array.isArray(doctors) || !doctors.length || !plans || !plans.length) return [];
     const out = [];
     const seen = new Set();
     for (const d of doctors) {
       if (!d) continue;
-      const name = cleanDoctorName(typeof d === "string" ? d : d.name || d.doctor || "");
-      if (!name) continue;
+      const cleaned = cleanDoctorName(typeof d === "string" ? d : d.name || d.doctor || "");
+      if (!cleaned) continue;
+      const name = formatDoctorExportName(cleaned, typeof d === "string" ? null : { organization: d.organization === true || d.isOrganization === true, entityType: d.entityType || d.enumerationType });
       const key = name.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -1851,7 +1892,10 @@
       const plans = Array.isArray(plansOrPayload.plans) ? plansOrPayload.plans : [];
       // A payload built from the table on screen keeps that column order (UHC, DrMax, DrSelect); the
       // preferred-order sort re-ordered it and then mapped the doctors' positional statuses onto the wrong plans.
-      const kept = plansOrPayload.keepPlanOrder === true ? uniquePlansKeepOrder(plans) : uniq(plans);
+      const ordered = plansOrPayload.keepPlanOrder === true ? uniquePlansKeepOrder(plans) : uniq(plans);
+      // Her CURRENT plan is always the first column, in every export (Edward Kennedy, 2026-10-17: current UHC
+      // H5420-001 came out after Humana H1036-054C because the preferred-order sort / saved order won).
+      const kept = currentPlanFirst(ordered, plansOrPayload.currentPlanIds || extra.currentPlanIds);
       const aligned = realignDoctorStatuses(plansOrPayload.doctors, plans, kept);
       const out = {
         ...plansOrPayload,
@@ -1996,6 +2040,17 @@
 
   // One column per distinct contract-PBP. Only a second copy of the SAME ID is dropped;
   // different plans (even same carrier family, e.g. H5420-001 vs H5420-014) all stay.
+  /** Her current plan(s) first, everything else in the order given. */
+  function currentPlanFirst(plans, currentPlanIds) {
+    const list = Array.isArray(plans) ? plans.slice() : [];
+    const cur = (Array.isArray(currentPlanIds) ? currentPlanIds : []).map((x) => String(x || "").toUpperCase().slice(0, 9)).filter(Boolean);
+    if (!cur.length) return list;
+    const key = (p) => String((p && (p.planId || p.id)) || "").toUpperCase().replace(/\s+/g, "").slice(0, 9);
+    const first = [];
+    cur.forEach((id) => list.forEach((p) => { if (key(p) === id && !first.includes(p)) first.push(p); }));
+    return [...first, ...list.filter((p) => !first.includes(p))];
+  }
+
   function uniquePlansByContractPbp(plans) {
     const byPbp = new Map();
     (plans || []).forEach((p) => {
@@ -2283,10 +2338,13 @@
         if (m.name && hit.name && m.name.length > hit.name.length && m.name.toLowerCase().startsWith(String(hit.name).toLowerCase())) hit.name = m.name;
       });
     }
+    const mineText = (Array.isArray(extra.userMessages) ? extra.userMessages.join("\n") : "") + "\n" + String(extra.latestUserText || "");
     const payload = {
       plans: resolvedPlans,
       clientName: clientName || "",
       terminatingPlan: terminatingPlan || "",
+      // Her current plan: the saved workup's, else what she said ("current plan … H5420-001"). First column.
+      currentPlanIds: (Array.isArray(extra.currentPlanIds) && extra.currentPlanIds.length ? extra.currentPlanIds : currentPlanIdsFromText(mineText)).map((x) => String(x).toUpperCase().slice(0, 9)),
       doctors,
       drugs,
       zip: extra.zip || "",
@@ -3416,6 +3474,9 @@
     exportPlanIdsFromThread,
     sameNetworkTwinIds,
     currentPlanIdsFromText,
+    currentPlanFirst,
+    formatDoctorExportName,
+    isOrganizationName,
     tidyExportPlans,
     finalizeExportDoctors,
     doctorExportLabel,
@@ -3848,6 +3909,8 @@
       plans: plans,
       clientName: w.clientName || "",
       terminatingPlan: w.terminatingPlan || "",
+      // Her current plan is the first export column (Edward Kennedy, 2026-10-17).
+      currentPlanIds: Array.isArray(w.currentPlanIds) ? w.currentPlanIds.slice(0, 3) : [],
       doctors: doctors,
       drugs: drugs,
     };
@@ -3958,6 +4021,62 @@
     return "That last grid only had " + ((result && result.planIds) || []).map((x) => String(x || "").toUpperCase()).join(", ") + ". Ask me to check the doctors and I'll run all " + n + " saved plans.";
   }
 
+  /**
+   * Her ORIGINAL request for this client, shown when she opens the workup: the saved originalQuery, else the
+   * "New client" paste this browser kept for that workup. Nothing else is ever passed off as the original.
+   */
+  function originalQueryFor(workup, wsEntry) {
+    const saved = workup && typeof workup.originalQuery === "string" ? workup.originalQuery.trim() : "";
+    if (saved) return saved;
+    const raw = wsEntry && typeof wsEntry.rawText === "string" ? wsEntry.rawText.trim() : "";
+    return raw;
+  }
+
+  /** First message she typed in a chat thread (images and the loaded-workup context skipped). */
+  function firstUserQuery(messages, textOf) {
+    const read = typeof textOf === "function" ? textOf : (c) => (typeof c === "string" ? c : "");
+    for (const m of Array.isArray(messages) ? messages : []) {
+      if (!m || m.role !== "user") continue;
+      const t = String(read(m.content) || "").trim();
+      if (!t || isWorkupContextMessage(t)) continue;
+      return t;
+    }
+    return "";
+  }
+
+  // The ORIGINAL request is long when it is over 3 lines or 220 characters: the banner shows it collapsed.
+  function originalQueryIsLong(text) {
+    const t = String(text || "");
+    return t.length > 220 || t.split("\n").length > 3;
+  }
+
+  /**
+   * Comparison-card notes that go in their OWN bubble after the grid — never above or under it in the card
+   * (Edward Kennedy, 2026-10-17: "Answer these first" box sat above the grid). Questions first, then brief notes.
+   */
+  function compareFollowUpLines(result, opts) {
+    const o = opts && typeof opts === "object" ? opts : {};
+    const r = result && typeof result === "object" ? result : {};
+    const skipQ = o.skipQuestion instanceof RegExp ? o.skipQuestion : null;
+    const questions = (Array.isArray(r.questions) ? r.questions : []).map((q) => String(q || "").trim()).filter((q) => q && !(skipQ && skipQ.test(q)));
+    const notes = [];
+    const cnv = r.couldNotVerify;
+    if (cnv && cnv.count > 0) {
+      const ids = (Array.isArray(cnv.plans) ? cnv.plans : []).map((p) => p && p.planId).filter(Boolean);
+      notes.push("Could not verify " + cnv.count + " plan" + (cnv.count === 1 ? "" : "s") + " (most doctors unchecked)" + (ids.length ? ": " + ids.join(", ") : "") + ".");
+    }
+    for (const f of Array.isArray(r.flags) ? r.flags : []) if (String(f || "").trim()) notes.push(String(f).trim());
+    return { questions: questions, notes: notes };
+  }
+
+  /** The card's "Plans:" line: the grid's columns once it ran, else what she typed. */
+  function comparePlansLine(result, typedPlans) {
+    const r = result && typeof result === "object" ? result : {};
+    if (Array.isArray(r.planLabels) && r.planLabels.length) return r.planLabels.join(", ");
+    if (Array.isArray(r.planIds) && r.planIds.length) return r.planIds.join(", ");
+    return (Array.isArray(typedPlans) ? typedPlans : []).join(", ");
+  }
+
   function formatUpdatedAt(iso) {
     if (!iso) return "";
     try {
@@ -3993,6 +4112,11 @@
     rehydratePlans,
     stalePlansForResult,
     staleResultNote,
+    originalQueryFor,
+    firstUserQuery,
+    originalQueryIsLong,
+    compareFollowUpLines,
+    comparePlansLine,
   };
 });
 </script>
@@ -5667,6 +5791,8 @@ function collectComparisonExport(history, plans, extras) {
   const wkSaved = threadWorkup(history);
   const extra = {
     savedDoctors: (wkSaved && wkSaved.doctors) || [],
+    // The loaded workup's current plan leads every export (Edward Kennedy, 2026-10-17).
+    currentPlanIds: (wkSaved && Array.isArray(wkSaved.currentPlanIds) && wkSaved.currentPlanIds) || [],
     chatTable: typeof window.MaxComparisonExport.latestChatTable === "function" ? window.MaxComparisonExport.latestChatTable(history, userMessageText) : null,
     ...extra0,
   };
@@ -6582,6 +6708,11 @@ const queueExportExtras = (e) => ({
   clientName: e.fields.clientName,
   explicitTerminating: Boolean(e.fields.terminatingPlan),
   terminatingPlan: e.fields.terminatingPlan,
+  // One plan typed in "Plans:" is her current plan: the first export column (same rule as the saved workup).
+  currentPlanIds: (() => {
+    const ids = [...new Set((String(e.fields.plans || "").match(/\b[HR]\d{4}-\d{3}[A-Z]?\b/gi) || []).map((x) => x.toUpperCase()))];
+    return ids.length === 1 ? ids : [];
+  })(),
 });
 const queueHistory = (e) => [{ role: "user", content: compareAskText(e.fields) }];
 
@@ -6603,40 +6734,45 @@ function queueStatus(e) {
 // The workspace already asked Medicaid/MSP and C-SNP with tap buttons before it ran — never ask them again below.
 const ELIGIBILITY_Q_RE = /C-SNP qualifying chronic condition|Medicaid or a Medicare Savings Program|Which MSP level/i;
 
-function CompareResult({ result: rawResult, onExport, askedEligibility }) {
+function CompareResult({ result, onExport }) {
   const btn = queueBtn;
-  const result = askedEligibility && rawResult ? { ...rawResult, questions: (rawResult.questions || []).filter((q) => !ELIGIBILITY_Q_RE.test(String(q))) } : rawResult;
   return (
     <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--ink)" }}>
-                {(result.questions || []).length > 0 && (
-                  <div style={{ fontSize: 13, margin: "6px 0 10px", padding: "10px 12px", border: "2px solid #d97706", background: "#fffbeb", color: "#78350f", borderRadius: 8 }}>
-                    <b>Answer these first — the results below are not final:</b>
-                    {(result.questions || []).map((q, i) => <div key={"q" + i} style={{ marginTop: 4, whiteSpace: "pre-line" }}>{i + 1}. {q}</div>)}
-                  </div>
-                )}
+                {/* Questions and notes are NOT in this card: CompareFollowUp shows them in their own bubble after it. */}
                 {result.header && <div style={{ margin: "6px 0 2px" }}>{renderMessageText(result.header)}</div>}
                 {/* No "Why these plans" line — saved results from before 2026-10-17 still carry one; it is never shown. */}
-                {result.doctorTable ? <>{renderMessageText("**Doctors**\n\n" + result.doctorTable)}</> : <div>{result.doctorCount === 0 ? "No doctors were entered for this client, so there are no In/Out results. Add the doctors and run it again to compare networks." : 'No eligible plan has a verifiable doctor result yet — see "Could not verify" and the questions below.'}</div>}
+                {result.doctorTable ? <>{renderMessageText("**Doctors**\n\n" + result.doctorTable)}</> : <div>{result.doctorCount === 0 ? "No doctors were entered for this client, so there are no In/Out results. Add the doctors and run it again to compare networks." : 'No eligible plan has a verifiable doctor result yet — see the next message.'}</div>}
                 <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
                   {result.legend || "✅ In · ❌ Out · ❔ unchecked = never checked · ❔ not confirmed = checked, no result (never assume Out)"}
                 </div>
-                {result.couldNotVerify && result.couldNotVerify.count > 0 && (
-                  <div style={{ fontSize: 12.5, marginTop: 6 }}>
-                    <b>Could not verify</b> ({result.couldNotVerify.count} eligible plan{result.couldNotVerify.count === 1 ? "" : "s"} with over half the doctors unchecked — not ranked){(result.couldNotVerify.plans || []).length ? ": " + result.couldNotVerify.plans.map((p) => p.name + " · " + p.planId).join("; ") : ""}
-                  </div>
-                )}
                 {result.medsTable && <div style={{ marginTop: 10 }}>{renderMessageText("**Meds**\n\n" + result.medsTable)}</div>}
                 {result.medsTable && (
                   <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
                     {result.medsLegend || "T = tier · ⚠️ confirm = read not covered, check the exact product in Sunfire · ❔ unchecked = never checked · ❔ not confirmed = checked, no result"}
                   </div>
                 )}
-                {(result.flags || []).map((f, i) => <div key={"flag" + i} style={{ fontSize: 12.5, color: "#92400e", marginTop: 6 }}>{f}</div>)}
                 {onExport && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
                   <button onClick={() => void onExport("excel")} style={btn(true)}>Export Excel</button>
                   <button onClick={() => void onExport("pdf")} style={btn(false)}>Export PDF</button>
                 </div>}
               </div>
+  );
+}
+
+// Questions and notes from a comparison card: their OWN bubble after the grid, never above or under it inside the
+// card (Yahoska, 2026-10-17 — Edward Kennedy's "Answer these first" box sat above his grid).
+function CompareFollowUp({ result, askedEligibility }) {
+  if (!result) return null;
+  const { questions, notes } = window.MaxClientWorkups.compareFollowUpLines(result, askedEligibility ? { skipQuestion: ELIGIBILITY_Q_RE } : {});
+  if (!questions.length && !notes.length) return null;
+  return (
+    <div data-testid="compare-follow-up" className="max-fade" style={{ display: "flex", justifyContent: "flex-start", gap: 8, marginBottom: 10 }}>
+      <Avatar size={30} />
+      <div style={{ maxWidth: "78%", padding: "10px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(255,255,255,0.95)", border: "1px solid var(--line)", fontSize: 13.5, lineHeight: 1.45, color: "var(--ink)" }}>
+        {questions.map((q, i) => <div key={"q" + i} style={{ marginTop: i ? 4 : 0, whiteSpace: "pre-line" }}>{questions.length > 1 ? (i + 1) + ". " : ""}{q}</div>)}
+        {notes.map((n, i) => <div key={"n" + i} style={{ marginTop: (questions.length || i) ? 6 : 0, fontSize: 12.5, color: "#92400e", whiteSpace: "pre-line" }}>{n}</div>)}
+      </div>
+    </div>
   );
 }
 
@@ -6754,7 +6890,7 @@ function ClientWsCard({ ws, onSubmit, onAnswer, onToggleMust, onExport, onCancel
   }
   const result = (ws.job && ws.job.result) || ws.result;
   const box = { width: "100%", boxSizing: "border-box", padding: "9px 11px", borderRadius: 10, border: "1px solid var(--line)", fontFamily: "var(--font)", fontSize: 13.5, background: "#fff", color: "var(--ink)" };
-  return (
+  return (<>
     <div data-testid="client-ws" className="max-fade" style={{ display: "flex", gap: 8, marginBottom: 10 }}>
       <Avatar size={30} />
       <div style={{ flex: 1, minWidth: 0, maxWidth: "94%", padding: "12px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(255,255,255,0.95)", border: "1px solid var(--line)", fontSize: 14, lineHeight: 1.45, color: "var(--ink)" }}>
@@ -6780,7 +6916,11 @@ function ClientWsCard({ ws, onSubmit, onAnswer, onToggleMust, onExport, onCancel
           <div style={{ fontWeight: 700 }}>{f.clientName || ws.name || "Client"}{f.zip ? " · ZIP " + f.zip : ""}</div>
           {linesOf(f.doctors).length > 0 && <div style={{ fontSize: 13, marginTop: 4 }}><b>Doctors:</b> {linesOf(f.doctors).join("; ")}</div>}
           {linesOf(f.meds).length > 0 && <div style={{ fontSize: 13, marginTop: 2 }}><b>Meds:</b> {linesOf(f.meds).join("; ")}</div>}
-          {linesOf(f.plans).length > 0 && <div style={{ fontSize: 13, marginTop: 2 }}><b>Plans:</b> {linesOf(f.plans).join(", ")}</div>}
+          {(() => {
+            // Once it ran, "Plans:" lists the grid's columns, not only the plan she typed (Edward Kennedy, 2026-10-17).
+            const line = window.MaxClientWorkups.comparePlansLine(stage === "done" ? result : null, linesOf(f.plans));
+            return line ? <div data-testid="ws-plans-line" style={{ fontSize: 13, marginTop: 2 }}><b>Plans:</b> {line}</div> : null;
+          })()}
         </>)}
         {stage === "questions" && (<>
           <div style={{ marginTop: 10, fontSize: 13, color: "var(--muted)" }}>A few quick answers before I compare plans. Plans that need them stay out until they're confirmed.</div>
@@ -6824,7 +6964,7 @@ function ClientWsCard({ ws, onSubmit, onAnswer, onToggleMust, onExport, onCancel
         {stage === "done" && (
           <div data-testid="ws-done" style={{ marginTop: 10 }}>
             <div style={{ fontWeight: 700, marginBottom: 4 }}>Comparison results</div>
-            {result ? <CompareResult result={result} onExport={onExport} askedEligibility /> : <div style={{ fontSize: 13, color: "var(--muted)" }}>Results aren't available on this device. Run the client again to see them.</div>}
+            {result ? <CompareResult result={result} onExport={onExport} /> : <div style={{ fontSize: 13, color: "var(--muted)" }}>Results aren't available on this device. Run the client again to see them.</div>}
           </div>
         )}
         {stage !== "done" && stage !== "running" && stage !== "starting" && onCancel && (
@@ -6832,7 +6972,8 @@ function ClientWsCard({ ws, onSubmit, onAnswer, onToggleMust, onExport, onCancel
         )}
       </div>
     </div>
-  );
+    {stage === "done" && result && <CompareFollowUp result={result} askedEligibility />}
+  </>);
 }
 
 function App() {
@@ -7115,6 +7256,12 @@ function App() {
     };
     const built = window.MaxClientWorkups.buildWorkupFromExport(payload, extras);
     const prev = loadedWorkupRef.current;
+    // Her ORIGINAL request: the first message of a fresh chat thread. The server keeps it only when it creates the
+    // workup, so a later follow-up is never saved as the original.
+    if (!prev) {
+      const first = window.MaxClientWorkups.firstUserQuery(messagesRef.current, userMessageText);
+      if (first) built.originalQuery = first;
+    }
     if (prev) {
       // Renamed by the agent → keep her name, never the one re-read from the chat.
       if (prev.nameLocked && prev.clientName) built.clientName = prev.clientName;
@@ -7420,7 +7567,7 @@ function App() {
         else if (byName.length > 1 && byName.length <= 6) throw new Error("No doctors or meds is fine, but I found more than one plan that fits: " + byName.map((c) => c.name.replace(/\s*(\*\*)?NEW 2027|\s*COMMISSIONABLE 2027/gi, "").trim() + " (" + c.key + ")").join("; ") + ". Add the plan ID to the paste and tap Continue again.");
         else throw new Error("I didn't find any doctors or meds in that. Add at least one (or the plan she is on, with its ID) and tap Continue again.");
       }
-      const saved = await workupsRequest("PUT", "", { clientName: fields.clientName, zip: fields.zip, plans: [] });
+      const saved = await workupsRequest("PUT", "", { clientName: fields.clientName, zip: fields.zip, plans: [], originalQuery: rawText });
       const workup = saved.workup;
       addWorkupSummary(workup);
       if (benefitsOnlyIds.length) {
@@ -8306,13 +8453,16 @@ function App() {
               onExport={(kind) => wsExport(m.wsId, kind)}
               onCancel={() => void wsCancel(m.wsId)} />
           ) : m.role === "queueResult" ? (
-            <div key={i} className="max-fade" data-testid="queue-result" style={{ display: "flex", justifyContent: "flex-start", gap: 8, marginBottom: 10 }}>
+            <React.Fragment key={i}>
+            <div className="max-fade" data-testid="queue-result" style={{ display: "flex", justifyContent: "flex-start", gap: 8, marginBottom: 10 }}>
               <Avatar size={30} />
               <div style={{ maxWidth: "92%", padding: "12px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(255,255,255,0.95)", border: "1px solid var(--line)" }}>
                 <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 14 }}>Comparison results</div>
                 <CompareResult result={m.result} />
               </div>
             </div>
+            <CompareFollowUp result={m.result} />
+            </React.Fragment>
           ) : m.role === "workup" ? (
             <div key={i} className="max-fade" data-testid="loaded-workup-card" style={{ display: "flex", justifyContent: "flex-start", gap: 8, marginBottom: 10 }}>
               <Avatar size={30} />
@@ -8320,6 +8470,24 @@ function App() {
                 <div style={{ padding: "12px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(245,243,255,0.95)", color: "var(--ink)", fontSize: 14, lineHeight: 1.45, border: "1px solid var(--line)" }}>
                   <div style={{ fontWeight: 700, marginBottom: 6 }}>Loaded workup{m.workup && m.workup.clientName ? " — " + m.workup.clientName : ""}</div>
                   <div style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 8 }}>Continuing from structured facts only — not the old chat. Export still works below.</div>
+                  {(() => {
+                    // Her ORIGINAL request for this client (saved on the workup; older ones: the New-client paste this
+                    // browser kept). None saved → nothing shown.
+                    const q = window.MaxClientWorkups.originalQueryFor(m.workup, m.workup && wsMap[m.workup.id]);
+                    if (!q) return null;
+                    const box = { fontSize: 12.5, whiteSpace: "pre-wrap", wordBreak: "break-word", background: "#fff", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 8px", marginTop: 4 };
+                    return window.MaxClientWorkups.originalQueryIsLong(q) ? (
+                      <details data-testid="workup-original-query" style={{ marginBottom: 8 }}>
+                        <summary style={{ fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Original request: <span style={{ fontWeight: 400, color: "var(--muted)" }}>{q.split("\n")[0].slice(0, 80)}…</span></summary>
+                        <div style={box}>{q}</div>
+                      </details>
+                    ) : (
+                      <div data-testid="workup-original-query" style={{ marginBottom: 8 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600 }}>Original request</div>
+                        <div style={box}>{q}</div>
+                      </div>
+                    );
+                  })()}
                   {m.workup && m.workup.plans && m.workup.plans.length > 0 && (
                     <div style={{ fontSize: 13 }}>
                       {(m.workup.plans || []).map((p) => (

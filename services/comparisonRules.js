@@ -335,6 +335,29 @@ function cleanMedItem(raw) {
   return !s || MED_DEVICE_RE.test(s) ? '' : s;
 }
 
+// A pharmacy-label name too long for the med list ("BRIMONIDINE TARTRATE/TIMOLOL MALEATE SOLUTION 0.2/0.5%") is
+// shortened to the name RxNorm prices ("brimonidine tartrate/timolol ophthalmic solution") instead of being dropped from a
+// loaded workup's re-run (Nancy Blanco De Pajaro, 2026-10-17).
+const MED_SALT_WORDS = new Set(['maleate', 'tartrate', 'hydrochloride', 'hcl', 'sodium', 'potassium', 'calcium', 'magnesium', 'besylate', 'mesylate', 'succinate', 'citrate', 'sulfate', 'acetate', 'phosphate', 'fumarate', 'bromide', 'chloride', 'propionate', 'furoate', 'monohydrate', 'dihydrate']);
+const MED_FORM_WORDS = new Set(['solution', 'soln', 'sol', 'suspension', 'susp', 'drops', 'drop', 'tablet', 'tablets', 'tab', 'tabs', 'capsule', 'capsules', 'cap', 'caps', 'ophthalmic', 'opth', 'oph', 'cream', 'ointment', 'gel', 'inhaler', 'injection', 'pen']);
+const EYE_DRUG_RE = /\b(?:brimonidine|timolol|latanoprost|dorzolamide|travoprost|bimatoprost|brinzolamide|netarsudil|tafluprost)\b/i;
+function tidyLongMedName(name) {
+  const raw = String(name || '').trim();
+  if (raw.length < 40) return raw;
+  const low = raw.toLowerCase().replace(/\b\d[\d.\/\s]*(?:%|mg|mcg|ml|units?)?(?=\s|$)/g, ' ').replace(/\s+/g, ' ').trim();
+  const forms = [];
+  const comps = low.split(/\s*\/\s*/).map((c, k) => c.split(/\s+/).filter((w) => {
+    if (!w) return false;
+    if (MED_FORM_WORDS.has(w)) { forms.push(w); return false; }
+    return k === 0 || !MED_SALT_WORDS.has(w);
+  }).join(' ')).filter(Boolean);
+  if (!comps.length) return raw;
+  let form = '';
+  if (forms.some((f) => /^(?:solution|soln|sol|drops?|ophthalmic|opth|oph)$/.test(f))) form = EYE_DRUG_RE.test(low) ? 'ophthalmic solution' : 'solution';
+  else if (forms.length) form = forms[0];
+  return `${comps.join('/')}${form ? ` ${form}` : ''}`;
+}
+
 function isNonDrugAnswer(text) {
   const words = String(text || '').toLowerCase().replace(/[^a-z0-9\s/-]+/g, ' ').split(/[\s/]+/).filter(Boolean);
   return !words.length || words.every((w) => NON_DRUG_WORDS.has(w));
@@ -405,7 +428,7 @@ const NOT_MED_RE = /^(?:no|none|not|medicaid|plan|plans|compare|they|their|for|a
 function medsFromAsk(askText) {
   const t = String(askText || '');
   const out = [];
-  const add = (s0) => { const s = cleanMedItem(s0); if (s && s.length > 2 && s.length < 40 && !isNonDrugAnswer(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
+  const add = (s0) => { const s = tidyLongMedName(cleanMedItem(s0)); if (s && s.length > 2 && s.length < 60 && !isNonDrugAnswer(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
   // "Meds: a, b" / "Medications a, b" / "Medicamentos: a y b" / "Takes a, b" — colon optional
   // (Martin Wiesenthal, 2026-10-09: "…, Medications esomeprazole, rasuvostatin, …" read 0 meds).
   for (const m of t.matchAll(new RegExp(`(^|[^A-Za-z])(no\\s+)?\\b(${MED_LABEL})\\b(\\s*:\\s*|\\s+)([^\\n]+)`, 'gi'))) {
@@ -430,8 +453,8 @@ function medsFromAsk(askText) {
   for (const m of t.matchAll(/^[^\n:]{0,40}?\b(?:meds?|medications?|rx|drugs?|medicamentos?)\b[^\n:]*:\s*\n((?:\s*[-•*][^\n]*(?:\n|$))+)/gim)) {
     for (const line of m[1].split('\n')) {
       if (!line.trim()) continue;
-      const name = cleanMedItem(line.replace(/^\s*[-•*]\s*/, '').split(/:\s/)[0]);
-      if (name && name.length > 2 && name.length < 40 && !isNonDrugAnswer(name) && !out.some((o) => sameDrug(o, name))) out.push(name);
+      const name = tidyLongMedName(cleanMedItem(line.replace(/^\s*[-•*]\s*/, '').split(/:\s/)[0]));
+      if (name && name.length > 2 && name.length < 60 && !isNonDrugAnswer(name) && !out.some((o) => sameDrug(o, name))) out.push(name);
     }
   }
   // MedicarePro "Prescriptions (5)" paste: one "atorvastatin calcium TAB 10MG" line per drug (with
@@ -595,6 +618,7 @@ function knownMedsNote(messages) {
 }
 
 module.exports = {
+  tidyLongMedName,
   csnpRunAsk,
   dsnpRunAsk,
   conditionsIn,

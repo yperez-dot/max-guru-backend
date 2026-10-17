@@ -1276,14 +1276,55 @@
     return out;
   }
 
+  // A practice / organization, not a person: never "Dr. Miami Healthy Smiles" (Edward Kennedy export, 2026-10-17).
+  const ORG_NAME_RE = /\b(?:dental|dentistry|smiles?|orthodontics?|family\s+practice|practice|pharmacy|wellness|services|partners|physicians|surgery|surgical|urgent|labs?|vision|eye\s+care|care|llc|inc|pllc|corp|ltd|p\.a\.)(?=\s|$|,)|&/i;
+  function isOrganizationName(name, opts) {
+    const o = opts && typeof opts === "object" ? opts : {};
+    if (o.organization === true || /^(?:NPI-?2|organization|org)$/i.test(String(o.entityType || ""))) return true;
+    const body = String(name || "").replace(/^(?:dr|doctor)\.?\s+/i, "").trim();
+    if (!body) return false;
+    return looksLikeOrganization(body) || ORG_NAME_RE.test(body);
+  }
+  // Trailing degrees on a person's name: "M D", "MD", "M.D.", "DO", "D.O.", ", MD, PhD" …
+  const DEGREE_TOKEN_RE = /^(?:MD|DO|DDS|DMD|DPM|OD|DC|NP|PA|PAC|APRN|ARNP|FNP|DNP|RN|PHD|PHARMD|FACC|FACP|FACS|JR\.?|SR\.?)$/i;
+  function stripDegreeSuffix(body) {
+    const parts = String(body || "").replace(/,/g, " ").split(/\s+/).filter(Boolean);
+    let changed = true;
+    while (changed && parts.length > 2) {
+      changed = false;
+      const last = parts[parts.length - 1].replace(/[.\-/]/g, "");
+      const two = parts.length > 3 ? (parts[parts.length - 2] + parts[parts.length - 1]).replace(/[.\-/]/g, "") : "";
+      if (/^(?:JR|SR)$/i.test(last)) break; // a name suffix stays
+      if (two && /^[A-Za-z]$/.test(parts[parts.length - 1].replace(/\./g, "")) && /^[A-Za-z]$/.test(parts[parts.length - 2].replace(/\./g, "")) && DEGREE_TOKEN_RE.test(two)) { parts.splice(-2, 2); changed = true; continue; }
+      if (DEGREE_TOKEN_RE.test(last)) { parts.pop(); changed = true; }
+    }
+    return parts.join(" ");
+  }
+  /** Export display name: "Dr. David A Rodriguez M D" → "Dr. David A Rodriguez"; "Dr. Miami Healthy Smiles" → "Miami Healthy Smiles". */
+  function formatDoctorExportName(name, opts) {
+    const n = String(name || "").replace(/\s+/g, " ").trim();
+    const hasDr = /^(?:dr|doctor)\.?\s+/i.test(n);
+    let body = n.replace(/^(?:dr|doctor)\.?\s+/i, "").trim();
+    if (!body) return n;
+    if (isOrganizationName(body, opts)) {
+      if (body === body.toUpperCase() && /[A-Z]{2}/.test(body)) body = body.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
+      return body;
+    }
+    if (!hasDr) return n;
+    let person = stripDegreeSuffix(body);
+    if (person === person.toUpperCase() && /[A-Z]{2}/.test(person)) person = person.toLowerCase().replace(/(^|[\s'-])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+    return "Dr. " + person;
+  }
+
   function normalizeDoctors(doctors, plans) {
     if (!Array.isArray(doctors) || !doctors.length || !plans || !plans.length) return [];
     const out = [];
     const seen = new Set();
     for (const d of doctors) {
       if (!d) continue;
-      const name = cleanDoctorName(typeof d === "string" ? d : d.name || d.doctor || "");
-      if (!name) continue;
+      const cleaned = cleanDoctorName(typeof d === "string" ? d : d.name || d.doctor || "");
+      if (!cleaned) continue;
+      const name = formatDoctorExportName(cleaned, typeof d === "string" ? null : { organization: d.organization === true || d.isOrganization === true, entityType: d.entityType || d.enumerationType });
       const key = name.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -1827,7 +1868,10 @@
       const plans = Array.isArray(plansOrPayload.plans) ? plansOrPayload.plans : [];
       // A payload built from the table on screen keeps that column order (UHC, DrMax, DrSelect); the
       // preferred-order sort re-ordered it and then mapped the doctors' positional statuses onto the wrong plans.
-      const kept = plansOrPayload.keepPlanOrder === true ? uniquePlansKeepOrder(plans) : uniq(plans);
+      const ordered = plansOrPayload.keepPlanOrder === true ? uniquePlansKeepOrder(plans) : uniq(plans);
+      // Her CURRENT plan is always the first column, in every export (Edward Kennedy, 2026-10-17: current UHC
+      // H5420-001 came out after Humana H1036-054C because the preferred-order sort / saved order won).
+      const kept = currentPlanFirst(ordered, plansOrPayload.currentPlanIds || extra.currentPlanIds);
       const aligned = realignDoctorStatuses(plansOrPayload.doctors, plans, kept);
       const out = {
         ...plansOrPayload,
@@ -1972,6 +2016,17 @@
 
   // One column per distinct contract-PBP. Only a second copy of the SAME ID is dropped;
   // different plans (even same carrier family, e.g. H5420-001 vs H5420-014) all stay.
+  /** Her current plan(s) first, everything else in the order given. */
+  function currentPlanFirst(plans, currentPlanIds) {
+    const list = Array.isArray(plans) ? plans.slice() : [];
+    const cur = (Array.isArray(currentPlanIds) ? currentPlanIds : []).map((x) => String(x || "").toUpperCase().slice(0, 9)).filter(Boolean);
+    if (!cur.length) return list;
+    const key = (p) => String((p && (p.planId || p.id)) || "").toUpperCase().replace(/\s+/g, "").slice(0, 9);
+    const first = [];
+    cur.forEach((id) => list.forEach((p) => { if (key(p) === id && !first.includes(p)) first.push(p); }));
+    return [...first, ...list.filter((p) => !first.includes(p))];
+  }
+
   function uniquePlansByContractPbp(plans) {
     const byPbp = new Map();
     (plans || []).forEach((p) => {
@@ -2259,10 +2314,13 @@
         if (m.name && hit.name && m.name.length > hit.name.length && m.name.toLowerCase().startsWith(String(hit.name).toLowerCase())) hit.name = m.name;
       });
     }
+    const mineText = (Array.isArray(extra.userMessages) ? extra.userMessages.join("\n") : "") + "\n" + String(extra.latestUserText || "");
     const payload = {
       plans: resolvedPlans,
       clientName: clientName || "",
       terminatingPlan: terminatingPlan || "",
+      // Her current plan: the saved workup's, else what she said ("current plan … H5420-001"). First column.
+      currentPlanIds: (Array.isArray(extra.currentPlanIds) && extra.currentPlanIds.length ? extra.currentPlanIds : currentPlanIdsFromText(mineText)).map((x) => String(x).toUpperCase().slice(0, 9)),
       doctors,
       drugs,
       zip: extra.zip || "",
@@ -3392,6 +3450,9 @@
     exportPlanIdsFromThread,
     sameNetworkTwinIds,
     currentPlanIdsFromText,
+    currentPlanFirst,
+    formatDoctorExportName,
+    isOrganizationName,
     tidyExportPlans,
     finalizeExportDoctors,
     doctorExportLabel,
