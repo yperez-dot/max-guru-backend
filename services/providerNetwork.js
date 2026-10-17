@@ -67,7 +67,7 @@ function solisFor(rec, zip, planYear) {
 }
 const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery, suggestSimilarProviders } = require('./npiRegistry');
 const { conversationAskText } = require('./planYear');
-const { batchSummaryForModel, narrowingAnswered, comparisonAskText, selectComparison, renderedAnswer } = require('./doctorPlanNarrow');
+const { batchSummaryForModel, narrowingAnswered, comparisonAskText, selectComparison, renderedAnswer, dedupeDoctorRows } = require('./doctorPlanNarrow');
 const { medsFromAsk } = require('./comparisonRules');
 const { drugTokensInText } = require('./drugNames');
 // Time held back from the doctor checks so listed meds still get priced in the same chat turn.
@@ -915,7 +915,9 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   }
 
   const done = results.filter((r) => r.status === 'done').length;
-  const doctorsStructured = results.map((r) => ({ ...r.structured, requestedName: r.doctorName, status: r.status }));
+  // One row per doctor: same NPI twice, or an unresolved description of a resolved doctor, is one row — in the table,
+  // the export (expand) and the doctor list the page saves (Jacqueline Alexander, 2026-10-17).
+  const doctorsStructured = dedupeDoctorRows(results.map((r) => ({ ...r.structured, requestedName: r.doctorName, status: r.status })));
   const answered = narrowingAnswered(context.messages);
   const unreadTokens = await unreadableMeds;
   const medsUnreadable = unreadTokens.length > 0;

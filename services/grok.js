@@ -332,7 +332,10 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
     );
     if (result) {
       const text = pushToolResult('lookup_provider_network', result);
-      if (lastRendered) followUpRun = { doctors: followUp.doctors.slice(), count: renderedDoctorCount(result) || followUp.doctors.length };
+      // The doctors the table shows (duplicates collapsed), so the page saves the same list the table and export carry.
+      const shown = result && typeof result === 'object' && result.structured && Array.isArray(result.structured.doctors)
+        ? result.structured.doctors.map((d) => d && d.requestedName).filter(Boolean) : [];
+      if (lastRendered) followUpRun = { doctors: shown.length ? shown : followUp.doctors.slice(), count: renderedDoctorCount(result) || followUp.doctors.length };
       apiMessages.push({
         role: 'user',
         content:
