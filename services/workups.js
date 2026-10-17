@@ -20,6 +20,7 @@ const MAX_CONTACTS = 200;
 const MAX_ZIP = 10;
 const MAX_COUNTY = 40;
 const MAX_TERMINATING = 90;
+const MAX_ORIGINAL_QUERY = 4000;
 const MAX_NEEDS = 8;
 const MAX_NEED_LEN = 120;
 const MAX_PLANS = 6;
@@ -208,6 +209,8 @@ function normalizeWorkupInput(input) {
     medications: slimMedications(src.medications || src.drugs),
     needs: slimNeeds(src.needs),
     terminatingPlan: clip(src.terminatingPlan || '', MAX_TERMINATING),
+    // The first request she typed for this client ("New client" paste or first chat message) — shown on open.
+    originalQuery: String(src.originalQuery || '').replace(/\r/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, MAX_ORIGINAL_QUERY),
     currentPlanIds: [...new Set((Array.isArray(src.currentPlanIds) ? src.currentPlanIds : [])
       .map((x) => String(x || '').toUpperCase().trim())
       .filter((x) => /^[HR]\d{4}-\d{3}[A-Z]?$/.test(x)))].slice(0, 3),
@@ -583,6 +586,9 @@ class WorkupStore {
       medications: mergeMedications(prev.medications, body.medications),
       needs: slimNeeds([...(prev.needs || []), ...body.needs]),
       terminatingPlan: body.terminatingPlan || prev.terminatingPlan || '',
+      // Set once, when the workup is created; a later save never replaces it, and an existing workup that has none
+      // never gets a later message passed off as her original request.
+      originalQuery: prev.originalQuery || (existing ? '' : body.originalQuery || ''),
       currentPlanIds: body.currentPlanIds.length ? body.currentPlanIds : (prev.currentPlanIds || []),
       // Keep an earlier saved result when a re-save has none, or a thinner one.
       compareResult: keepCompare ? prev.compareResult : (body.compareResult || prev.compareResult || null),

@@ -364,6 +364,8 @@
       plans: plans,
       clientName: w.clientName || "",
       terminatingPlan: w.terminatingPlan || "",
+      // Her current plan is the first export column (Edward Kennedy, 2026-10-17).
+      currentPlanIds: Array.isArray(w.currentPlanIds) ? w.currentPlanIds.slice(0, 3) : [],
       doctors: doctors,
       drugs: drugs,
     };
@@ -474,6 +476,62 @@
     return "That last grid only had " + ((result && result.planIds) || []).map((x) => String(x || "").toUpperCase()).join(", ") + ". Ask me to check the doctors and I'll run all " + n + " saved plans.";
   }
 
+  /**
+   * Her ORIGINAL request for this client, shown when she opens the workup: the saved originalQuery, else the
+   * "New client" paste this browser kept for that workup. Nothing else is ever passed off as the original.
+   */
+  function originalQueryFor(workup, wsEntry) {
+    const saved = workup && typeof workup.originalQuery === "string" ? workup.originalQuery.trim() : "";
+    if (saved) return saved;
+    const raw = wsEntry && typeof wsEntry.rawText === "string" ? wsEntry.rawText.trim() : "";
+    return raw;
+  }
+
+  /** First message she typed in a chat thread (images and the loaded-workup context skipped). */
+  function firstUserQuery(messages, textOf) {
+    const read = typeof textOf === "function" ? textOf : (c) => (typeof c === "string" ? c : "");
+    for (const m of Array.isArray(messages) ? messages : []) {
+      if (!m || m.role !== "user") continue;
+      const t = String(read(m.content) || "").trim();
+      if (!t || isWorkupContextMessage(t)) continue;
+      return t;
+    }
+    return "";
+  }
+
+  // The ORIGINAL request is long when it is over 3 lines or 220 characters: the banner shows it collapsed.
+  function originalQueryIsLong(text) {
+    const t = String(text || "");
+    return t.length > 220 || t.split("\n").length > 3;
+  }
+
+  /**
+   * Comparison-card notes that go in their OWN bubble after the grid — never above or under it in the card
+   * (Edward Kennedy, 2026-10-17: "Answer these first" box sat above the grid). Questions first, then brief notes.
+   */
+  function compareFollowUpLines(result, opts) {
+    const o = opts && typeof opts === "object" ? opts : {};
+    const r = result && typeof result === "object" ? result : {};
+    const skipQ = o.skipQuestion instanceof RegExp ? o.skipQuestion : null;
+    const questions = (Array.isArray(r.questions) ? r.questions : []).map((q) => String(q || "").trim()).filter((q) => q && !(skipQ && skipQ.test(q)));
+    const notes = [];
+    const cnv = r.couldNotVerify;
+    if (cnv && cnv.count > 0) {
+      const ids = (Array.isArray(cnv.plans) ? cnv.plans : []).map((p) => p && p.planId).filter(Boolean);
+      notes.push("Could not verify " + cnv.count + " plan" + (cnv.count === 1 ? "" : "s") + " (most doctors unchecked)" + (ids.length ? ": " + ids.join(", ") : "") + ".");
+    }
+    for (const f of Array.isArray(r.flags) ? r.flags : []) if (String(f || "").trim()) notes.push(String(f).trim());
+    return { questions: questions, notes: notes };
+  }
+
+  /** The card's "Plans:" line: the grid's columns once it ran, else what she typed. */
+  function comparePlansLine(result, typedPlans) {
+    const r = result && typeof result === "object" ? result : {};
+    if (Array.isArray(r.planLabels) && r.planLabels.length) return r.planLabels.join(", ");
+    if (Array.isArray(r.planIds) && r.planIds.length) return r.planIds.join(", ");
+    return (Array.isArray(typedPlans) ? typedPlans : []).join(", ");
+  }
+
   function formatUpdatedAt(iso) {
     if (!iso) return "";
     try {
@@ -509,5 +567,10 @@
     rehydratePlans,
     stalePlansForResult,
     staleResultNote,
+    originalQueryFor,
+    firstUserQuery,
+    originalQueryIsLong,
+    compareFollowUpLines,
+    comparePlansLine,
   };
 });

@@ -424,6 +424,12 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     const columns = sel.columns.map((c) => ({ ...c, name: (input.planNames && input.planNames[c.planId]) || c.name }));
     const planIds = columns.map((c) => c.planId);
     job.result.planIds = planIds;
+    // The card's "Plans:" line lists the grid's columns, not only the plan she typed (Edward Kennedy, 2026-10-17:
+    // the grid had 3 plans and the card still said "Plans: H5420-001").
+    job.result.planLabels = columns.map((c) => {
+      const nm = String(c.name || '').replace(/\s*\*\*.*$/, '').trim();
+      return nm && nm.toUpperCase() !== c.planId ? `${nm} (${c.planId})` : c.planId;
+    });
     job.result.planSource = planSource;
     job.result.drugs = drugs.map((r) => ({
       drugName: r.drugName,
