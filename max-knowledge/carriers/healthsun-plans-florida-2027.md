@@ -1,7 +1,7 @@
 # HealthSun — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
-Pulled: 2026-10-09 22:47 UTC
+Pulled: 2026-10-17 14:33 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H5431-001, H5431-006, H5431-012, H5431-017, H5431-018, H5431-019, H5431-021, H5431-026
 
@@ -511,13 +511,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** HMO
 **Plan year:** 2027
 **CMS ID:** H5431-001
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** 0
 **Part B Giveback:** $45
 **MOOP:** 1500
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| . | HealthSun HealthAdvantage H5431-001 |
 | Premium | 0 |
 | Part B Giveback | $45 |
 | Referrals Needed? | Yes |
@@ -552,10 +552,10 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 6 | 0 |
 | OTC | $87 x month |
 | Grocery Card | N/A |
-| SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | 0 |
 | Chiropractic | $0; routine: not covered |
 | Fitness | SilverSneakers |
+| Other | PERS: $0 copay (1 device + monthly monitoring) |
 | Evidence of Coverage | EOC — HealthAdvantage |
 
 ---
@@ -571,6 +571,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| . | HealthSun MediMax H5431-006 |
 | Premium | 0 |
 | Part B Giveback | 0 |
 | Referrals Needed? | Yes |
@@ -605,7 +606,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 6 | $0 |
 | OTC | $85 x month |
 | Grocery Card | N/A |
-| SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | 0 |
 | Chiropractic | $0; routine: not covered |
 | Fitness | Silver Sneakers |

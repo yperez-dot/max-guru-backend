@@ -1,7 +1,7 @@
 # Solis — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
-Pulled: 2026-10-09 22:47 UTC
+Pulled: 2026-10-17 14:33 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H0982-002, H0982-007, H0982-012, H0982-016, H0982-017, H0982-022, H0982-027, H0982-028, H0982-030, H0982-034
 
@@ -495,7 +495,64 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | Depends on LIS level |
 | Tier 6 | $0 |
 | OTC | $132 x month |
-| Grocery Card | $260 x month (SSBCI Healthy Living Allowance: food/produce, pet, pest control, transport/gas, utilities/phone/internet; no rollover) |
+| Grocery Card | $260 x month |
+| SSBCI Chronic Conditions | Chronic Condition Look Up |
+| Acupuncture | Acupuncture for chronic low back pain 12 visits in 90 days |
+| Chiropractic | $0; routine: 12 visits/yr $0 |
+| Fitness | Silver&Fit $0 (gym/YMCA + 1 home fitness kit/yr) |
+| Other | • Flex $125/quarter prepaid card for dental/vision/hearing (rolls over quarterly; expires 12/31) • Post-discharge meals: 2/day × 7 days • Worldwide ER $0 (up to $75,000/yr) |
+| Evidence of Coverage | EOC — Guardian H0982-002 |
+
+---
+
+## Solis Guardian (H0982-002) — Miami-Dade D-SNP
+**County:** Miami-Dade
+**Type:** D-SNP
+**Plan year:** 2027
+**CMS ID:** H0982-002
+**Premium:** $0–$7.30
+**Part B Giveback:** N/A
+**MOOP:** $3,400
+
+| Benefit | 2027 (confirmed) |
+|---------|------------------|
+| MSP Levels | QMB+, QMB, QDWI, QI, SLMB+, SLMB, FBDE |
+| Premium | $0–$7.30 |
+| Part B Giveback | N/A |
+| Referrals Needed? | Yes |
+| Medical Deductible | $0 |
+| Max Out of Pocket | $3,400 |
+| Inpatient Hospital | $0 per stay · 90 days |
+| Outpatient Hospital | OP surgery $0 · ASC $0 |
+| PCP | $0 |
+| Specialist | $0 |
+| ER | $0 |
+| Urgent Care | $0 |
+| Advanced Imaging (MRI, CT, PET) | $0 |
+| Hearing Services | $2,000 both ears every year |
+| Dental | Preventive & Comprehensive $5,000 |
+| Deep Cleaning | Covered (periodontal scaling) - within $5,000 allowance |
+| Dentures | Yes (complete/partial — auth*) |
+| Fillings | Yes (amalgam/composite) |
+| Root Canals | Yes (auth*) |
+| Extractions | Yes (auth*) |
+| Crowns | Yes (auth*) |
+| Bridges | Yes (auth*) |
+| Implants | Yes |
+| Vision Allowance | $350 eyewear allowance/yr OR 2 pairs select eyeglasses/yr · routine eye exam $0 |
+| Ambulance | $0 ground · 20% air |
+| Transportation | $0 unlimited (plan-approved) |
+| Companionship | Not covered |
+| Custodial Care | Not covered |
+| RX Deductible | $0 with Extra Help $700 without Extra Help |
+| Tier 1 | $0 |
+| Tier 2 | $0 |
+| Tier 3 | Depends on LIS level |
+| Tier 4 | Depends on LIS level |
+| Tier 5 | Depends on LIS level |
+| Tier 6 | $0 |
+| OTC | $132 x month |
+| Grocery Card | $260 x month |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | Acupuncture for chronic low back pain 12 visits in 90 days |
 | Chiropractic | $0; routine: 12 visits/yr $0 |
@@ -516,6 +573,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| . | Solis Healthy Living H0982-022 |
 | Premium | $0 |
 | Part B Giveback | $11.30 |
 | Referrals Needed? | Yes |

@@ -267,8 +267,12 @@ describe('Arias-like sheet model from live plan-data', () => {
     assert.ok(companionship);
     assert.equal(companionship[1], exp.formatBenefitValue(a.companionship, 'companionship'));
 
+    // Follows the grid: blank -> "Not listed"; the 10/17 grid says "N/A".
     const custodial = model.aoa.find((row) => row[0] === 'Custodial Care');
-    assert.deepEqual(custodial.slice(1), ['Not listed', 'Not listed']);
+    assert.deepEqual(custodial.slice(1), [
+      a.custodialCare ? exp.formatBenefitValue(a.custodialCare, 'custodialCare') : 'Not listed',
+      b.custodialCare ? exp.formatBenefitValue(b.custodialCare, 'custodialCare') : 'Not listed',
+    ]);
 
     const sob = model.aoa.find((row) => row[0] === 'Summary of Benefits');
     if (a.sobUrl) {
@@ -277,8 +281,16 @@ describe('Arias-like sheet model from live plan-data', () => {
     } else {
       assert.equal(sob[1], 'SOB pending');
     }
+    // 10/17 resync: both UHC dual EOCs are live on the grid now.
     const eoc = model.aoa.find((row) => row[0] === 'Evidence of Coverage');
-    assert.deepEqual(eoc.slice(1), ['EOC pending', 'EOC pending']);
+    [a, b].forEach((p, i) => {
+      if (p.eocUrl) {
+        assert.equal(eoc[i + 1], 'Evidence of Coverage');
+        assert.ok(model.hyperlinks.some((h) => h.url === p.eocUrl));
+      } else {
+        assert.equal(eoc[i + 1], 'EOC pending');
+      }
+    });
   });
 
   it('omits Doctors block when doctors unknown', () => {

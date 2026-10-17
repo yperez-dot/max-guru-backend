@@ -10,6 +10,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from thei_grid_common import (  # noqa: E402
+    cell_caption,
+    cell_link,
+    extract_plan_id,
     is_confirmed_2027_cell,
     is_green,
     is_healthspring_dade_broward,
@@ -69,6 +72,28 @@ class SheetResolveTests(unittest.TestCase):
         self.assertIn("Dade- DSNP Partial", names)
         self.assertNotIn("Dade- DSNP", names)
         self.assertNotIn("BWD-DSNP", names)
+
+
+
+class GridLinkTests(unittest.TestCase):
+    def test_hyperlink_formula_is_a_link(self):
+        f = '=HYPERLINK("https://goldkidney.com/x/Y0171_H1526002_EOC_0926_M.pdf","EOC — Heart & Diabetes")'
+        cell = SimpleNamespace(value=f, hyperlink=None)
+        self.assertEqual(cell_link(cell), "https://goldkidney.com/x/Y0171_H1526002_EOC_0926_M.pdf")
+        self.assertEqual(cell_caption(f), "EOC — Heart & Diabetes")
+
+    def test_cell_hyperlink_and_bare_url(self):
+        cell = SimpleNamespace(value="SOB", hyperlink=SimpleNamespace(target=" https://a/b "))
+        self.assertEqual(cell_link(cell), "https://a/b")
+        self.assertEqual(cell_link(SimpleNamespace(value="https://c/d", hyperlink=None)), "https://c/d")
+        self.assertIsNone(cell_link(SimpleNamespace(value="EOC pending", hyperlink=None)))
+
+    def test_plan_id_glued_to_a_word(self):
+        self.assertEqual(
+            extract_plan_id("UHC Preferred Dual Complete FL-Y6 HMO-POS-DSNPH1045-063"), "H1045-063"
+        )
+        self.assertEqual(extract_plan_id("Wellcare H1032-250 **NEW 2027**"), "H1032-250")
+        self.assertEqual(extract_plan_id("Devoted H129-002"), "H129-002")
 
 
 if __name__ == "__main__":

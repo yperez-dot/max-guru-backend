@@ -57,14 +57,15 @@ describe('live plan-data defaults to 2027', () => {
     assert.ok(old.some((p) => String(p.premium).includes('4.8')));
   });
 
-  it('keeps Gold Kidney H1526-002 on 2027 with its still-yellow cells counted', () => {
-    // 2026-10-05 grid: MOOP / premium are now confirmed (non-yellow) in the
-    // workbook, so they sync; the remaining yellow cells stay out and are counted.
+  it('keeps Gold Kidney H1526-002 on 2027 with a yellow-cell count', () => {
+    // 2026-10-05 grid: MOOP / premium became confirmed (non-yellow) and synced.
+    // 2026-10-17 grid: no yellow cells are left on the native sheet, so the
+    // count is 0; it must still be a number so the page can flag leftovers.
     const gk = plans.filter((p) => String(p.id || p.planId) === 'H1526-002');
     assert.ok(gk.length >= 1);
     for (const p of gk) {
       assert.equal(p.year, 2027);
-      assert.equal(p.yellowLeft > 0, true);
+      assert.equal(typeof p.yellowLeft, 'number');
     }
   });
 
@@ -86,6 +87,27 @@ describe('live plan-data defaults to 2027', () => {
     // Givebacks that were blank in Max.
     assert.equal(row('H5431-017', 'Miami-Dade').partBGiveback, '$202.90');
     assert.equal(row('H1290-013', 'Miami-Dade').partBGiveback, '$202');
+  });
+
+  it('carries the 10/17 EOC resync: UHC and Gold Kidney docs from the native sheet', () => {
+    const row = (id, county) => {
+      const hit = plans.find((p) => p.planId === id && p.county === county);
+      assert.ok(hit, `${id} ${county} missing`);
+      return hit;
+    };
+    // EOCs that were "EOC pending" on the grid at the 10/8 sync.
+    assert.match(row('H5420-001', 'Miami-Dade').eocUrl, /h5420001000_en\.pdf$/);
+    assert.match(row('H5420-014', 'Miami-Dade').eocUrl, /h5420014000_en\.pdf$/);
+    assert.match(row('H1045-005', 'Broward').eocUrl, /h1045005000_en\.pdf$/);
+    // =HYPERLINK() formula cells (Gold Kidney October docs) are read as links.
+    assert.match(row('H1526-002', 'Miami-Dade').eocUrl, /Y0171_H1526002_EOC_0926_M\.pdf$/);
+    assert.match(row('H1526-012', 'Broward').sobUrl, /Y0171_H1526012_SB_0926_M\.pdf$/);
+    // Header with the id glued to "DSNP" still syncs.
+    assert.match(row('H1045-063', 'Broward').eocUrl, /PCFL27HP0418504_000$/);
+    // The UHC FL-Y6 SOB pasted into the Wellcare column is not shown as Wellcare's.
+    assert.ok(!String(row('H1032-250', 'Broward').sobUrl || '').includes('PCFL27HP0412434'));
+    // Cents keep two decimals.
+    assert.equal(row('H1526-002', 'Miami-Dade').premium, '$7.30');
   });
 });
 

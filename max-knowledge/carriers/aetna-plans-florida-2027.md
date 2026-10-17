@@ -1,7 +1,7 @@
 # Aetna — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
-Pulled: 2026-10-09 22:47 UTC
+Pulled: 2026-10-17 14:33 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1609-018, H1609-043, H1609-073, H1609-080, H1609-093, H1609-094, H1609-103
 
@@ -52,7 +52,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 5 | 33% |
 | Tier 6 | N/A |
 | OTC | $95/month Extra Benefits Card (OTC; food/personal care/transport/utilities if eligible) |
-| Grocery Card | Combined with OTC Card ($195/mo) |
+| Grocery Card | Combined with OTC Card ($95/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | $0 · chronic LBP only |
 | Chiropractic | $20; routine: not covered |
@@ -181,7 +181,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-103
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -227,6 +226,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Grocery Card | Combined with OTC Card ($155/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | $0 · chronic LBP only |
+| Chiropractic | $15 Medicare-covered · routine: 12 visits/yr $0 |
 | Fitness | SilverSneakers |
 | Other | Fall prevention $150/year · Chiropractic 12 visits/year Transport not listed |
 | Evidence of Coverage | EOC — Partial Dual Select |
@@ -278,7 +278,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Tier 6 | n/a |
 | OTC | $50 x quarter Extra Benefits Card (OTC) |
 | Grocery Card | N/A |
-| SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | $0 (chronic low back pain only) |
 | Chiropractic | $20; routine: not covered |
 | Fitness | SilverSneakers |
@@ -461,7 +460,6 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Type:** D-SNP
 **Plan year:** 2027
 **CMS ID:** H1609-103
-**Still yellow on the working grid:** 1 field(s) — not cited below.
 **Premium:** $0
 **Part B Giveback:** No
 **MOOP:** $9,850
@@ -507,6 +505,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Grocery Card | Combined with OTC Card ($115/mo) |
 | SSBCI Chronic Conditions | Chronic Condition Look Up |
 | Acupuncture | $0 · chronic LBP only |
+| Chiropractic | $15 Medicare-covered · routine: 12 visits/yr $0 |
 | Fitness | SilverSneakers |
 | Other | Fall prevention: $150/year |
 | Evidence of Coverage | EOC — Partial Dual Select |
@@ -524,6 +523,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| . | Aetna Medicare Select Care H1609-093 |
 | Premium | $0 |
 | Part B Giveback | No |
 | Referrals Needed? | Yes |

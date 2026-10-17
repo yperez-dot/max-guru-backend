@@ -1,7 +1,7 @@
 # Humana — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
-Pulled: 2026-10-09 22:47 UTC
+Pulled: 2026-10-17 14:33 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1036-054C, H1036-065C, H1036-077, H1036-121, H1036-297, H1036-304, H1036-305, H1036-339, H7617-107, H7617-110, H7617-145
 
@@ -371,7 +371,7 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Crowns | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
 | Bridges | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
 | Implants | No |
-| Vision Allowance | $50 ($100 PLUS provider) |
+| Vision Allowance | $0 exam (up to $75) · $50 eyewear/yr ($100 at PLUS provider) |
 | Ambulance | $325 ground · 20% air |
 | Transportation | Not covered |
 | RX Deductible | $700 Tiers 4–5 |
@@ -425,6 +425,7 @@ Out-of-network (confirmed):
 | Tier 6 | n/a |
 | OTC | Not listed on 2027 SOB |
 | Acupuncture | $5 · 20 visits · $5 routine (12/year) |
+| Chiropractic | 0.5 |
 | Fitness | 95% coinsurance (reimburse up to 5%) |
 | Other | SNF $250/day days 1-100 OON hearing/fitness reimbursement limited to 5% of allowed |
 
@@ -463,7 +464,7 @@ Out-of-network (confirmed):
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $50 ($100 PLUS provider) |
+| Vision Allowance | $0 exam (up to $75) · $50 eyewear/yr ($100 at PLUS provider) |
 | Ambulance | $275 ground · 20% air |
 | Transportation | Not covered |
 | RX Deductible | $700 Tiers 3–5 |
@@ -517,6 +518,7 @@ Out-of-network (confirmed):
 | Tier 6 | n/a |
 | OTC | Not listed on 2027 SOB |
 | Acupuncture | $5 · 20 visits · $5 routine (12/year) |
+| Chiropractic | 0.5 |
 | Fitness | 95% coinsurance (reimburse up to 5%) |
 | Other | SNF $0 days 1-20 / $160 days 21-100 OON hearing/fitness reimbursement limited to 5% of allowed |
 
@@ -555,7 +557,7 @@ Out-of-network (confirmed):
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $50 ($100 PLUS provider) |
+| Vision Allowance | $0 exam (up to $75) · $50 eyewear/yr ($100 at PLUS provider) |
 | Ambulance | $325 ground · 20% air |
 | Transportation | Not covered |
 | RX Deductible | $700 Tiers 4–5 |
@@ -609,6 +611,7 @@ Out-of-network (confirmed):
 | Tier 6 | n/a |
 | OTC | Not listed on 2027 SOB |
 | Acupuncture | $5 · 20 visits · $5 routine (12/year) |
+| Chiropractic | 0.5 |
 | Fitness | 95% coinsurance (reimburse up to 5%) |
 | Other | **NEW 2027** SNF $0 days 1-20 / $160 days 21-100 OON hearing/fitness reimbursement limited to 5% of allowed |
 
@@ -906,6 +909,7 @@ Out-of-network (confirmed):
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
+| . | Humana Gold Plus H1036-054C |
 | Premium | $0 |
 | Part B Giveback | $9.30 |
 | Referrals Needed? | Yes |
@@ -1036,7 +1040,7 @@ Out-of-network (confirmed):
 | Crowns | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
 | Bridges | Yes — 50% coinsurance up to $3,000 allowance (freq limits may apply) |
 | Implants | No |
-| Vision Allowance | $50 ($100 PLUS provider) |
+| Vision Allowance | $0 exam (up to $75) · $50 eyewear/yr ($100 at PLUS provider) |
 | Ambulance | $325 ground · 20% air |
 | Transportation | Not covered |
 | RX Deductible | $700 Tiers 4–5 |
@@ -1090,6 +1094,7 @@ Out-of-network (confirmed):
 | Tier 6 | n/a |
 | OTC | Not covered |
 | Acupuncture | $5 · 20 visits · $5 routine (12/year) |
+| Chiropractic | 0.5 |
 | Fitness | 95% coinsurance (reimburse up to 5%) |
 | Other | SNF $250/day days 1-100 OON hearing/fitness reimbursement limited to 5% of allowed |
 
@@ -1128,7 +1133,7 @@ Out-of-network (confirmed):
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $50 ($100 PLUS provider) |
+| Vision Allowance | $0 exam (up to $75) · $50 eyewear/yr ($100 at PLUS provider) |
 | Ambulance | $275 ground · 20% air |
 | Transportation | Not covered |
 | RX Deductible | $700 Tiers 3–5 |
@@ -1182,6 +1187,7 @@ Out-of-network (confirmed):
 | Tier 6 | n/a |
 | OTC | Not covered |
 | Acupuncture | $5 · 20 visits · $5 routine (12/year) |
+| Chiropractic | 0.5 |
 | Fitness | 95% coinsurance (reimburse up to 5%) |
 | Other | SNF $0 days 1-20 / $160 days 21-100 OON hearing/fitness reimbursement limited to 5% of allowed |
 
@@ -1220,7 +1226,7 @@ Out-of-network (confirmed):
 | Crowns | No |
 | Bridges | No |
 | Implants | No |
-| Vision Allowance | $50 ($100 PLUS provider) |
+| Vision Allowance | $0 exam (up to $75) · $50 eyewear/yr ($100 at PLUS provider) |
 | Ambulance | $325 ground · 20% air |
 | Transportation | Not covered |
 | RX Deductible | $700 Tiers 4–5 |
@@ -1274,6 +1280,7 @@ Out-of-network (confirmed):
 | Tier 6 | n/a |
 | OTC | Not covered |
 | Acupuncture | $5 · 20 visits · $5 routine (12/year) |
+| Chiropractic | 0.5 |
 | Fitness | 95% coinsurance (reimburse up to 5%) |
 | Other | SNF $0 days 1-20 / $160 days 21-100 OON hearing/fitness reimbursement limited to 5% of allowed |
 

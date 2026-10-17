@@ -45,6 +45,9 @@ from dental_procedure_rows import (  # noqa: E402
 )
 from thei_grid_common import (  # noqa: E402
     SHEET_ID_2027 as SHEET_ID,
+    cell_caption,
+    cell_link,
+    formula_link,
     require_xlsx,
     carrier_of,
     extract_plan_id,
@@ -88,6 +91,14 @@ def clean_plan_name(header: str, pid: str | None) -> str:
 def fmt_val(val) -> str:
     if val is None:
         return ""
+    if isinstance(val, str) and val.lstrip().startswith("="):
+        url = formula_link(val)
+        if url:
+            label = cell_caption(val)
+            if not isinstance(label, str) or label.lstrip().startswith("="):
+                label = url
+            label = " ".join(label.split())
+            return f"[{label}]({url})"
     if isinstance(val, float) and val == int(val):
         return str(int(val))
     s = str(val).replace("\n", " ").strip()
@@ -98,11 +109,7 @@ def fmt_val(val) -> str:
 
 
 def sob_target(cell) -> str | None:
-    if cell.hyperlink and cell.hyperlink.target:
-        return str(cell.hyperlink.target).strip()
-    if isinstance(cell.value, str) and cell.value.strip().startswith("http"):
-        return cell.value.strip()
-    return None
+    return cell_link(cell)
 
 
 def header_flags(header: str) -> list[str]:
@@ -195,7 +202,7 @@ def parse_grid(xlsx: Path) -> tuple[list[dict], dict]:
 
             sob_cell = ws.cell(sob_row, c) if sob_row else None
             sob_url = sob_target(sob_cell) if sob_cell else None
-            sob_caption = fmt_val(sob_cell.value) if sob_cell else ""
+            sob_caption = fmt_val(cell_caption(sob_cell.value)) if sob_cell else ""
             sob_confirmed = bool(sob_cell and (is_green(sob_cell) or sob_caption.lower().startswith("2027")))
 
             if not fields_green and not sob_confirmed:
