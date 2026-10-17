@@ -634,8 +634,8 @@ test('Jackie: gabapentin / levothyroxine noisy splits show ONE usual-strength li
   const levo = { planId: 'H5420-001', verified: true, coverage: 'covered', tier: 1, strengths: [
     mk('0.05 mg', { tier: 1 }), mk('0.1 mg', { coverage: 'not_covered', tier: null }), mk('0.2 mg', { coverage: 'not_covered', tier: null })] };
   const t = (name, row) => N.medsTable([{ drugName: name, byPlanId: { 'H5420-001': row }, lookups: [row] }], plans).split('\n')[2];
-  assert.equal(t('Gabapentin', gaba), '| Gabapentin | 300 mg: T2 $0 |');
-  assert.equal(t('Levothyroxine Sodium', levo), '| Levothyroxine Sodium | 0.05 mg: T1 $0 |');
+  assert.equal(t('Gabapentin', gaba), '| Gabapentin 300 mg | T2 $0 |');
+  assert.equal(t('Levothyroxine Sodium', levo), '| Levothyroxine Sodium 0.05 mg | T1 $0 |');
   const none = { planId: 'H5420-001', verified: true, coverage: 'covered', tier: 2, strengths: [mk('100 mg', { verified: false, coverage: null, tier: null }), mk('450 mg', { coverage: 'not_covered', tier: null })] };
   // The plan answered "covered, T2" but no strength was confirmed: say the tier and flag the strength.
   assert.equal(t('Gabapentin', none), '| Gabapentin | T2 $0 · strength not confirmed — confirm dose |'.replace('T2 $0', 'T2'));

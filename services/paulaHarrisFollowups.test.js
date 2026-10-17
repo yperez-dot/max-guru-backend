@@ -221,3 +221,15 @@ test('a one-doctor spelling correction keeps every saved doctor in the run (Jack
   assert.deepEqual(f.doctors, ['Nathalie Regalado', 'Andrew I Sable', 'Pascual De Santis', 'Neeta Jane Erinjeri']);
   assert.equal(f.npis['Nathalie Regalado'], '1467795633');
 });
+
+test('a shared strength moves into the drug name so every med cell reads T# $cost (Jackie, 2026-10-17)', () => {
+  const a = N.strengthInLabel('Atorvastatin Calcium', ['80 mg: T1 $0', '80 mg: T1 $0', '80 mg: T1 $0']);
+  assert.equal(a.label, 'Atorvastatin Calcium 80 mg');
+  assert.deepEqual(a.cells, ['T1 $0', 'T1 $0', 'T1 $0']);
+  const b = N.strengthInLabel('Metoprolol Succinate', ['T1 $0', 'T2 $0']);
+  assert.equal(b.label, 'Metoprolol Succinate');
+  const c = N.strengthInLabel('X', ['10 mg: T1 $0', '20 mg: T1 $0']);
+  assert.equal(c.label, 'X', 'different strengths per plan stay as they are');
+  const d = N.strengthInLabel('Y', ['5 mg: T1 $0 · 10 mg: T2 $5', '5 mg: T1 $0 · 10 mg: T2 $5']);
+  assert.equal(d.label, 'Y', 'a split cell stays as it is');
+});
