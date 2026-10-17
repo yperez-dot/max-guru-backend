@@ -687,7 +687,35 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
       const nm = (t.match(/\b(?:dr|dra|doctor|doctora)\.?\s+([A-ZÀ-Ý][\wÀ-ÿ'.-]+(?:\s+[A-ZÀ-Ý][\wÀ-ÿ'.-]+){0,3})/) || [])[1];
       if (nm && !people.some((p) => looseSameDoctor(p.name, nm) || sameDoctorName(p.name, nm))) { people.push({ name: nm.trim(), npi: '' }); touched = true; }
     }
+    // "Replace Dr. Natalie Regalado with Dr. Nathalie Regalado, Baptist Medical Group, NPI 1467795633" /
+    // "the doctor is Dr. Nathalie Regalado (spelled with an h)": a corrected spelling of ONE saved doctor. Every other saved
+    // doctor stays in the run (Jackie Alexander, 2026-10-17: the reply re-ran only the corrected doctor and swapped the plans).
+    const lev = (x, y) => {
+      let row = Array.from({ length: y.length + 1 }, (_, j) => j);
+      for (let a = 1; a <= x.length; a += 1) { const cur = [a]; for (let b = 1; b <= y.length; b += 1) cur[b] = Math.min(row[b] + 1, cur[b - 1] + 1, row[b - 1] + (x[a - 1] === y[b - 1] ? 0 : 1)); row = cur; }
+      return row[y.length];
+    };
+    const spellFixes = [];
+    const rep = t.match(/\b(?:replace|change|swap|correct)\s+(?:dr\.?\s+)?([A-Za-zÀ-ÿ'.-]+(?:\s+[A-Za-zÀ-ÿ'.-]+){0,3}?)\s+(?:with|to|by)\s+(?:dr\.?\s+)?([A-ZÀ-Ý][A-Za-zÀ-ÿ'.-]+(?:\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ'.-]+){1,2})/i);
+    if (rep) spellFixes.push(rep[2].trim());
+    const isDr = t.match(/\bthe doctor is\s+(?:dr\.?\s+)?([A-ZÀ-Ý][A-Za-zÀ-ÿ'.-]+(?:\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ'.-]+){1,2})/i);
+    if (isDr) spellFixes.push(isDr[1].trim());
+    const fixedNpis = [...t.matchAll(/\b(\d{10})\b/g)];
+    for (const to of spellFixes) {
+      const tw = plainWords(to);
+      if (tw.length < 2) continue;
+      const hit = people.find((p) => {
+        const pw = plainWords(p.name);
+        return pw.length >= 2 && pw.some((w) => w.length > 3 && lev(w, tw[tw.length - 1]) <= 1) && lev(pw[0], tw[0]) <= 2;
+      });
+      if (hit && !sameDoctorName(hit.name, to) || (hit && hit.name !== to)) {
+        hit.name = to.replace(/\s+/g, ' ');
+        if (fixedNpis.length === 1) hit.npi = fixedNpis[0][1];
+        touched = true;
+      }
+    }
     const npis = [...t.matchAll(/\b(\d{10})\b/g)];
+    if (spellFixes.length) continue;
     if (!asked && !npis.length && !(i === lastUserAt && numbered)) continue;
     touched = true;
     // 1) NPI next to a name: "use this for Theresa 1306218243".
