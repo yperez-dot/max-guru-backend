@@ -207,3 +207,17 @@ test('every Export button builds the sheet from the table on screen (marker)', (
   const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
   assert.match(html, /const tableSet = exportTablePlanSet\(history\);\s*if \(tableSet\.length >= 2\)/);
 });
+
+test('a one-doctor spelling correction keeps every saved doctor in the run (Jackie, 2026-10-17)', () => {
+  const ctx = 'LOADED CLIENT WORKUP (structured facts only — not a prior chat transcript).\nClient: Jacqueline Alexander\nZIP/county: 33186 / Miami-Dade\nCurrent plan: H5420-001\nPlans:\n- UHC (H5420-001)\n- Doctors DrMax-Dade (H4140-022)\n- Doctors DrSelect-SFL (H4140-023)\nDoctors (names only — pass exactly these names to lookup_provider_network): Natalie C Regalado Dc; Andrew I Sable; Pascual De Santis; Neeta Jane Erinjeri';
+  const msgs = [
+    { role: 'user', content: ctx },
+    { role: 'user', content: 'Compare her current plan UHC H5420-001 with Doctors DrMax-Dade H4140-022 and Doctors DrSelect-SFL H4140-023.' },
+    { role: 'assistant', content: 'table' },
+    { role: 'user', content: 'Replace Dr. Natalie Regalado with Dr. Nathalie Regalado, Baptist Medical Group, NPI 1467795633.' },
+  ];
+  const f = N.comparisonFollowUp(msgs);
+  assert.ok(f, 'follow-up re-run expected');
+  assert.deepEqual(f.doctors, ['Nathalie Regalado', 'Andrew I Sable', 'Pascual De Santis', 'Neeta Jane Erinjeri']);
+  assert.equal(f.npis['Nathalie Regalado'], '1467795633');
+});
