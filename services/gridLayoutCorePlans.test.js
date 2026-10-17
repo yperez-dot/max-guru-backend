@@ -64,7 +64,7 @@ test('page history: the grid and its follow-up bubble are one assistant turn for
   assert.strictEqual(msgs[1].content, '| Doctor | A |\n\nRemove it?');
 });
 
-const CORE_ASK = 'Search all Dade Core plans for Dr Stephanie De La Guarda. What does she take?';
+const CORE_ASK = 'Search all Dade Core plans for Stephanie Sasha De La Guarda · Family Medicine · NPI 1447909296. What does she take?';
 test('"all Dade Core plans" = every regular plan on the Miami-Dade grid, every carrier (not Devoted CORE)', () => {
   const msgs = W.messagesForApi([{ role: 'user', content: CORE_ASK }], {
     clientName: 'Robin Forte', zip: '33176', county: 'Miami-Dade', currentPlanIds: ['H5420-001'],
