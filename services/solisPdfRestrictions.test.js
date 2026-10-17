@@ -71,7 +71,7 @@ const cell = (r) => N.medsTable([r], [{ planId: PLAN, name: 'Solis Healthy Livin
 
 test('esomeprazole magnesium DR capsule 20/40 mg: T2 · QL 30/30 (medicare.gov tier, PDF restrictions)', async () => {
   const r = await price('esomeprazole');
-  assert.equal(cell(r), 'T2 $0 · QL 30/30 · cost same across strengths');
+  assert.equal(cell(r), 'T2 $0 · QL 30/30');
   assert.equal(r.byPlanId[PLAN].source, 'medicare_gov');
   for (const p of ['esomeprazole 20 MG Delayed Release Oral Capsule', 'esomeprazole 40 MG Delayed Release Oral Capsule']) {
     const s = S.solisRestrictions({ productName: p }, PLAN, 2027);
@@ -86,7 +86,7 @@ test('rosuvastatin: typed 10 mg → T1 · QL 45/30; no strength → split by QL'
 
 test('acyclovir tablet 400/800 mg: T2 · no PA/QL (known, no marker)', async () => {
   const r = await price('acyclovir tablets');
-  assert.equal(cell(r), 'T2 $0 · cost same across strengths');
+  assert.equal(cell(r), 'T2 $0');
   assert.equal(r.byPlanId[PLAN].restrictionsKnown, true);
   assert.equal(S.solisRestrictions({ productName: 'acyclovir 800 MG Oral Tablet' }, PLAN, 2027).pdfTier, 2);
 });

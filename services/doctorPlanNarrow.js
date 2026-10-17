@@ -7,6 +7,10 @@
 // (UHC / Humana) finished and listed the plan as out-of-network. Everything
 // else that is not In is "not confirmed".
 
+// Doctor names: one normalizer for the grid, the lookups and the exports.
+const DN = require('../artifacts/doctor-name.js');
+const { plainWords, cleanName, titleCase, sameDoctorName, ROLE_WORDS_RE } = DN;
+
 const PLAN_ID_RE = /\(([HR]\d{4}-\d{3}[A-Z]?)\)\s*$/i;
 
 function planIdOf(label) {
@@ -575,13 +579,7 @@ function planTypeSetFromAsk(text, msgs) {
 function respelledDoctors(latest, doctors) {
   const said = [...String(latest || '').matchAll(/\b(?:Dr|Dra|Doctor|Doctora)\.?\s+([A-ZÀ-Ý][\wÀ-ÿ'’-]*(?:\s+(?:(?:de|del|la|las|los|da|das|do|dos|di|du|van|von|der|le|y)\s+)*[A-ZÀ-Ý][\wÀ-ÿ'’-]*){1,4})/g)].map((m) => m[1].trim());
   if (!said.length) return doctors;
-  const letters = (x) => plainWords(String(x || '').split(/\s+[-–—]\s+/)[0]).join('');
-  return doctors.map((nm) => {
-    const have = letters(nm);
-    if (have.length < 6) return nm;
-    const hit = said.find((s) => letters(s) === have && s.replace(/\s+/g, ' ') !== nm);
-    return hit || nm;
-  });
+  return doctors.map((nm) => said.find((s) => DN.sameNameIgnoringSpacing(nm, s) && s.replace(/\s+/g, ' ') !== nm) || nm);
 }
 
 function comparisonFollowUp(messages) {
@@ -1034,10 +1032,6 @@ function personalize(questions, askText) {
     .replace(/\{client\}/g, who));
 }
 
-function titleCase(t) {
-  const s = String(t || '').trim();
-  return s === s.toUpperCase() ? s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()) : s;
-}
 
 function shortPlanHeader(p) {
   const name = String(p.name || '')
@@ -1444,20 +1438,8 @@ function unknownCell(d, carrier) {
   return R.NOT_CONFIRMED_CELL;
 }
 
-function cleanName(n) {
-  return titleCase(String(n || ''))
-    .replace(/,?\s*\b(m\.?\s?d|d\.?\s?o|md|do|pa-?c|aprn|arnp|np|dpm|od|phd|facc|facp|facs)\b\.?/gi, '')
-    .replace(/[\s,]+$/, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
-const ROLE_WORDS_RE = /\b(dr|md|m\.d|do|d\.o|pcp|primary|cardio\w*|neuro\w*|gyn\w*|obgyn|ortho\w*|derm\w*|uro\w*|gastro\w*|onc\w*|endo\w*|rheum\w*|pulm\w*|nephro\w*|podiat\w*|ophth\w*|optom\w*|ent|psych\w*|specialist|doctor)\b\.?/gi;
 
-function plainWords(t) {
-  return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-    .replace(ROLE_WORDS_RE, ' ').split(/[^a-z']+/).filter((w) => w.length > 1);
-}
 
 /**
  * Rule 10: is the NPI match the doctor she asked for?
@@ -1492,11 +1474,6 @@ function identityIssue(d) {
   return '';
 }
 
-function sameDoctorName(a, b) {
-  const x = plainWords(a).join(' ');
-  const y = plainWords(b).join(' ');
-  return Boolean(x) && (x === y || x.includes(y) || y.includes(x));
-}
 
 /** Rule 10: the doctor as matched — full name + specialty/NPI; unconfirmed matches flagged. */
 function doctorLabel(d) {
@@ -2337,7 +2314,6 @@ const strengthMg = (str) => {
  * from a split is never printed as the answer (Jackie Alexander, 2026-10-13: Medicare.gov showed gabapentin
  * 300 mg T2 $0 and levothyroxine 50 mcg T1 $0 where Max printed "not found" / "not covered").
  */
-const SAME_ACROSS_STRENGTHS = 'cost same across strengths';
 function oneStrengthCell(row, result) {
   const covered = row.strengths.filter((v) => v && v.verified && v.tier && v.coverage !== 'not_covered');
   if (!covered.length) {
@@ -2359,7 +2335,8 @@ function oneStrengthCell(row, result) {
   const noneNotCovered = !row.strengths.some((v) => v && v.verified && v.coverage === 'not_covered');
   const sameAll = covered.length >= 2 && noneNotCovered
     && covered.every((v) => strengthSplitCell({ strengths: [v] }, result).replace(/^[^:]+:\s*/, '') === cell.replace(/^[^:]+:\s*/, ''));
-  if (sameAll) return `${cell.replace(/^[^:]+:\s*/, '')} · ${SAME_ACROSS_STRENGTHS}`;
+  // Just tier · cost: no "cost same across strengths" note (Yahoska, 2026-10-17 — replaces the #231 note).
+  if (sameAll) return cell.replace(/^[^:]+:\s*/, '');
   // The usual strength was not among the answered ones: the strength shown is a different one — say so
   // (Jackie, 2026-10-13: atorvastatin 80 mg and levothyroxine 0.3 mg read as the answer for her dose).
   const isUsual = key && Math.abs(strengthMg(pick.strength) - USUAL_STRENGTH_MG[key]) < 1e-6;
@@ -2397,7 +2374,7 @@ function drugCell(row, unsureNotCovered, result) {
     return `${row.edLabel} · T${row.tier}${cost}${flags}${mixed}${unknown}`;
   }
   if (row.verified && row.coverage === 'not_covered') return unsureNotCovered ? '⚠️ confirm' : '❌ not covered';
-  if (row.verified && row.tier) return `T${row.tier}${cost}${flags}${mixed}${unknown}${row.sameAcrossStrengths ? ` · ${SAME_ACROSS_STRENGTHS}` : ''}`;
+  if (row.verified && row.tier) return `T${row.tier}${cost}${flags}${mixed}${unknown}`;
   if (/form_not_found/.test(String(row.reason || ''))) return `${R.NOT_CONFIRMED_CELL} (form not found)`;
   return R.NOT_CONFIRMED_CELL;
 }
@@ -2575,8 +2552,14 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
 // "Why these plans" lines (and a bare "Excluded: …" line) never go out in a reply, whoever wrote them — the server
 // tables dropped them in PR #232 but the model and the compare-job card still printed one (Robin Forte, 2026-10-17).
 const WHY_LINE_RE = /^[ \t>*_-]*(?:\*\*)?\s*(?:why these plans|excluded)\s*(?:\*\*)?\s*:.*(?:\r?\n|$)/gim;
+// Drug cells are tier · cost only: the "cost same across strengths" note never shows, even copied from an old saved
+// result (Yahoska, 2026-10-17).
+const SAME_STRENGTH_NOTE_RE = /\s*[·,;-]?\s*\(?cost (?:is )?(?:the )?same across (?:all )?strengths\)?/gi;
+function stripStrengthSameNote(text) {
+  return String(text || '').replace(SAME_STRENGTH_NOTE_RE, '');
+}
 function stripWhyThesePlans(text) {
-  return String(text || '').replace(WHY_LINE_RE, '').replace(/\n{3,}/g, '\n\n');
+  return stripStrengthSameNote(String(text || '').replace(WHY_LINE_RE, '')).replace(/\n{3,}/g, '\n\n');
 }
 
 // Everything after this marker in a reply goes out as its own chat message, after the grid message.
@@ -2688,6 +2671,7 @@ module.exports = {
   enforceRenderedTable,
   splitFollowUp,
   stripWhyThesePlans,
+  stripStrengthSameNote,
   coreAllAnswer,
   CORE_ALL_RE,
   FOLLOW_UP_MARKER,

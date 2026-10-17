@@ -4,11 +4,16 @@
  * Benefit dollars always come from plan objects — never from chat prose.
  */
 (function (root, factory) {
-  const api = factory();
+  // Doctor names go through the one normalizer (artifacts/doctor-name.js; window.MaxDoctorName in the page).
+  const DN = typeof module === "object" && module.exports ? require("./doctor-name.js") : root && root.MaxDoctorName;
+  const api = factory(DN);
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root && typeof root === "object") root.MaxComparisonExport = api;
-})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+})(typeof globalThis !== "undefined" ? globalThis : this, function (DN) {
   "use strict";
+  if (!DN) throw new Error("MaxDoctorName (doctor-name.js) must load before comparison-export.js");
+  const { isOrganizationName, stripDegreeSuffix, formatDoctorExportName } = DN;
+  const looksLikeOrganization = DN.looksLikeOrganizationDisplay;
 
   const PURPLE = "5B2C8B";
   const PURPLE_FONT = "FFFFFF";
@@ -1008,6 +1013,7 @@
   }
 
   function parseFormularyLookupLine(line) {
+    line = stripStrengthSameNote(line);
     if (!/FORMULARY_LOOKUP/i.test(line || "")) return null;
     const get = (key) => {
       const m = String(line).match(new RegExp("(?:^|\\s)" + key + "=([^\\s]+)", "i"));
@@ -1212,6 +1218,10 @@
     return ![status.pa, status.st, status.ql].some((v) => typeof v === "boolean");
   }
 
+  // Tier · cost only: no "cost same across strengths" note in Excel / PDF (Yahoska, 2026-10-17).
+  function stripStrengthSameNote(text) {
+    return String(text == null ? "" : text).replace(/\s*[·,;-]?\s*\(?cost (?:is )?(?:the )?same across (?:all )?strengths\)?/gi, "");
+  }
   function formatDrugCell(status, plan) {
     if (!status || !status.verified) return "Unverified";
     if (status.coverage === "not_covered" && status.unsure) return "Confirm in Sunfire";
@@ -1222,7 +1232,7 @@
       formatBenefitValue(plan && plan["tier" + status.tier], "tier" + status.tier);
     const flags = [status.pa ? "PA" : "", status.st ? "ST" : "", status.qlText || (status.ql ? "QL" : "")].filter(Boolean).join("/");
     const costBit = cost && cost !== "Not listed" ? " · " + cost : "";
-    return "Tier " + status.tier + costBit + (flags ? " · " + flags : "");
+    return stripStrengthSameNote("Tier " + status.tier + costBit + (flags ? " · " + flags : ""));
   }
 
   function planIdAliases(plan) {
@@ -1276,45 +1286,6 @@
     return out;
   }
 
-  // A practice / organization, not a person: never "Dr. Miami Healthy Smiles" (Edward Kennedy export, 2026-10-17).
-  const ORG_NAME_RE = /\b(?:dental|dentistry|smiles?|orthodontics?|family\s+practice|practice|pharmacy|wellness|services|partners|physicians|surgery|surgical|urgent|labs?|vision|eye\s+care|care|llc|inc|pllc|corp|ltd|p\.a\.)(?=\s|$|,)|&/i;
-  function isOrganizationName(name, opts) {
-    const o = opts && typeof opts === "object" ? opts : {};
-    if (o.organization === true || /^(?:NPI-?2|organization|org)$/i.test(String(o.entityType || ""))) return true;
-    const body = String(name || "").replace(/^(?:dr|doctor)\.?\s+/i, "").trim();
-    if (!body) return false;
-    return looksLikeOrganization(body) || ORG_NAME_RE.test(body);
-  }
-  // Trailing degrees on a person's name: "M D", "MD", "M.D.", "DO", "D.O.", ", MD, PhD" …
-  const DEGREE_TOKEN_RE = /^(?:MD|DO|DDS|DMD|DPM|OD|DC|NP|PA|PAC|APRN|ARNP|FNP|DNP|RN|PHD|PHARMD|FACC|FACP|FACS|JR\.?|SR\.?)$/i;
-  function stripDegreeSuffix(body) {
-    const parts = String(body || "").replace(/,/g, " ").split(/\s+/).filter(Boolean);
-    let changed = true;
-    while (changed && parts.length > 2) {
-      changed = false;
-      const last = parts[parts.length - 1].replace(/[.\-/]/g, "");
-      const two = parts.length > 3 ? (parts[parts.length - 2] + parts[parts.length - 1]).replace(/[.\-/]/g, "") : "";
-      if (/^(?:JR|SR)$/i.test(last)) break; // a name suffix stays
-      if (two && /^[A-Za-z]$/.test(parts[parts.length - 1].replace(/\./g, "")) && /^[A-Za-z]$/.test(parts[parts.length - 2].replace(/\./g, "")) && DEGREE_TOKEN_RE.test(two)) { parts.splice(-2, 2); changed = true; continue; }
-      if (DEGREE_TOKEN_RE.test(last)) { parts.pop(); changed = true; }
-    }
-    return parts.join(" ");
-  }
-  /** Export display name: "Dr. David A Rodriguez M D" → "Dr. David A Rodriguez"; "Dr. Miami Healthy Smiles" → "Miami Healthy Smiles". */
-  function formatDoctorExportName(name, opts) {
-    const n = String(name || "").replace(/\s+/g, " ").trim();
-    const hasDr = /^(?:dr|doctor)\.?\s+/i.test(n);
-    let body = n.replace(/^(?:dr|doctor)\.?\s+/i, "").trim();
-    if (!body) return n;
-    if (isOrganizationName(body, opts)) {
-      if (body === body.toUpperCase() && /[A-Z]{2}/.test(body)) body = body.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
-      return body;
-    }
-    if (!hasDr) return n;
-    let person = stripDegreeSuffix(body);
-    if (person === person.toUpperCase() && /[A-Z]{2}/.test(person)) person = person.toLowerCase().replace(/(^|[\s'-])([a-z])/g, (m, a, b) => a + b.toUpperCase());
-    return "Dr. " + person;
-  }
 
   function normalizeDoctors(doctors, plans) {
     if (!Array.isArray(doctors) || !doctors.length || !plans || !plans.length) return [];
@@ -1380,11 +1351,6 @@
     return out;
   }
 
-  function looksLikeOrganization(name) {
-    const n = String(name || "").trim();
-    if (!n || /^(dr|doctor)\b\.?\s/i.test(n)) return false;
-    return /\b(neurology|rehab(?:ilitation)?|clinic|center|centre|institute|associates|group|hospital|medical|health|imaging|laboratory|therapy|specialists)\b/i.test(n);
-  }
 
   function carrierMatchesPlan(carrierLabel, plan) {
     const c = String(carrierLabel || "").toLowerCase();
@@ -3498,6 +3464,7 @@
     parseFormularyLookupLine,
     normalizeDrugs,
     formatDrugCell,
+    stripStrengthSameNote,
     normalizeNetworkStatus,
     normalizeExportPayload,
     buildExportPayload,

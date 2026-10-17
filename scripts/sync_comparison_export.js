@@ -6,3 +6,9 @@ syncBlock(
   '<!-- MAX_COMPARISON_EXPORT_BEGIN -->',
   '<!-- MAX_COMPARISON_EXPORT_END -->'
 );
+// comparison-export.js reads doctor names through doctor-name.js: keep both blocks in step.
+syncBlock(
+  'artifacts/doctor-name.js',
+  '<!-- MAX_DOCTOR_NAME_BEGIN -->',
+  '<!-- MAX_DOCTOR_NAME_END -->'
+);

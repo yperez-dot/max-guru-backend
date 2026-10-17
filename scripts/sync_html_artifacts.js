@@ -22,6 +22,13 @@ function syncBlock(jsRel, begin, end) {
 
 if (require.main === module) {
   const which = process.argv[2] || 'all';
+  if (which === 'all' || which === 'export' || which === 'doctorname') {
+    syncBlock(
+      'artifacts/doctor-name.js',
+      '<!-- MAX_DOCTOR_NAME_BEGIN -->',
+      '<!-- MAX_DOCTOR_NAME_END -->'
+    );
+  }
   if (which === 'all' || which === 'export') {
     syncBlock(
       'artifacts/comparison-export.js',

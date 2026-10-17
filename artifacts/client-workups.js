@@ -543,6 +543,11 @@
     }
   }
 
+  // Drug cells are tier · cost only: an old saved meds table loses its "cost same across strengths" notes (Yahoska, 2026-10-17).
+  function stripStrengthSameNote(text) {
+    return String(text == null ? '' : text).replace(/\s*[·,;-]?\s*\(?cost (?:is )?(?:the )?same across (?:all )?strengths\)?/gi, '');
+  }
+
   return {
     WORKUP_CONTEXT_PREFIX,
     NETWORK_IN,
@@ -566,6 +571,7 @@
     formatUpdatedAt,
     rehydratePlans,
     stalePlansForResult,
+    stripStrengthSameNote,
     staleResultNote,
     originalQueryFor,
     firstUserQuery,

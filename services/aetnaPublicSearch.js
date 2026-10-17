@@ -13,6 +13,7 @@
  * only. Ricardo Garcia Rivera 1366434334 is in-network for H1609 plans.
  */
 
+const { compoundLastName } = require('../artifacts/doctor-name.js');
 const TOKEN_URL = 'https://api01.aetna.com/identitymanagement/prod/v3/auth/oauth2/spa/public/scookie/app/token';
 const API03 = 'https://api03.aetna.com/healthcare/prod';
 const GEOCODE_URL = 'https://api01.aetna.com/hcb/prod/v4/geocode';
@@ -143,16 +144,6 @@ function lastNameFromDisplay(name) {
   return parts[parts.length - 1] || '';
 }
 
-/** "Stephanie Sasha De La Guarda, DO" -> "De La Guarda"; "Glinos, George, MD" -> "" (no particle: use lastNameFromDisplay). */
-function compoundLastName(name) {
-  if (!name || typeof name !== 'string') return '';
-  const cleaned = name.replace(/,?\s+(MD|DO|NP|PA|RN|APRN|DDS|DMD|DPM|OD|DC|MA|MS|MSN|MED|PharmD|PhD)\.?$/i, '').trim();
-  const noComma = cleaned.includes(',') ? cleaned.slice(0, cleaned.indexOf(',')).trim() : cleaned;
-  const parts = noComma.split(/\s+/).filter(Boolean);
-  const head = cleaned.includes(',') ? 0 : 1;
-  const at = parts.findIndex((w, i) => i >= head && i < parts.length - 1 && /^(?:de|del|da|das|do|dos|di|du|la|las|los|le|van|von|der|den|st\.?|san|santa|mc|mac|bin|ben|al|el|y)$/i.test(w));
-  return at >= 0 ? parts.slice(at).join(' ') : '';
-}
 
 function npiMatches(value, npi) {
   return String(value || '') === String(npi || '');

@@ -184,7 +184,8 @@ function slimCompareResult(raw) {
   try {
     const text = JSON.stringify(raw);
     if (text.length > MAX_COMPARE_RESULT_CHARS) return null;
-    const out = JSON.parse(text);
+    // Old saved meds tables carried "· cost same across strengths"; cells are tier · cost only (Yahoska, 2026-10-17).
+    const out = JSON.parse(text.replace(/\s*·\s*cost same across strengths/gi, ''));
     delete out.whyLine; // "Why these plans" is never shown (Yahoska, 2026-10-17)
     return out;
   } catch (_) {
@@ -351,7 +352,7 @@ function nameIsADoctor(name, doctors) {
 
 function historyEntry(w) {
   if (!w) return null;
-  const cr = w.compareResult && typeof w.compareResult === 'object' ? { ...w.compareResult } : null;
+  const cr = w.compareResult && typeof w.compareResult === 'object' ? { ...(slimCompareResult(w.compareResult) || w.compareResult) } : null;
   if (cr) delete cr.toolResults; // biggest part, rebuilt by a re-run
   return {
     savedAt: w.updatedAt || null,
