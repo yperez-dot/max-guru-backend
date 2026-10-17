@@ -113,7 +113,7 @@ function expandMedList(list) {
 }
 
 // Strength, form and release words carry the product, not the drug name RxNorm should match.
-const STRIP_RE = /\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|units?|iu|meq|%)\b|\b(?:er|xr|xl|sr|cr|dr|ec|odt|la|hcl|pah|bph|oral|topical|ophthalmic|eye|ear|otic|pen|injection|inhaler|vial|ellipta|diskus|respimat|flexpen|kwikpen|flextouch|hfa|turbuhaler|handihaler|breezhaler|autoinjector|sureclick|daily|bid|tid|qd|prn)\b/gi;
+const STRIP_RE = /\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|units?|iu|meq|%)\b|\b(?:er|xr|xl|sr|cr|dr|ec|odt|la|hcl|pah|bph|oral|topical|ophthalmic|eye|ear|otic|solution|soln|suspension|susp|pen|injection|inhaler|vial|ellipta|diskus|respimat|flexpen|kwikpen|flextouch|hfa|turbuhaler|handihaler|breezhaler|autoinjector|sureclick|daily|bid|tid|qd|prn)\b/gi;
 
 /** "rasuvostatin 10mg tablets" → "rasuvostatin" (the part RxNorm should match). */
 function drugNameBase(raw) {
@@ -209,7 +209,12 @@ async function resolveDrugName(raw, fetchImpl = fetch) {
     if (!prev || score > prev.score) byRxcui.set(c.rxcui, { rxcui: String(c.rxcui), name: String(c.name), score });
   }
   const cands = [...byRxcui.values()].sort((a, b) => b.score - a.score);
-  if (!cands.length) return remember(base, input, { status: 'not_found', name: base });
+  if (!cands.length) {
+    // RxNorm's own spelling suggestion ("farxica" → "farxiga") is a "did you mean", never a silent correction.
+    const sp = await getJson(`${RXNORM_BASE}/spellingsuggestions.json?name=${encodeURIComponent(base)}`, fetchImpl);
+    const sugg = ((sp && sp.suggestionGroup && sp.suggestionGroup.suggestionList && sp.suggestionGroup.suggestionList.suggestion) || [])[0];
+    return remember(base, input, sugg ? { status: 'ambiguous', name: base, suggestion: String(sugg).toLowerCase(), alternatives: [], reason: 'spelling' } : { status: 'not_found', name: base });
+  }
 
   const top = cands[0];
   // Competitors: concepts scored close to the top one. Different ingredients among them = ambiguous.
@@ -232,6 +237,11 @@ async function resolveDrugName(raw, fetchImpl = fetch) {
   // A pharmacy-label spelling of the same drug ("BRIMONIDINE TARTRATE/TIMOLOL MALEATE SOLUTION 0.2/0.5%" vs
   // RxNorm's "brimonidine tartrate 0.2 % / timolol maleate 0.5 % ophthalmic solution") is a correction, not a
   // "check name" row on every re-run (Nancy Blanco De Pajaro, 2026-10-17).
+  // Same letters, only spacing / slashes differ ("brimonidine timolol" vs RxNorm "brimonidine / timolol"): that is the
+  // name she typed, not a correction to flag.
+  if (distinct.length === 1 && base.replace(/[^a-z]/g, '') === topName.replace(/[^a-z]/g, '')) {
+    return remember(base, input, { status: 'exact', name: topName, rxcui: top.rxcui });
+  }
   if (sim < MIN_SIMILARITY && sameCoreDrug(base, topName)) {
     return remember(base, input, { status: 'corrected', name: topName, rxcui: top.rxcui, from: base, similarity: Number(sim.toFixed(2)) });
   }
@@ -340,7 +350,112 @@ function edLabel(row) {
   return ED_LABELS.verify;
 }
 
+// ─── one med-name normalizer (overhaul, 2026-10-17) ───────────────────────────────────────────────────────────
+// A pharmacy-label / ALL-CAPS / salt-named med reads the way medicare.gov and Sunfire list it before any formulary
+// is asked: "BRIMONIDINE TARTRATE/TIMOLOL MALEATE SOLUTION 0.2/0.5%" → "brimonidine / timolol 0.2%/0.5% ophthalmic
+// solution" (Nancy Blanco De Pajaro). Plain names ("Farxiga", "gabapentin 300 mg") are left exactly as typed.
+const MED_SALT_WORDS = new Set(['maleate', 'tartrate', 'hydrochloride', 'hcl', 'sodium', 'potassium', 'calcium', 'magnesium', 'besylate', 'mesylate', 'succinate', 'citrate', 'sulfate', 'acetate', 'phosphate', 'fumarate', 'bromide', 'chloride', 'propionate', 'furoate', 'monohydrate', 'dihydrate', 'trihydrate']);
+const MED_FORM_WORDS = new Set(['solution', 'soln', 'sol', 'suspension', 'susp', 'drops', 'drop', 'tablet', 'tablets', 'tab', 'tabs', 'capsule', 'capsules', 'cap', 'caps', 'ophthalmic', 'opth', 'oph', 'cream', 'ointment', 'gel', 'inhaler', 'injection', 'pen', 'oral', 'topical']);
+const EYE_DRUG_RE = /\b(?:brimonidine|timolol|latanoprost|dorzolamide|travoprost|bimatoprost|brinzolamide|netarsudil|tafluprost)\b/i;
+const FORM_DISPLAY = { tab: 'tablet', tabs: 'tablet', tablets: 'tablet', tablet: 'tablet', cap: 'capsule', caps: 'capsule', capsules: 'capsule', capsule: 'capsule', cream: 'cream', ointment: 'ointment', gel: 'gel', inhaler: 'inhaler', injection: 'injection', pen: 'pen' };
+
+/** Does a typed med need normalizing? ALL CAPS, a combo slash, a salt word, or a pharmacy-label length. */
+function medNameIsMessy(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return false;
+  const letters = s.replace(/[^A-Za-z]/g, '');
+  const allCaps = letters.length >= 4 && letters === letters.toUpperCase();
+  const combo = /[A-Za-z]\s*\/\s*[A-Za-z]/.test(s);
+  const words = s.toLowerCase().split(/[^a-z]+/);
+  const salt = words.length > 1 && words.some((w) => MED_SALT_WORDS.has(w)) && combo;
+  return allCaps || combo || salt || s.length >= 40;
+}
+
+/** Ingredients (salts kept + stripped), strength and form of a typed med. */
+function medNameParts(raw) {
+  const s = String(raw || '').replace(/\s+/g, ' ').trim();
+  const low = s.toLowerCase();
+  // "0.2/0.5%" → "0.2%/0.5%"; "20 mg" stays.
+  const strengths = [];
+  const noStrength = low.replace(/\b(\d+(?:\.\d+)?(?:\s*[\/-]\s*\d+(?:\.\d+)?)*)\s*(%|mg|mcg|ml|g|units?|iu|meq)?(?=[\s,/]|$)/g, (m, nums, unit) => {
+    const sep = /-/.test(nums) ? '-' : '/';
+    const parts = nums.split(/\s*[\/-]\s*/);
+    strengths.push(unit === '%' ? parts.map((n) => `${n}%`).join('/') : `${parts.join(sep)}${unit ? ` ${unit}` : ''}`);
+    return ' ';
+  });
+  const forms = [];
+  const comps = noStrength.split(/\s*\/\s*/).map((c) => c.split(/\s+/).filter((w) => {
+    if (!w) return false;
+    if (MED_FORM_WORDS.has(w)) { forms.push(w); return false; }
+    return true;
+  })).filter((ws) => ws.length);
+  const salted = comps.map((ws) => ws.join(' '));
+  const ingredients = comps.map((ws) => ws.filter((w) => !MED_SALT_WORDS.has(w)).join(' ') || ws.join(' '));
+  let form = '';
+  if (forms.some((f) => /^(?:solution|soln|sol|drops?|ophthalmic|opth|oph)$/.test(f))) form = EYE_DRUG_RE.test(low) ? 'ophthalmic solution' : (forms.includes('suspension') || forms.includes('susp') ? 'suspension' : 'solution');
+  else if (forms.length) form = FORM_DISPLAY[forms.find((f) => FORM_DISPLAY[f])] || '';
+  return { ingredients, salted, strength: strengths.join(' '), form };
+}
+
+/** Sync display form (no network): what the meds list and the formulary search use. */
+function localMedDisplay(raw) {
+  const s = String(raw || '').replace(/\s+/g, ' ').trim();
+  if (!medNameIsMessy(s)) return s;
+  const p = medNameParts(s);
+  if (!p.ingredients.length) return s;
+  let names;
+  if (p.ingredients.length >= 2) names = p.ingredients.join(' / ');
+  else {
+    // A single ingredient keeps its salt (medicare.gov lists "atorvastatin calcium"); an ALL-CAPS brand reads "Farxiga".
+    names = p.salted[0];
+    if (names.split(/\s+/).length === 1 && s === s.toUpperCase()) names = names.charAt(0).toUpperCase() + names.slice(1);
+  }
+  return [names, p.strength, p.form].filter(Boolean).join(' ');
+}
+
+const medNameCache = new Map();
+/**
+ * The one med-name normalizer: { display, query, fallbacks, rxcui, source }.
+ * display/query: medicare.gov naming ("brimonidine / timolol 0.2%/0.5% ophthalmic solution"); fallbacks: the combo
+ * without strength, the salt-kept combo, then exactly what she typed. RxNorm confirms a combo's ingredient set
+ * (rxcui); when RxNorm is slow or down the local form is used — never a block.
+ */
+async function normalizeMedName(raw, fetchImpl = fetch) {
+  const input = String(raw || '').replace(/\s+/g, ' ').trim();
+  if (!input) return { display: '', query: '', fallbacks: [], rxcui: null, source: 'typed' };
+  const key = input.toLowerCase();
+  if (medNameCache.has(key)) return medNameCache.get(key);
+  const display = localMedDisplay(input);
+  if (display === input) {
+    const res = { display, query: input, fallbacks: [], rxcui: null, source: 'typed' };
+    medNameCache.set(key, res);
+    return res;
+  }
+  const p = medNameParts(input);
+  const fallbacks = [];
+  const add = (x) => { const v = String(x || '').trim(); if (v && v !== display && !fallbacks.includes(v)) fallbacks.push(v); };
+  if (p.ingredients.length >= 2) { add(p.ingredients.join(' / ')); add(p.salted.join(' / ')); }
+  else add(p.salted[0]);
+  add(input);
+  let rxcui = null;
+  let source = 'local';
+  if (p.ingredients.length >= 2) {
+    const j = await getJson(`${RXNORM_BASE}/rxcui.json?name=${encodeURIComponent(p.ingredients.join(' / '))}&search=1`, fetchImpl);
+    const ids = (j && j.idGroup && j.idGroup.rxnormId) || [];
+    if (ids.length) { rxcui = String(ids[0]); source = 'rxnorm'; }
+  }
+  const res = { display, query: display, fallbacks, rxcui, source };
+  // Only a definite answer is cached; an RxNorm outage is retried on the next lookup.
+  if (source === 'rxnorm' || p.ingredients.length < 2) medNameCache.set(key, res);
+  return res;
+}
+
 module.exports = {
+  medNameIsMessy,
+  medNameParts,
+  localMedDisplay,
+  normalizeMedName,
+  _medNameCache: medNameCache,
   requestedForm,
   isNonOralForm,
   conceptHasForm,

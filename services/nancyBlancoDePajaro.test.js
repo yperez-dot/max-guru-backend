@@ -86,7 +86,7 @@ describe('Nancy: corrected doctor name replaces the stale saved row', () => {
 
 describe('Nancy: every saved med stays on the re-run', () => {
   it('brimonidine/timolol is kept under its short name', () => {
-    assert.deepEqual(R.medsFromAsk(run(ASK).ask), ['brimonidine tartrate/timolol ophthalmic solution', 'Entresto', 'Farxiga']);
+    assert.deepEqual(R.medsFromAsk(run(ASK).ask), ['brimonidine / timolol 0.2%/0.5% ophthalmic solution', 'Entresto', 'Farxiga']);
   });
   it('pharmacy-label spelling is the same drug as RxNorm\'s name (corrected, not "check name")', () => {
     assert.equal(sameCoreDrug('brimonidine tartrate timolol maleate solution 0 2 0 5', 'brimonidine tartrate 0.2 % / timolol maleate 0.5 % ophthalmic solution'), true);
