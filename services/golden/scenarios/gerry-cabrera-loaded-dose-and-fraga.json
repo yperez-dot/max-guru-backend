@@ -1,0 +1,443 @@
+{
+ "name": "Gerry Cabrera (loaded workup) — dose confirmed 'Levothyroxine Sodium is 0.2 mg' and 'Pinecrest Dentisry is Dr. Salome Fraga': client stays Gerry, all saved doctors re-run with Fraga replacing Pinecrest, columns stay UHC · DrMax · Humana, levothyroxine reads 'Levothyroxine Sodium 0.2 mg' T1 $0",
+ "source": "Max chat 2026-10-19",
+ "workup": {
+  "clientName": "Gerry Cabrera",
+  "zip": "33186",
+  "county": "Miami-Dade",
+  "plans": [
+   {
+    "carrier": "UHC",
+    "planName": "UHC MedicareMax FL-0028",
+    "planId": "H5420-001"
+   },
+   {
+    "carrier": "Doctors HealthCare",
+    "planName": "Doctors DrMax-Dade",
+    "planId": "H4140-022"
+   },
+   {
+    "carrier": "Humana",
+    "planName": "Humana Gold Plus",
+    "planId": "H1036-054C"
+   }
+  ],
+  "currentPlanIds": [
+   "H5420-001"
+  ],
+  "doctors": [
+   {
+    "name": "Alix Salvant",
+    "npi": "1588693477"
+   },
+   {
+    "name": "Ignacio Rua",
+    "npi": "1235132549"
+   },
+   {
+    "name": "Robert A Puig",
+    "npi": "1568433308"
+   },
+   {
+    "name": "Med Eye Associates"
+   },
+   {
+    "name": "Brian Edward Dougherty",
+    "npi": "1487654299"
+   },
+   {
+    "name": "Pinecrest Modern Dentistry"
+   },
+   {
+    "name": "Michael D Fili",
+    "npi": "1033151113"
+   },
+   {
+    "name": "Martin Madorsky",
+    "npi": "1477526671"
+   },
+   {
+    "name": "Abilio Armando Coello",
+    "npi": "1720081037"
+   }
+  ],
+  "medications": [
+   {
+    "name": "Fluticasone Propionate"
+   },
+   {
+    "name": "Hydrochlorothiazide"
+   },
+   {
+    "name": "Latanoprost"
+   },
+   {
+    "name": "Levothyroxine Sodium"
+   },
+   {
+    "name": "ocuvite"
+   },
+   {
+    "name": "Potassium Citrate"
+   }
+  ],
+  "originalQuery": "Gerry Cabrera, 33186, Dr. Alix Salvant, Ignacio Rua, Robert Puig, Med Eye Associates, Brian Dougherty, Pinecrest Modern Dentistry, Michael Fili, Martin Madorsky, Abilio Armand Coello. Meds: fluticasone, hydrochlorothiazide\nlatanoprost\nlevothyroxine\nocuvite\npotassium citrate. Current plan is UHC MedicareMax Medicare Advantage FL-0028 (HMO) (H5420-1-0)"
+ },
+ "replies": [
+  "Levothyroxine Sodium 0.2 mg: T1 $0 on UHC MedicareMax FL-0028 (H5420-001), Humana Gold Plus (H1036-054C) and Doctors DrMax-Dade (H4140-022)."
+ ],
+ "messages": [
+  "Levothyroxine Sodium is 0.2 mg.",
+  "Pinecrest Dentisry is Dr. Salome Fraga."
+ ],
+ "doctorResults": {
+  "Alix Salvant": {
+   "npi": "1588693477",
+   "in": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C"
+   ],
+   "out": []
+  },
+  "Ignacio Rua": {
+   "npi": "1235132549",
+   "in": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C"
+   ],
+   "out": []
+  },
+  "Robert Puig": {
+   "npi": "1568433308",
+   "matched": "ROBERT A PUIG",
+   "in": [
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C"
+   ],
+   "out": [
+    "H5420-001"
+   ]
+  },
+  "Med Eye Associates": {
+   "org": true,
+   "in": [
+    "H5420-001",
+    "H4140-022",
+    "H1036-054C"
+   ],
+   "out": []
+  },
+  "Brian Dougherty": {
+   "npi": "1487654299",
+   "matched": "BRIAN EDWARD DOUGHERTY",
+   "in": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022"
+   ],
+   "out": [
+    "H1036-054C"
+   ]
+  },
+  "Michael Fili": {
+   "npi": "1033151113",
+   "matched": "MICHAEL D FILI",
+   "in": [],
+   "out": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C"
+   ]
+  },
+  "Martin Madorsky": {
+   "npi": "1477526671",
+   "in": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C"
+   ],
+   "out": []
+  },
+  "Abilio Armand Coello": {
+   "npi": "1720081037",
+   "matched": "ABILIO ARMANDO COELLO",
+   "in": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C"
+   ],
+   "out": []
+  },
+  "Salome Fraga": {
+   "npi": "1111111111",
+   "matched": "SALOME FRAGA DDS",
+   "in": [
+    "H5420-001",
+    "H4140-022",
+    "H1036-054C"
+   ],
+   "out": []
+  },
+  "Robert A Puig": {
+   "npi": "1568433308",
+   "matched": "ROBERT A PUIG",
+   "in": [
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C"
+   ],
+   "out": [
+    "H5420-001"
+   ]
+  },
+  "Brian Edward Dougherty": {
+   "npi": "1487654299",
+   "matched": "BRIAN EDWARD DOUGHERTY",
+   "in": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022"
+   ],
+   "out": [
+    "H1036-054C"
+   ]
+  },
+  "Michael D Fili": {
+   "npi": "1033151113",
+   "matched": "MICHAEL D FILI",
+   "in": [],
+   "out": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C"
+   ]
+  },
+  "Abilio Armando Coello": {
+   "npi": "1720081037",
+   "matched": "ABILIO ARMANDO COELLO",
+   "in": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C"
+   ],
+   "out": []
+  }
+ },
+ "drugResults": {
+  "fluticasone": {
+   "H5420-001": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1609-093": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 2,
+    "cost": "$0"
+   }
+  },
+  "hydrochlorothiazide": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1609-093": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "latanoprost": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1609-093": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "levothyroxine": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0",
+    "strengths": [
+     "0.1 mg",
+     "0.175 mg",
+     "0.2 mg",
+     "0.3 mg"
+    ]
+   },
+   "H1609-093": {
+    "tier": 1,
+    "cost": "$0",
+    "strengths": [
+     "0.1 mg",
+     "0.175 mg",
+     "0.2 mg",
+     "0.3 mg"
+    ]
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0",
+    "strengths": [
+     "0.1 mg",
+     "0.175 mg",
+     "0.2 mg",
+     "0.3 mg"
+    ]
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0",
+    "strengths": [
+     "0.1 mg",
+     "0.175 mg",
+     "0.2 mg",
+     "0.3 mg"
+    ]
+   }
+  },
+  "ocuvite": {
+   "H5420-001": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1609-093": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 2,
+    "cost": "$0"
+   }
+  },
+  "potassium citrate": {
+   "H5420-001": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1609-093": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 2,
+    "cost": "$0"
+   }
+  },
+  "levothyroxine sodium 0.2 mg": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1609-093": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  }
+ },
+ "expect": {
+  "plans": [
+   "H5420-001",
+   "H4140-022",
+   "H1036-054C"
+  ],
+  "gridPlans": [
+   "H5420-001",
+   "H4140-022",
+   "H1036-054C"
+  ],
+  "firstGridPlan": "H5420-001",
+  "doctors": {
+   "include": [
+    "Alix Salvant",
+    "Ignacio Rua",
+    "Robert A Puig",
+    "Med Eye Associates",
+    "Brian Edward Dougherty",
+    "Salome Fraga",
+    "Michael D Fili",
+    "Martin Madorsky",
+    "Abilio Armando Coello"
+   ],
+   "exclude": [
+    "Pinecrest Modern Dentistry"
+   ]
+  },
+  "gridRows": 9,
+  "meds": {
+   "include": [
+    "Levothyroxine Sodium 0.2 mg",
+    "Fluticasone Propionate",
+    "Hydrochlorothiazide",
+    "Latanoprost",
+    "ocuvite",
+    "Potassium Citrate"
+   ],
+   "exclude": [
+    "Levothyroxine Sodium"
+   ]
+  },
+  "medCells": {
+   "Levothyroxine Sodium 0.2 mg": "\\| T1 \\$0 \\| T1 \\$0 \\| T1 \\$0 \\|"
+  },
+  "followUpExcludes": [
+   "H1035-017",
+   "varies by strength",
+   "varies by product"
+  ],
+  "clientName": "Gerry Cabrera",
+  "exportMeds": {
+   "Levothyroxine Sodium 0.2 mg": "T1 $0"
+  }
+ }
+}

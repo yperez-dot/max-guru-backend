@@ -360,6 +360,12 @@ function comparisonAskText(messages, baseText) {
     // carrier's core plan — nothing else. "They are in network with Humana and Doctors" is not a carrier ask, and a
     // carrier already in the set never pulls in its sibling plans (Nancy Blanco De Pajaro, 2026-10-17: DrSelect-SFL
     // H4140-023 appeared unasked and UHC H5420-001 was dropped).
+    // "check this plan Devoted C-SNP ENHANCED H1290-067" / "add dvoted to the grid": saved plans + that plan (Gerry Cabrera, 2026-10-19).
+    const addSet = require('./loadedWorkup').workupPlanAddSet(t, msgs.slice(0, i + 1));
+    if (addSet.length) {
+      lines.push(`Named plan set: ${addSet.map((pl) => `${pl.name} (${pl.planId})`).join('; ')}.`);
+      break;
+    }
     const editSet = workupCarrierEditSet(t, msgs.slice(0, i + 1));
     if (editSet.length) {
       lines.push(`Named plan set: ${editSet.map((pl) => `${pl.name} (${pl.planId})`).join('; ')}.`);
@@ -452,7 +458,8 @@ function currentPlanOf(msgs) {
 }
 
 /** Her client's current plan IDs ("current plan UHC Preferred H1045-001", "Her current plan: …"). */
-function currentPlanIdsIn(text) {
+function currentPlanIdsIn(text0) {
+  const text = normalizeTypedPlanIds(text0);
   const ids = [];
   const re = /\b(?:current(?:ly)?(?:\s+plan)?|is\s+on|stay(?:ing)?\s+on|her\s+plan|his\s+plan)\b[^.\n]{0,60}?\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
   for (const m of String(text || '').matchAll(re)) {
@@ -779,6 +786,27 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
         touched = true;
       }
     }
+    // "Pinecrest Dentisry is Dr. Salome Fraga" / "Pinecrest Modern Dentistry = Dr. Salome Fraga": the saved row she names
+    // (fuzzy — her spelling may be off) becomes that doctor; every other saved doctor stays in the run (Gerry Cabrera,
+    // 2026-10-19: the grid showed only Salome Fraga).
+    const mapped = [];
+    for (const seg of t.split(/[\n;]|(?<!\b(?:[Dd]ra?|[Mm]rs?|[Mm]s|[Ss]t|[A-Z]))\.(?:\s+|$)/)) {
+      const mm = seg.match(/^\s*(?:and\s+)?(?:the\s+)?([A-Za-zÀ-ÿ'’&.-]+(?:\s+[A-Za-zÀ-ÿ'’&.-]+){0,5}?)\s+(?:is|=|→|->|is\s+actually|should\s+be)\s+(?:(?:dr|dra|doctor|doctora)\.?\s+)([A-ZÀ-Ý][A-Za-zÀ-ÿ'’.-]+(?:\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.-]+){1,3})\s*[.!]?\s*$/i);
+      if (!mm) continue;
+      const fw = plainWords(mm[1]).filter((w) => !['dr', 'the'].includes(w));
+      if (!fw.length) continue;
+      const hit = people.find((p) => {
+        const pw = plainWords(p.name);
+        return fw.every((w) => pw.some((x) => x === w || (w.length > 3 && lev(x, w) <= 2))) && lev(pw[0], fw[0]) <= 2;
+      });
+      if (hit && !sameDoctorName(hit.name, mm[2])) {
+        hit.name = mm[2].replace(/\s+/g, ' ').trim();
+        hit.npi = '';
+        mapped.push(hit.name);
+        touched = true;
+      }
+    }
+    if (mapped.length) continue;
     // Her yes to Max's duplicate question removes exactly that row.
     const dupYes = confirmedDuplicateRemovals(msgs, i);
     for (let k = people.length - 1; k >= 0; k -= 1) {
@@ -919,7 +947,14 @@ const LEAD_VERB_RE = /^(?:(?:pls|please|can you|could you|now|also|then)\s+)*(?:
 
 
 
-function namedPlansFromAsk(askText, constraints) {
+// Plan IDs as agents paste them from Sunfire: "H5420-1-0" / "H5420-001-0" → "H5420-001" (Tony Cabrera, 2026-10-19:
+// "Current plan is UHC MedicareMax … (H5420-1-0)" was not read as her current plan in the chat path).
+function normalizeTypedPlanIds(text) {
+  return String(text || '').replace(/\b([HR]\d{4})-(\d{1,3})(?:-\d)?(?=[^\dA-Za-z-]|$)/gi, (m, a, b) => `${a.toUpperCase()}-${b.padStart(3, '0')}`);
+}
+
+function namedPlansFromAsk(askText0, constraints) {
+  const askText = normalizeTypedPlanIds(askText0);
   let current = [];
   // Her current plan (comparisonAskText's "Her current plan:" line): a new set that mentions it keeps it, first.
   const currentIds = [...String((String(askText || '').match(/^Her current plan:\s*([^\n]+)$/m) || ['', ''])[1]).matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
@@ -1045,6 +1080,12 @@ function carrierKey(label) {
 }
 
 /** Columns for the named plans: plan-level In/Out when a directory gave one, carrier-level In* otherwise. */
+/** A dentist (DDS/DMD, dental taxonomy): Medicare medical networks do not list dentists, so ❌ there is not a medical miss. */
+function isDentalProvider(d) {
+  const t = [d && d.doctorName, d && d.requestedName, d && d.taxonomy, d && d.specialty, d && d.taxonomyDescription, ...((d && d.taxonomies) || []).map((x) => (x && (x.desc || x.description)) || x)].filter((x) => typeof x === 'string').join(' ');
+  return /\b(?:dds|dmd|dentist\w*|dentisry|dental)\b/i.test(t);
+}
+
 function namedPlanColumns(named, matrix, doctors) {
   return named.map((np) => {
     const row = matrix.find((p) => p.planId.slice(0, 9) === np.planId.slice(0, 9));
@@ -1074,6 +1115,8 @@ function namedPlanColumns(named, matrix, doctors) {
       // answered "not listed" for UHC plans → ❌ Not in network (not listed), not "not confirmed".
       else if (carrier === 'UnitedHealthcare' && uhcUnlisted(d)) col.out.push(who);
       else col.unknown.push(who);
+      // Gerry Cabrera, 2026-10-19: Salome Fraga (dentist) ❌ counted as a medical miss and pulled plans down the ranking.
+      if (col.out.includes(who) && isDentalProvider(d)) (col.dentalOut = col.dentalOut || []).push(who);
     }
     return col;
   });
@@ -1228,6 +1271,9 @@ function unknownCell(d, carrier) {
  */
 function identityIssue(d) {
   if (!d || !d.doctorName || !['done', 'partial'].includes(d.status)) return '';
+  // Looked up by the NPI saved on her workup / that she confirmed: that IS the confirmed match — never ask again
+  // (Gerry Cabrera, 2026-10-19: "Abilio Armando Coello (NPI 1720081037) is correct", then asked again two turns later).
+  if (d.requestedNpi && d.npi && String(d.requestedNpi) === String(d.npi)) return '';
   if (lastNameOnly(d)) return 'last_name';
   const asked = plainWords(shortDoctor(d));
   const matched = plainWords(d.doctorName);
@@ -1247,7 +1293,9 @@ function identityIssue(d) {
     const raw = String(d.doctorName || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
       .replace(ROLE_WORDS_RE, ' ').split(/[^a-z']+/).filter(Boolean);
     const initials = new Set(raw.filter((w) => w.length === 1));
-    const missing = asked.slice(1, -1).filter((w) => w.length >= 3 && !matched.includes(w) && !initials.has(w[0]));
+    // "Armand" for "Armando": one letter off is her spelling of the same middle name, not another person.
+    const near = (w) => matched.some((m) => m.length >= 4 && (m.startsWith(w) || w.startsWith(m)) && Math.abs(m.length - w.length) <= 1);
+    const missing = asked.slice(1, -1).filter((w) => w.length >= 3 && !matched.includes(w) && !initials.has(w[0]) && !near(w));
     if (missing.length) return 'mismatch';
   }
   return '';
@@ -1271,8 +1319,11 @@ function doctorLabel(d) {
 }
 
 function countsOf(p, n) {
+  // A dentist ❌ is shown but is neither a medical Out nor a doctor still to check.
+  const dental = (p.dentalOut || []).length;
+  n -= dental;
   const inN = p.in.length;
-  const outN = p.out.length;
+  const outN = p.out.length - dental;
   const star = (p.inCarrier || []).length;
   const notConfirmed = (p.notConfirmed || []).length;
   // `unchecked` is what the count row prints; `reallyUnchecked` (never looked up) decides if a plan can be ranked.
@@ -1318,7 +1369,9 @@ function gridTable(doctors, plans) {
   const rows = doctors.map((d, i) => `| ${doctorLabel(d)} | ${grid[i].join(' | ')} |`);
   // The count row is tallied from the cells drawn above — never from separate lists, so it always
   // matches what she sees (Maura, 2026-10-07: Aetna grid counts did not match the cells).
-  const total = `| **Doctors** | ${plans.map((p, k) => `**${cellCountText(grid.map((r) => r[k]))}**`).join(' | ')} |`;
+  // A dentist row is drawn but left out of the medical tally (Gerry Cabrera, 2026-10-19: Fraga ❌ counted as a miss).
+  const medical = doctors.map((d) => !isDentalProvider(d));
+  const total = `| **Doctors** | ${plans.map((p, k) => `**${cellCountText(grid.filter((r, i) => medical[i]).map((r) => r[k]))}**`).join(' | ')} |`;
   return [head, sep, ...rows, total].join('\n');
 }
 
@@ -1377,7 +1430,17 @@ function lowestStrengthCost(strengths) {
 function strengthNotes(drugs, planIds) {
   const out = [];
   for (const r of drugs || []) {
-    if (!planIds.some((id) => { const row = drugRowFor(r, id); return row && Array.isArray(row.strengths) && row.strengths.length > 1; })) continue;
+    // Only when the tier or cost really differs by strength on a plan shown: every strength T1 $0 is just "T1 $0"
+    // (Tony & Gerry Cabrera, 2026-10-19: "Glipizide cost varies by strength" under T1 $0 cells), and never once she
+    // confirmed the dose ("Levothyroxine Sodium 0.2 mg").
+    if (/\d\s*(?:mg|mcg|%|ml)\b/i.test(String(r.drugName || drugNameOf(r)))) continue;
+    const differs = planIds.some((id) => {
+      const row = drugRowFor(r, id);
+      if (!row || !Array.isArray(row.strengths) || row.strengths.length < 2) return false;
+      const covered = row.strengths.filter((v) => v && v.verified && v.coverage === 'covered' && v.tier);
+      return new Set(covered.map((v) => `${v.tier}|${v.costShare || row.costShare || ''}`)).size > 1;
+    });
+    if (!differs) continue;
     const name = (r.nameCorrection && r.nameCorrection.to) || drugNameOf(r);
     out.push(`⚠️ ${name} cost varies by strength — confirm dose`);
   }
@@ -1658,7 +1721,7 @@ function selectComparison(doctors, askText, opts = {}) {
       if (c.snp === 'csnp') csnpInPlay = true;
       if (e.status !== 'eligible') snpNamed.push(c.planId);
     }
-    if (snpNamed.length) out.flags.push(`Eligibility for ${snpNamed.join(', ')} is confirmed at enrollment.`);
+    if (snpNamed.length) out.flags.push(`SNP eligibility (${snpNamed.join(', ')}) is confirmed at enrollment.`);
     if (n > 0 && cols.some((c) => c.carrier === 'Solis')) out.flags.push(solisFlag(docs));
     if (n > 0 && cols.some((c) => c.carrier === 'CarePlus')) out.flags.push(careplusFlag(docs));
   } else if (n > 0 || carriers.length) {
@@ -1866,7 +1929,9 @@ function selectComparison(doctors, askText, opts = {}) {
 
   // C-SNP plans in the table: the condition list is per plan — say so, never assume.
   if (elig.csnp === 'confirmed') {
-    out.columns.filter((c) => c.snp === 'csnp').forEach((c) => out.flags.push(`⚠️ ${shortPlanHeader(c)} is a C-SNP — eligibility is confirmed at enrollment.`));
+    // One short line for all of them, in the notes bubble (Gerry Cabrera, 2026-10-19: repeated once per plan).
+    const csnpIds = out.columns.filter((c) => c.snp === 'csnp').map((c) => c.planId);
+    if (csnpIds.length && !out.flags.some((f) => /confirmed at enrollment/i.test(f))) out.flags.push(`C-SNP eligibility (${csnpIds.join(', ')}) is confirmed at enrollment.`);
   }
 
   // Rule 11 — meds can suggest a C-SNP condition; never assume it.
@@ -2063,7 +2128,9 @@ function strengthSplitCell(row, result, opts = {}) {
     if (v.bdPa) bits.push('B/D PA');
     if (v.hrm) bits.push('HRM (PA 65+)');
     if (v.excludedDrug) bits.push('supplemental');
-    if (v.mixedProducts) bits.push('varies by product');
+    // Across strengths, "varies by product" is noise when the covered tier · cost is the same (Gerry Cabrera,
+    // 2026-10-19: "0.1/0.175/0.2 mg: T1 $0 · varies by product ‖ 0.3 mg: T1 $0"). ED drugs keep it (PAH vs ED products).
+    if (v.mixedProducts && (ed || opts.keepMixed)) bits.push('varies by product');
     // Per strength: the source that answered this strength decides whether PA/QL are known.
     if (restrictionsUnknown(v)) bits.push(PA_QL_UNKNOWN);
     return bits.join(' · ');
@@ -2363,6 +2430,47 @@ function splitFollowUp(text) {
 }
 
 /**
+ * The model's notes must say what the grid shows (Gerry Cabrera, 2026-10-19: "checked 4 plans" over a 3-plan grid, a
+ * CarePlus note after CarePlus was removed, "meds checked" when the lookup failed, a Devoted "carrier-level only —
+ * confirm exact plan with Devoted" warning, one C-SNP line per plan, and Coello asked again after she confirmed him).
+ * A note that does not fit the rendered grid is dropped; the server's own follow-up lines are kept as they are.
+ */
+const NUM_WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8 };
+function noteFitsGrid(line, rendered) {
+  const t = String(line || '').trim();
+  if (!t) return false;
+  const { grid, followUp } = splitFollowUp(rendered);
+  const gridIds = [...new Set([...grid.matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((m) => m[1].toUpperCase()))];
+  // Devoted's directory answers for every Devoted plan: no carrier-level caveat. One server C-SNP line, never the model's.
+  if (/carrier[-\s]level|confirm (?:the )?exact plan with/i.test(t)) return false;
+  if (/\bc-?snp\b[^.\n]{0,60}\beligib|\beligib[^.\n]{0,60}\bconfirmed at enrollment/i.test(t)) return false;
+  // A plan ID that is not a grid column.
+  const ids = [...t.matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((m) => m[1].toUpperCase());
+  if (gridIds.length && ids.some((id) => !gridIds.includes(id))) return false;
+  // "Checked 4 plans" over a grid of 3.
+  const n = t.match(/\b(\d+|one|two|three|four|five|six|seven|eight)\s+(?:\w+\s+)?plans?\b/i);
+  if (n && gridIds.length) { const k = /^\d+$/.test(n[1]) ? Number(n[1]) : NUM_WORDS[n[1].toLowerCase()]; if (k && k !== gridIds.length) return false; }
+  // A carrier with no column (unless the note says it was taken out).
+  // (A lookup that did not finish / a retry offer is about the check, not a column: kept.)
+  if (gridIds.length && !/\b(?:remov|drop|took|taken|exclud|without|no longer|not included|retry|re-?try|didn'?t finish|did not finish|timed? out|still checking)/i.test(t)) {
+    const gridCarriers = new Set(gridIds.map((id) => { const g = gridRowFor(id, ''); return g ? R.carrierOfPlan(g) : ''; }).filter(Boolean));
+    const named = R.CARRIER_WORDS.filter(([, re]) => re.test(t)).map(([c]) => c);
+    if (gridCarriers.size && named.some((c) => !gridCarriers.has(c))) return false;
+  }
+  // Meds claims when there is no meds table (or the lookup failed).
+  const medsOk = /^\*\*Meds\*\*$/m.test(grid) && !grid.includes(R.MEDS_UNREADABLE) && /\|\s*T\d|\bTier\b|\$\d/.test(grid.slice(grid.indexOf('**Meds**')));
+  if (!medsOk && /\b(?:meds?|medications?|drugs?|prescriptions?|formulary|tiers?|copays?)\b/i.test(t) && !/\?\s*$/.test(t)) return false;
+  // Re-asking her to confirm a doctor the server did not flag.
+  if (/\b(?:confirm|is (?:this|that) (?:the )?(?:right|correct)|correct (?:match|doctor|provider|npi)|right (?:doctor|provider|match))\b/i.test(t)
+      && /\b(?:doctor|dr\.?|provider|npi|match|he|she)\b/i.test(t)) {
+    const flagged = followUp.split('\n').filter((l) => /\?\s*$/.test(l)).join(' ').toLowerCase();
+    const words = (t.match(/\b[A-Z][a-z]{3,}\b/g) || []).map((w) => w.toLowerCase()).filter((w) => !/^(?:confirm|please|does|this|that|correct|right|match|doctor|provider|should|want|would|could|also|same)$/.test(w));
+    if (!words.some((w) => flagged.includes(w))) return false;
+  }
+  return true;
+}
+
+/**
  * Server-rendered table first, then at most a few short lines of the model's own notes. Any
  * table, legend or per-doctor bullet the model wrote is dropped — the rendered table is the answer.
  */
@@ -2371,9 +2479,10 @@ function enforceRenderedTable(replyText, rendered) {
   const reply = String(replyText || '');
   if (reply.includes(rendered)) {
     // The model copied the table and wrote its notes under it: those notes are the follow-up message.
-    if (rendered.includes(FOLLOW_UP_MARKER)) return reply;
-    const rest = reply.slice(reply.indexOf(rendered) + rendered.length).trim();
-    const before = reply.slice(0, reply.indexOf(rendered)).trim();
+    const fit = (x) => x.split('\n').filter((l) => !l.trim() || noteFitsGrid(l, rendered)).join('\n').trim();
+    const rest = fit(reply.slice(reply.indexOf(rendered) + rendered.length).trim());
+    const before = fit(reply.slice(0, reply.indexOf(rendered)).trim());
+    if (rendered.includes(FOLLOW_UP_MARKER)) return [before, rendered, rest].filter(Boolean).join('\n');
     return rest || before ? `${rendered}\n\n${FOLLOW_UP_MARKER}\n${[before, rest].filter(Boolean).join('\n')}` : rendered;
   }
   const rowNames = [...rendered.matchAll(/^\| ([^|]+?) \|/gm)].map((m) => m[1].trim())
@@ -2402,7 +2511,7 @@ function enforceRenderedTable(replyText, rendered) {
     if (mentionsRow && (statusWord.test(t) || /^\**[^a-z]*\b[HR]\d{4}-\d{3}[^|]{0,60}:?\**:?$/i.test(t) || t.length <= 90)) return false;
     return true;
     // "Why these plans" / excluded lists are not repeated by the model either.
-  }).filter((l) => !/^\**\s*(?:why these plans|excluded:)/i.test(l.trim())).slice(0, 4);
+  }).filter((l) => !/^\**\s*(?:why these plans|excluded:)/i.test(l.trim())).filter((l) => noteFitsGrid(l, rendered)).slice(0, 4);
   if (!notes.length) return rendered;
   return rendered.includes(FOLLOW_UP_MARKER) ? `${rendered}\n${notes.join('\n')}` : `${rendered}\n\n${FOLLOW_UP_MARKER}\n${notes.join('\n')}`;
 }
@@ -2464,6 +2573,7 @@ module.exports = {
   removedByClauses,
   renderedAnswer,
   enforceRenderedTable,
+  noteFitsGrid,
   splitFollowUp,
   stripWhyThesePlans,
   stripStrengthSameNote,
@@ -2486,6 +2596,9 @@ module.exports = {
   selectComparison,
   batchSummaryForModel,
   gridTable,
+  identityIssue,
+  isDentalProvider,
+  countsOf,
   medsTable,
   dedupeDoctorRows,
   duplicateQuestions,

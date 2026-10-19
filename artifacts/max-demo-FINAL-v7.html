@@ -2870,20 +2870,25 @@
     applyGridAndCenter(ws, model);
   }
 
-  // Thin grid lines on every table cell and centered text (Yahoska 2026-10-07). The client-name title row stays as is.
+  // Thin grid lines on every table cell and centered text (Yahoska 2026-10-07). The client-name title row keeps its look.
+  // Column A (title, section headers, doctor / drug names, benefit labels) is left-aligned (Yahoska, 2026-10-19).
   function applyGridAndCenter(ws, model) {
     if (typeof XLSX === "undefined" || !XLSX.utils) return;
     const cols = (model.headers || []).length;
     const edge = { style: "thin", color: { rgb: "9A9A9A" } };
     model.aoa.forEach((row, r) => {
-      if ((model.kinds[r] || [])[0] === "title") return;
+      if ((model.kinds[r] || [])[0] === "title") {
+        const a1 = XLSX.utils.encode_cell({ r, c: 0 });
+        if (ws[a1]) ws[a1].s = Object.assign({}, ws[a1].s || {}, { alignment: Object.assign({}, (ws[a1].s || {}).alignment, { horizontal: "left" }) });
+        return;
+      }
       for (let c = 0; c < cols; c++) {
         const addr = XLSX.utils.encode_cell({ r, c });
         if (!ws[addr]) ws[addr] = { t: "s", v: "" };
         const prev = ws[addr].s || {};
         ws[addr].s = Object.assign({}, prev, {
           border: { top: edge, bottom: edge, left: edge, right: edge },
-          alignment: Object.assign({}, prev.alignment, { horizontal: "center", vertical: "center", wrapText: true }),
+          alignment: Object.assign({}, prev.alignment, { horizontal: c === 0 ? "left" : "center", vertical: "center", wrapText: true }),
         });
       }
     });
@@ -2985,8 +2990,10 @@
       theme: "grid",
       styles: { fontSize: 8, cellPadding: 3, valign: "top", overflow: "linebreak" },
       headStyles: { fillColor: [91, 44, 139], textColor: 255, fontStyle: "bold", halign: "center" },
-      columnStyles: { 0: { cellWidth: 120, fontStyle: "bold" } },
+      columnStyles: { 0: { cellWidth: 120, fontStyle: "bold", halign: "left" } },
       didParseCell: function (data) {
+        // The first column reads left-aligned, header cell included (matches the Excel column A, 2026-10-19).
+        if (data.column.index === 0) data.cell.styles.halign = "left";
         if (data.section !== "body") return;
         const kindRow = tableKinds[data.row.index] || [];
         const kind = kindRow[data.column.index];
@@ -4269,9 +4276,13 @@
     const questions = (Array.isArray(r.questions) ? r.questions : []).map((q) => String(q || "").trim()).filter((q) => q && !(skipQ && skipQ.test(q)));
     const notes = [];
     const cnv = r.couldNotVerify;
-    if (cnv && cnv.count > 0) {
-      const ids = (Array.isArray(cnv.plans) ? cnv.plans : []).map((p) => p && p.planId).filter(Boolean);
-      notes.push("Could not verify " + cnv.count + " plan" + (cnv.count === 1 ? "" : "s") + " (most doctors unchecked)" + (ids.length ? ": " + ids.join(", ") : "") + ".");
+    // Only plans in the grid: a plan outside the comparison set never gets a note (Tony & Gerry Cabrera, 2026-10-19).
+    const gridIds = (Array.isArray(r.planIds) ? r.planIds : []).map((x) => String(x || "").toUpperCase().slice(0, 9));
+    const cnvIds = (cnv && Array.isArray(cnv.plans) ? cnv.plans : []).map((p) => p && p.planId).filter(Boolean)
+      .filter((id) => !gridIds.length || gridIds.includes(String(id).toUpperCase().slice(0, 9)));
+    if (cnv && cnv.count > 0 && (cnvIds.length || !gridIds.length)) {
+      const n = gridIds.length ? cnvIds.length : cnv.count;
+      notes.push("Could not verify " + n + " plan" + (n === 1 ? "" : "s") + " (most doctors unchecked)" + (cnvIds.length ? ": " + cnvIds.join(", ") : "") + ".");
     }
     for (const f of Array.isArray(r.flags) ? r.flags : []) if (String(f || "").trim()) notes.push(String(f).trim());
     return { questions: questions, notes: notes };
@@ -7285,6 +7296,10 @@ function App() {
   const loadingRef = useRef(false);
   const queuedRef = useRef(null);
   const chatGenRef = useRef(0);
+  // A reply still running when she switches tabs / workups keeps running and lands in the workup that asked for it
+  // (Gerry Cabrera, 2026-10-19: switching to Tony's tab and back dropped Gerry's request). { [workupId|"__new"]: { messages, pending } }
+  const parkedChatsRef = useRef({});
+  const inflightChatRef = useRef(null); // { gen, workupId } of the request now running
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -7410,6 +7425,11 @@ function App() {
       clearTimeout(autoSaveTimerRef.current);
       autoSaveTimerRef.current = null;
     }
+    // A request in flight: keep this chat (her message included) for its workup; the reply lands there.
+    const inflight = inflightChatRef.current;
+    if (loadingRef.current && inflight && inflight.gen === chatGenRef.current && messagesRef.current.length) {
+      parkedChatsRef.current[currentWorkupIdRef.current || "__new"] = { messages: messagesRef.current.slice(), pending: true };
+    }
     chatGenRef.current += 1;
     clearQueued();
     // Lookup results belong to the chat that ran them: opening another client's workup must not
@@ -7478,7 +7498,9 @@ function App() {
     }
     if (prev) {
       // Renamed by the agent → keep her name, never the one re-read from the chat.
-      if (prev.nameLocked && prev.clientName) built.clientName = prev.clientName;
+      // A loaded workup keeps its client name: a correction turn ("Pinecrest Dentisry is Dr. Salome Fraga") is never
+      // a rename (Gerry Cabrera, 2026-10-19). Only Rename changes it.
+      if (prev.clientName) built.clientName = prev.clientName;
       if (!built.clientName) built.clientName = prev.clientName || "";
       if (!built.zip) built.zip = prev.zip || "";
       if (!built.county) built.county = prev.county || "";
@@ -7521,7 +7543,9 @@ function App() {
         built.doctors = keep.length || fresh.length || ordered.length ? ordered.concat(fresh) : built.doctors;
       }
       if (Array.isArray(prev.medications) && prev.medications.length) {
-        const key = (m) => words(m && m.name).join(" ");
+        // One row per drug (first word): "Levothyroxine Sodium 0.2 mg" replaces the saved "Levothyroxine Sodium" once she
+        // confirmed the dose (Gerry Cabrera, 2026-10-19).
+        const key = (m) => words(m && m.name)[0] || "";
         const have = new Set(built.medications.map(key));
         built.medications = built.medications.concat(prev.medications.filter((m) => !have.has(key(m))));
       }
@@ -7659,6 +7683,15 @@ function App() {
       } else if (workup.compareResult) {
         if (missingFrom(workup.compareResult).length) next.push(staleNote(workup.compareResult));
         else next.push({ role: "queueResult", result: workup.compareResult, time: nowLabel() });
+      }
+      // Her chat from before she switched away (a reply that was still running, or that finished while she was in
+      // another tab) comes back under the workup card.
+      const parked = parkedChatsRef.current[workup.id];
+      if (parked) {
+        const turns = parked.messages.filter((m) => m && (m.role === "user" || m.role === "assistant") && !m.pendingFor);
+        next.push(...turns);
+        if (parked.pending) next.push({ role: "assistant", content: "Max is still working on this request — the reply will appear here.", pendingFor: workup.id, time: nowLabel() });
+        else delete parkedChatsRef.current[workup.id];
       }
       messagesRef.current = next;
       setMessages(next);
@@ -8024,8 +8057,26 @@ function App() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  /** A reply for a chat she switched away from: into that workup's view if she is back on it, else parked for it. */
+  const deliverParkedReply = (forId, history, msgs) => {
+    const key = forId || "__new";
+    if (forId && forId === currentWorkupIdRef.current) {
+      const base = messagesRef.current.filter((m) => m.pendingFor !== forId);
+      const next = [...base, ...msgs];
+      messagesRef.current = next;
+      setMessages(next);
+      delete parkedChatsRef.current[key];
+      return;
+    }
+    parkedChatsRef.current[key] = { messages: [...history.filter((m) => m.role !== "offer"), ...msgs], pending: false };
+    const w = (workups || []).find((x) => x.id === forId);
+    setWorkupNotice("Max finished the reply for " + ((w && w.clientName) || "the chat you left") + " — open its tab to see it.");
+  };
+
   const sendNow = async (content, images) => {
     const gen = chatGenRef.current;
+    const startWorkupId = currentWorkupIdRef.current || null;
+    inflightChatRef.current = { gen, workupId: startWorkupId };
     const startedAt = Date.now();
     if (isMobile) setSidebarOpen(false);
     loadingRef.current = true;
@@ -8172,7 +8223,13 @@ function App() {
         newHistory.filter((m) => m.role === "user" || m.role === "assistant").map((m) => ({ role: m.role, content: m.content })),
         loadedWorkupRef.current
       ), { priorToolResults });
-      if (gen !== chatGenRef.current) return;
+      if (gen !== chatGenRef.current) {
+        // She switched tabs while it ran: the reply still lands in the workup that asked (no export / autosave from here).
+        const late = [{ role: "assistant", content: result.text, time: nowLabel() }];
+        if (result.followUp) late.push({ role: "assistant", content: result.followUp, time: nowLabel(), followUpOf: true });
+        deliverParkedReply(startWorkupId, newHistory, late);
+        return;
+      }
       finalDoctorListRef.current = result.doctorList ? result.doctorList.doctors : null;
       resumeToolResultsRef.current = result.resume && result.resume.resumable
         ? window.MaxComparisonExport.mergeToolResults(priorToolResults, result.toolResults, 40)
@@ -8286,7 +8343,10 @@ function App() {
       messagesRef.current = nextMsgs;
       setMessages(nextMsgs);
     } catch (err) {
-      if (gen !== chatGenRef.current) return;
+      if (gen !== chatGenRef.current) {
+        if (!(err && err.code === "access_required")) deliverParkedReply(startWorkupId, newHistory, [{ role: "assistant", content: "Couldn't finish this request — send it again.", time: nowLabel() }]);
+        return;
+      }
       if (err && err.code === "access_required") {
         setUnlocked(false);
         setGateError("Session expired — sign in with your email and password again.");
@@ -8303,9 +8363,16 @@ function App() {
       );
       restoreDraft = true;
     } finally {
+      if (inflightChatRef.current && inflightChatRef.current.gen === gen) inflightChatRef.current = null;
       if (gen !== chatGenRef.current) {
         loadingRef.current = false;
         setLoading(false);
+        // A message she queued in the tab she switched to runs now (it waited on this request).
+        const queuedNext = queuedRef.current;
+        if (queuedNext) {
+          clearQueued();
+          await sendNow(queuedNext.text, queuedNext.images || []);
+        }
         return;
       }
       const next = queuedRef.current;

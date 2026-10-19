@@ -1,0 +1,274 @@
+{
+ "name": "Tony Cabrera — 'Med Eye Associates' is a practice, not the meds label; 'Medications' list one per line; no person names in Meds; no out-of-set plan note; no strength warning when every strength costs the same",
+ "source": "Max chat 2026-10-19",
+ "workup": null,
+ "messages": [
+  "Tony Cabrera, 33186, Dr. Alix Salvant, Joaquin Maury-Ochoa, Ignacio Rua, Francisco Borja, Med Eye Associates, Brian Dougherty, Pinecrest Modern Dentistry, Ramon Quesada, Michael Fili. Medications amlodipine\nfolic acid\nglipizide\nlisinopril\nmemantine\nmetformin\nmetoprolol\nsimvastatin. Current plan is UHC MedicareMax Medicare Advantage FL-0028 (HMO) (H5420-1-0)\nCompare Doctors DrMax-Dade H4140-022 and Humana Gold Plus H1036-054C."
+ ],
+ "doctorResults": {
+  "Alix Salvant": {
+   "npi": "1588693477",
+   "matched": "ALIX SALVANT MD",
+   "in": [
+    "H5420-001",
+    "H4140-022",
+    "H1036-054C"
+   ],
+   "out": []
+  },
+  "Joaquin Maury-Ochoa": {
+   "npi": "1477795813",
+   "matched": "JOAQUIN SALUSTINO MAURY OCHOA",
+   "in": [
+    "H5420-001",
+    "H4140-022",
+    "H1036-054C"
+   ],
+   "out": []
+  },
+  "Ignacio Rua": {
+   "npi": "1235132549",
+   "in": [
+    "H5420-001",
+    "H4140-022",
+    "H1036-054C"
+   ],
+   "out": []
+  },
+  "Francisco Borja": {
+   "npi": "1255320693",
+   "matched": "FRANCISCO J BORJA",
+   "in": [
+    "H5420-001",
+    "H4140-022",
+    "H1036-054C"
+   ],
+   "out": []
+  },
+  "Med Eye Associates": {
+   "org": true,
+   "in": [
+    "H5420-001",
+    "H4140-022"
+   ],
+   "out": []
+  },
+  "Brian Dougherty": {
+   "npi": "1487654299",
+   "matched": "BRIAN EDWARD DOUGHERTY",
+   "in": [
+    "H5420-001",
+    "H4140-022"
+   ],
+   "out": [
+    "H1036-054C"
+   ]
+  },
+  "Ramon Quesada": {
+   "npi": "1134125347",
+   "in": [
+    "H4140-022",
+    "H1036-054C"
+   ],
+   "out": [
+    "H5420-001"
+   ]
+  },
+  "Michael Fili": {
+   "npi": "1033151113",
+   "matched": "MICHAEL D FILI",
+   "in": [],
+   "out": [
+    "H5420-001",
+    "H4140-022",
+    "H1036-054C"
+   ]
+  }
+ },
+ "drugResults": {
+  "amlodipine": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "folic acid": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "glipizide": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0",
+    "strengths": [
+     "5 mg",
+     "10 mg"
+    ]
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0",
+    "strengths": [
+     "5 mg",
+     "10 mg"
+    ]
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0",
+    "strengths": [
+     "5 mg",
+     "10 mg"
+    ]
+   }
+  },
+  "lisinopril": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "memantine": {
+   "H5420-001": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 2,
+    "cost": "$0"
+   }
+  },
+  "metformin": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "metoprolol": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "simvastatin": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  }
+ },
+ "expect": {
+  "doctors": {
+   "include": [
+    "Alix Salvant",
+    "Joaquin Maury-Ochoa",
+    "Ignacio Rua",
+    "Francisco Borja",
+    "Med Eye Associates",
+    "Brian Dougherty",
+    "Pinecrest Modern Dentistry",
+    "Ramon Quesada",
+    "Michael Fili"
+   ]
+  },
+  "doctorCount": 9,
+  "meds": [
+   "amlodipine",
+   "folic acid",
+   "glipizide",
+   "lisinopril",
+   "memantine",
+   "metformin",
+   "metoprolol",
+   "simvastatin"
+  ],
+  "medsExcludeWords": [
+   "Eye Associates",
+   "Dougherty",
+   "Pinecrest",
+   "Quesada",
+   "Fili"
+  ],
+  "firstGridPlan": "H5420-001",
+  "gridPlans": [
+   "H5420-001",
+   "H4140-022",
+   "H1036-054C"
+  ],
+  "medCells": {
+   "Glipizide": "\\| T1 \\$0 \\| T1 \\$0 \\| T1 \\$0 \\|"
+  },
+  "followUpExcludes": [
+   "H1035-017",
+   "varies by strength",
+   "Could not verify"
+  ],
+  "clientName": "Tony Cabrera"
+ },
+ "doctorNames": [
+  {
+   "name": "Med Eye Associates",
+   "org": true,
+   "export": "Med Eye Associates"
+  },
+  {
+   "name": "Pinecrest Modern Dentistry",
+   "org": true,
+   "export": "Pinecrest Modern Dentistry"
+  }
+ ]
+}

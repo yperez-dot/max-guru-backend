@@ -60,6 +60,10 @@ function looseClientName(t) {
   if (!head || head.length > 70) return '';
   const words = head.split(/\s+/);
   if (words.length > 6) return '';
+  // "Pinecrest Dentisry is Dr. Salome Fraga" / "Levothyroxine Sodium is 0.2 mg": a sentence, not a name.
+  if (words.some((w) => /^(?:is|are|was|=|es|son|takes?|uses?|means)$/i.test(w))) return '';
+  // "pls remove careplus" is an instruction, not a client (Gerry Cabrera, 2026-10-19).
+  if (words.some((w) => /^(?:pls|plz|please|remove|drop|delete|add|check|grid|rerun|re-run|manually|careplus|devoted|dvoted|humana|aetna|wellcare|uhc|unitedhealthcare|cigna|simply|doctors|meds)$/i.test(w))) return '';
   if (!words.every((w) => /^[A-Za-z][A-Za-z'’-]*$|^&$/.test(w))) return '';
   if (/^(?:doctors?|drs?|meds?|medications?|compare|please|can|could|hi|hello|new|client|zip|plan|plans|current|show|add|check|look|find|help|she|he|they|his|her|their|no|none)$/i.test(words[0])) return '';
   // One word is a family name ("Mazzeos", "Mazzeo") — only when it clearly opens the paste, i.e. a delimiter followed it.
@@ -78,7 +82,9 @@ function unlabeledDoctors(t, zip) {
   const looksLikeName = (x) => {
     const w = x.replace(/\b(?:Drs?|Dras?|Doc)(?:\.\s*|\s+)/i, '').split(/\s+/);
     return w.length >= 2 && w.length <= 5 && /^[A-Z]/.test(w[0]) && /^[A-Z]/.test(w[w.length - 1]) && w.every((y) => /^[A-Za-z][A-Za-z.'’-]*$/.test(y)) &&
-      !/^(?:no|none|meds?|medicaid|they|for|has|have|she|he|compare|add)\b/i.test(x);
+      !/^(?:no|none|medicaid|they|for|has|have|she|he|compare|add)\b/i.test(x) &&
+      // "Med Eye Associates" is a practice, not the meds label; "Meds: …" / "meds metformin" are (Tony & Gerry Cabrera, 2026-10-19).
+      !/^[Mm][Ee][Dd][Ss]?\b(?=\s*:|\s+[a-z])|^MEDS?\b|^Meds\b/.test(x);
   };
   const good = items.filter(looksLikeName);
   if (!good.length || good.length * 2 < items.length) return '';
@@ -117,8 +123,12 @@ function parseCompareAsk(text) {
 
   const zip = (t.match(/\b(?:zip\s*(?:code)?\s*:?\s*)?(\d{5})\b/i) || [])[1] || '';
   const clientMatch = t.replace(/^\s*(?:new\s+)?(?:client|patient|cliente)\s*[:\-–—]\s*/i, '').match(/^\s*([A-Z][a-z]+(?:\s*(?:&|and|y)\s*[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]+)/);
-  const strictName = clientMatch ? clientMatch[1].replace(/\s+/g, ' ').trim() : '';
-  const looseName = looseClientName(t);
+  // A doctor mapping or a dose answer ("Pinecrest Dentisry is Dr. Salome Fraga", "X = Dr. Y", "Levothyroxine is 0.2 mg")
+  // names no client (Gerry Cabrera, 2026-10-19: the client was renamed after the practice).
+  const mappingLine = /^\s*[^.\n]{1,80}?\s(?:is|=|es|are)\s+(?:dr|dra|doctor|doctora)\b|^\s*[^.\n]{1,60}?\s*=\s*\S|^\s*[^.\n]{1,60}?\s(?:is|=)\s+\d/i.test(t);
+  const practiceName = (x) => require('./comparisonRules').PRACTICE_WORD_RE.test(x);
+  const strictName = clientMatch && !mappingLine && !practiceName(clientMatch[1]) ? clientMatch[1].replace(/\s+/g, ' ').trim() : '';
+  const looseName = mappingLine ? '' : looseClientName(t);
   const clientName = (looseName && looseName.toLowerCase().startsWith(strictName.toLowerCase()) ? looseName : (strictName || looseName)).replace(/^the\s+/i, '');
   const terminatingPlan = ((t.match(/\b([HR]\d{4}-\d{3}[A-Z]?)\b[^.\n]{0,25}?\b(?:terminat|ending)/i) || [])[1] || '').toUpperCase();
 
@@ -173,6 +183,7 @@ function parseCompareAsk(text) {
   let meds = expandMedList(splitList(medsText).map((m) => require('./comparisonRules').cleanMedItem(m.replace(/\.$/, ''))).filter(Boolean)).slice(0, MAX_MEDS);
   // A sentence is a note, not a drug: "UM means University of Miami", "only Humana has those doctors".
   meds = meds.filter((m) => !/\b(?:means|only|has|have|those|doctors?|wants?|please)\b/i.test(m));
+  meds = require('./comparisonRules').dropDoctorNamesFromMeds(meds, doctors).filter((m) => !require('./comparisonRules').INSTRUCTION_WORD_RE.test(m));
   // A pasted MedicarePro "Prescriptions (5)" block ("atorvastatin calcium TAB 10MG" lines) — the
   // section parser above caught only the first line (Victor, 2026-10-08). Use the full Rx-line read.
   const rxMeds = require('./comparisonRules').medsFromAsk(t);
@@ -385,7 +396,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
         r = { status: 'error', doctorName: d.name, structured: { doctorName: d.name, networks: [] } };
       }
       job.progress.doctors.done += 1;
-      return { ...(r.structured || {}), requestedName: d.name, status: r.status, mustKeep: Boolean(d.mustKeep) };
+      return { ...(r.structured || {}), requestedName: d.name, ...(d.npi ? { requestedNpi: d.npi } : {}), status: r.status, mustKeep: Boolean(d.mustKeep) };
     }));
     // Same doctor-set rules as the chat (loadedWorkup.js): one row per NPI; a look-alike without an NPI is asked about.
     const dedupedDoctors = dedupeDoctorRows(doctorStructs);
@@ -458,9 +469,12 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     // Every lookup failed: the table carries the banner, and the UI shows it in red.
     job.result.medsLookupFailed = drugs.length > 0 && !drugs.some((r) => (r.lookups || []).some((l) => l && l.verified));
     job.result.medsBanner = job.result.medsLookupFailed ? MEDS_FAILED_BANNER.replace(/\*\*/g, '') : null;
+    // Only plans in the grid get a "Could not verify" note: a county plan that was never shown (H1035-017 under Tony
+    // and Gerry Cabrera's UHC / DrMax / Humana grid, 2026-10-19) is not part of her comparison.
+    const cnvShown = (sel.couldNotVerify || []).filter((c) => planIds.some((id) => id.slice(0, 9) === String(c.planId).slice(0, 9)));
     job.result.couldNotVerify = {
-      count: sel.couldNotVerifyCount,
-      plans: sel.couldNotVerify.slice(0, 3).map((c) => ({ planId: c.planId, name: c.name })),
+      count: cnvShown.length,
+      plans: cnvShown.slice(0, 3).map((c) => ({ planId: c.planId, name: c.name })),
     };
     job.result.sameNetwork = sel.sameNetwork.map((x) => ({ planId: x.plan.planId, name: x.plan.name, sameAs: x.twin.planId, diff: x.diff }));
     job.result.flags = [...sel.flags, ...strengthNotes(drugs, planIds)];

@@ -2609,20 +2609,25 @@
     applyGridAndCenter(ws, model);
   }
 
-  // Thin grid lines on every table cell and centered text (Yahoska 2026-10-07). The client-name title row stays as is.
+  // Thin grid lines on every table cell and centered text (Yahoska 2026-10-07). The client-name title row keeps its look.
+  // Column A (title, section headers, doctor / drug names, benefit labels) is left-aligned (Yahoska, 2026-10-19).
   function applyGridAndCenter(ws, model) {
     if (typeof XLSX === "undefined" || !XLSX.utils) return;
     const cols = (model.headers || []).length;
     const edge = { style: "thin", color: { rgb: "9A9A9A" } };
     model.aoa.forEach((row, r) => {
-      if ((model.kinds[r] || [])[0] === "title") return;
+      if ((model.kinds[r] || [])[0] === "title") {
+        const a1 = XLSX.utils.encode_cell({ r, c: 0 });
+        if (ws[a1]) ws[a1].s = Object.assign({}, ws[a1].s || {}, { alignment: Object.assign({}, (ws[a1].s || {}).alignment, { horizontal: "left" }) });
+        return;
+      }
       for (let c = 0; c < cols; c++) {
         const addr = XLSX.utils.encode_cell({ r, c });
         if (!ws[addr]) ws[addr] = { t: "s", v: "" };
         const prev = ws[addr].s || {};
         ws[addr].s = Object.assign({}, prev, {
           border: { top: edge, bottom: edge, left: edge, right: edge },
-          alignment: Object.assign({}, prev.alignment, { horizontal: "center", vertical: "center", wrapText: true }),
+          alignment: Object.assign({}, prev.alignment, { horizontal: c === 0 ? "left" : "center", vertical: "center", wrapText: true }),
         });
       }
     });
@@ -2724,8 +2729,10 @@
       theme: "grid",
       styles: { fontSize: 8, cellPadding: 3, valign: "top", overflow: "linebreak" },
       headStyles: { fillColor: [91, 44, 139], textColor: 255, fontStyle: "bold", halign: "center" },
-      columnStyles: { 0: { cellWidth: 120, fontStyle: "bold" } },
+      columnStyles: { 0: { cellWidth: 120, fontStyle: "bold", halign: "left" } },
       didParseCell: function (data) {
+        // The first column reads left-aligned, header cell included (matches the Excel column A, 2026-10-19).
+        if (data.column.index === 0) data.cell.styles.halign = "left";
         if (data.section !== "body") return;
         const kindRow = tableKinds[data.row.index] || [];
         const kind = kindRow[data.column.index];
