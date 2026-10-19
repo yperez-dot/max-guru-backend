@@ -62,6 +62,8 @@ function looseClientName(t) {
   if (words.length > 6) return '';
   // "Pinecrest Dentisry is Dr. Salome Fraga" / "Levothyroxine Sodium is 0.2 mg": a sentence, not a name.
   if (words.some((w) => /^(?:is|are|was|=|es|son|takes?|uses?|means)$/i.test(w))) return '';
+  // "pls remove careplus" is an instruction, not a client (Gerry Cabrera, 2026-10-19).
+  if (words.some((w) => /^(?:pls|plz|please|remove|drop|delete|add|check|grid|rerun|re-run|manually|careplus|devoted|dvoted|humana|aetna|wellcare|uhc|unitedhealthcare|cigna|simply|doctors|meds)$/i.test(w))) return '';
   if (!words.every((w) => /^[A-Za-z][A-Za-z'’-]*$|^&$/.test(w))) return '';
   if (/^(?:doctors?|drs?|meds?|medications?|compare|please|can|could|hi|hello|new|client|zip|plan|plans|current|show|add|check|look|find|help|she|he|they|his|her|their|no|none)$/i.test(words[0])) return '';
   // One word is a family name ("Mazzeos", "Mazzeo") — only when it clearly opens the paste, i.e. a delimiter followed it.
@@ -181,7 +183,7 @@ function parseCompareAsk(text) {
   let meds = expandMedList(splitList(medsText).map((m) => require('./comparisonRules').cleanMedItem(m.replace(/\.$/, ''))).filter(Boolean)).slice(0, MAX_MEDS);
   // A sentence is a note, not a drug: "UM means University of Miami", "only Humana has those doctors".
   meds = meds.filter((m) => !/\b(?:means|only|has|have|those|doctors?|wants?|please)\b/i.test(m));
-  meds = require('./comparisonRules').dropDoctorNamesFromMeds(meds, doctors);
+  meds = require('./comparisonRules').dropDoctorNamesFromMeds(meds, doctors).filter((m) => !require('./comparisonRules').INSTRUCTION_WORD_RE.test(m));
   // A pasted MedicarePro "Prescriptions (5)" block ("atorvastatin calcium TAB 10MG" lines) — the
   // section parser above caught only the first line (Victor, 2026-10-08). Use the full Rx-line read.
   const rxMeds = require('./comparisonRules').medsFromAsk(t);
@@ -394,7 +396,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
         r = { status: 'error', doctorName: d.name, structured: { doctorName: d.name, networks: [] } };
       }
       job.progress.doctors.done += 1;
-      return { ...(r.structured || {}), requestedName: d.name, status: r.status, mustKeep: Boolean(d.mustKeep) };
+      return { ...(r.structured || {}), requestedName: d.name, ...(d.npi ? { requestedNpi: d.npi } : {}), status: r.status, mustKeep: Boolean(d.mustKeep) };
     }));
     // Same doctor-set rules as the chat (loadedWorkup.js): one row per NPI; a look-alike without an NPI is asked about.
     const dedupedDoctors = dedupeDoctorRows(doctorStructs);

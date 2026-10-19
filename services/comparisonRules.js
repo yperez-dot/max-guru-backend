@@ -181,6 +181,9 @@ const CONDITION_WORDS = [
 ];
 function csnpRunAsk(text) {
   const t = String(text || '');
+  // "Can you check this plan Devoted C-SNP ENHANCED H1290-067?": one plan she named, not a C-SNP run (Gerry Cabrera,
+  // 2026-10-19: four unasked C-SNPs replaced her saved plans). Only "the C-SNPs" (plural / no plan ID) runs them.
+  if (/\b[HR]\d{4}-\d{1,3}/i.test(t) && !/\bc-?snps\b|\ball\s+(?:the\s+)?c-?snp/i.test(t)) return false;
   return CSNP_RUN_RE.test(t) && !/\b(no|not|without|exclude|skip)\s+(?:the\s+)?c-?snps?\b/i.test(t);
 }
 function dsnpRunAsk(text) {
@@ -441,10 +444,14 @@ function unlabeledMeds(t, zip, doctors) {
 
 const NOT_MED_RE = /^(?:no|none|not|medicaid|plan|plans|compare|they|their|for|add|has|have|she|he|c-?snp|d-?snp|zip|current|currently|wondering|looking|want|wants|need|needs|please|msp|qmb|slmb|diabetes|chf|copd)\b/i;
 
+// Her instructions are never a drug: "check meds aill manually check doctors" became a med ("did you mean doctor's
+// choice?") and replaced the 6 saved meds (Gerry Cabrera, 2026-10-19).
+const INSTRUCTION_WORD_RE = /\b(?:check|checks|checking|manually|manual|doctors?|i'?ll|aill|ill|please|pls|plz|add|remove|delete|drop|grid|plans?|re-?run|run|show|look|verify|confirm|compare|keep|want|wants|them|those|these|everything|again|thanks?|ok(?:ay)?)\b/i;
+
 function medsFromAsk(askText) {
   const t = String(askText || '');
   const out = [];
-  const add = (s0) => { const s = tidyLongMedName(cleanMedItem(s0)); if (s && s.length > 2 && s.length < 60 && !isNonDrugAnswer(s) && !/\b[HR]\d{4}-\d{3}|\b(?:grid|table|columns?)\b/i.test(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
+  const add = (s0) => { const s = tidyLongMedName(cleanMedItem(s0)); if (s && !INSTRUCTION_WORD_RE.test(s) && s.length > 2 && s.length < 60 && !isNonDrugAnswer(s) && !/\b[HR]\d{4}-\d{3}|\b(?:grid|table|columns?)\b/i.test(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
   // "Meds: a, b" / "Medications a, b" / "Medicamentos: a y b" / "Takes a, b" — colon optional
   // (Martin Wiesenthal, 2026-10-09: "…, Medications esomeprazole, rasuvostatin, …" read 0 meds).
   // A practice / person name is never read as a label: "Med Eye Associates" (Tony Cabrera, 2026-10-19: "…, Med Eye
@@ -533,7 +540,8 @@ function medsFromAsk(askText) {
 const CARRIER_WORDS = [
   ['Doctors HealthCare', /\bdoc?to?r?s?'?\s*(?:health\s*care|healthcare|health|hc|plans?)\b|\bdrmax\b|\bdrselect\b|(?:[,&]|\band\b|\bwith\b)\s*doctors\b(?!\s*:)(?!\s+(?:i|are|is|who|names?|lists?|here|below))|\bdoctors\s*,\s*(?:solis|care\s*plus|uhc|humana|devoted|aetna|simply|wellcare)/i],
   ['Solis', /\bsol[iy]s\b/i],
-  ['Devoted', /\b[cd]evoted\b|\bdevote\b/i],
+  // "dvoted" / "devotd" / "devoed" (Gerry Cabrera, 2026-10-19: "add dvoted to the grid" added nothing).
+  ['Devoted', /\b[cd]evoted\b|\bdevote\b|\bdvoted\b|\bdevot?e?d\b|\bdevoed\b|\bdeovted\b/i],
   // "Human Gold" / "Humanna" / "Humna" (Robin Forte, 2026-10-17: "Compare it to Doctors Health Plan and Human Gold" —
   // Humana was silently dropped). Bare "human" counts only when a Humana plan word follows.
   ['Humana', /\bhu+m+a+n+n?a\b|\bhumn?a\b|\bhum(?:an|na)n?a?\b(?=\s+(?:gold|choice|plans?|medicare|ppo|hmo|honor|healthy|dual|cash|value|full\s+access|ga\b))/i],
@@ -696,6 +704,7 @@ module.exports = {
   csnpHintsFromMeds,
   medsFromAsk,
   dropDoctorNamesFromMeds,
+  INSTRUCTION_WORD_RE,
   looksLikePracticeOrPerson,
   PRACTICE_WORD_RE,
   unlabeledMeds,

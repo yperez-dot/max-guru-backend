@@ -91,6 +91,53 @@ function workupCarrierEditSet(text, msgs) {
 }
 
 /**
+ * Loaded workup + one plan she asks about: "Can you check this plan Devoted C-SNP ENHANCED H1290-067?", "No careplus, I
+ * want Devoted C-SNP ENHANCED H1290-067", "pls remove careplus. add dvoted to the grid" → her saved plans (current plan
+ * first, a carrier she drops taken off) + that plan. Never a C-SNP run or a carrier's "best" plans (Gerry Cabrera,
+ * 2026-10-19: four unasked C-SNPs replaced the saved set and the current plan left the grid). [] when it is not that ask.
+ */
+const PLAN_ASK_VERB_RE = /\b(?:check|show|add|include|run|price|look\s*at|compare|want|try|see|put)\b/i;
+const PLAN_EDIT_ONLY_RE = /\b(?:remove|drop|delete|take\s+(?:out|off)|without|instead\s+of|replace|swap|only|just)\b[^.;\n]{0,40}\b[HR]\d{4}-\d{3}/i;
+function workupPlanAddSet(text, msgs) {
+  const t = String(text || '').replace(/\b([HR]\d{4})-(\d{1,3})(?:-\d)?(?=[^\dA-Za-z-]|$)/gi, (m, a, b) => `${a.toUpperCase()}-${b.padStart(3, '0')}`);
+  const wk = workupFacts(msgs);
+  if (!wk || !wk.plans.length || KEEP_EXACT_RE.test(t)) return [];
+  const county = R.countyFromAsk(msgs.map(messageText).join('\n')) || 'Miami-Dade';
+  const rows = R.gridPlansForCounty(county);
+  const rowOf = (id) => rows.find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9)) || gridRowFor(id, '');
+  const carrierOfId = (id) => { const g = rowOf(id); return g ? R.carrierOfPlan(g) : ''; };
+  const typed = [...t.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase());
+  let adds = [];
+  if (typed.length) {
+    // "Compare X and Y only" / "lets do X, Y" / "compare X and Y" (two or more IDs) is a new set: the edit rules decide.
+    if (!PLAN_ASK_VERB_RE.test(t) || PLAN_EDIT_ONLY_RE.test(t) || ONLY_PLANS_RE.test(t) || NEW_SET_VERB_RE.test(t)) return [];
+    if (typed.length > 1 && /\bcompare\b/i.test(t)) return [];
+    adds = typed;
+  } else {
+    // "add dvoted to the grid": the plan of that carrier she named earlier in this chat (H1290-067).
+    const segs = [...t.matchAll(/\b(?:add|include|plus|put)\s+([^.;\n]+)/gi)].map((m) => m[1]);
+    const cars = [...new Set(segs.flatMap((sg) => R.carriersRequested(`add ${sg}`)))];
+    if (!cars.length) return [];
+    const wkAt = msgs.map(messageText).findLastIndex((x) => /structured facts only/i.test(x));
+    const earlier = msgs.slice(wkAt + 1).filter((m) => m && m.role === 'user').map(messageText).reverse();
+    for (const c of cars) {
+      const hit = earlier.flatMap((x) => [...x.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((y) => y[1].toUpperCase())).find((id) => carrierOfId(id) === c);
+      if (!hit) return []; // no plan of that carrier in this chat: the carrier-ask rules decide
+      adds.push(hit);
+    }
+  }
+  const dropped = R.carriersRejected(t);
+  const isCur = (id) => (wk.current || []).some((c) => String(c).toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9));
+  let ids = wk.plans.filter((id) => isCur(id) || !dropped.includes(carrierOfId(id)));
+  for (const id of adds) if (!dropped.includes(carrierOfId(id)) && !ids.some((x) => x.slice(0, 9) === id.slice(0, 9))) ids.push(id);
+  ids = currentPlanFirst(ids, wk.current);
+  if (ids.length === wk.plans.length && ids.every((id, k) => id === wk.plans[k]) && !adds.length) return [];
+  const nameOf = (id) => { const g = rowOf(id); if (!g) return id; return carrierKey(String(g.planName || '')) ? String(g.planName) : `${g.carrier || ''} ${g.planName || ''}`.trim(); };
+  const fullId = (id) => { const g = rowOf(id); return g ? String(g.planId || g.id).toUpperCase() : String(id).toUpperCase(); };
+  return ids.map((id) => ({ planId: fullId(id), name: nameOf(id) }));
+}
+
+/**
  * Plans the agent asked to compare, following her edits across the thread:
  * "Compare Humana H1036-065C, Aetna H1609-018, Devoted H1290-073" then
  * "remove devoted, add UHC H1045-005 instead" → Humana, Aetna, UHC.
@@ -462,7 +509,7 @@ function resolveWorkupSets(messages) {
 module.exports = {
   messageText,
   // plans
-  workupFacts, workupCarrierEditSet, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,
+  workupFacts, workupCarrierEditSet, workupPlanAddSet, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,
   NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, PRONOUN_TARGET_RE, KEEPS_CURRENT_RE, lineKeepsCurrentPlan, droppedIdsIn, removePlansNamedIn, OFF_GRID_RE, DROPS_CURRENT_RE, currentPlanRemovedBy, planLineVerdict, currentPlanFirst,
   // doctors
   respelledDoctors, looseSameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords,

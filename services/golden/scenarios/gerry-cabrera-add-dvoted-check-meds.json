@@ -1,0 +1,496 @@
+{
+ "name": "Gerry Cabrera (loaded workup) — 'pls remove careplus. add dvoted to the grid. check meds aill manually check doctors': the saved plans + Devoted H1290-067, current plan UHC first, no unasked C-SNPs / CarePlus; all 9 doctors and all 6 saved meds in the standard grids; the confirmed Coello NPI kept; no Devoted 'carrier-level' or per-plan C-SNP eligibility lines",
+ "source": "Max chat 2026-10-19",
+ "workup": {
+  "clientName": "Gerry Cabrera",
+  "zip": "33186",
+  "county": "Miami-Dade",
+  "plans": [
+   {
+    "carrier": "UHC",
+    "planName": "UHC MedicareMax FL-0028",
+    "planId": "H5420-001"
+   },
+   {
+    "carrier": "Doctors HealthCare",
+    "planName": "Doctors DrMax-Dade",
+    "planId": "H4140-022"
+   },
+   {
+    "carrier": "Humana",
+    "planName": "Humana Gold Plus",
+    "planId": "H1036-054C"
+   }
+  ],
+  "currentPlanIds": [
+   "H5420-001"
+  ],
+  "doctors": [
+   {
+    "name": "Alix Salvant",
+    "npi": "1588693477"
+   },
+   {
+    "name": "Ignacio Rua",
+    "npi": "1235132549"
+   },
+   {
+    "name": "Robert A Puig",
+    "npi": "1568433308"
+   },
+   {
+    "name": "Med Eye Associates"
+   },
+   {
+    "name": "Brian Edward Dougherty",
+    "npi": "1487654299"
+   },
+   {
+    "name": "Salome Fraga"
+   },
+   {
+    "name": "Michael D Fili",
+    "npi": "1033151113"
+   },
+   {
+    "name": "Martin Madorsky",
+    "npi": "1477526671"
+   },
+   {
+    "name": "Abilio Armando Coello",
+    "npi": "1720081037"
+   }
+  ],
+  "medications": [
+   {
+    "name": "Fluticasone Propionate"
+   },
+   {
+    "name": "Hydrochlorothiazide"
+   },
+   {
+    "name": "Latanoprost"
+   },
+   {
+    "name": "Levothyroxine Sodium 0.2 mg"
+   },
+   {
+    "name": "ocuvite"
+   },
+   {
+    "name": "Potassium Citrate"
+   }
+  ],
+  "originalQuery": "Gerry Cabrera, 33186, Dr. Alix Salvant, Ignacio Rua, Robert Puig, Med Eye Associates, Brian Dougherty, Pinecrest Modern Dentistry, Michael Fili, Martin Madorsky, Abilio Armand Coello. Meds: fluticasone, hydrochlorothiazide\nlatanoprost\nlevothyroxine\nocuvite\npotassium citrate. Current plan is UHC MedicareMax Medicare Advantage FL-0028 (HMO) (H5420-1-0)"
+ },
+ "replies": [
+  "**Doctors × top plans**\n| Doctor | UHC MedicareMax FL-0028 · H5420-001 | CarePlus CareComplete Platinum · H1019-121 | Devoted C-SNP ENHANCED · H1290-067 |"
+ ],
+ "messages": [
+  "Can you check this plan Devoted C-SNP ENHANCED H1290-067?",
+  "pls remove careplus. add dvoted to the grid. check meds aill manually check doctors"
+ ],
+ "doctorResults": {
+  "Alix Salvant": {
+   "npi": "1588693477",
+   "in": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C",
+    "H1290-067"
+   ],
+   "out": []
+  },
+  "Ignacio Rua": {
+   "npi": "1235132549",
+   "in": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C",
+    "H1290-067"
+   ],
+   "out": []
+  },
+  "Robert Puig": {
+   "npi": "1568433308",
+   "matched": "ROBERT A PUIG",
+   "in": [
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C",
+    "H1290-067"
+   ],
+   "out": [
+    "H5420-001"
+   ]
+  },
+  "Med Eye Associates": {
+   "org": true,
+   "in": [
+    "H5420-001",
+    "H4140-022",
+    "H1036-054C",
+    "H1290-067"
+   ],
+   "out": []
+  },
+  "Brian Dougherty": {
+   "npi": "1487654299",
+   "matched": "BRIAN EDWARD DOUGHERTY",
+   "in": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1290-067"
+   ],
+   "out": [
+    "H1036-054C"
+   ]
+  },
+  "Michael Fili": {
+   "npi": "1033151113",
+   "matched": "MICHAEL D FILI",
+   "in": [],
+   "out": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C",
+    "H1290-067"
+   ]
+  },
+  "Martin Madorsky": {
+   "npi": "1477526671",
+   "in": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C",
+    "H1290-067"
+   ],
+   "out": []
+  },
+  "Abilio Armand Coello": {
+   "npi": "1720081037",
+   "matched": "ABILIO ARMANDO COELLO",
+   "in": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C",
+    "H1290-067"
+   ],
+   "out": []
+  },
+  "Salome Fraga": {
+   "npi": "1111111111",
+   "matched": "SALOME FRAGA DDS",
+   "in": [],
+   "out": [
+    "H5420-001",
+    "H4140-022",
+    "H1036-054C",
+    "H1290-067"
+   ]
+  },
+  "Robert A Puig": {
+   "npi": "1568433308",
+   "matched": "ROBERT A PUIG",
+   "in": [
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C",
+    "H1290-067"
+   ],
+   "out": [
+    "H5420-001"
+   ]
+  },
+  "Brian Edward Dougherty": {
+   "npi": "1487654299",
+   "matched": "BRIAN EDWARD DOUGHERTY",
+   "in": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1290-067"
+   ],
+   "out": [
+    "H1036-054C"
+   ]
+  },
+  "Michael D Fili": {
+   "npi": "1033151113",
+   "matched": "MICHAEL D FILI",
+   "in": [],
+   "out": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C",
+    "H1290-067"
+   ]
+  },
+  "Abilio Armando Coello": {
+   "npi": "1720081037",
+   "matched": "ABILIO ARMANDO COELLO",
+   "in": [
+    "H5420-001",
+    "H1609-093",
+    "H4140-022",
+    "H1036-054C",
+    "H1290-067"
+   ],
+   "out": []
+  }
+ },
+ "drugResults": {
+  "fluticasone": {
+   "H5420-001": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1609-093": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1290-067": {
+    "tier": 3,
+    "cost": "15%"
+   }
+  },
+  "hydrochlorothiazide": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1609-093": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1290-067": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "latanoprost": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1609-093": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1290-067": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "levothyroxine": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0",
+    "strengths": [
+     "0.1 mg",
+     "0.175 mg",
+     "0.2 mg",
+     "0.3 mg"
+    ]
+   },
+   "H1609-093": {
+    "tier": 1,
+    "cost": "$0",
+    "strengths": [
+     "0.1 mg",
+     "0.175 mg",
+     "0.2 mg",
+     "0.3 mg"
+    ]
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0",
+    "strengths": [
+     "0.1 mg",
+     "0.175 mg",
+     "0.2 mg",
+     "0.3 mg"
+    ]
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0",
+    "strengths": [
+     "0.1 mg",
+     "0.175 mg",
+     "0.2 mg",
+     "0.3 mg"
+    ]
+   },
+   "H1290-067": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "ocuvite": {
+   "H5420-001": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1609-093": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1290-067": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "potassium citrate": {
+   "H5420-001": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1609-093": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H1290-067": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "levothyroxine sodium 0.2 mg": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1609-093": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1290-067": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  }
+ },
+ "expect": {
+  "plans": [
+   "H5420-001",
+   "H4140-022",
+   "H1036-054C",
+   "H1290-067"
+  ],
+  "gridPlans": [
+   "H5420-001",
+   "H4140-022",
+   "H1036-054C",
+   "H1290-067"
+  ],
+  "firstGridPlan": "H5420-001",
+  "doctors": {
+   "include": [
+    "Alix Salvant",
+    "Ignacio Rua",
+    "Robert A Puig",
+    "Med Eye Associates",
+    "Brian Edward Dougherty",
+    "Salome Fraga",
+    "Michael D Fili",
+    "Martin Madorsky",
+    "Abilio Armando Coello"
+   ]
+  },
+  "doctorCount": 9,
+  "gridRows": 9,
+  "cells": {
+   "Salvant": {
+    "H1290-067": "In"
+   },
+   "Coello": {
+    "H1290-067": "In",
+    "H5420-001": "In"
+   }
+  },
+  "meds": [
+   "Fluticasone Propionate",
+   "Hydrochlorothiazide",
+   "Latanoprost",
+   "Levothyroxine Sodium 0.2 mg",
+   "ocuvite",
+   "Potassium Citrate"
+  ],
+  "medCells": {
+   "Fluticasone Propionate": "T3 15%",
+   "Levothyroxine Sodium 0.2 mg": "\\| T1 \\$0 \\| T1 \\$0 \\| T1 \\$0 \\| T1 \\$0 \\|"
+  },
+  "medsExcludeWords": [
+   "manually",
+   "doctor's choice",
+   "check"
+  ],
+  "followUpExcludes": [
+   "carrier-level",
+   "exact plan with Devoted",
+   "H1019-121",
+   "H4140-024",
+   "H1036-121",
+   "H5420-014",
+   "H1036-297",
+   "different name"
+  ],
+  "clientName": "Gerry Cabrera"
+ }
+}

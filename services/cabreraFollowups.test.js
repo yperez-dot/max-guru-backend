@@ -114,3 +114,49 @@ describe('Excel / PDF column A', () => {
     assert.ok(html.includes('horizontal: c === 0 ? "left" : "center"'), 'run scripts/sync_html_artifacts.js');
   });
 });
+
+// Gerry Cabrera, 2026-10-19 (Devoted / "add dvoted" / notes turns).
+describe('Gerry Cabrera — plan asks, instructions, notes that fit the grid', () => {
+  const R = require('./comparisonRules');
+  const N = require('./doctorPlanNarrow');
+  it('"check this plan <name> <H-id>" is a plan ask, not a C-SNP run; "run the C-SNPs" still is', () => {
+    assert.equal(R.csnpRunAsk('Can you check this plan Devoted C-SNP ENHANCED H1290-067?'), false);
+    assert.equal(R.csnpRunAsk('No careplus, I want Devoted C-SNP ENHANCED H1290-067'), false);
+  });
+  it('"dvoted" is Devoted', () => {
+    assert.deepEqual(R.carriersRequested('add dvoted to the grid'), ['Devoted']);
+  });
+  it('her instructions are never a med', () => {
+    assert.deepEqual(R.medsFromAsk('pls remove careplus. add dvoted to the grid. check meds aill manually check doctors'), []);
+    assert.deepEqual(R.medsFromAsk('Meds: metformin, lisinopril'), ['metformin', 'lisinopril']);
+  });
+  it('a confirmed NPI (and Armand for Armando) is not asked again', () => {
+    const d = { status: 'done', doctorName: 'ABILIO ARMANDO COELLO', requestedName: 'Abilio Armand Coello', npi: '1720081037' };
+    assert.equal(N.identityIssue({ ...d, requestedNpi: '1720081037' }), '');
+    assert.equal(N.identityIssue(d), '');
+  });
+  it('a dentist ❌ is not a medical miss', () => {
+    const fraga = { doctorName: 'SALOME FRAGA DDS', requestedName: 'Salome Fraga' };
+    assert.equal(N.isDentalProvider(fraga), true);
+    assert.equal(N.isDentalProvider({ doctorName: 'MAURICIO GARCIA MD' }), false);
+    const k = N.countsOf({ in: ['A', 'B'], out: ['Fraga'], dentalOut: ['Fraga'], inCarrier: [], notConfirmed: [] }, 3);
+    assert.equal(k.outN, 0);
+    assert.equal(k.unchecked, 0);
+  });
+  it('model notes that do not match the grid are dropped', () => {
+    const rendered = [
+      '**Gerry**', '', '| Doctor | UHC (H5420-001) | Devoted (H1290-067) |', '|---|---|---|', '| Coello | ✅ | ✅ |', '| **Doctors** | **1 in** | **1 in** |',
+      '', '**Meds**', '', '| Drug | UHC | Devoted |', '|---|---|---|', '| Levothyroxine | T1 $0 | T1 $0 |',
+    ].join('\n');
+    assert.equal(N.noteFitsGrid('I checked 4 plans for her.', rendered), false);
+    assert.equal(N.noteFitsGrid('CarePlus has the lowest drug cost.', rendered), false);
+    assert.equal(N.noteFitsGrid('H4140-024 is also worth a look.', rendered), false);
+    assert.equal(N.noteFitsGrid('Devoted results are carrier-level only — confirm exact plan with Devoted.', rendered), false);
+    assert.equal(N.noteFitsGrid('Devoted C-SNP ENHANCED is a C-SNP — eligibility is confirmed at enrollment.', rendered), false);
+    assert.equal(N.noteFitsGrid('Can you confirm Dr. Coello is the right doctor?', rendered), false);
+    assert.equal(N.noteFitsGrid('CarePlus removed as you asked.', rendered), true);
+    assert.equal(N.noteFitsGrid('Both plans cover all her meds at T1.', rendered), true);
+    const noMeds = rendered.split('\n\n**Meds**')[0];
+    assert.equal(N.noteFitsGrid('All 6 meds are covered on both plans.', noMeds), false);
+  });
+});
