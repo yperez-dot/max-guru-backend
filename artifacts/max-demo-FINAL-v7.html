@@ -7296,6 +7296,10 @@ function App() {
   const loadingRef = useRef(false);
   const queuedRef = useRef(null);
   const chatGenRef = useRef(0);
+  // A reply still running when she switches tabs / workups keeps running and lands in the workup that asked for it
+  // (Gerry Cabrera, 2026-10-19: switching to Tony's tab and back dropped Gerry's request). { [workupId|"__new"]: { messages, pending } }
+  const parkedChatsRef = useRef({});
+  const inflightChatRef = useRef(null); // { gen, workupId } of the request now running
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -7420,6 +7424,11 @@ function App() {
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
       autoSaveTimerRef.current = null;
+    }
+    // A request in flight: keep this chat (her message included) for its workup; the reply lands there.
+    const inflight = inflightChatRef.current;
+    if (loadingRef.current && inflight && inflight.gen === chatGenRef.current && messagesRef.current.length) {
+      parkedChatsRef.current[currentWorkupIdRef.current || "__new"] = { messages: messagesRef.current.slice(), pending: true };
     }
     chatGenRef.current += 1;
     clearQueued();
@@ -7674,6 +7683,15 @@ function App() {
       } else if (workup.compareResult) {
         if (missingFrom(workup.compareResult).length) next.push(staleNote(workup.compareResult));
         else next.push({ role: "queueResult", result: workup.compareResult, time: nowLabel() });
+      }
+      // Her chat from before she switched away (a reply that was still running, or that finished while she was in
+      // another tab) comes back under the workup card.
+      const parked = parkedChatsRef.current[workup.id];
+      if (parked) {
+        const turns = parked.messages.filter((m) => m && (m.role === "user" || m.role === "assistant") && !m.pendingFor);
+        next.push(...turns);
+        if (parked.pending) next.push({ role: "assistant", content: "Max is still working on this request — the reply will appear here.", pendingFor: workup.id, time: nowLabel() });
+        else delete parkedChatsRef.current[workup.id];
       }
       messagesRef.current = next;
       setMessages(next);
@@ -8039,8 +8057,26 @@ function App() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  /** A reply for a chat she switched away from: into that workup's view if she is back on it, else parked for it. */
+  const deliverParkedReply = (forId, history, msgs) => {
+    const key = forId || "__new";
+    if (forId && forId === currentWorkupIdRef.current) {
+      const base = messagesRef.current.filter((m) => m.pendingFor !== forId);
+      const next = [...base, ...msgs];
+      messagesRef.current = next;
+      setMessages(next);
+      delete parkedChatsRef.current[key];
+      return;
+    }
+    parkedChatsRef.current[key] = { messages: [...history.filter((m) => m.role !== "offer"), ...msgs], pending: false };
+    const w = (workups || []).find((x) => x.id === forId);
+    setWorkupNotice("Max finished the reply for " + ((w && w.clientName) || "the chat you left") + " — open its tab to see it.");
+  };
+
   const sendNow = async (content, images) => {
     const gen = chatGenRef.current;
+    const startWorkupId = currentWorkupIdRef.current || null;
+    inflightChatRef.current = { gen, workupId: startWorkupId };
     const startedAt = Date.now();
     if (isMobile) setSidebarOpen(false);
     loadingRef.current = true;
@@ -8187,7 +8223,13 @@ function App() {
         newHistory.filter((m) => m.role === "user" || m.role === "assistant").map((m) => ({ role: m.role, content: m.content })),
         loadedWorkupRef.current
       ), { priorToolResults });
-      if (gen !== chatGenRef.current) return;
+      if (gen !== chatGenRef.current) {
+        // She switched tabs while it ran: the reply still lands in the workup that asked (no export / autosave from here).
+        const late = [{ role: "assistant", content: result.text, time: nowLabel() }];
+        if (result.followUp) late.push({ role: "assistant", content: result.followUp, time: nowLabel(), followUpOf: true });
+        deliverParkedReply(startWorkupId, newHistory, late);
+        return;
+      }
       finalDoctorListRef.current = result.doctorList ? result.doctorList.doctors : null;
       resumeToolResultsRef.current = result.resume && result.resume.resumable
         ? window.MaxComparisonExport.mergeToolResults(priorToolResults, result.toolResults, 40)
@@ -8301,7 +8343,10 @@ function App() {
       messagesRef.current = nextMsgs;
       setMessages(nextMsgs);
     } catch (err) {
-      if (gen !== chatGenRef.current) return;
+      if (gen !== chatGenRef.current) {
+        if (!(err && err.code === "access_required")) deliverParkedReply(startWorkupId, newHistory, [{ role: "assistant", content: "Couldn't finish this request — send it again.", time: nowLabel() }]);
+        return;
+      }
       if (err && err.code === "access_required") {
         setUnlocked(false);
         setGateError("Session expired — sign in with your email and password again.");
@@ -8318,9 +8363,16 @@ function App() {
       );
       restoreDraft = true;
     } finally {
+      if (inflightChatRef.current && inflightChatRef.current.gen === gen) inflightChatRef.current = null;
       if (gen !== chatGenRef.current) {
         loadingRef.current = false;
         setLoading(false);
+        // A message she queued in the tab she switched to runs now (it waited on this request).
+        const queuedNext = queuedRef.current;
+        if (queuedNext) {
+          clearQueued();
+          await sendNow(queuedNext.text, queuedNext.images || []);
+        }
         return;
       }
       const next = queuedRef.current;
