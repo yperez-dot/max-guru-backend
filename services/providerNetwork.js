@@ -85,6 +85,8 @@ try {
 }
 
 const { devotedNetworkRefs, devotedPlanVerdicts, devotedPlanNetwork } = require('./devotedNetworks');
+// Dentists: checked in each plan's dental network only (services/dentalDirectory.js), never the medical directories.
+const dentalDirectory = require('./dentalDirectory');
 
 const FHIR_CARRIERS = [
   { name: 'Florida Blue', key: 'flblue', base: 'https://apigw.bcbsfl.com/interop/interop-developer-portal/emr/api/v1/fhir' },
@@ -323,6 +325,8 @@ function npiRecordInfo(p) {
     middleName: p.basic?.middle_name || '',
     // NPI-2 = clinic / group. Practitioner-scoped directories cannot answer for it.
     isOrg: p.enumeration_type === 'NPI-2' || (!p.basic?.first_name && Boolean(p.basic?.organization_name)),
+    // Dentist (taxonomy 1223* or DDS / DMD): dental directories only (Gerry Cabrera, 2026-10-19).
+    isDentist: dentalDirectory.isDentistRecord(p),
   };
 }
 
@@ -717,6 +721,12 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
       return notFoundResult(doctorName, suggestions);
     }
     const picked = records.slice(0, Math.max(1, npiCap)).map(npiRecordInfo);
+    // A dentist is checked in the plans' DENTAL networks only — the Medicare medical directories do not
+    // list dentists, so a miss there read ❌ on every plan (Gerry Cabrera / Salome Fraga, 2026-10-19).
+    if (picked[0] && picked[0].isDentist) {
+      live.phase = 'dental';
+      return dentalDoctorResult(doctorName, picked[0], { zip, planYear, deadlineAt: until });
+    }
     live.phase = 'carriers';
     const runs = picked.map((rec, rank) => startNpiChecks(rec, { zip, planYear, guestPlanIds, rank }));
     live.npiStates = runs.map((r) => r.state);
@@ -779,11 +789,44 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
 
   return raceDeadline(settled, until, () => {
     if (finishedAll) return null; // race lost by a hair — settled wins below
+    if (live.phase === 'dental') return pendingResult(doctorName, 'dental directories still answering');
     if (live.phase === 'npi' || !live.npiStates.length) {
       return pendingResult(doctorName, 'NPI registry lookup did not finish');
     }
     return buildDoctorResult(doctorName, zip, planYear, live, { timedOut: true });
   }).then((r) => r || settled);
+}
+
+/** One dentist: Humana / UHC / FDB dental directories (each with its own timeout); no medical checks, no Sunfire. */
+async function dentalDoctorResult(doctorName, rec, { zip, planYear, deadlineAt, checkDentist = dentalDirectory.checkDentist } = {}) {
+  let dental;
+  try {
+    dental = await checkDentist(rec, { zip, year: planYear, deadlineAt });
+  } catch (err) {
+    // Every dental source failed to even start: cells read "not confirmed", never Out.
+    dental = { isDentist: true, sources: Object.fromEntries(Object.keys(dentalDirectory.CONFIG.sources).map((k) => [k, { status: 'failed', error: err.message }])) };
+    dental.cellsByContract = dentalDirectory.dentalCellsByContract(dental);
+  }
+  return {
+    status: 'done',
+    doctorName,
+    text: dentalDirectory.formatDentalText(doctorName, rec, dental),
+    structured: {
+      doctorName: rec.name,
+      requestedName: doctorName,
+      npi: rec.npi,
+      ...(rec.specialty ? { specialty: rec.specialty } : {}),
+      status: 'done',
+      isDentist: true,
+      dental,
+      pending: [],
+      failed: [],
+      inNetworkPlans: [],
+      outOfNetworkPlans: [],
+      networks: [],
+      carriersIn: [],
+    },
+  };
 }
 
 function buildDoctorResult(doctorName, zip, planYear, live, { timedOut }) {
@@ -982,6 +1025,7 @@ module.exports = {
   npiRecordInfo,
   FHIR_CARRIERS,
   lookupDoctor,
+  dentalDoctorResult,
   normalizeDoctorList,
   clearProviderCache,
   raceDeadline,

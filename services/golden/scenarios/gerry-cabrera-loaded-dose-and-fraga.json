@@ -1,5 +1,5 @@
 {
- "name": "Gerry Cabrera (loaded workup) — dose confirmed 'Levothyroxine Sodium is 0.2 mg' and 'Pinecrest Dentisry is Dr. Salome Fraga': client stays Gerry, all saved doctors re-run with Fraga replacing Pinecrest, columns stay UHC · DrMax · Humana, levothyroxine reads 'Levothyroxine Sodium 0.2 mg' T1 $0",
+ "name": "Gerry Cabrera (loaded workup) — dose confirmed 'Levothyroxine Sodium is 0.2 mg' and 'Pinecrest Dentisry is Dr. Salome Fraga': client stays Gerry, all saved doctors re-run with Fraga replacing Pinecrest, columns stay UHC · DrMax · Humana, levothyroxine reads 'Levothyroxine Sodium 0.2 mg' T1 $0; Fraga (dentist) is checked in the dental networks: ✅ Humana Florida Gold Plus Dental, ❌ FDB (DrMax), ❔ check dental directory (Solstice) on UHC MedicareMax (PCN)",
  "source": "Max chat 2026-10-19",
  "workup": {
   "clientName": "Gerry Cabrera",
@@ -177,14 +177,15 @@
    "out": []
   },
   "Salome Fraga": {
-   "npi": "1111111111",
-   "matched": "SALOME FRAGA DDS",
-   "in": [
-    "H5420-001",
-    "H4140-022",
-    "H1036-054C"
-   ],
-   "out": []
+   "npi": "1205322856",
+   "matched": "SALOME FRAGA DMD",
+   "specialty": "Dentist, General Practice",
+   "dental": {
+    "humana:3171": "in",
+    "uhc:national": "out",
+    "fdb:41": "out",
+    "fdb:45": "out"
+   }
   },
   "Robert A Puig": {
    "npi": "1568433308",
@@ -438,6 +439,20 @@
   "clientName": "Gerry Cabrera",
   "exportMeds": {
    "Levothyroxine Sodium 0.2 mg": "T1 $0"
+  },
+  "cells": {
+   "Salome Fraga": {
+    "H1036-054C": "✅ In",
+    "H4140-022": "❌ Not in network",
+    "H5420-001": "❔ check dental directory \\(Solstice\\)"
+   }
+  },
+  "exportDoctors": {
+   "Fraga": {
+    "H1036-054C": "^In network$",
+    "H4140-022": "^Not in network",
+    "H5420-001": "^Check dental directory \\(Solstice\\)$"
+   }
   }
  }
 }

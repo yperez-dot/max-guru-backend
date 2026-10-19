@@ -981,11 +981,21 @@
     return "";
   }
 
+  // Dentist cells (services/dentalDirectory.js): the vendor stays in the text, like the chat table.
+  function dentalStatusText(s) {
+    const m = String(s || "").match(/check dental directory\s*(\([^)]*\))?/i);
+    if (m) return "Check dental directory" + (m[1] ? " " + m[1] : "");
+    if (/no dental network/i.test(String(s || ""))) return "No dental network (reimbursed)";
+    return "";
+  }
+
   function normalizeNetworkStatus(raw) {
     if (raw === true) return NETWORK_IN;
     if (raw === false) return NETWORK_OUT;
     const s = String(raw || "").trim();
     if (!s) return "";
+    const dental = dentalStatusText(s);
+    if (dental) return dental;
     if (/need\s*more\s*info/i.test(s)) return NETWORK_NEED_MORE;
     if (/not\s*confirmed/i.test(s)) return NETWORK_NOT_CONFIRMED;
     // "❌ Not in network (not listed)" contains "in network" — read it as Out before the In test.
@@ -1720,9 +1730,19 @@
         // name, or a full middle word she gave, is not in the registry name is a different person —
         // its In/Out never counts ("Carlos Santa Cruz" → CARLOS A CRUZ, Victor 2026-10-08).
         const mismatch = !looksLikeOrganization(name) && !looksLikeOrganization(pr.requestedName || "") && exportIdentityMismatch(pr.requestedName, name);
-        const statuses = plans.map(
-          (p) => (mismatch ? "" : statusFromProviderNetworks(p, networks, { missIsUnknown })) || NETWORK_NOT_CONFIRMED
-        );
+        // A dentist: the server already decided each contract's dental cell (dental.cellsByContract) —
+        // the same words as the chat grid, never the medical directories (Gerry Cabrera, 2026-10-19).
+        const dentalCells = pr.dental && pr.dental.cellsByContract;
+        const statuses = dentalCells
+          ? plans.map((p) => {
+            const c = (String(p.planId || p.id || "").toUpperCase().match(/^([HR]\d{4})/) || [])[1] || "";
+            const cell = dentalCells[c] || "❔ check dental directory";
+            const hit = CHAT_CELL_STATUS.find(([re]) => re.test(cell));
+            return (hit ? (typeof hit[1] === "function" ? hit[1](cell) : hit[1]) : "") || NETWORK_NOT_CONFIRMED;
+          })
+          : plans.map(
+            (p) => (mismatch ? "" : statusFromProviderNetworks(p, networks, { missIsUnknown })) || NETWORK_NOT_CONFIRMED
+          );
         const askedLabel = cleanProviderDisplayName(pr.requestedName || name);
         const registryLabel = cleanProviderDisplayName(name);
         // She typed part of the name ("Marcus St") and the registry has all of it → show the full name.
@@ -3082,6 +3102,8 @@
     [/^✅\s*In\b/, NETWORK_IN],
     [/^❌/, NETWORK_OUT],
     [/^❔\s*not confirmed/i, NETWORK_NOT_CONFIRMED],
+    [/^❔\s*check dental directory/i, dentalStatusText],
+    [/^ℹ️?\s*no dental network/i, dentalStatusText],
   ];
   const ROLE_WORD_RE = /^(?:pcp|primary|care|physician|internist|internal|medicine|family|cardiologist|cardiology|dermatologist|dermatology|ophthalmologist|ophthalmology|optometrist|gynecologist|gynecology|obgyn|ob\/gyn|ob|gyn|neurologist|neurology|endocrinologist|rheumatologist|gastroenterologist|urologist|oncologist|nephrologist|pulmonologist|podiatrist|psychiatrist|orthopedist|orthopedic|surgeon|specialist|dentist|allergist|hematologist|ent)$/i;
 
@@ -3118,7 +3140,7 @@
         planIds.forEach((id, j) => {
           const c = cells[j + 1] || "";
           const hit = CHAT_CELL_STATUS.find(([re]) => re.test(c));
-          if (id && hit) byPlan[id] = hit[1];
+          if (id && hit) byPlan[id] = typeof hit[1] === "function" ? hit[1](c) : hit[1];
         });
         rows.push({ name, npi, byPlan });
       }

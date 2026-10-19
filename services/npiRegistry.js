@@ -455,8 +455,16 @@ function spellingDistance(a, b) {
   return d[x.length][y.length];
 }
 
-function isTreating(r) {
+const DENTAL_ASK_RE = /\b(?:dds|d\.d\.s|dmd|d\.m\.d|dentist\w*|dentisry|dental|orthodont\w*|endodont\w*|periodont\w*|prosthodont\w*)\b/i;
+const DENTIST_CRED_RE = /\b(?:D\.?D\.?S|D\.?M\.?D)\b/i;
+
+/**
+ * `opts.dental`: she asked for a dentist or a dental practice ("Pinecrest Modern Dentistry",
+ * "Salome Fraga DMD") — then dentists ARE the people she means (Gerry Cabrera, 2026-10-19).
+ */
+function isTreating(r, opts = {}) {
   const tax = (r.taxonomies || []).map((t) => t.desc || '').join(' ');
+  if (opts.dental && !isNonProvider(r) && (/dentist/i.test(tax) || DENTIST_CRED_RE.test(String(r.basic?.credential || '')))) return true;
   if (isNonProvider(r) || NOT_TREATING_TAX_RE.test(tax)) return false;
   return TREATING_CRED_RE.test(String(r.basic?.credential || ''))
     || /medicine|surgery|cardio|neuro|pediatr|psychiatr|oncolog|urolog|nephrolog|pulmonar|gastro|endocrin|rheumat|dermat|ophthal|orthop|family|internal|nurse practitioner|physician assistant/i.test(tax);
@@ -487,11 +495,12 @@ async function suggestSimilarProviders({ doctorName = '', zip, state = 'FL', lim
   if (first && last.length >= 4) queries.push({ first_name: first, last_name: `${last.slice(0, 2)}*` });
   const seen = new Set();
   const found = [];
+  const dental = DENTAL_ASK_RE.test(String(doctorName || ''));
   for (const q of queries) {
     const p = new URLSearchParams({ version: '2.1', enumeration_type: 'NPI-1', state, limit: '200', ...q });
     const data = await fetchJSON(`${NPI_REGISTRY_BASE}?${p}`);
     for (const r of data?.results || []) {
-      if (seen.has(r.number) || !isTreating(r)) continue;
+      if (seen.has(r.number) || !isTreating(r, { dental })) continue;
       seen.add(r.number);
       found.push(r);
     }
@@ -541,6 +550,7 @@ async function suggestSimilarProviders({ doctorName = '', zip, state = 'FL', lim
 }
 
 module.exports = {
+  isTreating,
   joinedParticleSplits,
   suggestSimilarProviders,
   spellingDistance,

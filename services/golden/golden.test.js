@@ -104,7 +104,7 @@ describe('golden scenarios', () => {
             else assert.equal(parsed, e.clientName);
           });
         }
-        if (e.exportMeds || e.exportPlans) {
+        if (e.exportMeds || e.exportPlans || e.exportDoctors) {
           it('Excel/PDF export matches the table', () => {
             const exp = require('../../artifacts/comparison-export.js');
             const N = require('../doctorPlanNarrow');
@@ -114,6 +114,23 @@ describe('golden scenarios', () => {
             if (e.clientName) assert.equal(model.aoa[0][0], e.clientName, 'export title is the client');
             const head = model.aoa.find((row) => row.some((c) => /\b[HR]\d{4}-\d{3}/.test(String(c))));
             assert.deepEqual(head.slice(1).map((c) => ID((String(c).match(/[HR]\d{4}-\d{3}[A-Z]?/) || [''])[0])), ids(r.planIds), 'export columns = grid columns');
+            // Doctor cells in the sheet = the chat grid's words (dentists: the dental-network cells).
+            // Two ways the page builds the sheet: from the chat grid it shows, and from the lookups alone.
+            const viaTable = exp.buildComparisonModel({ ...exp.buildExportPayload(plans, r.doctorTable, { chatTable: exp.latestChatTable([{ role: 'assistant', content: r.doctorTable }]), planSetFixed: true, toolResults: r.toolResults, drugs: [] }), keepPlanOrder: true });
+            const viaLookups = exp.buildComparisonModel({ ...exp.buildExportPayload(plans, '', { planSetFixed: true, toolResults: r.toolResults, drugs: [] }), keepPlanOrder: true });
+            for (const [doc, cells] of Object.entries(e.exportDoctors || {})) {
+              for (const [how, m] of [['chat table', viaTable], ['lookups', viaLookups]]) {
+                const mh = m.aoa.find((row) => row.some((c) => /\b[HR]\d{4}-\d{3}/.test(String(c)))) || [];
+                const mIds = mh.map((c) => ID((String(c).match(/[HR]\d{4}-\d{3}[A-Z]?/) || [''])[0]));
+                const row = m.aoa.find((x) => norm(x[0]).includes(norm(doc)));
+                assert.ok(row, `export (${how}) doctor row "${doc}" in [${m.aoa.map((x) => x[0]).join(' | ')}]`);
+                for (const [pid, want] of Object.entries(cells)) {
+                  const at = mIds.indexOf(ID(pid));
+                  assert.ok(at > 0, `${pid} export column`);
+                  assert.match(String(row[at]), new RegExp(want, 'i'), `${doc} export (${how}) cell on ${pid}`);
+                }
+              }
+            }
             for (const [med, want] of Object.entries(e.exportMeds || {})) {
               const row = model.aoa.find((x) => norm(x[0]) === norm(med));
               assert.ok(row, `export row "${med}" in [${model.aoa.map((x) => x[0]).join(' | ')}]`);

@@ -45,6 +45,20 @@ function stubDoctorLookup(sc) {
   return async ({ doctorName, npi }) => {
     const hit = find(doctorName);
     if (!hit) return { status: 'not_found', structured: { doctorName, networks: [], inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] } };
+    // A dentist: "dental": { "humana:3171": "in", "uhc:national": "out", "fdb:41": "out" } — stubbed dental-directory
+    // answers (services/dentalDirectory.js). No medical In/Out for dentists.
+    if (hit.dental) {
+      const DD = require('../dentalDirectory');
+      const dental = { isDentist: true, sources: Object.fromEntries(Object.entries(hit.dental).map(([k, v]) => [k, { status: v }])) };
+      dental.cellsByContract = DD.dentalCellsByContract(dental);
+      return {
+        status: 'done',
+        structured: {
+          doctorName: hit.matched || doctorName, npi: hit.npi || npi || '', specialty: hit.specialty || 'Dentist',
+          isDentist: true, dental, pending: [], failed: [], networks: [], carriersIn: [], inNetworkPlans: [], outOfNetworkPlans: [],
+        },
+      };
+    }
     return {
       status: 'done',
       structured: {
