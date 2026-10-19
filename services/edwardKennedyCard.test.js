@@ -44,9 +44,13 @@ describe('Edward Kennedy comparison card', () => {
 
   it('questions ("Martin Ciro" no match) and notes come out as a separate follow-up, questions first', async () => {
     const job = await edwardJob();
-    const fu = W.compareFollowUpLines({ ...job.result, couldNotVerify: { count: 1, plans: [{ name: 'X', planId: 'H1290-001' }] }, flags: ['⚠️ note'] });
+    const shown = job.result.planIds[1];
+    const fu = W.compareFollowUpLines({ ...job.result, couldNotVerify: { count: 1, plans: [{ name: 'X', planId: shown }] }, flags: ['⚠️ note'] });
     assert.ok(fu.questions.some((q) => /Martin Ciro/i.test(q)), `questions: ${JSON.stringify(fu.questions)}`);
-    assert.deepEqual(fu.notes, ['Could not verify 1 plan (most doctors unchecked): H1290-001.', '⚠️ note']);
+    assert.deepEqual(fu.notes, [`Could not verify 1 plan (most doctors unchecked): ${shown}.`, '⚠️ note']);
+    // A plan outside the grid never gets a note (Tony & Gerry Cabrera, 2026-10-19: H1035-017).
+    const out = W.compareFollowUpLines({ ...job.result, couldNotVerify: { count: 1, plans: [{ name: 'X', planId: 'H1035-017' }] } });
+    assert.deepEqual(out.notes, []);
     const skip = W.compareFollowUpLines({ questions: ['Does the client have a C-SNP qualifying chronic condition, confirmed by diagnosis?', 'Q2?'] }, { skipQuestion: /C-SNP qualifying chronic condition/ });
     assert.deepEqual(skip.questions, ['Q2?']);
     assert.deepEqual(W.compareFollowUpLines({}), { questions: [], notes: [] });

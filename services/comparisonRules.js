@@ -522,7 +522,8 @@ function medsFromAsk(askText) {
   if (/structured facts only/i.test(t)) {
     const own = t.split('\n').filter((l) => !/^\s*(?:-\s|LOADED CLIENT WORKUP|Client:|ZIP\/county:|Plans:|Doctors \(|Doctor NPIs|Medications \(|Current plan|Saved In\/Out)/.test(l)).join('\n');
     const gone = require('./loadedWorkup').medRemovalsIn(own, out);
-    if (gone.length) return out.filter((m) => !gone.includes(m));
+    const kept = gone.length ? out.filter((m) => !gone.includes(m)) : out;
+    return require('./loadedWorkup').applyConfirmedDoses(own, kept);
   }
   return out;
 }

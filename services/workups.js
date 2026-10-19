@@ -309,6 +309,16 @@ function mergeMedications(existing, incoming) {
   for (const m of incoming || []) {
     const hit = out.find((x) => medKey(x.name) && medKey(x.name) === medKey(m.name));
     if (!hit) { out.push({ ...m, byPlanId: { ...(m.byPlanId || {}) } }); continue; }
+    // A confirmed dose ("Levothyroxine Sodium is 0.2 mg") renames the saved med and its cells are for that strength
+    // (Gerry Cabrera, 2026-10-19: the export still read "Levothyroxine Sodium" with the every-strength cell).
+    const STRENGTH = /\d(?:\.\d+)?\s*(?:mg|mcg|ml|%|units?)\b/i;
+    if (STRENGTH.test(String(m.name || '')) && !STRENGTH.test(String(hit.name || ''))) {
+      hit.name = m.name;
+      hit.byPlanId = { ...(m.byPlanId || {}) };
+      if (m.screen) hit.screen = { ...m.screen };
+      continue;
+    }
+    if (STRENGTH.test(String(hit.name || '')) && !STRENGTH.test(String(m.name || ''))) continue; // a dose-less re-read never undoes it
     Object.assign(hit.byPlanId, m.byPlanId || {});
     if (m.dose && !hit.dose) hit.dose = m.dose;
     if (m.screen) hit.screen = { ...(hit.screen || {}), ...m.screen }; // newest screen wording wins

@@ -77,6 +77,54 @@ describe('golden scenarios', () => {
             assert.match(row, new RegExp(want, 'i'), `${med} cells`);
           }
         });
+        if (e.doctorCount !== undefined || e.medsExcludeWords) {
+          it('doctor count / no person or practice in meds', () => {
+            if (e.doctorCount !== undefined) assert.equal(run.sets.doctors.length, e.doctorCount, `doctors: ${run.sets.doctors.join('; ')}`);
+            for (const w of e.medsExcludeWords || []) {
+              assert.ok(!run.sets.meds.some((m) => norm(m).includes(norm(w))), `"${w}" is not a med: [${run.sets.meds.join(', ')}]`);
+              assert.ok(!String(run.job.result.medsTable || '').toLowerCase().includes(norm(w)), `"${w}" is not a drug row`);
+            }
+          });
+        }
+        if (e.followUpExcludes) {
+          it('follow-up bubble: nothing about plans outside the set / equal-cost strengths', () => {
+            const W = require('../../artifacts/client-workups.js');
+            const fu = W.compareFollowUpLines(run.job.result);
+            const text = [...(fu.questions || []), ...(fu.notes || []), run.job.result.medsTable || '', run.chat.followUp || '', run.chat.grid || ''].join('\n');
+            for (const x of e.followUpExcludes) assert.ok(!text.toLowerCase().includes(x.toLowerCase()), `"${x}" should not appear:\n${text}`);
+          });
+        }
+        if (e.clientName) {
+          it('client name', () => {
+            // The newest message never renames the client (a doctor mapping / dose answer is not a name).
+            const { parseCompareAsk } = require('../compareJobs');
+            const last = sc.messages[sc.messages.length - 1];
+            const parsed = parseCompareAsk(last).clientName;
+            if (sc.workup) assert.ok(!parsed || parsed === e.clientName, `"${last}" read as client "${parsed}"`);
+            else assert.equal(parsed, e.clientName);
+          });
+        }
+        if (e.exportMeds || e.exportPlans) {
+          it('Excel/PDF export matches the table', () => {
+            const exp = require('../../artifacts/comparison-export.js');
+            const N = require('../doctorPlanNarrow');
+            const r = run.job.result;
+            const plans = r.planIds.map((id) => { const g = N.gridRowFor(id, 'Miami-Dade') || {}; return { planId: id, carrier: g.carrier, planName: g.planName, county: 'Miami-Dade' }; });
+            const model = exp.buildComparisonModel({ plans, drugs: (r.drugs || []).flatMap((d) => d.export || []), toolResults: r.toolResults, clientName: e.clientName || '', currentPlanIds: run.sets.currentPlan || [], keepPlanOrder: true });
+            if (e.clientName) assert.equal(model.aoa[0][0], e.clientName, 'export title is the client');
+            const head = model.aoa.find((row) => row.some((c) => /\b[HR]\d{4}-\d{3}/.test(String(c))));
+            assert.deepEqual(head.slice(1).map((c) => ID((String(c).match(/[HR]\d{4}-\d{3}[A-Z]?/) || [''])[0])), ids(r.planIds), 'export columns = grid columns');
+            for (const [med, want] of Object.entries(e.exportMeds || {})) {
+              const row = model.aoa.find((x) => norm(x[0]) === norm(med));
+              assert.ok(row, `export row "${med}" in [${model.aoa.map((x) => x[0]).join(' | ')}]`);
+              for (const c of row.slice(1)) {
+                const [tier, cost] = [want.match(/T(\d)/)[1], want.split(' ')[1].replace(/[$.]/g, (x) => `\\${x}`)];
+                assert.match(String(c), new RegExp(`^(?:T|Tier )${tier}\\s*·?\\s*${cost}$`), `${med} export cell "${c}"`);
+                assert.doesNotMatch(String(c), /varies|‖|strength/i);
+              }
+            }
+          });
+        }
         if (e.layout !== false) {
           it('layout rules', () => assert.deepEqual(layoutProblems(run), []));
         }

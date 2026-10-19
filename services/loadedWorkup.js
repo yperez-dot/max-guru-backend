@@ -397,12 +397,32 @@ function medRemovalsIn(text, savedMeds) {
   }
   return [...out];
 }
+// "Levothyroxine Sodium is 0.2 mg" / "levothyroxine 0.2 mg" / "the levothyroxine dose is 0.2 mg": the saved med is that
+// strength from now on — the table, exports and saved workup read "Levothyroxine Sodium 0.2 mg" (Gerry Cabrera, 2026-10-19).
+const DOSE_RE = /\b([A-Za-z][A-Za-z-]{3,})(?:\s+[A-Za-z-]+){0,2}?\s+(?:dose\s+)?(?:is|=|:|at|takes?)?\s*(\d+(?:\.\d+)?)\s*(mg|mcg|ml|units?|%)\b/gi;
+function confirmedDosesIn(text) {
+  const out = [];
+  for (const m of String(text || '').matchAll(DOSE_RE)) out.push({ head: m[1].toLowerCase(), dose: `${m[2]} ${m[3].toLowerCase()}` });
+  return out;
+}
+function applyConfirmedDoses(text, meds) {
+  const doses = confirmedDosesIn(text);
+  if (!doses.length) return meds;
+  return (meds || []).map((med) => {
+    const words = String(med).toLowerCase().split(/[\s/]+/);
+    const d = doses.find((x) => words[0] === x.head || (x.head.length >= 5 && words[0].startsWith(x.head.slice(0, 5))));
+    if (!d) return med;
+    const base = String(med).replace(/\s*\d+(?:\.\d+)?\s*(?:mg|mcg|ml|units?|%)\b.*$/i, '').trim();
+    return `${base} ${d.dose}`;
+  });
+}
+
 /** Saved meds + the newest message → the med set for the re-run (names normalized, removals applied). */
 function workupMedSet(savedMeds, latestText) {
   const tidy = (x) => R.tidyLongMedName ? R.tidyLongMedName(x) : String(x || '');
   const meds = (savedMeds || []).map(tidy).filter(Boolean);
   const gone = medRemovalsIn(latestText, meds);
-  return meds.filter((m) => !gone.includes(m));
+  return applyConfirmedDoses(latestText, meds.filter((m) => !gone.includes(m)));
 }
 
 // ═══ ONE CALL ════════════════════════════════════════════════════════════════════════════════════════════════
@@ -449,7 +469,7 @@ module.exports = {
   doctorCoreWords, specialtyWords, removedByClauses, sameCoreDoctor, RESOLVED_DOCTOR, dedupeDoctorRows, DUPLICATE_Q_RE,
   duplicateQuestions, confirmedDuplicateRemovals,
   // meds
-  MED_REMOVE_RE, medRemovalsIn, workupMedSet,
+  MED_REMOVE_RE, medRemovalsIn, workupMedSet, confirmedDosesIn, applyConfirmedDoses,
   // all three
   resolveWorkupSets,
 };

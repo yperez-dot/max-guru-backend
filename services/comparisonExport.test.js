@@ -1906,8 +1906,10 @@ describe('Excel sheet has grid lines and centered text', () => {
       const a = ws['B3'];
       assert.equal(a.s.alignment.horizontal, 'center');
       assert.equal(a.s.border.top.style, 'thin');
-      assert.equal(ws['A3'].s.alignment.horizontal, 'center');
-      assert.equal(ws['A1'].s.border, undefined); // client-name title row untouched
+      // Column A (title, section headers, doctor / drug names, benefit labels) is left-aligned (Yahoska, 2026-10-19).
+      for (let r = 1; r <= model.aoa.length; r += 1) if (ws['A' + r] && ws['A' + r].s) assert.equal(ws['A' + r].s.alignment.horizontal, 'left', `A${r}`);
+      assert.equal(ws['A1'].s.alignment.horizontal, 'left');
+      assert.equal(ws['A1'].s.border, undefined); // client-name title row: no grid lines, just left-aligned
       assert.ok(ws['!rows'].every((r) => r.hpt >= 18));
     } finally { delete global.XLSX; }
   });

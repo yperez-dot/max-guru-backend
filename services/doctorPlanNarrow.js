@@ -780,6 +780,27 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
         touched = true;
       }
     }
+    // "Pinecrest Dentisry is Dr. Salome Fraga" / "Pinecrest Modern Dentistry = Dr. Salome Fraga": the saved row she names
+    // (fuzzy — her spelling may be off) becomes that doctor; every other saved doctor stays in the run (Gerry Cabrera,
+    // 2026-10-19: the grid showed only Salome Fraga).
+    const mapped = [];
+    for (const seg of t.split(/[\n;]|(?<!\b(?:[Dd]ra?|[Mm]rs?|[Mm]s|[Ss]t|[A-Z]))\.(?:\s+|$)/)) {
+      const mm = seg.match(/^\s*(?:and\s+)?(?:the\s+)?([A-Za-zÀ-ÿ'’&.-]+(?:\s+[A-Za-zÀ-ÿ'’&.-]+){0,5}?)\s+(?:is|=|→|->|is\s+actually|should\s+be)\s+(?:(?:dr|dra|doctor|doctora)\.?\s+)([A-ZÀ-Ý][A-Za-zÀ-ÿ'’.-]+(?:\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.-]+){1,3})\s*[.!]?\s*$/i);
+      if (!mm) continue;
+      const fw = plainWords(mm[1]).filter((w) => !['dr', 'the'].includes(w));
+      if (!fw.length) continue;
+      const hit = people.find((p) => {
+        const pw = plainWords(p.name);
+        return fw.every((w) => pw.some((x) => x === w || (w.length > 3 && lev(x, w) <= 2))) && lev(pw[0], fw[0]) <= 2;
+      });
+      if (hit && !sameDoctorName(hit.name, mm[2])) {
+        hit.name = mm[2].replace(/\s+/g, ' ').trim();
+        hit.npi = '';
+        mapped.push(hit.name);
+        touched = true;
+      }
+    }
+    if (mapped.length) continue;
     // Her yes to Max's duplicate question removes exactly that row.
     const dupYes = confirmedDuplicateRemovals(msgs, i);
     for (let k = people.length - 1; k >= 0; k -= 1) {
