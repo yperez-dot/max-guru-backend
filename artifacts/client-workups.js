@@ -520,9 +520,13 @@
     const questions = (Array.isArray(r.questions) ? r.questions : []).map((q) => String(q || "").trim()).filter((q) => q && !(skipQ && skipQ.test(q)));
     const notes = [];
     const cnv = r.couldNotVerify;
-    if (cnv && cnv.count > 0) {
-      const ids = (Array.isArray(cnv.plans) ? cnv.plans : []).map((p) => p && p.planId).filter(Boolean);
-      notes.push("Could not verify " + cnv.count + " plan" + (cnv.count === 1 ? "" : "s") + " (most doctors unchecked)" + (ids.length ? ": " + ids.join(", ") : "") + ".");
+    // Only plans in the grid: a plan outside the comparison set never gets a note (Tony & Gerry Cabrera, 2026-10-19).
+    const gridIds = (Array.isArray(r.planIds) ? r.planIds : []).map((x) => String(x || "").toUpperCase().slice(0, 9));
+    const cnvIds = (cnv && Array.isArray(cnv.plans) ? cnv.plans : []).map((p) => p && p.planId).filter(Boolean)
+      .filter((id) => !gridIds.length || gridIds.includes(String(id).toUpperCase().slice(0, 9)));
+    if (cnv && cnv.count > 0 && (cnvIds.length || !gridIds.length)) {
+      const n = gridIds.length ? cnvIds.length : cnv.count;
+      notes.push("Could not verify " + n + " plan" + (n === 1 ? "" : "s") + " (most doctors unchecked)" + (cnvIds.length ? ": " + cnvIds.join(", ") : "") + ".");
     }
     for (const f of Array.isArray(r.flags) ? r.flags : []) if (String(f || "").trim()) notes.push(String(f).trim());
     return { questions: questions, notes: notes };

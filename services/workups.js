@@ -556,6 +556,10 @@ class WorkupStore {
     let list = this.ownerList(owner).slice();
     let existing = null;
     if (body.id) existing = list.find((w) => w.id === body.id) || null;
+    // A doctor / practice read as the client ("Pinecrest Dentisry is Dr. Salome Fraga" → client "Pinecrest Modern
+    // Dentistry", Gerry Cabrera 2026-10-19) is never a client name: ignore it, keep the saved one.
+    if (body.clientName && (nameIsADoctor(body.clientName, [...((existing && existing.doctors) || []), ...(body.doctors || [])])
+      || /\b(?:dentistry|dentisry|dental|associates|clinic|medical|group|center|practice)\b/i.test(body.clientName))) body.clientName = '';
     // Another client's facts saved onto this id (the chat still pointed at the workup opened
     // before): save them as their own workup, never over this one (Maura / Enrique Soley, 2026-10-07).
     if (existing && body.clientName && differentClient(existing.clientName, body.clientName)
@@ -576,7 +580,8 @@ class WorkupStore {
     const workup = {
       id,
       ownerEmail: owner,
-      clientName: nameLocked ? prev.clientName : (body.clientName || prev.clientName || ''),
+      // On a saved workup the client name is fixed: only Rename changes it (Gerry Cabrera, 2026-10-19).
+      clientName: nameLocked || prev.clientName ? prev.clientName : (body.clientName || ''),
       nameLocked,
       zip: body.zip || prev.zip || '',
       county: body.county || prev.county || '',

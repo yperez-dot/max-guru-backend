@@ -452,7 +452,8 @@ function currentPlanOf(msgs) {
 }
 
 /** Her client's current plan IDs ("current plan UHC Preferred H1045-001", "Her current plan: …"). */
-function currentPlanIdsIn(text) {
+function currentPlanIdsIn(text0) {
+  const text = normalizeTypedPlanIds(text0);
   const ids = [];
   const re = /\b(?:current(?:ly)?(?:\s+plan)?|is\s+on|stay(?:ing)?\s+on|her\s+plan|his\s+plan)\b[^.\n]{0,60}?\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
   for (const m of String(text || '').matchAll(re)) {
@@ -919,7 +920,14 @@ const LEAD_VERB_RE = /^(?:(?:pls|please|can you|could you|now|also|then)\s+)*(?:
 
 
 
-function namedPlansFromAsk(askText, constraints) {
+// Plan IDs as agents paste them from Sunfire: "H5420-1-0" / "H5420-001-0" → "H5420-001" (Tony Cabrera, 2026-10-19:
+// "Current plan is UHC MedicareMax … (H5420-1-0)" was not read as her current plan in the chat path).
+function normalizeTypedPlanIds(text) {
+  return String(text || '').replace(/\b([HR]\d{4})-(\d{1,3})(?:-\d)?(?=[^\dA-Za-z-]|$)/gi, (m, a, b) => `${a.toUpperCase()}-${b.padStart(3, '0')}`);
+}
+
+function namedPlansFromAsk(askText0, constraints) {
+  const askText = normalizeTypedPlanIds(askText0);
   let current = [];
   // Her current plan (comparisonAskText's "Her current plan:" line): a new set that mentions it keeps it, first.
   const currentIds = [...String((String(askText || '').match(/^Her current plan:\s*([^\n]+)$/m) || ['', ''])[1]).matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
@@ -1377,7 +1385,17 @@ function lowestStrengthCost(strengths) {
 function strengthNotes(drugs, planIds) {
   const out = [];
   for (const r of drugs || []) {
-    if (!planIds.some((id) => { const row = drugRowFor(r, id); return row && Array.isArray(row.strengths) && row.strengths.length > 1; })) continue;
+    // Only when the tier or cost really differs by strength on a plan shown: every strength T1 $0 is just "T1 $0"
+    // (Tony & Gerry Cabrera, 2026-10-19: "Glipizide cost varies by strength" under T1 $0 cells), and never once she
+    // confirmed the dose ("Levothyroxine Sodium 0.2 mg").
+    if (/\d\s*(?:mg|mcg|%|ml)\b/i.test(String(r.drugName || drugNameOf(r)))) continue;
+    const differs = planIds.some((id) => {
+      const row = drugRowFor(r, id);
+      if (!row || !Array.isArray(row.strengths) || row.strengths.length < 2) return false;
+      const covered = row.strengths.filter((v) => v && v.verified && v.coverage === 'covered' && v.tier);
+      return new Set(covered.map((v) => `${v.tier}|${v.costShare || row.costShare || ''}`)).size > 1;
+    });
+    if (!differs) continue;
     const name = (r.nameCorrection && r.nameCorrection.to) || drugNameOf(r);
     out.push(`⚠️ ${name} cost varies by strength — confirm dose`);
   }
@@ -2063,7 +2081,9 @@ function strengthSplitCell(row, result, opts = {}) {
     if (v.bdPa) bits.push('B/D PA');
     if (v.hrm) bits.push('HRM (PA 65+)');
     if (v.excludedDrug) bits.push('supplemental');
-    if (v.mixedProducts) bits.push('varies by product');
+    // Across strengths, "varies by product" is noise when the covered tier · cost is the same (Gerry Cabrera,
+    // 2026-10-19: "0.1/0.175/0.2 mg: T1 $0 · varies by product ‖ 0.3 mg: T1 $0"). ED drugs keep it (PAH vs ED products).
+    if (v.mixedProducts && (ed || opts.keepMixed)) bits.push('varies by product');
     // Per strength: the source that answered this strength decides whether PA/QL are known.
     if (restrictionsUnknown(v)) bits.push(PA_QL_UNKNOWN);
     return bits.join(' · ');

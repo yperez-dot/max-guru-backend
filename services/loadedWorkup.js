@@ -417,7 +417,15 @@ function resolveWorkupSets(messages) {
   const askText = n.comparisonAskText(msgs, conversationAskText(msgs));
   const wk = workupFacts(msgs);
   const currentPlan = n.currentPlanOf ? n.currentPlanOf(msgs) : (wk ? wk.current : []);
-  const plans = currentPlanFirst(n.namedPlansFromAsk(askText, n.askConstraints(askText)), currentPlan);
+  let named = n.namedPlansFromAsk(askText, n.askConstraints(askText));
+  // A fresh ask that types her current plan ("Current plan is UHC MedicareMax … (H5420-1-0)") and names others to compare:
+  // her current plan is in the set, first column (Tony Cabrera, 2026-10-19).
+  if (!wk && named.length && currentPlan.length) {
+    for (const id of [...currentPlan].reverse()) {
+      if (!named.some((p) => String(p.planId).toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9))) named = [{ planId: id, name: id }, ...named];
+    }
+  }
+  const plans = currentPlanFirst(named, currentPlan);
   const fu = n.comparisonFollowUp(msgs);
   let doctors = fu && fu.doctors ? fu.doctors : (wk ? wk.doctors : []);
   if (!doctors.length) {

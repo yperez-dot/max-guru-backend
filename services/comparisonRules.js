@@ -366,7 +366,7 @@ const UNLABELED_ITEM_RE = /^[A-Za-z][A-Za-z0-9-]*(?:\s+(?:\d+(?:\.\d+)?\s?(?:mg|
 /** "esomeprazole, rasuvostatin, acyclovir tablets & ointment" → one item per drug and per dosage form. */
 function splitMedList(list) {
   const out = [];
-  for (const seg of String(list || '').split(/[,;]/)) {
+  for (const seg of String(list || '').split(/[,;\n]/)) {
     const s = seg.replace(/\(.*?\)/g, '').replace(/[.\s]+$/, '').trim();
     if (!s) continue;
     const forms = expandDosageForms(s);
@@ -377,6 +377,34 @@ function splitMedList(list) {
     }
   }
   return out;
+}
+
+
+// Words in a practice / office name, never in a drug name ("Med Eye Associates", "Pinecrest Modern Dentistry").
+const PRACTICE_WORD_RE = /\b(?:associates?|dentistry|dentisry|dental|dentists?|clinics?|group|center|centre|medical|practice|partners|institute|hospital|physicians|surgeons?|orthopa?edics?|cardiology|ophthalmology|optometry|pediatrics|podiatry|llc|inc|pllc)\b/i;
+// Words that make a Title Case pair a drug, not a person ("Folic Acid", "Potassium Citrate", "Fish Oil").
+const DRUGISH_WORD_RE = /^(?:acid|vitamin|oil|fish|calcium|potassium|sodium|magnesium|iron|zinc|citrate|chloride|sulfate|carbonate|hcl|er|xr|sr|plus|complex|aspirin|insulin|eye|drops?|cream|ointment|gel|patch|spray|tablets?|capsules?)$|(?:pril|sartan|olol|statin|pine|pam|lam|zole|mab|tide|gliptin|flozin|mycin|cillin|cycline|floxacin|vir|dronate|tidine|sone|olone|ide|ine|ate|in|ol|one|ase|ex|ix|is|ta)$/;
+/** A practice name, or (no "Meds:" colon) a person's name where a drug would be ("Brian Dougherty"). Never a drug row. */
+function looksLikePracticeOrPerson(item, colon) {
+  const s = String(item || '').trim();
+  if (PRACTICE_WORD_RE.test(s)) return true;
+  if (colon) return false;
+  if (!/^[A-Z][a-z'’-]+(?:\s+[A-Z]\.?)?(?:\s+[A-Z][a-z'’-]+){1,2}$/.test(s)) return false;
+  return !s.toLowerCase().split(/\s+/).some((w) => DRUGISH_WORD_RE.test(w));
+}
+/** "Med Eye Associates": bare "Med" / "Rx" / "Drug" with no colon, then a capitalized word, is the start of a name. */
+function isNamePrefixLabel(label, after, hasRealLabel) {
+  if (!/^(?:med|rx|drug)$/i.test(label)) return false;
+  const next = String(after || '').trim();
+  if (/^[A-Z][a-z]/.test(next)) return true;
+  if (PRACTICE_WORD_RE.test(next.split(/[,;.\n]/)[0])) return true;
+  return Boolean(hasRealLabel);
+}
+/** A doctor / practice she listed is never a drug row ("Brian Dougherty" in Meds — Tony Cabrera, 2026-10-19). */
+function dropDoctorNamesFromMeds(meds, doctors) {
+  const key = (x) => String((x && x.name) || x || '').toLowerCase().replace(/^(?:dr|dra)\.?\s+/, '').replace(/[^a-z]+/g, ' ').trim();
+  const docs = new Set((doctors || []).map(key).filter(Boolean));
+  return (meds || []).filter((x) => !docs.has(key(x)) && !PRACTICE_WORD_RE.test(String(x)));
 }
 
 const looksLikeDrugItem = (s) => DRUG_ITEM_RE.test(s) && !NOT_DRUG_START_RE.test(s.split(/\s+/)[0]) && !isNonDrugAnswer(s);
@@ -419,13 +447,38 @@ function medsFromAsk(askText) {
   const add = (s0) => { const s = tidyLongMedName(cleanMedItem(s0)); if (s && s.length > 2 && s.length < 60 && !isNonDrugAnswer(s) && !/\b[HR]\d{4}-\d{3}|\b(?:grid|table|columns?)\b/i.test(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
   // "Meds: a, b" / "Medications a, b" / "Medicamentos: a y b" / "Takes a, b" — colon optional
   // (Martin Wiesenthal, 2026-10-09: "…, Medications esomeprazole, rasuvostatin, …" read 0 meds).
-  for (const m of t.matchAll(new RegExp(`(^|[^A-Za-z])(no\\s+)?\\b(${MED_LABEL})\\b(\\s*:\\s*|\\s+)([^\\n]+)`, 'gi'))) {
-    if (m[2]) continue; // "no meds"
+  // A practice / person name is never read as a label: "Med Eye Associates" (Tony Cabrera, 2026-10-19: "…, Med Eye
+  // Associates, Brian Dougherty, … Medications amlodipine" put five doctors in Meds and dropped the real list). Bare
+  // singular "Med" / "Rx" / "Drug" with no colon followed by a capitalized word is part of a name.
+  const labelRe = new RegExp(`(^|[^A-Za-z])(no\\s+)?\\b(${MED_LABEL})\\b(\\s*:\\s*|\\s+)([^\\n]+)`, 'gi');
+  const hasRealLabel = new RegExp(`\\b${MED_LABEL}\\s*:|\\b(?:medications?|medicines?|medicamentos?|medicinas?)\\b`, 'i').test(t);
+  const endRe = /\.\s+(?=[A-Z])|\.\s*$|\b(?:compare|suggest|give me|show me|doctors?|drs?|plans?)\s*[:\b]/i;
+  let m;
+  while ((m = labelRe.exec(t))) {
+    const labelEnd = m.index + m[1].length + (m[2] || '').length + m[3].length;
+    if (m[2]) { labelRe.lastIndex = labelEnd; continue; } // "no meds"
     const label = m[3];
     const colon = m[4].includes(':');
+    if (!colon && isNamePrefixLabel(label, m[5], hasRealLabel)) { labelRe.lastIndex = labelEnd; continue; }
     // The list ends at the first sentence break ("… chlorthalidone. Suggest 2-3 plans").
-    const list = m[5].split(/\.\s+(?=[A-Z])|\.\s*$|\b(?:compare|suggest|give me|show me|doctors?|drs?|plans?)\s*[:\b]/i)[0];
-    const items = splitMedList(list);
+    let list = m[5].split(endRe)[0];
+    // One drug per line ("Medications amlodipine\nfolic acid\n…\nsimvastatin. Current plan is …", Tony Cabrera
+    // 2026-10-19): the next lines belong to the list while each is a drug name, up to the sentence break.
+    if (list === m[5] || list === m[5].replace(/[.\s]+$/, '')) {
+      let at = m.index + m[0].length;
+      while (at < t.length && t[at] === '\n') {
+        const nl = t.indexOf('\n', at + 1);
+        const line = t.slice(at + 1, nl < 0 ? t.length : nl);
+        const head = line.split(endRe)[0];
+        const item = head.replace(/[.\s]+$/, '').trim();
+        if (!item || /:/.test(item) || !splitMedList(item).every((x) => looksLikeDrugItem(x) && !NOT_MED_RE.test(x))) break;
+        list += `\n${item}`;
+        at = nl < 0 ? t.length : nl;
+        labelRe.lastIndex = at;
+        if (head.length < line.length) break; // the sentence ended on this line
+      }
+    }
+    const items = splitMedList(list).filter((x) => !looksLikePracticeOrPerson(x, colon));
     if (colon) {
       items.forEach(add);
       continue;
@@ -641,6 +694,9 @@ module.exports = {
   planEligibility,
   csnpHintsFromMeds,
   medsFromAsk,
+  dropDoctorNamesFromMeds,
+  looksLikePracticeOrPerson,
+  PRACTICE_WORD_RE,
   unlabeledMeds,
   splitMedList,
   knownMedsNote,
