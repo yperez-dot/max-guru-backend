@@ -1,0 +1,177 @@
+{
+  "about": "Which dental network each carrier's 2027 MA plans use, and where Max checks a dentist. Source of truth: THEI 2027 Plan Comparison Grid, 'Plan Info' tab, Dental column (Yahoska, 2026-10-19). Dentists are checked ONLY here, never in the medical directories.",
+  "asOf": "2026-10-19",
+  "sources": {
+    "humana:3171": {
+      "kind": "humana",
+      "label": "Florida Gold Plus Dental (Humana Find Care, dental)",
+      "humanaNetworkId": 3171,
+      "url": "https://findcare.humana.com/dental?customerId=1004"
+    },
+    "uhc:national": {
+      "kind": "uhc",
+      "label": "UHC National Medicare Advantage dental network (UHC guest Find a Doctor, dental)",
+      "url": "https://findcare.guest.uhc.com/guest-plan-selection/browse?deeplink=eyJsYW5ndWFnZSI6ImVuLVVTIiwibG9iIjoiTVIiLCJjb3ZlcmFnZVR5cGUiOiJEIn0="
+    },
+    "fdb:41": {
+      "kind": "fdb",
+      "label": "Florida Dental Benefits: Doctors HealthCare Plans",
+      "fdbCategory": 41,
+      "url": "https://fdbenefits.com/our-providers/"
+    },
+    "fdb:45": {
+      "kind": "fdb",
+      "label": "Florida Dental Benefits: HealthSun Health Plan",
+      "fdbCategory": 45,
+      "url": "https://fdbenefits.com/our-providers/"
+    }
+  },
+  "carriers": [
+    {
+      "carrier": "Humana",
+      "contracts": [
+        "H1036"
+      ],
+      "vendor": "Florida Gold Plus Dental (Humana)",
+      "source": "humana:3171",
+      "carrierMatch": "humana"
+    },
+    {
+      "carrier": "Humana",
+      "contracts": [
+        "H7617"
+      ],
+      "vendor": "Humana Dental, confirm the PPO dental network",
+      "source": "manual",
+      "note": "Humana Choice PPO: the grid names Florida Gold Plus Dental carrier-wide, but that network is HMO-branded. Not verified for the PPO, so Max does not answer In/Out."
+    },
+    {
+      "carrier": "CarePlus",
+      "contracts": [
+        "H1019"
+      ],
+      "vendor": "Florida Gold Plus Dental (Humana)",
+      "source": "humana:3171",
+      "carrierMatch": "careplus|care plus"
+    },
+    {
+      "carrier": "UHC Preferred Care Network (MedicareMax)",
+      "contracts": [
+        "H5420"
+      ],
+      "vendor": "Solstice",
+      "source": "manual",
+      "note": "Solstice's provider search (solsticebenefits.com) is an ASP.NET form behind reCAPTCHA: browser only. The UHC guest dental browse lists only the National MA network, no Solstice / PCN plan."
+    },
+    {
+      "carrier": "UHC Preferred Care Partners",
+      "contracts": [
+        "H1045"
+      ],
+      "vendor": "Solstice",
+      "source": "manual",
+      "note": "Same as H5420: Solstice, browser only."
+    },
+    {
+      "carrier": "UnitedHealthcare (Dual Complete / AARP)",
+      "contracts": [
+        "H1889",
+        "R0759",
+        "H2509"
+      ],
+      "vendor": "UHC dental",
+      "source": "uhc:national"
+    },
+    {
+      "carrier": "Doctors HealthCare",
+      "contracts": [
+        "H4140"
+      ],
+      "vendor": "Florida Dental Benefits",
+      "source": "fdb:41",
+      "carrierMatch": "doctors"
+    },
+    {
+      "carrier": "HealthSun",
+      "contracts": [
+        "H5431"
+      ],
+      "vendor": "Florida Dental Benefits",
+      "source": "fdb:45",
+      "carrierMatch": "healthsun"
+    },
+    {
+      "carrier": "Devoted",
+      "contracts": [
+        "H1290"
+      ],
+      "vendor": "no set network, reimbursed",
+      "source": "none",
+      "carrierMatch": "devoted"
+    },
+    {
+      "carrier": "HealthSpring",
+      "contracts": [],
+      "vendor": "no set network, reimbursed",
+      "source": "none",
+      "carrierMatch": "healthspring|cigna"
+    },
+    {
+      "carrier": "Aetna",
+      "contracts": [
+        "H1609"
+      ],
+      "vendor": "Liberty for HMO, Aetna Dental for PPO",
+      "source": "manual",
+      "carrierMatch": "aetna",
+      "note": "Grid: plan-specific (Liberty / DentaQuest in some markets). Hub guide: Liberty HMO, Aetna Dental PPO."
+    },
+    {
+      "carrier": "Florida Blue",
+      "contracts": [
+        "H1035",
+        "H5434"
+      ],
+      "vendor": "Florida Blue Dental",
+      "source": "manual",
+      "carrierMatch": "florida blue|fl blue|bluemedicare"
+    },
+    {
+      "carrier": "Gold Kidney",
+      "contracts": [
+        "H1526"
+      ],
+      "vendor": "Gold Kidney, vendor not on the grid",
+      "source": "manual",
+      "carrierMatch": "gold kidney"
+    },
+    {
+      "carrier": "Simply",
+      "contracts": [
+        "H5471"
+      ],
+      "vendor": "Liberty",
+      "source": "manual",
+      "carrierMatch": "simply"
+    },
+    {
+      "carrier": "Wellcare",
+      "contracts": [
+        "H1032"
+      ],
+      "vendor": "Liberty Dental 888-352-0225",
+      "source": "manual",
+      "carrierMatch": "wellcare"
+    },
+    {
+      "carrier": "Solis",
+      "contracts": [
+        "H0982"
+      ],
+      "vendor": "DentaQuest",
+      "source": "manual",
+      "carrierMatch": "solis",
+      "note": "Confirmed by Yahoska 2026-10-19 (grid is right). DentaQuest find-a-dentist is not wired (no public server-side search added)."
+    }
+  ]
+}

@@ -31,6 +31,7 @@ const { querySimplyFindcare, CARRIER_LABEL: SIMPLY_PLAN_LABEL } = require('../se
 const { queryUhcGuest, CARRIER_LABEL: UHC_PLAN_LABEL, PLAN_YEAR: UHC_PLAN_YEAR } = require('../services/uhcGuestSearch');
 const { queryHumanaFindcare, CARRIER_LABEL: HUMANA_PLAN_LABEL, PLAN_YEAR: HUMANA_PLAN_YEAR, isHumanaLabel } = require('../services/humanaFindcare');
 const { solisLookupNote } = require('../services/solisDirectory');
+const dentalDirectory = require('../services/dentalDirectory');
 const { parseName, extractNpi, resolveNpiRecords, displayName } = require('../services/npiRegistry');
 const {
   querySunfireProviderList,
@@ -362,6 +363,27 @@ router.post('/', async (req, res) => {
     if (!npi) continue;
 
     const npiLastName = npiResult.basic?.last_name || lastName;
+
+    // A dentist: dental directories only (Humana / UHC dental, Florida Dental Benefits) — the medical
+    // directories below do not list dentists (Gerry Cabrera / Salome Fraga, 2026-10-19).
+    if (dentalDirectory.isDentistRecord(npiResult)) {
+      const dental = await dentalDirectory.checkDentist(
+        { npi, firstName: npiResult.basic?.first_name || firstName || '', lastName: npiLastName },
+        { zip, deadlineAt: Date.now() + 20_000 }
+      );
+      providers.push({
+        name: getDisplayName(npiResult),
+        npi,
+        specialty: getSpecialty(npiResult),
+        address: getLocationAddress(npiResult),
+        phone: getPhone(npiResult),
+        isDentist: true,
+        dental,
+        inNetworkFor: [],
+        carriersChecked: Object.values(dentalDirectory.CONFIG.sources).map((x) => x.label),
+      });
+      continue;
+    }
 
     // Run FHIR + Doctors + Aetna + Simply + UHC guest + Humana guest + Sunfire in parallel
     const [fhirResults, sunfireResult, doctorsResult, aetnaResult, simplyResult, uhcResult, humanaResult] = await Promise.all([

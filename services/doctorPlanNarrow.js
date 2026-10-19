@@ -77,8 +77,10 @@ function askConstraints(askText) {
 }
 
 /** Plan rows: who is In / Out / not confirmed, sorted by In count. */
-function coverageMatrix(doctors) {
-  const ok = (doctors || []).filter((d) => d && (d.status === 'done' || d.status === 'partial'));
+function coverageMatrix(doctors0) {
+  // Dentists never rank plans (their cells come from the dental networks).
+  const doctors = (doctors0 || []).filter((d) => d && !isDentalProvider(d));
+  const ok = doctors.filter((d) => d.status === 'done' || d.status === 'partial');
   const plans = new Map();
   for (const d of ok) {
     for (const label of d.inNetworkPlans || []) {
@@ -1082,6 +1084,7 @@ function carrierKey(label) {
 /** Columns for the named plans: plan-level In/Out when a directory gave one, carrier-level In* otherwise. */
 /** A dentist (DDS/DMD, dental taxonomy): Medicare medical networks do not list dentists, so ❌ there is not a medical miss. */
 function isDentalProvider(d) {
+  if (d && (d.isDentist || (d.dental && d.dental.isDentist))) return true;
   const t = [d && d.doctorName, d && d.requestedName, d && d.taxonomy, d && d.specialty, d && d.taxonomyDescription, ...((d && d.taxonomies) || []).map((x) => (x && (x.desc || x.description)) || x)].filter((x) => typeof x === 'string').join(' ');
   return /\b(?:dds|dmd|dentist\w*|dentisry|dental)\b/i.test(t);
 }
@@ -1097,6 +1100,9 @@ function namedPlanColumns(named, matrix, doctors) {
     const col = { planId: np.planId, name: row ? row.name : np.name, carrier, type: row ? row.type : planTypeOf(np.name), in: [], inCarrier: [], out: [], unknown: [], notConfirmed: [] };
     for (const d of doctors) {
       const who = shortDoctor(d);
+      // A dentist row is drawn from the plan's DENTAL network (gridTable → dentalCell) and never counts toward
+      // In / Out / unchecked or the ranking (Gerry Cabrera, 2026-10-19).
+      if (isDentalProvider(d)) { (col.dental = col.dental || []).push(who); continue; }
       const inIds = new Set((d.inNetworkPlans || []).map(planIdOf).filter(Boolean).map((x) => x.slice(0, 9)));
       const outIds = new Set((d.outOfNetworkPlans || []).map(planIdOf).filter(Boolean).map((x) => x.slice(0, 9)));
       const key = np.planId.slice(0, 9);
@@ -1115,8 +1121,6 @@ function namedPlanColumns(named, matrix, doctors) {
       // answered "not listed" for UHC plans → ❌ Not in network (not listed), not "not confirmed".
       else if (carrier === 'UnitedHealthcare' && uhcUnlisted(d)) col.out.push(who);
       else col.unknown.push(who);
-      // Gerry Cabrera, 2026-10-19: Salome Fraga (dentist) ❌ counted as a medical miss and pulled plans down the ranking.
-      if (col.out.includes(who) && isDentalProvider(d)) (col.dentalOut = col.dentalOut || []).push(who);
     }
     return col;
   });
@@ -1125,6 +1129,7 @@ function namedPlanColumns(named, matrix, doctors) {
 // ─── Doctor/Drug Comparison Table Rules (services/comparisonRules.js) ───────
 
 const R = require('./comparisonRules');
+const DENTAL = require('./dentalDirectory');
 const GROUPS = require('./medicalGroupRules');
 const { restrictionsUnknown } = require('./drugNames');
 
@@ -1319,7 +1324,8 @@ function doctorLabel(d) {
 }
 
 function countsOf(p, n) {
-  // A dentist ❌ is shown but is neither a medical Out nor a doctor still to check.
+  // A dentist is shown but is neither a medical In / Out nor a doctor still to check. Columns built by
+  // namedPlanColumns keep dentists out of in/out/unknown (col.dental); `dentalOut` is the older shape.
   const dental = (p.dentalOut || []).length;
   n -= dental;
   const inN = p.in.length;
@@ -1351,6 +1357,12 @@ function cellCountText(cells) {
   return `${inN} in · ${outN} not in network · ${rest}${star ? ` (${star} ✅ In*)` : ''}`;
 }
 
+/** A dentist's cell: the plan's dental network (services/dentalDirectory.js), never the medical directory. */
+function dentalRowCell(d, p) {
+  if (!d || d.identityPending || !['done', 'partial'].includes(d.status)) return unknownCell(d, p.carrier || carrierKey(p.name));
+  return DENTAL.dentalCell(d.dental, p.planId, p.carrier || carrierKey(p.name) || '');
+}
+
 /** Doctors down the side, plans across the top. */
 function gridTable(doctors, plans) {
   if (!plans.length) return '';
@@ -1359,6 +1371,7 @@ function gridTable(doctors, plans) {
   const sep = `|---|${plans.map(() => '---').join('|')}|`;
   const grid = doctors.map((d) => {
     const who = shortDoctor(d);
+    if (isDentalProvider(d)) return plans.map((p) => dentalRowCell(d, p));
     return plans.map((p) => (
       p.in.includes(who) ? CELL.in
         : (p.inCarrier || []).includes(who) ? CELL.inCarrier
@@ -1543,7 +1556,8 @@ function selectComparison(doctors, askText, opts = {}) {
     if (!issue || typedNpi || saidYes || confirmedMatches.some((nm) => sameDoctorName(nm, who))) return { ...d, identityPending: '' };
     return { ...d, identityPending: issue, inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] };
   }).map((d) => (d.identityPending ? d : GROUPS.applyGroupRuleToDoctor(d, ask0, (label) => carrierKey(label))));
-  const n = docs.length;
+  // Dentists are drawn in the grid but never counted ("No single plan has all the doctors", ranking, counts).
+  const n = docs.filter((d) => !isDentalProvider(d)).length;
   // "Carriers requested: Doctors HealthCare, Solis, Devoted" (comparisonAskText) — newest wins.
   const carrierAsks = [...ask0.matchAll(/Carriers requested:\s*([^\n.]+)/gi)];
   const namedSetLine = (ask0.match(/^Named plan set: (.+)$/m) || [])[1];
