@@ -65,7 +65,11 @@ function solisFor(rec, zip, planYear) {
     return SOLIS_UNAVAILABLE;
   }
 }
-const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery, suggestSimilarProviders } = require('./npiRegistry');
+const npiRegistryMod = require('./npiRegistry');
+const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery, suggestSimilarProviders } = npiRegistryMod;
+const extractNpi = (x) => ((String(x || '').match(/\b(\d{10})\b/) || [])[1] || '');
+const sameNameCandidates = (...a) => (typeof npiRegistryMod.sameNameCandidates === 'function' ? npiRegistryMod.sameNameCandidates(...a) : []);
+const DENTAL_HINT_RE = /\b(?:dds|d\.d\.s|dmd|d\.m\.d|dentist\w*|dentisry|dental)\b/i;
 const { conversationAskText } = require('./planYear');
 const { batchSummaryForModel, narrowingAnswered, comparisonAskText, selectComparison, renderedAnswer, dedupeDoctorRows } = require('./doctorPlanNarrow');
 const { medsFromAsk } = require('./comparisonRules');
@@ -720,6 +724,16 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
       const suggestions = await suggestSimilarProviders({ doctorName, zip, state: input.state || 'FL' }).catch(() => []);
       return notFoundResult(doctorName, suggestions);
     }
+    // Two real people with the name she typed near her ZIP (a PA and a dentist): ask which one — never pick silently.
+    // A name with an NPI, or one plausible person, is looked up as before.
+    if (!extractNpi(input.npi) && !extractNpi(doctorName)) {
+      const same = sameNameCandidates(records, doctorName, zip);
+      if (same.length >= 2) return notFoundResult(doctorName, same);
+    }
+    // "Ricardo Espinosa DMD" / "… dentist": the dentist with that name is the one she means.
+    if (DENTAL_HINT_RE.test(doctorName) && records.some((r) => dentalDirectory.isDentistRecord(r))) {
+      records.sort((a, b) => Number(dentalDirectory.isDentistRecord(b)) - Number(dentalDirectory.isDentistRecord(a)));
+    }
     const picked = records.slice(0, Math.max(1, npiCap)).map(npiRecordInfo);
     // A dentist is checked in the plans' DENTAL networks only — the Medicare medical directories do not
     // list dentists, so a miss there read ❌ on every plan (Gerry Cabrera / Salome Fraga, 2026-10-19).
@@ -980,11 +994,15 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
     if (planIds.length) {
       const { lookupFormularyCached } = require('./compareJobs'); // lazy: compareJobs requires this file
       const year = Number(common.year) || Number(UHC_PLAN_YEAR) || 2027;
-      drugs = (await Promise.all(meds.map((drugName) => raceDeadline(
-        lookupFormularyCached({ drugName, planIds, year }).catch(() => null),
+      // A drug that errors or runs out of time is still her med: its row stays, every cell ❔ not confirmed — never dropped
+      // (Evelyn Nieves, 2026-10-20: on a 4-plan table only Mounjaro came back and the other 5 meds vanished from the
+      // table and the export).
+      const missed = (drugName, why) => ({ drugName, byPlanId: {}, lookups: [], timedOut: why === 'timeout', error: why === 'timeout' ? null : why });
+      drugs = await Promise.all(meds.map((drugName) => raceDeadline(
+        lookupFormularyCached({ drugName, planIds, year }).catch((e) => missed(drugName, (e && e.message) || 'error')),
         deadlineAt,
-        () => null,
-      )))).filter(Boolean);
+        () => missed(drugName, 'timeout'),
+      ).then((r) => r || missed(drugName, 'timeout'))));
     }
   }
   const summary = batchSummaryForModel(doctorsStructured, askText, { answered, drugs });

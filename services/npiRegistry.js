@@ -549,7 +549,60 @@ async function suggestSimilarProviders({ doctorName = '', zip, state = 'FL', lim
   });
 }
 
+/**
+ * Several real people share the name she typed, near her ZIP: [{ name, npi, specialty, city, spelling:false, sameName:true }]
+ * (Jorge Rivero / Evelyn Nieves, 2026-10-20: "Ricardo Espinosa" is both a PA in Virginia Gardens, NPI 1346449220, and a
+ * dentist in Hialeah Gardens, NPI 1083825665; Max silently took the PA and checked him in the medical directories).
+ * [] when exactly one plausible person is near — that one is picked as before. "Plausible" = a treating provider or a
+ * dentist whose practice ZIP is in her area (same first two digits, ZIP3 within 3). With a dental hint in the name
+ * ("Ricardo Espinosa DMD", "dentist") a single dentist is not ambiguous.
+ */
+function sameNameCandidates(records, doctorName, zip, { max = 4 } = {}) {
+  const parsed = parseName(cleanDoctorQuery(doctorName));
+  const qf = String(parsed.firstName || '').toUpperCase();
+  const ql = String(parsed.lastName || '').toUpperCase().replace(/[^A-Z]/g, '');
+  if (!qf || qf.length < 2 || ql.length < 2) return [];
+  const qz = String(zip || '').slice(0, 5);
+  const near = (r) => {
+    const z = locationZip(r);
+    if (!qz || !z) return true;
+    return z.slice(0, 2) === qz.slice(0, 2) && Math.abs(Number(z.slice(0, 3)) - Number(qz.slice(0, 3))) <= 3;
+  };
+  const dentalHint = DENTAL_ASK_RE.test(String(doctorName || ''));
+  const seen = new Set();
+  const people = (records || []).filter((r) => {
+    if (!r || r.enumeration_type === 'NPI-2' || seen.has(r.number)) return false;
+    const b = r.basic || {};
+    const fn = String(b.first_name || '').toUpperCase();
+    const last = String(b.last_name || '').toUpperCase().replace(/[^A-Z ]/g, ' ').split(/\s+/).join('');
+    if (fn !== qf || !last.includes(ql)) return false;
+    if (!isTreating(r, { dental: true }) || !near(r)) return false;
+    seen.add(r.number);
+    return true;
+  });
+  if (people.length < 2) return [];
+  const isDent = (r) => /dentist/i.test((r.taxonomies || []).map((t) => t.desc || '').join(' ')) || DENTIST_CRED_RE.test(String(r.basic?.credential || ''));
+  if (dentalHint && people.filter(isDent).length === 1) return [];
+  const zDist = (r) => (qz ? Math.abs(Number(locationZip(r) || 99999) - Number(qz)) : 0);
+  const ordered = [...people].sort((a, b) => (dentalHint ? (isDent(b) - isDent(a)) : 0) || zDist(a) - zDist(b));
+  return ordered.slice(0, max).map((r) => {
+    const loc = (r.addresses || []).find((a) => a.address_purpose === 'LOCATION') || {};
+    const b = r.basic || {};
+    const name = [b.first_name, b.middle_name, b.last_name].filter(Boolean).join(' ').toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
+    return {
+      name: `${name}${b.credential ? `, ${String(b.credential).replace(/\./g, '')}` : ''}`,
+      npi: r.number,
+      specialty: ((r.taxonomies || []).find((t) => t.primary) || (r.taxonomies || [])[0] || {}).desc || '',
+      city: String(loc.city || '').toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()),
+      spelling: false,
+      sameName: true,
+      isDentist: isDent(r),
+    };
+  });
+}
+
 module.exports = {
+  sameNameCandidates,
   isTreating,
   joinedParticleSplits,
   suggestSimilarProviders,

@@ -1,0 +1,135 @@
+{
+  "name": "Evelyn Nieves (loaded workup) — resolved Escalona stays resolved after removing a plan ('remove careplus')",
+  "source": "Yahoska, 2026-10-20 (Evelyn Nieves, 33156, current plan UHC H5420-014): Max asked No exact match for \"Priscila Escalona\" (one L); her answer with two L's / the NPI was not applied and the same question came back; after the exact-spelling answer resolved her, 'remove careplus and add Doctors DrMax-Dade' reverted her to 'Priscila Escalona ❔ not confirmed' and re-asked. NPIs from the NPI registry; cells are stubs.",
+  "workup": {
+    "clientName": "Evelyn Nieves",
+    "zip": "33156",
+    "county": "Miami-Dade",
+    "currentPlanIds": [
+      "H5420-014"
+    ],
+    "plans": [
+      {
+        "carrier": "UHC",
+        "planName": "UHC MedicareMax Complete Care FL-30",
+        "planId": "H5420-014"
+      },
+      {
+        "carrier": "Humana",
+        "planName": "Humana Gold Plus",
+        "planId": "H1036-054C"
+      },
+      {
+        "carrier": "CarePlus",
+        "planName": "CarePlus CareOne Plus",
+        "planId": "H1019-006"
+      }
+    ],
+    "doctors": [
+      {
+        "name": "Alejandro Lopez Rossitch",
+        "npi": "1528282167"
+      },
+      {
+        "name": "Priscila Escalona"
+      }
+    ],
+    "medications": [
+      {
+        "name": "metformin"
+      }
+    ]
+  },
+  "messages": [
+    "check the doctors",
+    "Priscilla Escalona = Priscilla Gabriela Escalona Villasmil, MD (Internal Medicine, Endocrinology, Diabetes & Metabolism, Miami, NPI 1174811400)",
+    "remove careplus"
+  ],
+  "replies": [
+    "Comparison results (H5420-014, H1036-054C, H1019-006)\nNo exact match for:\n• \"Priscila Escalona\" — closest: Priscilla Gabriela Escalona Villasmil, MD (Internal Medicine, Endocrinology, Diabetes & Metabolism, Miami, NPI 1174811400); Karina Escalona Gonzalez, MD (Family Medicine, Miami, NPI 1255073672)\nReply \"Priscila Escalona = Dr. Full Name\".",
+    "table"
+  ],
+  "doctorResults": {
+    "Priscila Escalona": {
+      "notFound": [
+        {
+          "name": "Priscilla Gabriela Escalona Villasmil, MD",
+          "npi": "1174811400",
+          "specialty": "Internal Medicine",
+          "city": "Miami",
+          "spelling": false
+        },
+        {
+          "name": "Karina Escalona Gonzalez, MD",
+          "npi": "1255073672",
+          "specialty": "Family Medicine",
+          "city": "Miami",
+          "spelling": false
+        }
+      ]
+    },
+    "Priscilla Gabriela Escalona Villasmil": {
+      "npi": "1174811400",
+      "matched": "PRISCILLA GABRIELA ESCALONA VILLASMIL MD",
+      "in": [
+        "H5420-014",
+        "H1036-054C",
+        "H4140-022"
+      ],
+      "out": []
+    },
+    "Alejandro Lopez Rossitch": {
+      "npi": "1528282167",
+      "matched": "ALEJANDRO LOPEZ-ROSSITCH MD",
+      "in": [
+        "H5420-014",
+        "H1036-054C",
+        "H1019-006",
+        "H4140-022"
+      ],
+      "out": []
+    }
+  },
+  "drugResults": {
+    "metformin": {
+      "H5420-014": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-054C": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1019-006": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H4140-022": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    }
+  },
+  "expect": {
+    "doctors": {
+      "include": [
+        "Priscilla Gabriela Escalona Villasmil"
+      ],
+      "exclude": [
+        "Priscila Escalona"
+      ]
+    },
+    "doctorCount": 2,
+    "cells": {
+      "Priscilla Gabriela Escalona Villasmil": {
+        "H5420-014": "In",
+        "H1036-054C": "In"
+      }
+    },
+    "chatExcludes": [
+      "No exact match",
+      "\"Priscila Escalona\"",
+      "Priscila Escalona |"
+    ]
+  }
+}

@@ -13,7 +13,7 @@ const PLAN_NAME = require('../artifacts/plan-name.js');
 const { plainWords, cleanName, titleCase, sameDoctorName, ROLE_WORDS_RE } = DN;
 // Loaded-workup set rules (plans / doctors / meds) live in one module.
 const LW = require('./loadedWorkup');
-const { workupFacts, workupCarrierEditSet, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START, NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, respelledDoctors, looseSameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords, doctorCoreWords, specialtyWords, removedByClauses, sameCoreDoctor, RESOLVED_DOCTOR, dedupeDoctorRows, DUPLICATE_Q_RE, duplicateQuestions, confirmedDuplicateRemovals } = LW;
+const { workupFacts, workupCarrierEditSet, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START, NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, respelledDoctors, looseSameDoctor, fuzzySameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords, doctorCoreWords, specialtyWords, removedByClauses, sameCoreDoctor, RESOLVED_DOCTOR, dedupeDoctorRows, DUPLICATE_Q_RE, duplicateQuestions, confirmedDuplicateRemovals } = LW;
 
 const PLAN_ID_RE = /\(([HR]\d{4}-\d{3}[A-Z]?)\)\s*$/i;
 
@@ -200,16 +200,16 @@ const editDistance = (x, y) => {
   for (let a = 1; a <= x.length; a += 1) { const cur = [a]; for (let b = 1; b <= y.length; b += 1) cur[b] = Math.min(row[b] + 1, cur[b - 1] + 1, row[b - 1] + (x[a - 1] === y[b - 1] ? 0 : 1)); row = cur; }
   return row[y.length];
 };
-const CRED_RE = /,?\s*\b(?:MD|M\.D\.|DO|D\.O\.|DDS|DMD|DPM|OD|ARNP|APRN|NP|PA-C?|PhD)\b\.?/gi;
+const CRED_RE = /,?\s*\b(?:MD|M\.D\.|DO|D\.O\.|DDS|DMD|D\.M\.D\.|DPM|OD|ARNP|APRN|NP|PA(?:-C)?|P\.A\.|PhD)(?![\w-])\.?/gi;
 function doctorMatchCandidates(questionText) {
   const out = [];
-  for (const m of String(questionText || '').matchAll(/^\s*[•*-]\s*["“]([^"”]+)["”]\s*[—–-]\s*(?:closest:|did you mean)\s*(.+)$/gim)) {
+  for (const m of String(questionText || '').matchAll(/^\s*[•*-]\s*["“]([^"”]+)["”]\s*[—–-]\s*(?:closest:|did you mean|more than one provider with this name:)\s*(.+)$/gim)) {
     const cands = [];
     for (const part of m[2].split(/;\s*/)) {
       const c = part.match(/^\s*([^(?]+?)\s*\(([^)]*)\)/);
       if (!c) continue;
       const npi = (c[2].match(/\bNPI\s*(\d{10})\b/) || [])[1] || '';
-      cands.push({ name: c[1].replace(CRED_RE, '').trim(), npi });
+      cands.push({ name: c[1].replace(CRED_RE, '').trim(), npi, info: `${c[1]} ${c[2]}` });
     }
     if (cands.length) out.push({ asked: m[1].trim(), candidates: cands });
   }
@@ -226,6 +226,27 @@ function candidatePicks(questionText, answerText) {
     for (const row of rows) if (row.candidates.length === 1) take(row, row.candidates[0]);
     return picks;
   }
+  // "the first one" / "1" / "#2" / "second" / "option 1": with ONE doctor asked, that candidate in the order Max listed them
+  // (Evelyn Nieves, 2026-10-20). With several doctors asked a bare number is ambiguous and picks nothing.
+  const ORD = { first: 0, '1st': 0, one: 0, '1': 0, second: 1, '2nd': 1, two: 1, '2': 1, third: 2, '3rd': 2, three: 2, '3': 2 };
+  const ord = a.match(/^\s*(?:yes[,.]?\s*)?(?:(?:use|pick|take|it'?s|its|the|option|choice|number|no\.?|#)\s*)*(first|1st|second|2nd|third|3rd|[123])(?:\s+(?:one|option|match|candidate|doctor))?(?:\s+(?:please|pls))?[.!]?\s*$/i)
+    || a.match(/^\s*(?:the\s+)?(first|second|third)\s+one\b[^\n]*$/i);
+  if (ord) {
+    const k = ORD[ord[1].toLowerCase()];
+    if (rows.length === 1 && rows[0].candidates[k]) take(rows[0], rows[0].candidates[k]);
+    return picks;
+  }
+  // "the dentist" / "he's a dentist" / "DMD": the one dentist each asked doctor has among the candidates (Ricardo Espinosa,
+  // 2026-10-20: a PA and a DMD share the name). "the PA" / "physician assistant" picks the PA the same way.
+  const kinds = [[/\b(?:dentist|dental|dmd|dds)\b/i, /dentist|\bDMD\b|\bDDS\b/i], [/\b(?:the\s+pa|physician\s+assistant)\b/i, /physician assistant|\bPA\b/]];
+  for (const [ask, is] of kinds) {
+    if (!ask.test(a) || /=/.test(a) || /\b\d{10}\b/.test(a)) continue;
+    for (const row of rows) {
+      const hit = row.candidates.filter((c) => is.test(c.info || ''));
+      if (hit.length === 1) take(row, hit[0]);
+    }
+    if (picks.length) return picks;
+  }
   const looksLike = (said, cand) => {
     const sw = plainWords(said);
     const cw = plainWords(cand.name);
@@ -237,7 +258,7 @@ function candidatePicks(questionText, answerText) {
   const askedLike = (said, row) => {
     const sw = plainWords(said);
     const aw = plainWords(row.asked);
-    return sw.length >= 1 && aw.length >= 1 && editDistance(sw[sw.length - 1], aw[aw.length - 1]) <= 2 && (sw.length < 2 || editDistance(sw[0], aw[0]) <= 2);
+    return fuzzySameDoctor(row.asked, said) || (sw.length >= 1 && aw.length >= 1 && editDistance(sw[sw.length - 1], aw[aw.length - 1]) <= 2 && (sw.length < 2 || editDistance(sw[0], aw[0]) <= 2));
   };
   const segs = a.replace(CRED_RE, '').split(/[\n;]|,|\band\b|&/i);
   for (const seg0 of segs) {
@@ -251,9 +272,85 @@ function candidatePicks(questionText, answerText) {
     const hits = [];
     for (const row of pool) for (const cand of row.candidates) if ((npi && cand.npi === npi) || (!npi && looksLike(right, cand))) hits.push([row, cand]);
     const byRow = [...new Set(hits.map((h) => h[0]))];
-    if (byRow.length === 1) take(byRow[0], hits.find((h) => h[0] === byRow[0])[1]);
+    if (byRow.length === 1) {
+      // Two candidates with one name ("Ricardo Espinosa, PA" / "Ricardo J Espinosa, DMD"): the one whose every word she
+      // typed (middle initial included) wins; a tie picks nothing.
+      const mine = hits.filter((h) => h[0] === byRow[0]).map((h) => h[1]);
+      if (mine.length === 1 || npi) take(byRow[0], mine[0]);
+      else {
+        const raw = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(CRED_RE, ' ').split(/[^a-z]+/).filter(Boolean);
+        const sw = raw(right);
+        const score = (c) => { const cw = raw(c.name); return sw.filter((w) => cw.includes(w) || (w.length === 1 && cw.some((x) => x[0] === w))).length; };
+        const best = [...mine].sort((x, y) => score(y) - score(x));
+        if (score(best[0]) > score(best[1])) take(byRow[0], best[0]);
+      }
+    }
   }
   return picks;
+}
+
+/**
+ * "X = Y" doctor corrections in one message: [{ said, name, npi }]. The right side may carry the credential, a
+ * "(specialty, city, NPI 1234567890)" tail or "Dr." — none of that is the name; the NPI is kept ("Priscilla Escalona =
+ * Priscilla Gabriela Escalona Villasmil, MD (Internal Medicine, …, Miami, NPI 1174811400)", Evelyn Nieves, 2026-10-20).
+ * "X is Dr. Y" counts too (Gerry Cabrera, 2026-10-19). Plan, carrier and med lines are not doctor corrections.
+ */
+function doctorEqualsCorrections(text) {
+  const out = [];
+  for (const seg of String(text || '').split(/\n|;(?![^()]*\))/)) {
+    const mm = seg.match(/^\s*(?:\d+[.)]\s*)?(?:and\s+)?(?:the\s+)?(?:(?:dr|dra|doctor|doctora)\.?\s+)?([A-Za-zÀ-ÿ'’.-]+(?:\s+[A-Za-zÀ-ÿ'’.-]+){0,5}?)\s*(?:=|→|->|\bis\s+actually\b|\bshould\s+be\b|\bis(?=\s+(?:dr|dra|doctor|doctora)\b))\s*(.+?)\s*$/i);
+    if (!mm) continue;
+    const right = mm[2];
+    if (/\b[HR]\d{4}-\d{3}/i.test(right) || /\d+(?:\.\d+)?\s*(?:mg|mcg|ml|units?)\b/i.test(right)) continue;
+    const npi = (right.match(/\b(\d{10})\b/) || [])[1] || '';
+    const name = right.replace(/\([^)]*\)?/g, ' ').replace(/\bNPI\s*#?:?\s*\d{10}\b/gi, ' ').replace(/\b\d{10}\b/g, ' ')
+      .replace(/^\s*(?:dr|dra|doctor|doctora)\.?\s+/i, '').replace(CRED_RE, ' ').replace(/[\s,.;:!-]+$/, '').replace(/\s{2,}/g, ' ').trim();
+    const words = name.split(/\s+/).filter(Boolean);
+    if (words.length < 2 || words.length > 6 || !/^[A-Za-zÀ-ÿ'’.\- ]+$/.test(name) || !/^[A-ZÀ-Ý]/.test(name)) continue;
+    out.push({ said: mm[1].replace(/[\s.]+$/, '').trim(), name, npi });
+  }
+  return out;
+}
+
+/**
+ * Every doctor she already resolved in this thread, oldest first: her picks from Max's "No exact match" candidates and
+ * her "X = Y (…, NPI …)" corrections. A later turn ("remove careplus and add Doctors DrMax-Dade") re-runs the RESOLVED
+ * doctor — never the raw name she first typed — so the question is not asked again (Evelyn Nieves, 2026-10-20: the plan
+ * swap reverted "Priscilla Gabriela Escalona Villasmil, NPI 1174811400" to "Priscila Escalona ❔ not confirmed").
+ */
+function threadDoctorResolutions(msgs, lastUserAt) {
+  const out = [];
+  const end = lastUserAt == null ? (msgs || []).length - 1 : lastUserAt;
+  for (let i = 1; i <= end; i += 1) {
+    const m = msgs[i];
+    if (!m || m.role !== 'user' || isWorkupMessage(messageText(m))) continue;
+    const prev = msgs.slice(0, i).reverse().find((x) => x && x.role === 'assistant');
+    const t = messageText(m);
+    const picks = prev ? candidatePicks(messageText(prev), t) : [];
+    for (const pk of picks) out.push({ asked: pk.asked, name: pk.name, npi: pk.npi || '' });
+    if (picks.length) continue;
+    for (const c of doctorEqualsCorrections(t)) out.push({ asked: c.said, name: c.name, npi: c.npi });
+  }
+  return out;
+}
+
+/** The doctor list with every earlier resolution applied: { doctors, npis }. A doctor already resolved stays resolved. */
+function applyDoctorResolutions(doctors, resolutions, npis0) {
+  const npis = { ...(npis0 || {}) };
+  const list = (doctors || []).map((nm) => {
+    let cur = nm;
+    for (const r of resolutions || []) {
+      if (plainWords(cur).join(' ') === plainWords(r.name).join(' ')) { if (r.npi && !npis[cur]) npis[cur] = r.npi; continue; }
+      if (sameDoctorName(cur, r.asked) || fuzzySameDoctor(cur, r.asked)) {
+        if (npis[cur] && npis[cur] !== r.npi) delete npis[cur];
+        cur = r.name;
+        if (r.npi) npis[cur] = r.npi;
+      }
+    }
+    return cur;
+  });
+  const unique = list.filter((nm, k) => list.findIndex((o) => plainWords(o).join(' ') === plainWords(nm).join(' ')) === k);
+  return { doctors: unique, npis };
 }
 
 /** Her candidate picks in every reply up to lastUserAt, applied to the doctor list: { doctors, npis }. */
@@ -435,13 +532,17 @@ function substitutionsIn(text, knownNames) {
     const from = (knownNames || []).find((k) => sameDoctorName(k, r[1]) || sameDoctorName(String(k).split(/\s+[-–—]\s+/)[0], r[1]));
     if (from && !sameDoctorName(from, r[2])) out.push([from, r[2].trim()]);
   }
-  for (const part of String(text || '').replace(/^\s*(?:yes|yep|yeah|correct|ok(?:ay)?)\b[\s.,!:;-]*/i, '').split(/[;\n]|,(?=\s*[A-Za-z][^,]*?(?:=|→|->|\bis\b))/)) {
+  // "X = Y, MD (Internal Medicine, Endocrinology, Miami, NPI 1174811400)": the specialty / city / NPI in parentheses and the
+  // credential are not part of the new name (Evelyn Nieves, 2026-10-20).
+  const plain = String(text || '').replace(/\([^()\n]*\)/g, ' ').replace(/\bNPI\s*#?:?\s*\d{10}\b/gi, ' ').replace(/,?\s*\b(?:MD|M\.D\.?|DO|D\.O\.?|DDS|DMD|DPM|OD|ARNP|APRN|PA-C?)\b\.?(?=\s*(?:[,;\n]|$))/g, '');
+  for (const part of plain.replace(/^\s*(?:yes|yep|yeah|correct|ok(?:ay)?)\b[\s.,!:;-]*/i, '').split(/[;\n]|,(?=\s*[A-Za-z][^,]*?(?:=|→|->|\bis\b))/)) {
     const m = part.match(/^\s*(?:\d+[.)]\s*)?(?:dr\.?\s*)?([A-Za-z][A-Za-z .'-]{1,70}?)\s*(?:=|→|->|\bis actually\b|\bis really\b|\bshould be\b|\bmeans\b|\bis\b)\s*(?:dr\.?\s*)?([A-Za-z][A-Za-z .,'-]{2,60}?)\s*[.!]?\s*$/i);
     if (!m) continue;
     // "Pascual De Santis is already on the list" / "is fine" / "is in network" is a statement, not a new name.
     if (/^(?:already|also|still|on|in|not|the|a|an|fine|ok(?:ay)?|good|right|correct|covered|listed|there|staying|her|his|my|our)\b/i.test(m[2].trim())) continue;
-    const from = (knownNames || []).find((k) => sameDoctorName(k, m[1]));
-    if (from && !sameDoctorName(from, m[2])) out.push([from, m[2].trim()]);
+    const to = m[2].replace(/[\s,.]+$/, '').trim();
+    const from = (knownNames || []).find((k) => sameDoctorName(k, m[1])) || ((knownNames || []).filter((k) => fuzzySameDoctor(k, m[1])).length === 1 ? (knownNames || []).find((k) => fuzzySameDoctor(k, m[1])) : null);
+    if (from && !sameDoctorName(from, to)) out.push([from, to]);
   }
   return out;
 }
@@ -498,7 +599,7 @@ function statementsFor(question, answer) {
  */
 function comparisonAskText(messages, baseText) {
   const msgs = Array.isArray(messages) ? messages : [];
-  const lines = [String(baseText != null ? baseText : msgs.filter((m) => m && m.role === 'user').slice(-4).map(messageText).join('\n'))];
+  const lines = [String(baseText != null ? baseText : require('./planYear').conversationAskText(msgs))];
   for (let i = 0; i < msgs.length; i += 1) {
     const m = msgs[i];
     if (!m || m.role !== 'assistant') continue;
@@ -687,9 +788,79 @@ function comparisonAskText(messages, baseText) {
     const idsNamed = new Set((t.match(/\b[HR]\d{4}-\d{3}/gi) || []).map((x) => x.toUpperCase())).size;
     if (idsNamed >= 2 || (idsNamed && /\b(compare|show|add|instead|vs|do|use|run|go with|check|re-?check|re-?run|verify)\b/i.test(t))) break;
   }
+  // Plan removals in her newest message that are not exact (a typo, a name not in the table) are asked, never guessed
+  // or ignored; her "yes" to "Did you mean remove X (ID)?" drops that ID (Evelyn Nieves, 2026-10-20).
+  lines.push(...planRemovalAskLines(msgs));
   // The plan type comes from her newest message only (askConstraints reads this line, not the older messages).
   lines.push(planTypeLine(msgs));
   return lines.join('\n');
+}
+
+const REMOVAL_YES_RE = /^\s*(?:y|ya|yes|yeah|yep|yup|si|sí|correct|confirm(?:ed)?|ok(?:ay)?|right|do it|that one|exactly)\b[\s!.]*$/i;
+const REMOVAL_Q_RE = /Did you mean remove (.+?) \(([HR]\d{4}-\d{3}[A-Z]?)\)\? \(yes\/no\)/;
+function tablePlansFor(msgs) {
+  const LW = require('./loadedWorkup');
+  const wk = workupFacts(msgs);
+  const shown = LW.lastTablePlanIds(msgs);
+  const ids = shown.length ? shown : (wk ? wk.plans : []);
+  return ids.map((id) => {
+    const row = gridRowFor(id, '');
+    return { planId: String(id).toUpperCase(), name: row ? (carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim()) : String(id) };
+  });
+}
+function planRemovalAskLines(msgs) {
+  const LW = require('./loadedWorkup');
+  const lastUser = msgs.map((x) => x && x.role).lastIndexOf('user');
+  if (lastUser < 0) return [];
+  const t = joinWrappedQuotes(messageText(msgs[lastUser]));
+  if (isWorkupMessage(t)) return [];
+  const before = msgs.slice(0, lastUser);
+  // Every "yes" to a removal question in the thread, not only the newest message: the drop persists after it scrolls
+  // out of the ask window — unless she named that plan again later (an add wins).
+  const drops = [];
+  msgs.forEach((m, k) => {
+    if (!m || m.role !== 'user' || !REMOVAL_YES_RE.test(messageText(m))) return;
+    const prev = [...msgs.slice(0, k)].reverse().find((x) => x && x.role === 'assistant');
+    const q = prev && messageText(prev).match(REMOVAL_Q_RE);
+    if (!q) return;
+    const id9 = q[2].toUpperCase().slice(0, 9);
+    const readded = msgs.slice(k + 1).some((x) => x && x.role === 'user' && messageText(x).toUpperCase().includes(id9));
+    if (!readded) drops.push(`Confirmed plan removal: ${q[2]} (${q[1]}).`);
+  });
+  // "yes" to "Did you mean famotidine for "famotdidine"?": answered, never asked again.
+  msgs.forEach((m, k) => {
+    if (!m || m.role !== 'user' || !REMOVAL_YES_RE.test(messageText(m))) return;
+    const prev = [...msgs.slice(0, k)].reverse().find((x) => x && x.role === 'assistant');
+    for (const q of (prev ? messageText(prev) : '').matchAll(/Did you mean ([^?\n]+?) for "[^"]+"\? \(yes\/no\)/g)) drops.push(`Med spelling confirmed: ${q[1]}.`);
+  });
+  if (REMOVAL_YES_RE.test(t)) return drops;
+  const plans = tablePlansFor(before);
+  if (!plans.length) return [];
+  const wk = workupFacts(before);
+  const skip = [...(wk ? wk.doctors : []), ...(wk ? wk.meds || [] : []), ...R.medsFromAsk(t)].map((x) => String(x || '').toLowerCase().split(/\s+[-–—(]/)[0].trim()).filter((x) => x.length >= 4);
+  const rm = LW.planRemovals(t, plans, wk ? wk.current : currentPlanOf(before), { skip });
+  const qs = LW.planRemovalLines(rm, plans);
+  return [...drops, ...(qs.length ? [`Plan removal questions: ${qs.join(' | ')}`] : [])];
+}
+// A med name RxNorm auto-corrected ("famotdidine" → famotidine): the row is priced and marked "verify", and Max asks
+// once — never a silent swap (standing rule, Yahoska 2026-10-20). Gone once she types the corrected name or says yes.
+function drugSpellingQuestions(drugs, askText) {
+  const text = String(askText || '');
+  const out = [];
+  for (const r of drugs || []) {
+    const nc = r && r.nameCorrection;
+    if (!nc || !nc.from || !nc.to) continue;
+    const esc = (x) => String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp(`\\b${esc(nc.to)}\\b`, 'i').test(text.replace(new RegExp(esc(nc.from), 'gi'), ''))) continue;
+    const q = `⚠️ Did you mean ${nc.to} for "${nc.from}"? (yes/no)`;
+    if (!out.includes(q)) out.push(q);
+  }
+  return out;
+}
+const LW_planAddSet = (t, msgs) => require('./loadedWorkup').workupPlanAddSet(t, msgs);
+function planRemovalQuestions(askText) {
+  const line = ((String(askText || '').match(/^Plan removal questions:\s*([^\n]+)$/gm) || []).pop() || '').replace(/^Plan removal questions:\s*/, '');
+  return line.split(' | ').map((x) => x.trim()).filter(Boolean);
 }
 
 /** Carriers she ruled out and has not asked for again since (oldest → newest). */
@@ -805,11 +976,16 @@ function comparisonFollowUp(messages) {
   const msgs = Array.isArray(messages) ? messages : [];
   const lastUserAt = msgs.map((m) => m && m.role).lastIndexOf('user');
   const latest = lastUserAt >= 0 ? messageText(msgs[lastUserAt]) : '';
-  const doctors = respelledDoctors(latest, out.doctors);
-  if (doctors.every((d, k) => d === out.doctors[k])) return out;
-  const npis = { ...(out.npis || {}) };
-  out.doctors.forEach((d, k) => { if (doctors[k] !== d && npis[d]) { npis[doctors[k]] = npis[d]; delete npis[d]; } });
-  return { ...out, doctors, reason: `${out.reason} + doctor corrections`, ...(Object.keys(npis).length ? { npis } : {}) };
+  const respelled = respelledDoctors(latest, out.doctors);
+  const npis0 = { ...(out.npis || {}) };
+  out.doctors.forEach((d, k) => { if (respelled[k] !== d && npis0[d]) { npis0[respelled[k]] = npis0[d]; delete npis0[d]; } });
+  // Doctors she resolved earlier in this thread stay resolved on every re-run (plan swap, filter, rank, card).
+  const res = applyDoctorResolutions(respelled, threadDoctorResolutions(msgs, lastUserAt), npis0);
+  const same = res.doctors.length === out.doctors.length && res.doctors.every((d, k) => d === out.doctors[k])
+    && Object.keys(res.npis).length === Object.keys(out.npis || {}).length && Object.keys(res.npis).every((k) => (out.npis || {})[k] === res.npis[k]);
+  if (same) return out;
+  const changedNames = !(res.doctors.length === out.doctors.length && res.doctors.every((d, k) => d === out.doctors[k]));
+  return { ...out, doctors: res.doctors, reason: changedNames ? `${out.reason} + doctor corrections` : out.reason, ...(Object.keys(res.npis).length ? { npis: res.npis } : {}) };
 }
 
 function comparisonFollowUpRaw(messages) {
@@ -977,6 +1153,7 @@ function comparisonFollowUpRaw(messages) {
       names = names.filter((nm) => !removedByClauses(nm, removals));
       if (names.length < before && doctorRemovalClauses(latest).length) reasons.push('doctor removals');
     }
+    if (REMOVAL_YES_RE.test(latest) && (() => { const a = [...msgs.slice(0, lastUserAt)].reverse().find((m) => m && m.role === 'assistant'); return a && REMOVAL_Q_RE.test(messageText(a)); })()) reasons.push('she confirmed the plan removal');
     if (planAsk.length && !reasons.length) reasons.push(`plans she named: ${planAsk.join(', ')}`);
     if (!reasons.length) return null;
     for (const [from, to] of subs) names = names.map((nm) => (sameDoctorName(nm, from) ? to : nm));
@@ -1002,6 +1179,32 @@ function comparisonFollowUpRaw(messages) {
   // she named and the table collapsed to the one plan she mentioned (Robin Forte, 2026-10-17).
   const check = workupDoctorCheck(msgs, lastUserAt);
   if (check) return check;
+  // "yes" to "Did you mean remove X (ID)?": re-run without that column, every doctor and med kept.
+  if (REMOVAL_YES_RE.test(latest)) {
+    const prevA = [...msgs.slice(0, lastUserAt)].reverse().find((m) => m && m.role === 'assistant');
+    if (prevA && REMOVAL_Q_RE.test(messageText(prevA))) {
+      const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
+      const docs = wk ? wk.doctors : [];
+      if (docs.length) {
+        const picked = applyDoctorResolutions(docs, threadDoctorResolutions(msgs, lastUserAt), {});
+        return { reason: 'she confirmed the plan removal', doctors: picked.doctors, zip: (wk && wk.zip) || newestZip(msgs.slice(0, lastUserAt + 1)), ...(Object.keys(picked.npis).length ? { npis: picked.npis } : {}) };
+      }
+    }
+  }
+  // A loaded workup + "meds: ezetimibe, ketoconazole, …": the server re-runs the full table — every saved doctor, every
+  // saved plan, every med (saved + the ones she pasted). Left to the model it priced only the one med it remembered
+  // (Evelyn Nieves, 2026-10-20: a Meds table with only Mounjaro).
+  {
+    const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
+    const medsListed = /\b(?:meds?|medications?|medicines?|rx|drugs?|prescriptions?|medicamentos?)\b\s*(?::|-\s)/i.test(latest) && R.medsFromAsk(latest).length > 0;
+    // A plan add / remove on the saved table ("remove aetna and add … H1036-121"): the same full re-run, so the
+    // removal question or "couldn't find" line comes from the server with the new table.
+    const planEdit = !medsListed && wk && wk.plans.length && (LW_planAddSet(latest, msgs.slice(0, lastUserAt + 1)).length > 0 || planRemovalAskLines(msgs.slice(0, lastUserAt + 1)).some((l) => /^Plan removal questions:/.test(l)));
+    if (wk && wk.doctors.length && wk.plans.length && (medsListed || planEdit)) {
+      const picked = applyDoctorResolutions(wk.doctors, threadDoctorResolutions(msgs, lastUserAt), {});
+      return { reason: medsListed ? 'meds she listed — full table with every saved doctor and plan' : 'plan edit on her saved table — every saved doctor and med', doctors: picked.doctors, zip: wk.zip || newestZip(msgs.slice(0, lastUserAt + 1)), ...(Object.keys(picked.npis).length ? { npis: picked.npis } : {}) };
+    }
+  }
   return null;
 }
 
@@ -1040,7 +1243,7 @@ const FIX_STOP_RE = /^(?:its|it's|it|is|use|this|for|the|npi|dr|doctor|her|his|s
 
 function workupDoctorFixes(msgs, lastUserAt, numbered) {
   const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
-  if (!wk || wk.doctors.length < 2) return null;
+  if (!wk || !wk.doctors.length) return null;
   const wkAt = msgs.findIndex((m) => m && m.role === 'user' && isWorkupMessage(messageText(m)));
   const people = wk.doctors.map((name) => ({ name, npi: '' }));
   let touched = false;
@@ -1094,20 +1297,26 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
     }
     // "Pinecrest Dentisry is Dr. Salome Fraga" / "Pinecrest Modern Dentistry = Dr. Salome Fraga": the saved row she names
     // (fuzzy — her spelling may be off) becomes that doctor; every other saved doctor stays in the run (Gerry Cabrera,
-    // 2026-10-19: the grid showed only Salome Fraga).
+    // 2026-10-19: the grid showed only Salome Fraga). "Priscilla Escalona = Priscilla Gabriela Escalona Villasmil, MD (…,
+    // NPI 1174811400)" binds to the saved "Priscila Escalona" with that NPI; when no saved name matches and ONE saved doctor
+    // is still unresolved, the correction is for that one (Evelyn Nieves, 2026-10-20).
     const mapped = [];
-    for (const seg of t.split(/[\n;]|(?<!\b(?:[Dd]ra?|[Mm]rs?|[Mm]s|[Ss]t|[A-Z]))\.(?:\s+|$)/)) {
-      const mm = seg.match(/^\s*(?:and\s+)?(?:the\s+)?([A-Za-zÀ-ÿ'’&.-]+(?:\s+[A-Za-zÀ-ÿ'’&.-]+){0,5}?)\s+(?:is|=|→|->|is\s+actually|should\s+be)\s+(?:(?:dr|dra|doctor|doctora)\.?\s+)([A-ZÀ-Ý][A-Za-zÀ-ÿ'’.-]+(?:\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.-]+){1,3})\s*[.!]?\s*$/i);
-      if (!mm) continue;
-      const fw = plainWords(mm[1]).filter((w) => !['dr', 'the'].includes(w));
+    const savedNpis = (wk && wk.npis) || {};
+    for (const c of doctorEqualsCorrections(t)) {
+      const fw = plainWords(c.said).filter((w) => !['dr', 'the'].includes(w));
       if (!fw.length) continue;
-      const hit = people.find((p) => {
+      let hit = people.find((p) => fuzzySameDoctor(p.name, c.said)) || people.find((p) => {
         const pw = plainWords(p.name);
         return fw.every((w) => pw.some((x) => x === w || (w.length > 3 && lev(x, w) <= 2))) && lev(pw[0], fw[0]) <= 2;
       });
-      if (hit && !sameDoctorName(hit.name, mm[2])) {
-        hit.name = mm[2].replace(/\s+/g, ' ').trim();
-        hit.npi = '';
+      if (!hit) {
+        const pending = people.filter((p) => !p.npi && !Object.keys(savedNpis).some((k) => sameDoctorName(k, p.name)));
+        if (pending.length === 1 && !people.some((p) => sameDoctorName(p.name, c.name))) hit = pending[0];
+      }
+      if (!hit) continue;
+      if (!sameDoctorName(hit.name, c.name) || (c.npi && hit.npi !== c.npi)) {
+        hit.name = c.name;
+        hit.npi = c.npi || '';
         mapped.push(hit.name);
         touched = true;
       }
@@ -1272,7 +1481,14 @@ function normalizeTypedPlanIds(text) {
   return String(text || '').replace(/\b([HR]\d{4})-(\d{1,3})(?:-\d)?(?=[^\dA-Za-z-]|$)/gi, (m, a, b) => `${a.toUpperCase()}-${b.padStart(3, '0')}`);
 }
 
+// Her "yes" to "Did you mean remove X (ID)?" (planRemovalAskLines): that column is gone from every set — the named
+// set line, a re-read of her messages, the compare card.
 function namedPlansFromAsk(askText0, constraints) {
+  const gone = new Set([...String(askText0 || '').matchAll(/^Confirmed plan removal:\s*([HR]\d{4}-\d{3})/gm)].map((m) => m[1].toUpperCase()));
+  const set = namedPlansFromAskRaw(askText0, constraints);
+  return gone.size ? set.filter((p) => !gone.has(String(p.planId).toUpperCase().slice(0, 9))) : set;
+}
+function namedPlansFromAskRaw(askText0, constraints) {
   const askText = normalizeTypedPlanIds(askText0);
   // comparisonAskText already resolved her plan edit into one set ("Named plan set: …"): that list, in its order, is the
   // set — the same one selectComparison draws. Re-reading her message line by line put the plans she added in front of
@@ -1320,7 +1536,7 @@ function namedPlansFromAsk(askText0, constraints) {
     }
     if (!line.trim()) continue;
     // comparisonAskText's marker of the plans she just added (selectComparison reads it) is not a plan list.
-    if (/^(?:Plans she added|Plan names not matched):/.test(line)) continue;
+    if (/^(?:Plans she added|Plan names not matched|Plan removal questions|Med spelling confirmed|Confirmed plan removal):/.test(line)) continue;
     // Removals first ("remove devoted", "drop H1290-073") — loadedWorkup.js rules: whole words / carrier / ID; a pronoun
     // ("remove it") never removes a plan.
     current = LW.removePlansNamedIn(current, line, [...currentIds, ...workupCurrentIds]);
@@ -1957,6 +2173,8 @@ function selectComparison(doctors, askText, opts = {}) {
       const m = x.match(/^\s*(.*?)\s*\(([HR]\d{4}-\d{3}[A-Z]?)\)\s*$/i);
       return m ? { planId: m[2].toUpperCase(), name: m[1] || m[2].toUpperCase() } : null;
     }).filter(Boolean);
+    const gone = new Set([...ask0.matchAll(/^Confirmed plan removal:\s*([HR]\d{4}-\d{3})/gm)].map((m) => m[1].toUpperCase()));
+    if (gone.size) named = named.filter((p) => !gone.has(p.planId.slice(0, 9)));
   }
   let pinFromAsk = [];
   if (!Array.isArray(opts.named) && !carriers.length && /Wants alternatives to the named plan\(s\)\./.test(ask) && named.length) {
@@ -2372,8 +2590,10 @@ function selectComparison(doctors, askText, opts = {}) {
     // One short bullet per doctor, newest-first reading order kept; the parts the answer parser reads
     // ("No exact match", "\"Name\" — did you mean X (", "closest:") are unchanged.
     const per = missing.map((d) => {
-      const sug = (d.suggestions || []).slice(0, 2);
       const asked = `"${titleCase(shortDoctor(d))}"`;
+      // Several real people with exactly this name (a PA and a dentist): all of them, never a silent pick (Jorge Rivero, 2026-10-20).
+      if ((d.suggestions || []).some((x) => x && x.sameName)) return `${asked} — more than one provider with this name: ${d.suggestions.slice(0, 4).map(fmt).join('; ')}`;
+      const sug = (d.suggestions || []).slice(0, 2);
       if (sug[0] && sug[0].spelling) return `${asked} — did you mean ${fmt(sug[0])}? (looks like a spelling difference)`;
       return `${asked}${sug.length ? ` — closest: ${sug.map(fmt).join('; ')}` : ' — not found. Spelling, or specialty / office?'}`;
     });
@@ -2702,6 +2922,8 @@ function drugLabel(r, name) {
   }
   // RxNorm was unreachable: priced as typed, spelling unchecked.
   if (r && r.nameUnverified) return `${titleCase(name)} (name not verified)`;
+  // Priced at a starting strength she never typed (lookupFormularyCached): said in the row, never silent.
+  if (r && r.strengthAssumed) return `${titleCase(r.inputName || name)} ${r.strengthAssumed} (strength assumed — confirm dose)`;
   return titleCase(name);
 }
 
@@ -2712,9 +2934,13 @@ function drugAnswers(r, med) {
 
 /** True when meds were looked up and not one plan answered for any of them. */
 function allDrugLookupsFailed(drugResults) {
-  const list = (drugResults || []).filter(Boolean);
+  const all = (drugResults || []).filter(Boolean);
+  // A med that only ran out of time did not fail: its cells read ❔ not confirmed. One brand with no answer among
+  // meds that timed out is not "the lookup failed" either (Evelyn Nieves, 2026-10-20: Mounjaro alone raised the banner).
+  const list = all.filter((r) => !r.timedOut);
   // Answers live in lookups[] and/or byPlanId (tool-result / export shapes carry only byPlanId).
   const answered = (r) => [...(r.lookups || []), ...Object.values(r.byPlanId || (r.drug && r.drug.byPlanId) || {})].some((l) => l && l.verified);
+  if (list.length === 1 && all.length > 1) return false;
   return list.length > 0 && !list.some(answered);
 }
 
@@ -2846,6 +3072,8 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
     const m = x.match(/^(.*?)\s*\((.+)\)$/);
     follow.push(m ? `⚠️ "${m[1]}" could be ${m[2]}. Which plan ID should I add?` : `⚠️ Couldn't match "${x}" to one plan. Which plan ID should I add?`);
   }
+  for (const q of planRemovalQuestions(askText)) follow.push(`⚠️ ${q}`);
+  for (const q of drugSpellingQuestions(drugs, askText)) follow.push(q);
   for (const q of duplicateQuestions(doctors)) follow.push(q);
   // Named plans + a doctor with no exact match: the question and its candidates come from the server, never a
   // model paraphrase ("Are Sandman and Taub the providers below?" with nothing below — Robert and Andrea, 2026-10-19).
@@ -2933,6 +3161,23 @@ function dropDanglingListLines(text) {
       if (j >= lines.length || !LIST_ITEM_RE.test(lines[j])) continue;
     }
     out.push(l);
+  }
+  return dropEmptySectionHeaders(out.join('\n'));
+}
+// An empty "Notes:" header straight over "Question: …" (Evelyn Nieves, 2026-10-20): a section header with nothing under it
+// before the next header (or the end) is dropped.
+const SECTION_HEADER_RE = /^\s*(?:#{1,4}\s*)?\**\s*(?:notes?|warnings?|flags?|notas?|heads[- ]up)\s*:?\s*\**\s*:?\s*$/i;
+const NEXT_SECTION_RE = /^\s*(?:#{1,4}\s*)?\**\s*(?:questions?|preguntas?|notes?|warnings?|flags?|notas?)\b\s*\**\s*:/i;
+function dropEmptySectionHeaders(text) {
+  const lines = String(text || '').split('\n');
+  const out = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    if (SECTION_HEADER_RE.test(lines[i])) {
+      let j = i + 1;
+      while (j < lines.length && (!lines[j].trim() || lines[j].trim() === FOLLOW_UP_MARKER)) j += 1;
+      if (j >= lines.length || NEXT_SECTION_RE.test(lines[j]) || SECTION_HEADER_RE.test(lines[j])) continue;
+    }
+    out.push(lines[i]);
   }
   return out.join('\n');
 }
@@ -3068,6 +3313,13 @@ module.exports = {
   textPlanTypeAsk,
   doctorMatchCandidates,
   candidatePicks,
+  allDrugLookupsFailed,
+  planRemovalQuestions,
+  planRemovalAskLines,
+  dropEmptySectionHeaders,
+  doctorEqualsCorrections,
+  threadDoctorResolutions,
+  applyDoctorResolutions,
   rankAskAt,
   narrowingAnswered,
   comparisonAskText,

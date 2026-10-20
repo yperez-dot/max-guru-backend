@@ -4316,10 +4316,26 @@
     return text.indexOf(WORKUP_CONTEXT_PREFIX) === 0;
   }
 
+  /**
+   * The compare card's questions as the assistant turn the chat server reads. Max asked "No exact match for:
+   * "Priscila Escalona" — closest: …" on the CARD, she answered in chat, and the server never saw the question, so her
+   * pick was dropped and the card asked again (Evelyn Nieves, 2026-10-20). "" when the card asked nothing.
+   */
+  function compareCardTurnText(result) {
+    const r = result && typeof result === "object" ? result : {};
+    const lines = compareFollowUpLines(r).questions;
+    if (!lines.length) return "";
+    const head = Array.isArray(r.planIds) && r.planIds.length ? "Comparison results (" + r.planIds.join(", ") + ")" : "Comparison results";
+    return head + "\n" + lines.join("\n");
+  }
+
   function messagesForApi(history, loadedWorkup) {
     // A grid and its follow-up bubble (notes / questions) are ONE assistant turn for the server.
     const chat = [];
-    for (const m of history || []) {
+    for (const m0 of history || []) {
+      // A compare card in the thread ({ role: "queueResult", result }) is an assistant turn when it asked something.
+      const cardText = m0 && (m0.role === "queueResult" || m0.role === "clientWs") ? compareCardTurnText(m0.result) : "";
+      const m = cardText ? { role: "assistant", content: cardText } : m0;
       if (!m || (m.role !== "user" && m.role !== "assistant")) continue;
       const prev = chat[chat.length - 1];
       if (m.role === "assistant" && prev && prev.role === "assistant" && typeof prev.content === "string" && typeof m.content === "string") {
@@ -4351,6 +4367,21 @@
     const had = ((result && result.planIds) || []).map(key).filter(Boolean);
     if (!had.length || !saved.length) return [];
     return saved.filter((id) => !had.includes(key(id)));
+  }
+
+  /** Doctors the original request named that the saved facts had lost, put back on load (server: withRecoveredDoctors). */
+  // A bare "export" / "export excel" / "pdf" in the chat: the Excel/PDF chips for the table on screen, right away —
+  // never sent to the server, never queued behind a re-run still in flight (Yahoska, 2026-10-20 6:12 AM ET: "export"
+  // sat under "Type the next question — it will queue…").
+  function isBareExportAsk(text) {
+    return /^\s*(?:please\s+)?(?:export|download|send)?(?:\s+(?:it|this|that|the\s+(?:table|comparison|grid)))?(?:\s+(?:to|as|in))?\s*(?:excel|xlsx|pdf|export|spreadsheet)?\s*(?:please|pls)?[\s.!]*$/i.test(String(text || ''))
+      && /\b(?:export|excel|xlsx|pdf|download)\b/i.test(String(text || ''));
+  }
+  function recoveredDoctorsNote(workup) {
+    const names = (workup && Array.isArray(workup.recoveredDoctors) ? workup.recoveredDoctors : []).filter(Boolean);
+    if (!names.length) return "";
+    const n = ((workup && workup.doctors) || []).length || names.length;
+    return "Added back " + names.join(", ") + " from the original request (the saved list had dropped " + (names.length === 1 ? "this doctor" : "them") + "). Ask me to check the doctors and I'll run all " + n + ".";
   }
 
   function staleResultNote(workup, result) {
@@ -4454,6 +4485,9 @@
     compactWorkupContext,
     isWorkupContextMessage,
     messagesForApi,
+    compareCardTurnText,
+    recoveredDoctorsNote,
+    isBareExportAsk,
     workupListLabel,
     formatUpdatedAt,
     rehydratePlans,
@@ -7442,6 +7476,7 @@ function App() {
   const loadedWorkupRef = useRef(null);
   // Doctors the server re-ran this turn as the full saved list (corrections + removals applied), else null.
   const finalDoctorListRef = useRef(null);
+  const finalDoctorNpisRef = useRef(null);
   const currentWorkupIdRef = useRef(null);
   const lastSavedSigRef = useRef("");
   const autoSaveTimerRef = useRef(null);
@@ -7591,6 +7626,7 @@ function App() {
     sessionToolResultsRef.current = [];
     resumeToolResultsRef.current = [];
     finalDoctorListRef.current = null;
+    finalDoctorNpisRef.current = null;
     if (!keepWorkup) {
       loadedWorkupRef.current = null;
       currentWorkupIdRef.current = null;
@@ -7685,6 +7721,16 @@ function App() {
         // The server re-ran ALL her saved doctors this turn with her corrections and removals ("Remove Dr. Pasquel
         // DeSantis …", Jacqueline Alexander 2026-10-17): the screen table is the list, even when it is shorter now.
         built.replaceDoctors = true;
+        // A doctor she resolved this turn is saved with that NPI (and resolved name), so the next re-run, a reload, the
+        // compare card and the export all use it (Evelyn Nieves, 2026-10-20).
+        const npis = finalDoctorNpisRef.current || {};
+        built.doctors = built.doctors.map((d) => {
+          const k = Object.keys(npis).find((nm) => sameDoctor({ name: nm }, d) || String(d.npi || "") === String(npis[nm]));
+          return k && !d.npi ? { ...d, npi: npis[k] } : d;
+        });
+        for (const nm of Object.keys(npis)) {
+          if (!built.doctors.some((d) => String(d.npi || "") === String(npis[nm]) || sameDoctor({ name: nm }, d))) built.doctors.push({ name: nm, npi: npis[nm], byPlanId: {} });
+        }
       } else if (Array.isArray(prev.doctors) && prev.doctors.length && built.doctors.length >= prev.doctors.length) {
         // A full table (as many doctors as saved): it IS the list, corrections included.
         built.replaceDoctors = true;
@@ -7810,6 +7856,8 @@ function App() {
       });
       const card = { role: "workup", workup, time: nowLabel() };
       const next = [card];
+      // Doctors her original request named that the saved list had lost come back on load (Jorge Rivero, 2026-10-20).
+      const recoveredNote = window.MaxClientWorkups.recoveredDoctorsNote(workup);
       if (payload.plans && payload.plans.length >= 2) {
         next.push({
           role: "offer",
@@ -7837,6 +7885,7 @@ function App() {
         if (missingFrom(workup.compareResult).length) next.push(staleNote(workup.compareResult));
         else next.push({ role: "queueResult", result: workup.compareResult, time: nowLabel() });
       }
+      if (recoveredNote) next.push({ role: "assistant", content: recoveredNote, time: nowLabel() });
       // Her chat from before she switched away (a reply that was still running, or that finished while she was in
       // another tab) comes back under the workup card.
       const parked = parkedChatsRef.current[workup.id];
@@ -8376,8 +8425,16 @@ function App() {
       }
 
       const priorToolResults = resumeToolResultsRef.current;
+      // A compare card that asked something ("No exact match for: …") is part of the conversation the server reads, so
+      // her answer in chat applies to it (Evelyn Nieves, 2026-10-20).
+      const cardResultOf = (m) => {
+        if (m.role === "queueResult") return m.result || null;
+        const ws = m.role === "clientWs" ? wsMapRef.current[m.wsId] : null;
+        return ws ? ((ws.job && ws.job.result) || ws.result || null) : null;
+      };
       const result = await askGuru(window.MaxClientWorkups.messagesForApi(
-        newHistory.filter((m) => m.role === "user" || m.role === "assistant").map((m) => ({ role: m.role, content: m.content })),
+        newHistory.map((m) => (m.role === "queueResult" || m.role === "clientWs" ? { role: "queueResult", result: cardResultOf(m) } : m))
+          .filter((m) => m.role === "user" || m.role === "assistant" || m.role === "queueResult").map((m) => (m.role === "queueResult" ? m : { role: m.role, content: m.content })),
         loadedWorkupRef.current
       ), { priorToolResults });
       if (gen !== chatGenRef.current) {
@@ -8388,6 +8445,7 @@ function App() {
         return;
       }
       finalDoctorListRef.current = result.doctorList ? result.doctorList.doctors : null;
+      finalDoctorNpisRef.current = result.doctorList && result.doctorList.npis ? result.doctorList.npis : null;
       resumeToolResultsRef.current = result.resume && result.resume.resumable
         ? window.MaxComparisonExport.mergeToolResults(priorToolResults, result.toolResults, 40)
         : [];
@@ -8549,6 +8607,13 @@ function App() {
     const content = (fromComposer ? input : String(text)).trim();
     const images = fromComposer ? pendingImages : [];
     if (!content && !images.length) return;
+    // "export": chips for the table on screen now — no server round trip, no queue (client-workups.isBareExportAsk).
+    const lastTable = lastComparisonExportRef.current;
+    if (!images.length && lastTable && (lastTable.plans || []).length && window.MaxClientWorkups && typeof window.MaxClientWorkups.isBareExportAsk === "function" && window.MaxClientWorkups.isBareExportAsk(content)) {
+      if (fromComposer) clearComposer();
+      setMessages(prev => [...prev, { role: "user", content, time: nowLabel() }, tableOffer(lastTable)]);
+      return;
+    }
     if (loadingRef.current) {
       storeQueued({ text: content, images: [...images] });
       if (fromComposer) clearComposer();

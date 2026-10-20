@@ -378,6 +378,36 @@ function historyEntry(w) {
   };
 }
 
+/**
+ * A saved workup whose doctor list lost names the ORIGINAL request had (Jorge Rivero, 2026-10-20: "Dr. Alejandro Lopez
+ * Rossitch, Robert Sirven, Jose Martinez, Ricardo Espinosa, Pavel Gazdovich" saved as one doctor) gets them back on load,
+ * re-read from the stored originalQuery with the same parser the chat and compare card use. They come back unchecked
+ * (no In/Out) and are listed in recoveredDoctors so the page can say so. A doctor that was on ANY earlier saved version
+ * and is gone now was removed on purpose and stays removed; a resolved doctor ("Priscila Escalona" → "Priscilla Gabriela
+ * Escalona Villasmil", NPI 1174811400) is the same doctor and is not added twice. Never writes; the page saves as usual.
+ */
+function withRecoveredDoctors(workup) {
+  if (!workup || typeof workup !== 'object' || !String(workup.originalQuery || '').trim()) return workup;
+  let parsed = [];
+  try {
+    parsed = require('./compareJobs').parseCompareAsk(workup.originalQuery).doctors || [];
+  } catch (_) {
+    return workup;
+  }
+  const saved = Array.isArray(workup.doctors) ? workup.doctors : [];
+  if (!parsed.length || parsed.length <= saved.length) return workup;
+  const { fuzzySameDoctor } = require('./loadedWorkup');
+  const DN = require('../artifacts/doctor-name.js');
+  const same = (a, b) => DN.sameDoctorName(a, b) || fuzzySameDoctor(a, b) || fuzzySameDoctor(b, a);
+  const everSaved = [saved, ...(workup.history || []).map((h) => (h && h.doctors) || [])].flat();
+  const missing = parsed.filter((d) => d && d.name
+    && !everSaved.some((x) => x && ((d.npi && x.npi === d.npi) || same(x.name || '', d.name))));
+  if (!missing.length) return workup;
+  const rows = missing.slice(0, Math.max(0, MAX_DOCTORS - saved.length)).map((d) => (d.npi ? { name: d.name, npi: d.npi, byPlanId: {} } : { name: d.name, byPlanId: {} }));
+  if (!rows.length) return workup;
+  return { ...workup, doctors: [...saved, ...rows], recoveredDoctors: rows.map((r) => r.name) };
+}
+
 function toSummary(workup) {
   return {
     id: workup.id,
@@ -691,6 +721,7 @@ module.exports = {
   differentClient,
   slimMedications,
   toSummary,
+  withRecoveredDoctors,
   DEFAULT_MAX_PER_OWNER,
   ROLLING_RE,
   DAILY_RE,

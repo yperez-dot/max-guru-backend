@@ -1,0 +1,244 @@
+{
+  "name": "Evelyn Nieves (loaded workup, 4 plans) — re-pasting 'meds: …' re-runs the full table: all 6 meds on all 4 plans, only Mounjaro ❔, no 'lookup failed' banner",
+  "source": "Yahoska, 2026-10-20 6:14 AM ET (Evelyn Nieves, 33156, 4-plan table H5420-014, H1036-054C, H4140-022, H1036-121): she sent exactly \"meds: ezetimibe, ketoconazole, levothyroxine, losartan, mounjaro, repatha\"; the Meds section showed '🛑 Medication lookup failed' and ONLY a Mounjaro row — the other 5 meds vanished (the chat dropped every med lookup that ran out of time; one unverified Mounjaro then raised the banner). Cells are stubs.",
+  "workup": {
+    "clientName": "Evelyn Nieves",
+    "zip": "33156",
+    "county": "Miami-Dade",
+    "currentPlanIds": [
+      "H5420-014"
+    ],
+    "plans": [
+      {
+        "carrier": "UHC",
+        "planName": "UHC MedicareMax Complete Care FL-30",
+        "planId": "H5420-014"
+      },
+      {
+        "carrier": "Humana",
+        "planName": "Humana Gold Plus",
+        "planId": "H1036-054C"
+      },
+      {
+        "carrier": "Doctors HealthCare",
+        "planName": "Doctors DrMax-Dade",
+        "planId": "H4140-022"
+      },
+      {
+        "carrier": "Humana",
+        "planName": "Humana Gold Plus Diabetes & Heart",
+        "planId": "H1036-121"
+      }
+    ],
+    "doctors": [
+      {
+        "name": "Alejandro Lopez Rossitch",
+        "npi": "1528282167"
+      },
+      {
+        "name": "Priscilla Gabriela Escalona Villasmil",
+        "npi": "1174811400"
+      }
+    ],
+    "medications": [
+      {
+        "name": "ezetimibe"
+      },
+      {
+        "name": "ketoconazole"
+      },
+      {
+        "name": "levothyroxine"
+      },
+      {
+        "name": "losartan"
+      },
+      {
+        "name": "Mounjaro"
+      },
+      {
+        "name": "Repatha"
+      }
+    ]
+  },
+  "messages": [
+    "meds: ezetimibe, ketoconazole, levothyroxine, losartan, mounjaro, repatha"
+  ],
+  "replies": [],
+  "doctorResults": {
+    "Priscila Escalona": {
+      "notFound": [
+        {
+          "name": "Priscilla Gabriela Escalona Villasmil, MD",
+          "npi": "1174811400",
+          "specialty": "Internal Medicine",
+          "city": "Miami",
+          "spelling": false
+        },
+        {
+          "name": "Karina Escalona Gonzalez, MD",
+          "npi": "1255073672",
+          "specialty": "Family Medicine",
+          "city": "Miami",
+          "spelling": false
+        }
+      ]
+    },
+    "Priscilla Gabriela Escalona Villasmil": {
+      "npi": "1174811400",
+      "matched": "PRISCILLA GABRIELA ESCALONA VILLASMIL MD",
+      "in": [
+        "H5420-014",
+        "H1036-054C",
+        "H4140-022"
+      ],
+      "out": []
+    },
+    "Alejandro Lopez Rossitch": {
+      "npi": "1528282167",
+      "matched": "ALEJANDRO LOPEZ-ROSSITCH MD",
+      "in": [
+        "H5420-014",
+        "H1036-054C",
+        "H1019-006",
+        "H4140-022"
+      ],
+      "out": []
+    }
+  },
+  "drugResults": {
+    "ezetimibe": {
+      "H5420-014": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-054C": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H4140-022": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-121": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    },
+    "ketoconazole": {
+      "H5420-014": {
+        "tier": 2,
+        "cost": "$0"
+      },
+      "H1036-054C": {
+        "tier": 2,
+        "cost": "$0"
+      },
+      "H4140-022": {
+        "tier": 2,
+        "cost": "$0"
+      },
+      "H1036-121": {
+        "tier": 2,
+        "cost": "$0"
+      }
+    },
+    "levothyroxine": {
+      "H5420-014": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-054C": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H4140-022": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-121": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    },
+    "losartan": {
+      "H5420-014": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-054C": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H4140-022": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-121": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    },
+    "Repatha": {
+      "H5420-014": {
+        "tier": 3,
+        "cost": "$47"
+      },
+      "H1036-054C": {
+        "tier": 3,
+        "cost": "$47"
+      },
+      "H4140-022": {
+        "tier": 3,
+        "cost": "$47"
+      },
+      "H1036-121": {
+        "tier": 3,
+        "cost": "$47"
+      }
+    }
+  },
+  "expect": {
+    "meds": {
+      "include": [
+        "ezetimibe",
+        "ketoconazole",
+        "levothyroxine",
+        "losartan",
+        "mounjaro",
+        "repatha"
+      ]
+    },
+    "gridPlans": [
+      "H5420-014",
+      "H1036-054C",
+      "H4140-022",
+      "H1036-121"
+    ],
+    "serverReruns": true,
+    "chatGridPlans": [
+      "H5420-014",
+      "H1036-054C",
+      "H4140-022",
+      "H1036-121"
+    ],
+    "medCells": {
+      "ezetimibe": "T1",
+      "ketoconazole": "T2",
+      "levothyroxine": "T1",
+      "losartan": "T1",
+      "repatha": "T3",
+      "mounjaro": "not confirmed|unchecked"
+    },
+    "chatExcludes": [
+      "Medication lookup failed"
+    ],
+    "exportMeds": {
+      "ezetimibe": "T1 $0",
+      "ketoconazole": "T2 $0",
+      "levothyroxine": "T1 $0",
+      "losartan": "T1 $0",
+      "repatha": "T3 $47"
+    }
+  }
+}

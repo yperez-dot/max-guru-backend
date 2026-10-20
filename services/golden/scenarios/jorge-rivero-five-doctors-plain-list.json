@@ -1,0 +1,196 @@
+{
+  "source": "Yahoska, 2026-10-20 (Jorge Rivero, 33156, current plan UHC H1045-001): 'it didnt add all the doctors' — the plain doctor list after the ZIP was thrown away because the six meds after 'meds:' outvoted the five names, leaving only the one typed with 'Dr.'. NPIs from the NPI registry (2026-10-20); network cells are stubs.",
+  "doctorResults": {
+    "Alejandro Lopez Rossitch": {
+      "npi": "1528282167",
+      "matched": "ALEJANDRO LOPEZ-ROSSITCH MD",
+      "in": [
+        "H1045-001",
+        "H0982-022",
+        "H1609-093"
+      ],
+      "out": []
+    },
+    "Robert Sirven": {
+      "npi": "1902235476",
+      "matched": "ROBERTO SIRVEN ARNP",
+      "in": [
+        "H1045-001",
+        "H1609-093"
+      ],
+      "out": [
+        "H0982-022"
+      ]
+    },
+    "Jose Martinez": {
+      "notFound": [
+        {
+          "name": "Jose Manuel Martinez, MD",
+          "npi": "1073579330",
+          "specialty": "Surgery",
+          "city": "Miami",
+          "spelling": false,
+          "sameName": true
+        },
+        {
+          "name": "Jose Manuel Martinez, MD",
+          "npi": "1912931312",
+          "specialty": "Internal Medicine, Interventional Cardiology",
+          "city": "Miami",
+          "spelling": false,
+          "sameName": true
+        },
+        {
+          "name": "Jose F Martinez",
+          "npi": "1427669639",
+          "specialty": "Nurse Practitioner, Family",
+          "city": "Miami",
+          "spelling": false,
+          "sameName": true
+        }
+      ]
+    },
+    "Ricardo Espinosa": {
+      "notFound": [
+        {
+          "name": "Ricardo Espinosa, PA",
+          "npi": "1346449220",
+          "specialty": "Physician Assistant",
+          "city": "Virginia Gardens",
+          "spelling": false,
+          "sameName": true
+        },
+        {
+          "name": "Ricardo J. Espinosa, DMD",
+          "npi": "1083825665",
+          "specialty": "Dentist",
+          "city": "Hialeah Gardens",
+          "spelling": false,
+          "sameName": true,
+          "isDentist": true
+        }
+      ]
+    },
+    "Pavel Gazdovich": {
+      "npi": "1407263700",
+      "matched": "PAVEL V GAZDOVICH OD",
+      "in": [
+        "H1045-001"
+      ],
+      "out": []
+    },
+    "Ricardo J. Espinosa": {
+      "npi": "1083825665",
+      "matched": "RICARDO J. ESPINOSA DMD",
+      "specialty": "Dentist",
+      "dental": {
+        "humana:3171": "in",
+        "uhc:national": "in",
+        "fdb:41": "not_confirmed"
+      }
+    }
+  },
+  "drugResults": {
+    "atorvastatin": {
+      "H1045-001": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H0982-022": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1609-093": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    },
+    "famotidine": {
+      "H1045-001": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H0982-022": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1609-093": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    },
+    "hydrochlorothiazide": {
+      "H1045-001": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H0982-022": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1609-093": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    },
+    "montelukast": {
+      "H1045-001": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H0982-022": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1609-093": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    },
+    "ketoconazole": {
+      "H1045-001": {
+        "tier": 2,
+        "cost": "$0"
+      },
+      "H0982-022": {
+        "tier": 2,
+        "cost": "$0"
+      },
+      "H1609-093": {
+        "tier": 2,
+        "cost": "$0"
+      }
+    }
+  },
+  "name": "Jorge Rivero — fresh chat: 'Dr. Alejandro Lopez Rossitch, Robert Sirven, Jose Martinez, Ricardo Espinosa, Pavel Gazdovich, meds: …' keeps all 5 doctors (only the first had 'Dr.'); Jose Martinez and Ricardo Espinosa (a PA and a dentist share the name) are asked with candidates, never dropped or silently picked",
+  "workup": null,
+  "messages": [
+    "Jorge Rivero, 33156, Dr. Alejandro Lopez Rossitch, Robert Sirven, Jose Martinez, Ricardo Espinosa, Pavel Gazdovich, meds: atorvastatin, dexlansoprazole, famotdidine, hydrochlorothiazide, ketoconazole, montelukast. Current plan is UHC Preferred Medicare Advantage FL-0001 (HMO) (H1045-1-0)"
+  ],
+  "expect": {
+    "doctors": {
+      "exact": [
+        "Alejandro Lopez Rossitch",
+        "Robert Sirven",
+        "Jose Martinez",
+        "Ricardo Espinosa",
+        "Pavel Gazdovich"
+      ]
+    },
+    "doctorCount": 5,
+    "meds": {
+      "include": [
+        "atorvastatin",
+        "dexlansoprazole",
+        "hydrochlorothiazide",
+        "ketoconazole",
+        "montelukast"
+      ]
+    },
+    "followUpIncludes": [
+      "more than one provider with this name: Ricardo Espinosa, PA \\(Physician Assistant, Virginia Gardens, NPI 1346449220\\); Ricardo J\\. Espinosa, DMD \\(Dentist, Hialeah Gardens, NPI 1083825665\\)",
+      "\"Jose Martinez\" — more than one provider with this name"
+    ],
+    "clientName": "Jorge Rivero"
+  }
+}

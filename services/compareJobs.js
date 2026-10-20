@@ -78,6 +78,13 @@ function unlabeledDoctors(t, zip) {
   if (at < 0) return '';
   let rest = t.slice(at + zip.length).replace(/^[\s.,;:\-–—]+/, '').replace(/\b(?:Drs?|Dras?|Doc)\.\s*(?=[A-Za-z])/gi, '');
   rest = rest.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Za-z])|\n\s*\n/)[0];
+  // The doctor list ends where the meds / plan list starts: "…, Pavel Gazdovich, meds: atorvastatin, …". Without this cut
+  // the six meds after the five doctors outvoted them and the whole plain list was thrown away, leaving only the one
+  // name typed with "Dr." (Jorge Rivero, 2026-10-20: 4 of 5 doctors dropped).
+  // A label with a colon ("meds:", "Plans:") or a lowercase list right after it ("meds atorvastatin"); "Med Eye Associates"
+  // is a practice, not the label (Tony & Gerry Cabrera, 2026-10-19).
+  rest = rest.split(/[,;\s]*\b(?:meds?|medications?|medicines?|medicamentos?|medicinas?|rx|drugs?|prescriptions?|current\s+plans?|plans?)\b\s*(?::|-\s)/i)[0];
+  rest = rest.split(/[,;\s]*\b(?:[Mm]eds?|MEDS?|[Mm]edications?|[Mm]edicines?|[Mm]edicamentos?|[Rr]x|[Dd]rugs?|[Pp]rescriptions?|[Cc]urrent\s+plans?|[Cc]ompare)\s+(?=[a-z])/)[0];
   const items = rest.split(/\n|,|;|\band\b(?=\s+[A-Z])/).map((x) => x.replace(/^[\s\-•*\d.)]+/, '').replace(/[\s.]+$/, '').trim()).filter(Boolean);
   const looksLikeName = (x) => {
     const w = x.replace(/\b(?:Drs?|Dras?|Doc)(?:\.\s*|\s+)/i, '').split(/\s+/);
@@ -249,11 +256,46 @@ function rxCacheable(value) {
   });
 }
 
+// Brand drugs medicare.gov only prices with a strength ("Mounjaro" alone comes back empty on every plan — Evelyn
+// Nieves, 2026-10-20). With no strength typed and no answer, retry the common starting strengths and flag the row
+// "strength assumed — confirm dose".
+const STARTING_STRENGTHS = {
+  mounjaro: ['2.5 mg/0.5 mL', '5 mg/0.5 mL'],
+  zepbound: ['2.5 mg/0.5 mL', '5 mg/0.5 mL'],
+  ozempic: ['0.25 mg or 0.5 mg dose', '1 mg dose'],
+  wegovy: ['0.25 mg/0.5 mL'],
+  rybelsus: ['3 mg', '7 mg'],
+  trulicity: ['0.75 mg/0.5 mL', '1.5 mg/0.5 mL'],
+  repatha: ['140 mg/mL'],
+  praluent: ['75 mg/mL'],
+  jardiance: ['10 mg'],
+  farxiga: ['10 mg'],
+  eliquis: ['5 mg'],
+  xarelto: ['20 mg'],
+  januvia: ['100 mg'],
+  entresto: ['24 mg-26 mg'],
+};
+const verifiedAny = (v) => Boolean(v && [...(v.lookups || []), ...Object.values(v.byPlanId || {})].some((l) => l && l.verified));
+function startingStrengthsFor(drugName) {
+  const t = String(drugName || '').trim();
+  if (/\d/.test(t)) return []; // she typed a strength
+  return STARTING_STRENGTHS[t.toLowerCase().replace(/\s+(?:pen|injection|tablets?|tabs?)$/, '')] || [];
+}
+
 async function lookupFormularyCached({ drugName, planIds, year }, { lookup = lookupFormulary } = {}) {
   const key = `${String(drugName).toLowerCase().trim()}|${year}|${[...planIds].sort().join(',')}`;
   const hit = rxCache.get(key);
   if (hit && hit.expiresAt > Date.now()) return hit.value;
-  const value = await lookup({ drugName, planIds, year });
+  let value = await lookup({ drugName, planIds, year });
+  if (!verifiedAny(value)) {
+    for (const strength of startingStrengthsFor(drugName)) {
+      const tried = await lookup({ drugName: `${drugName} ${strength}`, planIds, year }).catch(() => null);
+      if (verifiedAny(tried)) {
+        value = { ...tried, inputName: drugName, strengthAssumed: strength };
+        break;
+      }
+    }
+  }
   if (rxCacheable(value)) rxCache.set(key, { value, expiresAt: Date.now() + RX_CACHE_MS });
   return value;
 }
@@ -523,7 +565,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     job.result.legend = LEGEND + (columns.some((p) => (p.inCarrier || []).length) ? ` · ${IN_STAR_LEGEND}` : '');
     job.result.medsLegend = medsLegendFor(medsFull);
     // Every lookup failed: the table carries the banner, and the UI shows it in red.
-    job.result.medsLookupFailed = drugs.length > 0 && !drugs.some((r) => (r.lookups || []).some((l) => l && l.verified));
+    job.result.medsLookupFailed = require('./doctorPlanNarrow').allDrugLookupsFailed(drugs); // same rule as the chat
     job.result.medsBanner = job.result.medsLookupFailed ? MEDS_FAILED_BANNER.replace(/\*\*/g, '') : null;
     // Only plans in the grid get a "Could not verify" note: a county plan that was never shown (H1035-017 under Tony
     // and Gerry Cabrera's UHC / DrMax / Humana grid, 2026-10-19) is not part of her comparison.
@@ -596,6 +638,7 @@ module.exports = {
   runJob,
   queueState,
   lookupFormularyCached,
+  startingStrengthsFor,
   rxCacheable,
   NOT_CONFIRMED,
 };

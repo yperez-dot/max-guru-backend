@@ -47,7 +47,14 @@ function workupFacts(msgs) {
     const current = curLine
       ? [...curLine.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase())
       : (plans.length === 1 ? plans : []);
-    return { doctors, plans, zip, current };
+    // "Doctor NPIs (…): Jorge Perez NPI 1234567893; Ana Ruiz (PCP) NPI 1999999999" — which saved doctors are resolved.
+    const npiLine = (t.match(/^Doctor NPIs[^:]*:\s*(.+)$/m) || [])[1] || '';
+    const npis = {};
+    for (const part of npiLine.split(';')) {
+      const m = part.match(/^\s*(.+?)(?:\s*\([^)]*\))?\s+NPI\s+(\d{10})\s*$/);
+      if (m) npis[m[1].trim()] = m[2];
+    }
+    return { doctors, plans, zip, current, npis };
   }
   return null;
 }
@@ -157,7 +164,10 @@ function workupPlanAddSet(text, msgs) {
   }
   const dropped = R.carriersRejected(t);
   const isCur = (id) => (wk.current || []).some((c) => String(c).toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9));
-  let ids = wk.plans.filter((id) => isCur(id) || !dropped.includes(carrierOfId(id)));
+  const nameOf0 = (id) => { const g = rowOf(id); if (!g) return id; return carrierKey(String(g.planName || '')) ? String(g.planName) : `${g.carrier || ''} ${g.planName || ''}`.trim(); };
+  const rm = planRemovals(t, wk.plans.map((id) => ({ planId: String(id).toUpperCase(), name: nameOf0(id) })), wk.current || []);
+  const removed = new Set(rm.remove.map((id) => id.toUpperCase().slice(0, 9)));
+  let ids = wk.plans.filter((id) => isCur(id) || (!removed.has(String(id).toUpperCase().slice(0, 9)) && !dropped.includes(carrierOfId(id))));
   for (const id of adds) if (!dropped.includes(carrierOfId(id)) && !ids.some((x) => x.slice(0, 9) === id.slice(0, 9))) ids.push(id);
   ids = currentPlanFirst(ids, wk.current);
   if (ids.length === wk.plans.length && ids.every((id, k) => id === wk.plans[k]) && !adds.length) return [];
@@ -247,27 +257,120 @@ function currentPlanRemovedBy(line, currentIds, carrierOfId) {
  * whole words of its name — never a substring: "remove it" used to drop every plan whose name holds "it" (UnITed…,
  * so her current UHC plan went). A pronoun never removes anything.
  */
+
+// Plan removals in one message, matched against the plans in the CURRENT table ([{ planId, name }]).
+// Exact (applied): a plan ID, a carrier by name ("remove careplus", "the doctors plan"), or every word of a plan name.
+// Anything else — a typo or swapped words ("Doctors Dade Mac" for Doctors DrMax-Dade) — is never guessed: one close
+// plan is asked as "Remove X (ID)? (yes/no)", several are listed, none is said in one line (Evelyn Nieves, 2026-10-20:
+// "lets remove Doctors Dade Mac and add … H1036-121" added H1036-121 and silently kept H4140-022).
+const REMOVAL_STOP = new Set(['the', 'plan', 'plans', 'column', 'columns', 'one', 'from', 'table', 'grid', 'please', 'pls', 'her', 'his', 'option', 'lets', 'let', 's']);
+const CARRIER_WORDS = { careplus: 'CarePlus', humana: 'Humana', aetna: 'Aetna', devoted: 'Devoted', solis: 'Solis', wellcare: 'Wellcare', simply: 'Simply', uhc: 'UnitedHealthcare', unitedhealthcare: 'UnitedHealthcare', aarp: 'UnitedHealthcare', doctors: 'Doctors HealthCare', doctor: 'Doctors HealthCare' };
+function removalTokens(x) {
+  return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z0-9]+/).filter((w) => w && !REMOVAL_STOP.has(w));
+}
+function planTokens(name) {
+  const raw = String(name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const out = new Set(raw.replace(/unitedhealthcare/g, 'unitedhealthcare united healthcare uhc').replace(/careplus/g, 'careplus care plus').split(/[^a-z0-9]+/).filter(Boolean));
+  // "DrMax-Dade" also reads as "dr", "max"; "MedicareMax" as "medicare", "max".
+  for (const w of raw.split(/[^a-z0-9]+/)) {
+    const m = w.match(/^(dr|medicare|care|gold|choice)(.+)$/);
+    if (m) { out.add(m[1]); out.add(m[2]); }
+  }
+  return [...out];
+}
+function editDistance(x, y) {
+  let row = Array.from({ length: y.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= x.length; i += 1) {
+    const cur = [i];
+    for (let j = 1; j <= y.length; j += 1) cur[j] = Math.min(row[j] + 1, cur[j - 1] + 1, row[j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+    row = cur;
+  }
+  return row[y.length];
+}
+function planRemovals(text, plans, currentIds = [], opts = {}) {
+  const out = { remove: [], confirm: [], unmatched: [] };
+  const list = (plans || []).filter((p) => p && p.planId);
+  if (!list.length) return out;
+  const cur = (currentIds || []).map((x) => String(x).toUpperCase().slice(0, 9));
+  const isCur = (p) => cur.includes(p.planId.toUpperCase().slice(0, 9));
+  const carrierOfP = (p) => carrierOf(p.name) || (() => { const g = gridRowFor(p.planId, ''); return g ? R.carrierOfPlan(g) : ''; })();
+  const skipWords = (opts.skip || []).map((x) => String(x || '').toLowerCase()).filter(Boolean);
+  for (const r of String(text || '').matchAll(REMOVE_RE)) {
+    const target = r[1].trim();
+    const low = target.toLowerCase();
+    if (!low || PRONOUN_TARGET_RE.test(low)) continue;
+    // "remove Dr. Pasquel …" (the capture stops at the period): a doctor row, not a plan.
+    if (/^(?:dr|dra|doctor|doctora)$/.test(low) && /^\s*\.?\s*[A-Za-z]/.test(String(text).slice(r.index + r[0].length))) continue;
+    if (/^(?:dr|dra|doctor|doctora)\.?\s+[a-z]/i.test(low) && !/^doctors?\s+(?:health|dr|plan)/i.test(low)) continue;
+    if (/\brows?\b|\bmeds?\b|\bmedications?\b|\bdoctors?\s+(?:rows?|list)\b/.test(low)) continue;
+    // A saved doctor or med she is removing is not a plan.
+    if (skipWords.some((w) => w && (low.includes(w) || w.includes(low)))) continue;
+    const ids = [...target.matchAll(/\b([HR]\d{4}-\d{1,3})/gi)].map((x) => x[1].toUpperCase().replace(/-(\d{1,3})$/, (m, d) => `-${d.padStart(3, '0')}`));
+    if (ids.length) {
+      for (const id of ids) {
+        const hit = list.find((p) => p.planId.toUpperCase().slice(0, 9) === id.slice(0, 9));
+        if (hit) out.remove.push(hit.planId);
+        else out.unmatched.push(target);
+      }
+      continue;
+    }
+    const words = removalTokens(target);
+    if (!words.length) continue;
+    // Carrier only ("careplus", "the doctors plan", "humana plans").
+    const carriers = [...new Set(words.map((w) => CARRIER_WORDS[w]).filter(Boolean))];
+    if (carriers.length === 1 && words.every((w) => CARRIER_WORDS[w] === carriers[0])) {
+      const hits = list.filter((p) => carrierOfP(p) === carriers[0] && !isCur(p));
+      if (hits.length) { out.remove.push(...hits.map((p) => p.planId)); continue; }
+      out.unmatched.push(target);
+      continue;
+    }
+    // Every word of a plan name (any order).
+    const exact = list.filter((p) => { const pt = planTokens(`${p.name} ${carrierOfP(p)}`); return words.every((w) => pt.includes(w)); });
+    if (exact.length) { out.remove.push(...exact.filter((p) => !isCur(p) || exact.length === 1).map((p) => p.planId)); continue; }
+    // Close but not exact: scored, then asked.
+    const near = (a, b) => a === b || (Math.min(a.length, b.length) >= 3 && editDistance(a, b) <= (Math.min(a.length, b.length) >= 6 ? 2 : 1)) || (a.length >= 4 && b.length >= 4 && (a.startsWith(b) || b.startsWith(a)));
+    const scored = list.map((p) => {
+      const pt = planTokens(`${p.name} ${carrierOfP(p)}`);
+      const hit = words.filter((w) => pt.some((x) => near(w, x))).length;
+      return { p, score: hit / words.length };
+    }).filter((x) => x.score >= 0.5).sort((a, b) => b.score - a.score);
+    if (!scored.length) { out.unmatched.push(target); continue; }
+    const best = scored.filter((x) => x.score === scored[0].score).map((x) => x.p);
+    out.confirm.push({ target, plans: best });
+  }
+  out.remove = [...new Set(out.remove)];
+  return out;
+}
+/** One-line questions / notes for planRemovals results (shared by chat and the compare card). */
+function planRemovalLines(rm, plans = []) {
+  const lines = [];
+  const label = (p) => `${p.name} (${p.planId})`;
+  for (const c of rm.confirm || []) {
+    lines.push(c.plans.length === 1
+      ? `Did you mean remove ${label(c.plans[0])}? (yes/no)`
+      : `"${c.target}" could be ${c.plans.map(label).join(' or ')} — which one should I remove?`);
+  }
+  for (const u of rm.unmatched || []) {
+    lines.push(`Couldn't find "${u}" in the table${plans.length ? ` (${plans.map((p) => p.planId).join(', ')})` : ''} — nothing removed.`);
+  }
+  return lines;
+}
+
 function removePlansNamedIn(current, line, currentIds) {
   let out = current.slice();
   const cur = (currentIds || []).map((x) => String(x).toUpperCase().slice(0, 9));
   const offGrid = currentPlanRemovedBy(line, cur, (id) => { const p = current.find((q) => q.planId.slice(0, 9).toUpperCase() === id); const g = gridRowFor(id, ''); return p ? carrierOf(p.name) : (g ? R.carrierOfPlan(g) : ''); });
-  for (const r of String(line || '').matchAll(REMOVE_RE)) {
-    const target = r[1].trim().toLowerCase();
-    if (!target || PRONOUN_TARGET_RE.test(target)) continue;
-    // "Remove Dr. Pasquel DeSantis …" removes a doctor row, not a plan.
-    if (/^(?:dr|dra|doctor|doctora)\b/.test(target) || /\brows?\b/.test(target)) continue;
-    const tWords = target.split(/[^a-z0-9-]+/).filter((w) => w.length > 1);
-    out = out.filter((p) => {
-      const id = p.planId.toLowerCase();
-      if (target.includes(id.slice(0, 9))) return false;
-      const byCarrier = carrierOf(target) && carrierOf(target) === carrierOf(p.name);
-      const nameWords = `${p.name} ${carrierOf(p.name)}`.toLowerCase().split(/[^a-z0-9-]+/);
-      const byName = tWords.length > 0 && tWords.every((w) => nameWords.includes(w));
-      // A carrier or name drop never takes her current plan; only an off-the-grid / current-plan / ID removal does.
-      if ((byCarrier || byName) && cur.includes(id.slice(0, 9).toUpperCase()) && !offGrid.has(id.slice(0, 9).toUpperCase())) return true;
-      return !byCarrier && !byName;
-    });
-  }
+  // Same matcher as the chat's removal questions (planRemovals): only an exact ID / carrier / plan-name removal applies
+  // here; a close match waits for her yes.
+  const rm = planRemovals(line, out, []);
+  const gone = new Set(rm.remove.map((id) => id.toUpperCase().slice(0, 9)));
+  const byId = new Set([...String(line || '').matchAll(REMOVE_RE)].flatMap((r) => [...r[1].matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((x) => x[1].toUpperCase())));
+  // A carrier or name drop never takes her current plan; only an off-the-grid / current-plan / ID removal does.
+  out = out.filter((p) => {
+    const id9 = p.planId.slice(0, 9).toUpperCase();
+    if (!gone.has(id9)) return true;
+    return cur.includes(id9) && !offGrid.has(id9) && !byId.has(id9);
+  });
   // "take H5420-014 off the grid" / "remove uhc off the grid" / "remove the current plan".
   for (const m of String(line || '').matchAll(OFF_GRID_RE)) {
     const seg = m[1] || '';
@@ -309,6 +412,35 @@ function respelledDoctors(latest, doctors) {
   const said = [...String(latest || '').matchAll(/\b(?:Dr|Dra|Doctor|Doctora)\.?\s+([A-ZÀ-Ý][\wÀ-ÿ'’-]*(?:\s+(?:(?:de|del|la|las|los|da|das|do|dos|di|du|van|von|der|le|y)\s+)*[A-ZÀ-Ý][\wÀ-ÿ'’-]*){1,4})/g)].map((m) => m[1].trim());
   if (!said.length) return doctors;
   return doctors.map((nm) => said.find((s) => DN.sameNameIgnoringSpacing(nm, s) && s.replace(/\s+/g, ' ') !== nm) || nm);
+}
+
+/**
+ * Her name for a doctor on the left of "X = Y" vs a saved / asked name, spelling aside: "Priscilla Escalona" ≈
+ * "Priscila Escalona" (Evelyn Nieves, 2026-10-20 — the two-L spelling never matched the one-L row, so her pick was
+ * dropped and the same question came back). Accents, Dr./MD, a missing middle name and a letter or two off are all the
+ * same doctor; a different first or last name is not.
+ */
+function fuzzySameDoctor(known, said) {
+  if (sameDoctorName(known, said)) return true;
+  const strip = (x) => String(x || '').split(/\s+[-–—]\s+/)[0].replace(/\([^)]*\)/g, ' ');
+  const a = plainWords(strip(known));
+  const b = plainWords(strip(said));
+  if (a.length < 2 || b.length < 2) return false;
+  const lev = (x, y) => {
+    let row = Array.from({ length: y.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= x.length; i += 1) {
+      const cur = [i];
+      for (let j = 1; j <= y.length; j += 1) cur[j] = Math.min(row[j] + 1, cur[j - 1] + 1, row[j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+      row = cur;
+    }
+    return row[y.length];
+  };
+  const near = (x, y) => x === y || (Math.min(x.length, y.length) >= 4 && lev(x, y) <= (Math.min(x.length, y.length) >= 7 ? 2 : 1));
+  if (!near(a[0], b[0])) return false;
+  // Last name she typed is one of the saved name's later words (two-part surnames: "Escalona Villasmil").
+  if (!a.slice(1).some((w) => near(w, b[b.length - 1]))) return false;
+  // Any middle word she typed is in the saved name (an initial is fine).
+  return b.slice(1, -1).every((w) => w.length <= 1 || a.some((x) => near(x, w)));
 }
 
 /** Fuzzy "same doctor" for typo'd names: "Hoa Nguyne" ≈ "Hoa Nguyen", "Gloria St" ⊂ "Theresa Gloria St. Phillipe". */
@@ -539,12 +671,14 @@ function resolveWorkupSets(messages) {
 }
 
 module.exports = {
+  planRemovals,
+  planRemovalLines,
   messageText,
   // plans
   workupFacts, workupCarrierEditSet, workupPlanAddSet, lastTablePlanIds, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,
   NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, PRONOUN_TARGET_RE, KEEPS_CURRENT_RE, lineKeepsCurrentPlan, droppedIdsIn, removePlansNamedIn, OFF_GRID_RE, DROPS_CURRENT_RE, currentPlanRemovedBy, planLineVerdict, currentPlanFirst,
   // doctors
-  respelledDoctors, looseSameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords,
+  respelledDoctors, looseSameDoctor, fuzzySameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords,
   doctorCoreWords, specialtyWords, removedByClauses, sameCoreDoctor, RESOLVED_DOCTOR, dedupeDoctorRows, DUPLICATE_Q_RE,
   duplicateQuestions, confirmedDuplicateRemovals,
   // meds
