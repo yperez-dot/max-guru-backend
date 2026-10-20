@@ -4,6 +4,7 @@
 //   workup        the saved workup she loaded (null for a fresh chat)
 //   messages      her messages, in order (Max's replies in between are stubbed as "table")
 //   doctorResults stubbed carrier lookups: { "<doctor as Max will search it>": { npi, in: [planIds], out: [planIds] } }
+//                 (or { notFound: [{ name, specialty, city, npi, spelling }] } — no NPI match, with near-matches)
 //   drugResults   stubbed formulary answers: { "<med>": { "<planId>": { tier, cost, pa, ql, st } | "not_covered" } }
 //   medNames      med-name normalizer checks: [{ typed, display }] with "rxnorm" stub answers
 //   expect        plans / doctors / meds (exact, include, exclude) + grid cells + layout (on by default)
@@ -45,6 +46,10 @@ function stubDoctorLookup(sc) {
   return async ({ doctorName, npi }) => {
     const hit = find(doctorName);
     if (!hit) return { status: 'not_found', structured: { doctorName, networks: [], inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] } };
+    // No NPI match, with the near-matches the NPI registry offered: "notFound": [{ name, specialty, city, npi, spelling }].
+    if (Array.isArray(hit.notFound)) {
+      return { status: 'not_found', structured: { doctorName, status: 'not_found', suggestions: hit.notFound, networks: [], inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] } };
+    }
     // A dentist: "dental": { "humana:3171": "in", "uhc:national": "out", "fdb:41": "out" } — stubbed dental-directory
     // answers (services/dentalDirectory.js). No medical In/Out for dentists.
     if (hit.dental) {
@@ -123,6 +128,7 @@ async function runScenario(sc) {
     plans: carrierMode ? (sets.currentPlan || []) : sets.plans.map((p) => p.planId),
     wantsAlternatives: carrierMode && (sets.currentPlan || []).length > 0,
     planNames: Object.fromEntries(sets.plans.map((p) => [p.planId, p.name])),
+    addedPlans: [...String((sets.askText.match(/^Plans she added:\s*([^\n]+)$/m) || ['', ''])[1]).matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase()),
   });
   const job = { input, status: 'queued', progress: { doctors: { done: 0, total: input.doctors.length }, meds: { done: 0, total: input.meds.length } }, result: {} };
   await runJob(job, { lookupOneDoctor: stubDoctorLookup(sc), lookupRx: stubRx(sc) });

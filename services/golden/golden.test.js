@@ -59,6 +59,18 @@ describe('golden scenarios', () => {
             }
           }
         });
+        if (e.serverReruns !== undefined || e.chatGridPlans || e.chatFollowUpIncludes || e.chatExcludes) {
+          it('live chat: server re-run, chat grid columns, chat follow-up', () => {
+            // serverReruns: the chat server re-runs the comparison itself (doctorPlanNarrow.comparisonFollowUp) instead
+            // of leaving the model to answer from its previous table (Robert and Andrea, 2026-10-19).
+            if (e.serverReruns !== undefined) assert.equal(Boolean(run.sets.followUp), Boolean(e.serverReruns), `server re-run: ${JSON.stringify(run.sets.followUp)}`);
+            const { gridHeaderIds } = require('./harness');
+            if (e.chatGridPlans) assert.deepEqual(gridHeaderIds(run.chat.grid).map(ID), e.chatGridPlans.map(ID), 'chat grid columns');
+            for (const re of e.chatFollowUpIncludes || []) assert.match(run.chat.followUp || '', new RegExp(re, 'i'), 'chat follow-up bubble');
+            const all = `${run.chat.grid || ''}\n${run.chat.followUp || ''}`;
+            for (const x of e.chatExcludes || []) assert.ok(!all.toLowerCase().includes(x.toLowerCase()), `"${x}" should not appear in the chat reply:\n${all}`);
+          });
+        }
         it('follow-up bubble', () => {
           const W = require('../../artifacts/client-workups.js');
           const fu = W.compareFollowUpLines(run.job.result);
