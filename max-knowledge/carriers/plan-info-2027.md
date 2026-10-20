@@ -1,7 +1,7 @@
 # 2027 Plan Info by carrier (THEI 2027 Plan Comparison Grid, 'Plan Info' tab)
 
 Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
-Pulled: 2026-10-20 00:23 UTC
+Pulled: 2026-10-20 02:29 UTC
 
 Carrier-level reference: broker managers, broker support, enrollment portals, HRA payment, member services, and the vendors for fitness, lab, pharmacy, mail order, M3P, vision, dental, diabetic supplies, OTC, transportation, hearing, DME, healthy food and utilities. For 2027 questions this tab is newer than `carrier-contacts.md` (2026); when they disagree, cite this file. A blank column means the grid has nothing for that carrier: say it is not on the grid, do not guess. Plan-level dollars (OTC amounts, dental allowances, copays) are in PLAN DATA and the `*-plans-florida-2027` docs, not here.
 

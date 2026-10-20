@@ -1,7 +1,7 @@
 # Humana — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
-Pulled: 2026-10-20 00:21 UTC
+Pulled: 2026-10-20 02:29 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1036-054C, H1036-065C, H1036-077, H1036-121, H1036-297, H1036-304, H1036-305, H1036-339, H7617-107, H7617-110, H7617-145
 
@@ -1168,7 +1168,7 @@ Out-of-network (confirmed):
 | Hearing Services | 95% of cost (reimburse up to 5%) |
 | Dental | Preventive only |
 | Deep Cleaning | Perio maintenance $0 (4/year) |
-| Dentures | Not listed on 2027 SOB |
+| Dentures | No |
 | Fillings | Not listed on 2027 SOB |
 | Root Canals | Not listed on 2027 SOB |
 | Extractions | Not listed on 2027 SOB |
@@ -1263,7 +1263,7 @@ Out-of-network (confirmed):
 | Deep Cleaning | Perio maintenance $0 (4/year) |
 | Dentures | Not listed on 2027 SOB |
 | Fillings | $25 · 2 per year (counts toward $500) |
-| Root Canals | Not listed on 2027 SOB |
+| Root Canals | No |
 | Extractions | Not listed on 2027 SOB |
 | Crowns | Not listed on 2027 SOB |
 | Bridges | Not listed on 2027 SOB |
