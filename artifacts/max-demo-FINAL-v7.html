@@ -582,6 +582,8 @@
   const NETWORK_IN = "In network";
   const NETWORK_OUT = "Not in network (not listed)";
   const NETWORK_NOT_CONFIRMED = "Not confirmed";
+  // Ran out of time: not an answer, and never a blank cell (Yahoska, 2026-10-20).
+  const NETWORK_TIMED_OUT = "Timed out — re-check";
   const NETWORK_NEED_MORE = "Need more info";
   const GENERIC_ONLY_NOTE = "*Brand not covered — these three plans cover the generic only.";
   // Names only — never invent a generic tier from this map.
@@ -1059,6 +1061,7 @@
     if (dental) return dental;
     if (/need\s*more\s*info/i.test(s)) return NETWORK_NEED_MORE;
     if (/not\s*confirmed/i.test(s)) return NETWORK_NOT_CONFIRMED;
+    if (/timed\s*out|^⏱/i.test(s)) return NETWORK_TIMED_OUT;
     // "❌ Not in network (not listed)" contains "in network" — read it as Out before the In test.
     if (/\bnot\s+(?:in[-\s]?network|listed)\b/i.test(s)) return NETWORK_OUT;
     if (/^(in[-\s]?network|inn|in|true|yes|✅)$/i.test(s) || /^IN$/i.test(s) || /\bin[-\s]?network\b/i.test(s)) {
@@ -1502,6 +1505,7 @@
       const row = add(d.name || d.drug || d.drugName);
       if (!row) return;
       if (d.brandNotCovered) row.brandNotCovered = true;
+      if (d.timedOut) row.timedOut = true;
       if (d.genericOf) row.genericOf = d.genericOf;
       // The on-screen wording per plan ("80 mg: T1 $0") wins over a recomputed "Tier 1 · $0".
       if (d.screen && typeof d.screen === "object") row.screen = Object.assign({}, row.screen || {}, d.screen);
@@ -1734,7 +1738,12 @@
       if (blobHasPlanId(inBlob, plan)) return NETWORK_IN;
       if (blobHasPlanId(outBlob, plan)) return NETWORK_OUT;
       if (!carrierMatchesPlan(net.carrier, plan)) continue;
-      if (net.status === "failed" || net.status === "pending") {
+      if (net.status === "pending") {
+        // Still answering when the chat turn ended: a timeout, not "need more info".
+        fallback = fallback || NETWORK_TIMED_OUT;
+        continue;
+      }
+      if (net.status === "failed") {
         fallback = fallback || NETWORK_NEED_MORE;
         continue;
       }
@@ -1802,7 +1811,7 @@
             return (hit ? (typeof hit[1] === "function" ? hit[1](cell) : hit[1]) : "") || NETWORK_NOT_CONFIRMED;
           })
           : plans.map(
-            (p) => (mismatch ? "" : statusFromProviderNetworks(p, networks, { missIsUnknown })) || NETWORK_NOT_CONFIRMED
+            (p) => (mismatch ? "" : statusFromProviderNetworks(p, networks, { missIsUnknown })) || (pr.status === "timeout" ? NETWORK_TIMED_OUT : NETWORK_NOT_CONFIRMED)
           );
         const askedLabel = cleanProviderDisplayName(pr.requestedName || name);
         const registryLabel = cleanProviderDisplayName(name);
@@ -2784,14 +2793,16 @@
         });
         const cells = statuses.map((s, i) => {
           const shown = drug.screen && drug.screen[String(displayContractPbp(plans[i]) || "").toUpperCase().slice(0, 9)];
+          if (shown && /^⏱|timed\s*out/i.test(String(shown))) return NETWORK_TIMED_OUT;
+          if (!shown && drug.timedOut && !(s && s.verified)) return NETWORK_TIMED_OUT;
           return shown || formatDrugCell(s, plans[i]);
         });
         const values = [drug.name, ...cells];
-        const rowKinds = ["label", ...cells.map((c) => (c === "Unverified" ? "pending" : "text"))];
+        const rowKinds = ["label", ...cells.map((c) => (c === "Unverified" || c === NETWORK_TIMED_OUT ? "pending" : "text"))];
         const rowStyles = [makeStyle({ font: { bold: true } })];
         cells.forEach((c) => {
           rowStyles.push(
-            c === "Unverified"
+            c === "Unverified" || c === NETWORK_TIMED_OUT
               ? makeStyle({ font: { color: { rgb: RED } } })
               : makeStyle({ alignment: { wrapText: true, vertical: "top" } })
           );
@@ -2820,7 +2831,7 @@
       printedLabels[label] = true;
       // No yellow highlight on client sheets (Yahoska 10/5) — plain cells only.
       void highlight;
-      const rowKinds = ["label", ...values.slice(1).map((c) => (c === "Unverified" ? "pending" : "text"))];
+      const rowKinds = ["label", ...values.slice(1).map((c) => (c === "Unverified" || c === NETWORK_TIMED_OUT ? "pending" : "text"))];
       const rowStyles = [makeStyle({ font: { bold: true } })];
       values.slice(1).forEach((c) => {
         rowStyles.push(
@@ -3163,6 +3174,7 @@
     [/^✅\s*In\b/, NETWORK_IN],
     [/^❌/, NETWORK_OUT],
     [/^❔\s*not confirmed/i, NETWORK_NOT_CONFIRMED],
+    [/^⏱/, NETWORK_TIMED_OUT],
     [/^❔\s*check dental directory/i, dentalStatusText],
     [/^ℹ️?\s*no dental network/i, dentalStatusText],
   ];
@@ -3759,6 +3771,7 @@
     NETWORK_IN,
     NETWORK_OUT,
     NETWORK_NOT_CONFIRMED,
+    NETWORK_TIMED_OUT,
     NETWORK_NEED_MORE,
     GENERIC_ONLY_NOTE,
     BRAND_TO_GENERIC,
@@ -4377,6 +4390,21 @@
     return /^\s*(?:please\s+)?(?:export|download|send)?(?:\s+(?:it|this|that|the\s+(?:table|comparison|grid)))?(?:\s+(?:to|as|in))?\s*(?:excel|xlsx|pdf|export|spreadsheet)?\s*(?:please|pls)?[\s.!]*$/i.test(String(text || ''))
       && /\b(?:export|excel|xlsx|pdf|download)\b/i.test(String(text || ''));
   }
+  // The finished background re-check (GET /chat/recheck/:id) as chat bubbles: a one-line header, the updated grid,
+  // then its notes/questions (the same split as a normal reply).
+  function recheckReply(result) {
+    const r = result || {};
+    const text = String(r.rendered || "");
+    const marker = "<!-- max:follow-up -->";
+    const at = text.indexOf(marker);
+    const grid = (at >= 0 ? text.slice(0, at) : text).trim();
+    const followUp = at >= 0 ? text.slice(at + marker.length).trim() : "";
+    const n = (Number(r.doctorsRechecked) || 0) + (Number(r.medsRechecked) || 0);
+    const head = Number(r.stillTimedOut) > 0
+      ? "⏱ Re-check finished — " + r.stillTimedOut + " still timed out (send the same message again to re-check those):"
+      : "✅ Re-check finished — " + (n ? n + " timed-out check" + (n > 1 ? "s" : "") + " " : "") + "updated:";
+    return { grid: head + "\n\n" + grid, followUp };
+  }
   function recoveredDoctorsNote(workup) {
     const names = (workup && Array.isArray(workup.recoveredDoctors) ? workup.recoveredDoctors : []).filter(Boolean);
     if (!names.length) return "";
@@ -4429,6 +4457,7 @@
     const skipQ = o.skipQuestion instanceof RegExp ? o.skipQuestion : null;
     const questions = (Array.isArray(r.questions) ? r.questions : []).map((q) => String(q || "").trim()).filter((q) => q && !(skipQ && skipQ.test(q)));
     const notes = [];
+    if (r.timedOutNote && String(r.timedOutNote).trim()) notes.push(String(r.timedOutNote).trim());
     const cnv = r.couldNotVerify;
     // Only plans in the grid: a plan outside the comparison set never gets a note (Tony & Gerry Cabrera, 2026-10-19).
     const gridIds = (Array.isArray(r.planIds) ? r.planIds : []).map((x) => String(x || "").toUpperCase().slice(0, 9));
@@ -4488,6 +4517,7 @@
     compareCardTurnText,
     recoveredDoctorsNote,
     isBareExportAsk,
+    recheckReply,
     workupListLabel,
     formatUpdatedAt,
     rehydratePlans,
@@ -6772,7 +6802,7 @@ async function chatViaJob(headers, payload) {
   if (!start || start.status === 404) {
     // Older backend (or network blip on start): the original single request.
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 120_000);
+    const timer = setTimeout(() => ctrl.abort(), 180_000);
     try {
       const response = await fetch(PROXY_URL, { method: "POST", headers, body: JSON.stringify(payload), signal: ctrl.signal });
       return { response, data: await response.json().catch(() => ({})) };
@@ -6806,6 +6836,22 @@ async function chatViaJob(headers, payload) {
     }
   }
   return { response: { status: 504, ok: false }, data: { error: "Max took too long on that one — send it again." } };
+}
+
+// "⏱ timed out" cells: the server keeps checking them (GET /chat/recheck/:id). Resolves with the finished result,
+// or null when it is gone / takes longer than maxMs.
+async function pollRecheck(id, { maxMs = 240_000, everyMs = 4000 } = {}) {
+  const headers = maxAuthHeaders();
+  const t0 = Date.now();
+  while (Date.now() - t0 < maxMs) {
+    await chatSleep(everyMs);
+    let r;
+    try { r = await fetch(API_BASE + "/chat/recheck/" + encodeURIComponent(id), { headers }); } catch (_) { continue; }
+    if (r.status === 404) return null;
+    const body = await r.json().catch(() => ({}));
+    if (r.ok && body.job && body.job.status === "done") return body.job.result || null;
+  }
+  return null;
 }
 
 async function askGuru(conversationHistory, opts) {
@@ -6869,6 +6915,8 @@ async function askGuru(conversationHistory, opts) {
       doctorList: data.doctorList && data.doctorList.final && Array.isArray(data.doctorList.doctors) ? data.doctorList : null,
       // Notes / warnings / questions after the grid: their own chat bubble (Yahoska, 2026-10-17).
       followUp: data.followUp && typeof data.followUp.text === "string" && data.followUp.text.trim() ? data.followUp.text.trim() : null,
+      // Cells that ran out of time are being re-checked on the server: the page polls and posts the updated table.
+      recheck: data.recheck && typeof data.recheck.id === "string" ? data.recheck : null,
     };
   } finally {
     if (timer) clearTimeout(timer);
@@ -7130,6 +7178,7 @@ function queueStatus(e) {
   }
   if (j.status === "queued") return { text: "Waiting — #" + (j.queuePosition || 1), tone: "idle" };
   if (j.status === "doctors") return { text: "Doctors " + j.progress.doctors.done + "/" + j.progress.doctors.total, tone: "run" };
+  if (j.status === "rechecking") return { text: "⏱ Still checking slow doctors " + (j.progress && j.progress.recheck ? j.progress.recheck.done + "/" + j.progress.recheck.total : ""), tone: "run" };
   return { text: "Meds " + j.progress.meds.done + "/" + j.progress.meds.total, tone: "run" };
 }
 
@@ -7242,6 +7291,7 @@ function wsSidebarStatus(ws) {
     if (!j) return { text: "Starting…", tone: "idle" };
     if (j.status === "queued") return { text: "Waiting — #" + (j.queuePosition || 1), tone: "idle" };
     if (j.status === "doctors") return { text: "Checking doctors " + j.progress.doctors.done + "/" + j.progress.doctors.total, tone: "idle" };
+    if (j.status === "rechecking") return { text: "⏱ Still checking slow doctors " + (j.progress && j.progress.recheck ? j.progress.recheck.done + "/" + j.progress.recheck.total : ""), tone: "idle" };
     return { text: "Checking meds " + j.progress.meds.done + "/" + j.progress.meds.total, tone: "idle" };
   }
   if (ws.stage === "error") return { text: "Needs attention", tone: "bad" };
@@ -7288,6 +7338,7 @@ function ClientWsCard({ ws, onSubmit, onAnswer, onToggleMust, onExport, onCancel
     if (!j) status = "Starting…";
     else if (j.status === "queued") status = "Waiting — #" + (j.queuePosition || 1) + ". Two clients run at a time; this one starts on its own.";
     else if (j.status === "doctors") status = "Checking doctors " + j.progress.doctors.done + "/" + j.progress.doctors.total;
+    else if (j.status === "rechecking") status = "⏱ Some doctor checks ran out of time — still checking " + (j.progress && j.progress.recheck ? j.progress.recheck.done + "/" + j.progress.recheck.total : "") + "…";
     else status = "Checking meds " + j.progress.meds.done + "/" + j.progress.meds.total;
   }
   const result = (ws.job && ws.job.result) || ws.result;
@@ -8557,6 +8608,8 @@ function App() {
       }
       messagesRef.current = nextMsgs;
       setMessages(nextMsgs);
+      // Timed-out cells: re-checked in the background, posted as an update when they finish — no re-paste.
+      if (result.recheck && result.recheck.id) void followRecheck(result.recheck.id, gen);
     } catch (err) {
       if (gen !== chatGenRef.current) {
         if (!(err && err.code === "access_required")) deliverParkedReply(startWorkupId, newHistory, [{ role: "assistant", content: "Couldn't finish this request — send it again.", time: nowLabel() }]);
@@ -8600,6 +8653,23 @@ function App() {
       setLoading(false);
       if (restoreDraft) refillComposerFromFailedSend(content, images);
     }
+  };
+
+  const followRecheck = async (id, gen) => {
+    const done = await pollRecheck(id);
+    if (gen !== chatGenRef.current) return; // she started another chat
+    if (!done || done.error || !done.rendered) {
+      setMessages(prev => [...prev, { role: "assistant", content: "⏱ The re-check of the timed-out cells didn't finish — send the same message again to re-check them.", time: nowLabel() }]);
+      return;
+    }
+    const W = window.MaxClientWorkups;
+    const parts = W && typeof W.recheckReply === "function" ? W.recheckReply(done) : { grid: done.rendered, followUp: "" };
+    if (Array.isArray(done.toolResults)) sessionToolResultsRef.current = [...sessionToolResultsRef.current, ...done.toolResults];
+    const more = [{ role: "assistant", content: parts.grid, time: nowLabel(), recheckOf: id }];
+    if (parts.followUp) more.push({ role: "assistant", content: parts.followUp, time: nowLabel(), followUpOf: true });
+    const lastTable = lastComparisonExportRef.current;
+    if (lastTable && (lastTable.plans || []).length) more.push(tableOffer(lastTable));
+    setMessages(prev => { const next = [...prev, ...more]; messagesRef.current = next; return next; });
   };
 
   const send = (text) => {

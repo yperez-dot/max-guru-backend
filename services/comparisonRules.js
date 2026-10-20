@@ -48,6 +48,9 @@ const UNCHECKED = '❔ unchecked';
 // listed for this plan. Never shown for a failed or skipped check.
 const NOT_LISTED_CELL = '❌ Not in network (not listed)';
 const NOT_CONFIRMED_CELL = '❔ not confirmed';
+// A lookup that ran out of time is not an answer: its own cell, never "not confirmed" (Yahoska, 2026-10-20).
+const TIMED_OUT_CELL = '⏱ timed out';
+const TIMED_OUT_LEGEND = '⏱ timed out = ran out of time, not an answer — re-checked automatically';
 // Same unknown wording in the doctor and drug legends (rule 9).
 const UNKNOWN_LEGEND = '❔ unchecked = never checked · ❔ not confirmed = checked, no result';
 const LEGEND = `✅ In · ${NOT_LISTED_CELL} = checked in the carrier's directory, not listed for this plan · ${UNKNOWN_LEGEND} (never assume not in network unless checked)`;
@@ -685,6 +688,8 @@ module.exports = {
   COMPARISON_TABLE_RULES,
   UNCHECKED,
   NOT_CONFIRMED_CELL,
+  TIMED_OUT_CELL,
+  TIMED_OUT_LEGEND,
   UNKNOWN_LEGEND,
   LEGEND,
   MEDS_LEGEND,

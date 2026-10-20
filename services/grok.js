@@ -58,10 +58,10 @@ const CONFIG = providerConfig();
 const DEFAULT_MODEL = CONFIG.model;
 // Browser aborts /chat at 120s (max-demo-FINAL-v7.html). The server must always
 // answer before that, so the deadline is hard-capped below it.
-const CHAT_DEADLINE_CAP_MS = Number(process.env.MAX_CHAT_DEADLINE_CAP_MS || 110_000);
+const CHAT_DEADLINE_CAP_MS = Number(process.env.MAX_CHAT_DEADLINE_CAP_MS || 170_000);
 const DEFAULT_CHAT_DEADLINE_MS = Math.min(
   CHAT_DEADLINE_CAP_MS,
-  Number(process.env.MAX_CHAT_DEADLINE_MS || 105_000)
+  Number(process.env.MAX_CHAT_DEADLINE_MS || 150_000)
 );
 const DEFAULT_GROK_FETCH_MS = Number(process.env.MAX_GROK_FETCH_MS || 20_000);
 // Time held back after tools so the model can still write the answer from what finished.
@@ -153,7 +153,12 @@ function chatResult({ lastData, text, collectedToolResults, usageCalls, deadline
     out.deadline = true;
     out.resume = { resumable, finished: collectedToolResults.length };
   }
-  if (collectedToolResults.length) out.toolResults = collectedToolResults;
+  // A background re-check of the cells this turn ran out of time on (providerNetwork → recheckJobs): the page polls
+  // GET /chat/recheck/:id and posts the updated table. Not a tool result the export reads.
+  const rc = collectedToolResults.filter((t) => t && t.tool === 'recheck' && t.output && t.output.recheckId).pop();
+  if (rc) out.recheck = { id: rc.output.recheckId };
+  const kept = collectedToolResults.filter((t) => !(t && t.tool === 'recheck'));
+  if (kept.length) out.toolResults = kept;
   return out;
 }
 

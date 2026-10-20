@@ -1800,7 +1800,8 @@ function unknownCell(d, carrier) {
   const status = d && d.status;
   // A match she has not confirmed is never counted In or Out (rule 10).
   if (d && d.identityPending) return R.NOT_CONFIRMED_CELL;
-  if (status === 'timeout' || status === 'error') return R.UNCHECKED;
+  if (status === 'timeout') return R.TIMED_OUT_CELL;
+  if (status === 'error') return R.UNCHECKED;
   if (status === 'not_found') return R.NOT_CONFIRMED_CELL;
   if (!carrier || NO_LIVE_DIRECTORY.includes(carrier)) return R.UNCHECKED;
   if (carrier === 'Solis' && !solisChecked(d)) return R.UNCHECKED;
@@ -1808,7 +1809,9 @@ function unknownCell(d, carrier) {
   // No lookup ran for this carrier (skipped, no directory, never started) → unchecked, not "not confirmed".
   if (!carrierCheckRan(d, carrier)) return R.UNCHECKED;
   const re = PENDING_FOR[carrier];
-  if (re && [...(d.pending || []), ...(d.failed || [])].some((p) => re.test(String(p)))) return R.UNCHECKED;
+  // Still answering at the deadline (pending) is a timeout; a directory that failed is unchecked.
+  if (re && (d.pending || []).some((p) => re.test(String(p)))) return R.TIMED_OUT_CELL;
+  if (re && (d.failed || []).some((p) => re.test(String(p)))) return R.UNCHECKED;
   return R.NOT_CONFIRMED_CELL;
 }
 
@@ -1899,8 +1902,9 @@ function cellCountText(cells) {
   const star = cells.filter((c) => c === CELL.inCarrier).length;
   const outN = cells.filter((c) => c === CELL.out).length;
   const nc = cells.filter((c) => c === R.NOT_CONFIRMED_CELL).length;
-  const unchecked = cells.length - inN - outN - nc;
-  const rest = [unchecked || !nc ? `${unchecked} unchecked` : '', nc ? `${nc} not confirmed` : ''].filter(Boolean).join(' · ');
+  const tN = cells.filter((c) => c === R.TIMED_OUT_CELL).length;
+  const unchecked = cells.length - inN - outN - nc - tN;
+  const rest = [unchecked || (!nc && !tN) ? `${unchecked} unchecked` : '', nc ? `${nc} not confirmed` : '', tN ? `${tN} timed out` : ''].filter(Boolean).join(' · ');
   return `${inN} in · ${outN} not in network · ${rest}${star ? ` (${star} ✅ In*)` : ''}`;
 }
 
@@ -2249,7 +2253,8 @@ function selectComparison(doctors, askText, opts = {}) {
     if (name && !meds.some((x) => R.sameDrug(x, name)) && !drugs.some((r) => drugAnswers(r, name))) meds.push(name);
   }
   // Rule 3's drug-cost key only when something was priced: every lookup failing must not rank plans.
-  const pricedDrugs = allDrugLookupsFailed(drugs) ? [] : drugs;
+  // Never rank by drug cost while a med is still timed out (its cost is unknown, not $0).
+  const pricedDrugs = allDrugLookupsFailed(drugs) || drugs.some((r) => r && r.timedOut) ? [] : drugs;
 
   const decorate = (cols) => cols.map((c) => {
     const grid = gridRowFor(c.planId, county);
@@ -2966,7 +2971,12 @@ function medsTable(drugResults, plans, knownMeds = []) {
       { const o = strengthInLabel(drugLabel(r, name), cells); rows.push(`| ${o.label} | ${o.cells.join(' | ')} |`); }
       continue;
     }
-    const cells = plans.map((p) => drugCell(drugRowFor(r, p.planId), Boolean(r.notCoveredNote), r));
+    const cells = plans.map((p) => {
+      const row = drugRowFor(r, p.planId);
+      // Ran out of time on this plan: "⏱ timed out", never a final-looking ❔.
+      if (r.timedOut && !(row && row.verified)) return R.TIMED_OUT_CELL;
+      return drugCell(row, Boolean(r.notCoveredNote), r);
+    });
     // She asked for one drug and the lookup answered a combination product ("tramadol" -> "Tramadol-Acetaminophen"):
     // those tiers are not the drug she asked about (Melmoth Alexander, 2026-10-13).
     const lowName = name.toLowerCase();
@@ -3040,7 +3050,28 @@ function coreAllAnswer(doctors, askText) {
   return lines.join('\n');
 }
 
-function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUnreadable = false } = {}) {
+/** "⏱ 3 meds ran out of time — re-checking…" — one line above the table, for chat, compare card and export. */
+function timedOutNote(doctors, drugs, { recheck = false } = {}) {
+  const medsN = (drugs || []).filter((r) => r && r.timedOut).length;
+  const docsN = (doctors || []).filter((d) => d && (d.status === 'timeout' || (d.status === 'partial' && (d.pending || []).length))).length;
+  if (!medsN && !docsN) return '';
+  const parts = [
+    docsN ? `${docsN} doctor check${docsN > 1 ? 's' : ''}` : '',
+    medsN ? `${medsN} med${medsN > 1 ? 's' : ''}` : '',
+  ].filter(Boolean).join(' and ');
+  return `⏱ ${parts} ran out of time — ${recheck ? 're-checking… the table updates here when they finish' : 'send the same message again to re-check'}.`;
+}
+function withTimedOutNote(text, doctors, drugs, opts) {
+  const note = timedOutNote(doctors, drugs, opts);
+  if (!note) return text;
+  const body = String(text || '');
+  const legendAdded = /⏱ timed out/.test(body) ? body.replace(/(\n(?:✅ In|T = tier)[^\n]*)/, `$1 · ${R.TIMED_OUT_LEGEND}`) : body;
+  return `${note}\n\n${legendAdded}`;
+}
+function renderedAnswer(doctors, askText, opts = {}) {
+  return withTimedOutNote(renderedAnswerRaw(doctors, askText, opts), doctors, opts.drugs, { recheck: Boolean(opts.recheck) });
+}
+function renderedAnswerRaw(doctors, askText, { answered = false, drugs = [], medsUnreadable = false } = {}) {
   if (String(askText || '').includes(CORE_ALL_LINE)) {
     const list = coreAllAnswer(doctors, askText);
     const dup = duplicateQuestions(doctors);
@@ -3233,7 +3264,10 @@ function enforceRenderedTable(replyText, rendered) {
   return rendered.includes(FOLLOW_UP_MARKER) ? `${rendered}\n${notes.join('\n')}` : `${rendered}\n\n${FOLLOW_UP_MARKER}\n${notes.join('\n')}`;
 }
 
-function fallbackAnswer(doctors, askText, { answered = false, drugs = [] } = {}) {
+function fallbackAnswer(doctors, askText, opts = {}) {
+  return withTimedOutNote(fallbackAnswerRaw(doctors, askText, opts), doctors, opts.drugs, { recheck: Boolean(opts.recheck) });
+}
+function fallbackAnswerRaw(doctors, askText, { answered = false, drugs = [] } = {}) {
   const sel = selectComparison(doctors, askText, { answered, drugs });
   const top = sel.columns;
   const lines = [];
@@ -3314,6 +3348,8 @@ module.exports = {
   doctorMatchCandidates,
   candidatePicks,
   allDrugLookupsFailed,
+  timedOutNote,
+  withTimedOutNote,
   planRemovalQuestions,
   planRemovalAskLines,
   dropEmptySectionHeaders,

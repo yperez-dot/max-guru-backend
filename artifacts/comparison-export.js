@@ -263,6 +263,8 @@
   const NETWORK_IN = "In network";
   const NETWORK_OUT = "Not in network (not listed)";
   const NETWORK_NOT_CONFIRMED = "Not confirmed";
+  // Ran out of time: not an answer, and never a blank cell (Yahoska, 2026-10-20).
+  const NETWORK_TIMED_OUT = "Timed out — re-check";
   const NETWORK_NEED_MORE = "Need more info";
   const GENERIC_ONLY_NOTE = "*Brand not covered — these three plans cover the generic only.";
   // Names only — never invent a generic tier from this map.
@@ -740,6 +742,7 @@
     if (dental) return dental;
     if (/need\s*more\s*info/i.test(s)) return NETWORK_NEED_MORE;
     if (/not\s*confirmed/i.test(s)) return NETWORK_NOT_CONFIRMED;
+    if (/timed\s*out|^⏱/i.test(s)) return NETWORK_TIMED_OUT;
     // "❌ Not in network (not listed)" contains "in network" — read it as Out before the In test.
     if (/\bnot\s+(?:in[-\s]?network|listed)\b/i.test(s)) return NETWORK_OUT;
     if (/^(in[-\s]?network|inn|in|true|yes|✅)$/i.test(s) || /^IN$/i.test(s) || /\bin[-\s]?network\b/i.test(s)) {
@@ -1183,6 +1186,7 @@
       const row = add(d.name || d.drug || d.drugName);
       if (!row) return;
       if (d.brandNotCovered) row.brandNotCovered = true;
+      if (d.timedOut) row.timedOut = true;
       if (d.genericOf) row.genericOf = d.genericOf;
       // The on-screen wording per plan ("80 mg: T1 $0") wins over a recomputed "Tier 1 · $0".
       if (d.screen && typeof d.screen === "object") row.screen = Object.assign({}, row.screen || {}, d.screen);
@@ -1415,7 +1419,12 @@
       if (blobHasPlanId(inBlob, plan)) return NETWORK_IN;
       if (blobHasPlanId(outBlob, plan)) return NETWORK_OUT;
       if (!carrierMatchesPlan(net.carrier, plan)) continue;
-      if (net.status === "failed" || net.status === "pending") {
+      if (net.status === "pending") {
+        // Still answering when the chat turn ended: a timeout, not "need more info".
+        fallback = fallback || NETWORK_TIMED_OUT;
+        continue;
+      }
+      if (net.status === "failed") {
         fallback = fallback || NETWORK_NEED_MORE;
         continue;
       }
@@ -1483,7 +1492,7 @@
             return (hit ? (typeof hit[1] === "function" ? hit[1](cell) : hit[1]) : "") || NETWORK_NOT_CONFIRMED;
           })
           : plans.map(
-            (p) => (mismatch ? "" : statusFromProviderNetworks(p, networks, { missIsUnknown })) || NETWORK_NOT_CONFIRMED
+            (p) => (mismatch ? "" : statusFromProviderNetworks(p, networks, { missIsUnknown })) || (pr.status === "timeout" ? NETWORK_TIMED_OUT : NETWORK_NOT_CONFIRMED)
           );
         const askedLabel = cleanProviderDisplayName(pr.requestedName || name);
         const registryLabel = cleanProviderDisplayName(name);
@@ -2465,14 +2474,16 @@
         });
         const cells = statuses.map((s, i) => {
           const shown = drug.screen && drug.screen[String(displayContractPbp(plans[i]) || "").toUpperCase().slice(0, 9)];
+          if (shown && /^⏱|timed\s*out/i.test(String(shown))) return NETWORK_TIMED_OUT;
+          if (!shown && drug.timedOut && !(s && s.verified)) return NETWORK_TIMED_OUT;
           return shown || formatDrugCell(s, plans[i]);
         });
         const values = [drug.name, ...cells];
-        const rowKinds = ["label", ...cells.map((c) => (c === "Unverified" ? "pending" : "text"))];
+        const rowKinds = ["label", ...cells.map((c) => (c === "Unverified" || c === NETWORK_TIMED_OUT ? "pending" : "text"))];
         const rowStyles = [makeStyle({ font: { bold: true } })];
         cells.forEach((c) => {
           rowStyles.push(
-            c === "Unverified"
+            c === "Unverified" || c === NETWORK_TIMED_OUT
               ? makeStyle({ font: { color: { rgb: RED } } })
               : makeStyle({ alignment: { wrapText: true, vertical: "top" } })
           );
@@ -2501,7 +2512,7 @@
       printedLabels[label] = true;
       // No yellow highlight on client sheets (Yahoska 10/5) — plain cells only.
       void highlight;
-      const rowKinds = ["label", ...values.slice(1).map((c) => (c === "Unverified" ? "pending" : "text"))];
+      const rowKinds = ["label", ...values.slice(1).map((c) => (c === "Unverified" || c === NETWORK_TIMED_OUT ? "pending" : "text"))];
       const rowStyles = [makeStyle({ font: { bold: true } })];
       values.slice(1).forEach((c) => {
         rowStyles.push(
@@ -2844,6 +2855,7 @@
     [/^✅\s*In\b/, NETWORK_IN],
     [/^❌/, NETWORK_OUT],
     [/^❔\s*not confirmed/i, NETWORK_NOT_CONFIRMED],
+    [/^⏱/, NETWORK_TIMED_OUT],
     [/^❔\s*check dental directory/i, dentalStatusText],
     [/^ℹ️?\s*no dental network/i, dentalStatusText],
   ];
@@ -3440,6 +3452,7 @@
     NETWORK_IN,
     NETWORK_OUT,
     NETWORK_NOT_CONFIRMED,
+    NETWORK_TIMED_OUT,
     NETWORK_NEED_MORE,
     GENERIC_ONLY_NOTE,
     BRAND_TO_GENERIC,

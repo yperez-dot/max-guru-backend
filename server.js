@@ -145,8 +145,10 @@ app.use('/workups', requireApiKey, requireAccessToken, workupsRouter);
 app.use('/compare', requireApiKey, requireAccessToken, compareRouter);
 
 const MAX_CLIENT_SYSTEM_CHARS = Number(process.env.MAX_CLIENT_SYSTEM_CHARS || 400000);
-// passThroughChat hard-caps this at MAX_CHAT_DEADLINE_CAP_MS (110s) so the 120s browser wait never fires first.
-const CHAT_DEADLINE_MS = Number(process.env.MAX_CHAT_DEADLINE_MS || 105_000);
+// The page runs chat as a background job (POST /chat/start + short polls, up to 10 min), so no browser or proxy holds
+// one request open: 150s here (passThroughChat caps at MAX_CHAT_DEADLINE_CAP_MS, 170s). The legacy single-request
+// fallback waits 180s in the page. Was 105s, sized for the old 120s browser wait (2026-10-20).
+const CHAT_DEADLINE_MS = Number(process.env.MAX_CHAT_DEADLINE_MS || 150_000);
 const MAX_PRIOR_TOOL_RESULTS = 40;
 const TOOL_USE_APPENDIX = `
 
@@ -358,6 +360,15 @@ app.get('/chat/jobs/:id', requireApiKey, requireAccessToken, (req, res) => {
   const job = getChatJob(req.params.id, req.accessEmail || '');
   if (!job) return res.status(404).json({ error: 'That reply is gone (Max restarted or it expired) — send it again.', code: 'chat_job_gone' });
   return res.json({ ok: true, job: publicChatJob(job) });
+});
+
+// Cells a chat turn ran out of time on, re-checked in the background (services/recheckJobs.js). The id is a random UUID
+// handed only to the page that got the reply.
+app.get('/chat/recheck/:id', requireApiKey, requireAccessToken, (req, res) => {
+  const { getRecheck, publicRecheck } = require('./services/recheckJobs');
+  const job = getRecheck(req.params.id);
+  if (!job) return res.status(404).json({ error: 'That re-check is gone — send the request again.', code: 'recheck_gone' });
+  return res.json({ ok: true, job: publicRecheck(job) });
 });
 
 // 404

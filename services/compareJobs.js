@@ -19,6 +19,8 @@ const RX_SHORTLIST = Number(process.env.MAX_COMPARE_RX_SHORTLIST || 6);
 const JOB_TTL_MS = 2 * 60 * 60 * 1000;
 const RX_CACHE_MS = Number(process.env.MAX_RX_CACHE_MS || 24 * 60 * 60 * 1000);
 const DOCTOR_BUDGET_MS = Number(process.env.MAX_COMPARE_DOCTOR_BUDGET_MS || 90_000);
+// A doctor still answering after DOCTOR_BUDGET_MS gets this much more before the card draws "⏱ timed out".
+const CARD_RECHECK_MS = Number(process.env.MAX_COMPARE_RECHECK_MS || 90_000);
 const DRUG_CONCURRENCY = Number(process.env.MAX_COMPARE_DRUG_CONCURRENCY || 4);
 const MAX_DOCTORS = 15;
 const MAX_MEDS = 20;
@@ -485,6 +487,24 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
       job.progress.doctors.done += 1;
       return { ...(r.structured || {}), requestedName: d.name, ...(d.npi ? { requestedNpi: d.npi } : {}), status: r.status, mustKeep: Boolean(d.mustKeep) };
     }));
+    // A doctor that ran out of time: the card is a background job (no browser wait), so it gets more time — re-checked
+    // once (the unfinished lookup kept running into the cache) before the table is drawn. Only what is still unfinished
+    // after that shows "⏱ timed out" (same cells as the chat).
+    const slow = doctorStructs.map((d, k) => (d.status === 'timeout' || (d.status === 'partial' && (d.pending || []).length) ? k : -1)).filter((k) => k >= 0);
+    if (slow.length && CARD_RECHECK_MS > 0) {
+      job.status = 'rechecking';
+      job.progress.recheck = { total: slow.length, done: 0 };
+      const until = Date.now() + CARD_RECHECK_MS;
+      await Promise.all(slow.map(async (k) => {
+        const d = input.doctors[k];
+        try {
+          const r = await lookupOneDoctor({ doctorName: d.name, npi: d.npi, zip: input.zip, year: input.year }, { deadlineAt: until, npiCap: 2, background: true });
+          if (r && r.status !== 'timeout') doctorStructs[k] = { ...(r.structured || {}), requestedName: d.name, ...(d.npi ? { requestedNpi: d.npi } : {}), status: r.status, mustKeep: Boolean(d.mustKeep) };
+        } catch (_) { /* keep the timed-out row */ }
+        job.progress.recheck.done += 1;
+      }));
+      job.result.rechecked = slow.length;
+    }
     // Same doctor-set rules as the chat (loadedWorkup.js): one row per NPI; a look-alike without an NPI is asked about.
     const dedupedDoctors = dedupeDoctorRows(doctorStructs);
     doctorStructs.splice(0, doctorStructs.length, ...dedupedDoctors);
@@ -567,6 +587,8 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     // Every lookup failed: the table carries the banner, and the UI shows it in red.
     job.result.medsLookupFailed = require('./doctorPlanNarrow').allDrugLookupsFailed(drugs); // same rule as the chat
     job.result.medsBanner = job.result.medsLookupFailed ? MEDS_FAILED_BANNER.replace(/\*\*/g, '') : null;
+    // "⏱ 2 doctor checks ran out of time — …" above the table (same line as the chat).
+    job.result.timedOutNote = require('./doctorPlanNarrow').timedOutNote(doctorStructs, drugs, { recheck: false }) || null;
     // Only plans in the grid get a "Could not verify" note: a county plan that was never shown (H1035-017 under Tony
     // and Gerry Cabrera's UHC / DrMax / Humana grid, 2026-10-19) is not part of her comparison.
     const cnvShown = (sel.couldNotVerify || []).filter((c) => planIds.some((id) => id.slice(0, 9) === String(c.planId).slice(0, 9)));
@@ -636,6 +658,7 @@ module.exports = {
   getJob,
   publicJob,
   runJob,
+  normalizeInput,
   queueState,
   lookupFormularyCached,
   startingStrengthsFor,

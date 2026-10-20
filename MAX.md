@@ -715,3 +715,10 @@ bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.
 - A doctor she resolves (candidate pick, "X = Y (…, NPI …)", "the first one", "the dentist") stays resolved on every later re-run (plan swap, filter, rank, card) and is saved with its NPI. Left side of "=" matches fuzzily (spelling, accents, Dr./MD, missing middle names); with one unresolved doctor any "X = Y" binds to it. The compare card's questions now reach the chat server.
 - Several real people with the typed name near the ZIP (Ricardo Espinosa: PA NPI 1346449220 / dentist NPI 1083825665) are asked about, never silently picked; a dentist goes to the dental networks only.
 - An empty "Notes:" header over "Question: …" is dropped.
+
+## Timed-out lookups get their own status (feat/timeout-status)
+- A doctor or med check that runs out of time shows `⏱ timed out` (never ❔ / "not confirmed"), with a one-line note above the table ("⏱ N doctor checks and N meds ran out of time — re-checking…") and a legend entry. Excel/PDF say "Timed out — re-check", never blank.
+- Budgets: chat deadline 150s (cap 170s, was 105/110s) since chat is a polled job (/chat/start + /chat/jobs); the legacy single fetch waits 180s. Meds start in parallel with doctors when the plan columns are known (otherwise a 20s reserve remains).
+- Background re-check (services/recheckJobs.js, GET /chat/recheck/:id, up to 180s via MAX_RECHECK_MAX_MS): the page polls every 4s (max 240s) and posts the updated table as a follow-up message. No drug-cost ranking while any cell is timed out.
+- Compare card: 90s doctor pass + 90s re-check pass (MAX_COMPARE_RECHECK_MS), status 'rechecking', result.timedOutNote.
+- Railway env vars (MAX_CHAT_DEADLINE_MS etc.) override these defaults.

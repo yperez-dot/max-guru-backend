@@ -515,6 +515,21 @@
     return /^\s*(?:please\s+)?(?:export|download|send)?(?:\s+(?:it|this|that|the\s+(?:table|comparison|grid)))?(?:\s+(?:to|as|in))?\s*(?:excel|xlsx|pdf|export|spreadsheet)?\s*(?:please|pls)?[\s.!]*$/i.test(String(text || ''))
       && /\b(?:export|excel|xlsx|pdf|download)\b/i.test(String(text || ''));
   }
+  // The finished background re-check (GET /chat/recheck/:id) as chat bubbles: a one-line header, the updated grid,
+  // then its notes/questions (the same split as a normal reply).
+  function recheckReply(result) {
+    const r = result || {};
+    const text = String(r.rendered || "");
+    const marker = "<!-- max:follow-up -->";
+    const at = text.indexOf(marker);
+    const grid = (at >= 0 ? text.slice(0, at) : text).trim();
+    const followUp = at >= 0 ? text.slice(at + marker.length).trim() : "";
+    const n = (Number(r.doctorsRechecked) || 0) + (Number(r.medsRechecked) || 0);
+    const head = Number(r.stillTimedOut) > 0
+      ? "⏱ Re-check finished — " + r.stillTimedOut + " still timed out (send the same message again to re-check those):"
+      : "✅ Re-check finished — " + (n ? n + " timed-out check" + (n > 1 ? "s" : "") + " " : "") + "updated:";
+    return { grid: head + "\n\n" + grid, followUp };
+  }
   function recoveredDoctorsNote(workup) {
     const names = (workup && Array.isArray(workup.recoveredDoctors) ? workup.recoveredDoctors : []).filter(Boolean);
     if (!names.length) return "";
@@ -567,6 +582,7 @@
     const skipQ = o.skipQuestion instanceof RegExp ? o.skipQuestion : null;
     const questions = (Array.isArray(r.questions) ? r.questions : []).map((q) => String(q || "").trim()).filter((q) => q && !(skipQ && skipQ.test(q)));
     const notes = [];
+    if (r.timedOutNote && String(r.timedOutNote).trim()) notes.push(String(r.timedOutNote).trim());
     const cnv = r.couldNotVerify;
     // Only plans in the grid: a plan outside the comparison set never gets a note (Tony & Gerry Cabrera, 2026-10-19).
     const gridIds = (Array.isArray(r.planIds) ? r.planIds : []).map((x) => String(x || "").toUpperCase().slice(0, 9));
@@ -626,6 +642,7 @@
     compareCardTurnText,
     recoveredDoctorsNote,
     isBareExportAsk,
+    recheckReply,
     workupListLabel,
     formatUpdatedAt,
     rehydratePlans,
