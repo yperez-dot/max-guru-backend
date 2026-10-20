@@ -1,7 +1,7 @@
 # Humana — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
-Pulled: 2026-10-17 14:33 UTC
+Pulled: 2026-10-20 00:21 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H1036-054C, H1036-065C, H1036-077, H1036-121, H1036-297, H1036-304, H1036-305, H1036-339, H7617-107, H7617-110, H7617-145
 
@@ -68,14 +68,14 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 **Plan year:** 2027
 **CMS ID:** H1036-297
 **Premium:** $0
-**Part B Giveback:** $166
+**Part B Giveback:** $166.30
 **MOOP:** $2,450
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Chronic Conditions | •Chronic Lung Disorder |
 | Premium | $0 |
-| Part B Giveback | $166 |
+| Part B Giveback | $166.30 |
 | Referrals Needed? | Yes |
 | Medical Deductible | $0 |
 | Max Out of Pocket | $2,450 |
@@ -256,13 +256,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | Non-hospital $0 · Hospital $75 |
 | Hearing Services | $0 exam · $399 Level 1 / $675 Level 2 per ear |
 | Dental | $5,000 preventive & comprehensive |
-| Deep Cleaning | Yes — included in $5,000 allowance (freq limits may apply) |
-| Dentures | Yes — included in $5,000 allowance (freq limits may apply) |
-| Fillings | Yes — included in $5,000 allowance (freq limits may apply) |
-| Root Canals | Yes — included in $5,000 allowance (freq limits may apply) |
-| Extractions | Yes — included in $5,000 allowance (freq limits may apply) |
-| Crowns | Yes — included in $5,000 allowance (freq limits may apply) |
-| Bridges | Yes — included in $5,000 allowance (freq limits may apply) |
+| Deep Cleaning | Yes |
+| Dentures | Yes |
+| Fillings | Yes |
+| Root Canals | Yes |
+| Extractions | Yes |
+| Crowns | Yes |
+| Bridges | Yes |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $75 ground · 20% air |
@@ -678,14 +678,14 @@ Out-of-network (confirmed):
 **Plan year:** 2027
 **CMS ID:** H1036-297
 **Premium:** $0
-**Part B Giveback:** $166
+**Part B Giveback:** $166.30
 **MOOP:** $2,450
 
 | Benefit | 2027 (confirmed) |
 |---------|------------------|
 | Chronic Conditions | •Chronic lung disorders |
 | Premium | $0 |
-| Part B Giveback | $166 |
+| Part B Giveback | $166.30 |
 | Referrals Needed? | Yes |
 | Medical Deductible | $0 |
 | Max Out of Pocket | $2,450 |
@@ -753,13 +753,13 @@ Out-of-network (confirmed):
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 exam · $0 Level 1 per ear |
 | Dental | $5,000 preventive & comprehensive |
-| Deep Cleaning | Yes — included in $5,000 allowance (freq limits may apply) |
-| Dentures | Yes — included in $5,000 allowance (freq limits may apply) |
-| Fillings | Yes — included in $5,000 allowance (freq limits may apply) |
-| Root Canals | Yes — included in $5,000 allowance (freq limits may apply) |
-| Extractions | Yes — included in $5,000 allowance (freq limits may apply) |
-| Crowns | Yes — included in $5,000 allowance (freq limits may apply) |
-| Bridges | Yes — included in $5,000 allowance (freq limits may apply) |
+| Deep Cleaning | Yes |
+| Dentures | Yes |
+| Fillings | Yes |
+| Root Canals | Yes |
+| Extractions | Yes |
+| Crowns | Yes |
+| Bridges | Yes |
 | Implants | No |
 | Vision Allowance | $100 |
 | Ambulance | $0 or $200 ground · $0 or 20% air |
@@ -810,13 +810,13 @@ Out-of-network (confirmed):
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 exam · $0 Level 2 per ear |
 | Dental | $2,500 preventive & comprehensive |
-| Deep Cleaning | Yes — included in $2,500 allowance (freq limits may apply) |
-| Dentures | Yes — included in $2,500 allowance (freq limits may apply) |
-| Fillings | Yes — included in $2,500 allowance (freq limits may apply) |
-| Root Canals | Yes — included in $2,500 allowance (freq limits may apply) |
-| Extractions | Yes — included in $2,500 allowance (freq limits may apply) |
-| Crowns | Yes — included in $2,500 allowance (freq limits may apply) |
-| Bridges | Yes — included in $2,500 allowance (freq limits may apply) |
+| Deep Cleaning | Yes |
+| Dentures | Yes |
+| Fillings | Yes |
+| Root Canals | Yes |
+| Extractions | Yes |
+| Crowns | Yes |
+| Bridges | Yes |
 | Implants | No |
 | Vision Allowance | $400 |
 | Ambulance | $0 or $200 ground · $0 or 20% air |
@@ -867,13 +867,13 @@ Out-of-network (confirmed):
 | Advanced Imaging (MRI, CT, PET) | $0 |
 | Hearing Services | $0 exam · $0 Level 1 per ear |
 | Dental | $5,000 preventive & comprehensive |
-| Deep Cleaning | Yes — included in $5,000 allowance (freq limits may apply) |
-| Dentures | Yes — included in $5,000 allowance (freq limits may apply) |
-| Fillings | Yes — included in $5,000 allowance (freq limits may apply) |
-| Root Canals | Yes — included in $5,000 allowance (freq limits may apply) |
-| Extractions | Yes — included in $5,000 allowance (freq limits may apply) |
-| Crowns | Yes — included in $5,000 allowance (freq limits may apply) |
-| Bridges | Yes — included in $5,000 allowance (freq limits may apply) |
+| Deep Cleaning | Yes |
+| Dentures | Yes |
+| Fillings | Yes |
+| Root Canals | Yes |
+| Extractions | Yes |
+| Crowns | Yes |
+| Bridges | Yes |
 | Implants | No |
 | Vision Allowance | $100 |
 | Ambulance | $0 |
@@ -924,13 +924,13 @@ Out-of-network (confirmed):
 | Advanced Imaging (MRI, CT, PET) | Non-hospital $0 · Hospital $75 |
 | Hearing Services | $0 exam · $199 Level 1 / $475 Level 2 per ear |
 | Dental | $6,000 preventive & comprehensive |
-| Deep Cleaning | Yes — included in $6,000 allowance (freq limits may apply) |
-| Dentures | Yes — included in $6,000 allowance (freq limits may apply) |
-| Fillings | Yes — included in $6,000 allowance (freq limits may apply) |
-| Root Canals | Yes — included in $6,000 allowance (freq limits may apply) |
-| Extractions | Yes — included in $6,000 allowance (freq limits may apply) |
-| Crowns | Yes — included in $6,000 allowance (freq limits may apply) |
-| Bridges | Yes — included in $6,000 allowance (freq limits may apply) |
+| Deep Cleaning | Yes |
+| Dentures | Yes |
+| Fillings | Yes |
+| Root Canals | Yes |
+| Extractions | Yes |
+| Crowns | Yes |
+| Bridges | Yes |
 | Implants | No |
 | Vision Allowance | $450 |
 | Ambulance | $75 ground · 20% air |

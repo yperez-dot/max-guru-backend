@@ -223,6 +223,7 @@ The booklet is two-column: **DrMax-Dade left, DrSelect-SFL right**. Reading the 
 # .../export?format=xlsx returns a 401 login page; both scripts now refuse a non-xlsx file.
 python3 scripts/sync_thei_grid_to_max.py --year 2027   # non-yellow → live #plan-data
 python3 scripts/export_2027_grid_to_kb.py              # same cells → max-knowledge/
+python3 scripts/export_2027_plan_info_to_kb.py         # Plan Info tab → max-knowledge/carriers/plan-info-2027.md
 
 # 2026 workbook (archive / year toggle only)
 # Fresh THEI xlsx at /tmp/thei-grid.xlsx
