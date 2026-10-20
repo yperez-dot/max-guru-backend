@@ -151,11 +151,13 @@ function limited(key, fn, priority = 0) {
 }
 
 /** Resolve with `promise`, or with `onTimeout()` once `deadlineAt` passes. The promise keeps running. */
-function raceDeadline(promise, deadlineAt, onTimeout) {
+function raceDeadline(promise, deadlineAt, onTimeout, { unref = false } = {}) {
   const ms = Math.max(0, deadlineAt - Date.now());
   let timer;
   const timeout = new Promise((resolve) => {
     timer = setTimeout(() => resolve(onTimeout()), ms);
+    // A background re-check's wait never keeps the process alive on its own.
+    if (unref && timer && typeof timer.unref === 'function') timer.unref();
   });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
@@ -688,7 +690,7 @@ function stripSavedStatus(raw) {
     .trim();
 }
 
-async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCache = true } = {}) {
+async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCache = true, background = false } = {}) {
   const doctorName = stripSavedStatus(input.doctorName || input.name || input.npi || '');
   const zip = String(input.zip || '33136');
   const planYear = Number(input.year) || Number(UHC_PLAN_YEAR);
@@ -703,7 +705,7 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
       if (hit.value) return { ...hit.value, cached: true };
       if (hit.inflight) {
         // An earlier (cut-off) attempt is still running — wait for it within this budget.
-        return raceDeadline(hit.inflight, until, () => pendingResult(doctorName, 'carrier directories still answering from the previous attempt'));
+        return raceDeadline(hit.inflight, until, () => pendingResult(doctorName, 'carrier directories still answering from the previous attempt'), { unref: background });
       }
     }
   }
@@ -808,7 +810,7 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
       return pendingResult(doctorName, 'NPI registry lookup did not finish');
     }
     return buildDoctorResult(doctorName, zip, planYear, live, { timedOut: true });
-  }).then((r) => r || settled);
+  }, { unref: background }).then((r) => r || settled);
 }
 
 /** One dentist: Humana / UHC / FDB dental directories (each with its own timeout); no medical checks, no Sunfire. */
@@ -916,6 +918,19 @@ function savedNpiFor(name, saved) {
   return npis.length === 1 ? npis[0] : '';
 }
 
+/** Plan columns already fixed by her ask (a saved workup / named plans), so meds can be priced alongside the doctors. */
+function earlyMedPlanIds(askText) {
+  const t = String(askText || '');
+  if (!t || /^(?:Rank all eligible plans\.|Carriers requested:|Wants another carrier\.|Wants alternatives to the named plan)/m.test(t)) return [];
+  try {
+    const N = require('./doctorPlanNarrow');
+    const named = /^Named plan set: /m.test(t) ? N.selectComparison([], t, {}).columns : N.namedPlansFromAsk(t);
+    return [...new Set((named || []).map((p) => String(p.planId || '').toUpperCase()).filter(Boolean))];
+  } catch (_) {
+    return [];
+  }
+}
+
 async function lookupProviderNetwork(toolInput = {}, context = {}) {
   const saved = savedDoctorNpis(context.messages);
   const doctors = normalizeDoctorList(toolInput).map((d) => {
@@ -965,7 +980,18 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   const unreadableMeds = tableMode && !meds.length
     ? drugTokensInText(latestText, { exclude: doctors.map((d) => d.doctorName || d.name) }).catch(() => [])
     : Promise.resolve([]);
-  const doctorDeadline = meds.length && deadlineAt - Date.now() > MEDS_RESERVE_MS + 15_000 ? deadlineAt - MEDS_RESERVE_MS : deadlineAt;
+  // Meds get their own budget: when the plan columns are already named (a saved workup, "compare H5420-014 and …"),
+  // the med lookups start NOW, alongside the doctors, and get the whole deadline — not whatever the doctors leave
+  // (Evelyn Nieves, 2026-10-20: 7 doctors × 4 plans left the meds no time and 5 of 6 timed out). Ranked / carrier
+  // tables still price after the doctors pick the columns, with MEDS_RESERVE_MS held back for them.
+  const year0 = Number(common.year) || Number(UHC_PLAN_YEAR) || 2027;
+  const earlyPlanIds = meds.length ? earlyMedPlanIds(askText) : [];
+  const rawDrug = new Map(); // drugName -> the un-raced lookup promise (keeps running past the deadline)
+  if (earlyPlanIds.length) {
+    const { lookupFormularyCached } = require('./compareJobs'); // lazy: compareJobs requires this file
+    for (const drugName of meds) rawDrug.set(drugName, { planIds: earlyPlanIds, promise: lookupFormularyCached({ drugName, planIds: earlyPlanIds, year: year0 }).catch((e) => ({ drugName, byPlanId: {}, lookups: [], error: (e && e.message) || 'error' })) });
+  }
+  const doctorDeadline = meds.length && !earlyPlanIds.length && deadlineAt - Date.now() > MEDS_RESERVE_MS + 15_000 ? deadlineAt - MEDS_RESERVE_MS : deadlineAt;
   const results = await Promise.all(doctors.map((d) => lookupDoctor(
     { ...common, ...d, planId: undefined, planIds: guestPlanIdsFor([d.planId, common.planId, toolInput.planIds], planAskText) },
     { deadlineAt: doctorDeadline, npiCap }
@@ -998,11 +1024,14 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
       // (Evelyn Nieves, 2026-10-20: on a 4-plan table only Mounjaro came back and the other 5 meds vanished from the
       // table and the export).
       const missed = (drugName, why) => ({ drugName, byPlanId: {}, lookups: [], timedOut: why === 'timeout', error: why === 'timeout' ? null : why });
-      drugs = await Promise.all(meds.map((drugName) => raceDeadline(
-        lookupFormularyCached({ drugName, planIds, year }).catch((e) => missed(drugName, (e && e.message) || 'error')),
-        deadlineAt,
-        () => missed(drugName, 'timeout'),
-      ).then((r) => r || missed(drugName, 'timeout'))));
+      drugs = await Promise.all(meds.map((drugName) => {
+        // Started early on the same columns: that lookup. Otherwise (columns picked by the doctors) start it now.
+        const early = rawDrug.get(drugName);
+        const covers = early && planIds.every((id) => early.planIds.some((e) => e.slice(0, 9).toUpperCase() === id.slice(0, 9).toUpperCase()));
+        if (!covers) rawDrug.set(drugName, { planIds, promise: lookupFormularyCached({ drugName, planIds, year }).catch((e) => missed(drugName, (e && e.message) || 'error')) });
+        return raceDeadline(rawDrug.get(drugName).promise, deadlineAt, () => missed(drugName, 'timeout'))
+          .then((r) => r || missed(drugName, 'timeout'));
+      }));
     }
   }
   const summary = batchSummaryForModel(doctorsStructured, askText, { answered, drugs });
@@ -1015,17 +1044,48 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
     });
   const header = `Doctor network batch — ${results.length} doctors, ZIP ${common.zip || '33136'}, year ${Number(common.year) || UHC_PLAN_YEAR}. Finished: ${done}/${results.length}.` +
     (done < results.length ? ` Anything marked ${NOT_CONFIRMED} did not finish (or no NPI match) — never report it as out-of-network.` : '');
+  // Anything that ran out of time is re-checked in the background: the unfinished lookups keep running, and the page
+  // gets the same table re-rendered when they finish (services/recheckJobs.js, GET /chat/recheck/:id).
+  const timedOutDocs = results.filter((r) => r.status === 'timeout' || (r.status === 'partial' && r.structured && (r.structured.pending || []).length));
+  const timedOutMeds = drugs.filter((r) => r && r.timedOut);
+  let recheckId = '';
+  if ((timedOutDocs.length || timedOutMeds.length) && context.recheck === true) {
+    const job = require('./recheckJobs').startRecheck(async ({ deadlineAt: until }) => {
+      const redone = await Promise.all(results.map((r, k) => (timedOutDocs.includes(r)
+        ? lookupDoctor({ ...common, ...doctors[k], planId: undefined, planIds: guestPlanIdsFor([doctors[k].planId, common.planId, toolInput.planIds], planAskText) }, { deadlineAt: until, npiCap, background: true }).catch(() => r)
+        : r)));
+      const docs2 = dedupeDoctorRows(redone.map((r) => ({ ...r.structured, requestedName: r.doctorName, status: r.status })));
+      const drugs2 = await Promise.all(drugs.map((r) => {
+        if (!r || !r.timedOut) return r;
+        const raw = rawDrug.get(r.drugName);
+        return raw ? raceDeadline(raw.promise, until, () => r, { unref: true }).then((x) => x || r) : r;
+      }));
+      const { toExportDrug, toExportDrugs } = require('./formularyLookup');
+      return {
+        rendered: (() => { const N = require('./doctorPlanNarrow'); return N.dropDanglingListLines(N.stripWhyThesePlans(renderedAnswer(docs2, askText, { answered, drugs: drugs2, medsUnreadable, recheck: false }))); })(),
+        toolResults: [
+          ...docs2.map((d) => ({ tool: 'lookup_provider_network', output: d })),
+          ...drugs2.filter(Boolean).map((r) => ({ tool: 'lookup_formulary', output: { ...r, drug: toExportDrug(r), drugs: toExportDrugs(r) } })),
+        ],
+        stillTimedOut: docs2.filter((d) => d.status === 'timeout').length + drugs2.filter((r) => r && r.timedOut).length,
+        doctorsRechecked: timedOutDocs.length,
+        medsRechecked: timedOutMeds.length,
+      };
+    });
+    recheckId = job.id;
+  }
   return {
+    recheckId,
     text: [header, '', summary.text, notes.length ? `\nNOTES:\n${notes.join('\n')}` : '',
       medsUnreadable ? `\nMEDS NOT READ: the ask names drugs (${unreadTokens.join(', ')}) but no med list could be read. Tell the agent: "Couldn't read the medication list. Re-send as 'Meds: a, b, c'". Do not write a meds table.` : '',
     ].join('\n').slice(0, 12000),
-    structured: { doctors: doctorsStructured, finished: done, total: results.length, questions: summary.questions, rendered: renderedAnswer(doctorsStructured, askText, { answered, drugs, medsUnreadable }), medsUnreadable },
+    structured: { doctors: doctorsStructured, finished: done, total: results.length, questions: summary.questions, rendered: renderedAnswer(doctorsStructured, askText, { answered, drugs, medsUnreadable, recheck: Boolean(recheckId) }), medsUnreadable, ...(recheckId ? { recheckId } : {}) },
     expand: doctorsStructured,
     // Priced meds ride along as their own tool results (fallback tables + Excel/PDF export read them).
-    extraToolResults: drugs.map((r) => {
+    extraToolResults: [...drugs.map((r) => {
       const { toExportDrug, toExportDrugs } = require('./formularyLookup');
       return { tool: 'lookup_formulary', output: { ...r, drug: toExportDrug(r), drugs: toExportDrugs(r) } };
-    }),
+    }), ...(recheckId ? [{ tool: 'recheck', output: { recheckId } }] : [])],
     status: done === results.length ? 'done' : 'partial',
   };
 }
@@ -1039,6 +1099,7 @@ module.exports = {
   planIdsFrom,
   guestPlanIdsFor,
   lookupProviderNetwork,
+  earlyMedPlanIds,
   fhirCheck,
   npiRecordInfo,
   FHIR_CARRIERS,

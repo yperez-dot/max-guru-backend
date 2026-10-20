@@ -76,7 +76,8 @@ stub('sunfireProvider', {
 knobs.rxCalls = [];
 stub('compareJobs', {
   lookupFormularyCached: async ({ drugName, planIds }) => {
-    knobs.rxCalls.push({ drugName, planIds });
+    knobs.rxCalls.push({ drugName, planIds, at: Date.now() });
+    if (knobs.rxHold && knobs.rxHold[drugName]) await knobs.rxHold[drugName];
     const byPlanId = {};
     for (const id of planIds) byPlanId[id] = { planId: id, verified: true, tier: 1, coverage: 'covered', costShare: '$0' };
     return { drugName, lookups: Object.values(byPlanId), byPlanId };
@@ -290,5 +291,68 @@ describe('chat batch prices listed meds in the same turn (rule 8)', () => {
     assert.equal(out.extraToolResults[0].tool, 'lookup_formulary');
     assert.match(out.text, /Meds are already checked on every table plan/);
     assert.doesNotMatch(out.text, /MEDS ALREADY GIVEN — before answering/);
+  });
+});
+
+// Yahoska, 2026-10-20: "instead of a ❔ when a lookup runs out of time, alert us that it ran out of time, or give it
+// more time". Timeouts are their own cell, the meds get their own budget, and a background pass re-checks them.
+describe('timed-out cells: ⏱ status, own med budget, background re-check', () => {
+  beforeEach(() => {
+    clearProviderCache();
+    knobs.carrierMs = 20;
+    knobs.hangHumanaFor = new Set();
+    knobs.hangNpiFor = new Set();
+    knobs.resolveHumana = [];
+    knobs.rxCalls = [];
+    knobs.rxHold = {};
+  });
+
+  it('a med and a doctor that miss the deadline read "⏱ timed out", the note says re-checking, and the re-check posts the finished table', async () => {
+    let releaseRx;
+    knobs.rxHold = { metformin: new Promise((r) => { releaseRx = r; }) };
+    knobs.hangHumanaFor = new Set(['Howard Bush']);
+    const messages = [{ role: 'user', content: 'Client ZIP 33332. Doctors: Ernesto Padron, Howard Bush. Meds: Eliquis, metformin. Compare Humana Gold Plus H1036-065C and UHC H1045-005' }];
+    const out = await lookupProviderNetwork({ doctors: [{ doctorName: 'Ernesto Padron' }, { doctorName: 'Howard Bush' }], zip: '33332' }, { deadlineAt: Date.now() + 600, messages, recheck: true });
+    const table = out.structured.rendered;
+    assert.match(table, /^⏱ 1 doctor check and 1 med ran out of time — re-checking…/m);
+    assert.match(table.split('\n').find((l) => /^\| metformin/i.test(l)) || '', /⏱ timed out/);
+    assert.doesNotMatch(table.split('\n').find((l) => /^\| metformin/i.test(l)) || '', /❔/);
+    assert.match(table.split('\n').find((l) => /Howard Bush/.test(l)) || '', /⏱ timed out/);
+    assert.ok(out.structured.recheckId);
+    assert.deepEqual(out.extraToolResults.filter((t) => t.tool === 'recheck').map((t) => t.output.recheckId), [out.structured.recheckId]);
+    // Both finish after the reply went out: the re-check job re-renders the same table.
+    const { getRecheck } = require('./recheckJobs');
+    releaseRx();
+    knobs.resolveHumana.forEach((r) => r());
+    for (let i = 0; i < 100 && getRecheck(out.structured.recheckId).status !== 'done'; i += 1) await sleep(20);
+    const job = getRecheck(out.structured.recheckId);
+    assert.equal(job.status, 'done');
+    assert.equal(job.result.stillTimedOut, 0);
+    assert.doesNotMatch(job.result.rendered, /⏱/);
+    assert.match(job.result.rendered.split('\n').find((l) => /^\| metformin/i.test(l)) || '', /T1/);
+    assert.ok(job.result.toolResults.some((t) => t.tool === 'lookup_formulary' && t.output.drugName === 'metformin' && !t.output.timedOut));
+  });
+
+  it('named plans: the meds start alongside the doctors (their own budget), not after them', async () => {
+    knobs.hangHumanaFor = new Set(['Howard Bush']);
+    const messages = [{ role: 'user', content: 'Client ZIP 33332. Doctors: Ernesto Padron, Howard Bush. Meds: Eliquis. Compare Humana Gold Plus H1036-065C and UHC H1045-005' }];
+    const t0 = Date.now();
+    const p = lookupProviderNetwork({ doctors: [{ doctorName: 'Ernesto Padron' }, { doctorName: 'Howard Bush' }], zip: '33332' }, { deadlineAt: Date.now() + 400, messages });
+    await sleep(30);
+    assert.equal(knobs.rxCalls.length, 1, 'Eliquis started while the doctors were still running');
+    assert.ok(knobs.rxCalls[0].at - t0 < 30);
+    assert.deepEqual(knobs.rxCalls[0].planIds.map((x) => x.slice(0, 9)).sort(), ['H1036-065', 'H1045-005']);
+    await p;
+    assert.equal(knobs.rxCalls.length, 1, 'the early lookup is reused, not run twice');
+    knobs.resolveHumana.forEach((r) => r());
+  });
+
+  it('no re-check outside the chat (context.recheck not set)', async () => {
+    knobs.hangNpiFor = new Set(['Alfred Slowpoke']);
+    const messages = [{ role: 'user', content: 'Client ZIP 33332. Doctors: Ernesto Padron, Alfred Slowpoke. Compare H1036-065C and H1045-005' }];
+    const out = await lookupProviderNetwork({ doctors: [{ doctorName: 'Ernesto Padron' }, { doctorName: 'Alfred Slowpoke' }], zip: '33332' }, { deadlineAt: Date.now() + 300, messages });
+    assert.ok(!out.structured.recheckId);
+    assert.match(out.structured.rendered, /^⏱ 1 doctor check ran out of time — send the same message again to re-check\./m);
+    assert.match(out.structured.rendered.split('\n').find((l) => /Alfred Slowpoke/.test(l)) || '', /⏱ timed out \| ⏱ timed out/);
   });
 });

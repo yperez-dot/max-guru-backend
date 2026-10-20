@@ -500,8 +500,10 @@ describe('Padron chat budget', () => {
       { tool: 'lookup_provider_network', output: { requestedName: 'Howard Bush', doctorName: 'Howard Bush', status: 'timeout', networks: [] } },
     ], 'Maria & Gaspar Padron, ZIP 33332. Check these doctors and suggest 2-3 2027 plans');
     assert.match(text, /\| Jorge Diaz · NPI 1111111111 \| ✅ In/);
-    assert.match(text, /\| Howard Bush \| ❔ unchecked/);
-    assert.match(text, /\*\*1 in · 0 not in network · 1 unchecked\*\*/);
+    // A lookup that ran out of time has its own status, never a final-looking ❔ (2026-10-20).
+    assert.match(text, /\| Howard Bush \| ⏱ timed out/);
+    assert.match(text, /\*\*1 in · 0 not in network · 0 unchecked · 1 timed out\*\*|\*\*1 in · 0 not in network · 1 timed out\*\*/);
+    assert.match(text, /^⏱ 1 doctor check ran out of time — send the same message again to re-check\./m);
     assert.doesNotMatch(text, /Why these plans/);
     assert.doesNotMatch(text, /\*\*\d+\/\d+\*\*/);
     assert.match(text, /Do Maria and Gaspar have Medicaid/);
@@ -551,11 +553,12 @@ describe('Padron chat budget', () => {
     });
   });
 
-  it('never lets the server deadline exceed the 120s browser wait', () => {
+  // The page polls a background chat job; only the legacy single-request fallback holds a request open (180s).
+  it('never lets the server deadline exceed the 180s legacy browser wait', () => {
     process.env.MAX_CHAT_DEADLINE_MS = '300000';
     const grok = loadGrok({ provider: 'grok', key: 'test-xai-key' });
     delete process.env.MAX_CHAT_DEADLINE_MS;
-    assert.ok(grok.CHAT_DEADLINE_CAP_MS < 120000);
+    assert.ok(grok.CHAT_DEADLINE_CAP_MS < 180000);
     assert.ok(grok.DEFAULT_CHAT_DEADLINE_MS <= grok.CHAT_DEADLINE_CAP_MS);
   });
 });

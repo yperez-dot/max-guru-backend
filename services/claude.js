@@ -349,7 +349,8 @@ async function processTool(toolName, toolInput, context = {}) {
     try {
       // Single doctor or doctors[] batch — all doctors/NPIs/carriers run in parallel
       // and the call returns by context.deadlineAt with finished results + NOT CONFIRMED.
-      return await lookupProviderNetwork(toolInput, context);
+      // From the chat: anything that times out is re-checked in the background (recheckJobs) and posted when done.
+      return await lookupProviderNetwork(toolInput, { ...context, recheck: context && context.recheck !== false });
     } catch (e) { return `Provider lookup error: ${e.message}`; }
   }
   if (toolName === 'discover_similar_plans') {

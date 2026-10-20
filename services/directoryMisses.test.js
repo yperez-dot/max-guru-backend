@@ -40,8 +40,9 @@ describe('Doctors + Devoted cells', () => {
 
   it('a pending check or an unconfirmed doctor match is never Out', () => {
     const pending = n.batchSummaryForModel([doc('Dileep Yavagal', [], { status: 'partial', pending: ['Doctors HealthCare Plans', 'FHIR (FL Blue / Cigna / HealthSun / Devoted)'] })], ASK, {}).text;
-    assert.equal(rowOf(pending, 'Dileep Yavagal')[2], '❔ unchecked');
-    assert.equal(rowOf(pending, 'Dileep Yavagal')[4], '❔ unchecked');
+    // Still answering at the deadline = timed out (its own status since 2026-10-20), never Out.
+    assert.equal(rowOf(pending, 'Dileep Yavagal')[2], '⏱ timed out');
+    assert.equal(rowOf(pending, 'Dileep Yavagal')[4], '⏱ timed out');
   });
 
   it('Doctors is one network for all plans: a finished list that omits the NPI is Out for a Doctors C-SNP too', () => {

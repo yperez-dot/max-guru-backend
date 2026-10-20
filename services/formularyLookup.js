@@ -2291,6 +2291,8 @@ function toExportDrug(result) {
     byPlanId,
     brandNotCovered: Boolean(generic && notCovered),
     suggestedGeneric: result.suggestedGeneric || null,
+    // Ran out of time in the chat turn: the export says "Timed out — re-check", not "Unverified".
+    ...(result.timedOut ? { timedOut: true } : {}),
   };
 }
 
