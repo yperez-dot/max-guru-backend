@@ -1,7 +1,7 @@
 # Solis — Florida 2027 plans
 Source: THEI 2027 Plan Benefit Grid (working copy) — confirmed green cells only.
 Workbook: https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit
-Pulled: 2026-10-17 14:33 UTC
+Pulled: 2026-10-20 00:21 UTC
 Counties: Broward / Miami-Dade
 CMS IDs on file: H0982-002, H0982-007, H0982-012, H0982-016, H0982-017, H0982-022, H0982-027, H0982-028, H0982-030, H0982-034
 
@@ -588,13 +588,13 @@ Yellow leftover 2026 cells are **not** in this file. If a benefit is missing her
 | Advanced Imaging (MRI, CT, PET) | Non-hospital $0 · Hospital $35 |
 | Hearing Services | $2,000 both ears x year |
 | Dental | Preventive & Comprehensive $3,500 |
-| Deep Cleaning | Yes (D4341 SRP — auth*; D4342 no review) |
-| Dentures | Yes (complete no auth; partial — auth*; 1 per 5 yrs) |
-| Fillings | Yes (amalgam/composite) |
-| Root Canals | Yes (root canal no auth; retreatment auth*) |
-| Extractions | Yes (auth*) |
-| Crowns | Yes (auth*) |
-| Bridges | Yes (auth*) |
+| Deep Cleaning | Yes |
+| Dentures | Yes |
+| Fillings | Yes |
+| Root Canals | Yes |
+| Extractions | Yes |
+| Crowns | Yes |
+| Bridges | Yes |
 | Implants | Yes (auth* — see Dental Guide limits) |
 | Vision Allowance | $350 eyewear allowance/yr OR 2 pairs select eyeglasses/yr · routine eye exam $0 |
 | Ambulance | $50 ground · 20% air |
