@@ -363,8 +363,25 @@ function comparisonAskText(messages, baseText) {
     // carrier already in the set never pulls in its sibling plans (Nancy Blanco De Pajaro, 2026-10-17: DrSelect-SFL
     // H4140-023 appeared unasked and UHC H5420-001 was dropped).
     // "check this plan Devoted C-SNP ENHANCED H1290-067" / "add dvoted to the grid": saved plans + that plan (Gerry Cabrera, 2026-10-19).
+    if (i === msgs.map((x) => x && x.role).lastIndexOf('user') && !/\b[HR]\d{4}-\d{3}/i.test(t)) {
+      const byName = planNamesInAsk(t, R.countyFromAsk(msgs.map(messageText).join('\n')) || 'Miami-Dade');
+      const amb = byName.ambiguous;
+      const cap = (x) => x.replace(/\b([a-z])/g, (c) => c.toUpperCase());
+      if (amb.length) lines.push(`Plan names not matched: ${amb.map((a) => `${cap(a.name)} (${a.ids.join(' or ')})`).join(' | ')}.`);
+      // Only an ambiguous name: the plans already on the grid stay as they are (no carrier swap) until she gives the ID.
+      if (amb.length && !byName.ids.length) {
+        const wkB = workupFacts(msgs.slice(0, i + 1));
+        const base = wkB && wkB.plans.length ? wkB.plans : LW.lastTablePlanIds(msgs.slice(0, i + 1));
+        if (base.length) {
+          const nm = (id) => { const row = gridRowFor(id, ''); return row ? (carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim()) : id; };
+          lines.push(`Named plan set: ${base.map((id) => `${nm(id)} (${id})`).join('; ')}.`);
+          break;
+        }
+      }
+    }
     const addSet = require('./loadedWorkup').workupPlanAddSet(t, msgs.slice(0, i + 1));
     if (addSet.length) {
+      if (addSet.added && addSet.added.length) lines.push(`Plans she added: ${addSet.added.join(', ')}.`);
       lines.push(`Named plan set: ${addSet.map((pl) => `${pl.name} (${pl.planId})`).join('; ')}.`);
       break;
     }
@@ -529,6 +546,23 @@ function planTypeSetFromAsk(text, msgs) {
 }
 
 
+// "CAN YOU PLEASE RUN THIS SEARCH FOR HUMANA PPO Humana Choice H7617-107 AND Humana Choice Giveback H7617-110" /
+// "add Humana Choice Giveback" / "check H7617-107 too": she names plans to run her doctors and meds on. The server
+// re-runs the comparison with those plans added — the model alone re-sent its previous table with neither plan in it
+// (Robert and Andrea, 2026-10-19). Returns the plan IDs she named ([] when the message is not a plan ask).
+const PLAN_ASK_RE = /\b(?:check|re-?check|re-?run|run|search|look\s*(?:up|at)|verify|add|include|plus|show|compare|price|try|see|put)\b/i;
+function namedPlanAskIds(text, msgs) {
+  const t = normalizeTypedPlanIds(String(text || ''));
+  if (!t.trim() || isWorkupMessage(t) || !PLAN_ASK_RE.test(t)) return [];
+  if (/^\s*(?:remove|drop|delete|take\s+out|get\s+rid\s+of|without|no\s+more)\b/i.test(t)) return [];
+  const ids = [...new Set([...t.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase()))];
+  if (ids.length) return ids;
+  const county = R.countyFromAsk((msgs || []).map(messageText).join('\n')) || 'Miami-Dade';
+  const byName = planNamesInAsk(t, county);
+  // An ambiguous name still re-runs: the follow-up bubble asks which plan ID she meant.
+  return byName.ids.length ? byName.ids : byName.ambiguous.length ? ['a plan name that matches more than one plan'] : gridPlansByName(t, county);
+}
+
 function comparisonFollowUp(messages) {
   const out = comparisonFollowUpRaw(messages);
   if (!out || !Array.isArray(out.doctors)) return out;
@@ -548,6 +582,7 @@ function comparisonFollowUpRaw(messages) {
   if (lastUserAt < 0) return null;
   const latest = messageText(msgs[lastUserAt]);
   const reasons = [];
+  const planAsk = namedPlanAskIds(latest, msgs.slice(0, lastUserAt + 1));
   const carriers = R.carriersRequested(latest);
   if (carriers.length) reasons.push(`carriers asked: ${carriers.join(', ')}`);
   const rejected = R.carriersRejected(latest);
@@ -580,7 +615,11 @@ function comparisonFollowUpRaw(messages) {
     const m = msgs[i];
     if (!m || m.role !== 'user') continue;
     const t = messageText(m);
-    if (!/\b(?:doctors?|drs?|providers?)\s*:/i.test(t)) continue;
+    // A plan ask on a chat whose doctors were typed as a plain list ("Robert and Andrea, 33186, Dr. Nathalie Regalado,
+    // Dr. Michael Weitz, …") — no "Doctors:" label: that earlier message is the doctor list.
+    const plainList = planAsk.length && i < lastUserAt && !isWorkupMessage(t) && /\b(?:dr|dra|doctor)\.?\s+[A-Z]/i.test(t)
+      && parseCompareAsk(t).doctors.length >= 2;
+    if (!/\b(?:doctors?|drs?|providers?)\s*:/i.test(t) && !plainList) continue;
     const f = parseCompareAsk(t);
     if (f.doctors.length < 2) return null;
     let names = f.doctors.map((d) => d.name);
@@ -686,6 +725,7 @@ function comparisonFollowUpRaw(messages) {
       names = names.filter((nm) => !removedByClauses(nm, removals));
       if (names.length < before && doctorRemovalClauses(latest).length) reasons.push('doctor removals');
     }
+    if (planAsk.length && !reasons.length) reasons.push(`plans she named: ${planAsk.join(', ')}`);
     if (!reasons.length) return null;
     for (const [from, to] of subs) names = names.map((nm) => (sameDoctorName(nm, from) ? to : nm));
     const zip = f.zip || (msgs.slice(0, lastUserAt + 1).map(messageText).join(' ').match(/\b(3\d{4})\b/) || [])[1] || '';
@@ -729,9 +769,10 @@ function workupDoctorCheck(msgs, lastUserAt) {
     const nm = add[1].trim();
     if (!doctors.some((d) => sameDoctorName(d, nm) || looseSameDoctor(d, nm) || core(d).slice(-1)[0] === plainWords(nm).slice(-1)[0])) { doctors.push(nm); added = nm; }
   }
-  if (!named.length && !added) return null;
+  const planAsk = named.length || added ? [] : namedPlanAskIds(latest, msgs.slice(0, lastUserAt + 1));
+  if (!named.length && !added && !planAsk.length) return null;
   return {
-    reason: `check on her saved workup — all ${doctors.length} saved doctors on all saved plans${added ? ` (added ${added})` : ''}`,
+    reason: `check on her saved workup — all ${doctors.length} saved doctors on all saved plans${added ? ` (added ${added})` : ''}${planAsk.length ? ` + plans she named: ${planAsk.join(', ')}` : ''}`,
     doctors,
     zip: wk.zip || newestZip(msgs.slice(0, lastUserAt + 1)),
   };
@@ -941,7 +982,19 @@ function plansInLine(line, constraints) {
       .replace(LEAD_VERB_RE, '').trim();
     out.push({ planId: id, index: m2.index, name: name || id });
   }
-  return out.sort((a, b) => a.index - b.index).map(({ index, ...p }) => p);
+  return out.sort((a, b) => a.index - b.index).map(({ index, ...p }) => ({ ...p, name: typedPlanName(p.name, p.planId) }));
+}
+
+// Her request words are never part of a plan's name: "CAN YOU PLEASE RUN THIS SEARCH FOR HUMANA PPO Humana Choice
+// H7617-107" was a column headed "THIS SEARCH FOR HUMANA PPO Humana Choice" (Robert and Andrea, 2026-10-19). A grid
+// plan whose typed name carries them takes its grid name.
+const REQUEST_WORDS_RE = /\b(?:can|could|would|you|please|pls|run|search|this|that|these|for|check|look|find|her|his|their|them|me|us|on|again|too|also|and)\b/i;
+function typedPlanName(name, planId) {
+  const nm = String(name || '').trim();
+  if (!nm || !REQUEST_WORDS_RE.test(nm)) return nm;
+  const row = gridRowFor(planId, '');
+  if (!row) return nm.replace(/^.*\b(?:for|on)\s+/i, '').trim() || nm;
+  return carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim();
 }
 
 const LEAD_VERB_RE = /^(?:(?:pls|please|can you|could you|now|also|then)\s+)*(?:re-?check|check|re-?run|run|try|look at|look up|verify|do|use|go with)\s+(?:(?:on|for|the)\s+)?(?:again\s+)?/i;
@@ -957,6 +1010,18 @@ function normalizeTypedPlanIds(text) {
 
 function namedPlansFromAsk(askText0, constraints) {
   const askText = normalizeTypedPlanIds(askText0);
+  // comparisonAskText already resolved her plan edit into one set ("Named plan set: …"): that list, in its order, is the
+  // set — the same one selectComparison draws. Re-reading her message line by line put the plans she added in front of
+  // the current plan on the compare card (Robert and Andrea, 2026-10-19).
+  const setLines = [...String(askText || '').matchAll(/^Named plan set: (.+)$/gm)];
+  if (setLines.length) {
+    const fromLine = setLines[setLines.length - 1][1].replace(/\.$/, '').split(';').map((x) => {
+      const m = x.match(/^\s*(.*?)\s*\(([HR]\d{4}-\d{3}[A-Z]?)\)\s*$/i);
+      return m ? { planId: m[2].toUpperCase(), name: m[1] || m[2].toUpperCase() } : null;
+    }).filter(Boolean)
+      .filter((p) => !(constraints && [...constraints.skip].some((x) => x.slice(0, 9) === p.planId.slice(0, 9))));
+    if (fromLine.length) return fromLine;
+  }
   let current = [];
   // Her current plan (comparisonAskText's "Her current plan:" line): a new set that mentions it keeps it, first.
   const currentIds = [...String((String(askText || '').match(/^Her current plan:\s*([^\n]+)$/m) || ['', ''])[1]).matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
@@ -990,6 +1055,8 @@ function namedPlansFromAsk(askText0, constraints) {
       endWorkup();
     }
     if (!line.trim()) continue;
+    // comparisonAskText's marker of the plans she just added (selectComparison reads it) is not a plan list.
+    if (/^(?:Plans she added|Plan names not matched):/.test(line)) continue;
     // Removals first ("remove devoted", "drop H1290-073") — loadedWorkup.js rules: whole words / carrier / ID; a pronoun
     // ("remove it") never removes a plan.
     current = LW.removePlansNamedIn(current, line, [...currentIds, ...workupCurrentIds]);
@@ -1487,6 +1554,41 @@ function gridRowFor(planId, county) {
     || null;
 }
 
+// Marketing names she types in a plan ask ("add Humana Choice Giveback", "run DrMax-Dade and Humana Gold Plus too"):
+// each grid plan's carrier + name with the sheet's working notes taken out ("COMMISSIONABLE 2027", "**NEW 2027"),
+// matched after the ask verb, longest name first. A name two grid plans share is ambiguous: she is asked for the ID.
+const PLAN_NAME_ASK_RE = /\b(?:check|re-?check|re-?run|run|search|look\s*(?:up|at)|verify|add|include|plus|show|compare|price|try|see|put)\b([^.;?!\n]*)/gi;
+function cleanGridPlanName(g) {
+  const pn = String(g.planName || '');
+  const full = carrierKey(pn) ? pn : `${g.carrier || ''} ${pn}`;
+  return full.replace(/\*+/g, ' ').replace(/\b(?:non[-\s]?)?commissionable\b/gi, ' ').replace(/\b(?:new\s+)?20\d\d\b/gi, ' ').replace(/\bnew\b\s*$/i, ' ')
+    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+function planNamesInAsk(text, county) {
+  const segs = [...String(text || '').matchAll(PLAN_NAME_ASK_RE)].map((m) => m[1]);
+  const out = { ids: [], ambiguous: [] };
+  if (!segs.length) return out;
+  const byName = new Map();
+  for (const g of R.gridPlansForCounty(county || '')) {
+    const nm = cleanGridPlanName(g);
+    if (nm.split(' ').length < 2) continue;
+    const id = String(g.planId || g.id).toUpperCase();
+    if (!byName.has(nm)) byName.set(nm, []);
+    if (!byName.get(nm).includes(id)) byName.get(nm).push(id);
+  }
+  const names = [...byName.keys()].sort((a, b) => b.length - a.length);
+  for (const seg of segs) {
+    let hay = ` ${String(seg).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()} `;
+    for (const nm of names) {
+      if (!hay.includes(` ${nm} `)) continue;
+      hay = hay.split(` ${nm} `).join(' | ');
+      const ids = byName.get(nm);
+      if (ids.length === 1) { if (!out.ids.includes(ids[0])) out.ids.push(ids[0]); } else if (!out.ambiguous.some((a) => a.name === nm)) out.ambiguous.push({ name: nm, ids });
+    }
+  }
+  return out;
+}
+
 /** Grid plans she names by marketing name ("UHC MedicareMax FL-0028") in her county — longest name first. */
 function gridPlansByName(text, county) {
   const norm = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -1712,11 +1814,18 @@ function selectComparison(doctors, askText, opts = {}) {
         cols = [...decorate(namedPlanColumns([{ planId: (curText.match(new RegExp(`${id}[A-Z]?`, 'i')) || [id])[0].toUpperCase(), name: nm || id }], matrix, docs)), ...cols];
       }
     }
-    if (cols.length > 4) {
+    // Plans she just added to the grid ("run this search for H7617-107 and H7617-110") join the plans already on it:
+    // nothing is cut to make room for them, and they are never the ones cut (Robert and Andrea, 2026-10-19: the
+    // 5-plan set was cut back to 3 and her saved Humana Gold / DrMax columns vanished).
+    const addedIds = new Set([...String((ask0.match(/^Plans she added:\s*([^\n]+)$/m) || ['', ''])[1]).matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((m) => m[1].toUpperCase()));
+    const isAdded = (c) => addedIds.has(String(c.planId || '').toUpperCase().slice(0, 9));
+    const cap = addedIds.size ? 6 : 4;
+    if (cols.length > cap) {
       const score = (c) => ((c.in || []).length * 100) - ((c.out || []).length * 10) - ((c.unknown || []).length);
       const current = cols.filter(isCur).slice(0, 1);
-      const others = cols.filter((c) => !current.includes(c)).sort((a, b) => score(b) - score(a));
-      const keep = new Set([...current, ...others.slice(0, 3 - current.length)]);
+      const pinned = [...current, ...cols.filter((c) => isAdded(c) && !current.includes(c))];
+      const others = cols.filter((c) => !pinned.includes(c)).sort((a, b) => score(b) - score(a));
+      const keep = new Set([...pinned, ...others.slice(0, Math.max(0, (addedIds.size ? cap : 3) - pinned.length))]);
       trimmed = cols.length - keep.size;
       cols = cols.filter((c) => keep.has(c));
     }
@@ -1965,9 +2074,43 @@ function selectComparison(doctors, askText, opts = {}) {
     out.medsToCheck = { drugs: missingDrugs, planIds: tableIds };
   }
 
+  // Doctor questions (no match / wrong / confirm) — asked on a named-plan grid too: with plans she named, the server
+  // asked nothing and the model wrote "Are Sandman and Taub the providers below?" with no providers under it
+  // (Robert and Andrea, 2026-10-19).
+  // Doctor questions (no match / wrong / confirm) share ONE numbered slot so eligibility always fits.
+  const doctorQs = [];
+  const missing = docs.filter((d) => d.status === 'not_found');
+  if (missing.length) {
+    // Each candidate with what she needs to tell them apart: specialty, city, NPI (Robert and Andrea, 2026-10-19).
+    const fmt = (x) => { const bits = [x.specialty, x.city, x.npi ? `NPI ${x.npi}` : ''].filter(Boolean); return `${x.name}${bits.length ? ` (${bits.join(', ')})` : ''}`; };
+    // One short bullet per doctor, newest-first reading order kept; the parts the answer parser reads
+    // ("No exact match", "\"Name\" — did you mean X (", "closest:") are unchanged.
+    const per = missing.map((d) => {
+      const sug = (d.suggestions || []).slice(0, 2);
+      const asked = `"${titleCase(shortDoctor(d))}"`;
+      if (sug[0] && sug[0].spelling) return `${asked} — did you mean ${fmt(sug[0])}? (looks like a spelling difference)`;
+      return `${asked}${sug.length ? ` — closest: ${sug.map(fmt).join('; ')}` : ' — not found. Spelling, or specialty / office?'}`;
+    });
+    const anyTypo = missing.some((d) => d.suggestions && d.suggestions[0] && d.suggestions[0].spelling);
+    const example = `${titleCase(shortDoctor(missing[0]))} = Dr. Full Name`;
+    doctorQs.push(`No exact match for:\n${per.map((x) => `• ${x}`).join('\n')}\n${anyTypo ? 'Reply "yes" to use the spelling found, or' : 'Reply'} "${example}".`);
+  }
+  const wrong = docs.filter((d) => d.identityPending === 'wrong');
+  if (wrong.length) {
+    doctorQs.push(`Which doctor did you mean for ${wrong.map((d) => titleCase(shortDoctor(d))).join(', ')}? The match${wrong.length > 1 ? 'es' : ''} I found ${wrong.length > 1 ? 'were' : 'was'} the wrong person, so ${wrong.length > 1 ? 'they stay' : 'it stays'} ❔ not confirmed — give the full name, specialty or office (no NPI needed).`);
+  }
+  const toConfirm = docs.filter((d) => d.identityPending && d.identityPending !== 'wrong');
+  if (toConfirm.length) {
+    doctorQs.push(`Confirm the doctor match (their In/Out stays ❔ not confirmed until you do): ${toConfirm.map((d) => `${titleCase(shortDoctor(d))} → ${cleanName(d.doctorName)}${d.npi ? ` (NPI ${d.npi})` : ''}`).join('; ')}. Right doctor${toConfirm.length > 1 ? 's' : ''}? If not, tell me who (no NPI needed).`);
+  }
   // Questions (max 3): eligibility first (rule 1), then identity (rule 10), then the rest.
   // Eligibility and identity are asked even after a reply — while they are open, SNP plans
   // stay out and unconfirmed doctors do not count, so they must never go quiet.
+  // Named plans: the server writes this question itself, in the follow-up bubble, candidates and all (renderedAnswer).
+  if (out.named && doctorQs.length) {
+    out.questions = personalize([doctorQs.join(' Also: ')], ask);
+    out.doctorQuestion = out.questions[0];
+  }
   if (!out.named) {
     const qs = [];
     const dualUnknown = snpUnknownKinds.has('dsnp') || snpUnknownKinds.has('qmb');
@@ -1978,31 +2121,6 @@ function selectComparison(doctors, askText, opts = {}) {
     }
     if (snpUnknownKinds.has('csnp') && elig.csnp === 'unknown') {
       qs.push('Does {client} have a C-SNP qualifying chronic condition, confirmed by diagnosis? — Yes (which one) / No. (C-SNPs stay out until confirmed.)');
-    }
-    // Doctor questions (no match / wrong / confirm) share ONE numbered slot so eligibility always fits.
-    const doctorQs = [];
-    const missing = docs.filter((d) => d.status === 'not_found');
-    if (missing.length) {
-      const fmt = (x) => `${x.name}${x.specialty ? ` (${x.specialty}${x.city ? `, ${x.city}` : ''})` : ''}`;
-      // One short bullet per doctor, newest-first reading order kept; the parts the answer parser reads
-      // ("No exact match", "\"Name\" — did you mean X (", "closest:") are unchanged.
-      const per = missing.map((d) => {
-        const sug = (d.suggestions || []).slice(0, 2);
-        const asked = `"${titleCase(shortDoctor(d))}"`;
-        if (sug[0] && sug[0].spelling) return `${asked} — did you mean ${fmt(sug[0])}? (looks like a spelling difference)`;
-        return `${asked}${sug.length ? ` — closest: ${sug.map(fmt).join('; ')}` : ' — not found. Spelling, or specialty / office?'}`;
-      });
-      const anyTypo = missing.some((d) => d.suggestions && d.suggestions[0] && d.suggestions[0].spelling);
-      const example = `${titleCase(shortDoctor(missing[0]))} = Dr. Full Name`;
-      doctorQs.push(`No exact match for:\n${per.map((x) => `• ${x}`).join('\n')}\n${anyTypo ? 'Reply "yes" to use the spelling found, or' : 'Reply'} "${example}".`);
-    }
-    const wrong = docs.filter((d) => d.identityPending === 'wrong');
-    if (wrong.length) {
-      doctorQs.push(`Which doctor did you mean for ${wrong.map((d) => titleCase(shortDoctor(d))).join(', ')}? The match${wrong.length > 1 ? 'es' : ''} I found ${wrong.length > 1 ? 'were' : 'was'} the wrong person, so ${wrong.length > 1 ? 'they stay' : 'it stays'} ❔ not confirmed — give the full name, specialty or office (no NPI needed).`);
-    }
-    const toConfirm = docs.filter((d) => d.identityPending && d.identityPending !== 'wrong');
-    if (toConfirm.length) {
-      doctorQs.push(`Confirm the doctor match (their In/Out stays ❔ not confirmed until you do): ${toConfirm.map((d) => `${titleCase(shortDoctor(d))} → ${cleanName(d.doctorName)}${d.npi ? ` (NPI ${d.npi})` : ''}`).join('; ')}. Right doctor${toConfirm.length > 1 ? 's' : ''}? If not, tell me who (no NPI needed).`);
     }
     if (doctorQs.length) qs.push(doctorQs.join(' Also: '));
     const top = out.columns;
@@ -2026,16 +2144,22 @@ function selectComparison(doctors, askText, opts = {}) {
     const explicit = new Set([...named.map((p) => p.planId), ...pinFromAsk, ...(Array.isArray(opts.pinPlanIds) ? opts.pinPlanIds : []), ...(Array.isArray(opts.named) ? opts.named.map((p) => p.planId) : [])]
       .map((id) => String(id || '').toUpperCase().slice(0, 9)));
     const away = [];
+    const unknown = [];
+    const in2026 = (k) => R.gridPlansForCounty('', 2026).some((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === k);
     out.columns = out.columns.filter((c) => {
       const k = String(c.planId || '').toUpperCase().slice(0, 9);
       if (countyIds.has(k)) return true;
       if (!explicit.has(k)) return false;
       const other = allRows.find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === k);
+      // A plan ID she typed that is in neither year's plan data (a typo, or a plan the grid doesn't carry): no column of
+      // ❔ cells — one plain line saying so (Robert and Andrea, 2026-10-19: a named plan is never silently dropped).
+      if (!other && !in2026(k)) { unknown.push(k); return false; }
       away.push(other ? `${k} (${other.county} grid)` : `${k} (not on the 2027 grid)`);
       return true;
     });
     if (out.ranked) out.ranked = out.ranked.filter((c) => out.columns.includes(c) || countyIds.has(String(c.planId || '').toUpperCase().slice(0, 9)));
     if (away.length) out.flags.push(`⚠️ Not offered in ${county}: ${away.join(', ')}.`);
+    if (unknown.length) out.flags.push(`⚠️ ${unknown.join(', ')} ${unknown.length > 1 ? "aren't" : "isn't"} in Max's plan data, so ${unknown.length > 1 ? "they're" : "it's"} not on the grid. Check the plan ID.`);
   }
   // Medical-group carrier rules win over a directory In (BHMG primary care — Yahoska, 2026-10-17).
   const cols = [...new Set([...(out.columns || []), ...(out.ranked || [])])];
@@ -2098,7 +2222,9 @@ function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] }
   } else if (sel.meds.length) {
     lines.push('2) Meds are already checked on every table plan — add the meds table (Drug | same plan columns | "T1 $0" cells). Never ask for meds again.');
   }
-  if (sel.questions.length) {
+  if (sel.named && sel.doctorQuestion) {
+    lines.push('3) The agent named the plans — compare exactly those. Do not add or swap plans and do not ask narrowing questions. The server already shows the doctor-match question with every candidate (name, specialty, city, NPI) under the table — do not ask about those doctors yourself.');
+  } else if (sel.questions.length) {
     lines.push('3) Still missing — ask these (numbered, short), then STOP and wait. Do not list more plans and do not add SNP plans until eligibility is confirmed.');
     sel.questions.forEach((q, i) => lines.push(`   Q${i + 1}. ${q}`));
   } else if (sel.named) {
@@ -2411,11 +2537,20 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
   // A checked plan with the same doctor results as a column (H1045-018 vs H1045-001) is named, not dropped.
   const twins = (sel.sameNetwork || []).slice(0, 4).map((x) => `${x.plan.planId} = same doctor results as ${x.twin.planId}`);
   if (twins.length) follow.push(`Also checked: ${twins.join('; ')}.`);
-  for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in |^⚠️ [^:\n]+: no eligible plan/.test(x))) follow.push(f);
+  for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in |^⚠️ [^:\n]+: no eligible plan|in Max's plan data/.test(x))) follow.push(f);
   // A carrier name she typed that matches no carrier: said, never dropped silently.
   const notRecognized = ((String(askText || '').match(/^Carriers not recognized:\s*([^\n]+?)\.?$/gm) || []).pop() || '').replace(/^Carriers not recognized:\s*/, '').replace(/\.$/, '');
   for (const name of notRecognized.split(' | ').filter(Boolean)) follow.push(`⚠️ Couldn't match "${name}" to a carrier — not included. Tell me the carrier name and I'll add it.`);
+  // A plan name two grid plans share ("Humana Choice Giveback" = H7617-110 and H7617-145): asked, never guessed.
+  const unmatched = ((String(askText || '').match(/^Plan names not matched:\s*([^\n]+?)\.?$/gm) || []).pop() || '').replace(/^Plan names not matched:\s*/, '').replace(/\.$/, '');
+  for (const x of unmatched.split(' | ').filter(Boolean)) {
+    const m = x.match(/^(.*?)\s*\((.+)\)$/);
+    follow.push(m ? `⚠️ "${m[1]}" could be ${m[2]}. Which plan ID should I add?` : `⚠️ Couldn't match "${x}" to one plan. Which plan ID should I add?`);
+  }
   for (const q of duplicateQuestions(doctors)) follow.push(q);
+  // Named plans + a doctor with no exact match: the question and its candidates come from the server, never a
+  // model paraphrase ("Are Sandman and Taub the providers below?" with nothing below — Robert and Andrea, 2026-10-19).
+  if (sel.doctorQuestion) follow.push(sel.doctorQuestion);
   const grid = lines.filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n');
   return follow.length ? `${grid}\n\n${FOLLOW_UP_MARKER}\n${follow.join('\n')}` : grid;
 }
@@ -2484,13 +2619,37 @@ function noteFitsGrid(line, rendered) {
   return true;
 }
 
+// "Question: Are Sandman and Taub the providers below?" with nothing below it (Robert and Andrea, 2026-10-19): a line that
+// points at a list ("below", "the following", "listed here") is dropped unless list items follow it.
+const POINTS_AT_LIST_RE = /\b(?:below|the following|listed (?:here|under)|these (?:providers|doctors|candidates|options)(?: here)?:)/i;
+const LIST_ITEM_RE = /^\s*(?:[-•*]\s+|\d+[.)]\s+|\|)|\bNPI\s*\d{10}\b/;
+function dropDanglingListLines(text) {
+  const lines = String(text || '').split('\n');
+  const out = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const l = lines[i];
+    if (POINTS_AT_LIST_RE.test(l) && !LIST_ITEM_RE.test(l) && /\?|:\s*$|^\s*\**question/i.test(l)) {
+      let j = i + 1;
+      while (j < lines.length && !lines[j].trim()) j += 1;
+      if (j >= lines.length || !LIST_ITEM_RE.test(lines[j])) continue;
+    }
+    out.push(l);
+  }
+  return out.join('\n');
+}
+// The model's own doctor-match lines when the server already asks it (with the candidates).
+const MODEL_DOCTOR_MATCH_RE = /no exact match|did you mean|closest(?: real)? (?:match|providers?)?:?|providers? below|(?:is|are) .{0,40}\bthe (?:right |same )?(?:providers?|doctors?)\b/i;
+
 /**
  * Server-rendered table first, then at most a few short lines of the model's own notes. Any
  * table, legend or per-doctor bullet the model wrote is dropped — the rendered table is the answer.
  */
 function enforceRenderedTable(replyText, rendered) {
-  if (!rendered) return replyText;
-  const reply = String(replyText || '');
+  if (!rendered) return dropDanglingListLines(replyText);
+  const serverAsksDoctors = /No exact match for:/.test(splitFollowUp(rendered).followUp || '');
+  const reply = dropDanglingListLines(String(replyText || '').split('\n')
+    .filter((l) => !(serverAsksDoctors && !rendered.includes(l.trim()) && (MODEL_DOCTOR_MATCH_RE.test(l) || /^\s*[•]/.test(l))))
+    .join('\n'));
   if (reply.includes(rendered)) {
     // The model copied the table and wrote its notes under it: those notes are the follow-up message.
     const fit = (x) => x.split('\n').filter((l) => !l.trim() || noteFitsGrid(l, rendered)).join('\n').trim();
@@ -2587,6 +2746,8 @@ module.exports = {
   removedByClauses,
   renderedAnswer,
   enforceRenderedTable,
+  planNamesInAsk,
+  dropDanglingListLines,
   noteFitsGrid,
   splitFollowUp,
   stripWhyThesePlans,

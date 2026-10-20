@@ -98,9 +98,34 @@ function workupCarrierEditSet(text, msgs) {
  */
 const PLAN_ASK_VERB_RE = /\b(?:check|show|add|include|run|price|look\s*at|compare|want|try|see|put)\b/i;
 const PLAN_EDIT_ONLY_RE = /\b(?:remove|drop|delete|take\s+(?:out|off)|without|instead\s+of|replace|swap|only|just)\b[^.;\n]{0,40}\b[HR]\d{4}-\d{3}/i;
+/** Plan IDs in the header of Max's newest Doctor × plan table in this chat (its columns, in order). */
+function lastTablePlanIds(msgs) {
+  const list = Array.isArray(msgs) ? msgs : [];
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const m = list[i];
+    if (!m || m.role !== 'assistant') continue;
+    const head = messageText(m).split('\n').find((l) => /^\|\s*(?:Doctor|Drug)\s*\|/.test(l.trim()));
+    if (!head) continue;
+    return [...new Set([...head.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase()))];
+  }
+  return [];
+}
+
+const currentPlanOf = (msgs) => N().currentPlanOf(msgs);
+
 function workupPlanAddSet(text, msgs) {
   const t = String(text || '').replace(/\b([HR]\d{4})-(\d{1,3})(?:-\d)?(?=[^\dA-Za-z-]|$)/gi, (m, a, b) => `${a.toUpperCase()}-${b.padStart(3, '0')}`);
-  const wk = workupFacts(msgs);
+  // The plans she is adding to: her saved workup's plans plus the columns of Max's last table (what she was looking
+  // at). "CAN YOU PLEASE RUN THIS SEARCH FOR HUMANA PPO Humana Choice H7617-107 AND … H7617-110" on a chat whose
+  // table showed UHC H5420-001, Humana H1036-054C and DrMax H4140-022 adds two columns to those three
+  // (Robert and Andrea, 2026-10-19: the model re-sent the old table and the two Humana PPOs never ran).
+  // A saved workup with comparison plans keeps its own list (a stale or wrong column on the last table never comes
+  // back — Gerry Cabrera's CarePlus H1019-121); the last table's columns are the base only when nothing else is saved.
+  const wk0 = workupFacts(msgs);
+  const shown = lastTablePlanIds(msgs);
+  const wk = wk0 ? { ...wk0, plans: wk0.plans.slice() } : (shown.length ? { plans: [], current: currentPlanOf(msgs) } : null);
+  const savedOthers = wk ? wk.plans.filter((id) => !(wk.current || []).some((c) => String(c).toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9))) : [];
+  if (wk && !savedOthers.length) wk.plans = [...wk.plans, ...shown.filter((id) => !wk.plans.some((x) => x.slice(0, 9) === id.slice(0, 9)))];
   if (!wk || !wk.plans.length || KEEP_EXACT_RE.test(t)) return [];
   const county = R.countyFromAsk(msgs.map(messageText).join('\n')) || 'Miami-Dade';
   const rows = R.gridPlansForCounty(county);
@@ -108,7 +133,11 @@ function workupPlanAddSet(text, msgs) {
   const carrierOfId = (id) => { const g = rowOf(id); return g ? R.carrierOfPlan(g) : ''; };
   const typed = [...t.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase());
   let adds = [];
-  if (typed.length) {
+  // "add Humana Choice Giveback" / "run Humana Gold Plus too": grid plans she names by marketing name (one plan per name).
+  const byName = typed.length ? [] : N().planNamesInAsk(t, county).ids;
+  if (byName.length && PLAN_ASK_VERB_RE.test(t) && !PLAN_EDIT_ONLY_RE.test(t) && !ONLY_PLANS_RE.test(t) && !NEW_SET_VERB_RE.test(t)) {
+    adds = byName;
+  } else if (typed.length) {
     // "Compare X and Y only" / "lets do X, Y" / "compare X and Y" (two or more IDs) is a new set: the edit rules decide.
     if (!PLAN_ASK_VERB_RE.test(t) || PLAN_EDIT_ONLY_RE.test(t) || ONLY_PLANS_RE.test(t) || NEW_SET_VERB_RE.test(t)) return [];
     if (typed.length > 1 && /\bcompare\b/i.test(t)) return [];
@@ -134,7 +163,10 @@ function workupPlanAddSet(text, msgs) {
   if (ids.length === wk.plans.length && ids.every((id, k) => id === wk.plans[k]) && !adds.length) return [];
   const nameOf = (id) => { const g = rowOf(id); if (!g) return id; return carrierKey(String(g.planName || '')) ? String(g.planName) : `${g.carrier || ''} ${g.planName || ''}`.trim(); };
   const fullId = (id) => { const g = rowOf(id); return g ? String(g.planId || g.id).toUpperCase() : String(id).toUpperCase(); };
-  return ids.map((id) => ({ planId: fullId(id), name: nameOf(id) }));
+  const set = ids.map((id) => ({ planId: fullId(id), name: nameOf(id) }));
+  // The plans she just added: never trimmed off the grid to make room (they are the point of her message).
+  set.added = adds.filter((id) => set.some((p) => p.planId.slice(0, 9) === id.slice(0, 9))).map(fullId);
+  return set;
 }
 
 /**
@@ -509,7 +541,7 @@ function resolveWorkupSets(messages) {
 module.exports = {
   messageText,
   // plans
-  workupFacts, workupCarrierEditSet, workupPlanAddSet, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,
+  workupFacts, workupCarrierEditSet, workupPlanAddSet, lastTablePlanIds, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,
   NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, PRONOUN_TARGET_RE, KEEPS_CURRENT_RE, lineKeepsCurrentPlan, droppedIdsIn, removePlansNamedIn, OFF_GRID_RE, DROPS_CURRENT_RE, currentPlanRemovedBy, planLineVerdict, currentPlanFirst,
   // doctors
   respelledDoctors, looseSameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords,

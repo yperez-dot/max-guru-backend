@@ -133,9 +133,10 @@ function chatResult({ lastData, text, collectedToolResults, usageCalls, deadline
   };
   // The grid is one chat message; notes / warnings / questions after it are a second one (page renders 2 bubbles).
   {
-    const { splitFollowUp, stripWhyThesePlans } = require('./doctorPlanNarrow');
-    // No "Why these plans" / "Excluded:" line in any reply (Yahoska, 2026-10-17).
-    const clean = stripWhyThesePlans(text || fallback).trim() || fallback;
+    const { splitFollowUp, stripWhyThesePlans, dropDanglingListLines } = require('./doctorPlanNarrow');
+    // No "Why these plans" / "Excluded:" line in any reply (Yahoska, 2026-10-17), and no question that points at a list
+    // that isn't there ("Are Sandman and Taub the providers below?" — Robert and Andrea, 2026-10-19).
+    const clean = dropDanglingListLines(stripWhyThesePlans(text || fallback)).trim() || fallback;
     out.content = [{ type: 'text', text: clean }];
     const parts = splitFollowUp(clean);
     if (parts.followUp) {

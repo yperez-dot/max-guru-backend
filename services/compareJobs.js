@@ -361,6 +361,8 @@ function normalizeInput(raw) {
     eligibility: normalizeEligibility(src.eligibility, Boolean(src.noMedicaid)),
     skip: list(src.skip).map((s) => String(s).toUpperCase()),
     year: Number(src.year) === 2026 ? 2026 : 2027,
+    // Plans she just added to an existing set: never trimmed off the grid (doctorPlanNarrow "Plans she added:").
+    addedPlans: list(src.addedPlans).map((p) => String(p || '').trim().toUpperCase()).filter((p) => /^[HR]\d{4}-\d{3}[A-Z]?$/.test(p)).slice(0, MAX_PLANS),
     planNames: src.planNames && typeof src.planNames === 'object'
       ? Object.fromEntries(Object.entries(src.planNames).slice(0, 10).map(([k, v]) => [String(k).toUpperCase(), String(v || '').slice(0, 80)]))
       : {},
@@ -378,7 +380,8 @@ function askTextFor(input) {
   for (const id of input.skip) parts.push(`Skip ${id}.`);
   if (input.plans.length) parts.push(`Compare ${input.plans.join(', ')}.`);
   if ((input.carriers || []).length) parts.push(`Carriers requested: ${input.carriers.join(', ')}.`);
-  return parts.join(' ');
+  const text = parts.join(' ');
+  return (input.addedPlans || []).length ? `${text}\nPlans she added: ${input.addedPlans.join(', ')}.` : text;
 }
 
 async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFormularyCached } = {}) {
