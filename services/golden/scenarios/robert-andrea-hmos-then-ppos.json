@@ -426,7 +426,7 @@
    "R0759-001"
   ],
   "chatFollowUpIncludes": [
-   "^Current plan \\(UHC H5420-001, HMO\\) left out since you asked for PPOs only\\.$"
+   "^Current plan \\(UHC H5420-001, HMO\\) left out since you asked for PPOs only\\.\\n"
   ],
   "chatExcludes": [
    "Why these plans",

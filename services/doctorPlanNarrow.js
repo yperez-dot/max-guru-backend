@@ -129,7 +129,8 @@ function planTypeAsk(text) {
 
 /** "Plan type: …" line for the ask text: her newest message only (a Max question she answered in it counts). */
 function planTypeLine(msgs) {
-  const lastUserAt = msgs.map((m) => m && m.role).lastIndexOf('user');
+  // A doctor-match answer keeps the plan type of the ask it answers ("only PPOs", then "Yekutiel Sandman, David Taub").
+  const lastUserAt = rankAskAt(msgs);
   if (lastUserAt < 0) return 'Plan type: default.';
   const latest = messageText(msgs[lastUserAt]);
   let type = planTypeIn(latest);
@@ -144,6 +145,111 @@ function planTypeLine(msgs) {
     });
   }
   return `Plan type: ${{ ppo: 'PPO only', hmo: 'HMO only', any: 'any' }[type] || 'default'}.`;
+}
+
+// ─── her pick from the "No exact match" candidates ──────────────────────────────────────────────────────────────
+// Max's question lists, per doctor she typed, the closest real providers the NPI registry found:
+//   • "Daid Taub" — closest: David Andrew Taub, MD (Urology, Boca Raton, NPI 1891804696); Harvey Carl Taub, MD (…)
+// Her reply names one ("Yekutiel Sandman and David Andrew Taub", "Daid Taub = David Andrew Taub", "yes" when each
+// doctor has one candidate): that candidate — name and NPI — replaces the doctor she typed, and is checked on every
+// plan in the table (Robert and Andrea, 2026-10-19: "Yekutil Sandman" / "Daid Taub" on an "only PPOs" table).
+const editDistance = (x, y) => {
+  let row = Array.from({ length: y.length + 1 }, (_, j) => j);
+  for (let a = 1; a <= x.length; a += 1) { const cur = [a]; for (let b = 1; b <= y.length; b += 1) cur[b] = Math.min(row[b] + 1, cur[b - 1] + 1, row[b - 1] + (x[a - 1] === y[b - 1] ? 0 : 1)); row = cur; }
+  return row[y.length];
+};
+const CRED_RE = /,?\s*\b(?:MD|M\.D\.|DO|D\.O\.|DDS|DMD|DPM|OD|ARNP|APRN|NP|PA-C?|PhD)\b\.?/gi;
+function doctorMatchCandidates(questionText) {
+  const out = [];
+  for (const m of String(questionText || '').matchAll(/^\s*[•*-]\s*["“]([^"”]+)["”]\s*[—–-]\s*(?:closest:|did you mean)\s*(.+)$/gim)) {
+    const cands = [];
+    for (const part of m[2].split(/;\s*/)) {
+      const c = part.match(/^\s*([^(?]+?)\s*\(([^)]*)\)/);
+      if (!c) continue;
+      const npi = (c[2].match(/\bNPI\s*(\d{10})\b/) || [])[1] || '';
+      cands.push({ name: c[1].replace(CRED_RE, '').trim(), npi });
+    }
+    if (cands.length) out.push({ asked: m[1].trim(), candidates: cands });
+  }
+  return out;
+}
+function candidatePicks(questionText, answerText) {
+  const rows = doctorMatchCandidates(questionText);
+  if (!rows.length) return [];
+  const a = String(answerText || '').trim();
+  const picks = [];
+  const take = (row, cand) => { if (!picks.some((p) => p.asked === row.asked)) picks.push({ asked: row.asked, name: cand.name, npi: cand.npi }); };
+  // A bare "yes" / "yes to both": each doctor with exactly one candidate takes it.
+  if (/^\s*(?:yes|yep|yeah|correct|ok(?:ay)?|right)(?:\s+(?:to\s+)?(?:both|all|all of them|them|those|that|please))?[.!]?\s*$/i.test(a)) {
+    for (const row of rows) if (row.candidates.length === 1) take(row, row.candidates[0]);
+    return picks;
+  }
+  const looksLike = (said, cand) => {
+    const sw = plainWords(said);
+    const cw = plainWords(cand.name);
+    if (sw.length < 2 || cw.length < 2) return false;
+    const last = sw[sw.length - 1];
+    return editDistance(sw[0], cw[0]) <= 1 && cw.slice(1).some((w) => editDistance(w, last) <= 1)
+      && sw.slice(1, -1).every((w) => w.length <= 1 || cw.some((x) => editDistance(x, w) <= 1));
+  };
+  const askedLike = (said, row) => {
+    const sw = plainWords(said);
+    const aw = plainWords(row.asked);
+    return sw.length >= 1 && aw.length >= 1 && editDistance(sw[sw.length - 1], aw[aw.length - 1]) <= 2 && (sw.length < 2 || editDistance(sw[0], aw[0]) <= 2);
+  };
+  const segs = a.replace(CRED_RE, '').split(/[\n;]|,|\band\b|&/i);
+  for (const seg0 of segs) {
+    const seg = seg0.replace(/^\s*(?:yes|yep|yeah|correct|ok(?:ay)?|its|it's|it is|use|try|the right one is|i mean)\b[\s,:-]*/i, '').replace(/^\s*(?:dr|dra|doctor)\.?\s+/i, '').replace(/[.!?]+\s*$/, '').trim();
+    if (!seg) continue;
+    const npi = (seg.match(/\b(\d{10})\b/) || [])[1];
+    const eq = seg.split(/\s*(?:=|→|->|\bis actually\b|\bshould be\b|\bis\b)\s*/i);
+    const left = eq.length > 1 ? eq[0] : '';
+    const right = (eq.length > 1 ? eq.slice(1).join(' ') : seg).replace(/^\s*(?:dr|dra|doctor)\.?\s+/i, '').trim();
+    const pool = rows.filter((row) => !left || askedLike(left, row));
+    const hits = [];
+    for (const row of pool) for (const cand of row.candidates) if ((npi && cand.npi === npi) || (!npi && looksLike(right, cand))) hits.push([row, cand]);
+    const byRow = [...new Set(hits.map((h) => h[0]))];
+    if (byRow.length === 1) take(byRow[0], hits.find((h) => h[0] === byRow[0])[1]);
+  }
+  return picks;
+}
+
+/** Her candidate picks in every reply up to lastUserAt, applied to the doctor list: { doctors, npis }. */
+function pickedDoctors(msgs, lastUserAt, doctors) {
+  const list = (doctors || []).slice();
+  const npis = {};
+  for (let i = 1; i <= lastUserAt; i += 1) {
+    const m = msgs[i];
+    if (!m || m.role !== 'user') continue;
+    const prev = msgs.slice(0, i).reverse().find((x) => x && x.role === 'assistant');
+    if (!prev) continue;
+    for (const pk of candidatePicks(messageText(prev), messageText(m))) {
+      const k = list.findIndex((nm) => sameDoctorName(nm, pk.asked) || plainWords(nm).join(' ') === plainWords(pk.asked).join(' '));
+      if (k < 0) continue;
+      list[k] = pk.name;
+      if (pk.npi) npis[pk.name] = pk.npi;
+    }
+  }
+  return { doctors: list, npis };
+}
+
+/** The latest message only answers Max's doctor-match question (no plan, carrier or plan-type ask in it). */
+function isDoctorMatchAnswer(msgs, at) {
+  const t = messageText(msgs[at]);
+  if (!t.trim() || /\b[HR]\d{4}-\d{3}/i.test(t) || R.carriersRequested(t).length || planTypeIn(t)) return false;
+  const prev = msgs.slice(0, at).reverse().find((m) => m && m.role === 'assistant');
+  if (!prev || !/No exact match for:/i.test(messageText(prev))) return false;
+  return candidatePicks(messageText(prev), t).length > 0;
+}
+/** The user message whose ranking / plan-type ask the newest turn continues: her doctor-match answers ride on it. */
+function rankAskAt(msgs) {
+  let at = msgs.map((m) => m && m.role).lastIndexOf('user');
+  while (at > 0 && isDoctorMatchAnswer(msgs, at)) {
+    const prevUser = msgs.slice(0, at).map((m) => m && m.role).lastIndexOf('user');
+    if (prevUser < 0) break;
+    at = prevUser;
+  }
+  return at;
 }
 
 /** Plan rows: who is In / Out / not confirmed, sorted by In count. */
@@ -452,7 +558,8 @@ function comparisonAskText(messages, baseText) {
     // "only PPOs" / "show me the PPOs" / "compare all HMOs" / "top 5 PPOs" in her NEWEST message: rank every plan of that
     // type in her county on her doctors and meds — top 5, or all of them when the county has 5 or fewer. Before, these
     // re-sent the saved table or fell back to HMOs (Robert and Andrea, 2026-10-19).
-    const typeAsk = i === msgs.map((x) => x && x.role).lastIndexOf('user') ? planTypeAsk(t) : null;
+    // Her answer to the doctor-match question under that table keeps the ranking she asked for (rankAskAt).
+    const typeAsk = i === rankAskAt(msgs) ? planTypeAsk(t) : null;
     if (typeAsk) {
       const excluded = excludedCarriers(msgs.slice(0, i + 1));
       if (excluded.length) lines.push(`Carriers excluded: ${excluded.join(', ')}.`);
@@ -695,7 +802,10 @@ function comparisonFollowUpRaw(messages) {
     const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
     if (wk && wk.doctors.length >= 2) {
       if (RANK_ASK_RE.test(latest) || typeAsk) reasons.push('rank all plans by her doctors');
-      return { reason: reasons.join(' + '), doctors: wk.doctors, zip: newestZip(msgs.slice(0, lastUserAt + 1)) || wk.zip };
+      // A doctor she already confirmed from the "No exact match" candidates is that provider here too — counted in the
+      // ranking, not ❔ not confirmed again (Robert and Andrea, 2026-10-19).
+      const picked = pickedDoctors(msgs, lastUserAt, wk.doctors);
+      return { reason: reasons.join(' + '), doctors: picked.doctors, zip: newestZip(msgs.slice(0, lastUserAt + 1)) || wk.zip, ...(Object.keys(picked.npis).length ? { npis: picked.npis } : {}) };
     }
   }
   const prevAssistant = msgs.slice(0, lastUserAt).reverse().find((m) => m && m.role === 'assistant');
@@ -710,7 +820,7 @@ function comparisonFollowUpRaw(messages) {
     const t = messageText(m);
     // A plan ask on a chat whose doctors were typed as a plain list ("Robert and Andrea, 33186, Dr. Nathalie Regalado,
     // Dr. Michael Weitz, …") — no "Doctors:" label: that earlier message is the doctor list.
-    const plainList = (planAsk.length || typeAsk) && i < lastUserAt && !isWorkupMessage(t) && /\b(?:dr|dra|doctor)\.?\s+[A-Z]/i.test(t)
+    const plainList = (planAsk.length || typeAsk || isDoctorMatchAnswer(msgs, lastUserAt)) && i < lastUserAt && !isWorkupMessage(t) && /\b(?:dr|dra|doctor)\.?\s+[A-Z]/i.test(t)
       && parseCompareAsk(t).doctors.length >= 2;
     if (!/\b(?:doctors?|drs?|providers?)\s*:/i.test(t) && !plainList) continue;
     const f = parseCompareAsk(t);
@@ -724,10 +834,20 @@ function comparisonFollowUpRaw(messages) {
       ...[...comparisonAskText(msgs).matchAll(/Doctor substitution: (.+?) => (.+?)\.$/gm)].map((x) => [x[1], x[2]]),
     ];
     if (substitutionsIn(latest, names).length) reasons.push('doctor corrections');
+    const prevQ = prevAssistant ? messageText(prevAssistant) : '';
+    // A candidate she picked from the "No exact match" list: that provider (name + NPI) replaces the doctor she typed.
+    const picks = candidatePicks(prevQ, latest);
+    const pickNpis = {};
+    for (const pk of picks) {
+      const from = names.find((nm) => sameDoctorName(nm, pk.asked) || plainWords(nm).join(' ') === plainWords(pk.asked).join(' '));
+      if (!from) continue;
+      subs.push([from, pk.name]);
+      if (pk.npi) pickNpis[pk.name] = pk.npi;
+      if (!reasons.includes('doctor corrections')) reasons.push('doctor corrections');
+    }
     // "Try Alan Dal Pra" / "its Zubair Ansari" in answer to ONE "No exact match" doctor: that name replaces it, and the
     // other doctors stay in the run (Melmoth Alexander, 2026-10-13: the reply re-ran only the new doctor).
-    const prevQ = prevAssistant ? messageText(prevAssistant) : '';
-    if (/No exact match for/i.test(prevQ) && !Object.keys(numberedAnswers(latest)).length) {
+    if (!picks.length && /No exact match for/i.test(prevQ) && !Object.keys(numberedAnswers(latest)).length) {
       const askedNames = [...prevQ.matchAll(/"([^"]+)"\s*—/g)].map((x) => x[1].trim());
       const said = latest.replace(/^\s*(?:try|use|maybe|its|it's|it is|is|=|check|add|change(?:\s+(?:it|him|her|that))?\s+to|switch(?:\s+(?:it|him|her))?\s+to|replace(?:\s+(?:it|him|her))?\s+with|should\s+be|spelled|instead)\s+/i, '').replace(/^dr\.?\s+/i, '').replace(/[.!?]+\s*$/, '').trim();
       const wordsSaid = said.split(/\s+/).filter(Boolean);
@@ -738,7 +858,7 @@ function comparisonFollowUpRaw(messages) {
     }
     // Several "No exact match" doctors and she just types the right name ("Pascual De Santis, MD", "yes, and the
     // endocrinologist is Pascual De Santis"): it goes to the one asked name it plainly resembles.
-    if (/No exact match for/i.test(prevQ) && !carriers.length) {
+    if (!picks.length && /No exact match for/i.test(prevQ) && !carriers.length) {
       const asked = [...prevQ.matchAll(/"([^"]+)"\s*—/g)].map((x) => x[1].trim());
       if (asked.length > 1) {
         const letters = (w) => String(w || '').toLowerCase().replace(/[^a-z]/g, '');
@@ -824,6 +944,7 @@ function comparisonFollowUpRaw(messages) {
     const zip = f.zip || (msgs.slice(0, lastUserAt + 1).map(messageText).join(' ').match(/\b(3\d{4})\b/) || [])[1] || '';
     const npis = {};
     for (const nm of names) for (const [asked, npi] of Object.entries(confirmed)) if (sameDoctorName(nm, asked)) npis[nm] = npi;
+    for (const nm of names) if (pickNpis[nm]) npis[nm] = pickNpis[nm];
     // One entry per doctor: a corrected spelling that lands on a name already listed is that name.
     const unique = names.filter((nm, k) => names.findIndex((o) => plainWords(o).join(' ') === plainWords(nm).join(' ')) === k);
     return { reason: reasons.join(' + '), doctors: unique, zip, ...(Object.keys(npis).length ? { npis } : {}) };
@@ -890,6 +1011,16 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
     const prev = msgs.slice(0, i).reverse().find((x) => x && x.role === 'assistant');
     const asked = prev && /No exact match|No NPI match|did you mean|Confirm the (?:doctor )?match|confirm match|right provider/i.test(messageText(prev));
     const t = messageText(m);
+    // Her pick from the "No exact match" candidates: that provider, with the NPI Max showed, on every plan in the table.
+    const picks = prev ? candidatePicks(messageText(prev), t) : [];
+    for (const pk of picks) {
+      const who = people.find((p) => sameDoctorName(p.name, pk.asked) || plainWords(p.name).join(' ') === plainWords(pk.asked).join(' '));
+      if (!who) continue;
+      who.name = pk.name;
+      who.npi = pk.npi || '';
+      touched = true;
+    }
+    if (picks.length) continue;
     // "it didnt add her primary… Dr. Kelys Caballero" / "add Dr. Kelys Caballero": a doctor added to the saved list.
     if (ADD_DOCTOR_RE.test(t) && !/\b[HR]\d{4}-\d{3}/i.test(t) && !R.carriersRequested(t).length) {
       const nm = (t.match(/\b(?:dr|dra|doctor|doctora)\.?\s+([A-ZÀ-Ý][\wÀ-ÿ'.-]+(?:\s+[A-ZÀ-Ý][\wÀ-ÿ'.-]+){0,3})/) || [])[1];
@@ -2226,6 +2357,16 @@ function selectComparison(doctors, askText, opts = {}) {
     out.questions = personalize([doctorQs.join(' Also: ')], ask);
     out.doctorQuestion = out.questions[0];
   }
+  // Ranked / type-filtered tables ("top 5 PPOs", "only PPOs", "rank the HMOs"): the same server-written doctor-match
+  // question, candidates and all, in the notes bubble — "only PPOs" showed Sandman and Taub as ❔ not confirmed with
+  // no suggestions (Robert and Andrea, 2026-10-19). A doctor still unconfirmed counted for no plan: said in one line.
+  if (!out.named && doctorQs.length) {
+    out.doctorQuestion = personalize([doctorQs.join(' Also: ')], ask)[0];
+    const pending = [...missing, ...wrong, ...toConfirm].map((d) => titleCase(shortDoctor(d)));
+    if (pending.length && out.columns.length) {
+      out.flags.push(`Ranking left out ${pending.join(', ').replace(/, ([^,]+)$/, ' and $1')} (not confirmed yet). Confirm ${pending.length > 1 ? 'them' : 'the doctor'} and I'll re-check every plan in the table and re-rank.`);
+    }
+  }
   if (!out.named) {
     const qs = [];
     const dualUnknown = snpUnknownKinds.has('dsnp') || snpUnknownKinds.has('qmb');
@@ -2339,9 +2480,12 @@ function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] }
   }
   if (sel.named && sel.doctorQuestion) {
     lines.push('3) The agent named the plans — compare exactly those. Do not add or swap plans and do not ask narrowing questions. The server already shows the doctor-match question with every candidate (name, specialty, city, NPI) under the table — do not ask about those doctors yourself.');
-  } else if (sel.questions.length) {
+  } else if (sel.questions.filter((q) => q !== sel.doctorQuestion).length) {
     lines.push('3) Still missing — ask these (numbered, short), then STOP and wait. Do not list more plans and do not add SNP plans until eligibility is confirmed.');
-    sel.questions.forEach((q, i) => lines.push(`   Q${i + 1}. ${q}`));
+    sel.questions.filter((q) => q !== sel.doctorQuestion).forEach((q, i) => lines.push(`   Q${i + 1}. ${q}`));
+    if (sel.doctorQuestion) lines.push('   The server already shows the doctor-match question with every candidate (name, specialty, city, NPI) under the table — do not ask about those doctors yourself.');
+  } else if (sel.doctorQuestion) {
+    lines.push('3) The server already shows the doctor-match question with every candidate (name, specialty, city, NPI) under the table — do not ask about those doctors yourself.');
   } else if (sel.named) {
     lines.push('3) The agent named the plans — compare exactly those. Do not add or swap plans and do not ask narrowing questions.');
   } else if (answered) {
@@ -2652,7 +2796,7 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
   // A checked plan with the same doctor results as a column (H1045-018 vs H1045-001) is named, not dropped.
   const twins = (sel.sameNetwork || []).slice(0, 4).map((x) => `${x.plan.planId} = same doctor results as ${x.twin.planId}`);
   if (twins.length) follow.push(`Also checked: ${twins.join('; ')}.`);
-  for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in |^⚠️ [^:\n]+: no eligible plan|in Max's plan data|left out since you asked for/.test(x))) follow.push(f);
+  for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in |^⚠️ [^:\n]+: no eligible plan|in Max's plan data|left out since you asked for|^Ranking left out /.test(x))) follow.push(f);
   // A carrier name she typed that matches no carrier: said, never dropped silently.
   const notRecognized = ((String(askText || '').match(/^Carriers not recognized:\s*([^\n]+?)\.?$/gm) || []).pop() || '').replace(/^Carriers not recognized:\s*/, '').replace(/\.$/, '');
   for (const name of notRecognized.split(' | ').filter(Boolean)) follow.push(`⚠️ Couldn't match "${name}" to a carrier — not included. Tell me the carrier name and I'll add it.`);
@@ -2879,6 +3023,9 @@ module.exports = {
   planTypeIn,
   planTypeAsk,
   planTypeLine,
+  doctorMatchCandidates,
+  candidatePicks,
+  rankAskAt,
   narrowingAnswered,
   comparisonAskText,
   comparisonFollowUp,
