@@ -598,7 +598,7 @@ function statementsFor(question, answer) {
  */
 function comparisonAskText(messages, baseText) {
   const msgs = Array.isArray(messages) ? messages : [];
-  const lines = [String(baseText != null ? baseText : msgs.filter((m) => m && m.role === 'user').slice(-4).map(messageText).join('\n'))];
+  const lines = [String(baseText != null ? baseText : require('./planYear').conversationAskText(msgs))];
   for (let i = 0; i < msgs.length; i += 1) {
     const m = msgs[i];
     if (!m || m.role !== 'assistant') continue;
@@ -787,9 +787,79 @@ function comparisonAskText(messages, baseText) {
     const idsNamed = new Set((t.match(/\b[HR]\d{4}-\d{3}/gi) || []).map((x) => x.toUpperCase())).size;
     if (idsNamed >= 2 || (idsNamed && /\b(compare|show|add|instead|vs|do|use|run|go with|check|re-?check|re-?run|verify)\b/i.test(t))) break;
   }
+  // Plan removals in her newest message that are not exact (a typo, a name not in the table) are asked, never guessed
+  // or ignored; her "yes" to "Did you mean remove X (ID)?" drops that ID (Evelyn Nieves, 2026-10-20).
+  lines.push(...planRemovalAskLines(msgs));
   // The plan type comes from her newest message only (askConstraints reads this line, not the older messages).
   lines.push(planTypeLine(msgs));
   return lines.join('\n');
+}
+
+const REMOVAL_YES_RE = /^\s*(?:y|ya|yes|yeah|yep|yup|si|sí|correct|confirm(?:ed)?|ok(?:ay)?|right|do it|that one|exactly)\b[\s!.]*$/i;
+const REMOVAL_Q_RE = /Did you mean remove (.+?) \(([HR]\d{4}-\d{3}[A-Z]?)\)\? \(yes\/no\)/;
+function tablePlansFor(msgs) {
+  const LW = require('./loadedWorkup');
+  const wk = workupFacts(msgs);
+  const shown = LW.lastTablePlanIds(msgs);
+  const ids = shown.length ? shown : (wk ? wk.plans : []);
+  return ids.map((id) => {
+    const row = gridRowFor(id, '');
+    return { planId: String(id).toUpperCase(), name: row ? (carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim()) : String(id) };
+  });
+}
+function planRemovalAskLines(msgs) {
+  const LW = require('./loadedWorkup');
+  const lastUser = msgs.map((x) => x && x.role).lastIndexOf('user');
+  if (lastUser < 0) return [];
+  const t = joinWrappedQuotes(messageText(msgs[lastUser]));
+  if (isWorkupMessage(t)) return [];
+  const before = msgs.slice(0, lastUser);
+  // Every "yes" to a removal question in the thread, not only the newest message: the drop persists after it scrolls
+  // out of the ask window — unless she named that plan again later (an add wins).
+  const drops = [];
+  msgs.forEach((m, k) => {
+    if (!m || m.role !== 'user' || !REMOVAL_YES_RE.test(messageText(m))) return;
+    const prev = [...msgs.slice(0, k)].reverse().find((x) => x && x.role === 'assistant');
+    const q = prev && messageText(prev).match(REMOVAL_Q_RE);
+    if (!q) return;
+    const id9 = q[2].toUpperCase().slice(0, 9);
+    const readded = msgs.slice(k + 1).some((x) => x && x.role === 'user' && messageText(x).toUpperCase().includes(id9));
+    if (!readded) drops.push(`Confirmed plan removal: ${q[2]} (${q[1]}).`);
+  });
+  // "yes" to "Did you mean famotidine for "famotdidine"?": answered, never asked again.
+  msgs.forEach((m, k) => {
+    if (!m || m.role !== 'user' || !REMOVAL_YES_RE.test(messageText(m))) return;
+    const prev = [...msgs.slice(0, k)].reverse().find((x) => x && x.role === 'assistant');
+    for (const q of (prev ? messageText(prev) : '').matchAll(/Did you mean ([^?\n]+?) for "[^"]+"\? \(yes\/no\)/g)) drops.push(`Med spelling confirmed: ${q[1]}.`);
+  });
+  if (REMOVAL_YES_RE.test(t)) return drops;
+  const plans = tablePlansFor(before);
+  if (!plans.length) return [];
+  const wk = workupFacts(before);
+  const skip = [...(wk ? wk.doctors : []), ...(wk ? wk.meds || [] : []), ...R.medsFromAsk(t)].map((x) => String(x || '').toLowerCase().split(/\s+[-–—(]/)[0].trim()).filter((x) => x.length >= 4);
+  const rm = LW.planRemovals(t, plans, wk ? wk.current : currentPlanOf(before), { skip });
+  const qs = LW.planRemovalLines(rm, plans);
+  return [...drops, ...(qs.length ? [`Plan removal questions: ${qs.join(' | ')}`] : [])];
+}
+// A med name RxNorm auto-corrected ("famotdidine" → famotidine): the row is priced and marked "verify", and Max asks
+// once — never a silent swap (standing rule, Yahoska 2026-10-20). Gone once she types the corrected name or says yes.
+function drugSpellingQuestions(drugs, askText) {
+  const text = String(askText || '');
+  const out = [];
+  for (const r of drugs || []) {
+    const nc = r && r.nameCorrection;
+    if (!nc || !nc.from || !nc.to) continue;
+    const esc = (x) => String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp(`\\b${esc(nc.to)}\\b`, 'i').test(text.replace(new RegExp(esc(nc.from), 'gi'), ''))) continue;
+    const q = `⚠️ Did you mean ${nc.to} for "${nc.from}"? (yes/no)`;
+    if (!out.includes(q)) out.push(q);
+  }
+  return out;
+}
+const LW_planAddSet = (t, msgs) => require('./loadedWorkup').workupPlanAddSet(t, msgs);
+function planRemovalQuestions(askText) {
+  const line = ((String(askText || '').match(/^Plan removal questions:\s*([^\n]+)$/gm) || []).pop() || '').replace(/^Plan removal questions:\s*/, '');
+  return line.split(' | ').map((x) => x.trim()).filter(Boolean);
 }
 
 /** Carriers she ruled out and has not asked for again since (oldest → newest). */
@@ -1082,6 +1152,7 @@ function comparisonFollowUpRaw(messages) {
       names = names.filter((nm) => !removedByClauses(nm, removals));
       if (names.length < before && doctorRemovalClauses(latest).length) reasons.push('doctor removals');
     }
+    if (REMOVAL_YES_RE.test(latest) && (() => { const a = [...msgs.slice(0, lastUserAt)].reverse().find((m) => m && m.role === 'assistant'); return a && REMOVAL_Q_RE.test(messageText(a)); })()) reasons.push('she confirmed the plan removal');
     if (planAsk.length && !reasons.length) reasons.push(`plans she named: ${planAsk.join(', ')}`);
     if (!reasons.length) return null;
     for (const [from, to] of subs) names = names.map((nm) => (sameDoctorName(nm, from) ? to : nm));
@@ -1107,6 +1178,32 @@ function comparisonFollowUpRaw(messages) {
   // she named and the table collapsed to the one plan she mentioned (Robin Forte, 2026-10-17).
   const check = workupDoctorCheck(msgs, lastUserAt);
   if (check) return check;
+  // "yes" to "Did you mean remove X (ID)?": re-run without that column, every doctor and med kept.
+  if (REMOVAL_YES_RE.test(latest)) {
+    const prevA = [...msgs.slice(0, lastUserAt)].reverse().find((m) => m && m.role === 'assistant');
+    if (prevA && REMOVAL_Q_RE.test(messageText(prevA))) {
+      const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
+      const docs = wk ? wk.doctors : [];
+      if (docs.length) {
+        const picked = applyDoctorResolutions(docs, threadDoctorResolutions(msgs, lastUserAt), {});
+        return { reason: 'she confirmed the plan removal', doctors: picked.doctors, zip: (wk && wk.zip) || newestZip(msgs.slice(0, lastUserAt + 1)), ...(Object.keys(picked.npis).length ? { npis: picked.npis } : {}) };
+      }
+    }
+  }
+  // A loaded workup + "meds: ezetimibe, ketoconazole, …": the server re-runs the full table — every saved doctor, every
+  // saved plan, every med (saved + the ones she pasted). Left to the model it priced only the one med it remembered
+  // (Evelyn Nieves, 2026-10-20: a Meds table with only Mounjaro).
+  {
+    const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
+    const medsListed = /\b(?:meds?|medications?|medicines?|rx|drugs?|prescriptions?|medicamentos?)\b\s*(?::|-\s)/i.test(latest) && R.medsFromAsk(latest).length > 0;
+    // A plan add / remove on the saved table ("remove aetna and add … H1036-121"): the same full re-run, so the
+    // removal question or "couldn't find" line comes from the server with the new table.
+    const planEdit = !medsListed && wk && wk.plans.length && (LW_planAddSet(latest, msgs.slice(0, lastUserAt + 1)).length > 0 || planRemovalAskLines(msgs.slice(0, lastUserAt + 1)).some((l) => /^Plan removal questions:/.test(l)));
+    if (wk && wk.doctors.length && wk.plans.length && (medsListed || planEdit)) {
+      const picked = applyDoctorResolutions(wk.doctors, threadDoctorResolutions(msgs, lastUserAt), {});
+      return { reason: medsListed ? 'meds she listed — full table with every saved doctor and plan' : 'plan edit on her saved table — every saved doctor and med', doctors: picked.doctors, zip: wk.zip || newestZip(msgs.slice(0, lastUserAt + 1)), ...(Object.keys(picked.npis).length ? { npis: picked.npis } : {}) };
+    }
+  }
   return null;
 }
 
@@ -1382,7 +1479,14 @@ function normalizeTypedPlanIds(text) {
   return String(text || '').replace(/\b([HR]\d{4})-(\d{1,3})(?:-\d)?(?=[^\dA-Za-z-]|$)/gi, (m, a, b) => `${a.toUpperCase()}-${b.padStart(3, '0')}`);
 }
 
+// Her "yes" to "Did you mean remove X (ID)?" (planRemovalAskLines): that column is gone from every set — the named
+// set line, a re-read of her messages, the compare card.
 function namedPlansFromAsk(askText0, constraints) {
+  const gone = new Set([...String(askText0 || '').matchAll(/^Confirmed plan removal:\s*([HR]\d{4}-\d{3})/gm)].map((m) => m[1].toUpperCase()));
+  const set = namedPlansFromAskRaw(askText0, constraints);
+  return gone.size ? set.filter((p) => !gone.has(String(p.planId).toUpperCase().slice(0, 9))) : set;
+}
+function namedPlansFromAskRaw(askText0, constraints) {
   const askText = normalizeTypedPlanIds(askText0);
   // comparisonAskText already resolved her plan edit into one set ("Named plan set: …"): that list, in its order, is the
   // set — the same one selectComparison draws. Re-reading her message line by line put the plans she added in front of
@@ -1430,7 +1534,7 @@ function namedPlansFromAsk(askText0, constraints) {
     }
     if (!line.trim()) continue;
     // comparisonAskText's marker of the plans she just added (selectComparison reads it) is not a plan list.
-    if (/^(?:Plans she added|Plan names not matched):/.test(line)) continue;
+    if (/^(?:Plans she added|Plan names not matched|Plan removal questions|Med spelling confirmed|Confirmed plan removal):/.test(line)) continue;
     // Removals first ("remove devoted", "drop H1290-073") — loadedWorkup.js rules: whole words / carrier / ID; a pronoun
     // ("remove it") never removes a plan.
     current = LW.removePlansNamedIn(current, line, [...currentIds, ...workupCurrentIds]);
@@ -2067,6 +2171,8 @@ function selectComparison(doctors, askText, opts = {}) {
       const m = x.match(/^\s*(.*?)\s*\(([HR]\d{4}-\d{3}[A-Z]?)\)\s*$/i);
       return m ? { planId: m[2].toUpperCase(), name: m[1] || m[2].toUpperCase() } : null;
     }).filter(Boolean);
+    const gone = new Set([...ask0.matchAll(/^Confirmed plan removal:\s*([HR]\d{4}-\d{3})/gm)].map((m) => m[1].toUpperCase()));
+    if (gone.size) named = named.filter((p) => !gone.has(p.planId.slice(0, 9)));
   }
   let pinFromAsk = [];
   if (!Array.isArray(opts.named) && !carriers.length && /Wants alternatives to the named plan\(s\)\./.test(ask) && named.length) {
@@ -2814,6 +2920,8 @@ function drugLabel(r, name) {
   }
   // RxNorm was unreachable: priced as typed, spelling unchecked.
   if (r && r.nameUnverified) return `${titleCase(name)} (name not verified)`;
+  // Priced at a starting strength she never typed (lookupFormularyCached): said in the row, never silent.
+  if (r && r.strengthAssumed) return `${titleCase(r.inputName || name)} ${r.strengthAssumed} (strength assumed — confirm dose)`;
   return titleCase(name);
 }
 
@@ -2824,9 +2932,13 @@ function drugAnswers(r, med) {
 
 /** True when meds were looked up and not one plan answered for any of them. */
 function allDrugLookupsFailed(drugResults) {
-  const list = (drugResults || []).filter(Boolean);
+  const all = (drugResults || []).filter(Boolean);
+  // A med that only ran out of time did not fail: its cells read ❔ not confirmed. One brand with no answer among
+  // meds that timed out is not "the lookup failed" either (Evelyn Nieves, 2026-10-20: Mounjaro alone raised the banner).
+  const list = all.filter((r) => !r.timedOut);
   // Answers live in lookups[] and/or byPlanId (tool-result / export shapes carry only byPlanId).
   const answered = (r) => [...(r.lookups || []), ...Object.values(r.byPlanId || (r.drug && r.drug.byPlanId) || {})].some((l) => l && l.verified);
+  if (list.length === 1 && all.length > 1) return false;
   return list.length > 0 && !list.some(answered);
 }
 
@@ -2958,6 +3070,8 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
     const m = x.match(/^(.*?)\s*\((.+)\)$/);
     follow.push(m ? `⚠️ "${m[1]}" could be ${m[2]}. Which plan ID should I add?` : `⚠️ Couldn't match "${x}" to one plan. Which plan ID should I add?`);
   }
+  for (const q of planRemovalQuestions(askText)) follow.push(`⚠️ ${q}`);
+  for (const q of drugSpellingQuestions(drugs, askText)) follow.push(q);
   for (const q of duplicateQuestions(doctors)) follow.push(q);
   // Named plans + a doctor with no exact match: the question and its candidates come from the server, never a
   // model paraphrase ("Are Sandman and Taub the providers below?" with nothing below — Robert and Andrea, 2026-10-19).
@@ -3197,6 +3311,9 @@ module.exports = {
   textPlanTypeAsk,
   doctorMatchCandidates,
   candidatePicks,
+  allDrugLookupsFailed,
+  planRemovalQuestions,
+  planRemovalAskLines,
   dropEmptySectionHeaders,
   doctorEqualsCorrections,
   threadDoctorResolutions,

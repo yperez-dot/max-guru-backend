@@ -32,7 +32,25 @@ function conversationAskText(messages) {
   const users = msgs
     .filter((m) => m && m.role === 'user')
     .map((m) => userMessageText(m.content));
-  return users.slice(-4).join('\n');
+  const recent = users.slice(-4);
+  // The facts never age out of the window: after 4+ follow-ups the loaded-workup message (its Medications block) and the
+  // message that listed her meds fell off, so a re-run had no meds — no Meds table and an export with no meds (Evelyn
+  // Nieves, 2026-10-20, 5th message "lets remove Doctors Dade Mac and add … H1036-121"). Older facts go first, so
+  // anything she said in the last 4 messages still wins.
+  const older = users.slice(0, -4);
+  const keep = [];
+  const wkAt = older.map((t) => /structured facts only/i.test(t)).lastIndexOf(true);
+  if (wkAt >= 0) keep.push(older[wkAt]);
+  const MEDS_LIST_RE = /\b(?:meds?|medications?|medicines?|rx|drugs?|prescriptions?|medicamentos?)\b\s*(?::|-\s)|\bmedications?\s+[a-z]/i;
+  const MED_EDIT_RE = /\b(?:stopped(?:\s+taking)?|no\s+longer\s+(?:takes?|taking|on)|discontinued)\b|\b(?:remove|drop|delete)\b[^.;\n]{0,40}\b(?:meds?|medications?|pills?)\b|^[^\n]{0,60}\b(?:is|=|dose\s+is)\s*\d+(?:\.\d+)?\s*(?:mg|mcg|ml|units?)\b/im;
+  older.forEach((t, k) => {
+    if (k === wkAt) return;
+    // Plan edits too ("remove careplus and add Doctors DrMax-Dade"): a removal or add never comes undone after 4 more
+    // messages when the autosaved workup lags (Evelyn Nieves, 2026-10-20).
+    const PLAN_EDIT_RE = /\b(?:remove|drop|delete|take\s+out|get\s+rid\s+of|exclude|swap|replace|add|include)\b[^\n]{0,80}(?:\b[HR]\d{4}-\d{1,3}|\b(?:humana|careplus|aetna|devoted|solis|wellcare|simply|uhc|united\s*healthcare|doctors|drmax|medicaremax)\b)/i;
+    if (MEDS_LIST_RE.test(t) || MED_EDIT_RE.test(t) || PLAN_EDIT_RE.test(t)) keep.push(t);
+  });
+  return [...keep, ...recent].join('\n');
 }
 
 /**

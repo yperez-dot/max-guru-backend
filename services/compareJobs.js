@@ -256,11 +256,46 @@ function rxCacheable(value) {
   });
 }
 
+// Brand drugs medicare.gov only prices with a strength ("Mounjaro" alone comes back empty on every plan — Evelyn
+// Nieves, 2026-10-20). With no strength typed and no answer, retry the common starting strengths and flag the row
+// "strength assumed — confirm dose".
+const STARTING_STRENGTHS = {
+  mounjaro: ['2.5 mg/0.5 mL', '5 mg/0.5 mL'],
+  zepbound: ['2.5 mg/0.5 mL', '5 mg/0.5 mL'],
+  ozempic: ['0.25 mg or 0.5 mg dose', '1 mg dose'],
+  wegovy: ['0.25 mg/0.5 mL'],
+  rybelsus: ['3 mg', '7 mg'],
+  trulicity: ['0.75 mg/0.5 mL', '1.5 mg/0.5 mL'],
+  repatha: ['140 mg/mL'],
+  praluent: ['75 mg/mL'],
+  jardiance: ['10 mg'],
+  farxiga: ['10 mg'],
+  eliquis: ['5 mg'],
+  xarelto: ['20 mg'],
+  januvia: ['100 mg'],
+  entresto: ['24 mg-26 mg'],
+};
+const verifiedAny = (v) => Boolean(v && [...(v.lookups || []), ...Object.values(v.byPlanId || {})].some((l) => l && l.verified));
+function startingStrengthsFor(drugName) {
+  const t = String(drugName || '').trim();
+  if (/\d/.test(t)) return []; // she typed a strength
+  return STARTING_STRENGTHS[t.toLowerCase().replace(/\s+(?:pen|injection|tablets?|tabs?)$/, '')] || [];
+}
+
 async function lookupFormularyCached({ drugName, planIds, year }, { lookup = lookupFormulary } = {}) {
   const key = `${String(drugName).toLowerCase().trim()}|${year}|${[...planIds].sort().join(',')}`;
   const hit = rxCache.get(key);
   if (hit && hit.expiresAt > Date.now()) return hit.value;
-  const value = await lookup({ drugName, planIds, year });
+  let value = await lookup({ drugName, planIds, year });
+  if (!verifiedAny(value)) {
+    for (const strength of startingStrengthsFor(drugName)) {
+      const tried = await lookup({ drugName: `${drugName} ${strength}`, planIds, year }).catch(() => null);
+      if (verifiedAny(tried)) {
+        value = { ...tried, inputName: drugName, strengthAssumed: strength };
+        break;
+      }
+    }
+  }
   if (rxCacheable(value)) rxCache.set(key, { value, expiresAt: Date.now() + RX_CACHE_MS });
   return value;
 }
@@ -530,7 +565,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     job.result.legend = LEGEND + (columns.some((p) => (p.inCarrier || []).length) ? ` · ${IN_STAR_LEGEND}` : '');
     job.result.medsLegend = medsLegendFor(medsFull);
     // Every lookup failed: the table carries the banner, and the UI shows it in red.
-    job.result.medsLookupFailed = drugs.length > 0 && !drugs.some((r) => (r.lookups || []).some((l) => l && l.verified));
+    job.result.medsLookupFailed = require('./doctorPlanNarrow').allDrugLookupsFailed(drugs); // same rule as the chat
     job.result.medsBanner = job.result.medsLookupFailed ? MEDS_FAILED_BANNER.replace(/\*\*/g, '') : null;
     // Only plans in the grid get a "Could not verify" note: a county plan that was never shown (H1035-017 under Tony
     // and Gerry Cabrera's UHC / DrMax / Humana grid, 2026-10-19) is not part of her comparison.
@@ -603,6 +638,7 @@ module.exports = {
   runJob,
   queueState,
   lookupFormularyCached,
+  startingStrengthsFor,
   rxCacheable,
   NOT_CONFIRMED,
 };

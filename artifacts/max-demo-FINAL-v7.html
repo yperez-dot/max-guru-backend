@@ -8506,6 +8506,13 @@ function App() {
     const content = (fromComposer ? input : String(text)).trim();
     const images = fromComposer ? pendingImages : [];
     if (!content && !images.length) return;
+    // "export": chips for the table on screen now — no server round trip, no queue (client-workups.isBareExportAsk).
+    const lastTable = lastComparisonExportRef.current;
+    if (!images.length && lastTable && (lastTable.plans || []).length && window.MaxClientWorkups && typeof window.MaxClientWorkups.isBareExportAsk === "function" && window.MaxClientWorkups.isBareExportAsk(content)) {
+      if (fromComposer) clearComposer();
+      setMessages(prev => [...prev, { role: "user", content, time: nowLabel() }, tableOffer(lastTable)]);
+      return;
+    }
     if (loadingRef.current) {
       storeQueued({ text: content, images: [...images] });
       if (fromComposer) clearComposer();

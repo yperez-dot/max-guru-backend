@@ -149,3 +149,79 @@ test('the compare card\'s question is part of the conversation the chat server r
   // A card that asked nothing adds no turn.
   assert.equal(W.messagesForApi([{ role: 'queueResult', result: { planIds: ['H5420-014'], questions: [] } }, { role: 'user', content: 'hi' }], null).length, 1);
 });
+
+// ─── Evelyn Nieves, 4-plan table, 2026-10-20 ─────────────────────────────────────────────────────────────────────────
+test('meds that time out keep their rows (❔) and one unverified brand among them is not "lookup failed"', () => {
+  const plans = [{ planId: 'H5420-014', name: 'UHC' }, { planId: 'H4140-022', name: 'Doctors DrMax-Dade' }];
+  const ok = { drugName: 'losartan', lookups: [{ planId: 'H5420-014', verified: true, tier: 1 }], byPlanId: { 'H5420-014': { planId: 'H5420-014', verified: true, tier: 1 } } };
+  const mounjaro = { drugName: 'Mounjaro', lookups: [{ planId: 'H5420-014', verified: false, reason: 'medicare_gov_empty_costs' }], byPlanId: {} };
+  const timedOut = (d) => ({ drugName: d, byPlanId: {}, lookups: [], timedOut: true });
+  // Live shape: only Mounjaro answered (unverified), the other five ran out of time.
+  const live = [mounjaro, ...['ezetimibe', 'ketoconazole', 'levothyroxine', 'losartan', 'repatha'].map(timedOut)];
+  assert.equal(N.allDrugLookupsFailed(live), false);
+  const table = N.medsTable(live, plans, ['ezetimibe', 'ketoconazole', 'levothyroxine', 'losartan', 'Mounjaro', 'repatha']);
+  for (const m of ['Ezetimibe', 'Ketoconazole', 'Levothyroxine', 'Losartan', 'Mounjaro', 'Repatha']) assert.match(table, new RegExp(`\\| ${m}`, 'i'));
+  // Every drug really answered "no" still raises the banner; one real answer clears it.
+  assert.equal(N.allDrugLookupsFailed([mounjaro, { ...mounjaro, drugName: 'Repatha' }]), true);
+  assert.equal(N.allDrugLookupsFailed([mounjaro, ok]), false);
+});
+
+test('chat med lookups: a drug that errors or times out stays in the result (never filtered out)', () => {
+  const src = require('fs').readFileSync(require.resolve('./providerNetwork'), 'utf8');
+  assert.match(src, /\.catch\(\(e\) => missed\(drugName, /);
+  assert.match(src, /\(\) => missed\(drugName, 'timeout'\)/);
+  assert.doesNotMatch(src, /\(\) => null,\n\s*\)\)\)\)\.filter\(Boolean\)/);
+});
+
+test('Mounjaro with no strength: retried at the starting strength and flagged "strength assumed — confirm dose"', async () => {
+  const C = require('./compareJobs');
+  const calls = [];
+  const lookup = async ({ drugName, planIds }) => {
+    calls.push(drugName);
+    return /2\.5/.test(drugName)
+      ? { drugName: 'Mounjaro 2.5 mg', lookups: planIds.map((p) => ({ planId: p, verified: true, tier: 3 })), byPlanId: Object.fromEntries(planIds.map((p) => [p, { planId: p, verified: true, tier: 3 }])) }
+      : { drugName, lookups: planIds.map((p) => ({ planId: p, verified: false, reason: 'medicare_gov_empty_costs' })), byPlanId: {} };
+  };
+  const v = await C.lookupFormularyCached({ drugName: 'Mounjaro', planIds: ['H1036-121', 'H4140-022'], year: 2027 }, { lookup });
+  assert.deepEqual(calls, ['Mounjaro', 'Mounjaro 2.5 mg/0.5 mL']);
+  assert.equal(v.strengthAssumed, '2.5 mg/0.5 mL');
+  const row = N.medsTable([v], [{ planId: 'H1036-121', name: 'Humana' }], ['Mounjaro']).split('\n').find((l) => /Mounjaro/.test(l));
+  assert.match(row, /Mounjaro 2\.5 mg\/0\.5 mL \(strength assumed — confirm dose\) \| T3/);
+  // She typed a strength: no guessing.
+  assert.deepEqual(C.startingStrengthsFor('Mounjaro 7.5 mg'), []);
+  assert.deepEqual(C.startingStrengthsFor('atorvastatin'), []);
+});
+
+test('plan removal matches the current table: exact applies, a typo is asked, nothing found is said', () => {
+  const plans = [{ planId: 'H5420-014', name: 'UHC MedicareMax Complete Care FL-30' }, { planId: 'H1036-054C', name: 'Humana Gold Plus' }, { planId: 'H4140-022', name: 'Doctors DrMax-Dade' }, { planId: 'H1019-006', name: 'CarePlus CareOne Plus' }];
+  const rm = (t) => LW.planRemovals(t, plans, ['H5420-014']);
+  assert.deepEqual(rm('remove careplus and add Doctors DrMax-Dade').remove, ['H1019-006']);
+  assert.deepEqual(rm('remove the doctors plan').remove, ['H4140-022']);
+  assert.deepEqual(rm('drop H4140-22').remove, ['H4140-022']);
+  assert.deepEqual(rm('remove drmax dade').remove, ['H4140-022']);
+  const typo = rm('lets remove Doctors Dade Mac and add Humana Gold Plus Diabetes & Heart H1036-121 .');
+  assert.deepEqual(typo.remove, []);
+  assert.deepEqual(LW.planRemovalLines(typo, plans), ['Did you mean remove Doctors DrMax-Dade (H4140-022)? (yes/no)']);
+  assert.match(LW.planRemovalLines(rm('remove aetna'), plans)[0], /^Couldn't find "aetna" in the table \(H5420-014, H1036-054C, H4140-022, H1019-006\) — nothing removed\.$/i);
+  // Her current plan never leaves on a carrier / name removal; a doctor removal is not a plan removal.
+  assert.deepEqual(rm('remove uhc').remove, []);
+  assert.deepEqual(rm('remove Dr. Pasquel DeSantis').remove, []);
+  assert.deepEqual(rm('remove it').remove, []);
+});
+
+test('a med RxNorm auto-corrected is asked once ("Did you mean famotidine?"), not swapped silently', () => {
+  const drugs = [{ drugName: 'famotidine', inputName: 'famotdidine', nameCorrection: { from: 'famotdidine', to: 'famotidine' }, lookups: [], byPlanId: {} }];
+  const out = N.renderedAnswer([{ doctorName: 'A B', requestedName: 'A B', byPlanId: {} }], 'Jorge, 33156, meds: famotdidine. Compare H5420-014 and H1036-054C', { drugs });
+  assert.match(out, /Did you mean famotidine for "famotdidine"\? \(yes\/no\)/);
+  const typed = N.renderedAnswer([{ doctorName: 'A B', requestedName: 'A B', byPlanId: {} }], 'Jorge, 33156, meds: famotdidine. Compare H5420-014 and H1036-054C\nfamotidine is right', { drugs });
+  assert.doesNotMatch(typed, /Did you mean famotidine/);
+});
+
+test('a bare "export" in the chat is answered on the page (chips), never sent or queued', () => {
+  const W = require('../artifacts/client-workups.js');
+  const f = W.isBareExportAsk || globalThis.MaxClientWorkups.isBareExportAsk;
+  for (const t of ['export', 'Export.', 'export excel', 'export to pdf', 'pdf', 'download the table']) assert.equal(f(t), true, t);
+  for (const t of ['export the meds for H1036', 'export and remove careplus', 'add H1036-121', 'hello']) assert.equal(f(t), false, t);
+  const html = require('fs').readFileSync(require.resolve('../artifacts/max-demo-FINAL-v7.html'), 'utf8');
+  assert.match(html, /isBareExportAsk\(content\)\) \{\n\s*if \(fromComposer\) clearComposer\(\);\n\s*setMessages\(prev => \[\.\.\.prev, \{ role: "user", content, time: nowLabel\(\) \}, tableOffer\(lastTable\)\]\);/);
+});

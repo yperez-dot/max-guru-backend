@@ -98,6 +98,14 @@ Sheets (names are exact — spaces and hyphens matter):
 
 This is the working brief for the **2027** comparison grid and for any refresh of the **2026** sheet.
 
+### Evelyn Nieves 4-plan table: meds vanished, plan removal ignored, "export" queued (2026-10-20, PR #244)
+- **Meds never drop.** The chat's med lookups dropped every drug that ran out of time (`raceDeadline(…, () => null)` then `.filter(Boolean)`); on the 4-plan table only Mounjaro (unverified) came back, so the Meds table had one row and the "Medication lookup failed" banner. A drug that errors or times out now keeps its row with ❔ not confirmed cells, and a timeout is not a "failure" for the banner (`allDrugLookupsFailed`, shared with the compare card).
+- **"meds: …" on a loaded workup re-runs the full table on the server** (every saved doctor, every saved plan, saved + pasted meds merged), instead of the model pricing one med.
+- **Mounjaro / brand drugs with no strength**: when medicare.gov returns empty costs, `lookupFormularyCached` retries the common starting strengths (Mounjaro 2.5 mg, Ozempic 0.25/0.5 mg, Repatha 140 mg/mL, …) and the row says "(strength assumed — confirm dose)". Live check: "Mounjaro" → empty on H5420-014 / H1036-121; "Mounjaro 2.5 mg" → T3 on both.
+- **Plan removal matches the current table** (`loadedWorkup.planRemovals`): exact ID / carrier ("remove careplus", "the doctors plan") / every word of a plan name applies; a typo or word swap ("Doctors Dade Mac") is asked "Did you mean remove Doctors DrMax-Dade (H4140-022)? (yes/no)"; nothing in the table is said in one line. Her "yes" drops it, and the drop persists (re-applied from the thread even after the message scrolls out of the window; older plan-edit messages stay in the ask window). Remove + add in one message both apply.
+- **Med spelling**: an RxNorm auto-correction ("famotdidine" → famotidine) is priced and asked once ("Did you mean famotidine for "famotdidine"? (yes/no)").
+- **Bare "export" in chat** shows the Excel/PDF chips for the table on screen right away, never sent to the server or queued behind a running re-run.
+
 ### 1. The SoB row is a link — same as the 2026 sheet
 
 The **Summary of Benefits** row is not a caption. Each plan cell must be a **real Excel hyperlink** (Insert → Link, or `HYPERLINK("https://…","SoB")`), pointing at that plan’s official SoB PDF.

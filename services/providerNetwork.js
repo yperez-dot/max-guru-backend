@@ -994,11 +994,15 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
     if (planIds.length) {
       const { lookupFormularyCached } = require('./compareJobs'); // lazy: compareJobs requires this file
       const year = Number(common.year) || Number(UHC_PLAN_YEAR) || 2027;
-      drugs = (await Promise.all(meds.map((drugName) => raceDeadline(
-        lookupFormularyCached({ drugName, planIds, year }).catch(() => null),
+      // A drug that errors or runs out of time is still her med: its row stays, every cell ❔ not confirmed — never dropped
+      // (Evelyn Nieves, 2026-10-20: on a 4-plan table only Mounjaro came back and the other 5 meds vanished from the
+      // table and the export).
+      const missed = (drugName, why) => ({ drugName, byPlanId: {}, lookups: [], timedOut: why === 'timeout', error: why === 'timeout' ? null : why });
+      drugs = await Promise.all(meds.map((drugName) => raceDeadline(
+        lookupFormularyCached({ drugName, planIds, year }).catch((e) => missed(drugName, (e && e.message) || 'error')),
         deadlineAt,
-        () => null,
-      )))).filter(Boolean);
+        () => missed(drugName, 'timeout'),
+      ).then((r) => r || missed(drugName, 'timeout'))));
     }
   }
   const summary = batchSummaryForModel(doctorsStructured, askText, { answered, drugs });
