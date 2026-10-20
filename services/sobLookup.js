@@ -100,7 +100,7 @@ function loadWiredPlans(year) {
     const m = html.match(
       new RegExp(`<script id="${id}" type="application/json">\\s*([\\s\\S]*?)\\s*</script>`)
     );
-    wiredPlansCache[y] = m ? JSON.parse(m[1]) : [];
+    wiredPlansCache[y] = m ? require('../artifacts/plan-name.js').cleanPlanList(JSON.parse(m[1])) : [];
   } catch (_) {
     wiredPlansCache[y] = [];
   }

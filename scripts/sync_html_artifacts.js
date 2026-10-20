@@ -29,6 +29,13 @@ if (require.main === module) {
       '<!-- MAX_DOCTOR_NAME_END -->'
     );
   }
+  if (which === 'all' || which === 'export' || which === 'planname') {
+    syncBlock(
+      'artifacts/plan-name.js',
+      '<!-- MAX_PLAN_NAME_BEGIN -->',
+      '<!-- MAX_PLAN_NAME_END -->'
+    );
+  }
   if (which === 'all' || which === 'export') {
     syncBlock(
       'artifacts/comparison-export.js',
