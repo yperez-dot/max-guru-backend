@@ -6,11 +6,14 @@
 (function (root, factory) {
   // Doctor names go through the one normalizer (artifacts/doctor-name.js; window.MaxDoctorName in the page).
   const DN = typeof module === "object" && module.exports ? require("./doctor-name.js") : root && root.MaxDoctorName;
-  const api = factory(DN);
+  // Plan names go through artifacts/plan-name.js (window.MaxPlanName): no "**NEW 2027" grid tag on an export header.
+  const PN = typeof module === "object" && module.exports ? require("./plan-name.js") : root && root.MaxPlanName;
+  const api = factory(DN, PN);
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root && typeof root === "object") root.MaxComparisonExport = api;
-})(typeof globalThis !== "undefined" ? globalThis : this, function (DN) {
+})(typeof globalThis !== "undefined" ? globalThis : this, function (DN, PN) {
   "use strict";
+  const cleanPlanName = PN && typeof PN.cleanPlanName === "function" ? PN.cleanPlanName : (s) => String(s == null ? "" : s);
   if (!DN) throw new Error("MaxDoctorName (doctor-name.js) must load before comparison-export.js");
   const { isOrganizationName, stripDegreeSuffix, formatDoctorExportName } = DN;
   const looksLikeOrganization = DN.looksLikeOrganizationDisplay;
@@ -407,7 +410,7 @@
       if (dispId && dispId !== rawId) out = out.replace(new RegExp(escapeRe(dispId), "ig"), " ");
       return out.replace(/\s+/g, " ").trim();
     };
-    let name = stripIds(plan.planName);
+    let name = stripIds(cleanPlanName(plan.planName));
     let carrier = stripIds(plan.carrier);
     if (!name) name = carrier;
     else if (carrier) {
@@ -2828,7 +2831,7 @@
   /** "UHC Preferred Care Preferred MA (H1045-001)" — never "UHC UHC …" when the plan name already starts with the carrier. */
   function planChatLabel(p) {
     const carrier = String((p && p.carrier) || "").trim();
-    const name = String((p && (p.planName || p.name)) || "").trim();
+    const name = cleanPlanName((p && (p.planName || p.name)) || "").trim();
     const id = String((p && (p.planId || p.id)) || "").trim();
     const first = (x) => x.toLowerCase().split(/\s+/)[0] || "";
     const carrierShown = !carrier || !name || name.toLowerCase().startsWith(carrier.toLowerCase()) || first(name) === first(carrier) ? "" : carrier + " ";
@@ -3499,6 +3502,7 @@
     muskatLockedDrugs,
     formatBenefitValue,
     formatPlanMarketingName,
+    cleanPlanName,
     formatPlanColumnHeader,
     displayContractPbp,
     safeExportPlanId,

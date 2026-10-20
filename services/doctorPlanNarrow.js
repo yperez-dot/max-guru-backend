@@ -9,6 +9,7 @@
 
 // Doctor names: one normalizer for the grid, the lookups and the exports.
 const DN = require('../artifacts/doctor-name.js');
+const PLAN_NAME = require('../artifacts/plan-name.js');
 const { plainWords, cleanName, titleCase, sameDoctorName, ROLE_WORDS_RE } = DN;
 // Loaded-workup set rules (plans / doctors / meds) live in one module.
 const LW = require('./loadedWorkup');
@@ -1182,7 +1183,8 @@ function personalize(questions, askText) {
 
 
 function shortPlanHeader(p) {
-  const name = String(p.name || '')
+  // No grid tag ("**NEW 2027**", stray "**") in a chat-table header (artifacts/plan-name.js).
+  const name = PLAN_NAME.cleanPlanName(p.name || '')
     // Aetna names already carry the ID ("Aetna Medicare Select HMO - H1609-018") — don't print it twice.
     .replace(new RegExp(`\\s*[-–·(]?\\s*${String(p.planId || '').slice(0, 9)}[A-Z]?\\)?\\s*$`, 'i'), '')
     .replace(/Medicare Advantage/gi, 'MA')

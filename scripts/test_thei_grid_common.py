@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from thei_grid_common import (  # noqa: E402
     cell_caption,
     cell_link,
+    clean_plan_marketing_name,
     extract_plan_id,
     is_confirmed_2027_cell,
     is_green,
@@ -94,6 +95,42 @@ class GridLinkTests(unittest.TestCase):
         )
         self.assertEqual(extract_plan_id("Wellcare H1032-250 **NEW 2027**"), "H1032-250")
         self.assertEqual(extract_plan_id("Devoted H129-002"), "H129-002")
+
+
+class CleanPlanMarketingNameTest(unittest.TestCase):
+    """Grid working tags are not part of the plan name (2026-10-20)."""
+
+    def test_new_2027_variants(self):
+        for raw in (
+            "Humana Choice Giveback **NEW 2027",
+            "Humana Choice Giveback **NEW 2027**",
+            "Humana Choice Giveback NEW 2027**",
+            "Humana Choice Giveback (NEW 2027)",
+            "Humana Choice Giveback - NEW 2027",
+            "Humana Choice Giveback new 2027",
+            "**Humana Choice Giveback**",
+            "NEW 2027 - Humana Choice Giveback",
+        ):
+            self.assertEqual(clean_plan_marketing_name(raw), "Humana Choice Giveback", raw)
+        self.assertEqual(clean_plan_marketing_name("Doctors DrExtraCare NEW"), "Doctors DrExtraCare")
+        self.assertEqual(
+            clean_plan_marketing_name("Wellcare Dual Align Unity (HMO D-SNP) NEW 2027"),
+            "Wellcare Dual Align Unity (HMO D-SNP)",
+        )
+
+    def test_r0759_001_keeps_non_commissionable(self):
+        self.assertEqual(
+            clean_plan_marketing_name("AARP UHC Regional PPO FL-0031 NON-COMMISSIONABLE"),
+            "AARP UHC Regional PPO FL-0031 NON-COMMISSIONABLE",
+        )
+        self.assertEqual(
+            clean_plan_marketing_name("AARP UHC Regional PPO FL-0031 **NON-COMMISSIONABLE**"),
+            "AARP UHC Regional PPO FL-0031 NON-COMMISSIONABLE",
+        )
+
+    def test_ids_and_other_text_untouched(self):
+        for s in ("UHC MedicareMax FL-0028", "Humana Gold Plus H1036-054C", "Brand New Plan", "CLOSED TO NEW ENROLL 2027"):
+            self.assertEqual(clean_plan_marketing_name(s), s)
 
 
 if __name__ == "__main__":
