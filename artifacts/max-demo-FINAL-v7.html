@@ -3179,6 +3179,9 @@
     const most = Math.max.apply(null, found.map((f) => f.rows.length));
     if (latest.rows.length >= most) return latest;
     const base = found.find((f) => f.rows.length === most);
+    // A newer table over a different plan set (the HMO table, then "only PPOs") is its own table: never merged with
+    // the older, wider one — that put the HMO columns back into the PPO export (Robert and Andrea, 2026-10-19).
+    if (latest.planIds.length && !latest.planIds.some((id) => id && base.planIds.includes(id))) return latest;
     // She removed doctors after the wide table ("remove Dr. C and D", "without Dr. X"): the newer, smaller table is the truth.
     // Only wording that names a doctor counts ("remove Dr. X", "without Dr. X", "drop Kaiser" where Kaiser is a row
     // in the wide table). Carrier / plan words ("exclude Humana, try Alan Dal Pra") are not a doctor removal.
@@ -3233,9 +3236,27 @@
       added.forEach((id) => { if (id && !ids.some((x) => x.slice(0, 9) === id.slice(0, 9))) ids.push(id.slice(0, 9)); });
     }
     const userText = (messages || []).filter((m) => m && m.role === "user").map((m) => toText(m.content)).join("\n");
-    const current = (Array.isArray(o.currentPlanIds) && o.currentPlanIds.length ? o.currentPlanIds : currentPlanIdsFromText(userText)).map((x) => String(x).toUpperCase().slice(0, 9)).filter(Boolean);
+    let current = (Array.isArray(o.currentPlanIds) && o.currentPlanIds.length ? o.currentPlanIds : currentPlanIdsFromText(userText)).map((x) => String(x).toUpperCase().slice(0, 9)).filter(Boolean);
+    // "Current plan (UHC H5420-001, HMO) left out since you asked for PPOs only.": that table has no current-plan
+    // column, and neither does its export.
+    const leftOut = (messages || []).slice(tbl.at).some((m) => m && m.role === "assistant" && /left out since you asked for/i.test(toText(m.content)));
+    if (leftOut) current = current.filter((id) => ids.some((x) => x.slice(0, 9) === id));
     const rest = ids.filter((id) => !current.includes(id.slice(0, 9)));
     return [...current, ...rest];
+  }
+
+  /**
+   * The chat up to the Export buttons she clicked: that table is the one exported, never a newer table further down
+   * (Yahoska, 2026-10-19: the HMO table's Export gave the PPO table). offer = the offer message (matched by tableId,
+   * else by identity) or its index. Unknown offer → the whole chat (the newest table, as before).
+   */
+  function historyForExportOffer(messages, offer) {
+    const list = Array.isArray(messages) ? messages : [];
+    let at = -1;
+    if (typeof offer === "number") at = offer;
+    else if (offer && offer.tableId) at = list.findIndex((m) => m && m.role === "offer" && m.tableId === offer.tableId);
+    if (at < 0 && offer && typeof offer === "object") at = list.indexOf(offer);
+    return at >= 0 && at <= list.length ? list.slice(0, at) : list.slice();
   }
 
   /**
@@ -3704,6 +3725,7 @@
     isNarrowingReply,
     latestChatTable,
     exportPlanIdsFromThread,
+    historyForExportOffer,
     sameNetworkTwinIds,
     currentPlanIdsFromText,
     currentPlanFirst,
@@ -7303,6 +7325,16 @@ function App() {
   // Every lookup result this chat (doctors, formulary, SOB like SNF/DME). Max may run a lookup on a
   // turn that does not cite 2+ plan IDs; keeping them all means the export still sees them.
   const sessionToolResultsRef = useRef([]);
+  // Each table's Export buttons export THAT table: the lookups as they stood when the table was drawn, by table id
+  // (Yahoska, 2026-10-19: the HMO table's Export gave the newer PPO table).
+  const exportSnapshotsRef = useRef({});
+  const tableOffer = (payload) => {
+    const tableId = "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    exportSnapshotsRef.current[tableId] = sessionToolResultsRef.current;
+    return { role: "offer", content: "export", tableId, plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, sobBenefits: payload.sobBenefits, time: nowLabel() };
+  };
+  // An older table keeps its own Export buttons; other offers are replaced as before.
+  const keepTableOffers = (h) => h.filter((m) => m.role !== "offer" || Boolean(m.tableId));
   const [wsMap, setWsMap] = useState(() => loadWsStore());
   const wsMapRef = useRef(wsMap);
   const wsBusyRef = useRef(new Set());
@@ -8121,7 +8153,7 @@ function App() {
       const yearCompare = images.length ? null : runYearCompareFromChat(userMessageText(apiContent), newHistory, lastComparisonExportRef.current);
       if (yearCompare && (yearCompare.pairs.length || yearCompare.unresolved.length)) {
         const assistantMsg = { role: "assistant", content: yearCompare.chatText, time: nowLabel() };
-        const nextMsgs = [...newHistory.filter((m) => m.role !== "offer"), assistantMsg];
+        const nextMsgs = [...keepTableOffers(newHistory), assistantMsg];
         if (yearCompare.payload) {
           nextMsgs.push({ role: "offer", content: "yearCompare", yearCompare: yearCompare.payload, clientName: yearCompare.payload.clientName, time: nowLabel() });
         }
@@ -8145,7 +8177,8 @@ function App() {
           const offerB = benefitOffer
             ? { ...benefitOffer, time: nowLabel() }
             : { role: "offer", content: "export", plans: rememberedB.plans, clientName: rememberedB.clientName, terminatingPlan: rememberedB.terminatingPlan, doctors: rememberedB.doctors, drugs: rememberedB.drugs, sobBenefits: rememberedB.sobBenefits, time: nowLabel() };
-          const nextMsgs = [...newHistory.filter((m) => m.role !== "offer"), assistantMsg, offerB];
+          // The benefits table moves that table's Export buttons under it (one set per table, same table id).
+          const nextMsgs = [...keepTableOffers(newHistory).filter((m) => m !== benefitOffer), assistantMsg, offerB];
           messagesRef.current = nextMsgs;
           setMessages(nextMsgs);
           return;
@@ -8155,7 +8188,7 @@ function App() {
       const lastOfferAny = [...newHistory].reverse().find((m) => m.role === "offer");
       if (window.MaxComparisonExport.isExportShortcutAsk(userMessageText(apiContent)) && lastOfferAny && lastOfferAny.content === "yearCompare") {
         const assistantMsg = { role: "assistant", content: "Here's the 2026 vs 2027 export. Click Excel or PDF below.", time: nowLabel() };
-        const nextMsgs = [...newHistory.filter((m) => m.role !== "offer"), assistantMsg, { ...lastOfferAny, time: nowLabel() }];
+        const nextMsgs = [...keepTableOffers(newHistory), assistantMsg, { ...lastOfferAny, time: nowLabel() }];
         messagesRef.current = nextMsgs;
         setMessages(nextMsgs);
         return;
@@ -8230,9 +8263,9 @@ function App() {
             time: nowLabel(),
           };
           const nextMsgs = [
-            ...newHistory.filter((m) => m.role !== "offer"),
+            ...keepTableOffers(newHistory),
             assistantMsg,
-            { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, sobBenefits: payload.sobBenefits, time: nowLabel() },
+            tableOffer(payload),
           ];
           messagesRef.current = nextMsgs;
           setMessages(nextMsgs);
@@ -8327,7 +8360,7 @@ function App() {
         }));
         lastComparisonExportRef.current = payload;
         scheduleAutoSave(payload, gen);
-        nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, sobBenefits: payload.sobBenefits, time: nowLabel() }];
+        nextMsgs = [...keepTableOffers(newHistory), assistantMsg, tableOffer(payload)];
       } else {
         const remembered = lastComparisonExportRef.current;
         const lastOffer = [...newHistory].reverse().find((m) => m.role === "offer" && m.plans?.length >= 2);
@@ -8352,9 +8385,9 @@ function App() {
           }));
           lastComparisonExportRef.current = payload;
           scheduleAutoSave(payload, gen);
-          nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg, { role: "offer", content: "export", plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, sobBenefits: payload.sobBenefits, time: nowLabel() }];
+          nextMsgs = [...keepTableOffers(newHistory), assistantMsg, tableOffer(payload)];
         } else {
-          nextMsgs = [...newHistory.filter(m => m.role !== 'offer'), assistantMsg];
+          nextMsgs = [...keepTableOffers(newHistory), assistantMsg];
         }
       }
       // The grid is one message; Max's notes and questions follow as a separate bubble right after it.
@@ -8833,18 +8866,19 @@ function App() {
                 <div className="max-export-scroll" style={{ padding: "12px 14px", borderRadius: 16, borderTopLeftRadius: 4, background: "rgba(255,255,255,0.88)", color: "var(--ink)", fontSize: 14.5, lineHeight: 1.5, border: "1px solid var(--line)", maxWidth: "100%" }}>
                   <div style={{ marginBottom: 10 }}>Want this comparison as Excel or PDF?</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {!messages.slice(0, i).some((x) => x && x.role === "user" && String(userMessageText(x.content) || "").trim() === "Show benefits for these plans") &&
+                    {!messages.slice(i + 1).some((x) => x && x.role === "offer" && x.content === "export") &&
+                      !messages.slice(0, i).some((x) => x && x.role === "user" && String(userMessageText(x.content) || "").trim() === "Show benefits for these plans") &&
                       !(() => { const prev = [...messages.slice(0, i)].reverse().find((x) => x && x.role === "assistant"); return Boolean(prev && window.MaxComparisonExport.hasOpenQuestions(userMessageText(prev.content))); })() && (
                     <button data-testid="show-benefits" onClick={() => send("Show benefits for these plans")}
                       style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
                       Show benefits
                     </button>
                     )}
-                    <button onClick={() => { void runComparisonExport("excel", messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", sobBenefits: m.sobBenefits || {}, toolResults: sessionToolResultsRef.current, rememberedPlans: m.plans || [], planSetFixed: (m.plans || []).length > 0 }).then(() => setMessages(prev => prev.filter((_,j) => j !== i))); }}
+                    <button data-testid="offer-export-excel" onClick={() => { const exp = window.MaxComparisonExport; void runComparisonExport("excel", typeof exp.historyForExportOffer === "function" ? exp.historyForExportOffer(messagesRef.current, m) : messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", sobBenefits: m.sobBenefits || {}, toolResults: (m.tableId && exportSnapshotsRef.current[m.tableId]) || sessionToolResultsRef.current, rememberedPlans: m.plans || [], planSetFixed: (m.plans || []).length > 0 }).then(() => setMessages(prev => prev.filter((_,j) => j !== i))); }}
                       style={{ padding: "8px 14px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, var(--plum) 0%, var(--magenta) 120%)", color: "white", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
                       Export Excel
                     </button>
-                    <button onClick={() => { void runComparisonExport("pdf", messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", sobBenefits: m.sobBenefits || {}, toolResults: sessionToolResultsRef.current, rememberedPlans: m.plans || [], planSetFixed: (m.plans || []).length > 0 }).then(() => setMessages(prev => prev.filter((_,j) => j !== i))); }}
+                    <button data-testid="offer-export-pdf" onClick={() => { const exp = window.MaxComparisonExport; void runComparisonExport("pdf", typeof exp.historyForExportOffer === "function" ? exp.historyForExportOffer(messagesRef.current, m) : messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", sobBenefits: m.sobBenefits || {}, toolResults: (m.tableId && exportSnapshotsRef.current[m.tableId]) || sessionToolResultsRef.current, rememberedPlans: m.plans || [], planSetFixed: (m.plans || []).length > 0 }).then(() => setMessages(prev => prev.filter((_,j) => j !== i))); }}
                       style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
                       Export PDF
                     </button>

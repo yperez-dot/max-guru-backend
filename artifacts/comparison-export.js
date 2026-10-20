@@ -2918,6 +2918,9 @@
     const most = Math.max.apply(null, found.map((f) => f.rows.length));
     if (latest.rows.length >= most) return latest;
     const base = found.find((f) => f.rows.length === most);
+    // A newer table over a different plan set (the HMO table, then "only PPOs") is its own table: never merged with
+    // the older, wider one — that put the HMO columns back into the PPO export (Robert and Andrea, 2026-10-19).
+    if (latest.planIds.length && !latest.planIds.some((id) => id && base.planIds.includes(id))) return latest;
     // She removed doctors after the wide table ("remove Dr. C and D", "without Dr. X"): the newer, smaller table is the truth.
     // Only wording that names a doctor counts ("remove Dr. X", "without Dr. X", "drop Kaiser" where Kaiser is a row
     // in the wide table). Carrier / plan words ("exclude Humana, try Alan Dal Pra") are not a doctor removal.
@@ -2972,9 +2975,27 @@
       added.forEach((id) => { if (id && !ids.some((x) => x.slice(0, 9) === id.slice(0, 9))) ids.push(id.slice(0, 9)); });
     }
     const userText = (messages || []).filter((m) => m && m.role === "user").map((m) => toText(m.content)).join("\n");
-    const current = (Array.isArray(o.currentPlanIds) && o.currentPlanIds.length ? o.currentPlanIds : currentPlanIdsFromText(userText)).map((x) => String(x).toUpperCase().slice(0, 9)).filter(Boolean);
+    let current = (Array.isArray(o.currentPlanIds) && o.currentPlanIds.length ? o.currentPlanIds : currentPlanIdsFromText(userText)).map((x) => String(x).toUpperCase().slice(0, 9)).filter(Boolean);
+    // "Current plan (UHC H5420-001, HMO) left out since you asked for PPOs only.": that table has no current-plan
+    // column, and neither does its export.
+    const leftOut = (messages || []).slice(tbl.at).some((m) => m && m.role === "assistant" && /left out since you asked for/i.test(toText(m.content)));
+    if (leftOut) current = current.filter((id) => ids.some((x) => x.slice(0, 9) === id));
     const rest = ids.filter((id) => !current.includes(id.slice(0, 9)));
     return [...current, ...rest];
+  }
+
+  /**
+   * The chat up to the Export buttons she clicked: that table is the one exported, never a newer table further down
+   * (Yahoska, 2026-10-19: the HMO table's Export gave the PPO table). offer = the offer message (matched by tableId,
+   * else by identity) or its index. Unknown offer → the whole chat (the newest table, as before).
+   */
+  function historyForExportOffer(messages, offer) {
+    const list = Array.isArray(messages) ? messages : [];
+    let at = -1;
+    if (typeof offer === "number") at = offer;
+    else if (offer && offer.tableId) at = list.findIndex((m) => m && m.role === "offer" && m.tableId === offer.tableId);
+    if (at < 0 && offer && typeof offer === "object") at = list.indexOf(offer);
+    return at >= 0 && at <= list.length ? list.slice(0, at) : list.slice();
   }
 
   /**
@@ -3443,6 +3464,7 @@
     isNarrowingReply,
     latestChatTable,
     exportPlanIdsFromThread,
+    historyForExportOffer,
     sameNetworkTwinIds,
     currentPlanIdsFromText,
     currentPlanFirst,

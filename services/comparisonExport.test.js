@@ -447,7 +447,11 @@ describe('HTML UI wiring', () => {
     assert.match(html, /1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A/);
     assert.match(html, /archive of finished client comps/);
     assert.match(html, /not the 2027 benefit grid/);
-    assert.match(html, /runComparisonExport\("excel", messagesRef\.current, m\.plans/);
+    // Each table's buttons export the chat up to THAT table (historyForExportOffer), with its own lookups snapshot.
+    assert.match(html, /runComparisonExport\("excel", typeof exp\.historyForExportOffer === "function" \? exp\.historyForExportOffer\(messagesRef\.current, m\) : messagesRef\.current, m\.plans/);
+    assert.match(html, /runComparisonExport\("pdf", typeof exp\.historyForExportOffer === "function" \? exp\.historyForExportOffer\(messagesRef\.current, m\)/);
+    assert.match(html, /exportSnapshotsRef\.current\[m\.tableId\]/);
+    assert.match(html, /const keepTableOffers = /);
   });
 
   it('keeps the 2027 grid export pointed at the working workbook, not Yahoska archive', () => {

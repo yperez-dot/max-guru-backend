@@ -1,0 +1,437 @@
+{
+ "name": "Robert and Andrea (loaded workup) — HMO table first, then \"only PPOs\": the server re-runs every doctor and med on the 4 regular Dade PPOs, each its own column (the three Humana Choice PPOs are not folded into one), and her current UHC HMO is left out with one short line",
+ "source": "Yahoska, 2026-10-19 (Robert and Andrea, Miami-Dade 33186, current plan UHC H5420-001 HMO): 'How about if I wanted two plan comparisons. One with all hmos and one with only the ppos' — 'only PPOs' / 'show me the PPOs' re-sent the saved table or fell back to HMOs, the PPO type stuck to the next HMO ask, and the current HMO led the PPO table. Cells are stubs.",
+ "workup": {
+  "clientName": "Robert and Andrea",
+  "zip": "33186",
+  "county": "Miami-Dade",
+  "currentPlanIds": [
+   "H5420-001"
+  ],
+  "plans": [
+   {
+    "carrier": "UHC",
+    "planName": "UHC MedicareMax FL-0028",
+    "planId": "H5420-001"
+   },
+   {
+    "carrier": "Humana",
+    "planName": "Humana Gold Plus",
+    "planId": "H1036-054C"
+   },
+   {
+    "carrier": "Doctors",
+    "planName": "Doctors DrMax-Dade",
+    "planId": "H4140-022"
+   }
+  ],
+  "doctors": [
+   {
+    "name": "Nathalie Regalado",
+    "npi": "1467795633"
+   },
+   {
+    "name": "Michael Weitz",
+    "npi": "1639145337"
+   },
+   {
+    "name": "Starr Koslow Mautner",
+    "npi": "1225353907"
+   },
+   {
+    "name": "Austin Bach",
+    "npi": "1659706588"
+   },
+   {
+    "name": "Yekutil Sandman"
+   },
+   {
+    "name": "Ian Del Conde Pozzi",
+    "npi": "1649309139"
+   },
+   {
+    "name": "Daid Taub"
+   }
+  ],
+  "medications": [
+   {
+    "name": "anastrozole 1mg"
+   },
+   {
+    "name": "Prolia"
+   },
+   {
+    "name": "latanoprost"
+   },
+   {
+    "name": "rosuvastatin"
+   },
+   {
+    "name": "lisinopril"
+   },
+   {
+    "name": "metoprolol succinate"
+   },
+   {
+    "name": "amlodipine"
+   }
+  ]
+ },
+ "doctorResults": {
+  "Nathalie Regalado": {
+   "npi": "1467795633",
+   "matched": "NATHALIE REGALADO MD",
+   "in": [
+    "H5420-001",
+    "R0759-001",
+    "H7617-107",
+    "H7617-110",
+    "H7617-145"
+   ],
+   "out": [
+    "H1036-054C",
+    "H4140-022"
+   ]
+  },
+  "Michael Weitz": {
+   "npi": "1639145337",
+   "matched": "MICHAEL ALAN WEITZ MD",
+   "in": [
+    "H5420-001",
+    "H1036-054C",
+    "H4140-022",
+    "H7617-107",
+    "H7617-110",
+    "H7617-145",
+    "R0759-001"
+   ],
+   "out": []
+  },
+  "Starr Koslow Mautner": {
+   "npi": "1225353907",
+   "matched": "STARR KOSLOW MAUTNER MD",
+   "in": [
+    "H5420-001",
+    "H1036-054C",
+    "H4140-022",
+    "H7617-107",
+    "H7617-110",
+    "H7617-145",
+    "R0759-001"
+   ],
+   "out": []
+  },
+  "Austin Bach": {
+   "npi": "1659706588",
+   "matched": "AUSTIN BACH MD",
+   "in": [
+    "H5420-001",
+    "H1036-054C",
+    "H4140-022",
+    "H7617-107",
+    "H7617-110",
+    "H7617-145"
+   ],
+   "out": [
+    "R0759-001"
+   ]
+  },
+  "Ian Del Conde Pozzi": {
+   "npi": "1649309139",
+   "matched": "IAN DEL CONDE POZZI MD",
+   "in": [
+    "H5420-001",
+    "H1036-054C",
+    "H4140-022",
+    "H7617-107",
+    "H7617-110",
+    "H7617-145",
+    "R0759-001"
+   ],
+   "out": []
+  },
+  "Yekutil Sandman": {
+   "notFound": [
+    {
+     "name": "Yekutiel Sandman, MD",
+     "npi": "1013111491",
+     "specialty": "Urology",
+     "city": "Miami",
+     "spelling": false
+    }
+   ]
+  },
+  "Daid Taub": {
+   "notFound": [
+    {
+     "name": "David Andrew Taub, MD",
+     "npi": "1891804696",
+     "specialty": "Urology",
+     "city": "Boca Raton",
+     "spelling": false
+    },
+    {
+     "name": "Harvey Carl Taub, MD",
+     "npi": "1679523294",
+     "specialty": "Urology",
+     "city": "Ocala",
+     "spelling": false
+    }
+   ]
+  }
+ },
+ "drugResults": {
+  "latanoprost": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-107": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-110": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-145": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "R0759-001": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "rosuvastatin": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-107": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-110": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-145": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "R0759-001": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "lisinopril": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-107": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-110": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-145": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "R0759-001": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "metoprolol succinate": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 2,
+    "cost": "$0"
+   },
+   "H7617-107": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-110": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-145": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "R0759-001": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "amlodipine": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-107": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-110": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-145": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "R0759-001": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "Prolia": {
+   "H5420-001": "not_covered",
+   "H1036-054C": {
+    "tier": 4,
+    "cost": "40%"
+   },
+   "H4140-022": "not_covered",
+   "H7617-107": {
+    "tier": 4,
+    "cost": "40%"
+   },
+   "H7617-110": {
+    "tier": 4,
+    "cost": "40%"
+   },
+   "H7617-145": {
+    "tier": 4,
+    "cost": "40%"
+   },
+   "R0759-001": "not_covered"
+  },
+  "anastrazole": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-107": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-110": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-145": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "R0759-001": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  },
+  "anastrozole": {
+   "H5420-001": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H1036-054C": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H4140-022": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-107": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-110": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "H7617-145": {
+    "tier": 1,
+    "cost": "$0"
+   },
+   "R0759-001": {
+    "tier": 1,
+    "cost": "$0"
+   }
+  }
+ },
+ "messages": [
+  "rank the HMOs, top 5",
+  "only PPOs"
+ ],
+ "expect": {
+  "serverReruns": true,
+  "chatGridPlans": [
+   "H7617-107",
+   "H7617-110",
+   "H7617-145",
+   "R0759-001"
+  ],
+  "chatFollowUpIncludes": [
+   "^Current plan \\(UHC H5420-001, HMO\\) left out since you asked for PPOs only\\.$"
+  ],
+  "chatExcludes": [
+   "Why these plans",
+   "same doctor results as"
+  ],
+  "doctorCount": 7
+ }
+}
