@@ -47,7 +47,14 @@ function workupFacts(msgs) {
     const current = curLine
       ? [...curLine.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase())
       : (plans.length === 1 ? plans : []);
-    return { doctors, plans, zip, current };
+    // "Doctor NPIs (…): Jorge Perez NPI 1234567893; Ana Ruiz (PCP) NPI 1999999999" — which saved doctors are resolved.
+    const npiLine = (t.match(/^Doctor NPIs[^:]*:\s*(.+)$/m) || [])[1] || '';
+    const npis = {};
+    for (const part of npiLine.split(';')) {
+      const m = part.match(/^\s*(.+?)(?:\s*\([^)]*\))?\s+NPI\s+(\d{10})\s*$/);
+      if (m) npis[m[1].trim()] = m[2];
+    }
+    return { doctors, plans, zip, current, npis };
   }
   return null;
 }
@@ -311,6 +318,35 @@ function respelledDoctors(latest, doctors) {
   return doctors.map((nm) => said.find((s) => DN.sameNameIgnoringSpacing(nm, s) && s.replace(/\s+/g, ' ') !== nm) || nm);
 }
 
+/**
+ * Her name for a doctor on the left of "X = Y" vs a saved / asked name, spelling aside: "Priscilla Escalona" ≈
+ * "Priscila Escalona" (Evelyn Nieves, 2026-10-20 — the two-L spelling never matched the one-L row, so her pick was
+ * dropped and the same question came back). Accents, Dr./MD, a missing middle name and a letter or two off are all the
+ * same doctor; a different first or last name is not.
+ */
+function fuzzySameDoctor(known, said) {
+  if (sameDoctorName(known, said)) return true;
+  const strip = (x) => String(x || '').split(/\s+[-–—]\s+/)[0].replace(/\([^)]*\)/g, ' ');
+  const a = plainWords(strip(known));
+  const b = plainWords(strip(said));
+  if (a.length < 2 || b.length < 2) return false;
+  const lev = (x, y) => {
+    let row = Array.from({ length: y.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= x.length; i += 1) {
+      const cur = [i];
+      for (let j = 1; j <= y.length; j += 1) cur[j] = Math.min(row[j] + 1, cur[j - 1] + 1, row[j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+      row = cur;
+    }
+    return row[y.length];
+  };
+  const near = (x, y) => x === y || (Math.min(x.length, y.length) >= 4 && lev(x, y) <= (Math.min(x.length, y.length) >= 7 ? 2 : 1));
+  if (!near(a[0], b[0])) return false;
+  // Last name she typed is one of the saved name's later words (two-part surnames: "Escalona Villasmil").
+  if (!a.slice(1).some((w) => near(w, b[b.length - 1]))) return false;
+  // Any middle word she typed is in the saved name (an initial is fine).
+  return b.slice(1, -1).every((w) => w.length <= 1 || a.some((x) => near(x, w)));
+}
+
 /** Fuzzy "same doctor" for typo'd names: "Hoa Nguyne" ≈ "Hoa Nguyen", "Gloria St" ⊂ "Theresa Gloria St. Phillipe". */
 function looseSameDoctor(known, said) {
   if (sameDoctorName(known, said)) return true;
@@ -544,7 +580,7 @@ module.exports = {
   workupFacts, workupCarrierEditSet, workupPlanAddSet, lastTablePlanIds, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,
   NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, PRONOUN_TARGET_RE, KEEPS_CURRENT_RE, lineKeepsCurrentPlan, droppedIdsIn, removePlansNamedIn, OFF_GRID_RE, DROPS_CURRENT_RE, currentPlanRemovedBy, planLineVerdict, currentPlanFirst,
   // doctors
-  respelledDoctors, looseSameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords,
+  respelledDoctors, looseSameDoctor, fuzzySameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords,
   doctorCoreWords, specialtyWords, removedByClauses, sameCoreDoctor, RESOLVED_DOCTOR, dedupeDoctorRows, DUPLICATE_Q_RE,
   duplicateQuestions, confirmedDuplicateRemovals,
   // meds

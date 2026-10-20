@@ -78,6 +78,13 @@ function unlabeledDoctors(t, zip) {
   if (at < 0) return '';
   let rest = t.slice(at + zip.length).replace(/^[\s.,;:\-–—]+/, '').replace(/\b(?:Drs?|Dras?|Doc)\.\s*(?=[A-Za-z])/gi, '');
   rest = rest.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Za-z])|\n\s*\n/)[0];
+  // The doctor list ends where the meds / plan list starts: "…, Pavel Gazdovich, meds: atorvastatin, …". Without this cut
+  // the six meds after the five doctors outvoted them and the whole plain list was thrown away, leaving only the one
+  // name typed with "Dr." (Jorge Rivero, 2026-10-20: 4 of 5 doctors dropped).
+  // A label with a colon ("meds:", "Plans:") or a lowercase list right after it ("meds atorvastatin"); "Med Eye Associates"
+  // is a practice, not the label (Tony & Gerry Cabrera, 2026-10-19).
+  rest = rest.split(/[,;\s]*\b(?:meds?|medications?|medicines?|medicamentos?|medicinas?|rx|drugs?|prescriptions?|current\s+plans?|plans?)\b\s*(?::|-\s)/i)[0];
+  rest = rest.split(/[,;\s]*\b(?:[Mm]eds?|MEDS?|[Mm]edications?|[Mm]edicines?|[Mm]edicamentos?|[Rr]x|[Dd]rugs?|[Pp]rescriptions?|[Cc]urrent\s+plans?|[Cc]ompare)\s+(?=[a-z])/)[0];
   const items = rest.split(/\n|,|;|\band\b(?=\s+[A-Z])/).map((x) => x.replace(/^[\s\-•*\d.)]+/, '').replace(/[\s.]+$/, '').trim()).filter(Boolean);
   const looksLikeName = (x) => {
     const w = x.replace(/\b(?:Drs?|Dras?|Doc)(?:\.\s*|\s+)/i, '').split(/\s+/);

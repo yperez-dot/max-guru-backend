@@ -8,7 +8,7 @@
  * DELETE /workups/:id
  */
 const { Router } = require('express');
-const { createWorkupStore } = require('../services/workups');
+const { createWorkupStore, withRecoveredDoctors } = require('../services/workups');
 
 function createWorkupsRouter(store) {
   const router = Router();
@@ -41,7 +41,8 @@ function createWorkupsRouter(store) {
     try {
       const workup = getStore().get(email, req.params.id);
       if (!workup) return res.status(404).json({ error: 'Workup not found' });
-      return res.json({ ok: true, workup });
+      // Doctors the original request named but the saved facts lost come back (unchecked) on load.
+      return res.json({ ok: true, workup: withRecoveredDoctors(workup) });
     } catch (err) {
       return sendStoreError(res, err, 'Could not load workup');
     }

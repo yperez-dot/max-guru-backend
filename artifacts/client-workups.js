@@ -437,10 +437,26 @@
     return text.indexOf(WORKUP_CONTEXT_PREFIX) === 0;
   }
 
+  /**
+   * The compare card's questions as the assistant turn the chat server reads. Max asked "No exact match for:
+   * "Priscila Escalona" — closest: …" on the CARD, she answered in chat, and the server never saw the question, so her
+   * pick was dropped and the card asked again (Evelyn Nieves, 2026-10-20). "" when the card asked nothing.
+   */
+  function compareCardTurnText(result) {
+    const r = result && typeof result === "object" ? result : {};
+    const lines = compareFollowUpLines(r).questions;
+    if (!lines.length) return "";
+    const head = Array.isArray(r.planIds) && r.planIds.length ? "Comparison results (" + r.planIds.join(", ") + ")" : "Comparison results";
+    return head + "\n" + lines.join("\n");
+  }
+
   function messagesForApi(history, loadedWorkup) {
     // A grid and its follow-up bubble (notes / questions) are ONE assistant turn for the server.
     const chat = [];
-    for (const m of history || []) {
+    for (const m0 of history || []) {
+      // A compare card in the thread ({ role: "queueResult", result }) is an assistant turn when it asked something.
+      const cardText = m0 && (m0.role === "queueResult" || m0.role === "clientWs") ? compareCardTurnText(m0.result) : "";
+      const m = cardText ? { role: "assistant", content: cardText } : m0;
       if (!m || (m.role !== "user" && m.role !== "assistant")) continue;
       const prev = chat[chat.length - 1];
       if (m.role === "assistant" && prev && prev.role === "assistant" && typeof prev.content === "string" && typeof m.content === "string") {
@@ -472,6 +488,14 @@
     const had = ((result && result.planIds) || []).map(key).filter(Boolean);
     if (!had.length || !saved.length) return [];
     return saved.filter((id) => !had.includes(key(id)));
+  }
+
+  /** Doctors the original request named that the saved facts had lost, put back on load (server: withRecoveredDoctors). */
+  function recoveredDoctorsNote(workup) {
+    const names = (workup && Array.isArray(workup.recoveredDoctors) ? workup.recoveredDoctors : []).filter(Boolean);
+    if (!names.length) return "";
+    const n = ((workup && workup.doctors) || []).length || names.length;
+    return "Added back " + names.join(", ") + " from the original request (the saved list had dropped " + (names.length === 1 ? "this doctor" : "them") + "). Ask me to check the doctors and I'll run all " + n + ".";
   }
 
   function staleResultNote(workup, result) {
@@ -575,6 +599,8 @@
     compactWorkupContext,
     isWorkupContextMessage,
     messagesForApi,
+    compareCardTurnText,
+    recoveredDoctorsNote,
     workupListLabel,
     formatUpdatedAt,
     rehydratePlans,

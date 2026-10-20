@@ -570,7 +570,9 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
   if (table) text = enforceRenderedTable(text, table);
   const out = chatResult({ lastData, text, collectedToolResults, usageCalls, deadlineHit: false });
   // The page saves this list as the workup's doctors (replace, not merge): corrections and removals stick.
-  if (followUpRun) out.doctorList = { final: true, doctors: followUpRun.doctors };
+  // With the NPIs she resolved ("Priscila Escalona" → Priscilla Gabriela Escalona Villasmil, NPI 1174811400), so the saved
+  // workup keeps the resolved doctor and a re-run / reload / export never goes back to the raw name (Evelyn Nieves, 2026-10-20).
+  if (followUpRun) out.doctorList = { final: true, doctors: followUpRun.doctors, ...(followUp && followUp.npis && Object.keys(followUp.npis).length ? { npis: followUp.npis } : {}) };
   return out;
 }
 

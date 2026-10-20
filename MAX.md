@@ -700,3 +700,9 @@ bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.
 
 ## 2026-10-08 — "i gave them to you already" (Paula Harris)
 - Even with her 5 meds in the loaded workup, Max later said the workup had none and asked again. /chat now appends a MEDS ALREADY ON FILE note (from the workup or her messages, `knownMedsNote`) to the system prompt every turn, telling the model to price them and never ask.
+
+## 2026-10-20 — doctors dropped, corrections not sticking, same-name PA/dentist (Jorge Rivero, Evelyn Nieves)
+- A plain doctor list after the ZIP followed by "meds: …" was thrown away (the meds outvoted the names), so only the doctor typed with "Dr." survived. The list now ends at the meds / plans label. A reopened workup re-reads lost doctors from its original request (unchecked; a doctor removed on an earlier save stays removed).
+- A doctor she resolves (candidate pick, "X = Y (…, NPI …)", "the first one", "the dentist") stays resolved on every later re-run (plan swap, filter, rank, card) and is saved with its NPI. Left side of "=" matches fuzzily (spelling, accents, Dr./MD, missing middle names); with one unresolved doctor any "X = Y" binds to it. The compare card's questions now reach the chat server.
+- Several real people with the typed name near the ZIP (Ricardo Espinosa: PA NPI 1346449220 / dentist NPI 1083825665) are asked about, never silently picked; a dentist goes to the dental networks only.
+- An empty "Notes:" header over "Question: …" is dropped.

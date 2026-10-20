@@ -65,7 +65,11 @@ function solisFor(rec, zip, planYear) {
     return SOLIS_UNAVAILABLE;
   }
 }
-const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery, suggestSimilarProviders } = require('./npiRegistry');
+const npiRegistryMod = require('./npiRegistry');
+const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery, suggestSimilarProviders } = npiRegistryMod;
+const extractNpi = (x) => ((String(x || '').match(/\b(\d{10})\b/) || [])[1] || '');
+const sameNameCandidates = (...a) => (typeof npiRegistryMod.sameNameCandidates === 'function' ? npiRegistryMod.sameNameCandidates(...a) : []);
+const DENTAL_HINT_RE = /\b(?:dds|d\.d\.s|dmd|d\.m\.d|dentist\w*|dentisry|dental)\b/i;
 const { conversationAskText } = require('./planYear');
 const { batchSummaryForModel, narrowingAnswered, comparisonAskText, selectComparison, renderedAnswer, dedupeDoctorRows } = require('./doctorPlanNarrow');
 const { medsFromAsk } = require('./comparisonRules');
@@ -719,6 +723,16 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
       // Offer the closest real doctors instead of asking the agent for an NPI.
       const suggestions = await suggestSimilarProviders({ doctorName, zip, state: input.state || 'FL' }).catch(() => []);
       return notFoundResult(doctorName, suggestions);
+    }
+    // Two real people with the name she typed near her ZIP (a PA and a dentist): ask which one — never pick silently.
+    // A name with an NPI, or one plausible person, is looked up as before.
+    if (!extractNpi(input.npi) && !extractNpi(doctorName)) {
+      const same = sameNameCandidates(records, doctorName, zip);
+      if (same.length >= 2) return notFoundResult(doctorName, same);
+    }
+    // "Ricardo Espinosa DMD" / "… dentist": the dentist with that name is the one she means.
+    if (DENTAL_HINT_RE.test(doctorName) && records.some((r) => dentalDirectory.isDentistRecord(r))) {
+      records.sort((a, b) => Number(dentalDirectory.isDentistRecord(b)) - Number(dentalDirectory.isDentistRecord(a)));
     }
     const picked = records.slice(0, Math.max(1, npiCap)).map(npiRecordInfo);
     // A dentist is checked in the plans' DENTAL networks only — the Medicare medical directories do not
