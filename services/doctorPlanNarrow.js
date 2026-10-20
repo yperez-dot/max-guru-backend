@@ -69,11 +69,187 @@ function askConstraints(askText) {
   const skip = new Set();
   for (const m of t.matchAll(/\b(?:skip|exclude|not|no|drop|remove|without)\s+([HR]\d{4}-\d{3}[A-Z]?)/gi)) skip.add(m[1].toUpperCase());
   for (const m of t.matchAll(/([HR]\d{4}-\d{3}[A-Z]?)[^.\n]{0,40}?\b(terminating|ending|going away|non-?commissionable)/gi)) skip.add(m[1].toUpperCase());
-  const onlyPpo = /\b(need|needs|must be|only)\s+(a\s+)?ppo\b/i.test(t);
+  // comparisonAskText writes the plan type of her NEWEST message only ("Plan type: PPO only." / "HMO only." / "any." /
+  // "default."): a PPO ask never sticks to the next HMO ask (Robert and Andrea, 2026-10-19). Without that line (one
+  // message read on its own) the message's own words decide.
+  const line = (t.match(/^Plan type: (PPO only|HMO only|any|default)\.$/m) || [])[1];
+  const type = line ? { 'PPO only': 'ppo', 'HMO only': 'hmo', any: 'any', default: '' }[line] : planTypeIn(t);
+  const onlyPpo = type === 'ppo';
   // HMO is the default: PPOs stay out unless she says PPO (Yahoska 2026-10-07: "lets not include ppos unless we specify").
-  const wantsPpo = /\bppo\b|\bany network\b|\beither is fine\b/i.test(t);
-  const onlyHmo = /\b(only|must be)\s+(an\s+)?hmo\b/i.test(t) || (!wantsPpo && !onlyPpo);
+  const onlyHmo = type === 'hmo' || type === '';
   return { noMedicaid, hasMedicaid, skip, onlyPpo, onlyHmo };
+}
+
+// Plan-type words, any case, with or without the "s": HMO, hmos, PPOs, PPO's.
+const TYPE_WORD_RE = /\b(hmo|ppo)(?:'?s)?\b/gi;
+// "only PPOs", "PPO only", "just the PPOs", "show me the PPOs", "all PPOs", "compare all HMOs", "top 5 PPOs",
+// "rank the PPO plans", "she needs a PPO": she wants that plan type and nothing else.
+const TYPE_ONLY_RE = (w) => new RegExp(
+  `\\b(?:only|just|all|every|show|list|see|compare|rank|ranked|ranking|top\\s+\\d|run|check|search|find|give|pull|look\\s+at|what\\s+about|how\\s+about|need|needs|wants?|must\\s+be|prefers?)\\b[^.?!\\n]{0,30}?\\b${w}(?:'?s)?\\b`
+  + `|\\b${w}(?:'?s)?\\s*(?:only|plans?|options?)\\b|^\\s*(?:the\\s+)?${w}(?:'?s)?\\s*[.?!]*\\s*$`, 'i');
+
+/**
+ * The plan type ONE message asks for: 'ppo' / 'hmo' (that type only), 'any' (both types welcome: "either is fine",
+ * "HMO or PPO", a PPO plan she named), '' (nothing said — HMO default).
+ */
+function planTypeIn(text) {
+  const t = String(text || '');
+  if (!t.trim() || isWorkupMessage(t)) return '';
+  if (/\bany network\b|\beither(?:\s+one)?\s+is\s+fine\b|\b(?:hmo|ppo)s?\s+or\s+(?:a\s+)?(?:hmo|ppo)s?\b/i.test(t)) return 'any';
+  const types = new Set([...t.matchAll(TYPE_WORD_RE)].map((m) => m[1].toLowerCase()));
+  if (!types.size) return '';
+  if (types.size > 1) return 'any';
+  const type = [...types][0];
+  const other = type === 'ppo' ? 'hmo' : 'ppo';
+  // "no PPOs" / "not an HMO": the other type only.
+  if (new RegExp(`\\b(?:no|not|without|exclude|excluding|except|skip)\\s+(?:the\\s+|any\\s+|an?\\s+)?${type}(?:'?s)?\\b`, 'i').test(t)) return other;
+  // A plan ID she typed is a named-plan ask: its type never narrows anything.
+  if (/\b[HR]\d{4}-\d{3}/i.test(t)) return type === 'ppo' ? 'any' : '';
+  if (TYPE_ONLY_RE(type).test(t)) return type;
+  // A PPO named some other way ("HUMANA PPO Humana Choice H7617-107"): PPOs may be columns, HMOs too.
+  return type === 'ppo' ? 'any' : '';
+}
+
+/**
+ * A plan-TYPE ask with no carrier and no plan ID ("only PPOs", "show me the PPOs", "compare all HMOs", "top 5 PPOs"):
+ * rank every plan of that type in her county on her doctors and meds. { type, top } or null.
+ */
+function planTypeAsk(text) {
+  const t = String(text || '');
+  if (!t.trim() || isWorkupMessage(t) || /\b[HR]\d{4}-\d{3}/i.test(t)) return null;
+  const type = planTypeIn(t);
+  if (type !== 'ppo' && type !== 'hmo') return null;
+  // "show me humana ppos" / "aetna hmo": a carrier's plans of that type (planTypeSetFromAsk / the carrier ask).
+  if (R.carriersRequested(t).length || R.carriersUnresolved(t).length) return null;
+  // Her answer to Max's numbered questions ("1. no 2. ppo") is read with those questions (statementsFor).
+  if (Object.keys(numberedAnswers(t)).length >= 2) return null;
+  const top = Number((t.match(/\btop\s+(\d)\b/i) || [])[1]) || 5;
+  return { type, top: Math.max(1, Math.min(5, top)) };
+}
+
+/** "Plan type: …" line for the ask text: her newest message only (a Max question she answered in it counts). */
+function planTypeLine(msgs) {
+  // A doctor-match answer keeps the plan type of the ask it answers ("only PPOs", then "Yekutiel Sandman, David Taub").
+  const lastUserAt = rankAskAt(msgs);
+  if (lastUserAt < 0) return 'Plan type: default.';
+  const latest = messageText(msgs[lastUserAt]);
+  let type = planTypeIn(latest);
+  const prev = msgs.slice(0, lastUserAt).reverse().find((m) => m && m.role === 'assistant');
+  if (prev) {
+    const qs = askedQuestions(messageText(prev));
+    const answers = numberedAnswers(latest);
+    qs.forEach((q, k) => {
+      if (!q || !answers[k] || !/HMO OK|PPO/i.test(q)) return;
+      const st = statementsFor(q, answers[k])[0] || '';
+      type = /Needs a PPO/.test(st) ? 'ppo' : /either|both|any/i.test(answers[k]) ? 'any' : 'hmo';
+    });
+  }
+  return `Plan type: ${{ ppo: 'PPO only', hmo: 'HMO only', any: 'any' }[type] || 'default'}.`;
+}
+
+// ─── her pick from the "No exact match" candidates ──────────────────────────────────────────────────────────────
+// Max's question lists, per doctor she typed, the closest real providers the NPI registry found:
+//   • "Daid Taub" — closest: David Andrew Taub, MD (Urology, Boca Raton, NPI 1891804696); Harvey Carl Taub, MD (…)
+// Her reply names one ("Yekutiel Sandman and David Andrew Taub", "Daid Taub = David Andrew Taub", "yes" when each
+// doctor has one candidate): that candidate — name and NPI — replaces the doctor she typed, and is checked on every
+// plan in the table (Robert and Andrea, 2026-10-19: "Yekutil Sandman" / "Daid Taub" on an "only PPOs" table).
+const editDistance = (x, y) => {
+  let row = Array.from({ length: y.length + 1 }, (_, j) => j);
+  for (let a = 1; a <= x.length; a += 1) { const cur = [a]; for (let b = 1; b <= y.length; b += 1) cur[b] = Math.min(row[b] + 1, cur[b - 1] + 1, row[b - 1] + (x[a - 1] === y[b - 1] ? 0 : 1)); row = cur; }
+  return row[y.length];
+};
+const CRED_RE = /,?\s*\b(?:MD|M\.D\.|DO|D\.O\.|DDS|DMD|DPM|OD|ARNP|APRN|NP|PA-C?|PhD)\b\.?/gi;
+function doctorMatchCandidates(questionText) {
+  const out = [];
+  for (const m of String(questionText || '').matchAll(/^\s*[•*-]\s*["“]([^"”]+)["”]\s*[—–-]\s*(?:closest:|did you mean)\s*(.+)$/gim)) {
+    const cands = [];
+    for (const part of m[2].split(/;\s*/)) {
+      const c = part.match(/^\s*([^(?]+?)\s*\(([^)]*)\)/);
+      if (!c) continue;
+      const npi = (c[2].match(/\bNPI\s*(\d{10})\b/) || [])[1] || '';
+      cands.push({ name: c[1].replace(CRED_RE, '').trim(), npi });
+    }
+    if (cands.length) out.push({ asked: m[1].trim(), candidates: cands });
+  }
+  return out;
+}
+function candidatePicks(questionText, answerText) {
+  const rows = doctorMatchCandidates(questionText);
+  if (!rows.length) return [];
+  const a = String(answerText || '').trim();
+  const picks = [];
+  const take = (row, cand) => { if (!picks.some((p) => p.asked === row.asked)) picks.push({ asked: row.asked, name: cand.name, npi: cand.npi }); };
+  // A bare "yes" / "yes to both": each doctor with exactly one candidate takes it.
+  if (/^\s*(?:yes|yep|yeah|correct|ok(?:ay)?|right)(?:\s+(?:to\s+)?(?:both|all|all of them|them|those|that|please))?[.!]?\s*$/i.test(a)) {
+    for (const row of rows) if (row.candidates.length === 1) take(row, row.candidates[0]);
+    return picks;
+  }
+  const looksLike = (said, cand) => {
+    const sw = plainWords(said);
+    const cw = plainWords(cand.name);
+    if (sw.length < 2 || cw.length < 2) return false;
+    const last = sw[sw.length - 1];
+    return editDistance(sw[0], cw[0]) <= 1 && cw.slice(1).some((w) => editDistance(w, last) <= 1)
+      && sw.slice(1, -1).every((w) => w.length <= 1 || cw.some((x) => editDistance(x, w) <= 1));
+  };
+  const askedLike = (said, row) => {
+    const sw = plainWords(said);
+    const aw = plainWords(row.asked);
+    return sw.length >= 1 && aw.length >= 1 && editDistance(sw[sw.length - 1], aw[aw.length - 1]) <= 2 && (sw.length < 2 || editDistance(sw[0], aw[0]) <= 2);
+  };
+  const segs = a.replace(CRED_RE, '').split(/[\n;]|,|\band\b|&/i);
+  for (const seg0 of segs) {
+    const seg = seg0.replace(/^\s*(?:yes|yep|yeah|correct|ok(?:ay)?|its|it's|it is|use|try|the right one is|i mean)\b[\s,:-]*/i, '').replace(/^\s*(?:dr|dra|doctor)\.?\s+/i, '').replace(/[.!?]+\s*$/, '').trim();
+    if (!seg) continue;
+    const npi = (seg.match(/\b(\d{10})\b/) || [])[1];
+    const eq = seg.split(/\s*(?:=|→|->|\bis actually\b|\bshould be\b|\bis\b)\s*/i);
+    const left = eq.length > 1 ? eq[0] : '';
+    const right = (eq.length > 1 ? eq.slice(1).join(' ') : seg).replace(/^\s*(?:dr|dra|doctor)\.?\s+/i, '').trim();
+    const pool = rows.filter((row) => !left || askedLike(left, row));
+    const hits = [];
+    for (const row of pool) for (const cand of row.candidates) if ((npi && cand.npi === npi) || (!npi && looksLike(right, cand))) hits.push([row, cand]);
+    const byRow = [...new Set(hits.map((h) => h[0]))];
+    if (byRow.length === 1) take(byRow[0], hits.find((h) => h[0] === byRow[0])[1]);
+  }
+  return picks;
+}
+
+/** Her candidate picks in every reply up to lastUserAt, applied to the doctor list: { doctors, npis }. */
+function pickedDoctors(msgs, lastUserAt, doctors) {
+  const list = (doctors || []).slice();
+  const npis = {};
+  for (let i = 1; i <= lastUserAt; i += 1) {
+    const m = msgs[i];
+    if (!m || m.role !== 'user') continue;
+    const prev = msgs.slice(0, i).reverse().find((x) => x && x.role === 'assistant');
+    if (!prev) continue;
+    for (const pk of candidatePicks(messageText(prev), messageText(m))) {
+      const k = list.findIndex((nm) => sameDoctorName(nm, pk.asked) || plainWords(nm).join(' ') === plainWords(pk.asked).join(' '));
+      if (k < 0) continue;
+      list[k] = pk.name;
+      if (pk.npi) npis[pk.name] = pk.npi;
+    }
+  }
+  return { doctors: list, npis };
+}
+
+/** The latest message only answers Max's doctor-match question (no plan, carrier or plan-type ask in it). */
+function isDoctorMatchAnswer(msgs, at) {
+  const t = messageText(msgs[at]);
+  if (!t.trim() || /\b[HR]\d{4}-\d{3}/i.test(t) || R.carriersRequested(t).length || planTypeIn(t)) return false;
+  const prev = msgs.slice(0, at).reverse().find((m) => m && m.role === 'assistant');
+  if (!prev || !/No exact match for:/i.test(messageText(prev))) return false;
+  return candidatePicks(messageText(prev), t).length > 0;
+}
+/** The user message whose ranking / plan-type ask the newest turn continues: her doctor-match answers ride on it. */
+function rankAskAt(msgs) {
+  let at = msgs.map((m) => m && m.role).lastIndexOf('user');
+  while (at > 0 && isDoctorMatchAnswer(msgs, at)) {
+    const prevUser = msgs.slice(0, at).map((m) => m && m.role).lastIndexOf('user');
+    if (prevUser < 0) break;
+    at = prevUser;
+  }
+  return at;
 }
 
 /** Plan rows: who is In / Out / not confirmed, sorted by In count. */
@@ -379,6 +555,25 @@ function comparisonAskText(messages, baseText) {
         }
       }
     }
+    // "only PPOs" / "show me the PPOs" / "compare all HMOs" / "top 5 PPOs" in her NEWEST message: rank every plan of that
+    // type in her county on her doctors and meds — top 5, or all of them when the county has 5 or fewer. Before, these
+    // re-sent the saved table or fell back to HMOs (Robert and Andrea, 2026-10-19).
+    // Her answer to the doctor-match question under that table keeps the ranking she asked for (rankAskAt).
+    const typeAsk = i === rankAskAt(msgs) ? planTypeAsk(t) : null;
+    if (typeAsk) {
+      const excluded = excludedCarriers(msgs.slice(0, i + 1));
+      if (excluded.length) lines.push(`Carriers excluded: ${excluded.join(', ')}.`);
+      lines.push('Rank all eligible plans.');
+      lines.push(`Plan-type ask: ${typeAsk.type.toUpperCase()}s only.`);
+      lines.push(`Top ${typeAsk.top}.`);
+      const current = currentPlanOf(msgs.slice(0, i + 1));
+      if (current.length && !/^Her current plan:/m.test(lines.join('\n'))) lines.unshift(`Her current plan: ${current.join(', ')}.`);
+      if (!/\b3\d{4}\b/.test(lines.join('\n'))) {
+        const zip = newestZip(msgs.slice(0, i + 1));
+        if (zip) lines.push(`ZIP ${zip}.`);
+      }
+      break;
+    }
     const addSet = require('./loadedWorkup').workupPlanAddSet(t, msgs.slice(0, i + 1));
     if (addSet.length) {
       if (addSet.added && addSet.added.length) lines.push(`Plans she added: ${addSet.added.join(', ')}.`);
@@ -453,6 +648,8 @@ function comparisonAskText(messages, baseText) {
     const idsNamed = new Set((t.match(/\b[HR]\d{4}-\d{3}/gi) || []).map((x) => x.toUpperCase())).size;
     if (idsNamed >= 2 || (idsNamed && /\b(compare|show|add|instead|vs|do|use|run|go with|check|re-?check|re-?run|verify)\b/i.test(t))) break;
   }
+  // The plan type comes from her newest message only (askConstraints reads this line, not the older messages).
+  lines.push(planTypeLine(msgs));
   return lines.join('\n');
 }
 
@@ -598,11 +795,17 @@ function comparisonFollowUpRaw(messages) {
   // "Find the plans that cover the most of her 5 doctors" on a loaded workup: rank with the saved doctors
   // (full names; their saved NPIs are reused by lookup_provider_network).
   if (R.csnpRunAsk(latest)) reasons.push('run C-SNPs (agent-confirmed condition)');
-  if ((RANK_ASK_RE.test(latest) || R.csnpRunAsk(latest)) && !/\b(?:doctors?|drs?|providers?)\s*:/i.test(latest)) {
+  // "only PPOs" / "compare all HMOs": a ranking of that plan type — the server re-runs it, never the saved table.
+  const typeAsk = planTypeAsk(latest);
+  if (typeAsk) reasons.push(`${typeAsk.type.toUpperCase()}s only`);
+  if ((RANK_ASK_RE.test(latest) || R.csnpRunAsk(latest) || typeAsk) && !/\b(?:doctors?|drs?|providers?)\s*:/i.test(latest)) {
     const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
     if (wk && wk.doctors.length >= 2) {
-      if (RANK_ASK_RE.test(latest)) reasons.push('rank all plans by her doctors');
-      return { reason: reasons.join(' + '), doctors: wk.doctors, zip: newestZip(msgs.slice(0, lastUserAt + 1)) || wk.zip };
+      if (RANK_ASK_RE.test(latest) || typeAsk) reasons.push('rank all plans by her doctors');
+      // A doctor she already confirmed from the "No exact match" candidates is that provider here too — counted in the
+      // ranking, not ❔ not confirmed again (Robert and Andrea, 2026-10-19).
+      const picked = pickedDoctors(msgs, lastUserAt, wk.doctors);
+      return { reason: reasons.join(' + '), doctors: picked.doctors, zip: newestZip(msgs.slice(0, lastUserAt + 1)) || wk.zip, ...(Object.keys(picked.npis).length ? { npis: picked.npis } : {}) };
     }
   }
   const prevAssistant = msgs.slice(0, lastUserAt).reverse().find((m) => m && m.role === 'assistant');
@@ -617,7 +820,7 @@ function comparisonFollowUpRaw(messages) {
     const t = messageText(m);
     // A plan ask on a chat whose doctors were typed as a plain list ("Robert and Andrea, 33186, Dr. Nathalie Regalado,
     // Dr. Michael Weitz, …") — no "Doctors:" label: that earlier message is the doctor list.
-    const plainList = planAsk.length && i < lastUserAt && !isWorkupMessage(t) && /\b(?:dr|dra|doctor)\.?\s+[A-Z]/i.test(t)
+    const plainList = (planAsk.length || typeAsk || isDoctorMatchAnswer(msgs, lastUserAt)) && i < lastUserAt && !isWorkupMessage(t) && /\b(?:dr|dra|doctor)\.?\s+[A-Z]/i.test(t)
       && parseCompareAsk(t).doctors.length >= 2;
     if (!/\b(?:doctors?|drs?|providers?)\s*:/i.test(t) && !plainList) continue;
     const f = parseCompareAsk(t);
@@ -631,10 +834,20 @@ function comparisonFollowUpRaw(messages) {
       ...[...comparisonAskText(msgs).matchAll(/Doctor substitution: (.+?) => (.+?)\.$/gm)].map((x) => [x[1], x[2]]),
     ];
     if (substitutionsIn(latest, names).length) reasons.push('doctor corrections');
+    const prevQ = prevAssistant ? messageText(prevAssistant) : '';
+    // A candidate she picked from the "No exact match" list: that provider (name + NPI) replaces the doctor she typed.
+    const picks = candidatePicks(prevQ, latest);
+    const pickNpis = {};
+    for (const pk of picks) {
+      const from = names.find((nm) => sameDoctorName(nm, pk.asked) || plainWords(nm).join(' ') === plainWords(pk.asked).join(' '));
+      if (!from) continue;
+      subs.push([from, pk.name]);
+      if (pk.npi) pickNpis[pk.name] = pk.npi;
+      if (!reasons.includes('doctor corrections')) reasons.push('doctor corrections');
+    }
     // "Try Alan Dal Pra" / "its Zubair Ansari" in answer to ONE "No exact match" doctor: that name replaces it, and the
     // other doctors stay in the run (Melmoth Alexander, 2026-10-13: the reply re-ran only the new doctor).
-    const prevQ = prevAssistant ? messageText(prevAssistant) : '';
-    if (/No exact match for/i.test(prevQ) && !Object.keys(numberedAnswers(latest)).length) {
+    if (!picks.length && /No exact match for/i.test(prevQ) && !Object.keys(numberedAnswers(latest)).length) {
       const askedNames = [...prevQ.matchAll(/"([^"]+)"\s*—/g)].map((x) => x[1].trim());
       const said = latest.replace(/^\s*(?:try|use|maybe|its|it's|it is|is|=|check|add|change(?:\s+(?:it|him|her|that))?\s+to|switch(?:\s+(?:it|him|her))?\s+to|replace(?:\s+(?:it|him|her))?\s+with|should\s+be|spelled|instead)\s+/i, '').replace(/^dr\.?\s+/i, '').replace(/[.!?]+\s*$/, '').trim();
       const wordsSaid = said.split(/\s+/).filter(Boolean);
@@ -645,7 +858,7 @@ function comparisonFollowUpRaw(messages) {
     }
     // Several "No exact match" doctors and she just types the right name ("Pascual De Santis, MD", "yes, and the
     // endocrinologist is Pascual De Santis"): it goes to the one asked name it plainly resembles.
-    if (/No exact match for/i.test(prevQ) && !carriers.length) {
+    if (!picks.length && /No exact match for/i.test(prevQ) && !carriers.length) {
       const asked = [...prevQ.matchAll(/"([^"]+)"\s*—/g)].map((x) => x[1].trim());
       if (asked.length > 1) {
         const letters = (w) => String(w || '').toLowerCase().replace(/[^a-z]/g, '');
@@ -731,6 +944,7 @@ function comparisonFollowUpRaw(messages) {
     const zip = f.zip || (msgs.slice(0, lastUserAt + 1).map(messageText).join(' ').match(/\b(3\d{4})\b/) || [])[1] || '';
     const npis = {};
     for (const nm of names) for (const [asked, npi] of Object.entries(confirmed)) if (sameDoctorName(nm, asked)) npis[nm] = npi;
+    for (const nm of names) if (pickNpis[nm]) npis[nm] = pickNpis[nm];
     // One entry per doctor: a corrected spelling that lands on a name already listed is that name.
     const unique = names.filter((nm, k) => names.findIndex((o) => plainWords(o).join(' ') === plainWords(nm).join(' ')) === k);
     return { reason: reasons.join(' + '), doctors: unique, zip, ...(Object.keys(npis).length ? { npis } : {}) };
@@ -797,6 +1011,16 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
     const prev = msgs.slice(0, i).reverse().find((x) => x && x.role === 'assistant');
     const asked = prev && /No exact match|No NPI match|did you mean|Confirm the (?:doctor )?match|confirm match|right provider/i.test(messageText(prev));
     const t = messageText(m);
+    // Her pick from the "No exact match" candidates: that provider, with the NPI Max showed, on every plan in the table.
+    const picks = prev ? candidatePicks(messageText(prev), t) : [];
+    for (const pk of picks) {
+      const who = people.find((p) => sameDoctorName(p.name, pk.asked) || plainWords(p.name).join(' ') === plainWords(pk.asked).join(' '));
+      if (!who) continue;
+      who.name = pk.name;
+      who.npi = pk.npi || '';
+      touched = true;
+    }
+    if (picks.length) continue;
     // "it didnt add her primary… Dr. Kelys Caballero" / "add Dr. Kelys Caballero": a doctor added to the saved list.
     if (ADD_DOCTOR_RE.test(t) && !/\b[HR]\d{4}-\d{3}/i.test(t) && !R.carriersRequested(t).length) {
       const nm = (t.match(/\b(?:dr|dra|doctor|doctora)\.?\s+([A-ZÀ-Ý][\wÀ-ÿ'.-]+(?:\s+[A-ZÀ-Ý][\wÀ-ÿ'.-]+){0,3})/) || [])[1];
@@ -1740,6 +1964,21 @@ function selectComparison(doctors, askText, opts = {}) {
     if ([...constraints.skip].some((s) => s.slice(0, 9) === key)) return false;
     return !carrierExcludes(id);
   });
+  // "only PPOs" with her current plan an HMO (or the other way round): it is left out, said in one line. Same type: it
+  // stays first (Yahoska, 2026-10-19: the current HMO led every PPO-only table).
+  const typeAskType = ((ask0.match(/^Plan-type ask: (HMO|PPO)s only\.$/m) || [])[1] || '').toLowerCase();
+  const typeLeftOut = [];
+  if (typeAskType && !Array.isArray(opts.named)) {
+    pinFromAsk = pinFromAsk.filter((id) => {
+      const row = gridRowFor(id, county);
+      const net = R.networkType(row || { name: id });
+      if (net === typeAskType || !curAskIds.includes(String(id).toUpperCase().slice(0, 9))) return true;
+      const carrier = R.carrierOfPlan(row || { name: id });
+      const short = carrier === 'UnitedHealthcare' ? 'UHC' : carrier;
+      typeLeftOut.push(`Current plan (${[short, String(id).toUpperCase()].filter(Boolean).join(' ')}, ${net.toUpperCase()}) left out since you asked for ${typeAskType.toUpperCase()}s only.`);
+      return false;
+    });
+  }
   // Looked-up names first ("Atorvastatin Calcium"), then anything listed but not looked up yet.
   const meds = [];
   for (const m of drugs.map(drugNameOf)) {
@@ -1995,13 +2234,19 @@ function selectComparison(doctors, askText, opts = {}) {
     }
     const isPinned = (c) => pinnedCols.some((p) => p.planId === c.planId);
     const maxCols = rankAll ? Math.min(6, pinnedCols.length + topN) : 3;
-    for (const c of (carriers.length ? [] : ranked)) {
+    // A plan-type ask in a county with 5 or fewer plans of that type (Miami-Dade: 4 regular PPOs): every one of them is
+    // a column, ranked first, then the ones a directory could not confirm.
+    const allOfType = Boolean(typeAskType) && !carriers.length && cols.filter((c) => !isPinned(c) && (!only || only.has(c.planId))).length <= topN;
+    const fill = allOfType ? [...ranked, ...cols.filter((c) => !ranked.includes(c))] : ranked;
+    for (const c of (carriers.length ? [] : fill)) {
       if (out.columns.length >= maxCols) break;
       if (isPinned(c)) continue;
       if (only && !only.has(c.planId)) continue;
       // A plan with no doctor In never fills a top-3 slot while another plan has one In.
-      if (n > 0 && c.counts.inN + c.counts.star === 0 && ranked.some((r) => r.counts.inN + r.counts.star > 0)) continue;
-      const twin = c.carrier ? out.columns.find((t) => signatureOf(t) === signatureOf(c)) : null;
+      if (!allOfType && n > 0 && c.counts.inN + c.counts.star === 0 && ranked.some((r) => r.counts.inN + r.counts.star > 0)) continue;
+      // A plan-type ask shows each plan as its own column: the three Humana Choice PPOs share a network, and folding them
+      // into one column hid two of the four Dade PPOs she asked to see.
+      const twin = c.carrier && !typeAskType ? out.columns.find((t) => signatureOf(t) === signatureOf(c)) : null;
       if (twin) out.sameNetwork.push({ plan: c, twin, diff: sameNetworkDiff(c, twin) });
       else out.columns.push(c);
     }
@@ -2050,6 +2295,7 @@ function selectComparison(doctors, askText, opts = {}) {
     }
   }
 
+  for (const line of typeLeftOut) out.flags.push(line);
   // C-SNP plans in the table: the condition list is per plan — say so, never assume.
   if (elig.csnp === 'confirmed') {
     // One short line for all of them, in the notes bubble (Gerry Cabrera, 2026-10-19: repeated once per plan).
@@ -2110,6 +2356,16 @@ function selectComparison(doctors, askText, opts = {}) {
   if (out.named && doctorQs.length) {
     out.questions = personalize([doctorQs.join(' Also: ')], ask);
     out.doctorQuestion = out.questions[0];
+  }
+  // Ranked / type-filtered tables ("top 5 PPOs", "only PPOs", "rank the HMOs"): the same server-written doctor-match
+  // question, candidates and all, in the notes bubble — "only PPOs" showed Sandman and Taub as ❔ not confirmed with
+  // no suggestions (Robert and Andrea, 2026-10-19). A doctor still unconfirmed counted for no plan: said in one line.
+  if (!out.named && doctorQs.length) {
+    out.doctorQuestion = personalize([doctorQs.join(' Also: ')], ask)[0];
+    const pending = [...missing, ...wrong, ...toConfirm].map((d) => titleCase(shortDoctor(d)));
+    if (pending.length && out.columns.length) {
+      out.flags.push(`Ranking left out ${pending.join(', ').replace(/, ([^,]+)$/, ' and $1')} (not confirmed yet). Confirm ${pending.length > 1 ? 'them' : 'the doctor'} and I'll re-check every plan in the table and re-rank.`);
+    }
   }
   if (!out.named) {
     const qs = [];
@@ -2224,9 +2480,12 @@ function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] }
   }
   if (sel.named && sel.doctorQuestion) {
     lines.push('3) The agent named the plans — compare exactly those. Do not add or swap plans and do not ask narrowing questions. The server already shows the doctor-match question with every candidate (name, specialty, city, NPI) under the table — do not ask about those doctors yourself.');
-  } else if (sel.questions.length) {
+  } else if (sel.questions.filter((q) => q !== sel.doctorQuestion).length) {
     lines.push('3) Still missing — ask these (numbered, short), then STOP and wait. Do not list more plans and do not add SNP plans until eligibility is confirmed.');
-    sel.questions.forEach((q, i) => lines.push(`   Q${i + 1}. ${q}`));
+    sel.questions.filter((q) => q !== sel.doctorQuestion).forEach((q, i) => lines.push(`   Q${i + 1}. ${q}`));
+    if (sel.doctorQuestion) lines.push('   The server already shows the doctor-match question with every candidate (name, specialty, city, NPI) under the table — do not ask about those doctors yourself.');
+  } else if (sel.doctorQuestion) {
+    lines.push('3) The server already shows the doctor-match question with every candidate (name, specialty, city, NPI) under the table — do not ask about those doctors yourself.');
   } else if (sel.named) {
     lines.push('3) The agent named the plans — compare exactly those. Do not add or swap plans and do not ask narrowing questions.');
   } else if (answered) {
@@ -2537,7 +2796,7 @@ function renderedAnswer(doctors, askText, { answered = false, drugs = [], medsUn
   // A checked plan with the same doctor results as a column (H1045-018 vs H1045-001) is named, not dropped.
   const twins = (sel.sameNetwork || []).slice(0, 4).map((x) => `${x.plan.planId} = same doctor results as ${x.twin.planId}`);
   if (twins.length) follow.push(`Also checked: ${twins.join('; ')}.`);
-  for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in |^⚠️ [^:\n]+: no eligible plan|in Max's plan data/.test(x))) follow.push(f);
+  for (const f of (sel.flags || []).filter((x) => /confirmed at enrollment|^⚠️ Not offered in |^⚠️ [^:\n]+: no eligible plan|in Max's plan data|left out since you asked for|^Ranking left out /.test(x))) follow.push(f);
   // A carrier name she typed that matches no carrier: said, never dropped silently.
   const notRecognized = ((String(askText || '').match(/^Carriers not recognized:\s*([^\n]+?)\.?$/gm) || []).pop() || '').replace(/^Carriers not recognized:\s*/, '').replace(/\.$/, '');
   for (const name of notRecognized.split(' | ').filter(Boolean)) follow.push(`⚠️ Couldn't match "${name}" to a carrier — not included. Tell me the carrier name and I'll add it.`);
@@ -2761,6 +3020,12 @@ module.exports = {
   planTypeOf,
   coverageMatrix,
   askConstraints,
+  planTypeIn,
+  planTypeAsk,
+  planTypeLine,
+  doctorMatchCandidates,
+  candidatePicks,
+  rankAskAt,
   narrowingAnswered,
   comparisonAskText,
   comparisonFollowUp,

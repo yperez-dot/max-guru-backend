@@ -50,7 +50,8 @@ describe('Edward Kennedy comparison card', () => {
     assert.deepEqual(fu.notes, [`Could not verify 1 plan (most doctors unchecked): ${shown}.`, '⚠️ note']);
     // A plan outside the grid never gets a note (Tony & Gerry Cabrera, 2026-10-19: H1035-017).
     const out = W.compareFollowUpLines({ ...job.result, couldNotVerify: { count: 1, plans: [{ name: 'X', planId: 'H1035-017' }] } });
-    assert.deepEqual(out.notes, []);
+    // The only note left: the ranking left the unconfirmed doctor out (ranked tables say so — Robert and Andrea, 2026-10-19).
+    assert.deepEqual(out.notes, ["Ranking left out Martin Ciro (not confirmed yet). Confirm the doctor and I'll re-check every plan in the table and re-rank."]);
     const skip = W.compareFollowUpLines({ questions: ['Does the client have a C-SNP qualifying chronic condition, confirmed by diagnosis?', 'Q2?'] }, { skipQuestion: /C-SNP qualifying chronic condition/ });
     assert.deepEqual(skip.questions, ['Q2?']);
     assert.deepEqual(W.compareFollowUpLines({}), { questions: [], notes: [] });

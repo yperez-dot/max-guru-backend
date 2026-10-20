@@ -1,0 +1,475 @@
+{
+  "name": "Robert and Andrea (loaded workup) — \"only PPOs\": the ranked PPO table lists the near-match candidates (name, specialty, city, NPI) for 'Yekutil Sandman' and 'Daid Taub' in the notes bubble and says the ranking left them out",
+  "source": "Yahoska, 2026-10-19 (Robert and Andrea, Miami-Dade 33186, current plan UHC H5420-001 HMO): 'add the doctor matches to ranked tables too' — on 'only PPOs' / 'top 5 PPOs' Sandman and Taub (typed 'Yekutil Sandman', 'Daid Taub') came back ❔ not confirmed with no candidates; candidates showed only on named-plan tables (PR #239). Cells are stubs.",
+  "workup": {
+    "clientName": "Robert and Andrea",
+    "zip": "33186",
+    "county": "Miami-Dade",
+    "currentPlanIds": [
+      "H5420-001"
+    ],
+    "plans": [
+      {
+        "carrier": "UHC",
+        "planName": "UHC MedicareMax FL-0028",
+        "planId": "H5420-001"
+      },
+      {
+        "carrier": "Humana",
+        "planName": "Humana Gold Plus",
+        "planId": "H1036-054C"
+      },
+      {
+        "carrier": "Doctors",
+        "planName": "Doctors DrMax-Dade",
+        "planId": "H4140-022"
+      }
+    ],
+    "doctors": [
+      {
+        "name": "Nathalie Regalado",
+        "npi": "1467795633"
+      },
+      {
+        "name": "Michael Weitz",
+        "npi": "1639145337"
+      },
+      {
+        "name": "Starr Koslow Mautner",
+        "npi": "1225353907"
+      },
+      {
+        "name": "Austin Bach",
+        "npi": "1659706588"
+      },
+      {
+        "name": "Yekutil Sandman"
+      },
+      {
+        "name": "Ian Del Conde Pozzi",
+        "npi": "1649309139"
+      },
+      {
+        "name": "Daid Taub"
+      }
+    ],
+    "medications": [
+      {
+        "name": "anastrozole 1mg"
+      },
+      {
+        "name": "Prolia"
+      },
+      {
+        "name": "latanoprost"
+      },
+      {
+        "name": "rosuvastatin"
+      },
+      {
+        "name": "lisinopril"
+      },
+      {
+        "name": "metoprolol succinate"
+      },
+      {
+        "name": "amlodipine"
+      }
+    ]
+  },
+  "doctorResults": {
+    "Nathalie Regalado": {
+      "npi": "1467795633",
+      "matched": "NATHALIE REGALADO MD",
+      "in": [
+        "H5420-001",
+        "R0759-001",
+        "H7617-107",
+        "H7617-110",
+        "H7617-145"
+      ],
+      "out": [
+        "H1036-054C",
+        "H4140-022"
+      ]
+    },
+    "Michael Weitz": {
+      "npi": "1639145337",
+      "matched": "MICHAEL ALAN WEITZ MD",
+      "in": [
+        "H5420-001",
+        "H1036-054C",
+        "H4140-022",
+        "H7617-107",
+        "H7617-110",
+        "H7617-145",
+        "R0759-001"
+      ],
+      "out": []
+    },
+    "Starr Koslow Mautner": {
+      "npi": "1225353907",
+      "matched": "STARR KOSLOW MAUTNER MD",
+      "in": [
+        "H5420-001",
+        "H1036-054C",
+        "H4140-022",
+        "H7617-107",
+        "H7617-110",
+        "H7617-145",
+        "R0759-001"
+      ],
+      "out": []
+    },
+    "Austin Bach": {
+      "npi": "1659706588",
+      "matched": "AUSTIN BACH MD",
+      "in": [
+        "H5420-001",
+        "H1036-054C",
+        "H4140-022",
+        "H7617-107",
+        "H7617-110",
+        "H7617-145"
+      ],
+      "out": [
+        "R0759-001"
+      ]
+    },
+    "Ian Del Conde Pozzi": {
+      "npi": "1649309139",
+      "matched": "IAN DEL CONDE POZZI MD",
+      "in": [
+        "H5420-001",
+        "H1036-054C",
+        "H4140-022",
+        "H7617-107",
+        "H7617-110",
+        "H7617-145",
+        "R0759-001"
+      ],
+      "out": []
+    },
+    "Yekutil Sandman": {
+      "notFound": [
+        {
+          "name": "Yekutiel Sandman, MD",
+          "npi": "1013111491",
+          "specialty": "Urology",
+          "city": "Miami",
+          "spelling": false
+        }
+      ]
+    },
+    "Daid Taub": {
+      "notFound": [
+        {
+          "name": "David Andrew Taub, MD",
+          "npi": "1891804696",
+          "specialty": "Urology",
+          "city": "Boca Raton",
+          "spelling": false
+        },
+        {
+          "name": "Harvey Carl Taub, MD",
+          "npi": "1679523294",
+          "specialty": "Urology",
+          "city": "Ocala",
+          "spelling": false
+        }
+      ]
+    },
+    "Yekutiel Sandman": {
+      "npi": "1013111491",
+      "matched": "YEKUTIEL SANDMAN MD",
+      "in": [
+        "H5420-001",
+        "H7617-107",
+        "H7617-110",
+        "H7617-145"
+      ],
+      "out": [
+        "H1036-054C",
+        "H4140-022",
+        "R0759-001"
+      ]
+    },
+    "David Andrew Taub": {
+      "npi": "1891804696",
+      "matched": "DAVID ANDREW TAUB MD",
+      "in": [
+        "H5420-001",
+        "H1036-054C",
+        "H4140-022",
+        "H7617-107",
+        "H7617-110",
+        "H7617-145",
+        "R0759-001"
+      ],
+      "out": []
+    }
+  },
+  "drugResults": {
+    "latanoprost": {
+      "H5420-001": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-054C": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H4140-022": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-107": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-110": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-145": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "R0759-001": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    },
+    "rosuvastatin": {
+      "H5420-001": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-054C": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H4140-022": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-107": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-110": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-145": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "R0759-001": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    },
+    "lisinopril": {
+      "H5420-001": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-054C": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H4140-022": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-107": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-110": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-145": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "R0759-001": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    },
+    "metoprolol succinate": {
+      "H5420-001": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-054C": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H4140-022": {
+        "tier": 2,
+        "cost": "$0"
+      },
+      "H7617-107": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-110": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-145": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "R0759-001": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    },
+    "amlodipine": {
+      "H5420-001": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-054C": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H4140-022": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-107": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-110": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-145": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "R0759-001": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    },
+    "Prolia": {
+      "H5420-001": "not_covered",
+      "H1036-054C": {
+        "tier": 4,
+        "cost": "40%"
+      },
+      "H4140-022": "not_covered",
+      "H7617-107": {
+        "tier": 4,
+        "cost": "40%"
+      },
+      "H7617-110": {
+        "tier": 4,
+        "cost": "40%"
+      },
+      "H7617-145": {
+        "tier": 4,
+        "cost": "40%"
+      },
+      "R0759-001": "not_covered"
+    },
+    "anastrazole": {
+      "H5420-001": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-054C": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H4140-022": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-107": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-110": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-145": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "R0759-001": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    },
+    "anastrozole": {
+      "H5420-001": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H1036-054C": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H4140-022": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-107": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-110": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "H7617-145": {
+        "tier": 1,
+        "cost": "$0"
+      },
+      "R0759-001": {
+        "tier": 1,
+        "cost": "$0"
+      }
+    }
+  },
+  "messages": [
+    "only PPOs"
+  ],
+  "expect": {
+    "serverReruns": true,
+    "chatGridPlans": [
+      "H7617-107",
+      "H7617-110",
+      "H7617-145",
+      "R0759-001"
+    ],
+    "doctorCount": 7,
+    "chatFollowUpIncludes": [
+      "No exact match for",
+      "\"Yekutil Sandman\" — closest: Yekutiel Sandman, MD \\(Urology, Miami, NPI 1013111491\\)",
+      "\"Daid Taub\" — closest: David Andrew Taub, MD \\(Urology, Boca Raton, NPI 1891804696\\)",
+      "Ranking left out Yekutil Sandman and Daid Taub \\(not confirmed yet\\)"
+    ],
+    "followUpIncludes": [
+      "Yekutiel Sandman",
+      "NPI 1013111491",
+      "David Andrew Taub",
+      "NPI 1891804696",
+      "Ranking left out Yekutil Sandman and Daid Taub"
+    ],
+    "chatExcludes": [
+      "providers below",
+      "Why these plans"
+    ]
+  }
+}
