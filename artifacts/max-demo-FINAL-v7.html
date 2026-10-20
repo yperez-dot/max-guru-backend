@@ -6954,6 +6954,10 @@ function buildQueueJobBody(f) {
     meds: linesOf(f.meds),
     plans: linesOf(f.plans),
     terminatingPlan: f.terminatingPlan,
+    // "only PPOs" / "compare all HMOs" in the paste: the server ranks that plan type the same way chat does.
+    planType: f.planType || "",
+    planTop: f.planTop || 0,
+    currentPlans: f.currentPlans || [],
     wantsAlternatives: Boolean(f.wantsAlternatives),
     carriers: f.carriers || [],
     noMedicaid: f.noMedicaid,
@@ -6978,9 +6982,11 @@ const queueExportExtras = (e) => ({
   explicitTerminating: Boolean(e.fields.terminatingPlan),
   terminatingPlan: e.fields.terminatingPlan,
   // One plan typed in "Plans:" is her current plan: the first export column (same rule as the saved workup).
+  // Only when it is a column of this table: a PPO-only table leaves her HMO out, and so does its export.
   currentPlanIds: (() => {
     const ids = [...new Set((String(e.fields.plans || "").match(/\b[HR]\d{4}-\d{3}[A-Z]?\b/gi) || []).map((x) => x.toUpperCase()))];
-    return ids.length === 1 ? ids : [];
+    const cols = ((e.job && e.job.result && e.job.result.planIds) || []).map((x) => String(x).toUpperCase().slice(0, 9));
+    return ids.length === 1 && (!cols.length || cols.includes(ids[0].slice(0, 9))) ? ids : [];
   })(),
 });
 const queueHistory = (e) => [{ role: "user", content: compareAskText(e.fields) }];
@@ -7848,6 +7854,9 @@ function App() {
         meds: (f.meds || []).join("\n"),
         plans: (f.plans || []).join(", "),
         terminatingPlan: f.terminatingPlan || "",
+        planType: f.planType || "",
+        planTop: f.planTop || 0,
+        currentPlans: f.currentPlans || [],
         wantsAlternatives: Boolean(f.wantsAlternatives),
         carriers: f.carriers || [],
         noMedicaid: Boolean(f.noMedicaid),

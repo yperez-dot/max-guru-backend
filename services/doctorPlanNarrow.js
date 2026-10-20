@@ -144,7 +144,48 @@ function planTypeLine(msgs) {
       type = /Needs a PPO/.test(st) ? 'ppo' : /either|both|any/i.test(answers[k]) ? 'any' : 'hmo';
     });
   }
+  return planTypeLineFor(type);
+}
+
+/** The "Plan type: …" line askConstraints reads, for one plan type ('ppo' / 'hmo' / 'any' / ''). */
+function planTypeLineFor(type) {
   return `Plan type: ${{ ppo: 'PPO only', hmo: 'HMO only', any: 'any' }[type] || 'default'}.`;
+}
+
+/**
+ * The ask-text lines of a plan-type ask ("only PPOs", "compare all HMOs"), the same for the chat (comparisonAskText)
+ * and the compare card (compareJobs.askTextFor): selectComparison ranks every plan of that type in her county, her
+ * current plan pinned first unless it is the other type (then left out, said in one line), plans she named pinned
+ * after it, each plan its own column (no folding of same-network twins), SNPs out unless eligibility is confirmed.
+ * typeAsk = { type, top } from planTypeAsk. Returns { current, lines }: the "Her current plan" line (chat puts it
+ * first, and only when no other line already says it) and the rest, in order.
+ */
+function planTypeAskLines(typeAsk, { current = [], include = [], excluded = [], zip = '' } = {}) {
+  const lines = [];
+  if (excluded.length) lines.push(`Carriers excluded: ${excluded.join(', ')}.`);
+  lines.push('Rank all eligible plans.');
+  lines.push(`Plan-type ask: ${typeAsk.type.toUpperCase()}s only.`);
+  lines.push(`Top ${typeAsk.top}.`);
+  if (include.length) lines.push(`Include plans: ${include.join(', ')}.`);
+  if (zip) lines.push(`ZIP ${zip}.`);
+  return { current: current.length ? `Her current plan: ${current.join(', ')}.` : '', lines };
+}
+
+/**
+ * The plan-type ask in a free-form paste (the compare card's text box, or a plan-type control's value: "PPO",
+ * "only PPOs", "HMOs"): every sentence / line is read with planTypeAsk — the same reader as a chat message — and
+ * the last one that asks for a type wins. A sentence with a plan ID ("current plan UHC H5420-001") or a carrier
+ * ("show me humana ppos") is not a type ask, exactly as in chat. { type, top } or null.
+ */
+function textPlanTypeAsk(text) {
+  const t = String(text || '');
+  if (!t.trim() || isWorkupMessage(t)) return null;
+  let found = null;
+  for (const seg of t.split(/\n+|(?<!\b(?:Dr|Dra|Mr|Mrs|Ms|St|Jr|Sr|[A-Z]))[.!?;]+(?=\s|$)/)) {
+    const a = planTypeAsk(seg.trim());
+    if (a) found = a;
+  }
+  return found;
 }
 
 // ─── her pick from the "No exact match" candidates ──────────────────────────────────────────────────────────────
@@ -561,17 +602,14 @@ function comparisonAskText(messages, baseText) {
     // Her answer to the doctor-match question under that table keeps the ranking she asked for (rankAskAt).
     const typeAsk = i === rankAskAt(msgs) ? planTypeAsk(t) : null;
     if (typeAsk) {
-      const excluded = excludedCarriers(msgs.slice(0, i + 1));
-      if (excluded.length) lines.push(`Carriers excluded: ${excluded.join(', ')}.`);
-      lines.push('Rank all eligible plans.');
-      lines.push(`Plan-type ask: ${typeAsk.type.toUpperCase()}s only.`);
-      lines.push(`Top ${typeAsk.top}.`);
-      const current = currentPlanOf(msgs.slice(0, i + 1));
-      if (current.length && !/^Her current plan:/m.test(lines.join('\n'))) lines.unshift(`Her current plan: ${current.join(', ')}.`);
-      if (!/\b3\d{4}\b/.test(lines.join('\n'))) {
-        const zip = newestZip(msgs.slice(0, i + 1));
-        if (zip) lines.push(`ZIP ${zip}.`);
-      }
+      // Same lines as the compare card's plan-type ask (planTypeAskLines, compareJobs.askTextFor).
+      const block = planTypeAskLines(typeAsk, {
+        current: currentPlanOf(msgs.slice(0, i + 1)),
+        excluded: excludedCarriers(msgs.slice(0, i + 1)),
+        zip: /\b3\d{4}\b/.test(lines.join('\n')) ? '' : newestZip(msgs.slice(0, i + 1)),
+      });
+      lines.push(...block.lines);
+      if (block.current && !/^Her current plan:/m.test(lines.join('\n'))) lines.unshift(block.current);
       break;
     }
     const addSet = require('./loadedWorkup').workupPlanAddSet(t, msgs.slice(0, i + 1));
@@ -3023,6 +3061,9 @@ module.exports = {
   planTypeIn,
   planTypeAsk,
   planTypeLine,
+  planTypeLineFor,
+  planTypeAskLines,
+  textPlanTypeAsk,
   doctorMatchCandidates,
   candidatePicks,
   rankAskAt,

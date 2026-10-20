@@ -8,7 +8,7 @@
 const crypto = require('crypto');
 const { lookupDoctor, NOT_CONFIRMED } = require('./providerNetwork');
 const { lookupFormulary, toExportDrug, toExportDrugs, formatFormularyText } = require('./formularyLookup');
-const { askConstraints, gridTable, medsTable, selectComparison, strengthNotes, medsLegendFor, quietRestrictionMarks } = require('./doctorPlanNarrow');
+const { askConstraints, gridTable, medsTable, selectComparison, strengthNotes, medsLegendFor, quietRestrictionMarks, textPlanTypeAsk, planTypeAskLines, planTypeLineFor, currentPlanIdsIn } = require('./doctorPlanNarrow');
 const { dedupeDoctorRows, duplicateQuestions } = require('./loadedWorkup');
 const { eligibilityFromAsk, carriersRequested, LEGEND, MEDS_LEGEND, MEDS_FAILED_BANNER, IN_STAR_LEGEND, unlabeledMeds: unlabeledMedsList } = require('./comparisonRules');
 const { expandMedList } = require('./drugNames');
@@ -200,12 +200,20 @@ function parseCompareAsk(text) {
     if (!plans.some((x) => x.slice(0, 9) === id.slice(0, 9))) plans.push(id);
   }
 
+  // "only PPOs" / "compare all HMOs" anywhere in the paste: the same plan-type reader as a chat message
+  // (doctorPlanNarrow.textPlanTypeAsk → planTypeAsk). Before, the card never read it and ranked HMOs (Robert and
+  // Andrea, 2026-10-19).
+  const typeAsk = textPlanTypeAsk(t);
   return {
     clientName,
     zip,
     doctors,
     meds,
     plans: plans.slice(0, MAX_PLANS),
+    // "current plan UHC H5420-001": her current plan, the first column (or left out of the other type's table).
+    currentPlans: currentPlanIdsIn(t).filter((id) => id !== terminatingPlan && plans.some((x) => x.slice(0, 9) === id.slice(0, 9))),
+    planType: typeAsk ? typeAsk.type : '',
+    planTop: typeAsk ? typeAsk.top : 0,
     terminatingPlan,
     wantsAlternatives: ALTERNATIVES_RE.test(t) || (doctors.length > 0 && meds.length > 0 && require('./comparisonRules').impliesCompareToCurrentPlan(t, plans.length)),
     carriers: carriersRequested(t),
@@ -339,9 +347,31 @@ function eligibilityText(e) {
   return parts.join(' ');
 }
 
+/**
+ * The card's plan-type ask: a plan-type control's value ("PPO", "PPOs", "hmo only"), a plan-type ask typed in the
+ * Plans field, or the card's ask text — read with the chat's reader (textPlanTypeAsk). { type, top } or null.
+ */
+function cardPlanTypeAsk(src, list) {
+  const typed = typeof src.planType === 'string' ? textPlanTypeAsk(src.planType) : null;
+  const inPlans = textPlanTypeAsk(list(src.plans).map((p) => String(p || '').trim()).filter((p) => p && !/^[HR]\d{4}-\d{3}[A-Z]?$/i.test(p)).join('\n'));
+  const inAsk = typeof src.ask === 'string' ? textPlanTypeAsk(src.ask) : null;
+  const a = typed || inPlans || inAsk;
+  if (!a) return null;
+  const top = Number(src.planTop);
+  return { type: a.type, top: Number.isInteger(top) && top >= 1 && top <= 5 ? top : a.top };
+}
+
+/** Her current plan on the card: the one(s) she called current, else the single plan she typed (same as chat). */
+function cardCurrentPlans(input) {
+  const typed = input.plans || [];
+  const said = (input.currentPlans || []).filter((id) => typed.some((x) => x.slice(0, 9) === id.slice(0, 9)));
+  return said.length ? said : typed.length === 1 ? typed.slice() : [];
+}
+
 function normalizeInput(raw) {
   const src = raw && typeof raw === 'object' ? raw : {};
   const list = (v) => (Array.isArray(v) ? v : splitList(v));
+  const typeAsk = cardPlanTypeAsk(src, list);
   const doctors = list(src.doctors).map((d) => (typeof d === 'string' ? { name: d } : d))
     .filter((d) => d && String(d.name || d.npi || '').trim())
     .map((d) => ({ name: String(d.name || d.npi).trim(), npi: d.npi ? String(d.npi) : undefined, mustKeep: Boolean(d.mustKeep) }))
@@ -361,6 +391,10 @@ function normalizeInput(raw) {
     eligibility: normalizeEligibility(src.eligibility, Boolean(src.noMedicaid)),
     skip: list(src.skip).map((s) => String(s).toUpperCase()),
     year: Number(src.year) === 2026 ? 2026 : 2027,
+    // Plan-type ask ('ppo' / 'hmo', '' = none) and how many to rank (top N, 5 by default).
+    planType: typeAsk ? typeAsk.type : '',
+    planTop: typeAsk ? typeAsk.top : 0,
+    currentPlans: list(src.currentPlans).map((p) => String(p || '').trim().toUpperCase()).filter((p) => /^[HR]\d{4}-\d{3}[A-Z]?$/.test(p)).slice(0, MAX_PLANS),
     // Plans she just added to an existing set: never trimmed off the grid (doctorPlanNarrow "Plans she added:").
     addedPlans: list(src.addedPlans).map((p) => String(p || '').trim().toUpperCase()).filter((p) => /^[HR]\d{4}-\d{3}[A-Z]?$/.test(p)).slice(0, MAX_PLANS),
     planNames: src.planNames && typeof src.planNames === 'object'
@@ -378,6 +412,14 @@ function askTextFor(input) {
   if (input.noMedicaid) parts.push('No Medicaid.');
   else if (input.eligibility) parts.push(eligibilityText(input.eligibility));
   for (const id of input.skip) parts.push(`Skip ${id}.`);
+  // A plan-type ask: the chat's own ask lines (doctorPlanNarrow.planTypeAskLines) — her current plan, the plans she
+  // named after it, rank that type only — so the card and the chat pick the same columns for the same ask.
+  if (input.planType === 'ppo' || input.planType === 'hmo') {
+    const current = cardCurrentPlans(input);
+    const include = input.plans.filter((id) => !current.some((c) => c.slice(0, 9) === id.slice(0, 9)));
+    const block = planTypeAskLines({ type: input.planType, top: input.planTop || 5 }, { current, include });
+    return [...(block.current ? [block.current] : []), parts.join(' '), ...block.lines, planTypeLineFor(input.planType)].join('\n');
+  }
   if (input.plans.length) parts.push(`Compare ${input.plans.join(', ')}.`);
   if ((input.carriers || []).length) parts.push(`Carriers requested: ${input.carriers.join(', ')}.`);
   const text = parts.join(' ');
@@ -410,12 +452,19 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     // Named plans stay the columns. Otherwise: eligible county pool → rank → top 3, with
     // every listed med priced on the shortlist first so drug cost can break ties and every
     // table plan already has its meds checked (rules 3 + 8).
-    const named = input.plans.map((id) => ({ planId: id, name: (input.planNames && input.planNames[id]) || id }));
+    // A plan-type ask ranks the county's plans of that type exactly like the chat (renderedAnswer → selectComparison
+    // with no named / pinned set): her current plan and named plans come from the ask lines (askTextFor).
+    const typeMode = input.planType === 'ppo' || input.planType === 'hmo';
+    const named = typeMode ? [] : input.plans.map((id) => ({ planId: id, name: (input.planNames && input.planNames[id]) || id }));
     // Her plan(s) + "is there something better?": keep them as the first column and shop the county for the rest.
     const pinned = named.length && (input.wantsAlternatives || (input.carriers || []).length) ? named.map((p) => p.planId) : [];
-    const planSource = pinned.length ? 'current_plus_alternatives' : named.length ? 'named' : 'top_doctor_coverage';
+    const planSource = typeMode ? `plan_type_${input.planType}` : pinned.length ? 'current_plus_alternatives' : named.length ? 'named' : 'top_doctor_coverage';
     let rxPlanIds = named.map((p) => p.planId);
-    if (!named.length || pinned.length) {
+    if (typeMode) {
+      // Every plan that can be a column is priced before the final pick (the type's columns + the ranked shortlist).
+      const first = selectComparison(doctorStructs, askText, { meds: input.meds });
+      rxPlanIds = [...new Set([...first.columns.map((c) => c.planId), ...first.ranked.slice(0, RX_SHORTLIST).map((c) => c.planId)])];
+    } else if (!named.length || pinned.length) {
       const first = selectComparison(doctorStructs, askText, { named: [], meds: input.meds });
       rxPlanIds = [...new Set([...pinned, ...first.ranked.slice(0, RX_SHORTLIST).map((c) => c.planId)])];
     }
@@ -435,9 +484,13 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     }
     const drugs = drugResults.filter(Boolean);
 
-    const sel = selectComparison(doctorStructs, askText, pinned.length
-      ? { named: [], meds: input.meds, drugs, onlyPlanIds: rxPlanIds, pinPlanIds: pinned }
-      : { named, meds: input.meds, drugs, onlyPlanIds: named.length ? undefined : rxPlanIds });
+    // No onlyPlanIds on a plan-type ask: the shortlist changed which plans count as "all of that type" and filled the
+    // table with 0-In plans. Same call as the chat; its columns are the first pass's, all priced above.
+    const sel = selectComparison(doctorStructs, askText, typeMode
+      ? { meds: input.meds, drugs }
+      : pinned.length
+        ? { named: [], meds: input.meds, drugs, onlyPlanIds: rxPlanIds, pinPlanIds: pinned }
+        : { named, meds: input.meds, drugs, onlyPlanIds: named.length ? undefined : rxPlanIds });
     // Compare-mode headers use the grid marketing names the UI sent.
     const columns = sel.columns.map((c) => ({ ...c, name: (input.planNames && input.planNames[c.planId]) || c.name }));
     const planIds = columns.map((c) => c.planId);
@@ -535,6 +588,8 @@ function getJob(id, owner) {
 module.exports = {
   parseCompareAsk,
   normalizeInput,
+  askTextFor,
+  cardCurrentPlans,
   createJob,
   getJob,
   publicJob,

@@ -128,6 +128,10 @@ async function runScenario(sc) {
     plans: carrierMode ? (sets.currentPlan || []) : sets.plans.map((p) => p.planId),
     wantsAlternatives: carrierMode && (sets.currentPlan || []).length > 0,
     planNames: Object.fromEntries(sets.plans.map((p) => [p.planId, p.name])),
+    // The card's text field holds her ask: the card reads a plan-type ask from it with the chat's reader. A doctor-match
+    // answer keeps the ask it answers (rankAskAt), as in chat.
+    ask: LW.messageText(msgs[N.rankAskAt(msgs)]),
+    currentPlans: sets.currentPlan || [],
     addedPlans: [...String((sets.askText.match(/^Plans she added:\s*([^\n]+)$/m) || ['', ''])[1]).matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase()),
   });
   const job = { input, status: 'queued', progress: { doctors: { done: 0, total: input.doctors.length }, meds: { done: 0, total: input.meds.length } }, result: {} };
