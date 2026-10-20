@@ -73,6 +73,26 @@
     if (s !== s.toUpperCase() || !/[A-Z]{2}/.test(s)) return s;
     return s.toLowerCase().replace(/(^|[\s'’-])([a-z])/g, (m, a, b) => a + b.toUpperCase());
   }
+  /**
+   * A typed name in normal case, whatever case she typed it in (Martha Muraglia, 2026-10-20: "Dr. WADDAH aLLAF",
+   * "Dr. Mario del cid", "dr. laura martin" were dropped by the capitalized-name check). Only odd words change: all
+   * lower, ALL CAPS, or inverted ("aLLAF") → "Allaf"; "McDonald", "DelPar", "O'Neil" and initials stay as typed; a
+   * surname particle after the first word stays lowercase ("Mario del Cid").
+   */
+  function displayPersonName(name) {
+    const words = String(name || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    return words.map((w, i) => {
+      const letters = w.replace(/[^A-Za-zÀ-ÿ]/g, '');
+      if (!letters) return w;
+      if (i > 0 && SURNAME_PARTICLES.has(w.toLowerCase()) && (w === w.toLowerCase() || w === w.toUpperCase())) return w.toLowerCase();
+      if (letters.length === 1) return w.toUpperCase();
+      const lower = letters === letters.toLowerCase();
+      const upper = letters === letters.toUpperCase();
+      const inverted = /^[a-zà-ÿ]/.test(letters) && /[A-ZÀ-Þ]/.test(letters);
+      if (!lower && !upper && !inverted) return w;
+      return w.toLowerCase().replace(/(^|[\s'’-])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase());
+    }).join(' ');
+  }
   function stripTitle(name) {
     return String(name || '').replace(/\s+/g, ' ').trim().replace(TITLE_RE, '');
   }
@@ -247,7 +267,7 @@
 
   return {
     CRED_TOKEN_RE, CREDENTIAL_RE, DEGREE_TOKEN_RE, SPECIALTY_HINT_RE, ORG_HINT_RE, ORG_NAME_RE, ROLE_WORDS_RE, SURNAME_PARTICLES,
-    titleCase, nameCase, stripTitle, stripDegreeSuffix, cleanName,
+    titleCase, nameCase, displayPersonName, stripTitle, stripDegreeSuffix, cleanName,
     looksLikeOrganization, looksLikeOrganizationDisplay, isOrganizationName,
     cleanDoctorQuery, parseName,
     joinedParticleSplits, splitParticleJoins, surnameVariants, surnameKey, compoundLastName,
@@ -293,6 +313,9 @@
       .replace(/^\s*\*+|\*+\s*$/g, ' ') // a single leading / trailing "*"
       .replace(/\(\s*\)|\[\s*\]/g, ' ') // brackets the tag left empty
       .replace(/\s+([-\u2010-\u2015])\s+(?:[-\u2010-\u2015]\s+)+/g, ' $1 ') // "A - - B" → "A - B"
+      // CMS / Humana's directory spell it "HumanaChoice"; the THEI grid and the export say "Humana Choice" — one
+      // spelling in the chat headers and the Excel/PDF (Martha Muraglia, 2026-10-20).
+      .replace(/\bHumanaChoice\b/g, 'Humana Choice')
       .replace(/\s+/g, ' ')
       .replace(/^[\s\-\u2010-\u2015:|\u00b7,]+|[\s\-\u2010-\u2015:|\u00b7,]+$/g, '') // dangling dashes / separators
       .trim();
@@ -973,7 +996,9 @@
     if (!found) {
       // The surname ends at a real delimiter — "Case-Diaz" is never cut to "Case" at its hyphen.
       const lead = String(text).match(/(?:^|\n)\s*([A-Z][a-z]+(?:\s*(?:&|and|y)\s*[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]*[A-Za-z])\s*(?:[,:.]|\s-\s)/);
-      if (lead && !/\b(Medicare|Humana|Aetna|Devoted|Compare|Current|Plan|Doctors?|Meds?)\b/.test(lead[1]) && !isDoctorName(lead[1], doctorNames)) {
+      // "Add Dr. Mario del Cid, …" is an instruction naming a doctor, not a client (Martha Muraglia, 2026-10-20: the
+      // Excel title read "Add Dr").
+      if (lead && !/\b(Medicare|Humana|Aetna|Devoted|Compare|Current|Plan|Doctors?|Meds?|Drs?|Dras?|Doc|Doctora?|Add|Remove|Drop|Delete|Check|Please|Pls|Run|Rerun|Update|Change|Swap|Use|Replace|Also|Show|Export|Include)\b/.test(lead[1]) && !isDoctorName(lead[1], doctorNames)) {
         found = lead[1].replace(/\s+/g, " ").trim();
       }
     }
@@ -2845,7 +2870,8 @@
 
     FIELD_ROWS.forEach(([label, key]) => {
       if (key === "mspLevels" && !comparisonIncludesDual(plans)) return;
-      const values = [label, ...plans.map((p) => formatBenefitValue(p[key], key))];
+      // Her current plan off the THEI grid (non-commissionable H5216-311): a column, its benefits "Not on grid".
+      const values = [label, ...plans.map((p) => (p && p.offGrid ? "Not on grid" : formatBenefitValue(p[key], key)))];
       pushBenefitRow(label, values, HIGHLIGHT_KEYS[key]);
       (SOB_EXTRA_AFTER[key] || []).forEach((extra) => {
         const extraLabel = extra[0];
@@ -4273,7 +4299,8 @@
       WORKUP_CONTEXT_PREFIX + " (structured facts only — not a prior chat transcript). Resume these saved facts as a starting point. If the agent later asks for different plans, doctors, drugs, or a benefit that is not on the grid, follow that NEW request for chat and Excel/PDF. Do not lock the export to this snapshot. Only the 'Current plan' line is the client's current plan (if there is no such line and one plan is listed, that one is); every other plan below is a comparison column — never call it her current plan. When the agent asks for other, comparable or better plans, compare alternatives against her current plan, keep it as a column, and never ask which plan she has. Do not ask to re-paste Daisy. Discard any client-stated Rx tiers. Call lookup_formulary for any unverified drug × named plan.",
     ];
     if (w.clientName) lines.push("Client: " + w.clientName);
-    const place = [w.zip, w.county].filter(Boolean).join(" / ");
+    // The ZIP's county wins over a saved county guessed from a plan row (33323 is Broward, not Miami-Dade).
+    const place = [w.zip, gridCountyForZip(w.zip) || w.county].filter(Boolean).join(" / ");
     if (place) lines.push("ZIP/county: " + place);
     if (w.contacts) lines.push("Contacts: " + w.contacts);
     const plans = w.plans || [];
@@ -4406,10 +4433,33 @@
     return { grid: head + "\n\n" + grid, followUp };
   }
   function recoveredDoctorsNote(workup) {
-    const names = (workup && Array.isArray(workup.recoveredDoctors) ? workup.recoveredDoctors : []).filter(Boolean);
+    const w = workup || {};
+    const names = (Array.isArray(w.recoveredDoctors) ? w.recoveredDoctors : []).filter(Boolean);
+    const unread = (Array.isArray(w.unreadDoctors) ? w.unreadDoctors : []).filter(Boolean);
+    const unsure = (Array.isArray(w.unsureDoctors) ? w.unsureDoctors : []).filter(Boolean);
+    if (!names.length && !unread.length && !unsure.length) return "";
+    const n = (w.doctors || []).length || names.length;
+    const lines = [];
+    if (names.length) {
+      lines.push("Added back " + names.join(", ") + " from the original request (the saved list had dropped " + (names.length === 1 ? "this doctor" : "them") + "). Checking all " + n + " doctors now.");
+    }
+    // The original request's doctor count must match what came back (Martha Muraglia, 2026-10-20: 8 typed, 2 kept).
+    const expected = Number(w.expectedDoctorCount) || 0;
+    if (unread.length || (expected && expected > n)) {
+      lines.push("⚠️ The original request named " + (expected || n + unread.length) + " doctors and I could read " + n + "." + (unread.length ? " Couldn't read: " + unread.map((x) => '"' + x + '"').join(", ") + " — type each as first and last name." : ""));
+    }
+    unsure.forEach((x) => lines.push('Is "' + x + '" a doctor? (yes / no)'));
+    return lines.join("\n");
+  }
+
+  /** On load: doctors added back from the original request are checked right away (no "ask me to check"). */
+  function recoveredDoctorsRunAsk(workup) {
+    const w = workup || {};
+    const names = (Array.isArray(w.recoveredDoctors) ? w.recoveredDoctors : []).filter(Boolean);
     if (!names.length) return "";
-    const n = ((workup && workup.doctors) || []).length || names.length;
-    return "Added back " + names.join(", ") + " from the original request (the saved list had dropped " + (names.length === 1 ? "this doctor" : "them") + "). Ask me to check the doctors and I'll run all " + n + ".";
+    const n = (w.doctors || []).length || names.length;
+    const meds = (w.medications || []).length;
+    return "Check all " + n + " doctors" + (meds ? " and the " + meds + " meds" : "") + " on the saved plans.";
   }
 
   function staleResultNote(workup, result) {
@@ -4516,6 +4566,7 @@
     messagesForApi,
     compareCardTurnText,
     recoveredDoctorsNote,
+    recoveredDoctorsRunAsk,
     isBareExportAsk,
     recheckReply,
     workupListLabel,
@@ -6208,7 +6259,18 @@ function exportTablePlanSet(history) {
   });
   if (!ids.length) return [];
   const rank = (p) => { const i = ids.findIndex((id) => String(p.planId || p.id || "").toUpperCase().startsWith(id.slice(0, 9))); return i < 0 ? 99 : i; };
-  return findComparisonPlans(ids.join(", ") + " " + (county || "Miami-Dade")).slice().sort((a, b) => rank(a) - rank(b));
+  const found = findComparisonPlans(ids.join(", ") + " " + (county || "Miami-Dade"));
+  // A table column the THEI grid doesn't carry (her current plan H5216-311, non-commissionable) is still an export
+  // column: its name from the table header / saved workup, benefits "Not on grid" (Martha Muraglia, 2026-10-20).
+  const tbl = exp.latestChatTable ? exp.latestChatTable(history, userMessageText) : null;
+  const offGrid = ids.filter((id) => !found.some((p) => String(p.planId || p.id || "").toUpperCase().slice(0, 9) === id.slice(0, 9))).map((id) => {
+    const key = id.slice(0, 9);
+    const head = tbl && Array.isArray(tbl.headers) ? (tbl.headers.find((h) => String(h || "").toUpperCase().includes(key)) || "") : "";
+    const saved = ((wk && wk.plans) || []).find((p) => String(p.planId || "").toUpperCase().slice(0, 9) === key);
+    const name = String(head || (saved && saved.planName) || "").replace(/\s*[·(-]?\s*[HR]\d{4}-\d{3}[A-Z]?\)?/gi, " ").replace(/\s+/g, " ").trim() || key;
+    return { id: key, planId: key, planName: name, carrier: (saved && saved.carrier) || (/humana/i.test(name) ? "Humana" : ""), county, offGrid: true };
+  });
+  return [...found, ...offGrid].sort((a, b) => rank(a) - rank(b));
 }
 
 function collectComparisonExport(history, plans, extras) {
@@ -6222,6 +6284,9 @@ function collectComparisonExport(history, plans, extras) {
     chatTable: typeof window.MaxComparisonExport.latestChatTable === "function" ? window.MaxComparisonExport.latestChatTable(history, userMessageText) : null,
     ...extra0,
   };
+  // A loaded workup keeps its client name on every export: a follow-up ("Add Dr. Mario del Cid, …") is never a rename
+  // (Martha Muraglia, 2026-10-20: the Excel title read "Add Dr"). Only Rename changes it (it updates the card too).
+  if (wkSaved && String(wkSaved.clientName || "").trim()) extra.clientName = String(wkSaved.clientName).trim();
   const latestUserText =
     extra.latestUserText ||
     (typeof window.MaxComparisonExport.lastUserComparisonAsk === "function"
@@ -7743,6 +7808,11 @@ function App() {
       if (prev.clientName) built.clientName = prev.clientName;
       if (!built.clientName) built.clientName = prev.clientName || "";
       if (!built.zip) built.zip = prev.zip || "";
+      // Her ZIP decides the county: a follow-up with no ZIP guessed it from the first plan row ("Miami-Dade" for a
+      // 33323 Broward client — Martha Muraglia, 2026-10-20).
+      const zipCounty = window.MaxClientWorkups.gridCountyForZip ? window.MaxClientWorkups.gridCountyForZip(built.zip) : "";
+      if (zipCounty) built.county = zipCounty;
+      else if (prev.county && !window.MaxClientWorkups.extractZip?.(threadText)) built.county = prev.county;
       if (!built.county) built.county = prev.county || "";
       if (!built.contacts) built.contacts = prev.contacts || "";
       if (!built.terminatingPlan) built.terminatingPlan = prev.terminatingPlan || "";
@@ -7951,6 +8021,13 @@ function App() {
       setWorkupNotice(null);
       if (isMobile) setSidebarOpen(false);
       setTimeout(() => focusComposer(), 50);
+      // Doctors added back from the original request are checked right away, with the meds (Martha Muraglia,
+      // 2026-10-20: "Ask me to check the doctors" under a card stuck at "Checking meds 0/5").
+      const runAsk = window.MaxClientWorkups.recoveredDoctorsRunAsk ? window.MaxClientWorkups.recoveredDoctorsRunAsk(workup) : "";
+      if (runAsk && !(parked && parked.pending)) {
+        const genAtOpen = chatGenRef.current;
+        setTimeout(() => { if (chatGenRef.current === genAtOpen && currentWorkupIdRef.current === workup.id) send(runAsk); }, 120);
+      }
     } catch (err) {
       if (err && err.code === "access_required") {
         setUnlocked(false);
@@ -7977,7 +8054,8 @@ function App() {
         if (lastComparisonExportRef.current) {
           lastComparisonExportRef.current = { ...lastComparisonExportRef.current, clientName: saved.clientName || name };
         }
-        setMessages((prev) => prev.map((m) => (m && m.role === "offer" ? { ...m, clientName: saved.clientName || name } : m)));
+        setMessages((prev) => prev.map((m) => (m && m.role === "offer" ? { ...m, clientName: saved.clientName || name }
+          : m && m.role === "workup" && m.workup ? { ...m, workup: { ...m.workup, clientName: saved.clientName || name } } : m)));
       }
       setWorkupNotice(null);
     } catch (err) {
@@ -8633,6 +8711,9 @@ function App() {
     } finally {
       if (inflightChatRef.current && inflightChatRef.current.gen === gen) inflightChatRef.current = null;
       if (gen !== chatGenRef.current) {
+        // A request she started in this workup is still running: it owns the spinner.
+        const ownRun = inflightChatRef.current && inflightChatRef.current.gen === chatGenRef.current;
+        if (ownRun) return;
         loadingRef.current = false;
         setLoading(false);
         // A message she queued in the tab she switched to runs now (it waited on this request).
@@ -8684,7 +8765,11 @@ function App() {
       setMessages(prev => [...prev, { role: "user", content, time: nowLabel() }, tableOffer(lastTable)]);
       return;
     }
-    if (loadingRef.current) {
+    // A reply still running for the workup she LEFT never holds up this one: it lands in its own workup (parked), and
+    // this message runs now (Martha Muraglia, 2026-10-20: "add Dr. Waddah Allaf" sat under "it will queue").
+    const inflightNow = inflightChatRef.current;
+    const busyHere = loadingRef.current && !(inflightNow && inflightNow.gen !== chatGenRef.current);
+    if (busyHere) {
       storeQueued({ text: content, images: [...images] });
       if (fromComposer) clearComposer();
       return;

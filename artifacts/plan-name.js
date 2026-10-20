@@ -32,6 +32,9 @@
       .replace(/^\s*\*+|\*+\s*$/g, ' ') // a single leading / trailing "*"
       .replace(/\(\s*\)|\[\s*\]/g, ' ') // brackets the tag left empty
       .replace(/\s+([-\u2010-\u2015])\s+(?:[-\u2010-\u2015]\s+)+/g, ' $1 ') // "A - - B" → "A - B"
+      // CMS / Humana's directory spell it "HumanaChoice"; the THEI grid and the export say "Humana Choice" — one
+      // spelling in the chat headers and the Excel/PDF (Martha Muraglia, 2026-10-20).
+      .replace(/\bHumanaChoice\b/g, 'Humana Choice')
       .replace(/\s+/g, ' ')
       .replace(/^[\s\-\u2010-\u2015:|\u00b7,]+|[\s\-\u2010-\u2015:|\u00b7,]+$/g, '') // dangling dashes / separators
       .trim();

@@ -722,3 +722,11 @@ bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.
 - Background re-check (services/recheckJobs.js, GET /chat/recheck/:id, up to 180s via MAX_RECHECK_MAX_MS): the page polls every 4s (max 240s) and posts the updated table as a follow-up message. No drug-cost ranking while any cell is timed out.
 - Compare card: 90s doctor pass + 90s re-check pass (MAX_COMPARE_RECHECK_MS), status 'rechecking', result.timedOutNote.
 - Railway env vars (MAX_CHAT_DEADLINE_MS etc.) override these defaults.
+
+## 2026-10-20 — Odd-case doctor names, off-grid current plan, workup follow-ups (Martha Muraglia, fix/doctor-name-casing)
+- Doctor names are read case-insensitively: `Dr.`/`dr.`/`Doctora` is a strong signal; ALL CAPS, all lower and inverted case parse and display in normal case (`displayPersonName`, particles like `del` stay lowercase). Untitled 2–3-word items the reader is unsure of are asked ("Is "x" a doctor?"), never dropped; request doctors it couldn't read are listed with the expected count.
+- Loading a workup whose doctors were added back auto-sends "Check all N doctors and the M meds on the saved plans."; card med lookups have a budget (`MAX_COMPARE_MEDS_BUDGET_MS`, default 120 s) → "⏱ timed out" instead of "Checking meds 0/5".
+- "add Dr. X" / "Add Dr. A, Dr. B…" builds on the doctors already in the thread (never the whole list); several comma-separated "X = Y (NPI …)" corrections in one message all apply.
+- The current plan always stays the first column even when it isn't on the THEI grid (offGrid: benefits "Not on grid", doctors and meds still checked). Export keeps it too, and the loaded workup's client name always titles the export ("Add Dr" is never a client).
+- County comes from the ZIP (flZipCounty), never from a plan's grid row; "HumanaChoice" (CMS/Humana spelling) cleans to "Humana Choice".
+- A message typed in a workup never queues behind a reply still running for the workup she left.

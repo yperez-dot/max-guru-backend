@@ -52,9 +52,14 @@ describe('cleanPlanName', () => {
 
   it('never touches contract-PBP IDs or other name text', () => {
     for (const s of ['UHC MedicareMax FL-0028', 'Aetna Medicare Select HMO - H1609-018', 'Humana Gold Plus H1036-054C', 'UHC Dual Complete FL-Q3 (Reg. PPO D-SNP)',
-      'Preferred Care Network H5420-001/0028', 'Brand New Plan', 'Newport Health Advantage', 'HumanaChoice 2027 PPO', 'CLOSED TO NEW ENROLL 2027']) {
+      'Preferred Care Network H5420-001/0028', 'Brand New Plan', 'Newport Health Advantage', 'Humana Choice 2027 PPO', 'CLOSED TO NEW ENROLL 2027']) {
       assert.equal(PN.cleanPlanName(s), s);
     }
+  });
+
+  it('"HumanaChoice" (CMS / Humana directory spelling) reads "Humana Choice", like the grid and the export', () => {
+    assert.equal(PN.cleanPlanName('HumanaChoice H7617-107 (PPO)'), 'Humana Choice H7617-107 (PPO)');
+    assert.equal(PN.cleanPlanName('HumanaChoice Giveback'), 'Humana Choice Giveback');
   });
 
   it('withCleanPlanName leaves every other field alone', () => {

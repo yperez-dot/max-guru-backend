@@ -297,7 +297,9 @@ function candidatePicks(questionText, answerText) {
  */
 function doctorEqualsCorrections(text) {
   const out = [];
-  for (const seg of String(text || '').split(/\n|;(?![^()]*\))/)) {
+  // Several corrections in one message, comma-separated ("A = B, MD (…, NPI …) , C = D, MD (…)"): a comma outside the
+  // parentheses that starts another "X = Y" is a new correction (Martha Muraglia, 2026-10-20: only the first applied).
+  for (const seg of String(text || '').split(/\n|;(?![^()]*\))|,(?![^()]*\))(?=[^,=→()]*(?:=|→|->))/)) {
     const mm = seg.match(/^\s*(?:\d+[.)]\s*)?(?:and\s+)?(?:the\s+)?(?:(?:dr|dra|doctor|doctora)\.?\s+)?([A-Za-zÀ-ÿ'’.-]+(?:\s+[A-Za-zÀ-ÿ'’.-]+){0,5}?)\s*(?:=|→|->|\bis\s+actually\b|\bshould\s+be\b|\bis(?=\s+(?:dr|dra|doctor|doctora)\b))\s*(.+?)\s*$/i);
     if (!mm) continue;
     const right = mm[2];
@@ -621,6 +623,18 @@ function comparisonAskText(messages, baseText) {
       const ids = [...new Set([...(t.match(/^Plans?:\s*([^\n]+)$/im) || ['', ''])[1].matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase()))];
       if (ids.length === 1) lines.unshift(`Her current plan: ${ids[0]}.`);
       break;
+    }
+  }
+  // "Current plan is Humana Full Access Giveback H5216-311 (PPO). Compare with …": the plan she typed as current is her
+  // current plan — the first column, kept even when the THEI grid does not carry it (Martha Muraglia, 2026-10-20).
+  if (!lines.some((l) => /^Her current plan:/m.test(l))) {
+    for (let i = msgs.length - 1; i >= 0; i -= 1) {
+      const m = msgs[i];
+      if (!m || m.role !== 'user') continue;
+      const t = messageText(m);
+      if (isWorkupMessage(t)) continue;
+      const ids = currentPlanIdsIn(t);
+      if (ids.length) { lines.unshift(`Her current plan: ${ids.join(', ')}.`); break; }
     }
   }
   // A loaded workup that names the client's current plan: it is the first column on every follow-up
@@ -970,6 +984,42 @@ function namedPlanAskIds(text, msgs) {
   return byName.ids.length ? byName.ids : byName.ambiguous.length ? ['a plan name that matches more than one plan'] : gridPlansByName(t, county);
 }
 
+// A message that adds doctors to the ones she has ("add Dr. Waddah Allaf", "Also add Dr. X and Dr. Y").
+const ADD_DOCTORS_RE = /^\s*(?:(?:pls|please|can\s+you|could\s+you|also|and)\s+)*(?:add|include|plus)\b/i;
+
+/**
+ * Every doctor she had before user message i: the newest earlier list (a "Doctors:" line or a plain "Dr. …" list) —
+ * itself built on the list before it when it was an "add" — else the loaded workup's doctors. Removals ("remove Dr. X")
+ * and corrections ("X = Y") typed in between apply.
+ */
+function doctorListBefore(msgs, i, depth = 0) {
+  const { parseCompareAsk } = require('./compareJobs'); // lazy: compareJobs requires this file
+  const wk = workupFacts(msgs.slice(0, i));
+  for (let j = i - 1; j >= 0 && depth < 8; j -= 1) {
+    const m = msgs[j];
+    if (!m || m.role !== 'user') continue;
+    const t = messageText(m);
+    if (isWorkupMessage(t)) break;
+    const labeled = /\b(?:doctors?|drs?|providers?)\s*:/i.test(t);
+    const isAdd = ADD_DOCTORS_RE.test(t);
+    const titled = /\b(?:dr|dra|doctor)\.?\s+[A-Za-z]/i.test(t);
+    if (!labeled && !titled) continue;
+    const f = parseCompareAsk(t);
+    if (!f.doctors.length || (!labeled && !isAdd && f.doctors.length < 2)) continue;
+    let names = f.doctors.map((d) => d.name);
+    if (isAdd) {
+      const base = doctorListBefore(msgs, j, depth + 1);
+      names = [...base.filter((b) => !names.some((nm) => plainWords(nm).join(' ') === plainWords(b).join(' '))), ...names];
+    }
+    const between = msgs.slice(j + 1, i).filter((x) => x && x.role === 'user').map(messageText);
+    const removals = between.flatMap(doctorRemovalClauses);
+    if (removals.length) names = names.filter((nm) => !removedByClauses(nm, removals));
+    for (const [from, to] of between.flatMap((t2) => substitutionsIn(t2, names))) names = names.map((nm) => (sameDoctorName(nm, from) ? to : nm));
+    return names;
+  }
+  return wk ? wk.doctors.slice() : [];
+}
+
 function comparisonFollowUp(messages) {
   const out = comparisonFollowUpRaw(messages);
   if (!out || !Array.isArray(out.doctors)) return out;
@@ -1035,12 +1085,18 @@ function comparisonFollowUpRaw(messages) {
     const t = messageText(m);
     // A plan ask on a chat whose doctors were typed as a plain list ("Robert and Andrea, 33186, Dr. Nathalie Regalado,
     // Dr. Michael Weitz, …") — no "Doctors:" label: that earlier message is the doctor list.
-    const plainList = (planAsk.length || typeAsk || isDoctorMatchAnswer(msgs, lastUserAt)) && i < lastUserAt && !isWorkupMessage(t) && /\b(?:dr|dra|doctor)\.?\s+[A-Z]/i.test(t)
-      && parseCompareAsk(t).doctors.length >= 2;
+    const plainList = (planAsk.length || typeAsk || isDoctorMatchAnswer(msgs, lastUserAt)) && i < lastUserAt && !isWorkupMessage(t) && /\b(?:dr|dra|doctor)\.?\s+[A-Za-z]/i.test(t)
+      && parseCompareAsk(t).doctors.length >= (ADD_DOCTORS_RE.test(t) ? 1 : 2);
     if (!/\b(?:doctors?|drs?|providers?)\s*:/i.test(t) && !plainList) continue;
     const f = parseCompareAsk(t);
-    if (f.doctors.length < 2) return null;
+    if (f.doctors.length < (ADD_DOCTORS_RE.test(t) ? 1 : 2)) return null;
     let names = f.doctors.map((d) => d.name);
+    // "Add Dr. Mario del Cid, Dr. Darrel Gachette, …" ADDS to the doctors she already has — it is not the list. Her
+    // correction reply after it re-ran only the 5 added names and the table lost the other 3 (Martha Muraglia, 2026-10-20).
+    if (ADD_DOCTORS_RE.test(t)) {
+      const base = doctorListBefore(msgs, i);
+      names = [...base.filter((b) => !names.some((nm) => plainWords(nm).join(' ') === plainWords(b).join(' '))), ...names];
+    }
     // Her corrections ("Carlos Sosa = Glenda Sosa"), in the latest message or as answers.
     // Every correction she made after listing the doctors still applies (oldest first).
     const later = msgs.slice(i + 1, lastUserAt + 1).filter((x) => x && x.role === 'user').map(messageText);
@@ -1225,8 +1281,11 @@ function workupDoctorCheck(msgs, lastUserAt) {
     const nm = add[1].trim();
     if (!doctors.some((d) => sameDoctorName(d, nm) || looseSameDoctor(d, nm) || core(d).slice(-1)[0] === plainWords(nm).slice(-1)[0])) { doctors.push(nm); added = nm; }
   }
-  const planAsk = named.length || added ? [] : namedPlanAskIds(latest, msgs.slice(0, lastUserAt + 1));
-  if (!named.length && !added && !planAsk.length) return null;
+  // "Check all 8 doctors and the 5 meds on the saved plans" (sent on load when doctors were added back from the
+  // original request): every saved doctor on every saved plan.
+  const allAsk = /\b(?:check|re-?check|run|re-?run|look\s*up)\s+(?:all|every)\b[^.\n]{0,40}\bdoctors?\b/i.test(latest);
+  const planAsk = named.length || added || allAsk ? [] : namedPlanAskIds(latest, msgs.slice(0, lastUserAt + 1));
+  if (!named.length && !added && !planAsk.length && !allAsk) return null;
   return {
     reason: `check on her saved workup — all ${doctors.length} saved doctors on all saved plans${added ? ` (added ${added})` : ''}${planAsk.length ? ` + plans she named: ${planAsk.join(', ')}` : ''}`,
     doctors,
@@ -1265,8 +1324,13 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
     if (picks.length) continue;
     // "it didnt add her primary… Dr. Kelys Caballero" / "add Dr. Kelys Caballero": a doctor added to the saved list.
     if (ADD_DOCTOR_RE.test(t) && !/\b[HR]\d{4}-\d{3}/i.test(t) && !R.carriersRequested(t).length) {
-      const nm = (t.match(/\b(?:dr|dra|doctor|doctora)\.?\s+([A-ZÀ-Ý][\wÀ-ÿ'.-]+(?:\s+[A-ZÀ-Ý][\wÀ-ÿ'.-]+){0,3})/) || [])[1];
-      if (nm && !people.some((p) => looseSameDoctor(p.name, nm) || sameDoctorName(p.name, nm))) { people.push({ name: nm.trim(), npi: '' }); touched = true; }
+      // EVERY doctor in the message, in any case ("Add Dr. Mario del Cid, Dr. Darrel Gachette, … and Dr. Simone Vanhorn"
+      // — only the first was added; Martha Muraglia, 2026-10-20).
+      const added = require('./compareJobs').titledDoctorNames(t);
+      const one = (t.match(/\b(?:dr|dra|doctor|doctora)\.?\s+([A-ZÀ-Ý][\wÀ-ÿ'.-]+(?:\s+[A-ZÀ-Ý][\wÀ-ÿ'.-]+){0,3})/) || [])[1];
+      for (const nm of (added.length ? added : one ? [one] : [])) {
+        if (!people.some((p) => looseSameDoctor(p.name, nm) || sameDoctorName(p.name, nm))) { people.push({ name: nm.trim(), npi: '' }); touched = true; }
+      }
     }
     // "Replace Dr. Natalie Regalado with Dr. Nathalie Regalado, Baptist Medical Group, NPI 1467795633" /
     // "the doctor is Dr. Nathalie Regalado (spelled with an h)": a corrected spelling of ONE saved doctor. Every other saved
@@ -1461,12 +1525,12 @@ function plansInLine(line, constraints) {
 // Her request words are never part of a plan's name: "CAN YOU PLEASE RUN THIS SEARCH FOR HUMANA PPO Humana Choice
 // H7617-107" was a column headed "THIS SEARCH FOR HUMANA PPO Humana Choice" (Robert and Andrea, 2026-10-19). A grid
 // plan whose typed name carries them takes its grid name.
-const REQUEST_WORDS_RE = /\b(?:can|could|would|you|please|pls|run|search|this|that|these|for|check|look|find|her|his|their|them|me|us|on|again|too|also|and)\b/i;
+const REQUEST_WORDS_RE = /\b(?:can|could|would|you|please|pls|run|search|this|that|these|for|check|look|find|her|his|their|them|me|us|on|again|too|also|and|with)\b/i;
 function typedPlanName(name, planId) {
   const nm = String(name || '').trim();
   if (!nm || !REQUEST_WORDS_RE.test(nm)) return nm;
   const row = gridRowFor(planId, '');
-  if (!row) return nm.replace(/^.*\b(?:for|on)\s+/i, '').trim() || nm;
+  if (!row) return nm.replace(/^.*\b(?:for|on|with)\s+/i, '').trim() || nm;
   return carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim();
 }
 
@@ -1512,7 +1576,12 @@ function namedPlansFromAskRaw(askText0, constraints) {
     const missing = currentIds.filter((id) => !set.some((p) => p.planId.slice(0, 9) === id.slice(0, 9)));
     const named = (id) => {
       const row = gridRowFor(id, '');
-      return { planId: id, name: row ? (carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim()) : id };
+      if (row) return { planId: id, name: carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim() };
+      // Not on the grid (her current plan H5216-311): the name she typed next to the ID ("Current plan is Humana Full Access
+      // Giveback H5216-311 (PPO)"), else the ID.
+      const re = new RegExp(`(?:current(?:ly)?(?:\\s+plan)?(?:\\s+is)?|is\\s+on|her\\s+plan(?:\\s+is)?)\\s+([A-Za-z][A-Za-z&'’ .-]{2,60}?)\\s*\\(?${id.slice(0, 9)}`, 'i');
+      const typed = (String(askText || '').match(re) || [])[1];
+      return { planId: id, name: typed ? `${typed.trim()}` : id };
     };
     return LW.currentPlanFirst([...missing.map(named), ...set], currentIds);
   };
@@ -1522,7 +1591,9 @@ function namedPlansFromAskRaw(askText0, constraints) {
     if (workup && workup.plans.length) { current = workup.plans.slice(); fromWorkup = true; }
     workup = null;
   };
-  for (const line of joinWrappedQuotes(askText).split('\n')) {
+  // A line the paste wrapped ("Compare with Humana Choice H7617-107\n and Humana Choice Giveback H7617-110") is one line:
+  // read alone, the "and …" half replaced the set (Martha Muraglia, 2026-10-20: H7617-107 and her current plan dropped).
+  for (const line of joinWrappedQuotes(askText).replace(/\n[ \t]*(?=(?:and|&|or|plus|y)\s+[^\n]*\b[HR]\d{4}-\d{3})/gi, ' ').split('\n')) {
     if (/^\s*LOADED CLIENT WORKUP\b/.test(line)) { workup = { plans: [], inPlans: false }; continue; }
     if (workup) {
       if (WORKUP_LINE_RE.test(line)) { workup.inPlans = /^\s*Plans:\s*$/.test(line); continue; }
@@ -2666,6 +2737,7 @@ function selectComparison(doctors, askText, opts = {}) {
       .map((id) => String(id || '').toUpperCase().slice(0, 9)));
     const away = [];
     const unknown = [];
+    const offGridCurrent2 = [];
     const in2026 = (k) => R.gridPlansForCounty('', 2026).some((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === k);
     out.columns = out.columns.filter((c) => {
       const k = String(c.planId || '').toUpperCase().slice(0, 9);
@@ -2674,6 +2746,10 @@ function selectComparison(doctors, askText, opts = {}) {
       const other = allRows.find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === k);
       // A plan ID she typed that is in neither year's plan data (a typo, or a plan the grid doesn't carry): no column of
       // ❔ cells — one plain line saying so (Robert and Andrea, 2026-10-19: a named plan is never silently dropped).
+      // Her CURRENT plan is always a column, first, even when the THEI grid does not carry it (a non-commissionable plan
+      // like Humana H5216-311): benefits read "not on grid", doctors and meds are still checked on it (carrier directory,
+      // Medicare.gov / Sunfire formulary) — Martha Muraglia, 2026-10-20.
+      if (!other && !in2026(k) && curAskIds.includes(k)) { c.offGrid = true; offGridCurrent2.push(k); return true; }
       if (!other && !in2026(k)) { unknown.push(k); return false; }
       away.push(other ? `${k} (${other.county} grid)` : `${k} (not on the 2027 grid)`);
       return true;
@@ -2681,6 +2757,7 @@ function selectComparison(doctors, askText, opts = {}) {
     if (out.ranked) out.ranked = out.ranked.filter((c) => out.columns.includes(c) || countyIds.has(String(c.planId || '').toUpperCase().slice(0, 9)));
     if (away.length) out.flags.push(`⚠️ Not offered in ${county}: ${away.join(', ')}.`);
     if (unknown.length) out.flags.push(`⚠️ ${unknown.join(', ')} ${unknown.length > 1 ? "aren't" : "isn't"} in Max's plan data, so ${unknown.length > 1 ? "they're" : "it's"} not on the grid. Check the plan ID.`);
+    if (offGridCurrent2.length) out.flags.push(`Current plan ${offGridCurrent2.join(', ')} isn't on the THEI grid: it stays the first column; its benefits read "not on grid" (doctors and meds are still checked on it).`);
   }
   // Medical-group carrier rules win over a directory In (BHMG primary care — Yahoska, 2026-10-17).
   const cols = [...new Set([...(out.columns || []), ...(out.ranked || [])])];

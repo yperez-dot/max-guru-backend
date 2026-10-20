@@ -654,7 +654,9 @@
     if (!found) {
       // The surname ends at a real delimiter — "Case-Diaz" is never cut to "Case" at its hyphen.
       const lead = String(text).match(/(?:^|\n)\s*([A-Z][a-z]+(?:\s*(?:&|and|y)\s*[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]*[A-Za-z])\s*(?:[,:.]|\s-\s)/);
-      if (lead && !/\b(Medicare|Humana|Aetna|Devoted|Compare|Current|Plan|Doctors?|Meds?)\b/.test(lead[1]) && !isDoctorName(lead[1], doctorNames)) {
+      // "Add Dr. Mario del Cid, …" is an instruction naming a doctor, not a client (Martha Muraglia, 2026-10-20: the
+      // Excel title read "Add Dr").
+      if (lead && !/\b(Medicare|Humana|Aetna|Devoted|Compare|Current|Plan|Doctors?|Meds?|Drs?|Dras?|Doc|Doctora?|Add|Remove|Drop|Delete|Check|Please|Pls|Run|Rerun|Update|Change|Swap|Use|Replace|Also|Show|Export|Include)\b/.test(lead[1]) && !isDoctorName(lead[1], doctorNames)) {
         found = lead[1].replace(/\s+/g, " ").trim();
       }
     }
@@ -2526,7 +2528,8 @@
 
     FIELD_ROWS.forEach(([label, key]) => {
       if (key === "mspLevels" && !comparisonIncludesDual(plans)) return;
-      const values = [label, ...plans.map((p) => formatBenefitValue(p[key], key))];
+      // Her current plan off the THEI grid (non-commissionable H5216-311): a column, its benefits "Not on grid".
+      const values = [label, ...plans.map((p) => (p && p.offGrid ? "Not on grid" : formatBenefitValue(p[key], key)))];
       pushBenefitRow(label, values, HIGHLIGHT_KEYS[key]);
       (SOB_EXTRA_AFTER[key] || []).forEach((extra) => {
         const extraLabel = extra[0];
