@@ -696,8 +696,21 @@
   // ─── Model (shared by chat, Excel, PDF) ────────────────────────────────────
 
   /** Grid working notes ("**NEW 2027", "COMMISSIONABLE 2027") are not part of the marketing name. */
+  function planNameLib() {
+    if (root && root.MaxPlanName) return root.MaxPlanName;
+    if (typeof require === "function") {
+      try {
+        return require("./plan-name.js");
+      } catch (_) {
+        /* browser */
+      }
+    }
+    return null;
+  }
+
   function cleanPlanName(name) {
-    return String(name || "")
+    const lib = planNameLib();
+    return String(lib ? lib.cleanPlanName(name) : name || "")
       .replace(/\*+/g, " ")
       .replace(/\b(?:NON-)?COMMISSIONABLE(?:\s+20\d\d)?\b/gi, " ")
       .replace(/\bNEW(?:\s+20\d\d)?\b/g, " ")

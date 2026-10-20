@@ -50,6 +50,7 @@ from thei_grid_common import (  # noqa: E402
     formula_link,
     require_xlsx,
     carrier_of,
+    clean_plan_marketing_name,
     extract_plan_id,
     is_confirmed_2027_cell,
     is_green,
@@ -76,6 +77,8 @@ CARRIER_FILES = {
 def clean_plan_name(header: str, pid: str | None) -> str:
     s = header.replace("‑", "-").replace("–", "-")
     s = re.sub(r"\s+", " ", s.replace("\n", " ")).strip()
+    # Shared tag cleaner first ("(NEW 2027)", "- NEW 2027", "**NEW**"); header_flags still reads the raw header.
+    s = clean_plan_marketing_name(s)
     s = re.sub(r"\*{1,2}[^*]*\*{1,2}", " ", s)
     s = re.sub(r"\bNON[- ]COMMI?SSIONABLE\b", "", s, flags=re.I)
     s = re.sub(r"\bNEW\s*2027\b", "", s, flags=re.I)

@@ -264,3 +264,31 @@ def skip_yellow_dental(lab: str, val: str) -> bool:
 
 def default_2027_xlsx() -> Path:
     return Path("/tmp/thei-2027-grid.xlsx")
+
+
+# ─── Plan marketing names ────────────────────────────────────────────────────
+# Grid headers carry working tags that are not part of the plan name: "**NEW 2027**", "(NEW 2027)",
+# "- NEW 2027", bare "**NEW**", stray "**" bold markers. Same rules as artifacts/plan-name.js (the UI and
+# server run that one on every render). Only the tag and markers go: "NON-COMMISSIONABLE" (R0759-001),
+# contract-PBP IDs, "(HMO D-SNP)", "FL-0031" all stay as written.
+_SEP = r"[\s\-\u2010-\u2015:|\u00b7]*"
+_NEW_YEAR_TAG_RE = re.compile(_SEP + r"[(\[]?\s*\**\s*\bnew\s*(?:for\s+)?2027\b\s*\**\s*[)\]]?", re.I)
+_BARE_NEW_TAG_RE = re.compile(_SEP + r"(?:\*+\s*NEW\b\s*\**|\(\s*\**\s*NEW\s*\**\s*\))", re.I)
+_TRAILING_NEW_RE = re.compile(r"[\s\-\u2010-\u2015:|\u00b7]+NEW\s*$")
+
+
+def clean_plan_marketing_name(name: object) -> str:
+    """'Humana Choice Giveback **NEW 2027' → 'Humana Choice Giveback'."""
+    if name is None:
+        return ""
+    s = re.sub(r"\s+", " ", str(name))
+    s = _NEW_YEAR_TAG_RE.sub(" ", s)
+    s = _BARE_NEW_TAG_RE.sub(" ", s)
+    s = _TRAILING_NEW_RE.sub(" ", s)
+    s = re.sub(r"\*{2,}", " ", s)
+    s = re.sub(r"^\s*\*+|\*+\s*$", " ", s)
+    s = re.sub(r"\(\s*\)|\[\s*\]", " ", s)
+    s = re.sub(r"\s+([-\u2010-\u2015])\s+(?:[-\u2010-\u2015]\s+)+", r" \1 ", s)
+    s = re.sub(r"\s+", " ", s)
+    s = re.sub(r"^[\s\-\u2010-\u2015:|\u00b7,]+|[\s\-\u2010-\u2015:|\u00b7,]+$", "", s)
+    return s.strip()

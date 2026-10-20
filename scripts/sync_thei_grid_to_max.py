@@ -47,6 +47,7 @@ from thei_grid_common import (  # noqa: E402
     is_healthspring_dade_broward,
     is_yellow,
     cell_link,
+    clean_plan_marketing_name,
     require_xlsx,
     resolve_2027_sheets,
 )
@@ -481,7 +482,8 @@ def parse_grid_2027(xlsx: Path) -> list[dict]:
             if is_healthspring_dade_broward(carrier, pid, county):
                 continue
             _pid, _c, plan_name = parse_header_meta(header_s)
-            plan_name = plan_name or header_s
+            # Grid working tags ("**NEW 2027**", stray "**") are not part of the marketing name.
+            plan_name = clean_plan_marketing_name(plan_name) or clean_plan_marketing_name(header_s) or header_s
             fields: dict = {}
             yellow_left = 0
             for r, key, lab_s in labels:
@@ -538,7 +540,7 @@ def build_2027_plan_objects(grid_plans: list[dict]) -> list[dict]:
             "id": gp["id"],
             "planId": gp["id"],
             "carrier": gp["carrier"],
-            "planName": gp["planName"],
+            "planName": clean_plan_marketing_name(gp["planName"]) or gp["planName"],
             "county": gp["county"],
             "type": gp["type"],
             "year": 2027,

@@ -10,6 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 const { requestedForm, expandDosageForms } = require('./drugNames');
+const PLAN_NAME = require('../artifacts/plan-name.js');
 
 const COMPARISON_TABLE_RULES = `
 DOCTOR/DRUG COMPARISON TABLE RULES (HARD RULES — apply on every multi-doctor or multi-plan comparison; they replace any earlier, shorter version and override older table/format instructions where they conflict):
@@ -71,7 +72,8 @@ function loadGrid(year = 2027) {
     const html = fs.readFileSync(path.join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
     const id = y === 2026 ? 'plan-data-2026' : 'plan-data';
     const m = html.match(new RegExp(`<script id="${id}" type="application/json">\\s*([\\s\\S]*?)\\s*</script>`));
-    gridCache[y] = m ? JSON.parse(m[1]) : [];
+    // Grid working tags ("**NEW 2027**", stray "**") never reach a chat table or the compare card.
+    gridCache[y] = m ? PLAN_NAME.cleanPlanList(JSON.parse(m[1])) : [];
   } catch (_) {
     gridCache[y] = [];
   }
@@ -80,7 +82,7 @@ function loadGrid(year = 2027) {
 
 /** Tests only: swap the grid for a fixture (null restores the real one). */
 function setGridForTests(plans) {
-  gridOverride = plans;
+  gridOverride = plans ? PLAN_NAME.cleanPlanList(plans) : plans;
 }
 
 /** Same ZIP ranges as the UI (gridCountyForZip in max-demo-FINAL-v7.html). */

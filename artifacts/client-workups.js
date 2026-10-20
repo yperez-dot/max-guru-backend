@@ -10,6 +10,23 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
+  // Saved workups can carry a grid tag from before the 2027 sync cleaned it ("Humana Choice Giveback **NEW 2027").
+  function planNameLib() {
+    if (typeof globalThis !== "undefined" && globalThis.MaxPlanName) return globalThis.MaxPlanName;
+    if (typeof require === "function") {
+      try {
+        return require("./plan-name.js");
+      } catch (_) {
+        /* browser without the cleaner */
+      }
+    }
+    return null;
+  }
+  function cleanPlanName(name) {
+    const lib = planNameLib();
+    return lib ? lib.cleanPlanName(name) : String(name == null ? "" : name);
+  }
+
   const WORKUP_CONTEXT_PREFIX = "LOADED CLIENT WORKUP";
   const NETWORK_IN = "IN";
   const NETWORK_OUT = "OUT";
@@ -58,7 +75,7 @@
     if (!plan) return "";
     // "UHC" + "UHC MedicareMax FL-0028" is "UHC MedicareMax FL-0028", never "UHC UHC …" (golden suite, 2026-10-17).
     const carrier = String(plan.carrier || "").trim();
-    const pname = String(plan.planName || "").trim();
+    const pname = cleanPlanName(plan.planName || "").trim();
     const first = carrier.toLowerCase().split(/\s+/)[0];
     const name = (first && pname.toLowerCase().startsWith(first) ? pname : [carrier, pname].filter(Boolean).join(" ")).replace(/\s+/g, " ").trim();
     const id = displayPlanId(plan);
@@ -188,7 +205,7 @@
     return {
       planId: planId,
       id: clip(plan.id || plan.planId || "", 40),
-      planName: clip(plan.planName || "", 120),
+      planName: clip(cleanPlanName(plan.planName || ""), 120),
       carrier: clip(plan.carrier || "", 80),
       county: clip(plan.county || "", 40),
     };
