@@ -2236,6 +2236,60 @@
     return /\bmuskat\b/i.test(t);
   }
 
+  // ─── Which county's grid row a plan column uses (Carolina Robles, 2026-10-21) ───────────────────────────────
+  // A plan sold in both counties has two grid rows that differ (Doctors DrSelect-SFL H4140-023: Outpatient Hospital
+  // "$75" in Miami-Dade, "$50 / $75" in Broward). The export used Broward only when the thread said "Broward" AND never
+  // said "Miami" anywhere — a doctor in Miami, "Miami Gardens", or no county word at all (a ZIP only) printed the
+  // Miami-Dade row on a Broward client's PDF. Now: the client's ZIP decides, then an explicit county, then the county
+  // the plans already carry; Miami-Dade only when nothing says otherwise. City names ("Miami") are never a county.
+  function countyForZip(zip) {
+    const m = String(zip || "").match(/^(\d{5})/);
+    if (!m) return "";
+    const n = Number(m[1]);
+    if (n === 33004 || n === 33009) return "Broward";
+    if (n >= 33019 && n <= 33029) return "Broward";
+    if (n >= 33060 && n <= 33077) return "Broward";
+    if (n >= 33301 && n <= 33394) return "Broward";
+    if (n >= 33441 && n <= 33443) return "Broward";
+    if (n >= 33010 && n <= 33018) return "Miami-Dade";
+    if (n >= 33030 && n <= 33039) return "Miami-Dade";
+    if (n >= 33054 && n <= 33056) return "Miami-Dade";
+    if (n >= 33090 && n <= 33092) return "Miami-Dade";
+    if (n >= 33101 && n <= 33299) return "Miami-Dade";
+    return "";
+  }
+  // Her client's ZIP: a labeled one ("ZIP 33023", "ZIP/county: 33023 / Broward", "Client ZIP: 33023") or the lead line
+  // "Name, 33023" — never a doctor's street address ZIP. The newest one wins.
+  function clientZipFromText(text) {
+    const t = String(text || "");
+    let zip = "";
+    for (const m of t.matchAll(/\bzip(?:\s*code)?(?:\s*\/\s*county)?\s*[:#]?\s*(\d{5})\b/gi)) zip = m[1];
+    if (zip) return zip;
+    const lead = t.split("\n").map((l) => l.match(/^\s*(?:new client:?\s*)?[A-Za-z][A-Za-z .'-]{2,60},\s*(\d{5})\b/i)).filter(Boolean).pop();
+    return lead ? lead[1] : "";
+  }
+  function explicitCounty(text) {
+    const t = String(text || "");
+    let last = "";
+    let at = -1;
+    for (const m of t.matchAll(/\b(miami[-\s]?dade|dade|broward)\b(?!\s+(?:st|street|blvd|boulevard|ave|avenue|rd|road|dr|drive|way|pkwy|parkway)\b)/gi)) {
+      if (m.index > at) { at = m.index; last = /broward/i.test(m[1]) ? "Broward" : "Miami-Dade"; }
+    }
+    return last;
+  }
+  /** { county, sure }: sure when a ZIP, an explicit county, or the caller said so. */
+  function exportCountyFor(text, meta, plans) {
+    const m = meta && typeof meta === "object" ? meta : {};
+    if (m.county === "Broward" || m.county === "Miami-Dade") return { county: m.county, sure: true };
+    const zipped = countyForZip(m.zip) || countyForZip(clientZipFromText(m.askText != null ? m.askText : "")) || countyForZip(clientZipFromText(text));
+    if (zipped) return { county: zipped, sure: true };
+    const said = explicitCounty(m.askText != null ? m.askText : "") || explicitCounty(text);
+    if (said) return { county: said, sure: true };
+    const carried = [...new Set((plans || []).map((p) => p && p.county).filter((c) => c === "Broward" || c === "Miami-Dade"))];
+    if (carried.length === 1) return { county: carried[0], sure: false };
+    return { county: "Miami-Dade", sure: false };
+  }
+
   function pickCatalogPlan(catalog, id, county) {
     const list = Array.isArray(catalog) ? catalog : [];
     const want = String(id || "").toUpperCase().replace(/\s+/g, "").split("/")[0];
@@ -2251,9 +2305,13 @@
     return list.find(match) || null;
   }
 
-  function canonicalize2027ComparisonPlans(plans, text, catalog) {
+  function canonicalize2027ComparisonPlans(plans, text, catalog, countyMeta) {
     const t = String(text || "");
-    const county = /\bbroward\b/i.test(t) && !/miami/i.test(t) ? "Broward" : "Miami-Dade";
+    const cm = countyMeta && countyMeta.county ? countyMeta : exportCountyFor(t, {}, plans);
+    const county = cm.county;
+    // A sure county (ZIP / said) beats the county a passed plan object happens to carry (the chat picked the first
+    // grid row, Miami-Dade, for a Broward client).
+    const countyOf = (p) => (cm.sure ? county : (p && p.county) || county);
     const muskat = isMuskatContext(t);
     const coreHumana = muskat || /\bcore\s+humana\b/i.test(t);
     const wantsGiveback = /\bgive\s*back\b/i.test(t) && !muskat && !coreHumana;
@@ -2261,18 +2319,23 @@
       const id = displayContractPbp(p);
       const mapped = DOCTORS_PBP_2027[id];
       if (mapped) {
-        return pickCatalogPlan(catalog, mapped, p.county || county) || Object.assign({}, p, {
+        return pickCatalogPlan(catalog, mapped, countyOf(p)) || Object.assign({}, p, {
           planId: mapped,
           id: mapped,
           planName: mapped === "H4140-023" ? "Doctors DrSelect-SFL" : p.planName,
         });
       }
       if (coreHumana && id === "H1036-305" && !wantsGiveback) {
-        return pickCatalogPlan(catalog, "H1036-054C", p.county || county) || p;
+        return pickCatalogPlan(catalog, "H1036-054C", countyOf(p)) || p;
       }
       const base = String(id || "").split("/")[0];
       if (base && base !== id) {
-        return pickCatalogPlan(catalog, base, p.county || county) || Object.assign({}, p, { planId: base, id: base });
+        return pickCatalogPlan(catalog, base, countyOf(p)) || Object.assign({}, p, { planId: base, id: base });
+      }
+      // Same plan, the other county's grid row: the right county's row (its benefits differ).
+      if (cm.sure && p && p.county && p.county !== county && base) {
+        const right = pickCatalogPlan(catalog, base, county);
+        if (right && right.county === county) return right;
       }
       return p;
     });
@@ -3668,22 +3731,41 @@
   }
 
   function resolveExportPlans(plans, threadText, extra) {
-    return tidyExportPlans(resolveExportPlansRaw(plans, threadText, extra), threadText, extra && typeof extra === "object" ? extra : {});
+    const meta = extra && typeof extra === "object" ? extra : {};
+    const out = tidyExportPlans(resolveExportPlansRaw(plans, threadText, extra), threadText, meta);
+    return toExportCounty(out, threadText, meta, plans);
+  }
+  // Last word on the county row: with a sure county (her ZIP / she said it), every column that has a grid row in that
+  // county uses it — a dedupe that kept the Miami-Dade copy, or a plan object the chat built from the first grid row,
+  // can't put the other county's benefits on her sheet.
+  function toExportCounty(list, threadText, meta, plans) {
+    const catalog = meta.catalog || meta.planCatalog || [];
+    if (!catalog.length) return list;
+    const cm = exportCountyFor(String(threadText || "") + "\n" + String(meta.latestUserText || ""), meta, plans);
+    if (!cm.sure) return list;
+    return (list || []).map((p) => {
+      if (!p || p.offGrid || !p.county || p.county === cm.county) return p;
+      const right = pickCatalogPlan(catalog, compactContractPbp(p.planId || p.id || ""), cm.county);
+      return right && right.county === cm.county && Number(right.year || 2027) === Number(p.year || 2027) ? right : p;
+    });
   }
 
+  const canonicalize2027ComparisonPlansOuter = (...a) => canonicalize2027ComparisonPlans(...a);
   function resolveExportPlansRaw(plans, threadText, extra) {
     const meta = extra && typeof extra === "object" ? extra : {};
     const catalog = meta.catalog || meta.planCatalog || [];
     const pool = catalog.length ? catalog : plans;
     const text = String(threadText || "");
     const latest = String(meta.latestUserText || "");
-    const county = /\bbroward\b/i.test(text + " " + latest) && !/miami/i.test(text + " " + latest) ? "Broward" : "Miami-Dade";
+    const cm = exportCountyFor(text + "\n" + latest, meta, plans);
+    const county = cm.county;
     const pick = (id) => pickCatalogPlan(pool, id, county) || pickCatalogPlan(pool, id);
+    const canonicalize2027ComparisonPlans = (list, t, cat) => canonicalize2027ComparisonPlansOuter(list, t, cat, cm);
     // The latest chat table's set (current plan first) is final: no older typed IDs, no reorder
     // ("yes all three on the excel" exported 2 old columns — Maura, 2026-10-07).
     if (meta.planSetFixed && (plans || []).length) {
       const seenFixed = new Set();
-      return plans.map((p) => pick(String(p.planId || p.id || "")) || p).filter((p) => {
+      return plans.map((p) => pickCatalogPlan(pool, String(p.planId || p.id || ""), cm.sure ? county : (p && p.county) || county) || pick(String(p.planId || p.id || "")) || p).filter((p) => {
         const id = planColumnId(p);
         if (!id || seenFixed.has(id)) return false;
         seenFixed.add(id);
@@ -3777,6 +3859,9 @@
   }
 
   return {
+    exportCountyFor,
+    countyForZip,
+    clientZipFromText,
     FIELD_ROWS,
     HIGHLIGHT_KEYS,
     SOB_EXTRA_AFTER,
@@ -6224,7 +6309,15 @@ function findComparisonPlans(text) {
   const pool = getPlansForYear(detectPlanYear(text));
   const hasBroward = /broward/i.test(text);
   const hasDade = /miami-?dade/i.test(text);
-  const countyHint = hasBroward && !hasDade ? "Broward" : (hasDade && !hasBroward ? "Miami-Dade" : null);
+  // Her ZIP decides the county row first ("Client ZIP 33023 … Dr. in Miami" is Broward) — Carolina Robles, 2026-10-21:
+  // a Broward Doctors Select export showed the Miami-Dade outpatient copay.
+  const zipCounty =
+    window.MaxComparisonExport && typeof window.MaxComparisonExport.exportCountyFor === "function"
+      ? window.MaxComparisonExport.exportCountyFor(text, {}, [])
+      : null;
+  const countyHint = zipCounty && zipCounty.sure
+    ? zipCounty.county
+    : hasBroward && !hasDade ? "Broward" : (hasDade && !hasBroward ? "Miami-Dade" : null);
   // Capture compound IDs like H5420-001/0028 as well as H5420-001
   const idRegex = /\b[HR]\d{3,4}[\s-]?\d{2,4}[A-Z]?(?:\s*\/\s*-?\d{2,4})?\b/g;
   const rawMatches = [...new Set((text.match(idRegex) || []).map((s) => s.replace(/\s+/g, "")))];
@@ -6312,7 +6405,11 @@ function exportTablePlanSet(history) {
   const exp = window.MaxComparisonExport;
   if (!exp || typeof exp.exportPlanIdsFromThread !== "function") return [];
   const wk = threadWorkup(history);
-  const county = (wk && wk.county) || "";
+  // Saved county, else her ZIP / stated county in the thread — never a silent Miami-Dade default when she gave a Broward ZIP.
+  const threadCounty = typeof exp.exportCountyFor === "function" && typeof exp.conversationPlainText === "function"
+    ? exp.exportCountyFor(exp.conversationPlainText(history, userMessageText), { zip: (wk && wk.zip) || "" }, [])
+    : null;
+  const county = (wk && wk.county) || (threadCounty && threadCounty.sure ? threadCounty.county : "");
   const ids = exp.exportPlanIdsFromThread(history, userMessageText, {
     currentPlanIds: (wk && wk.currentPlanIds) || [],
     catalog: typeof PLANS !== "undefined" ? PLANS : [],
@@ -6348,6 +6445,9 @@ function collectComparisonExport(history, plans, extras) {
   // A loaded workup keeps its client name on every export: a follow-up ("Add Dr. Mario del Cid, …") is never a rename
   // (Martha Muraglia, 2026-10-20: the Excel title read "Add Dr"). Only Rename changes it (it updates the card too).
   if (wkSaved && String(wkSaved.clientName || "").trim()) extra.clientName = String(wkSaved.clientName).trim();
+  // Her saved ZIP / county picks the grid row (Broward vs Miami-Dade) for every column.
+  if (wkSaved && !extra.zip && /^\d{5}$/.test(String(wkSaved.zip || "").trim())) extra.zip = String(wkSaved.zip).trim();
+  if (wkSaved && !extra.county && /^(Broward|Miami-Dade)$/.test(String(wkSaved.county || "").trim())) extra.county = String(wkSaved.county).trim();
   const latestUserText =
     extra.latestUserText ||
     (typeof window.MaxComparisonExport.lastUserComparisonAsk === "function"

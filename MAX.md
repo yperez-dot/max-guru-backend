@@ -9,6 +9,9 @@ Last brief update: **2026-10-03** (Rebased year rule onto #61: a **2026-only** a
 Last brief update: **2026-10-03** (H4140-023 DrSelect-SFL SoB: `2027_SOB_SF_DrSelect_ENG.pdf` for both counties. Two-column — use the **right** DrSelect-SFL column. SNF $0 / $60. DME page 17: 0% CPAP and other medical equipment; 20% powered wheelchairs / mattress systems / electric devices. Hospital-grade bed is not named — do not invent a bed dollar. H4140-022 stays on the Dr Max PDF. Workup resume is a starting point — a new message updates the comparison. Off-grid SOB/EOC lookup only when she asks. No invented dollars.)
 ---
 
+## Export county row: ZIP first (2026-10-21)
+Plans sold in both counties have two grid rows that can differ (Doctors Select H4140-023 outpatient: Broward "$50 / $75", Miami-Dade "$75"). The Excel/PDF export picks the row from her ZIP (workup ZIP or a labeled "ZIP 33023" / "Name, 33023"), then a county she named, then the county the plan carries. A city word ("Miami", "Miami Gardens") never decides it.
+
 ## SOB lookups: how Max must get a number (2026-10-03)
 
 Order for any off-grid benefit: **grid cell → `max-knowledge/sob-verified-2027.json` (human-checked, has page + quote) → live PDF parse, only when unambiguous → Unverified.** If two readings of one value disagree, the answer is Unverified, never the first match. Never print a number that is not in that plan's own SOB/EOC.
