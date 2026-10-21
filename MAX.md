@@ -739,3 +739,9 @@ bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.
 - A new full client list on a loaded workup REPLACES the saved doctors and meds (chat context via `withCurrentLists`, card save via `replaceDoctors` / `replaceMedications`, recovery via `latestQuery`). The workup shows the latest ZIP ("ZIP 33196 — latest; the original request said 33156").
 - RxNorm check strips strength + form words (`0.05%`, cream, solution, shampoo…); the med keeps them as its label.
 - Fixed: `/compare/extract` (screenshot read) always 502'd because the router was built without deps.
+
+## 2026-10-21 — Plan-removal lists + typo carriers, specialty-aware NPI candidates (fix/plan-removal-specialty)
+- "Remove Doctos and Careplus": every item of a removal list is removed (it stopped at the first). A one-letter carrier typo ("Doctos") is that carrier when one of its plans is in the table. The server acts and says it once ("Removed: Doctors DrMax-Dade; CarePlus CareOne Plus (read "Doctos" as Doctors HealthCare)."), via `Confirmed plan removal:` lines, so the columns stay gone on later turns and exports. A near miss is asked, and the reply is told the plan stays until she answers. It never asks and acts at once.
+- NPI candidates use the specialty and street from her request or the client's PDF (services/specialtyHints.js, `applyDoctorHints`). The hints come from the "(Specialty)" tag, card fields or her paste/PDF text in the thread.
+  - Her name plus a fitting specialty and no conflicting street means that one person.
+  - Otherwise she is asked. Right-specialty / same-street people with that surname come first (statewide by NPPES taxonomy; another first name only in her area). Each candidate that doesn't fit says "⚠️ not Gastroenterology" / "different first name" / "different office".

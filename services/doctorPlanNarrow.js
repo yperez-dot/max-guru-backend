@@ -854,7 +854,15 @@ function planRemovalAskLines(msgs) {
   const skip = [...(wk ? wk.doctors : []), ...(wk ? wk.meds || [] : []), ...R.medsFromAsk(t)].map((x) => String(x || '').toLowerCase().split(/\s+[-–—(]/)[0].trim()).filter((x) => x.length >= 4);
   const rm = LW.planRemovals(t, plans, wk ? wk.current : currentPlanOf(before), { skip });
   const qs = LW.planRemovalLines(rm, plans);
-  return [...drops, ...(qs.length ? [`Plan removal questions: ${qs.join(' | ')}`] : [])];
+  // Removed now vs. asked: said apart, so the reply never asks "Did you mean remove X?" AND says it dropped X (live bug,
+  // 2026-10-21: "Remove Doctos and Careplus" → a question plus "I dropped Doctors DrMax-Dade and CarePlus").
+  const nameOf = (id) => { const p = plans.find((x) => x.planId.toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9)); return p ? p.name : id; };
+  const removedNow = rm.remove.length ? [
+    ...rm.remove.map((id) => `Confirmed plan removal: ${id} (${nameOf(id)}).`),
+    `Plans removed this turn — say so in one line, never ask about them: ${rm.remove.map(nameOf).join('; ')}${rm.readAs.length ? ` (read ${rm.readAs.map((x) => `"${x.target}" as ${x.carrier}`).join(', ')})` : ''}.`,
+  ] : [];
+  const pending = rm.confirm.length ? ['Plans asked about stay in the table until she answers — never say they were removed.'] : [];
+  return [...drops, ...removedNow, ...(qs.length ? [`Plan removal questions: ${qs.join(' | ')}`] : []), ...pending];
 }
 // A med name RxNorm auto-corrected ("famotdidine" → famotidine): the row is priced and marked "verify", and Max asks
 // once — never a silent swap (standing rule, Yahoska 2026-10-20). Gone once she types the corrected name or says yes.
@@ -2027,8 +2035,8 @@ function gridTable(doctors, plans) {
 function doctorLine(d) {
   const name = shortDoctor(d);
   if (d.status === 'not_found') {
-    const sug = (d.suggestions || []).map((x) => `${x.name}${x.specialty ? ` (${x.specialty}${x.city ? `, ${x.city}` : ''})` : ''}`);
-    return `- ${name}: NOT CONFIRMED — no exact NPI match${sug.length ? `; closest real providers: ${sug.join('; ')} — ask which one (never ask for an NPI)` : '; no similar name — ask for the spelling or specialty/office (never ask for an NPI)'}`;
+    const sug = (d.suggestions || []).map((x) => `${x.name}${x.specialty ? ` (${x.specialty}${x.city ? `, ${x.city}` : ''})` : ''}${x.hintMismatch ? ` ⚠️ not ${x.hintMismatch}` : ''}${x.otherFirstName ? ' — different first name' : ''}`);
+    return `- ${name}: NOT CONFIRMED — no exact NPI match${d.hint ? ` (the ${d.hint})` : ''}${sug.length ? `; closest real providers: ${sug.join('; ')} — ask which one (never ask for an NPI)` : '; no similar name — ask for the spelling or specialty/office (never ask for an NPI)'}`;
   }
   if (d.status === 'timeout' || d.status === 'error') return `- ${name}: NOT CONFIRMED — lookup did not finish`;
   const who = d.doctorName && d.doctorName !== name ? ` (${d.doctorName}${d.npi ? `, NPI ${d.npi}` : ''})` : (d.npi ? ` (NPI ${d.npi})` : '');
@@ -2676,12 +2684,14 @@ function selectComparison(doctors, askText, opts = {}) {
   const missing = docs.filter((d) => d.status === 'not_found');
   if (missing.length) {
     // Each candidate with what she needs to tell them apart: specialty, city, NPI (Robert and Andrea, 2026-10-19).
-    const fmt = (x) => { const bits = [x.specialty, x.city, x.npi ? `NPI ${x.npi}` : ''].filter(Boolean); return `${x.name}${bits.length ? ` (${bits.join(', ')})` : ''}`; };
+    const fmt = (x) => { const bits = [x.specialty, x.city, x.npi ? `NPI ${x.npi}` : ''].filter(Boolean); return `${x.name}${bits.length ? ` (${bits.join(', ')})` : ''}${x.hintMismatch ? ` ⚠️ not ${x.hintMismatch}` : ''}${x.otherFirstName ? ' — different first name' : ''}${x.otherAddress && !x.hintMismatch ? ' — different office' : ''}`; };
     // One short bullet per doctor, newest-first reading order kept; the parts the answer parser reads
     // ("No exact match", "\"Name\" — did you mean X (", "closest:") are unchanged.
     const per = missing.map((d) => {
       const asked = `"${titleCase(shortDoctor(d))}"`;
       // Several real people with exactly this name (a PA and a dentist): all of them, never a silent pick (Jorge Rivero, 2026-10-20).
+      // Her request / PDF gave a specialty or address: every candidate, mismatches flagged (live bug, 2026-10-21).
+      if (d.hint && (d.suggestions || []).some((x) => x && (x.hintFit || x.hintMismatch))) return `${asked} — the ${d.hint}: ${d.suggestions.slice(0, 4).map(fmt).join('; ')}`;
       if ((d.suggestions || []).some((x) => x && x.sameName)) return `${asked} — more than one provider with this name: ${d.suggestions.slice(0, 4).map(fmt).join('; ')}`;
       const sug = (d.suggestions || []).slice(0, 2);
       if (sug[0] && sug[0].spelling) return `${asked} — did you mean ${fmt(sug[0])}? (looks like a spelling difference)`;
@@ -3194,6 +3204,8 @@ function renderedAnswerRaw(doctors, askText, { answered = false, drugs = [], med
     const m = x.match(/^(.*?)\s*\((.+)\)$/);
     follow.push(m ? `⚠️ "${m[1]}" could be ${m[2]}. Which plan ID should I add?` : `⚠️ Couldn't match "${x}" to one plan. Which plan ID should I add?`);
   }
+  const removedNow = ((String(askText || '').match(/^Plans removed this turn — say so in one line, never ask about them: ([^\n]+)$/gm) || []).pop() || '').replace(/^Plans removed this turn — say so in one line, never ask about them: /, '');
+  if (removedNow) follow.push(`Removed: ${removedNow}`);
   for (const q of planRemovalQuestions(askText)) follow.push(`⚠️ ${q}`);
   for (const q of drugSpellingQuestions(drugs, askText)) follow.push(q);
   for (const q of duplicateQuestions(doctors)) follow.push(q);

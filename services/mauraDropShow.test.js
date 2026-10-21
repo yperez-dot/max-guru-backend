@@ -106,8 +106,10 @@ test('grok/claude loop: a batch lookup (expand items) still leads the reply with
       processToolFn: async () => ({ text: 'BATCH', structured: { doctors: DOCS, rendered }, expand: DOCS }),
     });
     const text = res.content[0].text;
-    assert.ok(text.startsWith(rendered), text.slice(0, 200));
-    assert.doesNotMatch(text.slice(rendered.length), /Case-Diaz: In/);
+    // The grid leads (the rendered follow-up here is from the Maura thread's "Drop … H5420-001", not this one-message chat).
+    const { grid } = N.splitFollowUp(rendered);
+    assert.ok(text.startsWith(grid), text.slice(0, 200));
+    assert.doesNotMatch(text.slice(grid.length), /Case-Diaz: In/);
   } finally { global.fetch = original; }
 });
 
