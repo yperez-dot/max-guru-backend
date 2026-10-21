@@ -1211,6 +1211,13 @@ function comparisonFollowUpRaw(messages) {
     }
     if (REMOVAL_YES_RE.test(latest) && (() => { const a = [...msgs.slice(0, lastUserAt)].reverse().find((m) => m && m.role === 'assistant'); return a && REMOVAL_Q_RE.test(messageText(a)); })()) reasons.push('she confirmed the plan removal');
     if (planAsk.length && !reasons.length) reasons.push(`plans she named: ${planAsk.join(', ')}`);
+    // "Please remove Doctors DrMax-Dade · H4140-022 from her comparison": re-run now, without that column.
+    if (!reasons.length) {
+      const wk2 = workupFacts(msgs.slice(0, lastUserAt + 1));
+      const ids2 = wk2 && wk2.plans.length ? wk2.plans : [...new Set([...msgs.slice(0, lastUserAt).map(messageText).join('\n').matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase()))];
+      const rm2 = ids2.length ? require('./loadedWorkup').planRemovals(latest, ids2.map((id) => ({ planId: id, name: id })), (wk2 && wk2.current) || []) : null;
+      if (rm2 && rm2.remove && rm2.remove.length) reasons.push(`plan removed: ${rm2.remove.join(', ')}`);
+    }
     if (!reasons.length) return null;
     for (const [from, to] of subs) names = names.map((nm) => (sameDoctorName(nm, from) ? to : nm));
     const zip = f.zip || (msgs.slice(0, lastUserAt + 1).map(messageText).join(' ').match(/\b(3\d{4})\b/) || [])[1] || '';
@@ -1255,7 +1262,14 @@ function comparisonFollowUpRaw(messages) {
     const medsListed = /\b(?:meds?|medications?|medicines?|rx|drugs?|prescriptions?|medicamentos?)\b\s*(?::|-\s)/i.test(latest) && R.medsFromAsk(latest).length > 0;
     // A plan add / remove on the saved table ("remove aetna and add … H1036-121"): the same full re-run, so the
     // removal question or "couldn't find" line comes from the server with the new table.
-    const planEdit = !medsListed && wk && wk.plans.length && (LW_planAddSet(latest, msgs.slice(0, lastUserAt + 1)).length > 0 || planRemovalAskLines(msgs.slice(0, lastUserAt + 1)).some((l) => /^Plan removal questions:/.test(l)));
+    // "Please remove Doctors DrMax-Dade · H4140-022 from her comparison" is a plan edit too: re-run now without it. Left to
+    // the model it said "three-plan comparison" and every later table still drew the column (live bug, 2026-10-21).
+    const savedRemoval = () => {
+      const LWm = require('./loadedWorkup');
+      const rm = LWm.planRemovals(latest, wk.plans.map((id) => ({ planId: String(id).toUpperCase(), name: String(id) })), wk.current || []);
+      return rm && rm.remove && rm.remove.length > 0;
+    };
+    const planEdit = !medsListed && wk && wk.plans.length && (LW_planAddSet(latest, msgs.slice(0, lastUserAt + 1)).length > 0 || savedRemoval() || planRemovalAskLines(msgs.slice(0, lastUserAt + 1)).some((l) => /^Plan removal questions:/.test(l)));
     if (wk && wk.doctors.length && wk.plans.length && (medsListed || planEdit)) {
       const picked = applyDoctorResolutions(wk.doctors, threadDoctorResolutions(msgs, lastUserAt), {});
       return { reason: medsListed ? 'meds she listed — full table with every saved doctor and plan' : 'plan edit on her saved table — every saved doctor and med', doctors: picked.doctors, zip: wk.zip || newestZip(msgs.slice(0, lastUserAt + 1)), ...(Object.keys(picked.npis).length ? { npis: picked.npis } : {}) };

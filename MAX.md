@@ -730,3 +730,12 @@ bare title still needs a space, so "Drake Smith" and "Drew Carey" are untouched.
 - The current plan always stays the first column even when it isn't on the THEI grid (offGrid: benefits "Not on grid", doctors and meds still checked). Export keeps it too, and the loaded workup's client name always titles the export ("Add Dr" is never a client).
 - County comes from the ZIP (flZipCounty), never from a plan's grid row; "HumanaChoice" (CMS/Humana spelling) cleans to "Humana Choice".
 - A message typed in a workup never queues behind a reply still running for the workup she left.
+
+## 2026-10-21 — Client PDFs + pasted address lines, plan removal, full-list replace (feat/pdf-intake)
+- Paperclip in the chat composer (and "Upload PDF" on the New client card) takes up to 4 PDFs, 10 MB each (`MAX_PDF_BYTES`). `POST /compare/pdf` reads the text layer with poppler `pdftotext` over stdin; the PDF is never written to disk, its buffer is zeroed and only the structured result is returned. A scanned PDF (no text layer) is refused with a clear message (no OCR; use Upload screenshot).
+- services/pdfIntake.js parses table and block layouts into client / ZIP, doctors (name, specialty, practice, address, phone), meds (name, strength) and pharmacy; NP/PA keep the supervising MD as a second candidate; "10/20 mg" asks which (unless it's a combo product); OTC supplements are skipped in one line. The preview is editable (client ZIP required, strengths picked) and then sent as a typed request through the same parseCompareAsk.
+- Doctor lines like "Name (Specialty), Practice, Street, City ZIP": practice, street, suite, city + ZIP and phone are that doctor's metadata (services/doctorEntries.js), never doctors. Cap 30 doctors; any over it are listed (`overLimitDoctors`), never dropped.
+- A paste on a saved client keeps her saved plan set (current first) unless she says only/just/instead or removes one. "Remove <plan>" re-runs on the server right away, so the column is gone in chat, the card and exports.
+- A new full client list on a loaded workup REPLACES the saved doctors and meds (chat context via `withCurrentLists`, card save via `replaceDoctors` / `replaceMedications`, recovery via `latestQuery`). The workup shows the latest ZIP ("ZIP 33196 — latest; the original request said 33156").
+- RxNorm check strips strength + form words (`0.05%`, cream, solution, shampoo…); the med keeps them as its label.
+- Fixed: `/compare/extract` (screenshot read) always 502'd because the router was built without deps.

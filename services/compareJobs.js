@@ -24,7 +24,9 @@ const CARD_RECHECK_MS = Number(process.env.MAX_COMPARE_RECHECK_MS || 90_000);
 // Total time the card's med lookups get (they ran with no limit and could sit at "Checking meds 0/5").
 const CARD_MEDS_BUDGET_MS = Number(process.env.MAX_COMPARE_MEDS_BUDGET_MS || 120_000);
 const DRUG_CONCURRENCY = Number(process.env.MAX_COMPARE_DRUG_CONCURRENCY || 4);
-const MAX_DOCTORS = 15;
+// 15 was filled by addresses read as doctors and the rest were dropped silently (live bug, 2026-10-21): every
+// doctor she lists is kept; past this many the extra ones are listed back to her, never dropped silently.
+const MAX_DOCTORS = 30;
 const MAX_MEDS = 20;
 const MAX_PLANS = 6; // same cap as the UI (max-demo MAX_PLANS) — a 5th named plan was silently dropped
 
@@ -99,7 +101,10 @@ function unlabeledDoctorList(t, zip) {
   rest = rest.split(/[,;\s]*\b(?:meds?|medications?|medicines?|medicamentos?|medicinas?|rx|drugs?|prescriptions?|current\s+plans?|plans?)\b\s*(?::|-\s)/i)[0];
   rest = rest.split(/[,;\s]*\b(?:[Mm]eds?|MEDS?|[Mm]edications?|[Mm]edicines?|[Mm]edicamentos?|[Rr]x|[Dd]rugs?|[Pp]rescriptions?|[Cc]urrent\s+plans?|[Cc]ompare)\s+(?=[a-z])/)[0];
   const TITLE_AT_RE = /^(?:Drs?|Dras?|Doc|Doctora?)(?:\.\s*|\s+)(?=[A-Za-z])/i;
-  const items = rest.split(/\n|,|;|\band\b(?=\s+(?:[A-Z]|(?:drs?|dras?|doc|doctora?)\b))/i)
+  const DE = require('./doctorEntries');
+  // "Kaitlin Ross (Primary Care), Baptist Primary, SW 96th St Ste 200, Miami 33196": one doctor and her metadata.
+  const entries = DE.hasDoctorMetadata(rest) ? DE.readDoctorEntries(rest) : null;
+  const items = entries ? entries.map((e) => ({ titled: TITLE_AT_RE.test(e.raw || ''), text: e.name, entry: e })) : rest.split(/\n|,|;|\band\b(?=\s+(?:[A-Z]|(?:drs?|dras?|doc|doctora?)\b))/i)
     .map((x) => x.replace(/^[\s\-•*\d.)]+/, '').replace(/[\s.]+$/, '').trim()).filter(Boolean)
     .map((x) => ({ titled: TITLE_AT_RE.test(x), text: x.replace(TITLE_AT_RE, '').trim() }));
   const words = (x) => x.split(/\s+/);
@@ -115,11 +120,15 @@ function unlabeledDoctorList(t, zip) {
   // The same reader as any "Dr. …" in the ask, so "Dr. Lopez for her heart" is "Lopez" (one word: not a plain-list name).
   const titledName = (it) => it.titled && titledDoctorNames('Dr. ' + it.text).length > 0;
   const good = items.filter((it) => titledName(it) || (!it.titled && capitalized(it.text)));
-  if (!good.length || good.length * 2 < items.length) return none;
+  if (!entries && (!good.length || good.length * 2 < items.length)) return none;
   const DN = require('../artifacts/doctor-name.js');
   const unsure = items.filter((it) => !good.includes(it) && !it.titled && words(it.text).length >= 2 && words(it.text).length <= 3 && alpha(it.text) && notWords(it.text)
     && !words(it.text).some((w) => MED_WORD_RE.test(w) || DN.SPECIALTY_HINT_RE.test(w))).map((it) => it.text);
-  return { names: good.map((it) => (it.titled ? titledDoctorNames('Dr. ' + it.text)[0] : DN.displayPersonName(it.text))), unsure };
+  // A metadata line names its doctor first: the address is the strong signal, so the case of the name does not matter.
+  const good2 = entries ? items : good;
+  if (entries && !good2.length) return none;
+  const nameOf = (it) => (it.titled ? titledDoctorNames('Dr. ' + it.text)[0] || it.text : entries ? it.text.replace(/^[^(]+/, (h) => DN.displayPersonName(h.trim()) + (/\s$/.test(h) ? ' ' : '')) : DN.displayPersonName(it.text));
+  return { names: good2.map(nameOf), unsure: entries ? [] : unsure, entries: entries ? good2.map((it) => ({ ...it.entry, name: nameOf(it) })) : [] };
 }
 
 const MED_WORD_RE = /^(?:meds?|medications?|medicines?|rx|drugs?|takes?|taking|medicamentos?|medicinas?|zip|plans?|compare|no|and|y)$/i;
@@ -189,7 +198,7 @@ function unlabeledMeds(t, zip, doctors) {
 /** "Maria & Gaspar Padron, ZIP 33332 … Doctors: … Meds: … Compare H… " → fields. */
 function parseCompareAsk(text) {
   const t = normalizePlanIds(String(text || '').replace(/\r/g, ''));
-  const stops = ['doctors?', 'drs?', 'providers?', 'meds?', 'medications?', 'rx', 'drugs?', 'plans?', 'compare'];
+  const stops = ['doctors?', 'drs?', 'providers?', 'meds?', 'medications?', 'rx', 'drugs?', 'current\\s+plans?', 'plans?', 'compare', 'pharmacy', 'pharmacies', 'preferred\\s+pharmacy'];
   const constraints = askConstraints(t);
 
   const zip = (t.match(/\b(?:zip\s*(?:code)?\s*:?\s*)?(\d{5})\b/i) || [])[1] || '';
@@ -211,11 +220,13 @@ function parseCompareAsk(text) {
   const cut = (s) => s.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Z])|\bcompare\b|\bgive me\b|\bsuggest\b|\bshow me\b/i)[0];
   // "Dr. Jorge Perez" must not be cut at the period after "Dr" (it left the doctor named just "Dr").
   let unsureDoctors = [];
+  let plainEntries = [];
   if (!doctorsText) {
     // Plain list after the ZIP, plus every titled name ("Dr.Steven Barilla", "Dra. María López").
     const names = [];
     const plain = unlabeledDoctorList(t, zip);
     unsureDoctors = plain.unsure;
+    plainEntries = plain.entries || [];
     for (const n of [...plain.names, ...titledDoctorNames(t)]) {
       const k = n.trim().toLowerCase();
       if (k && !names.some((x) => x.toLowerCase() === k)) names.push(n.trim());
@@ -236,7 +247,12 @@ function parseCompareAsk(text) {
   // "Carlos Santa-Cruz, MD (Urology, Coral Gables)": the commas inside the parentheses and the
   // credential after the name are not doctors of their own (Victor, 2026-10-08: 3 doctors read as 5).
   const CRED_ONLY_RE = /^(?:md|m\.d\.?|do|d\.o\.?|dpm|dds|dmd|od|np|pa|pa-c|aprn|arnp|phd|facc|facp|facs)\.?$/i;
-  const doctors = splitList(doctorsText.replace(/\([^)]*,[^)]*\)/g, ' ')).filter((x) => !CRED_ONLY_RE.test(x.trim())).map((raw) => {
+  // Practice, street, city + ZIP and phone after a doctor are HER metadata, never doctors (live bug, 2026-10-21).
+  const DE = require('./doctorEntries');
+  const labeledEntries = plainEntries.length ? plainEntries : DE.hasDoctorMetadata(doctorsText) ? DE.readDoctorEntries(doctorsText) : [];
+  const metaByName = new Map(labeledEntries.map((e) => [String(e.name).replace(/\s*\([^)]*\)\s*/g, ' ').trim().toLowerCase(), e]));
+  const doctorPieces = labeledEntries.length ? labeledEntries.map((e) => e.name.replace(/\([^)]*,[^)]*\)/g, ' ').trim()) : splitList(doctorsText.replace(/\([^)]*,[^)]*\)/g, ' '));
+  const allDoctors = doctorPieces.filter((x) => !CRED_ONLY_RE.test(x.trim())).map((raw) => {
     const mustKeep = /must[- ]?keep/i.test(raw);
     let name = raw.replace(/\(?\s*must[- ]?keep\s*\)?/i, '');
     // "Rundeep Singh Gadh NPI 1407095615 (PCP)" — pull the NPI out so the lookup uses it
@@ -256,8 +272,13 @@ function parseCompareAsk(text) {
     // "WADDAH aLLAF" / "laura martin" → "Waddah Allaf" / "Laura Martin" (normal-case names stay as typed).
     // Only the name itself: a note in parentheses ("(primary care)", "(PCP)") stays as typed.
     name = name.replace(/^[^(]+/, (head) => require('../artifacts/doctor-name.js').displayPersonName(head) + (/\s$/.test(head) ? ' ' : ''));
-    return npi ? { name, npi, mustKeep } : { name, mustKeep };
-  }).filter((d) => (d.name || d.npi) && !/^(?:here|this|the|my|list)\b/i.test(d.name || '') && !CRED_ONLY_RE.test(d.name || '') && !/^(?:MD|DO|DDS|DMD|DPM|OD)\b\s*[-–—]/i.test(d.name || '')).slice(0, MAX_DOCTORS);
+    const meta = metaByName.get(raw.replace(/\s*\([^)]*\)\s*/g, ' ').trim().toLowerCase()) || metaByName.get(name.replace(/\s*\([^)]*\)\s*/g, ' ').trim().toLowerCase());
+    const details = {};
+    if (meta) for (const k of ['specialty', 'practice', 'address', 'city', 'zip', 'phone']) if (meta[k]) details[k] = meta[k];
+    return { name, ...(npi ? { npi } : {}), mustKeep, ...details };
+  }).filter((d) => (d.name || d.npi) && !/^(?:here|this|the|my|list)\b/i.test(d.name || '') && !CRED_ONLY_RE.test(d.name || '') && !/^(?:MD|DO|DDS|DMD|DPM|OD)\b\s*[-–—]/i.test(d.name || ''));
+  const doctors = allDoctors.slice(0, MAX_DOCTORS);
+  const overLimitDoctors = allDoctors.slice(MAX_DOCTORS).map((d) => d.name);
   // "acyclovir tablets & ointment" is two products, two rows.
   let meds = expandMedList(splitList(medsText).map((m) => require('./comparisonRules').cleanMedItem(m.replace(/\.$/, ''))).filter(Boolean)).slice(0, MAX_MEDS);
   // A sentence is a note, not a drug: "UM means University of Miami", "only Humana has those doctors".
@@ -296,8 +317,10 @@ function parseCompareAsk(text) {
     // Typed with no title and no case hint ("waddah allaf") — Max asks whether it is a doctor instead of dropping it.
     unsureDoctors: unsureDoctors.filter((x) => !doctors.some((d) => DNm.plainWords(d.name).join(' ') === DNm.plainWords(x).join(' '))),
     unreadDoctors,
+    // Past MAX_DOCTORS: listed back to her ("I can check 30 at a time — these weren't run: …"), never dropped silently.
+    overLimitDoctors,
     // How many doctors the request named: every titled name plus the plain-list / labeled ones.
-    doctorCount: Math.max(doctors.length + unreadDoctors.length, doctorMentions(t).length),
+    doctorCount: Math.max(allDoctors.length + unreadDoctors.length, doctorMentions(t).length),
     plans: plans.slice(0, MAX_PLANS),
     // "current plan UHC H5420-001": her current plan, the first column (or left out of the other type's table).
     currentPlans: currentPlanIdsIn(t).filter((id) => id !== terminatingPlan && plans.some((x) => x.slice(0, 9) === id.slice(0, 9))),
@@ -310,6 +333,8 @@ function parseCompareAsk(text) {
     // Medicaid / MSP level / C-SNP condition exactly as the agent stated them (never inferred).
     eligibility: eligibilityFromAsk(t),
     skip: [...skip].filter((id) => id !== terminatingPlan),
+    // "Pharmacy: Walmart Neighborhood Pharmacy, 14720 SW 26th Street …" (typed or from a PDF): saved with the workup.
+    pharmacy: section(t, '(?:preferred\\s+)?pharmacy', stops.filter((x) => !/pharmac/.test(x))).split('\n')[0].trim().slice(0, 200),
     year: /\b2026\b/.test(t) && !/\b2027\b/.test(t) ? 2026 : 2027,
   };
 }

@@ -274,6 +274,8 @@ async function callGrok(opts) {
 async function passThroughChat({ system, messages, processToolFn, deadlineMs }) {
   const runTool = typeof processToolFn === 'function' ? processToolFn : processTool;
   const openaiTools = toOpenAITools(TOOLS);
+  // A full doctor + med list she typed on a loaded workup replaces the saved lists for this turn and every later one.
+  messages = require('./loadedWorkup').withCurrentLists(messages);
   let apiMessages = normalizeMessages(messages, { validate: false });
   const collectedToolResults = [];
   const usageCalls = [];
