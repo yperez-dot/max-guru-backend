@@ -279,7 +279,7 @@ async function lookupByNumber(npi) {
   return data?.results || [];
 }
 
-async function lookupByName({ firstName, lastName, middleName, state = 'FL', zip, limit = DEFAULT_RETURN_LIMIT } = {}) {
+async function lookupByName({ firstName, lastName, middleName, state = 'FL', zip, limit = DEFAULT_RETURN_LIMIT, taxonomy } = {}) {
   if (!lastName) return [];
   const p = new URLSearchParams({
     version: '2.1',
@@ -289,6 +289,7 @@ async function lookupByName({ firstName, lastName, middleName, state = 'FL', zip
     limit: String(CMS_PAGE_LIMIT),
   });
   if (firstName) p.set('first_name', firstName);
+  if (taxonomy) p.set('taxonomy_description', taxonomy);
   const data = await fetchJSON(`${NPI_REGISTRY_BASE}?${p}`);
   const results = (data?.results || []).filter((r) => !isNonProvider(r));
   return rankResults(results, { zip, firstName, middleName }).slice(0, limit);
@@ -601,7 +602,87 @@ function sameNameCandidates(records, doctorName, zip, { max = 4 } = {}) {
   });
 }
 
+// ─── Specialty / address hints (live bug, 2026-10-21) ─────────────────────────────────────────────────────────────
+// Her request or the client's PDF says "Jose Martinez (Gastroenterologist), 11440 N Kendall Dr…": the NPI candidates
+// that practice that specialty or at that street go first; when none with her name does, the right-specialty people
+// with that surname are offered and every candidate that doesn't match is flagged — never a silent pick.
+const SH = require('./specialtyHints');
+function candidateOf(r, extra = {}) {
+  const loc = (r.addresses || []).find((a) => a.address_purpose === 'LOCATION') || {};
+  const b = r.basic || {};
+  const name = [b.first_name, b.middle_name, b.last_name].filter(Boolean).join(' ').toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
+  return {
+    name: `${name}${b.credential ? `, ${String(b.credential).replace(/\./g, '')}` : ''}`,
+    npi: r.number,
+    specialty: ((r.taxonomies || []).find((t) => t.primary) || (r.taxonomies || [])[0] || {}).desc || '',
+    city: String(loc.city || '').toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()),
+    spelling: false,
+    ...extra,
+  };
+}
+const TAXONOMY_SEARCH = { 'Allergy & Immunology': 'Allergy', 'Oncology / Hematology': 'Oncology', 'Primary care': '', ENT: 'Otolaryngology', 'OB/GYN': 'Obstetrics', Dentistry: 'Dentist', Cardiology: 'Cardiovascular', Optometry: 'Optometrist', Podiatry: 'Podiatrist', Orthopedics: 'Orthopaedic' };
+async function applyDoctorHints(records, { doctorName = '', zip, state = 'FL', hints } = {}) {
+  if (!hints) return { records, ask: null, picked: false };
+  const parsed = parseName(cleanDoctorQuery(doctorName));
+  const qf = String(parsed.firstName || '').toUpperCase();
+  const ql = String(parsed.lastName || '').toUpperCase().replace(/[^A-Z]/g, '');
+  if (!ql) return { records, ask: null, picked: false };
+  const fit = (r) => ({ spec: SH.specialtyFits(r, hints.spec, { hintText: hints.specialtyText }), addr: SH.addressFits(r, hints.address) });
+  const good = (f) => f.spec === true || f.addr === true;
+  const bad = (f) => f.spec === false && f.addr !== true;
+  const sameFirst = (r) => !qf || String(r?.basic?.first_name || '').toUpperCase() === qf;
+  const people = (records || []).filter((r) => r && r.enumeration_type !== 'NPI-2');
+  const exactGood = people.filter((r) => sameFirst(r) && good(fit(r)));
+  // Sure: her name, and the specialty fits with no other street on record for the one she gave (or the street fits
+  // with no other specialty). One such person is the one she means; otherwise she is asked, the fits first.
+  const sure = exactGood.filter((r) => { const f = fit(r); return (f.spec === true && f.addr !== false) || (f.addr === true && f.spec !== false); });
+  if (sure.length === 1 || (exactGood.length && !hints.address && sure.length)) {
+    const ids = new Set(sure.map((r) => r.number));
+    return { records: [...sure, ...(records || []).filter((r) => !ids.has(r.number))], ask: null, picked: sure.length === 1 };
+  }
+  const named = people.filter(sameFirst);
+  const needAsk = exactGood.length > 0 || !people.length || !named.length || named.some((r) => bad(fit(r)));
+  if (!needAsk) return { records, ask: null, picked: false };
+  // Right specialty / same street, this surname: statewide by taxonomy, then the surname alone.
+  const extras = [];
+  const seen = new Set(people.map((r) => r.number));
+  const tax = hints.spec ? (TAXONOMY_SEARCH[hints.spec.label] !== undefined ? TAXONOMY_SEARCH[hints.spec.label] : hints.spec.label.split(/[\s/&]+/)[0]) : '';
+  const queries = [];
+  if (tax) queries.push({ firstName: parsed.firstName, lastName: parsed.lastName, taxonomy: tax }, { lastName: parsed.lastName, taxonomy: tax });
+  queries.push({ lastName: parsed.lastName });
+  for (const q of queries) {
+    let got = [];
+    try { got = await lookupByName({ ...q, state, zip: hints.zip || zip, limit: CMS_PAGE_LIMIT }); } catch (_) { got = []; }
+    for (const r of got) {
+      if (!r || seen.has(r.number)) continue;
+      const last = String(r?.basic?.last_name || '').toUpperCase().replace(/[^A-Z]/g, '');
+      if (!last.includes(ql) || !good(fit(r))) continue;
+      // Another first name is offered only at her street or in her area (not "Ian R Martinez, Oviedo").
+      const hz = String(hints.zip || zip || '').slice(0, 3);
+      if (!sameFirst(r) && fit(r).addr !== true && hz && Math.abs(Number(String(locationZip(r) || '999').slice(0, 3)) - Number(hz)) > 1) continue;
+      seen.add(r.number);
+      extras.push(r);
+    }
+  }
+  const qz = String(hints.zip || zip || '').slice(0, 5);
+  const zd = (r) => (qz ? Math.abs(Number(locationZip(r) || 99999) - Number(qz)) : 0);
+  const score = (r) => { const f = fit(r); return (sameFirst(r) ? 3 : 0) + (f.spec === true ? 2 : 0) + (f.addr === true ? 2 : 0) - (f.spec === false ? 2 : 0); };
+  extras.sort((a, b) => score(b) - score(a) || zd(a) - zd(b));
+  const label = hints.spec ? hints.spec.label : '';
+  const flag = (r) => (fit(r).spec === false ? label : (hints.address && fit(r).addr === false && !hints.spec ? 'the address given' : ''));
+  const tagOf = (r) => ({ ...(flag(r) ? { hintMismatch: flag(r) } : { hintFit: true }), ...(sameFirst(r) ? {} : { otherFirstName: true }), ...(hints.address && fit(r).addr === false ? { otherAddress: true } : {}) });
+  const restNamed = named.filter((r) => !exactGood.includes(r));
+  const ask = [
+    ...exactGood.slice(0, 2).map((r) => candidateOf(r, tagOf(r))),
+    ...extras.slice(0, 3).map((r) => candidateOf(r, tagOf(r))),
+    ...restNamed.slice(0, 2).map((r) => candidateOf(r, tagOf(r))),
+    ...(named.length ? [] : people.slice(0, 1).map((r) => candidateOf(r, tagOf(r)))),
+  ].slice(0, 4);
+  return { records, ask: ask.length ? ask : null, picked: false };
+}
+
 module.exports = {
+  applyDoctorHints,
   sameNameCandidates,
   isTreating,
   joinedParticleSplits,

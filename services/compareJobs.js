@@ -523,7 +523,13 @@ function normalizeInput(raw) {
   const typeAsk = cardPlanTypeAsk(src, list);
   const doctors = list(src.doctors).map((d) => (typeof d === 'string' ? { name: d } : d))
     .filter((d) => d && String(d.name || d.npi || '').trim())
-    .map((d) => ({ name: String(d.name || d.npi).trim(), npi: d.npi ? String(d.npi) : undefined, mustKeep: Boolean(d.mustKeep) }))
+    .map((d) => ({
+      name: String(d.name || d.npi).trim(), npi: d.npi ? String(d.npi) : undefined, mustKeep: Boolean(d.mustKeep),
+      // Specialty / address from her paste or the PDF rank the NPI candidates (live bug, 2026-10-21).
+      ...(d.specialty ? { specialty: String(d.specialty).slice(0, 80) } : {}),
+      ...(d.address ? { address: String(d.address).slice(0, 160) } : {}),
+      ...(/^\d{5}$/.test(String(d.zip || '')) ? { zip: String(d.zip) } : {}),
+    }))
     .slice(0, MAX_DOCTORS);
   const meds = expandMedList(list(src.meds).map((m) => String(m || '').trim()).filter(Boolean)).slice(0, MAX_MEDS);
   const plans = list(src.plans).map((p) => String(p || '').trim().toUpperCase()).filter((p) => /^[HR]\d{4}-\d{3}[A-Z]?$/.test(p)).slice(0, MAX_PLANS);
@@ -585,7 +591,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     const doctorStructs = await Promise.all(input.doctors.map(async (d) => {
       let r;
       try {
-        r = await lookupOneDoctor({ doctorName: d.name, npi: d.npi, zip: input.zip, year: input.year }, { deadlineAt, npiCap: 2 });
+        r = await lookupOneDoctor({ doctorName: d.name, npi: d.npi, zip: input.zip, year: input.year, specialty: d.specialty, address: d.address, hintZip: d.zip }, { deadlineAt, npiCap: 2 });
       } catch (e) {
         r = { status: 'error', doctorName: d.name, structured: { doctorName: d.name, networks: [] } };
       }
@@ -603,7 +609,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
       await Promise.all(slow.map(async (k) => {
         const d = input.doctors[k];
         try {
-          const r = await lookupOneDoctor({ doctorName: d.name, npi: d.npi, zip: input.zip, year: input.year }, { deadlineAt: until, npiCap: 2, background: true });
+          const r = await lookupOneDoctor({ doctorName: d.name, npi: d.npi, zip: input.zip, year: input.year, specialty: d.specialty, address: d.address, hintZip: d.zip }, { deadlineAt: until, npiCap: 2, background: true });
           if (r && r.status !== 'timeout') doctorStructs[k] = { ...(r.structured || {}), requestedName: d.name, ...(d.npi ? { requestedNpi: d.npi } : {}), status: r.status, mustKeep: Boolean(d.mustKeep) };
         } catch (_) { /* keep the timed-out row */ }
         job.progress.recheck.done += 1;

@@ -288,19 +288,31 @@ function editDistance(x, y) {
   return row[y.length];
 }
 function planRemovals(text, plans, currentIds = [], opts = {}) {
-  const out = { remove: [], confirm: [], unmatched: [] };
+  const out = { remove: [], confirm: [], unmatched: [], readAs: [] };
   const list = (plans || []).filter((p) => p && p.planId);
   if (!list.length) return out;
   const cur = (currentIds || []).map((x) => String(x).toUpperCase().slice(0, 9));
   const isCur = (p) => cur.includes(p.planId.toUpperCase().slice(0, 9));
   const carrierOfP = (p) => carrierOf(p.name) || (() => { const g = gridRowFor(p.planId, ''); return g ? R.carrierOfPlan(g) : ''; })();
   const skipWords = (opts.skip || []).map((x) => String(x || '').toLowerCase()).filter(Boolean);
+  // "Remove Doctos and Careplus" / "drop Aetna, Devoted": every item of the list is a removal, not only the first
+  // (live bug, 2026-10-21: CarePlus stayed in the table). Each extra item stops at the next verb ("… and add …").
+  const targets = [];
   for (const r of String(text || '').matchAll(REMOVE_RE)) {
-    const target = r[1].trim();
+    targets.push({ r, target: r[1].trim() });
+    let rest = String(text).slice(r.index + r[0].length);
+    for (;;) {
+      const m = rest.match(/^\s*(?:,\s*(?:and\s+)?|\s+and\s+|\s*&\s*)(?:also\s+)?(?:the\s+)?([^,.;\n]+?)(?=\s+(?:from|and|to\s+the|in\s+the)\b|[,.;\n&]|$)/i);
+      if (!m || !m[1].trim() || /^(?:add|keep|include|show|compare|check|run|instead|but|then|plus|with|remove|drop|delete|please|pls|also|use|put|make|give)\b/i.test(m[1].trim())) break;
+      targets.push({ r, target: m[1].trim(), extra: true });
+      rest = rest.slice(m[0].length);
+    }
+  }
+  for (const { r, target, extra } of targets) {
     const low = target.toLowerCase();
     if (!low || PRONOUN_TARGET_RE.test(low)) continue;
     // "remove Dr. Pasquel …" (the capture stops at the period): a doctor row, not a plan.
-    if (/^(?:dr|dra|doctor|doctora)$/.test(low) && /^\s*\.?\s*[A-Za-z]/.test(String(text).slice(r.index + r[0].length))) continue;
+    if (!extra && /^(?:dr|dra|doctor|doctora)$/.test(low) && /^\s*\.?\s*[A-Za-z]/.test(String(text).slice(r.index + r[0].length))) continue;
     if (/^(?:dr|dra|doctor|doctora)\.?\s+[a-z]/i.test(low) && !/^doctors?\s+(?:health|dr|plan)/i.test(low)) continue;
     if (/\brows?\b|\bmeds?\b|\bmedications?\b|\bdoctors?\s+(?:rows?|list)\b/.test(low)) continue;
     // A saved doctor or med she is removing is not a plan.
@@ -317,10 +329,21 @@ function planRemovals(text, plans, currentIds = [], opts = {}) {
     const words = removalTokens(target);
     if (!words.length) continue;
     // Carrier only ("careplus", "the doctors plan", "humana plans").
-    const carriers = [...new Set(words.map((w) => CARRIER_WORDS[w]).filter(Boolean))];
-    if (carriers.length === 1 && words.every((w) => CARRIER_WORDS[w] === carriers[0])) {
+    // A one-letter carrier typo ("Doctos", "Carplus", "Humanna") is that carrier when a plan of it is in the table:
+    // removed, and the reading is said (out.readAs), never a question AND a removal (live bug, 2026-10-21).
+    const carrierWord = (w) => {
+      if (CARRIER_WORDS[w]) return CARRIER_WORDS[w];
+      const k = w.length >= 5 ? Object.keys(CARRIER_WORDS).find((x) => x.length >= 5 && editDistance(w, x) <= 1) : '';
+      return k ? CARRIER_WORDS[k] : '';
+    };
+    const carriers = [...new Set(words.map(carrierWord).filter(Boolean))];
+    if (carriers.length === 1 && words.every((w) => carrierWord(w) === carriers[0])) {
       const hits = list.filter((p) => carrierOfP(p) === carriers[0] && !isCur(p));
-      if (hits.length) { out.remove.push(...hits.map((p) => p.planId)); continue; }
+      if (hits.length) {
+        out.remove.push(...hits.map((p) => p.planId));
+        if (!words.every((w) => CARRIER_WORDS[w])) out.readAs.push({ target, carrier: carriers[0], planIds: hits.map((p) => p.planId) });
+        continue;
+      }
       out.unmatched.push(target);
       continue;
     }

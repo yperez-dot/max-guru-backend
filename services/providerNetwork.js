@@ -644,15 +644,16 @@ function structuredFor(doctorName, providerResults, { status, sunfireLabels = []
   return out;
 }
 
-function notFoundResult(doctorName, suggestions = []) {
+function notFoundResult(doctorName, suggestions = [], hints = null) {
+  const note = hints ? require('./specialtyHints').hintNote(hints) : '';
   const close = suggestions.length
-    ? ` Closest real providers: ${suggestions.map((x, i) => `${i + 1}) ${x.name}${x.specialty ? ` — ${x.specialty}` : ''}${x.city ? `, ${x.city}` : ''}`).join('; ')}. Ask the agent which one it is (she answers with the name). Never ask her to look up an NPI.`
+    ? ` Closest real providers${note ? ` (the ${note})` : ''}: ${suggestions.map((x, i) => `${i + 1}) ${x.name}${x.specialty ? ` — ${x.specialty}` : ''}${x.city ? `, ${x.city}` : ''}${x.hintMismatch ? ` (⚠️ not ${x.hintMismatch})` : ''}${x.otherFirstName ? ' (different first name)' : ''}${x.otherAddress && !x.hintMismatch ? ' (different office)' : ''}`).join('; ')}. Ask the agent which one it is (she answers with the name). Never ask her to look up an NPI.`
     : ' No similar name either — ask the agent to check the spelling or give the specialty / office name. Never ask her to look up an NPI.';
   return {
     status: 'not_found',
     doctorName,
     text: `No providers found matching "${doctorName}" in Florida (NPI-1 person or NPI-2 clinic).${close} If this is a clinic/group/DBA, call search_clinic_or_provider. Do not invent In/Out from a clinic insurances-accepted webpage.`,
-    structured: { doctorName, networks: [], status: 'not_found', suggestions },
+    structured: { doctorName, networks: [], status: 'not_found', suggestions, ...(note ? { hint: note } : {}) },
   };
 }
 
@@ -696,7 +697,9 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
   const planYear = Number(input.year) || Number(UHC_PLAN_YEAR);
   const guestPlanIds = planIdsFrom(input.planIds, input.planId);
   const planKey = guestPlanIds.join(',');
-  const key = cacheKey({ doctorName, npi: input.npi, zip, year: planYear, planId: planKey });
+  // Specialty / address from her request or the client's PDF: ranks and filters the NPI candidates (live bug, 2026-10-21).
+  const hints = !extractNpi(input.npi) && !extractNpi(doctorName) ? require('./specialtyHints').doctorHints({ ...input, doctorName: input.doctorName || input.name || '' }, input.threadMeta || null) : null;
+  const key = cacheKey({ doctorName, npi: input.npi, zip, year: planYear, planId: planKey }) + (hints ? `|hint:${hints.spec ? hints.spec.label : ''}:${require('./specialtyHints').streetKey(hints.address)}` : '');
   const until = Number(deadlineAt) > 0 ? Number(deadlineAt) : Date.now() + DEFAULT_BUDGET_MS;
 
   if (useCache) {
@@ -714,13 +717,19 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
   let finishedAll = false;
 
   const full = (async () => {
-    const records = await resolveNpiRecords({
+    let records = await resolveNpiRecords({
       doctorName,
       zip,
       state: input.state || 'FL',
       npi: input.npi,
       limit: 5,
     });
+    let hintPicked = false;
+    if (hints && typeof npiRegistryMod.applyDoctorHints === 'function') {
+      const h = await npiRegistryMod.applyDoctorHints(records, { doctorName, zip, state: input.state || 'FL', hints }).catch(() => null);
+      if (h && h.ask) return notFoundResult(doctorName, h.ask, hints);
+      if (h) { records = h.records; hintPicked = h.picked; }
+    }
     if (!records.length) {
       // Offer the closest real doctors instead of asking the agent for an NPI.
       const suggestions = await suggestSimilarProviders({ doctorName, zip, state: input.state || 'FL' }).catch(() => []);
@@ -728,7 +737,7 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
     }
     // Two real people with the name she typed near her ZIP (a PA and a dentist): ask which one — never pick silently.
     // A name with an NPI, or one plausible person, is looked up as before.
-    if (!extractNpi(input.npi) && !extractNpi(doctorName)) {
+    if (!hintPicked && !extractNpi(input.npi) && !extractNpi(doctorName)) {
       const same = sameNameCandidates(records, doctorName, zip);
       if (same.length >= 2) return notFoundResult(doctorName, same);
     }
@@ -933,7 +942,8 @@ function earlyMedPlanIds(askText) {
 
 async function lookupProviderNetwork(toolInput = {}, context = {}) {
   const saved = savedDoctorNpis(context.messages);
-  const doctors = normalizeDoctorList(toolInput).map((d) => {
+  const threadMeta = require('./specialtyHints').threadDoctorMeta(context.messages || []);
+  const doctors = normalizeDoctorList(toolInput).map((d) => (threadMeta.size ? { ...d, threadMeta } : d)).map((d) => {
     if (d.npi || !saved.length) return d;
     const npi = savedNpiFor(d.doctorName, saved);
     return npi ? { ...d, npi } : d;
