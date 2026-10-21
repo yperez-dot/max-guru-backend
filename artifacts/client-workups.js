@@ -639,6 +639,63 @@
     }
   }
 
+  // ─── A new paste / PDF on a saved client (live bug, 2026-10-21) ───────────────────────────────────────
+  // Her paste named one plan (her current H5420-014) and the loaded workup had 4: the card ran only H5420-014. The saved
+  // plan set stays unless she says otherwise ("only …", "just …", "instead", "remove …").
+  function pastePlanSet(typedPlans, currentPlans, workup, rawText) {
+    const key = (x) => String(x || "").toUpperCase().slice(0, 9);
+    const typed = (typedPlans || []).map((x) => String(x || "").toUpperCase()).filter(Boolean);
+    const w = workup && typeof workup === "object" ? workup : {};
+    const saved = ((w.planIds && w.planIds.length) ? w.planIds : (w.plans || []).map((p) => p && p.planId)).map((x) => String(x || "").toUpperCase()).filter(Boolean);
+    const t = String(rawText || "");
+    if (!saved.length) return typed;
+    if (typed.length && /\b(?:only|just|instead|exclusively|replace\s+(?:the\s+)?plans|new\s+plans?|different\s+plans?)\b/i.test(t)) return typed;
+    const removed = new Set();
+    for (const m of t.matchAll(/\b(?:remove|drop|delete|without|exclude|take\s+out)\b([^.;\n]*)/gi)) for (const id of m[1].match(/\b[HR]\d{4}-\d{3}[A-Z]?\b/gi) || []) removed.add(key(id));
+    const current = [...(currentPlans || []), ...(w.currentPlanIds || [])].map((x) => String(x || "").toUpperCase());
+    const out = [];
+    const push = (id) => { if (id && !removed.has(key(id)) && !out.some((x) => key(x) === key(id))) out.push(id); };
+    current.filter((id) => typed.some((x) => key(x) === key(id)) || saved.some((x) => key(x) === key(id))).forEach(push);
+    saved.forEach(push);
+    typed.forEach(push);
+    return out.slice(0, 6);
+  }
+
+  // A full new list ("Doctors: … Meds: …", her paste or a PDF import): it replaces the saved doctors and meds.
+  function isFullClientList(text) {
+    const t = String(text || "");
+    if (t.indexOf(WORKUP_CONTEXT_PREFIX) === 0) return false;
+    return /\b(?:doctors?|providers?)\s*:/i.test(t) && /\b(?:meds?|medications?|prescriptions?)\s*:/i.test(t);
+  }
+
+  // The client's ZIP from her newest message that states one ("Ana Ruiz, 33196" / "ZIP 33196") — never a doctor's
+  // or pharmacy's address ZIP, and never the older original request once she gave a new one.
+  function newestClientZip(messages, textFn) {
+    const toText = typeof textFn === "function" ? textFn : (c) => (typeof c === "string" ? c : Array.isArray(c) ? c.map((p) => (p && p.text) || "").join("\n") : "");
+    const list = Array.isArray(messages) ? messages : [];
+    for (let i = list.length - 1; i >= 0; i -= 1) {
+      const m = list[i];
+      if (!m || m.role !== "user") continue;
+      const t = String(toText(m.content) || "");
+      if (t.indexOf(WORKUP_CONTEXT_PREFIX) === 0) continue;
+      const labeled = t.match(/\bzip(?:\s*code)?\s*:?\s*(\d{5})\b/i);
+      if (labeled) return labeled[1];
+      const lead = t.split("\n")[0].match(/^[^\d\n]{2,80}?[,;\s]\s*(\d{5})\b/);
+      if (lead && !/\b(?:st|street|ave|avenue|hwy|blvd|rd|road|ste|suite|fl|florida)\b[^\d]*$/i.test(t.split("\n")[0].slice(0, lead.index + lead[0].length - 5))) return lead[1];
+    }
+    return "";
+  }
+
+  // "ZIP 33196 (latest) — the original request said 33156" on the loaded-workup card.
+  function workupZipLine(workup) {
+    const w = workup && typeof workup === "object" ? workup : {};
+    if (!w.zip) return "";
+    const county = gridCountyForZip(w.zip) || w.county || "";
+    const orig = String(w.originalQuery || "").match(/^[^\n]{0,120}?\b(\d{5})\b/);
+    const was = orig && orig[1] !== w.zip ? " — latest; the original request said " + orig[1] : "";
+    return "ZIP " + w.zip + (county ? " (" + county + ")" : "") + was;
+  }
+
   // Drug cells are tier · cost only: an old saved meds table loses its "cost same across strengths" notes (Yahoska, 2026-10-17).
   function stripStrengthSameNote(text) {
     return String(text == null ? '' : text).replace(/\s*[·,;-]?\s*\(?cost (?:is )?(?:the )?same across (?:all )?strengths\)?/gi, '');
@@ -679,5 +736,9 @@
     originalQueryIsLong,
     compareFollowUpLines,
     comparePlansLine,
+    pastePlanSet,
+    isFullClientList,
+    newestClientZip,
+    workupZipLine,
   };
 });

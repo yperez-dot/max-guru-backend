@@ -3,12 +3,15 @@
  * POST /compare/parse  { text }            → fields parsed from the agent's ask
  * POST /compare/jobs   { clientName, zip, doctors[], meds[], plans[], … } → { job }
  * GET  /compare/jobs/:id                    → { job } (poll for progress / result)
+ * POST /compare/pdf    { files:[{ name, dataBase64 }] } → { results, intake, requestText } — a client's PDF read into
+ *                       the typed request she reviews (text layer only; the PDF is not stored)
  */
 const { Router } = require('express');
 const { parseCompareAsk, createJob, getJob, publicJob } = require('../services/compareJobs');
 const { extractIntake } = require('../services/intakeExtract');
+const { readPdfIntake } = require('../services/pdfIntake');
 
-function createCompareRouter(deps) {
+function createCompareRouter(deps = {}) {
   const router = Router();
 
   router.post('/parse', (req, res) => {
@@ -24,6 +27,18 @@ function createCompareRouter(deps) {
       return res.json({ ok: true, text: out.text });
     } catch (err) {
       return res.status(err.status || 502).json({ error: err.status ? err.message : 'Could not read that image right now. Paste the text instead.' });
+    }
+  });
+
+  router.post('/pdf', async (req, res) => {
+    try {
+      const out = await (deps.readPdfIntake || readPdfIntake)((req.body && req.body.files) || []);
+      if (req.body) req.body.files = null; // drop the PDF bytes from the request as soon as they are read
+      const anyOk = out.results.some((r) => r.ok);
+      if (!anyOk) return res.status(422).json({ ok: false, results: out.results, error: out.results.map((r) => r.file + ': ' + r.error).join(' ') });
+      return res.json({ ok: true, ...out });
+    } catch (err) {
+      return res.status(err.status || 502).json({ error: err.status ? err.message : "Could not read that PDF right now. Paste the text instead." });
     }
   });
 

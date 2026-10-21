@@ -77,6 +77,9 @@ app.use(cors({
   },
   credentials: true,
 }));
+// Client PDFs: up to 4 × 10 MB, base64 in JSON (~56 MB) — only this route gets the larger body; the PDF bytes are read
+// and dropped in the request (services/pdfIntake.js), never stored.
+app.use('/compare/pdf', express.json({ limit: process.env.MAX_PDF_BODY_LIMIT || '60mb' }));
 app.use(express.json({ limit: process.env.MAX_JSON_BODY_LIMIT || '30mb' }));
 app.use(shutdown.rejectNewWork);
 

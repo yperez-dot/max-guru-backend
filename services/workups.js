@@ -25,7 +25,7 @@ const MAX_NEEDS = 8;
 const MAX_NEED_LEN = 120;
 const MAX_PLANS = 6;
 const MAX_COMPARE_RESULT_CHARS = 60000;
-const MAX_DOCTORS = 20;
+const MAX_DOCTORS = 30; // same as the compare card: every doctor she lists is kept
 const MAX_MEDS = 30;
 const MAX_HISTORY = 10;
 
@@ -106,6 +106,8 @@ function slimDoctors(doctors, plans) {
     const row = { name, byPlanId };
     if (npi) row.npi = npi;
     if (role) row.role = role;
+    // Her doctor's practice / address / phone (typed paste or PDF import): metadata for that doctor, never a doctor.
+    for (const k of ['practice', 'address', 'phone']) { const v = clip(d[k] || '', 160); if (v) row[k] = v; }
     out.push(row);
     if (out.length >= MAX_DOCTORS) break;
   }
@@ -219,6 +221,11 @@ function normalizeWorkupInput(input) {
     // The page sends the FINAL table's doctors (corrections applied): they replace the saved list instead of
     // merging, so a reopened workup never exports the old misspelled rows (Jackie, 2026-10-13).
     replaceDoctors: src.replaceDoctors === true,
+    // A new full med list (her paste on a loaded workup, the compare card, a PDF import) replaces the saved meds.
+    replaceMedications: src.replaceMedications === true,
+    // That newest full request: what a reload recovers doctors from (never the older original request it replaced).
+    latestQuery: String(src.latestQuery || '').replace(/\r/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, MAX_ORIGINAL_QUERY),
+    pharmacy: clip(src.pharmacy || '', 200),
   };
 }
 
@@ -400,10 +407,12 @@ function withZipCounty(workup) {
 
 function withRecoveredDoctors(workup0) {
   const workup = withZipCounty(workup0);
-  if (!workup || typeof workup !== 'object' || !String(workup.originalQuery || '').trim()) return workup;
+  // Her newest full list replaced the original request's: recover from that one (live bug, 2026-10-21).
+  const source = String((workup && (workup.latestQuery || workup.originalQuery)) || '');
+  if (!workup || typeof workup !== 'object' || !source.trim()) return workup;
   let ask = null;
   try {
-    ask = require('./compareJobs').parseCompareAsk(workup.originalQuery);
+    ask = require('./compareJobs').parseCompareAsk(source);
   } catch (_) {
     return workup;
   }
@@ -658,7 +667,11 @@ class WorkupStore {
       plans: body.plans.length ? body.plans : (prev.plans || []),
       planIds: body.plans.length ? body.planIds : (prev.planIds || []),
       doctors: body.replaceDoctors && body.doctors.length ? body.doctors : mergeDoctors(prev.doctors, body.doctors),
-      medications: mergeMedications(prev.medications, body.medications),
+      // A new full list replaces the saved meds (Live bug, 2026-10-21: Ketoconazole and Levothyroxine Sodium, which
+      // she no longer listed, came back on the next turn).
+      medications: body.replaceMedications && body.medications.length ? body.medications : mergeMedications(prev.medications, body.medications),
+      latestQuery: body.latestQuery || prev.latestQuery || '',
+      pharmacy: body.pharmacy || prev.pharmacy || '',
       needs: slimNeeds([...(prev.needs || []), ...body.needs]),
       terminatingPlan: body.terminatingPlan || prev.terminatingPlan || '',
       // Set once, when the workup is created; a later save never replaces it, and an existing workup that has none

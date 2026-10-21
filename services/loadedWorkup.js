@@ -636,6 +636,63 @@ function workupMedSet(savedMeds, latestText) {
   return applyConfirmedDoses(latestText, meds.filter((m) => !gone.includes(m)));
 }
 
+// ═══ A NEW FULL LIST REPLACES THE SAVED ONES ═════════════════════════════════════════════════════════════════
+/**
+ * Her full doctor + med list typed on a loaded workup ("Doctors: … Meds: …") IS the list from then on: the saved
+ * doctors and meds in the workup context are replaced by it, never merged. Live bug, 2026-10-21: after her new
+ * paste, the next turn rebuilt the table from the saved rows and Yanette Barcelo PA, Ricardo Espinosa P.A.,
+ * Ketoconazole and Levothyroxine Sodium came back although she had not listed them.
+ */
+function isFullClientList(text) {
+  const t = String(text || '');
+  if (/structured facts only/i.test(t)) return false;
+  if (!/\b(?:doctors?|providers?|care\s+team)\s*:/i.test(t) || !/\b(?:meds?|medications?|prescriptions?|rx)\s*:/i.test(t)) return false;
+  const f = require('./compareJobs').parseCompareAsk(t);
+  return f.doctors.length >= 2 && f.meds.length >= 1 ? f : null;
+}
+
+function withCurrentLists(messages) {
+  const msgs = Array.isArray(messages) ? messages : [];
+  const ctxAt = msgs.findIndex((m) => m && m.role === 'user' && /structured facts only/i.test(messageText(m)));
+  if (ctxAt < 0) return msgs;
+  let full = null;
+  for (let i = msgs.length - 1; i > ctxAt && !full; i -= 1) if (msgs[i] && msgs[i].role === 'user') full = isFullClientList(messageText(msgs[i]));
+  if (!full) return msgs;
+  const names = full.doctors.map((d) => d.name.replace(/\s*\([^)]*\)\s*$/, '').trim());
+  const keepName = (nm) => names.some((x) => looseSameDoctor ? looseSameDoctor(x, nm) : x.toLowerCase() === String(nm).toLowerCase());
+  const out = [];
+  let section = '';
+  for (const line of messageText(msgs[ctxAt]).split('\n')) {
+    if (/^Doctors \(names only/.test(line)) { out.push(line.replace(/:\s*.*$/, ': ') + names.join('; ')); section = ''; continue; }
+    if (/^Doctor NPIs\b/.test(line)) {
+      const kept = line.replace(/^[^:]*:\s*/, '').split(';').map((x) => x.trim()).filter((x) => keepName(x.replace(/\s*\([^)]*\)/g, '').replace(/\s+NPI\s+\d{10}\s*$/, '')));
+      if (kept.length) out.push(line.replace(/:\s*.*$/, ': ') + kept.join('; '));
+      section = ''; continue;
+    }
+    if (/^Saved In\/Out results\b/.test(line)) { section = 'saved'; out.push(line); continue; }
+    if (/^Medications \(tiers\b/.test(line)) {
+      section = 'meds';
+      out.push(line);
+      full.meds.forEach((m) => out.push('- ' + m));
+      continue;
+    }
+    if (/^- /.test(line) && section === 'meds') continue;
+    if (/^- /.test(line) && section === 'saved') { const nm = line.slice(2).replace(/\s*\[saved:.*$/, ''); if (keepName(nm)) out.push(line); continue; }
+    if (!/^- /.test(line)) section = /^Plans:\s*$/.test(line) ? 'plans' : '';
+    out.push(line);
+  }
+  if (!out.some((l) => /^Medications \(tiers\b/.test(l)) && full.meds.length) {
+    out.push('Medications (tiers shown are verified formulary only; a med with no tier still needs lookup_formulary):');
+    full.meds.forEach((m) => out.push('- ' + m));
+  }
+  out.push('Doctors and meds above are her NEWER full list (it replaced the saved lists): use only these.');
+  const ctx = msgs[ctxAt];
+  const content = out.join('\n');
+  const next = msgs.slice();
+  next[ctxAt] = Array.isArray(ctx.content) ? { ...ctx, content: [{ type: 'text', text: content }, ...ctx.content.filter((b) => b && b.type !== 'text')] } : { ...ctx, content };
+  return next;
+}
+
 // ═══ ONE CALL ════════════════════════════════════════════════════════════════════════════════════════════════
 /**
  * The sets a loaded-workup thread resolves to: { plans:[{planId,name}], currentPlan:[ids], doctors:[names],
@@ -684,5 +741,5 @@ module.exports = {
   // meds
   MED_REMOVE_RE, medRemovalsIn, workupMedSet, confirmedDosesIn, applyConfirmedDoses,
   // all three
-  resolveWorkupSets,
+  resolveWorkupSets, isFullClientList, withCurrentLists,
 };

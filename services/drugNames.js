@@ -113,7 +113,10 @@ function expandMedList(list) {
 }
 
 // Strength, form and release words carry the product, not the drug name RxNorm should match.
-const STRIP_RE = /\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|units?|iu|meq|%)\b|\b(?:er|xr|xl|sr|cr|dr|ec|odt|la|hcl|pah|bph|oral|topical|ophthalmic|eye|ear|otic|solution|soln|suspension|susp|pen|injection|inhaler|vial|ellipta|diskus|respimat|flexpen|kwikpen|flextouch|hfa|turbuhaler|handihaler|breezhaler|autoinjector|sureclick|daily|bid|tid|qd|prn)\b/gi;
+// "Clobetasol 0.05% cream" / "… 0.05% solution": the strength ("0.05%" — '%' has no word boundary after it) and the
+// form word are stripped for the RxNorm check; the med keeps them as its label (Live bug, 2026-10-21: cream and
+// solution read "not a drug name RxNorm knows" while shampoo resolved).
+const STRIP_RE = /\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|units?|iu|meq|%)(?![A-Za-z0-9])|\b(?:shampoo|foam|scalp|external|wash|lotion|liquid|er|xr|xl|sr|cr|dr|ec|odt|la|hcl|pah|bph|oral|topical|ophthalmic|eye|ear|otic|solution|soln|suspension|susp|pen|injection|inhaler|vial|ellipta|diskus|respimat|flexpen|kwikpen|flextouch|hfa|turbuhaler|handihaler|breezhaler|autoinjector|sureclick|daily|bid|tid|qd|prn)\b/gi;
 
 /** "rasuvostatin 10mg tablets" → "rasuvostatin" (the part RxNorm should match). */
 function drugNameBase(raw) {
