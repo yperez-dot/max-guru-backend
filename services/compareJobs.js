@@ -21,6 +21,8 @@ const RX_CACHE_MS = Number(process.env.MAX_RX_CACHE_MS || 24 * 60 * 60 * 1000);
 const DOCTOR_BUDGET_MS = Number(process.env.MAX_COMPARE_DOCTOR_BUDGET_MS || 90_000);
 // A doctor still answering after DOCTOR_BUDGET_MS gets this much more before the card draws "⏱ timed out".
 const CARD_RECHECK_MS = Number(process.env.MAX_COMPARE_RECHECK_MS || 90_000);
+// Total time the card's med lookups get (they ran with no limit and could sit at "Checking meds 0/5").
+const CARD_MEDS_BUDGET_MS = Number(process.env.MAX_COMPARE_MEDS_BUDGET_MS || 120_000);
 const DRUG_CONCURRENCY = Number(process.env.MAX_COMPARE_DRUG_CONCURRENCY || 4);
 const MAX_DOCTORS = 15;
 const MAX_MEDS = 20;
@@ -75,11 +77,20 @@ function looseClientName(t) {
 
 /** Doctors typed as a plain list right after the ZIP: "33076. Ashwin Mehta, Jorge G. Ruiz, … no meds." */
 function unlabeledDoctors(t, zip) {
-  if (!zip) return '';
+  return unlabeledDoctorList(t, zip).names.join('\n');
+}
+
+/**
+ * { names, unsure }: names = the plain-list doctors; unsure = items that might be a doctor but she typed no title and the
+ * case gives no hint ("waddah allaf") — asked about ("Is "waddah allaf" a doctor?"), never dropped silently.
+ */
+function unlabeledDoctorList(t, zip) {
+  const none = { names: [], unsure: [] };
+  if (!zip) return none;
   const at = t.indexOf(zip);
-  if (at < 0) return '';
-  let rest = t.slice(at + zip.length).replace(/^[\s.,;:\-–—]+/, '').replace(/\b(?:Drs?|Dras?|Doc)\.\s*(?=[A-Za-z])/gi, '');
-  rest = rest.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Za-z])|\n\s*\n/)[0];
+  if (at < 0) return none;
+  let rest = t.slice(at + zip.length).replace(/^[\s.,;:\-–—]+/, '');
+  rest = rest.split(/(?<!\b(?:[A-Za-z]|[Dd][Rr][Aa]?[Ss]?|[Dd]oc))\.\s+(?=[A-Za-z])|\n\s*\n/)[0];
   // The doctor list ends where the meds / plan list starts: "…, Pavel Gazdovich, meds: atorvastatin, …". Without this cut
   // the six meds after the five doctors outvoted them and the whole plain list was thrown away, leaving only the one
   // name typed with "Dr." (Jorge Rivero, 2026-10-20: 4 of 5 doctors dropped).
@@ -87,17 +98,28 @@ function unlabeledDoctors(t, zip) {
   // is a practice, not the label (Tony & Gerry Cabrera, 2026-10-19).
   rest = rest.split(/[,;\s]*\b(?:meds?|medications?|medicines?|medicamentos?|medicinas?|rx|drugs?|prescriptions?|current\s+plans?|plans?)\b\s*(?::|-\s)/i)[0];
   rest = rest.split(/[,;\s]*\b(?:[Mm]eds?|MEDS?|[Mm]edications?|[Mm]edicines?|[Mm]edicamentos?|[Rr]x|[Dd]rugs?|[Pp]rescriptions?|[Cc]urrent\s+plans?|[Cc]ompare)\s+(?=[a-z])/)[0];
-  const items = rest.split(/\n|,|;|\band\b(?=\s+[A-Z])/).map((x) => x.replace(/^[\s\-•*\d.)]+/, '').replace(/[\s.]+$/, '').trim()).filter(Boolean);
-  const looksLikeName = (x) => {
-    const w = x.replace(/\b(?:Drs?|Dras?|Doc)(?:\.\s*|\s+)/i, '').split(/\s+/);
-    return w.length >= 2 && w.length <= 5 && /^[A-Z]/.test(w[0]) && /^[A-Z]/.test(w[w.length - 1]) && w.every((y) => /^[A-Za-z][A-Za-z.'’-]*$/.test(y)) &&
-      !/^(?:no|none|medicaid|they|for|has|have|she|he|compare|add)\b/i.test(x) &&
-      // "Med Eye Associates" is a practice, not the meds label; "Meds: …" / "meds metformin" are (Tony & Gerry Cabrera, 2026-10-19).
-      !/^[Mm][Ee][Dd][Ss]?\b(?=\s*:|\s+[a-z])|^MEDS?\b|^Meds\b/.test(x);
+  const TITLE_AT_RE = /^(?:Drs?|Dras?|Doc|Doctora?)(?:\.\s*|\s+)(?=[A-Za-z])/i;
+  const items = rest.split(/\n|,|;|\band\b(?=\s+(?:[A-Z]|(?:drs?|dras?|doc|doctora?)\b))/i)
+    .map((x) => x.replace(/^[\s\-•*\d.)]+/, '').replace(/[\s.]+$/, '').trim()).filter(Boolean)
+    .map((x) => ({ titled: TITLE_AT_RE.test(x), text: x.replace(TITLE_AT_RE, '').trim() }));
+  const words = (x) => x.split(/\s+/);
+  const alpha = (x) => words(x).every((y) => /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ.'’-]*$/.test(y));
+  const notWords = (x) => !/^(?:no|none|medicaid|they|for|has|have|she|he|compare|add)\b/i.test(x) &&
+    // "Med Eye Associates" is a practice, not the meds label; "Meds: …" / "meds metformin" are (Tony & Gerry Cabrera, 2026-10-19).
+    !/^[Mm][Ee][Dd][Ss]?\b(?=\s*:|\s+[a-z])|^MEDS?\b|^Meds\b/.test(x);
+  const capitalized = (x) => {
+    const w = words(x);
+    return w.length >= 2 && w.length <= 5 && /^[A-Z]/.test(w[0]) && /^[A-Z]/.test(w[w.length - 1]) && alpha(x) && notWords(x);
   };
-  const good = items.filter(looksLikeName);
-  if (!good.length || good.length * 2 < items.length) return '';
-  return good.join('\n');
+  // "Dr." / "dr." is the strong signal: the case she typed the name in does not matter.
+  // The same reader as any "Dr. …" in the ask, so "Dr. Lopez for her heart" is "Lopez" (one word: not a plain-list name).
+  const titledName = (it) => it.titled && titledDoctorNames('Dr. ' + it.text).length > 0;
+  const good = items.filter((it) => titledName(it) || (!it.titled && capitalized(it.text)));
+  if (!good.length || good.length * 2 < items.length) return none;
+  const DN = require('../artifacts/doctor-name.js');
+  const unsure = items.filter((it) => !good.includes(it) && !it.titled && words(it.text).length >= 2 && words(it.text).length <= 3 && alpha(it.text) && notWords(it.text)
+    && !words(it.text).some((w) => MED_WORD_RE.test(w) || DN.SPECIALTY_HINT_RE.test(w))).map((it) => it.text);
+  return { names: good.map((it) => (it.titled ? titledDoctorNames('Dr. ' + it.text)[0] : DN.displayPersonName(it.text))), unsure };
 }
 
 const MED_WORD_RE = /^(?:meds?|medications?|medicines?|rx|drugs?|takes?|taking|medicamentos?|medicinas?|zip|plans?|compare|no|and|y)$/i;
@@ -108,15 +130,55 @@ const MED_WORD_RE = /^(?:meds?|medications?|medicines?|rx|drugs?|takes?|taking|m
  * 2026-10-09: three doctors shared a sentence with six meds, so the plain-list reader saw too few names).
  */
 function titledDoctors(t) {
+  return titledDoctorNames(t).join('\n');
+}
+
+// Words that end a titled name ("Dr. Lopez for her heart", "dr. smith is her PCP", "Dr. Ruiz cardiologist").
+const NAME_STOP_RE = /^(?:and|or|for|with|is|are|was|at|in|on|from|who|the|my|her|his|she|he|they|also|plus|but|to|of|as|that|this|has|have|had|takes?|taking|sees?|saw|meds?|medications?|rx|drugs?|zip|plans?|compare|current|no|none|pcp|primary|care|npi|md|do|dds|dmd|dpm|od)$/i;
+const TITLE_WORD_RE = /^(?:dr|dra|drs|dras|doc|doctor|doctora)$/i;
+
+/**
+ * Every "Dr. …" name in the ask, in ANY case (Martha Muraglia, 2026-10-20: 6 of 8 doctors dropped — "Dr. WADDAH aLLAF",
+ * "Dr. Mario del cid", "dr. laura martin" … failed the capitalized-name check; "dr." in lowercase was not a title at all).
+ * The title is the strong signal: after it, a name in normal case ends at the first lowercase word that is not a surname
+ * particle (the old rule); a name typed all lower / ALL CAPS / odd case ends at punctuation, a stop word or a role word.
+ * At most 4 words; a surname particle ("del", "de la") keeps the next word whatever its case.
+ */
+function titledDoctorNames(t, { minWords = 2 } = {}) {
+  const DN = require('../artifacts/doctor-name.js');
   const out = [];
-  const re = /\b(?:Dr|Dra|Drs|Dras|Doc|Doctor|Doctora)\b\.?[ \t]*([A-ZÁÉÍÓÚÑ][A-Za-zÀ-ÿ'’-]+(?:[ \t]+[A-Z]\.)?(?:[ \t]+(?!(?:Dr|Dra|Drs|Dras|Doc|Doctor|Doctora)\b)[A-ZÁÉÍÓÚÑ][A-Za-zÀ-ÿ'’-]+){0,3})/g;
+  // The run stops before the next title, so "Dra.María López y Dr. Jorge G. Ruiz" is two names.
+  const re = /(?:^|[^A-Za-zÀ-ÿ])(?:dr|dra|drs|dras|doc|doctor|doctora)\b\.?[ \t]*([A-Za-zÀ-ÿ](?:(?![^A-Za-zÀ-ÿ](?:dr|dra|drs|dras|doc|doctor|doctora)\b)[^,;:()\n])*)/gi;
   for (const m of String(t || '').matchAll(re)) {
-    const words = m[1].split(/\s+/);
-    while (words.length && MED_WORD_RE.test(words[words.length - 1])) words.pop();
-    const name = words.join(' ').trim();
-    if (words.length >= 2 && !out.some((x) => x.toLowerCase() === name.toLowerCase())) out.push(name);
+    // A sentence end inside the run ("dr. simone vanhorn. Meds: …") — an initial ("Jorge G. Ruiz") is not one.
+    const run = m[1].split(/(?<!\b[A-Za-z])\.(?:\s|$)/)[0];
+    const raw = run.split(/\s+/).filter(Boolean);
+    const normalFirst = raw.length && /^[A-ZÁÉÍÓÚÑ][a-zà-ÿ'’-]/.test(raw[0]);
+    const words = [];
+    let afterParticle = false;
+    for (const w0 of raw) {
+      const w = w0.replace(/[.,]+$/, (x) => (/^[A-Za-z]\.$/.test(w0) ? '.' : ''));
+      if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ.'’-]*$/.test(w)) break;
+      if (TITLE_WORD_RE.test(w.replace(/\.$/, ''))) break; // "Dr. A and Dr. B" — the next title starts the next name
+      const particle = words.length > 0 && DN.SURNAME_PARTICLES.has(w.toLowerCase());
+      if (!afterParticle && !particle) {
+        if (NAME_STOP_RE.test(w) || MED_WORD_RE.test(w) || (words.length && DN.SPECIALTY_HINT_RE.test(w))) break;
+        if (normalFirst && words.length && /^[a-zà-ÿ]/.test(w)) break;
+      }
+      words.push(w);
+      afterParticle = particle;
+      if (words.length >= 5) break;
+    }
+    while (words.length && (DN.SURNAME_PARTICLES.has(words[words.length - 1].toLowerCase()) || MED_WORD_RE.test(words[words.length - 1]))) words.pop();
+    const name = DN.displayPersonName(words.join(' ').trim());
+    if (words.length >= minWords && !out.some((x) => x.toLowerCase() === name.toLowerCase())) out.push(name);
   }
-  return out.join('\n');
+  return out;
+}
+
+/** Every doctor she typed with a title ("Dr. Lopez" too — one word): the doctors she meant to name. */
+function doctorMentions(t) {
+  return titledDoctorNames(t, { minWords: 1 });
 }
 
 /** Meds typed as a plain list after the ZIP/doctors — one reader shared with the chat path (comparisonRules). */
@@ -136,7 +198,9 @@ function parseCompareAsk(text) {
   // names no client (Gerry Cabrera, 2026-10-19: the client was renamed after the practice).
   const mappingLine = /^\s*[^.\n]{1,80}?\s(?:is|=|es|are)\s+(?:dr|dra|doctor|doctora)\b|^\s*[^.\n]{1,60}?\s*=\s*\S|^\s*[^.\n]{1,60}?\s(?:is|=)\s+\d/i.test(t);
   const practiceName = (x) => require('./comparisonRules').PRACTICE_WORD_RE.test(x);
-  const strictName = clientMatch && !mappingLine && !practiceName(clientMatch[1]) ? clientMatch[1].replace(/\s+/g, ' ').trim() : '';
+  // "Add Dr. Mario del Cid, …" names a doctor to add, not the client (Martha Muraglia, 2026-10-20: client became "Add Dr").
+  const instructionLead = (x) => /\b(?:drs?|dras?|doc|doctora?|add|remove|drop|delete|check|please|pls|run|rerun|update|change|swap|use|replace|also|show|export|include)\b/i.test(x);
+  const strictName = clientMatch && !mappingLine && !practiceName(clientMatch[1]) && !instructionLead(clientMatch[1]) ? clientMatch[1].replace(/\s+/g, ' ').trim() : '';
   const looseName = mappingLine ? '' : looseClientName(t);
   const clientName = (looseName && looseName.toLowerCase().startsWith(strictName.toLowerCase()) ? looseName : (strictName || looseName)).replace(/^the\s+/i, '');
   const terminatingPlan = ((t.match(/\b([HR]\d{4}-\d{3}[A-Z]?)\b[^.\n]{0,25}?\b(?:terminat|ending)/i) || [])[1] || '').toUpperCase();
@@ -146,10 +210,13 @@ function parseCompareAsk(text) {
   // Trim trailing sentences ("… Compare Humana …", "Give me 2-3 plans")
   const cut = (s) => s.split(/(?<!\b[A-Za-z])\.\s+(?=[A-Z])|\bcompare\b|\bgive me\b|\bsuggest\b|\bshow me\b/i)[0];
   // "Dr. Jorge Perez" must not be cut at the period after "Dr" (it left the doctor named just "Dr").
+  let unsureDoctors = [];
   if (!doctorsText) {
     // Plain list after the ZIP, plus every titled name ("Dr.Steven Barilla", "Dra. María López").
     const names = [];
-    for (const n of [...unlabeledDoctors(t, zip).split('\n'), ...titledDoctors(t).split('\n')]) {
+    const plain = unlabeledDoctorList(t, zip);
+    unsureDoctors = plain.unsure;
+    for (const n of [...plain.names, ...titledDoctorNames(t)]) {
       const k = n.trim().toLowerCase();
       if (k && !names.some((x) => x.toLowerCase() === k)) names.push(n.trim());
     }
@@ -186,6 +253,9 @@ function parseCompareAsk(text) {
     // (Melmoth Alexander, 2026-10-13: all four read "not found").
     name = name.replace(/\s*\*+\s*$/, '').replace(/\s+[-–—]\s+(?:primary(?:\s+care)?|pcp|ent|um|u\.m\.|[a-z]+ologist|surgeon|dentist|dds|dmd)\s*$/i, '');
     name = name.replace(/\s{2,}/g, ' ').replace(/[\s.,-]+$/, '').trim();
+    // "WADDAH aLLAF" / "laura martin" → "Waddah Allaf" / "Laura Martin" (normal-case names stay as typed).
+    // Only the name itself: a note in parentheses ("(primary care)", "(PCP)") stays as typed.
+    name = name.replace(/^[^(]+/, (head) => require('../artifacts/doctor-name.js').displayPersonName(head) + (/\s$/.test(head) ? ' ' : ''));
     return npi ? { name, npi, mustKeep } : { name, mustKeep };
   }).filter((d) => (d.name || d.npi) && !/^(?:here|this|the|my|list)\b/i.test(d.name || '') && !CRED_ONLY_RE.test(d.name || '') && !/^(?:MD|DO|DDS|DMD|DPM|OD)\b\s*[-–—]/i.test(d.name || '')).slice(0, MAX_DOCTORS);
   // "acyclovir tablets & ointment" is two products, two rows.
@@ -213,11 +283,21 @@ function parseCompareAsk(text) {
   // (doctorPlanNarrow.textPlanTypeAsk → planTypeAsk). Before, the card never read it and ranked HMOs (Robert and
   // Andrea, 2026-10-19).
   const typeAsk = textPlanTypeAsk(t);
+  // Every "Dr. …" she typed must come out as a doctor: the ones the parser could not read are listed, never dropped
+  // silently (Martha Muraglia, 2026-10-20: 8 typed, 2 kept).
+  const DNm = require('../artifacts/doctor-name.js');
+  const unreadDoctors = doctorMentions(t).filter((raw) => !doctors.some((d) => DNm.sameDoctorName(d.name, raw)
+    || DNm.plainWords(d.name).join(' ') === DNm.plainWords(raw).join(' ')));
   return {
     clientName,
     zip,
     doctors,
     meds,
+    // Typed with no title and no case hint ("waddah allaf") — Max asks whether it is a doctor instead of dropping it.
+    unsureDoctors: unsureDoctors.filter((x) => !doctors.some((d) => DNm.plainWords(d.name).join(' ') === DNm.plainWords(x).join(' '))),
+    unreadDoctors,
+    // How many doctors the request named: every titled name plus the plain-list / labeled ones.
+    doctorCount: Math.max(doctors.length + unreadDoctors.length, doctorMentions(t).length),
     plans: plans.slice(0, MAX_PLANS),
     // "current plan UHC H5420-001": her current plan, the first column (or left out of the other type's table).
     currentPlans: currentPlanIdsIn(t).filter((id) => id !== terminatingPlan && plans.some((x) => x.slice(0, 9) === id.slice(0, 9))),
@@ -535,11 +615,22 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     job.progress.meds.total = rxPlanIds.length ? input.meds.length : 0;
     const drugResults = new Array(input.meds.length);
     if (rxPlanIds.length && input.meds.length) {
+      // The meds have their own budget: a formulary lookup that never answers drew "Checking meds 0/5" forever (Martha
+      // Muraglia, 2026-10-20). Past it the med is "⏱ timed out" (never a final answer, never ranked by cost).
+      const medsUntil = Date.now() + CARD_MEDS_BUDGET_MS;
       await mapPool(input.meds, DRUG_CONCURRENCY, async (drugName, i) => {
         try {
-          drugResults[i] = await lookupRx({ drugName, planIds: rxPlanIds, year: input.year });
+          const left = medsUntil - Date.now();
+          if (left <= 0) throw Object.assign(new Error('timed out'), { timedOut: true });
+          let timer;
+          drugResults[i] = await Promise.race([
+            Promise.resolve().then(() => lookupRx({ drugName, planIds: rxPlanIds, year: input.year })),
+            new Promise((_, rej) => { timer = setTimeout(() => rej(Object.assign(new Error('timed out'), { timedOut: true })), left); }),
+          ]).finally(() => clearTimeout(timer));
         } catch (e) {
-          drugResults[i] = { drugName, error: e.message, lookups: [], byPlanId: {} };
+          drugResults[i] = e && e.timedOut
+            ? { drugName, error: 'timed out', timedOut: true, lookups: [], byPlanId: {} }
+            : { drugName, error: e.message, lookups: [], byPlanId: {} };
         }
         job.progress.meds.done += 1;
       });
@@ -568,6 +659,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
       drugName: r.drugName,
       byPlanId: r.byPlanId || {},
       notCoveredNote: r.notCoveredNote || null,
+      ...(r.timedOut ? { timedOut: true } : {}),
       retriedProduct: r.retriedProduct || null,
       export: toExportDrugs(r),
       text: r.lookups ? formatFormularyText(r).slice(0, 1500) : `${r.drugName}: lookup failed (${r.error || 'unknown'})`,
@@ -651,6 +743,8 @@ function getJob(id, owner) {
 
 module.exports = {
   parseCompareAsk,
+  doctorMentions,
+  titledDoctorNames,
   normalizeInput,
   askTextFor,
   cardCurrentPlans,

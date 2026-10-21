@@ -44,7 +44,8 @@ test('reloading a workup whose saved doctors lost names re-reads them from the o
   assert.deepEqual(r.doctors.map((d) => d.name), ['Alejandro Lopez-Rossitch', ...FIVE.slice(1)]);
   assert.deepEqual(r.recoveredDoctors, FIVE.slice(1));
   assert.deepEqual(r.doctors[1].byPlanId, {});
-  assert.match(W.recoveredDoctorsNote(r), /^Added back Robert Sirven, Jose Martinez, Ricardo Espinosa, Pavel Gazdovich from the original request.*run all 5\.$/);
+  assert.match(W.recoveredDoctorsNote(r), /^Added back Robert Sirven, Jose Martinez, Ricardo Espinosa, Pavel Gazdovich from the original request.*Checking all 5 doctors now\.$/);
+  assert.equal(W.recoveredDoctorsRunAsk(r), "Check all 5 doctors on the saved plans.");
   // A doctor she removed (on an earlier saved version, gone now) stays removed.
   assert.deepEqual(withRecoveredDoctors({ ...w, history: [{ doctors: [{ name: 'Jose Martinez' }] }] }).recoveredDoctors, ['Robert Sirven', 'Ricardo Espinosa', 'Pavel Gazdovich']);
   // Nothing lost → unchanged object; a resolved doctor is the same doctor as the raw name.

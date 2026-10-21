@@ -132,7 +132,8 @@ describe('county-only plan attachment', () => {
 
   it('a loaded workup with a wrong saved county still follows its ZIP', () => {
     const ctx = workups.compactWorkupContext({ clientName: 'Padron', zip: '33332', county: 'Miami-Dade', plans: [] });
-    assert.match(ctx, /ZIP\/county: 33332 \/ Miami-Dade/);
+    // The context line itself now carries the ZIP's county (Martha Muraglia, 2026-10-20: 33323 shown as Miami-Dade).
+    assert.match(ctx, /ZIP\/county: 33332 \/ Broward/);
     const sel = selectPlansForAsk([user(ctx), user('what is the dental on the Humana plan?')]);
     assert.deepEqual(Array.from(sel.meta.counties), ["Broward"]);
     assert.ok(sel.plans.every((p) => p.county === 'Broward'));

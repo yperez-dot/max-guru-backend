@@ -386,26 +386,51 @@ function historyEntry(w) {
  * and is gone now was removed on purpose and stays removed; a resolved doctor ("Priscila Escalona" → "Priscilla Gabriela
  * Escalona Villasmil", NPI 1174811400) is the same doctor and is not added twice. Never writes; the page saves as usual.
  */
-function withRecoveredDoctors(workup) {
+/** The county of a Florida ZIP (data/fl-zip-county.json, largest county first); '' when unknown. */
+function zipCounty(zip) {
+  try { return require('./flZipCounty').countiesForZip(zip)[0] || ''; } catch (_) { return ''; }
+}
+
+/** A saved workup whose county disagrees with its ZIP (33323 saved as "Miami-Dade") reads the ZIP's county on load. */
+function withZipCounty(workup) {
+  if (!workup || typeof workup !== 'object') return workup;
+  const c = zipCounty(workup.zip);
+  return c && c !== workup.county ? { ...workup, county: c } : workup;
+}
+
+function withRecoveredDoctors(workup0) {
+  const workup = withZipCounty(workup0);
   if (!workup || typeof workup !== 'object' || !String(workup.originalQuery || '').trim()) return workup;
-  let parsed = [];
+  let ask = null;
   try {
-    parsed = require('./compareJobs').parseCompareAsk(workup.originalQuery).doctors || [];
+    ask = require('./compareJobs').parseCompareAsk(workup.originalQuery);
   } catch (_) {
     return workup;
   }
+  const parsed = ask.doctors || [];
   const saved = Array.isArray(workup.doctors) ? workup.doctors : [];
-  if (!parsed.length || parsed.length <= saved.length) return workup;
+  // The request's doctors the parser could not read, or could not tell were doctors: listed / asked, never dropped
+  // silently (Martha Muraglia, 2026-10-20: 8 typed, 2 recovered, nothing said about the other 6).
+  const notes = {};
+  if ((ask.unreadDoctors || []).length) notes.unreadDoctors = ask.unreadDoctors.slice(0, MAX_DOCTORS);
+  if ((ask.unsureDoctors || []).length) notes.unsureDoctors = ask.unsureDoctors.slice(0, MAX_DOCTORS);
+  const expected = Math.max(Number(ask.doctorCount) || 0, parsed.length);
+  const withNotes = (w) => {
+    const out = Object.keys(notes).length ? { ...w, ...notes } : w;
+    const have = (out.doctors || []).length;
+    return expected > have ? { ...out, expectedDoctorCount: expected } : out;
+  };
+  if (!parsed.length || parsed.length <= saved.length) return withNotes(workup);
   const { fuzzySameDoctor } = require('./loadedWorkup');
   const DN = require('../artifacts/doctor-name.js');
   const same = (a, b) => DN.sameDoctorName(a, b) || fuzzySameDoctor(a, b) || fuzzySameDoctor(b, a);
   const everSaved = [saved, ...(workup.history || []).map((h) => (h && h.doctors) || [])].flat();
   const missing = parsed.filter((d) => d && d.name
     && !everSaved.some((x) => x && ((d.npi && x.npi === d.npi) || same(x.name || '', d.name))));
-  if (!missing.length) return workup;
+  if (!missing.length) return withNotes(workup);
   const rows = missing.slice(0, Math.max(0, MAX_DOCTORS - saved.length)).map((d) => (d.npi ? { name: d.name, npi: d.npi, byPlanId: {} } : { name: d.name, byPlanId: {} }));
-  if (!rows.length) return workup;
-  return { ...workup, doctors: [...saved, ...rows], recoveredDoctors: rows.map((r) => r.name) };
+  if (!rows.length) return withNotes(workup);
+  return withNotes({ ...workup, doctors: [...saved, ...rows], recoveredDoctors: rows.map((r) => r.name) });
 }
 
 function toSummary(workup) {
@@ -599,7 +624,9 @@ class WorkupStore {
     // A doctor / practice read as the client ("Pinecrest Dentisry is Dr. Salome Fraga" → client "Pinecrest Modern
     // Dentistry", Gerry Cabrera 2026-10-19) is never a client name: ignore it, keep the saved one.
     if (body.clientName && (nameIsADoctor(body.clientName, [...((existing && existing.doctors) || []), ...(body.doctors || [])])
-      || /\b(?:dentistry|dentisry|dental|associates|clinic|medical|group|center|practice)\b/i.test(body.clientName))) body.clientName = '';
+      || /\b(?:dentistry|dentisry|dental|associates|clinic|medical|group|center|practice)\b/i.test(body.clientName)
+      // An instruction read as a name ("Add Dr. Mario del Cid, …" → "Add Dr" — Martha Muraglia, 2026-10-20).
+      || /^(?:add|remove|drop|delete|check|please|pls|run|rerun|update|change|swap|use|replace|also|show|export|include)\b|\b(?:dr|dra|drs|doctor|doctora)\.?$/i.test(body.clientName))) body.clientName = '';
     // Another client's facts saved onto this id (the chat still pointed at the workup opened
     // before): save them as their own workup, never over this one (Maura / Enrique Soley, 2026-10-07).
     if (existing && body.clientName && differentClient(existing.clientName, body.clientName)
@@ -624,7 +651,9 @@ class WorkupStore {
       clientName: nameLocked || prev.clientName ? prev.clientName : (body.clientName || ''),
       nameLocked,
       zip: body.zip || prev.zip || '',
-      county: body.county || prev.county || '',
+      // The ZIP decides the county: a save whose county was guessed from a plan row ("Miami-Dade" for Humana Choice,
+      // which runs in both counties) never moves a 33323 client out of Broward (Martha Muraglia, 2026-10-20).
+      county: zipCounty(body.zip || prev.zip) || body.county || prev.county || '',
       contacts: body.contacts || prev.contacts || '',
       plans: body.plans.length ? body.plans : (prev.plans || []),
       planIds: body.plans.length ? body.planIds : (prev.planIds || []),
@@ -722,6 +751,7 @@ module.exports = {
   slimMedications,
   toSummary,
   withRecoveredDoctors,
+  withZipCounty,
   DEFAULT_MAX_PER_OWNER,
   ROLLING_RE,
   DAILY_RE,

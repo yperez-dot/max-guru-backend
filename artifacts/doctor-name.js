@@ -49,6 +49,26 @@
     if (s !== s.toUpperCase() || !/[A-Z]{2}/.test(s)) return s;
     return s.toLowerCase().replace(/(^|[\s'’-])([a-z])/g, (m, a, b) => a + b.toUpperCase());
   }
+  /**
+   * A typed name in normal case, whatever case she typed it in (Martha Muraglia, 2026-10-20: "Dr. WADDAH aLLAF",
+   * "Dr. Mario del cid", "dr. laura martin" were dropped by the capitalized-name check). Only odd words change: all
+   * lower, ALL CAPS, or inverted ("aLLAF") → "Allaf"; "McDonald", "DelPar", "O'Neil" and initials stay as typed; a
+   * surname particle after the first word stays lowercase ("Mario del Cid").
+   */
+  function displayPersonName(name) {
+    const words = String(name || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    return words.map((w, i) => {
+      const letters = w.replace(/[^A-Za-zÀ-ÿ]/g, '');
+      if (!letters) return w;
+      if (i > 0 && SURNAME_PARTICLES.has(w.toLowerCase()) && (w === w.toLowerCase() || w === w.toUpperCase())) return w.toLowerCase();
+      if (letters.length === 1) return w.toUpperCase();
+      const lower = letters === letters.toLowerCase();
+      const upper = letters === letters.toUpperCase();
+      const inverted = /^[a-zà-ÿ]/.test(letters) && /[A-ZÀ-Þ]/.test(letters);
+      if (!lower && !upper && !inverted) return w;
+      return w.toLowerCase().replace(/(^|[\s'’-])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase());
+    }).join(' ');
+  }
   function stripTitle(name) {
     return String(name || '').replace(/\s+/g, ' ').trim().replace(TITLE_RE, '');
   }
@@ -223,7 +243,7 @@
 
   return {
     CRED_TOKEN_RE, CREDENTIAL_RE, DEGREE_TOKEN_RE, SPECIALTY_HINT_RE, ORG_HINT_RE, ORG_NAME_RE, ROLE_WORDS_RE, SURNAME_PARTICLES,
-    titleCase, nameCase, stripTitle, stripDegreeSuffix, cleanName,
+    titleCase, nameCase, displayPersonName, stripTitle, stripDegreeSuffix, cleanName,
     looksLikeOrganization, looksLikeOrganizationDisplay, isOrganizationName,
     cleanDoctorQuery, parseName,
     joinedParticleSplits, splitParticleJoins, surnameVariants, surnameKey, compoundLastName,

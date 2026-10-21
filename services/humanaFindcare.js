@@ -85,6 +85,10 @@ const THEI_HUMANA_NETWORKS = [
       { cmsId: 'H7617-107', planName: 'HumanaChoice', counties: [COUNTY_MIAMI_DADE, COUNTY_BROWARD] },
       { cmsId: 'H7617-110', planName: 'HumanaChoice Giveback', counties: [COUNTY_MIAMI_DADE, COUNTY_BROWARD] },
       { cmsId: 'H7617-145', planName: 'HumanaChoice Giveback', counties: [COUNTY_MIAMI_DADE, COUNTY_BROWARD] },
+      // Not on the THEI grid (non-commissionable), but a client's CURRENT plan: "Humana Full Access Giveback H5216-311
+      // (PPO)" in 2026, "HumanaChoice Giveback H5216-311 (PPO)" in 2027, same ID, offered again in Broward and Miami-Dade
+      // (CMS 2027 crosswalk / landscape). Humana's Medicare PPO network (Martha Muraglia, 2026-10-20).
+      { cmsId: 'H5216-311', planName: 'HumanaChoice Giveback', counties: [COUNTY_MIAMI_DADE, COUNTY_BROWARD] },
     ],
   },
 ];
@@ -112,7 +116,13 @@ const ZIP_GEO = {
   '33064': { lat: 26.248, lng: -80.125, county: COUNTY_BROWARD },
   '33312': { lat: 26.118, lng: -80.171, county: COUNTY_BROWARD },
   '33317': { lat: 26.124, lng: -80.226, county: COUNTY_BROWARD },
+  '33322': { lat: 26.150, lng: -80.274, county: COUNTY_BROWARD },
+  '33323': { lat: 26.153, lng: -80.321, county: COUNTY_BROWARD }, // Sunrise / Plantation
+  '33324': { lat: 26.113, lng: -80.257, county: COUNTY_BROWARD },
+  '33325': { lat: 26.110, lng: -80.321, county: COUNTY_BROWARD },
+  '33326': { lat: 26.115, lng: -80.368, county: COUNTY_BROWARD },
   '33328': { lat: 26.066, lng: -80.271, county: COUNTY_BROWARD },
+  '33351': { lat: 26.180, lng: -80.274, county: COUNTY_BROWARD },
   '33334': { lat: 26.185, lng: -80.133, county: COUNTY_BROWARD },
 };
 

@@ -398,7 +398,8 @@
       WORKUP_CONTEXT_PREFIX + " (structured facts only — not a prior chat transcript). Resume these saved facts as a starting point. If the agent later asks for different plans, doctors, drugs, or a benefit that is not on the grid, follow that NEW request for chat and Excel/PDF. Do not lock the export to this snapshot. Only the 'Current plan' line is the client's current plan (if there is no such line and one plan is listed, that one is); every other plan below is a comparison column — never call it her current plan. When the agent asks for other, comparable or better plans, compare alternatives against her current plan, keep it as a column, and never ask which plan she has. Do not ask to re-paste Daisy. Discard any client-stated Rx tiers. Call lookup_formulary for any unverified drug × named plan.",
     ];
     if (w.clientName) lines.push("Client: " + w.clientName);
-    const place = [w.zip, w.county].filter(Boolean).join(" / ");
+    // The ZIP's county wins over a saved county guessed from a plan row (33323 is Broward, not Miami-Dade).
+    const place = [w.zip, gridCountyForZip(w.zip) || w.county].filter(Boolean).join(" / ");
     if (place) lines.push("ZIP/county: " + place);
     if (w.contacts) lines.push("Contacts: " + w.contacts);
     const plans = w.plans || [];
@@ -531,10 +532,33 @@
     return { grid: head + "\n\n" + grid, followUp };
   }
   function recoveredDoctorsNote(workup) {
-    const names = (workup && Array.isArray(workup.recoveredDoctors) ? workup.recoveredDoctors : []).filter(Boolean);
+    const w = workup || {};
+    const names = (Array.isArray(w.recoveredDoctors) ? w.recoveredDoctors : []).filter(Boolean);
+    const unread = (Array.isArray(w.unreadDoctors) ? w.unreadDoctors : []).filter(Boolean);
+    const unsure = (Array.isArray(w.unsureDoctors) ? w.unsureDoctors : []).filter(Boolean);
+    if (!names.length && !unread.length && !unsure.length) return "";
+    const n = (w.doctors || []).length || names.length;
+    const lines = [];
+    if (names.length) {
+      lines.push("Added back " + names.join(", ") + " from the original request (the saved list had dropped " + (names.length === 1 ? "this doctor" : "them") + "). Checking all " + n + " doctors now.");
+    }
+    // The original request's doctor count must match what came back (Martha Muraglia, 2026-10-20: 8 typed, 2 kept).
+    const expected = Number(w.expectedDoctorCount) || 0;
+    if (unread.length || (expected && expected > n)) {
+      lines.push("⚠️ The original request named " + (expected || n + unread.length) + " doctors and I could read " + n + "." + (unread.length ? " Couldn't read: " + unread.map((x) => '"' + x + '"').join(", ") + " — type each as first and last name." : ""));
+    }
+    unsure.forEach((x) => lines.push('Is "' + x + '" a doctor? (yes / no)'));
+    return lines.join("\n");
+  }
+
+  /** On load: doctors added back from the original request are checked right away (no "ask me to check"). */
+  function recoveredDoctorsRunAsk(workup) {
+    const w = workup || {};
+    const names = (Array.isArray(w.recoveredDoctors) ? w.recoveredDoctors : []).filter(Boolean);
     if (!names.length) return "";
-    const n = ((workup && workup.doctors) || []).length || names.length;
-    return "Added back " + names.join(", ") + " from the original request (the saved list had dropped " + (names.length === 1 ? "this doctor" : "them") + "). Ask me to check the doctors and I'll run all " + n + ".";
+    const n = (w.doctors || []).length || names.length;
+    const meds = (w.medications || []).length;
+    return "Check all " + n + " doctors" + (meds ? " and the " + meds + " meds" : "") + " on the saved plans.";
   }
 
   function staleResultNote(workup, result) {
@@ -641,6 +665,7 @@
     messagesForApi,
     compareCardTurnText,
     recoveredDoctorsNote,
+    recoveredDoctorsRunAsk,
     isBareExportAsk,
     recheckReply,
     workupListLabel,
