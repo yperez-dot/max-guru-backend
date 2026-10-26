@@ -1563,6 +1563,37 @@ function normalizeTypedPlanIds(text) {
   return String(text || '').replace(/\b([HR]\d{4})-(\d{1,3})(?:-\d)?(?=[^\dA-Za-z-]|$)/gi, (m, a, b) => `${a.toUpperCase()}-${b.padStart(3, '0')}`);
 }
 
+/**
+ * 2026 contract-PBP → 2027 comparison ID. Doctors remapped their PBPs (H4140-012 DrSelect
+ * → H4140-023 DrSelect-SFL). A typed unpadded segment form is already normalized first
+ * ("H4140-12-0" → H4140-012). Same ID when there is no 2027 successor.
+ */
+function yearPlanId(id, year = 2027) {
+  const raw = String(id || '').toUpperCase();
+  const key = raw.slice(0, 9);
+  if (!key || Number(year) !== 2027) return { id: raw, from: '', notice: '' };
+  let mapped = '';
+  try {
+    mapped = String(require('./doctorsFormularyPdf').remapDoctorsPbp(key, 2027) || '');
+  } catch (_) {
+    mapped = '';
+  }
+  if (!mapped || mapped.slice(0, 9) === key) return { id: raw, from: '', notice: '' };
+  const row = gridRowFor(mapped, '');
+  const name = row
+    ? (carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim())
+    : mapped;
+  return {
+    id: mapped,
+    from: key,
+    notice: `2026 ${key} is 2027 ${name} ${mapped}.`,
+  };
+}
+
+function applyYearPlanId(id, year = 2027) {
+  return yearPlanId(id, year).id;
+}
+
 // Her "yes" to "Did you mean remove X (ID)?" (planRemovalAskLines): that column is gone from every set — the named
 // set line, a re-read of her messages, the compare card.
 function namedPlansFromAsk(askText0, constraints) {
@@ -2404,6 +2435,28 @@ function selectComparison(doctors, askText, opts = {}) {
     const cur = new Set([...(((ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '').matchAll(/\b([HR]\d{4}-\d{3})/gi))].map((m) => m[1].toUpperCase()));
     named = named.filter((p) => !cur.has(String(p.planId).toUpperCase().slice(0, 9)));
   }
+  // 2026 PBPs that THEI remaps for 2027 become the 2027 column (H4140-012 → H4140-023 DrSelect-SFL).
+  const year = /\b2026\b/.test(ask) && !/\b2027\b/.test(ask) ? 2026 : 2027;
+  const remapNotices = [];
+  const remapOne = (p) => {
+    const mapped = yearPlanId(p.planId, year);
+    if (!mapped.from || mapped.id.slice(0, 9) === String(p.planId || '').toUpperCase().slice(0, 9)) return p;
+    if (mapped.notice && !remapNotices.includes(mapped.notice)) remapNotices.push(mapped.notice);
+    const row = gridRowFor(mapped.id, county);
+    return {
+      ...p,
+      planId: mapped.id,
+      name: row
+        ? (carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim())
+        : (p.name || mapped.id),
+    };
+  };
+  named = named.map(remapOne);
+  pinFromAsk = pinFromAsk.map((id) => {
+    const mapped = yearPlanId(id, year);
+    if (mapped.from && mapped.notice && !remapNotices.includes(mapped.notice)) remapNotices.push(mapped.notice);
+    return mapped.id;
+  });
   if (named.length) {
     let cols = decorate(namedPlanColumns(named, matrix, docs));
     // A client grid never carries a pile of plans (5+ are cut to 3; up to 4 she typed herself stay): her CURRENT plan (if she has one) + the 1–2 best others
@@ -2767,28 +2820,55 @@ function selectComparison(doctors, askText, opts = {}) {
     out.questions = personalize(qs.slice(0, 3), ask);
   }
   // County guard (Maura, 2026-10-07 / Carla Nguyen, 2026-10-26): a plan not offered in her county
-  // per the grid's county column is never a comparison column — even when she typed the ID. The
-  // exception is her CURRENT plan when it is on neither year's grid (off-grid current stays first).
+  // per the grid's county column is never a comparison column — except her CURRENT plan, which
+  // she named explicitly and must stay a column. Plans Max adds itself still drop when off-county.
+  // A 2026 PBP that THEI remaps for 2027 (H4140-012 → H4140-023) becomes that 2027 column.
   const countyIds = new Set(R.gridPlansForCounty(county).map((g) => String(g.planId || g.id).toUpperCase().slice(0, 9)));
   if (county && countyIds.size && !opts.skipCountyGuard) {
     const allRows = R.gridPlansForCounty('');
     const explicit = new Set([...named.map((p) => p.planId), ...pinFromAsk, ...(Array.isArray(opts.pinPlanIds) ? opts.pinPlanIds : []), ...(Array.isArray(opts.named) ? opts.named.map((p) => p.planId) : [])]
       .map((id) => String(id || '').toUpperCase().slice(0, 9)));
+    const curKeys = new Set();
+    for (const id of curAskIds) {
+      const k = String(id || '').toUpperCase().slice(0, 9);
+      if (k) curKeys.add(k);
+      const mapped = yearPlanId(id, year);
+      const mk = String(mapped.id || '').toUpperCase().slice(0, 9);
+      if (mk) curKeys.add(mk);
+    }
     const away = [];
     const unknown = [];
     const offGridCurrent2 = [];
+    const remapped = [];
     const in2026 = (k) => R.gridPlansForCounty('', 2026).some((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === k);
+    const adoptMapped = (c, mapped) => {
+      const row = gridRowFor(mapped.id, county) || allRows.find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === mapped.id.slice(0, 9));
+      c.planId = mapped.id;
+      if (row) {
+        c.name = carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim();
+        c.grid = row;
+      }
+      if (mapped.notice && !remapped.includes(mapped.notice)) remapped.push(mapped.notice);
+    };
     out.columns = out.columns.filter((c) => {
       const k = String(c.planId || '').toUpperCase().slice(0, 9);
       if (countyIds.has(k)) return true;
-      if (!explicit.has(k)) return false;
+      const mapped = yearPlanId(c.planId, year);
+      const mk = String(mapped.id || '').toUpperCase().slice(0, 9);
+      if (mk && mk !== k && countyIds.has(mk)) { adoptMapped(c, mapped); return true; }
+      // Her CURRENT plan is never removed by this filter — even a 2026 ID or an off-grid PPO.
+      if (curKeys.has(k) || curKeys.has(mk)) {
+        if (mk && mk !== k) adoptMapped(c, mapped);
+        const kept = String(c.planId || '').toUpperCase().slice(0, 9);
+        if (countyIds.has(kept)) return true;
+        const other = allRows.find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === kept);
+        if (!other && !in2026(kept)) { c.offGrid = true; offGridCurrent2.push(kept); return true; }
+        c.offGrid = !other;
+        offGridCurrent2.push(kept);
+        return true;
+      }
+      if (!explicit.has(k) && !explicit.has(mk)) return false;
       const other = allRows.find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === k);
-      // A plan ID she typed that is in neither year's plan data (a typo, or a plan the grid doesn't carry): no column of
-      // ❔ cells — one plain line saying so (Robert and Andrea, 2026-10-19: a named plan is never silently dropped).
-      // Her CURRENT plan is always a column, first, even when the THEI grid does not carry it (a non-commissionable plan
-      // like Humana H5216-311): benefits read "not on grid", doctors and meds are still checked on it (carrier directory,
-      // Medicare.gov / Sunfire formulary) — Martha Muraglia, 2026-10-20.
-      if (!other && !in2026(k) && curAskIds.includes(k)) { c.offGrid = true; offGridCurrent2.push(k); return true; }
       if (!other && !in2026(k)) { unknown.push(k); return false; }
       away.push(other ? `${k} (${other.county} grid)` : `${k} (not on the 2027 grid)`);
       return false;
@@ -2797,6 +2877,10 @@ function selectComparison(doctors, askText, opts = {}) {
     if (away.length) out.flags.push(`⚠️ Not offered in ${county}: ${away.join(', ')}.`);
     if (unknown.length) out.flags.push(`⚠️ ${unknown.join(', ')} ${unknown.length > 1 ? "aren't" : "isn't"} in Max's plan data, so ${unknown.length > 1 ? "they're" : "it's"} not on the grid. Check the plan ID.`);
     if (offGridCurrent2.length) out.flags.push(`Current plan ${offGridCurrent2.join(', ')} isn't on the THEI grid: it stays the first column; its benefits read "not on grid" (doctors and meds are still checked on it).`);
+    remapped.forEach((n) => out.flags.push(n));
+    remapNotices.forEach((n) => { if (!out.flags.includes(n)) out.flags.push(n); });
+  } else {
+    remapNotices.forEach((n) => { if (!out.flags.includes(n)) out.flags.push(n); });
   }
   // Medical-group carrier rules win over a directory In (BHMG primary care — Yahoska, 2026-10-17).
   const cols = [...new Set([...(out.columns || []), ...(out.ranked || [])])];
@@ -3477,6 +3561,9 @@ module.exports = {
   comparisonAskText,
   comparisonFollowUp,
   currentPlanIdsIn,
+  yearPlanId,
+  applyYearPlanId,
+  normalizeTypedPlanIds,
   excludedCarriers,
   substitutionsIn,
   numberedAnswers,
