@@ -61,7 +61,7 @@ function shortDoctor(d) {
 const CORE_ALL_RE = /\b(?:all|every|each)\s+(?:the\s+|of\s+the\s+)?(?:(?:miami[-\s]?)?dade\s+|broward\s+)?core\s+plans?\b|\bcore\s+plans?\s+(?:in|for|across)\s+(?:miami[-\s]?)?(?:dade|broward)\b/i;
 const CORE_ALL_LINE = 'Core plans: every regular (non-SNP) plan on the county grid, every carrier.';
 const RANK_ASK_RE = /\bcover(?:s|ing)?\s+(?:the\s+)?most\b|\bmost\s+of\s+(?:her|his|their|the)\s+(?:\d+\s+)?doctors\b|\btop\s+\d\b|\brank(?:ed|ing)?\b|\bbest\s+plans?\s+for\s+(?:her|his)\s+doctors\b/i;
-const WANTS_ALTERNATIVES_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\b(?:any\s+)?other\s+(?:options?|plans?)\b|\balternatives?\b|\bwhat\s+else\b|\bsee\s+what\s+else\b|\bshop(?:ping)?\s+around\b|\bsomething\s+else\b|\b(?:comparable|similar)\s+(?:to|plans?|options?)\b|\bplans?\s+(?:comparable|similar)\b/i;
+const WANTS_ALTERNATIVES_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\b(?:any\s+)?other\s+(?:options?|plans?)\b|\balternatives?\b|\bwhat\s+else\b|\bsee\s+what\s+else\b|\bshop(?:ping)?\s+around\b|\bsomething\s+else\b|\b(?:comparable|similar)\s+(?:to|plans?|options?)\b|\bplans?\s+(?:comparable|similar)\b|\banother\s+(?:\w+\s+){0,3}(?:option|plan)s?\b|\bgiveback\s+options?\b|\blooking\s+for\s+(?:another|other|a\s+different)/i;
 
 function askConstraints(askText) {
   const t = String(askText || '');
@@ -640,10 +640,24 @@ function comparisonAskText(messages, baseText) {
   }
   // A loaded workup that names the client's current plan: it is the first column on every follow-up
   // (Jackie: UHC H5420-001 vanished after the three doctor corrections, 2026-10-13).
+  const wk0 = workupFacts(msgs);
   if (!lines.some((l) => /^Her current plan:/m.test(l))) {
-    const wk0 = workupFacts(msgs);
     if (wk0 && wk0.current.length) lines.unshift(`Her current plan: ${wk0.current.join(', ')}.`);
   }
+  // Intake answers and the QL choice live on the workup — push them so a reload cannot re-ask or drop them.
+  if (wk0 && Array.isArray(wk0.intakeLines)) {
+    for (const line of wk0.intakeLines) {
+      if (line && !lines.some((l) => l === line)) lines.push(line);
+    }
+  }
+  const lastUser = [...msgs].reverse().find((m) => m && m.role === 'user');
+  const lastUserText = lastUser ? messageText(lastUser) : '';
+  const priorText = msgs.slice(0, lastUser ? msgs.indexOf(lastUser) : msgs.length).map(messageText).join('\n');
+  if (/Show quantity limits\?/i.test(priorText) && YES_RE.test(lastUserText) && !lines.some((l) => /show quantity limits/i.test(l))) {
+    lines.push(R.SHOW_QL_LINE);
+  }
+  const qlChoice = R.quantityLimitsChoice(`${lines.join('\n')}\n${lastUserText}`);
+  if (qlChoice === true && !lines.some((l) => /show quantity limits/i.test(l))) lines.push(R.SHOW_QL_LINE);
   // "any other plans comparable to what she has?" — her saved/named plan is the CURRENT plan; add alternatives around it.
   // It stays true for the whole thread: answering Max's follow-up questions must not drop her current plan.
   for (let i = msgs.length - 1; i >= 0; i -= 1) {
@@ -665,6 +679,7 @@ function comparisonAskText(messages, baseText) {
     const current = idsHere.length ? idsHere : (wk ? wk.current : []);
     // First, so any plan she names later in the thread (a swap / add) still wins over it.
     if (current.length) lines.unshift(`Her current plan: ${current.join(', ')}.`);
+    if (/\bgive\s*back\b/i.test(mt)) lines.push('Wants Part B giveback plans.');
     if (wk && wk.zip && !/\b3\d{4}\b/.test(lines.join('\n'))) lines.push(`ZIP ${wk.zip}.`);
     break;
   }
@@ -672,7 +687,7 @@ function comparisonAskText(messages, baseText) {
   for (let i = msgs.length - 1; i >= 0; i -= 1) {
     const m = msgs[i];
     if (!m || m.role !== 'user') continue;
-    const t = joinWrappedQuotes(messageText(m));
+    const t = normalizeTypedPlanIds(joinWrappedQuotes(messageText(m)));
     // Its rules text ("…asks for different plans, doctors, drugs…") read as a Doctors HealthCare
     // ask whenever her own message named no carrier (Gail, 2026-10-08).
     if (isWorkupMessage(t)) continue;
@@ -741,8 +756,12 @@ function comparisonAskText(messages, baseText) {
       break;
     }
     const typeSet = planTypeSetFromAsk(t, msgs.slice(0, i + 1));
-    if (typeSet.length) {
-      lines.push(`Named plan set: ${typeSet.map((pl) => `${pl.name} (${pl.planId})`).join('; ')}.`);
+    if (typeSet.length || (typeSet.misses && typeSet.misses.length)) {
+      const county = R.countyFromAsk(t) || R.countyFromAsk(msgs.map(messageText).join('\n')) || 'Miami-Dade';
+      for (const miss of typeSet.misses || []) {
+        lines.push(`⚠️ ${miss.carrier}: no eligible ${miss.label || miss.type} plan in ${miss.county || county} on the THEI grid.`);
+      }
+      if (typeSet.length) lines.push(`Named plan set: ${typeSet.map((pl) => `${pl.name} (${pl.planId})`).join('; ')}.`);
       break;
     }
     // "yeah run her drs on the csnps with cardiovascular disorders": the agent confirms the condition —
@@ -790,8 +809,34 @@ function comparisonAskText(messages, baseText) {
     }
     // Two or more typed IDs in this message lock the set. A carrier word ("also show Solis")
     // must not replace them with that carrier's core plan (Carla Nguyen, 2026-10-26).
+    // Emit the set from THIS message only — a loaded spouse/prior workup's extras never ride along.
     const idsNamed = new Set((t.match(/\b[HR]\d{4}-\d{3}/gi) || []).map((x) => x.toUpperCase())).size;
-    if (idsNamed >= 2) break;
+    if (idsNamed >= 2) {
+      // A fresh "compare X with Y" locks the set. "add X and Y" / "do they take X and Y?" do not.
+      const replaceSet = /\b(?:compare|show|use|run|go with|lets? do)\b/i.test(t)
+        && !/\b(?:add|include)\b/i.test(t)
+        && !/\b(?:do they take|does (?:he|she|it) take|what (?:is|are)|how much)\b/i.test(t);
+      if (replaceSet) {
+        const namedOnly = namedPlansFromAsk(t, askConstraints(t));
+        if (namedOnly.length) {
+          const cur = currentPlanOf(msgs.slice(0, i + 1));
+          const set = [];
+          const add = (p) => { if (p && p.planId && !set.some((x) => x.planId.slice(0, 9) === String(p.planId).slice(0, 9))) set.push(p); };
+          const named = (id) => {
+            const hit = namedOnly.find((p) => p.planId.slice(0, 9) === id.slice(0, 9));
+            if (hit && hit.name && hit.name !== hit.planId) return hit;
+            const row = gridRowFor(id, '');
+            if (row) return { planId: id, name: carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim() };
+            const typed = (t.match(new RegExp(`(?:current(?:ly)?(?:\\s+plan)?(?:\\s+is)?|is\\s+on)\\s+([A-Za-z][A-Za-z&'’ .-]{2,60}?)\\s*\\(?${id.slice(0, 9)}`, 'i')) || [])[1];
+            return { planId: id, name: (typed && typed.trim()) || (hit && hit.name) || id };
+          };
+          cur.forEach((id) => add(named(id)));
+          namedOnly.forEach(add);
+          lines.push(`Named plan set: ${set.map((pl) => `${pl.name} (${pl.planId})`).join('; ')}.`);
+        }
+      }
+      break;
+    }
     // Unmatched names count on their own only in a "compare … to X" ask; otherwise next to a carrier she named.
     const unmatched = carriers.length || /\bcompar/i.test(t) ? R.carriersUnresolved(t) : [];
     if (carriers.length || unmatched.length) {
@@ -935,24 +980,27 @@ function planTypeSetFromAsk(text, msgs) {
   const t = String(text || '');
   if (/structured facts only/i.test(t) || /\b[HR]\d{4}-\d{3}/i.test(t)) return [];
   const parts = t.split(/,|;|\band\b|&|\bplus\b|\bvs\.?\b|\bversus\b/i).map((x) => x.trim()).filter(Boolean);
-  const typed = parts.filter((x) => carrierKey(x) && PLAN_TYPE_RE.test(x));
+  const sharedType = (t.match(PLAN_TYPE_RE) || [])[1] || '';
+  const typed = parts.filter((x) => carrierKey(x) && (PLAN_TYPE_RE.test(x) || sharedType));
   if (!typed.length) return [];
   const county = R.countyFromAsk(t) || R.countyFromAsk(msgs.map(messageText).join('\n')) || 'Miami-Dade';
   const wk = workupFacts(msgs);
   const rows = R.gridPlansForCounty(county);
   const out = [];
+  const misses = [];
   const add = (id, name) => {
     const key = String(id).toUpperCase().slice(0, 9);
     if (key && !out.some((x) => x.planId.slice(0, 9) === key)) out.push({ planId: key, name: name || key });
   };
   const nameOf = (row) => (carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim());
+  const typeLabel = (type) => (/c-?snp|chronic/i.test(type) ? 'C-SNP/chronic' : type);
   for (const part of parts) {
     if (/\b(current|existing|her|his)\s+plan\b/i.test(part) && !carrierKey(part)) {
       for (const id of currentPlanOf(msgs)) { const row = gridRowFor(id, county); add(id, row ? nameOf(row) : id); }
       continue;
     }
     const carrier = carrierKey(part);
-    const type = (part.match(PLAN_TYPE_RE) || [])[1];
+    const type = (part.match(PLAN_TYPE_RE) || [])[1] || sharedType;
     if (!carrier || !type) continue;
     const mine = rows.filter((r) => R.carrierOfPlan(r) === carrier);
     let hits = [];
@@ -965,8 +1013,10 @@ function planTypeSetFromAsk(text, msgs) {
       if (!hits.length && wk) hits = mine.filter((r) => wk.plans.includes(String(r.planId).toUpperCase().slice(0, 9)) && !R.snpKind(r));
       if (!hits.length) hits = mine.filter((r) => corePlanIdsFor(carrier, county).includes(String(r.planId).toUpperCase().slice(0, 9)));
     }
-    hits.slice(0, 3).forEach((r) => add(r.planId, nameOf(r)));
+    if (!hits.length) misses.push({ carrier, type, county, label: typeLabel(type) });
+    else hits.slice(0, 3).forEach((r) => add(r.planId, nameOf(r)));
   }
+  out.misses = misses;
   return out;
 }
 
@@ -1560,7 +1610,11 @@ const LEAD_VERB_RE = /^(?:(?:pls|please|can you|could you|now|also|then)\s+)*(?:
 // Plan IDs as agents paste them from Sunfire: "H5420-1-0" / "H5420-001-0" → "H5420-001" (Tony Cabrera, 2026-10-19:
 // "Current plan is UHC MedicareMax … (H5420-1-0)" was not read as her current plan in the chat path).
 function normalizeTypedPlanIds(text) {
-  return String(text || '').replace(/\b([HR]\d{4})-(\d{1,3})(?:-\d)?(?=[^\dA-Za-z-]|$)/gi, (m, a, b) => `${a.toUpperCase()}-${b.padStart(3, '0')}`);
+  return String(text || '')
+    // "Humana Gold Plus Diabetes & Heart H1036-\n121" / a lone ID on the next line.
+    .replace(/\b([HR]\d{4})-\s*[\r\n]+\s*(\d{1,3}[A-Z]?)\b/gi, (_, a, b) => `${a}-${b}`)
+    .replace(/\n[ \t]*\(?\b(?=[HR]\d{4}-)/gi, ' ')
+    .replace(/\b([HR]\d{4})-(\d{1,3})(?:-\d)?(?=[^\dA-Za-z-]|$)/gi, (m, a, b) => `${a.toUpperCase()}-${b.padStart(3, '0')}`);
 }
 
 /**
@@ -2652,8 +2706,16 @@ function selectComparison(doctors, askText, opts = {}) {
           return { ...c, counts: k, verifiable: k.reallyUnchecked * 2 <= n };
         })[0];
         const e = R.planEligibility(col.grid || { name: col.name }, elig);
-        if (e.status !== 'eligible') out.flags.push(`⚠️ ${shortPlanHeader(col)}: ${e.reason} — it is the client's current plan, so it stays; confirm eligibility before enrolling.`);
-        if (!col.verifiable) out.flags.push(`⚠️ ${shortPlanHeader(col)}: over half the doctors unchecked — shown because it is the client's current plan; verify in the carrier directory.`);
+        const id9 = String(col.planId || id).toUpperCase().slice(0, 9);
+        const isCurrent = curAskIds.includes(id9);
+        if (e.status !== 'eligible' && !(elig.csnp === 'confirmed' && e.kind === 'csnp')) {
+          out.flags.push(isCurrent
+            ? `⚠️ ${shortPlanHeader(col)}: ${e.reason} — it is the client's current plan, so it stays; confirm eligibility before enrolling.`
+            : `⚠️ ${shortPlanHeader(col)}: ${e.reason} — shown because you asked to compare this plan; confirm eligibility before enrolling.`);
+        }
+        if (!col.verifiable) out.flags.push(isCurrent
+          ? `⚠️ ${shortPlanHeader(col)}: over half the doctors unchecked — shown because it is the client's current plan; verify in the carrier directory.`
+          : `⚠️ ${shortPlanHeader(col)}: over half the doctors unchecked — shown because you asked to compare this plan; verify in the carrier directory.`);
         pinnedCols.push(col);
         if (carriers.length) out.columns.splice(pinnedCols.length - 1, 0, col); else out.columns.push(col);
       }
@@ -2967,9 +3029,35 @@ const PA_QL_LEGEND = 'PA / QL shown only when the carrier source reports one';
 // medicare.gov don't show it, don't add it"); the legend says restrictions appear only when reported.
 const quietRestrictionMarks = (table) => String(table || '').replace(new RegExp(` · ${PA_QL_UNKNOWN.replace('?', '\\?')}`, 'g'), '');
 
-/** The meds legend, plus the "PA/QL ?" line only when a cell in this table uses it. */
-function medsLegendFor(table) {
-  return String(table || '').includes(PA_QL_UNKNOWN) ? `${R.MEDS_LEGEND} · ${PA_QL_LEGEND}` : R.MEDS_LEGEND;
+/** The meds legend, plus the "PA/QL ?" line only when a cell in this table uses it. QL stays off until she asks. */
+function medsLegendFor(table, opts = {}) {
+  const base = opts.showQl === true ? R.MEDS_LEGEND_WITH_QL : R.MEDS_LEGEND;
+  return String(table || '').includes(PA_QL_UNKNOWN) ? `${base} · ${PA_QL_LEGEND}` : base;
+}
+
+function rowHasQuantityLimit(row) {
+  if (!row) return false;
+  if (row.qlText || row.ql === true) return true;
+  return Array.isArray(row.strengths) && row.strengths.some((s) => s && (s.qlText || s.ql === true));
+}
+
+function medsHaveQuantityLimits(drugResults, plans) {
+  for (const r of drugResults || []) {
+    if (plans && plans.length) {
+      for (const p of plans) {
+        if (rowHasQuantityLimit(drugRowFor(r, p.planId))) return true;
+      }
+    } else {
+      const rows = [...(r.lookups || []), ...Object.values(r.byPlanId || {})];
+      if (rows.some(rowHasQuantityLimit)) return true;
+    }
+  }
+  return false;
+}
+
+function qlFlag(row, showQl) {
+  if (showQl !== true || !row) return null;
+  return row.qlText || (row.ql ? 'QL' : null);
 }
 
 /**
@@ -2987,8 +3075,8 @@ function strengthSplitCell(row, result, opts = {}) {
     const bits = [`T${v.tier}${cost}`];
     if (v.pa) bits.push(ed && !v.indication ? 'PA (verify indication)' : 'PA');
     if (v.st) bits.push('ST');
-    if (v.qlText) bits.push(v.qlText);
-    else if (v.ql) bits.push('QL');
+    const ql = qlFlag(v, opts.showQl);
+    if (ql) bits.push(ql);
     if (v.bdPa) bits.push('B/D PA');
     if (v.hrm) bits.push('HRM (PA 65+)');
     if (v.excludedDrug) bits.push('supplemental');
@@ -3035,7 +3123,7 @@ const strengthMg = (str) => {
  * from a split is never printed as the answer (Jackie Alexander, 2026-10-13: Medicare.gov showed gabapentin
  * 300 mg T2 $0 and levothyroxine 50 mcg T1 $0 where Max printed "not found" / "not covered").
  */
-function oneStrengthCell(row, result) {
+function oneStrengthCell(row, result, opts = {}) {
   const covered = row.strengths.filter((v) => v && v.verified && v.tier && v.coverage !== 'not_covered');
   if (!covered.length) {
     // The plan-level answer says covered but no single strength was confirmed: say the tier, flag the strength
@@ -3048,14 +3136,15 @@ function oneStrengthCell(row, result) {
   let pick = null;
   if (key) pick = covered.find((v) => Math.abs(strengthMg(v.strength) - USUAL_STRENGTH_MG[key]) < 1e-6) || null;
   if (!pick) pick = covered.slice().sort((a, b) => Math.abs(Math.log((strengthMg(a.strength) || 1) / ((key && USUAL_STRENGTH_MG[key]) || strengthMg(covered[Math.floor(covered.length / 2)].strength) || 1))) - Math.abs(Math.log((strengthMg(b.strength) || 1) / ((key && USUAL_STRENGTH_MG[key]) || strengthMg(covered[Math.floor(covered.length / 2)].strength) || 1))))[0];
-  const cell = strengthSplitCell({ strengths: [pick] }, result, { keepLabel: true });
+  const splitOpts = { keepLabel: true, showQl: opts.showQl };
+  const cell = strengthSplitCell({ strengths: [pick] }, result, splitOpts);
   // Every strength the plan answered sits on the same tier and cost, and none was answered "not covered": that IS the
   // answer, whatever dose she takes (Jacqueline Alexander, 2026-10-17: "idk why gabapentin is such a diff drug for max" —
   // 100/300/600/800 mg all T2 $0 on H5420-001 and T1 $0 on H4140-022/-023 while the row read "check Medicare.gov").
   // Strengths medicare.gov did not answer are not a difference (and never "doesn't exist").
   const noneNotCovered = !row.strengths.some((v) => v && v.verified && v.coverage === 'not_covered');
   const sameAll = covered.length >= 2 && noneNotCovered
-    && covered.every((v) => strengthSplitCell({ strengths: [v] }, result, { keepLabel: true }).replace(/^[^:]+:\s*/, '') === cell.replace(/^[^:]+:\s*/, ''));
+    && covered.every((v) => strengthSplitCell({ strengths: [v] }, result, splitOpts).replace(/^[^:]+:\s*/, '') === cell.replace(/^[^:]+:\s*/, ''));
   // Just tier · cost: no "cost same across strengths" note (Yahoska, 2026-10-17 — replaces the #231 note).
   if (sameAll) return cell.replace(/^[^:]+:\s*/, '');
   // The usual strength was not among the answered ones: the strength shown is a different one — say so
@@ -3068,14 +3157,16 @@ function oneStrengthCell(row, result) {
 
 const OTC_SUPPLEMENT_CELL = 'Not on this plan\'s formulary · OTC vitamin — see the plan\'s OTC allowance';
 
-function drugCell(row, unsureNotCovered, result) {
+function drugCell(row, unsureNotCovered, result, opts = {}) {
   if (result && result.nameCheck) return '❓ check name';
   if (!row) return R.UNCHECKED;
   if (Array.isArray(row.strengths) && row.strengths.length > 1) {
     // Every strength answered and covered (different cost / QL): the split is real information, keep it.
     // A split with "not found" / "not covered" strengths in it is lookup noise: one usual-strength line instead.
     const allAnswered = row.strengths.every((v) => v && v.verified && v.tier && v.coverage !== 'not_covered');
-    return allAnswered || (result && result.edDrug) ? strengthSplitCell(row, result) : oneStrengthCell(row, result);
+    return allAnswered || (result && result.edDrug)
+      ? strengthSplitCell(row, result, { showQl: opts.showQl })
+      : oneStrengthCell(row, result, { showQl: opts.showQl });
   }
   // A tier with no cost-share on file says so — a bare "T2" read as $0 (Solis H0982-007, 2026-10-09).
   const cost = row.costShare ? ` ${row.costShare}` : ` · cost n/a${/pdf/i.test(String(row.source || '')) ? ' (PDF)' : ''}`;
@@ -3086,7 +3177,7 @@ function drugCell(row, unsureNotCovered, result) {
   const mixed = row.mixedProducts ? ' · varies by product' : '';
   // The source's own restrictions ("PA · QL 8/30"), the same on ED-label cells as on any other.
   // "B/D PA" (Part B vs D review) and "HRM" (PA required at 65+) are restrictions too (HealthSun book).
-  const flagList = [row.pa ? 'PA' : null, row.st ? 'ST' : null, row.qlText || (row.ql ? 'QL' : null),
+  const flagList = [row.pa ? 'PA' : null, row.st ? 'ST' : null, qlFlag(row, opts.showQl),
     row.bdPa ? 'B/D PA' : null, row.hrm ? 'HRM (PA 65+)' : null].filter(Boolean);
   const flags = flagList.length ? ` · ${flagList.join(' · ')}` : '';
   // ED drugs: the per-plan label says what the coverage means (supplemental / BPH-PAH only / …).
@@ -3150,8 +3241,13 @@ function allDrugLookupsFailed(drugResults) {
 }
 
 /** Drug rows under the same plan columns. `drugs` = lookup_formulary outputs; `knownMeds` = listed but not looked up yet. */
-function medsTable(drugResults, plans, knownMeds = []) {
+function medsTable(drugResults, plans, knownMeds = [], opts = {}) {
+  if (knownMeds && typeof knownMeds === 'object' && !Array.isArray(knownMeds)) {
+    opts = knownMeds;
+    knownMeds = opts.knownMeds || [];
+  }
   if (!plans.length) return '';
+  const cellOpts = { showQl: opts.showQl === true };
   const rows = [];
   const seen = new Set();
   for (const r of drugResults || []) {
@@ -3166,7 +3262,7 @@ function medsTable(drugResults, plans, knownMeds = []) {
       const covered = (row) => Boolean(row && ((row.verified && row.tier) || (Array.isArray(row.strengths) && row.strengths.some((v) => v && v.verified && v.tier))));
       const cells = plans.map((p) => {
         const row = drugRowFor(r, p.planId);
-        return covered(row) ? drugCell(row, Boolean(r.notCoveredNote), r) : OTC_SUPPLEMENT_CELL;
+        return covered(row) ? drugCell(row, Boolean(r.notCoveredNote), r, cellOpts) : OTC_SUPPLEMENT_CELL;
       });
       { const o = strengthInLabel(drugLabel(r, name), cells); rows.push(`| ${o.label} | ${o.cells.join(' | ')} |`); }
       continue;
@@ -3175,7 +3271,7 @@ function medsTable(drugResults, plans, knownMeds = []) {
       const row = drugRowFor(r, p.planId);
       // Ran out of time on this plan: "⏱ timed out", never a final-looking ❔.
       if (r.timedOut && !(row && row.verified)) return R.TIMED_OUT_CELL;
-      return drugCell(row, Boolean(r.notCoveredNote), r);
+      return drugCell(row, Boolean(r.notCoveredNote), r, cellOpts);
     });
     // She asked for one drug and the lookup answered a combination product ("tramadol" -> "Tramadol-Acetaminophen"):
     // those tiers are not the drug she asked about (Melmoth Alexander, 2026-10-13).
@@ -3285,11 +3381,15 @@ function renderedAnswerRaw(doctors, askText, { answered = false, drugs = [], med
   // 2026-10-17: "TOO MUCH TEXT … questions underneath the grid, I'm not looking at that … 2 separate messages").
   const lines = [sel.header, '', gridTable(sel.doctors, top), '',
     R.LEGEND + (top.some((p) => (p.inCarrier || []).length) ? ` · ${R.IN_STAR_LEGEND}` : '')];
-  const meds = medsTable(drugs, top, sel.meds);
-  if (meds) lines.push('', '**Meds**', '', quietRestrictionMarks(meds), '', medsLegendFor(meds), ...strengthNotes(drugs, top.map((p) => p.planId)));
+  const showQl = R.quantityLimitsChoice(askText) === true;
+  const meds = medsTable(drugs, top, sel.meds, { showQl });
+  if (meds) {
+    lines.push('', '**Meds**', '', quietRestrictionMarks(meds), '', medsLegendFor(meds, { showQl }), ...strengthNotes(drugs, top.map((p) => p.planId)));
+  }
   // She typed drugs but no list could be read: say so, never drop the section silently.
   else if (medsUnreadable) lines.push('', '**Meds**', '', R.MEDS_UNREADABLE);
   const follow = [];
+  if (meds && medsHaveQuantityLimits(drugs, top) && !showQl) follow.push(R.QL_OFFER);
   // A checked plan with the same doctor results as a column (H1045-018 vs H1045-001) is named, not dropped.
   const twins = (sel.sameNetwork || []).slice(0, 4).map((x) => `${x.plan.planId} = same doctor results as ${x.twin.planId}`);
   if (twins.length) follow.push(`Also checked: ${twins.join('; ')}.`);
@@ -3480,14 +3580,16 @@ function fallbackAnswerRaw(doctors, askText, { answered = false, drugs = [] } = 
     lines.push(R.LEGEND + (anyCarrier ? ` · ${R.IN_STAR_LEGEND}` : ''));
     const extras = extrasLines(sel);
     if (extras.length) { lines.push(''); extras.forEach((l) => lines.push(l)); }
-    const meds = medsTable(drugs, top, sel.meds);
+    const showQl = R.quantityLimitsChoice(askText) === true;
+    const meds = medsTable(drugs, top, sel.meds, { showQl });
     if (meds) {
       lines.push('');
       lines.push('**Meds**');
       lines.push('');
       lines.push(quietRestrictionMarks(meds));
       lines.push('');
-      lines.push(medsLegendFor(meds));
+      lines.push(medsLegendFor(meds, { showQl }));
+      if (medsHaveQuantityLimits(drugs, top) && !showQl) lines.push(R.QL_OFFER);
       strengthNotes(drugs, top.map((p) => p.planId)).forEach((l) => lines.push(l));
       if (sel.medsToCheck.drugs.length) {
         lines.push(`Not checked yet on every plan: ${sel.medsToCheck.drugs.map(titleCase).join(', ')} — send the same ask again to finish the lookup.`);
@@ -3581,6 +3683,8 @@ module.exports = {
   doctorCoreWords,
   strengthNotes,
   medsLegendFor,
+  medsHaveQuantityLimits,
+  rowHasQuantityLimit,
   quietRestrictionMarks,
   namedPlansFromAsk,
   namedPlanColumns,

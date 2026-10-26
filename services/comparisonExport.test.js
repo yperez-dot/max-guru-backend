@@ -1963,6 +1963,160 @@ describe('no "Show benefits" offer while Max is still asking questions', () => {
   });
 });
 
+describe('chat table and export cells match (HealthSun VitalCare + Solis + Humana)', () => {
+  const plan = (planId, carrier, planName) => ({
+    planId, id: planId, carrier, planName, county: 'Broward', type: 'HMO',
+  });
+  const healthsun = plan('H5431-021', 'HealthSun', 'HealthSun VitalCare');
+  const solis = plan('H0982-007', 'Solis', 'Solis Health Plans');
+  const humana = plan('H1036-065C', 'Humana', 'Humana Gold Plus');
+  const plans = [healthsun, solis, humana];
+  const chat = [
+    '**Doctors × plans**',
+    '',
+    '| Doctor | HealthSun VitalCare · H5431-021 | Solis · H0982-007 | Humana Gold Plus · H1036-065C |',
+    '|---|---|---|---|',
+    '| Mara Quinn | ✅ In | ✅ In | ✅ In |',
+    '| Leon Hart | ✅ In | ✅ In | ✅ In |',
+    '| **Doctors** | **2 in · 0 not in network · 0 unchecked** | **2 in · 0 not in network · 0 unchecked** | **2 in · 0 not in network · 0 unchecked** |',
+    '',
+    '| Drug | HealthSun VitalCare · H5431-021 | Solis · H0982-007 | Humana Gold Plus · H1036-065C |',
+    '|---|---|---|---|',
+    '| meclizine | T1 $0 · PA · HRM (PA 65+) | T1 $0 | T3 $47 |',
+  ].join('\n');
+  const hist = [
+    { role: 'user', content: 'Maya Ortega, 33322. Dr. Mara Quinn, Dr. Leon Hart. meclizine. Compare H5431-021, H0982-007, H1036-065C.' },
+    { role: 'assistant', content: chat },
+  ];
+  const stale = [
+    { name: 'Dr. Mara Quinn', statuses: ['Not confirmed', 'In network', 'In network'], byPlanId: { 'H5431-021': 'Not confirmed', 'H0982-007': 'In network', 'H1036-065C': 'In network' } },
+    { name: 'Dr. Leon Hart', statuses: ['Not confirmed', 'In network', 'In network'], byPlanId: { 'H5431-021': 'Not confirmed', 'H0982-007': 'In network', 'H1036-065C': 'In network' } },
+  ];
+  const lookups = ['Mara Quinn', 'Leon Hart'].map((name) => ({
+    doctorName: name,
+    requestedName: name,
+    status: 'done',
+    networks: [
+      { carrier: 'HealthSun', inNetwork: true, status: 'checked', directoryStatus: 'checked', partialList: true },
+      { carrier: 'Solis Health Plans', inNetwork: true, status: 'checked' },
+      { carrier: 'Humana Find Care', inNetwork: true, plans: ['Humana Gold Plus (H1036-065C)'] },
+    ],
+  }));
+
+  it('Excel/PDF doctor and med cells match the chat table — never downgrade In to Not confirmed', () => {
+    const tbl = exp.latestChatTable(hist);
+    assert.ok(tbl && tbl.rows.length === 2);
+    assert.equal(tbl.rows[0].byPlan['H5431-021'], exp.NETWORK_IN);
+    assert.equal(tbl.meds[0].byPlan['H5431-021'], 'T1 $0 · PA · HRM (PA 65+)');
+
+    const payload = exp.buildExportPayload(plans, chat, {
+      planSetFixed: true,
+      clientName: 'Maya Ortega',
+      zip: '33322',
+      doctors: stale,
+      savedDoctors: stale,
+      chatTable: tbl,
+      providerLookups: lookups,
+      drugs: [{
+        name: 'meclizine',
+        byPlanId: {
+          'H5431-021': { verified: true, coverage: 'covered', tier: 1, costShare: '$0', pa: true, hrm: true },
+          'H0982-007': { verified: true, coverage: 'covered', tier: 1, costShare: '$0' },
+          'H1036-065C': { verified: true, coverage: 'covered', tier: 3, costShare: '$47' },
+        },
+      }],
+    });
+    const model = exp.buildComparisonModel({ ...payload, keepPlanOrder: true, currentPlanIds: ['H5431-021'] });
+    const quinn = model.aoa.find((r) => /quinn/i.test(r[0] || ''));
+    const hart = model.aoa.find((r) => /hart/i.test(r[0] || ''));
+    const meclizine = model.aoa.find((r) => /meclizine/i.test(r[0] || ''));
+    assert.ok(quinn && hart && meclizine, JSON.stringify(model.aoa.map((r) => r[0])));
+    assert.deepEqual(quinn.slice(1), ['In network', 'In network', 'In network']);
+    assert.deepEqual(hart.slice(1), ['In network', 'In network', 'In network']);
+    assert.equal(quinn.includes('Not confirmed'), false);
+    assert.equal(hart.includes('Not confirmed'), false);
+    assert.match(String(meclizine[1]), /HRM \(PA 65\+\)/);
+    assert.match(String(meclizine[1]), /PA/);
+  });
+
+  it('HealthSun carrier-level directory In is plan In even without the chat table', () => {
+    const docs = exp.doctorsFromProviderLookups(lookups, plans);
+    assert.equal(docs.length, 2);
+    docs.forEach((d) => {
+      assert.deepEqual(d.statuses, ['In network', 'In network', 'In network'], d.name);
+    });
+  });
+
+  it('HealthSun people miss stays Not confirmed; a clinic miss is Out', () => {
+    const miss = (name) => [{
+      doctorName: name,
+      networks: [{ carrier: 'HealthSun', inNetwork: false, status: 'checked', directoryStatus: 'checked', partialList: true }],
+    }];
+    const person = exp.doctorsFromProviderLookups(miss('Mara Quinn'), [healthsun])[0];
+    const clinic = exp.doctorsFromProviderLookups(miss('Lakeside Therapy Group'), [healthsun])[0];
+    assert.equal(person.statuses[0], 'Not confirmed');
+    assert.equal(clinic.statuses[0], 'Not in network (not listed)');
+  });
+
+  it('formatDrugCell carries HRM (PA 65+) and never drops it', () => {
+    assert.match(
+      exp.formatDrugCell({ verified: true, coverage: 'covered', tier: 1, costShare: '$0', pa: true, hrm: true }, healthsun),
+      /Tier 1 · \$0 · PA · HRM \(PA 65\+\)/
+    );
+  });
+
+  it('formatDrugCell hides QL unless showQl is on', () => {
+    const status = { verified: true, coverage: 'covered', tier: 1, costShare: '$0', pa: true, ql: true, qlText: 'QL 30/30', hrm: true };
+    assert.equal(exp.formatDrugCell(status, healthsun), 'Tier 1 · $0 · PA · HRM (PA 65+)');
+    assert.equal(exp.formatDrugCell(status, healthsun, { showQl: true }), 'Tier 1 · $0 · PA · QL 30/30 · HRM (PA 65+)');
+  });
+
+  it('each requested med is one export row; chat prompts never become rows', () => {
+    const combo = 'clotrimazole / betamethasone dipropionate lot dipr';
+    const folded = exp.foldExportDrugs([
+      { name: combo, byPlanId: { 'H5431-021': { verified: false } } },
+      { name: 'clotrimazole / betamethasone dipropionate', byPlanId: { 'H5431-021': { verified: false } } },
+      { name: "❓ 'clotrimazole/betamethasone dipropionate LOT DIPROP' — did you mean betamethasone dipropionate?", byPlanId: {} },
+    ]);
+    assert.equal(folded.length, 1, folded.map((d) => d.name).join(' | '));
+    assert.match(folded[0].name, /clotrimazole/i);
+    assert.match(folded[0].name, /betamethasone/i);
+    assert.doesNotMatch(folded[0].name, /did you mean|❓/);
+    assert.equal(exp.isChatPromptDrugName("❓ 'x' — did you mean betamethasone dipropionate?"), true);
+    assert.equal(exp.looksLikeDrugName('Check name'), false);
+    const payload = exp.buildExportPayload(
+      [healthsun],
+      "Jordan Hale, 33322. Meds: clotrimazole/betamethasone dipropionate LOT DIPROP. Compare H5431-021.",
+      {
+        userMessages: ['Jordan Hale, 33322. Meds: clotrimazole/betamethasone dipropionate LOT DIPROP. Compare H5431-021.'],
+        drugs: [
+          { name: combo, byPlanId: { 'H5431-021': { verified: false } } },
+          { name: 'clotrimazole / betamethasone dipropionate', byPlanId: { 'H5431-021': { verified: false } } },
+        ],
+        chatTable: {
+          planIds: ['H5431-021'],
+          rows: [],
+          meds: [
+            { name: "❓ 'clotrimazole/betamethasone dipropionate LOT DIPROP' — did you mean betamethasone dipropionate?", byPlan: { 'H5431-021': 'Check name' } },
+          ],
+        },
+      }
+    );
+    const names = payload.drugs.map((d) => d.name);
+    assert.equal(names.length, 1, names.join(' | '));
+    assert.doesNotMatch(names.join(' '), /did you mean|Check name|❓/);
+  });
+
+  it('a later Not confirmed lookup does not erase a chat In on H5431-021', () => {
+    const folded = exp.foldDoctorsLatestWins(
+      [{ name: 'Dr. Mara Quinn', statuses: ['In network', 'In network', 'In network'] }],
+      [{ name: 'Dr. Mara Quinn', statuses: ['Not confirmed', 'In network', 'In network'] }],
+      plans
+    );
+    assert.deepEqual(folded[0].statuses, ['In network', 'In network', 'In network']);
+  });
+});
+
 describe('open questions: wrapped numbered items that end with a period', () => {
   it('"Two things would let me finish" with questions inside the items is open', () => {
     const t = 'Other results:\n- He\'s Out on H5420-003.\n\nTwo things would let me finish:\n1. Do you want me to add a Solis column? I\'d need the specific plan.\n2. Is Rusheen Bartlett the same person as Rusheena Bartlett, D.P.M. (NPI 1427581123)? Also, does either of them have Medicaid? D-SNPs stay out until you confirm that.';

@@ -31,7 +31,7 @@ const MAX_MEDS = 20;
 const MAX_PLANS = 6; // same cap as the UI (max-demo MAX_PLANS) — a 5th named plan was silently dropped
 
 // "wondering if there's something better", "other options", "alternatives" → keep her plan as a column AND shop the county.
-const ALTERNATIVES_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\bother\s+(?:options?|plans?)\b|\balternatives?\b|\bsee\s+what\s+else\b|\bwhat\s+else\b|\bshop(?:ping)?\s+around\b|\bcompare\s+(?:it\s+)?(?:to|against|with)\s+others?\b|\bsomething\s+else\b/i;
+const ALTERNATIVES_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\bother\s+(?:options?|plans?)\b|\balternatives?\b|\bsee\s+what\s+else\b|\bwhat\s+else\b|\bshop(?:ping)?\s+around\b|\bcompare\s+(?:it\s+)?(?:to|against|with)\s+others?\b|\bsomething\s+else\b|\banother\s+(?:\w+\s+){0,3}(?:option|plan)s?\b|\bgiveback\s+options?\b|\blooking\s+for\s+(?:another|other|a\s+different)/i;
 
 const PLAN_ID_RE = /\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
 
@@ -52,7 +52,10 @@ function section(text, label, stops) {
 
 // Plan ids as agents paste them: "H1045-5-0", "H1045-005-0", "H1045-5" → "H1045-005".
 function normalizePlanIds(text) {
-  return String(text || '').replace(/\b([HR]\d{4})-(\d{1,3})(?:-\d)?(?=[^\dA-Za-z-]|$)/gi, (m, a, b) => `${a.toUpperCase()}-${b.padStart(3, '0')}`);
+  return String(text || '')
+    .replace(/\b([HR]\d{4})-\s*[\r\n]+\s*(\d{1,3}[A-Z]?)\b/gi, (_, a, b) => `${a}-${b}`)
+    .replace(/\n[ \t]*\(?\b(?=[HR]\d{4}-)/gi, ' ')
+    .replace(/\b([HR]\d{4})-(\d{1,3})(?:-\d)?(?=[^\dA-Za-z-]|$)/gi, (m, a, b) => `${a.toUpperCase()}-${b.padStart(3, '0')}`);
 }
 
 const TITLE_SKIP = new Set(['and', 'y', '&']);
@@ -494,7 +497,10 @@ function eligibilityText(e) {
   if (e.medicaid === 'none') parts.push('No Medicaid.');
   if (e.medicaid === 'full') parts.push(`Full Medicaid${e.levels.length ? ` (${e.levels.join(', ')})` : ''}.`);
   if (e.medicaid === 'msp') parts.push(e.levels.length ? `MSP only: ${e.levels.join(', ')}.` : 'MSP only.');
-  if (e.csnp === 'confirmed') parts.push('C-SNP eligible.');
+  if (e.csnp === 'confirmed') {
+    const cond = Array.isArray(e.conditions) && e.conditions.length ? e.conditions.join(', ') : 'yes';
+    parts.push(`C-SNP qualifying condition confirmed: ${cond}.`);
+  }
   if (e.csnp === 'none') parts.push('No C-SNP qualifying condition.');
   return parts.join(' ');
 }
@@ -578,19 +584,32 @@ function askTextFor(input) {
   return (input.addedPlans || []).length ? `${text}\nPlans she added: ${input.addedPlans.join(', ')}.` : text;
 }
 
-async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFormularyCached } = {}) {
+async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFormularyCached, lookupTimeoutMs } = {}) {
   const input = job.input;
   const askText = askTextFor(input);
   try {
     // 1) Doctors — all at once; progress ticks as each one finishes.
     job.status = 'doctors';
     const deadlineAt = Date.now() + DOCTOR_BUDGET_MS;
+    // A lookup that never answers used to leave the card at "Checking doctors 0/N" forever.
+    const perDoctorMs = Number(lookupTimeoutMs) > 0
+      ? Number(lookupTimeoutMs)
+      : Math.max(15_000, Math.min(60_000, Math.floor(DOCTOR_BUDGET_MS / Math.max(1, input.doctors.length)) + 15_000));
     const doctorStructs = await Promise.all(input.doctors.map(async (d) => {
       let r;
+      let timer;
       try {
-        r = await lookupOneDoctor({ doctorName: d.name, npi: d.npi, zip: input.zip, year: input.year }, { deadlineAt, npiCap: 2 });
+        const left = Math.max(250, Math.min(perDoctorMs, deadlineAt - Date.now()));
+        r = await Promise.race([
+          Promise.resolve().then(() => lookupOneDoctor({ doctorName: d.name, npi: d.npi, zip: input.zip, year: input.year }, { deadlineAt, npiCap: 2 })),
+          new Promise((_, rej) => { timer = setTimeout(() => rej(Object.assign(new Error('timed out'), { timedOut: true })), left); }),
+        ]);
       } catch (e) {
-        r = { status: 'error', doctorName: d.name, structured: { doctorName: d.name, networks: [] } };
+        r = e && e.timedOut
+          ? { status: 'timeout', doctorName: d.name, structured: { doctorName: d.name, networks: [] } }
+          : { status: 'error', doctorName: d.name, structured: { doctorName: d.name, networks: [] } };
+      } finally {
+        clearTimeout(timer);
       }
       job.progress.doctors.done += 1;
       return { ...(r.structured || {}), requestedName: d.name, ...(d.npi ? { requestedNpi: d.npi } : {}), status: r.status, mustKeep: Boolean(d.mustKeep) };
@@ -602,13 +621,19 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     if (slow.length && CARD_RECHECK_MS > 0) {
       job.status = 'rechecking';
       job.progress.recheck = { total: slow.length, done: 0 };
-      const until = Date.now() + CARD_RECHECK_MS;
+      const until = Date.now() + (Number(lookupTimeoutMs) > 0 ? Number(lookupTimeoutMs) : CARD_RECHECK_MS);
       await Promise.all(slow.map(async (k) => {
         const d = input.doctors[k];
+        let timer;
         try {
-          const r = await lookupOneDoctor({ doctorName: d.name, npi: d.npi, zip: input.zip, year: input.year }, { deadlineAt: until, npiCap: 2, background: true });
+          const left = Math.max(250, until - Date.now());
+          const r = await Promise.race([
+            Promise.resolve().then(() => lookupOneDoctor({ doctorName: d.name, npi: d.npi, zip: input.zip, year: input.year }, { deadlineAt: until, npiCap: 2, background: true })),
+            new Promise((_, rej) => { timer = setTimeout(() => rej(Object.assign(new Error('timed out'), { timedOut: true })), left); }),
+          ]);
           if (r && r.status !== 'timeout') doctorStructs[k] = { ...(r.structured || {}), requestedName: d.name, ...(d.npi ? { requestedNpi: d.npi } : {}), status: r.status, mustKeep: Boolean(d.mustKeep) };
         } catch (_) { /* keep the timed-out row */ }
+        finally { clearTimeout(timer); }
         job.progress.recheck.done += 1;
       }));
       job.result.rechecked = slow.length;
@@ -700,10 +725,15 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     job.result.selection = String(sel.whyLine || '').replace(/^Why these plans:\s*/i, '');
     job.result.doctorCount = input.doctors.length;
     job.result.doctorTable = gridTable(sel.doctors, columns);
-    const medsFull = medsTable(drugs, columns, input.meds);
+    const showQl = require('./comparisonRules').quantityLimitsChoice(askText) === true
+      || input.showQl === true
+      || (input.eligibility && input.eligibility.showQl === true);
+    const medsFull = medsTable(drugs, columns, input.meds, { showQl });
     job.result.medsTable = quietRestrictionMarks(medsFull);
     job.result.legend = LEGEND + (columns.some((p) => (p.inCarrier || []).length) ? ` · ${IN_STAR_LEGEND}` : '');
-    job.result.medsLegend = medsLegendFor(medsFull);
+    job.result.medsLegend = medsLegendFor(medsFull, { showQl });
+    job.result.showQl = showQl;
+    job.result.hasQl = require('./doctorPlanNarrow').medsHaveQuantityLimits(drugs, columns);
     // Every lookup failed: the table carries the banner, and the UI shows it in red.
     job.result.medsLookupFailed = require('./doctorPlanNarrow').allDrugLookupsFailed(drugs); // same rule as the chat
     job.result.medsBanner = job.result.medsLookupFailed ? MEDS_FAILED_BANNER.replace(/\*\*/g, '') : null;
@@ -718,6 +748,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     };
     job.result.sameNetwork = sel.sameNetwork.map((x) => ({ planId: x.plan.planId, name: x.plan.name, sameAs: x.twin.planId, diff: x.diff }));
     job.result.flags = [...sel.flags, ...strengthNotes(drugs, planIds)];
+    if (job.result.hasQl && !showQl) job.result.flags.push(require('./comparisonRules').QL_OFFER);
     job.result.questions = [...(sel.questions || []), ...duplicateQuestions(sel.doctors || doctorStructs).filter((q) => !(sel.questions || []).includes(q))];
     job.result.notConfirmed = doctorStructs.filter((d) => !['done', 'partial'].includes(d.status)).map((d) => d.requestedName);
     // toolResults in the shape the Excel/PDF export already reads.

@@ -67,7 +67,7 @@ async function price(drugName) {
   D._nameCache.clear();
   return F.lookupFormulary({ drugName, planIds: [PLAN], year: 2027 }, stubFetch());
 }
-const cell = (r) => N.medsTable([r], [{ planId: PLAN, name: 'Solis Healthy Living' }]).split('\n')[2].split(' | ').slice(1).join(' | ').replace(/ \|$/, '');
+const cell = (r) => N.medsTable([r], [{ planId: PLAN, name: 'Solis Healthy Living' }], { showQl: true }).split('\n')[2].split(' | ').slice(1).join(' | ').replace(/ \|$/, '');
 
 test('esomeprazole magnesium DR capsule 20/40 mg: T2 · QL 30/30 (medicare.gov tier, PDF restrictions)', async () => {
   const r = await price('esomeprazole');

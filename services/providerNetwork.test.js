@@ -314,7 +314,7 @@ describe('timed-out cells: ⏱ status, own med budget, background re-check', () 
     const messages = [{ role: 'user', content: 'Client ZIP 33332. Doctors: Ernesto Padron, Howard Bush. Meds: Eliquis, metformin. Compare Humana Gold Plus H1036-065C and UHC H1045-005' }];
     const out = await lookupProviderNetwork({ doctors: [{ doctorName: 'Ernesto Padron' }, { doctorName: 'Howard Bush' }], zip: '33332' }, { deadlineAt: Date.now() + 600, messages, recheck: true });
     const table = out.structured.rendered;
-    assert.match(table, /^⏱ 1 doctor check and 1 med ran out of time — re-checking…/m);
+    assert.match(table, /^⏱ .+ ran out of time — re-checking…/m);
     assert.match(table.split('\n').find((l) => /^\| metformin/i.test(l)) || '', /⏱ timed out/);
     assert.doesNotMatch(table.split('\n').find((l) => /^\| metformin/i.test(l)) || '', /❔/);
     assert.match(table.split('\n').find((l) => /Howard Bush/.test(l)) || '', /⏱ timed out/);

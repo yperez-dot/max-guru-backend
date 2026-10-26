@@ -339,6 +339,8 @@
       needs: needs,
       terminatingPlan: terminatingPlan,
       currentPlanIds: (Array.isArray(extra.currentPlanIds) && extra.currentPlanIds.length ? extra.currentPlanIds : extractCurrentPlanIds(thread)).slice(0, 3),
+      eligibility: extra.eligibility || src.eligibility || undefined,
+      showQl: extra.showQl === true || src.showQl === true ? true : extra.showQl === false || src.showQl === false ? false : undefined,
     };
   }
 
@@ -390,6 +392,8 @@
       currentPlanIds: Array.isArray(w.currentPlanIds) ? w.currentPlanIds.slice(0, 3) : [],
       doctors: doctors,
       drugs: drugs,
+      eligibility: w.eligibility || undefined,
+      showQl: w.showQl === true,
     };
   }
 
@@ -448,6 +452,16 @@
       needs.forEach((n) => lines.push("- " + n));
     }
     if (w.terminatingPlan) lines.push("Plan Terminating: " + w.terminatingPlan);
+    const el = w.eligibility && typeof w.eligibility === "object" ? w.eligibility : {};
+    if (el.medicaid === "none") lines.push("No Medicaid.");
+    else if (el.medicaid === "full") lines.push("Full Medicaid" + (el.levels && el.levels.length ? " (" + el.levels.join(", ") + ")" : "") + ".");
+    else if (el.medicaid === "msp") lines.push(el.levels && el.levels.length ? "MSP only: " + el.levels.join(", ") + "." : "MSP only.");
+    if (el.csnp === "confirmed") {
+      const conds = Array.isArray(el.conditions) && el.conditions.length ? el.conditions.join(", ") : "yes";
+      lines.push("C-SNP qualifying condition confirmed: " + conds + ".");
+    } else if (el.csnp === "none") lines.push("No C-SNP qualifying condition.");
+    if (el.mustKeep) lines.push("Must-keep doctors: " + el.mustKeep + ".");
+    if (w.showQl === true) lines.push("Show quantity limits.");
     return lines.join("\n");
   }
 
@@ -669,6 +683,20 @@
     return /\b(?:doctors?|providers?)\s*:/i.test(t) && /\b(?:meds?|medications?|prescriptions?)\s*:/i.test(t);
   }
 
+  // A complete new client ask in chat or on the card (labels optional): name, ZIP, 2+ doctors, plus meds or a plan.
+  function isFullClientRequest(text) {
+    const t = String(text || "");
+    if (t.indexOf(WORKUP_CONTEXT_PREFIX) === 0) return false;
+    if (isFullClientList(t)) return true;
+    const zip = /\b3[0-4]\d{3}\b/.test(t);
+    const named = /^\s*[A-Z][a-z]+(?:\s+(?:and|&)\s+[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]+/.test(t);
+    const docs = (t.match(/\b(?:dr|dra|doctor|doctora)\b\.?\s+[A-Za-z]/gi) || []).length >= 2
+      || /\b(?:doctors?|providers?)\s*:/i.test(t);
+    const extras = /\b(?:meds?|medications?|rx)\s*:/i.test(t) || /\b[HR]\d{4}-\d{1,3}/i.test(t)
+      || /\bgiveback\b/i.test(t) || /\b(?:meds?|medications?)\b/i.test(t);
+    return Boolean(zip && named && docs && extras);
+  }
+
   // The client's ZIP from her newest message that states one ("Ana Ruiz, 33196" / "ZIP 33196") — never a doctor's
   // or pharmacy's address ZIP, and never the older original request once she gave a new one.
   function newestClientZip(messages, textFn) {
@@ -695,6 +723,21 @@
     const orig = String(w.originalQuery || "").match(/^[^\n]{0,120}?\b(\d{5})\b/);
     const was = orig && orig[1] !== w.zip ? " — latest; the original request said " + orig[1] : "";
     return "ZIP " + w.zip + (county ? " (" + county + ")" : "") + was;
+  }
+
+  /** Same person? First names must agree. "Maya Ortega" never matches "Jordan Hale" or a spouse lead. */
+  function sameClientLead(savedName, lead) {
+    const a = String(savedName || "").toLowerCase().replace(/[^a-z\s&]/g, " ").trim();
+    const b = String(lead || "").toLowerCase().replace(/\bzip(?:\s*code)?\s*:?\s*\d{5}.*$/i, "").replace(/[^a-z\s&,]/g, " ").trim();
+    if (!a || !b) return false;
+    if (a === b) return true;
+    if (b === a || b.startsWith(a + " ") || b.startsWith(a + ",") || b.startsWith(a + "\n")) return true;
+    const first = (n) => n.split(/\s+/).filter((w) => w && !["mr", "mrs", "ms", "and", "the"].includes(w))[0] || "";
+    const last = (n) => {
+      const w = n.split(/\s+/).filter((x) => x && !["mr", "mrs", "ms", "and", "the"].includes(x));
+      return w.length >= 2 ? w[w.length - 1] : "";
+    };
+    return first(a) && first(a) === first(b) && last(a) && last(a) === last(b);
   }
 
   // Drug cells are tier · cost only: an old saved meds table loses its "cost same across strengths" notes (Yahoska, 2026-10-17).
@@ -739,6 +782,8 @@
     comparePlansLine,
     pastePlanSet,
     isFullClientList,
+    isFullClientRequest,
+    sameClientLead,
     newestClientZip,
     workupZipLine,
   };

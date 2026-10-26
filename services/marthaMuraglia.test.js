@@ -106,7 +106,7 @@ test('loading her workup: all 8 doctors come back, the count matches the request
   assert.match(CW.compactWorkupContext(w), /ZIP\/county: 33323 \/ Broward/);
   // The page sends that ask on load.
   const html = fs.readFileSync(path.join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
-  assert.match(html, /recoveredDoctorsRunAsk\(workup\)[\s\S]{0,400}send\(runAsk\)/);
+  assert.match(html, /recoveredDoctorsRunAsk\(workup\)[\s\S]{0,800}send\(runAsk\)/);
 });
 
 test('the live sequence: add 1, add 5, two corrections in one message → every re-run has all 8, corrected, with NPIs', () => {

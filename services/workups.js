@@ -146,6 +146,10 @@ function slimMedications(drugs) {
         costShare: incoming.costShare ? clip(incoming.costShare, 40) : null,
         pa: incoming.pa === true ? true : incoming.pa === false ? false : null,
         st: incoming.st === true ? true : incoming.st === false ? false : null,
+        ql: incoming.ql === true ? true : incoming.ql === false ? false : null,
+        qlText: incoming.qlText ? clip(incoming.qlText, 40) : null,
+        hrm: incoming.hrm === true ? true : incoming.hrm === false ? false : null,
+        bdPa: incoming.bdPa === true ? true : incoming.bdPa === false ? false : null,
         source: incoming.source ? clip(incoming.source, 40) : null,
       };
     });
@@ -226,7 +230,38 @@ function normalizeWorkupInput(input) {
     // That newest full request: what a reload recovers doctors from (never the older original request it replaced).
     latestQuery: String(src.latestQuery || '').replace(/\r/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, MAX_ORIGINAL_QUERY),
     pharmacy: clip(src.pharmacy || '', 200),
+    eligibility: slimEligibility(src.eligibility),
+    showQl: src.showQl === true ? true : src.showQl === false ? false : undefined,
   };
+}
+
+function slimEligibility(src) {
+  if (!src || typeof src !== 'object') return null;
+  const medicaid = ['none', 'full', 'msp'].includes(src.medicaid) ? src.medicaid : '';
+  const csnp = ['none', 'confirmed'].includes(src.csnp) ? src.csnp : '';
+  const levels = Array.isArray(src.levels) ? src.levels.map((l) => clip(l, 12)).filter(Boolean).slice(0, 6) : [];
+  const conditions = Array.isArray(src.conditions) ? src.conditions.map((c) => clip(c, 40)).filter(Boolean).slice(0, 6) : [];
+  const mustKeep = clip(src.mustKeep || src.mustKeepDoctors || '', 200);
+  if (!medicaid && !csnp && !levels.length && !conditions.length && !mustKeep) return null;
+  const out = {};
+  if (medicaid) out.medicaid = medicaid;
+  if (csnp) out.csnp = csnp;
+  if (levels.length) out.levels = levels;
+  if (conditions.length) out.conditions = conditions;
+  if (mustKeep) out.mustKeep = mustKeep;
+  return out;
+}
+
+function mergeEligibility(prev, incoming) {
+  const a = slimEligibility(prev) || {};
+  const b = slimEligibility(incoming) || {};
+  const out = { ...a };
+  if (b.medicaid) out.medicaid = b.medicaid;
+  if (b.csnp) out.csnp = b.csnp;
+  if (b.levels && b.levels.length) out.levels = b.levels;
+  if (b.conditions && b.conditions.length) out.conditions = b.conditions;
+  if (b.mustKeep) out.mustKeep = b.mustKeep;
+  return Object.keys(out).length ? out : null;
 }
 
 function nameKey(name) {
@@ -331,6 +366,70 @@ function mergeMedications(existing, incoming) {
     if (m.screen) hit.screen = { ...(hit.screen || {}), ...m.screen }; // newest screen wording wins
   }
   return out.slice(0, MAX_MEDS);
+}
+
+/** Doctors / meds / named plans the request itself named — used so a thin save cannot drop them. */
+function requestedFactsFromQuery(query) {
+  const empty = { doctors: [], medications: [], plans: [], currentPlans: [], wantsAlternatives: false };
+  if (!query || !String(query).trim()) return empty;
+  let ask;
+  try {
+    ask = require('./compareJobs').parseCompareAsk(query);
+  } catch (_) {
+    return empty;
+  }
+  const doctors = [...(ask.doctors || [])];
+  for (const name of ask.unreadDoctors || []) {
+    if (name && !doctors.some((d) => d && d.name && String(d.name).toLowerCase() === String(name).toLowerCase())) {
+      doctors.push({ name });
+    }
+  }
+  const planIds = [...new Set([...(ask.currentPlans || []), ...(ask.plans || [])].map((id) => String(id || '').toUpperCase()).filter(Boolean))];
+  return {
+    doctors: slimDoctors(doctors.map((d) => ({ name: d.name, npi: d.npi, byPlanId: {} }))),
+    medications: slimMedications((ask.meds || []).map((name) => ({ name, byPlanId: {} }))),
+    plans: planIds.map((planId) => slimPlan({ planId })).filter(Boolean),
+    currentPlans: (ask.currentPlans || []).slice(0, 3),
+    wantsAlternatives: Boolean(ask.wantsAlternatives),
+  };
+}
+
+function dropRemovedDoctors(rows, text) {
+  if (!text || !rows || !rows.length) return rows || [];
+  try {
+    const LW = require('./loadedWorkup');
+    const clauses = LW.doctorRemovalClauses(text);
+    if (!clauses.length) return rows;
+    return rows.filter((d) => !LW.removedByClauses(d.name, clauses));
+  } catch (_) {
+    return rows;
+  }
+}
+
+function dropRemovedMeds(rows, text) {
+  if (!text || !rows || !rows.length) return rows || [];
+  try {
+    const gone = require('./loadedWorkup').medRemovalsIn(text, rows.map((m) => m.name));
+    if (!gone.length) return rows;
+    const drop = new Set(gone.map((n) => medKey(n)));
+    return rows.filter((m) => !drop.has(medKey(m.name)));
+  } catch (_) {
+    return rows;
+  }
+}
+
+function mergePlansPreserve(prev, incoming, requested) {
+  const key = (p) => String((p && p.planId) || '').toUpperCase().slice(0, 9);
+  const out = [];
+  const push = (p) => {
+    const s = slimPlan(p);
+    if (!s || !s.planId || out.some((x) => key(x) === key(s))) return;
+    out.push(s);
+  };
+  (incoming || []).forEach(push);
+  (requested || []).forEach(push);
+  (prev || []).forEach(push);
+  return out.slice(0, MAX_PLANS);
 }
 
 function compareResultWeight(cr) {
@@ -446,7 +545,15 @@ function withRecoveredDoctors(workup0) {
   if (!missing.length) return withNotes(workup);
   const rows = missing.slice(0, Math.max(0, MAX_DOCTORS - saved.length)).map((d) => (d.npi ? { name: d.name, npi: d.npi, byPlanId: {} } : { name: d.name, byPlanId: {} }));
   if (!rows.length) return withNotes(workup);
-  return withNotes({ ...workup, doctors: [...saved, ...rows], recoveredDoctors: rows.map((r) => r.name) });
+  const names = rows.map((r) => r.name);
+  // Safety net only — a save should have persisted these. Flag so a reload still says so.
+  console.warn(`[workups] recovered ${names.length} doctor(s) the saved list had dropped: ${names.join(', ')}`);
+  return withNotes({
+    ...workup,
+    doctors: [...saved, ...rows],
+    recoveredDoctors: names,
+    recoveredDoctorsFlag: true,
+  });
 }
 
 function toSummary(workup) {
@@ -660,6 +767,26 @@ class WorkupStore {
     // Saves MERGE: a thin re-save (a chat that only mentioned one plan or one drug) never
     // drops saved doctors, meds, plans, ZIP or a fuller comparison result.
     const keepCompare = body.compareResult && prev.compareResult && compareResultWeight(body.compareResult) < compareResultWeight(prev.compareResult);
+    // The request the agent last typed for this client (new full paste) or the original one.
+    const requestQuery = body.latestQuery || prev.latestQuery || (!existing ? body.originalQuery : '') || prev.originalQuery || '';
+    const requested = requestedFactsFromQuery(requestQuery);
+    // replaceDoctors with a NEW full list (latestQuery) is the list now. A check / plan-only / meds-only
+    // save that sets replaceDoctors on a narrowed table must never wipe the rest.
+    const newFullDoctors = body.replaceDoctors && body.doctors.length && Boolean(body.latestQuery);
+    const newFullMeds = body.replaceMedications && body.medications.length && Boolean(body.latestQuery);
+    let doctors = newFullDoctors
+      ? (requested.doctors.length > body.doctors.length ? mergeDoctors(body.doctors, requested.doctors) : body.doctors)
+      : mergeDoctors(mergeDoctors(prev.doctors || [], body.doctors), requested.doctors);
+    let medications = newFullMeds
+      ? (requested.medications.length > body.medications.length ? mergeMedications(body.medications, requested.medications) : body.medications)
+      : mergeMedications(mergeMedications(prev.medications || [], body.medications), requested.medications);
+    doctors = dropRemovedDoctors(doctors, body.latestQuery || '');
+    medications = dropRemovedMeds(medications, body.latestQuery || '');
+    // Exact IDs she typed (current + named) lock the set: leftover / prior-client extras stay off.
+    const namedExact = requested.plans.length >= 2 && !requested.wantsAlternatives;
+    const plans = namedExact
+      ? mergePlansPreserve([], requested.plans, requested.plans)
+      : mergePlansPreserve(prev.plans || [], body.plans, requested.plans);
     const workup = {
       id,
       ownerEmail: owner,
@@ -671,12 +798,10 @@ class WorkupStore {
       // which runs in both counties) never moves a 33323 client out of Broward (Martha Muraglia, 2026-10-20).
       county: zipCounty(body.zip || prev.zip) || body.county || prev.county || '',
       contacts: body.contacts || prev.contacts || '',
-      plans: body.plans.length ? body.plans : (prev.plans || []),
-      planIds: body.plans.length ? body.planIds : (prev.planIds || []),
-      doctors: body.replaceDoctors && body.doctors.length ? body.doctors : mergeDoctors(prev.doctors, body.doctors),
-      // A new full list replaces the saved meds (Live bug, 2026-10-21: Ketoconazole and Levothyroxine Sodium, which
-      // she no longer listed, came back on the next turn).
-      medications: body.replaceMedications && body.medications.length ? body.medications : mergeMedications(prev.medications, body.medications),
+      plans,
+      planIds: plans.map((p) => p.planId),
+      doctors,
+      medications,
       latestQuery: body.latestQuery || prev.latestQuery || '',
       pharmacy: body.pharmacy || prev.pharmacy || '',
       needs: slimNeeds([...(prev.needs || []), ...body.needs]),
@@ -684,9 +809,21 @@ class WorkupStore {
       // Set once, when the workup is created; a later save never replaces it, and an existing workup that has none
       // never gets a later message passed off as her original request.
       originalQuery: prev.originalQuery || (existing ? '' : body.originalQuery || ''),
-      currentPlanIds: body.currentPlanIds.length ? body.currentPlanIds : (prev.currentPlanIds || []),
+      currentPlanIds: body.currentPlanIds.length ? body.currentPlanIds : (requested.currentPlans.length ? requested.currentPlans : (prev.currentPlanIds || [])),
       // Keep an earlier saved result when a re-save has none, or a thinner one.
       compareResult: keepCompare ? prev.compareResult : (body.compareResult || prev.compareResult || null),
+      eligibility: (() => {
+        let fromQuery = null;
+        try { fromQuery = require('./comparisonRules').eligibilityFromAsk(requestQuery); } catch (_) { fromQuery = null; }
+        return mergeEligibility(mergeEligibility(prev.eligibility, fromQuery), body.eligibility);
+      })(),
+      showQl: (() => {
+        if (body.showQl === true || body.showQl === false) return body.showQl;
+        let fromQuery = null;
+        try { fromQuery = require('./comparisonRules').quantityLimitsChoice(`${requestQuery}\n${body.latestQuery || ''}`); } catch (_) { fromQuery = null; }
+        if (fromQuery === true || fromQuery === false) return fromQuery;
+        return prev.showQl === true;
+      })(),
       // Every earlier version, newest first, so a bad save can be undone.
       history: existing ? [historyEntry(existing), ...(existing.history || [])].filter(Boolean).slice(0, MAX_HISTORY) : [],
       createdAt: prev.createdAt || nowIso,
@@ -772,6 +909,9 @@ module.exports = {
   toSummary,
   withRecoveredDoctors,
   withZipCounty,
+  requestedFactsFromQuery,
+  slimEligibility,
+  mergeEligibility,
   DEFAULT_MAX_PER_OWNER,
   ROLLING_RE,
   DAILY_RE,

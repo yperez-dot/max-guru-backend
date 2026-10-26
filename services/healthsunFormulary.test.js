@@ -82,7 +82,7 @@ async function price(drugName, planIds = ['H5431-006'], log = []) {
   D._nameCache.clear();
   return F.lookupFormulary({ drugName, planIds, year: 2027 }, stubFetch(log));
 }
-const cell = (r, planId = 'H5431-006') => N.medsTable([r], [{ planId, name: planId }]).split('\n')[2].split(' | ').slice(1).join(' | ').replace(/ \|$/, '');
+const cell = (r, planId = 'H5431-006') => N.medsTable([r], [{ planId, name: planId }], { showQl: true }).split('\n')[2].split(' | ').slice(1).join(' | ').replace(/ \|$/, '');
 
 // ─── the index built from the PDF ─────────────────────────────────────────────
 
