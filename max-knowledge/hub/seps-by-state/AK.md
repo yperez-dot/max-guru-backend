@@ -1,7 +1,7 @@
 # SEP Tracker — AK
 
-10 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
-Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
+10 entries from Agent Medicare Hub SEP snapshot (2026-10-26).
+Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
 
 ## sep-0207 — Alaska - Flooding 7/21/2026
 - **status**: active
@@ -18,7 +18,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **incident_effective**: 2026-07-21
 - **incident_termination**: 2026-10-01
 - **incident_window_raw**: Jul 21, 2026 – Oct 1, 2026
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-0208 — Alaska - Catastrophic Flooding 8/12/2026
 - **status**: active
@@ -35,7 +35,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **incident_effective**: 2026-08-12
 - **incident_termination**: 2026-10-09
 - **incident_window_raw**: Aug 12, 2026 – Oct 9, 2026
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-xl-ak-muklukfire-202710 — Alaska — Mukluk Fire
 - **status**: active
@@ -51,7 +51,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: August 17, 2026 – October 31, 2027
 - **incident_effective**: 2026-08-17
 - **incident_window_raw**: August 17, 2026 – ongoing
-- **days_until_expiry**: 391
+- **days_until_expiry**: 370
 
 ## sep-xl-ak-nenanaridgecomp-202609 — Alaska — Nenana Ridge Complex Fire
 - **status**: active
@@ -131,9 +131,9 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Alaska - West Coast Storm Disaster 10/9/2025
-- **disaster_types**: ["Storms - Rain","Floods","Straight-Line Winds"]
+- **disaster_types**: ["Storms - Rain", "Floods", "Straight-Line Winds"]
 - **disaster_type_raw**: Storms - Rain;Floods;Straight-Line Winds
-- **counties**: ["Kashunamiut","Lower Yukon","Pribilof Island","Iditarod Area","Lower Kuskokwim","Bering Strait Regional Education Attendance Area (REAA)","Yukon-Koyukuk REAA","City of Galena","Northwest Arctic (NWAB)","North Slope Boroughs (NSB)"]
+- **counties**: ["Kashunamiut", "Lower Yukon", "Pribilof Island", "Iditarod Area", "Lower Kuskokwim", "Bering Strait Regional Education Attendance Area (REAA)", "Yukon-Koyukuk REAA", "City of Galena", "Northwest Arctic (NWAB)", "North Slope Boroughs (NSB)"]
 - **counties_raw**: Kashunamiut, Lower Yukon, Pribilof Island, Iditarod Area, Lower Kuskokwim, Bering Strait Regional Education Attendance Area (REAA), Yukon-Koyukuk REAA, City of Galena, Northwest Arctic (NWAB), North Slope Boroughs (NSB)
 - **sep_effective**: 2025-10-09
 - **sep_termination**: 2026-02-28

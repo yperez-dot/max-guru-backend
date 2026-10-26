@@ -1,7 +1,7 @@
 # SEP Tracker — RI
 
-2 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
-Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
+2 entries from Agent Medicare Hub SEP snapshot (2026-10-26).
+Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
 
 ## sep-lis-ri — Rhode Island — Dual / LIS PDP Monthly SEP
 - **status**: yearround

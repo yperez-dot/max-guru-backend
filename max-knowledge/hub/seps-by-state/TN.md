@@ -1,7 +1,7 @@
 # SEP Tracker — TN
 
-4 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
-Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
+4 entries from Agent Medicare Hub SEP snapshot (2026-10-26).
+Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
 
 ## sep-0180 — Tennessee - Severe Winter Storm 1/22/2026
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: Jan 22, 2026 – Mar 31, 2027
 - **incident_effective**: 2026-01-22
 - **incident_window_raw**: Jan 22, 2026 – ongoing
-- **days_until_expiry**: 177
+- **days_until_expiry**: 156
 - **declaration_number**: EM-3635-TN
 
 ## sep-lis-tn — Tennessee — Dual / LIS PDP Monthly SEP
