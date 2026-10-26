@@ -98,13 +98,13 @@ test('"show me aetna csnp, aetna core, and her current plan on a grid": exactly 
   countsMatchCells(text.split('\n').filter((l) => l.startsWith('|')).join('\n'));
 });
 
-test('county guard: an out-of-county grid plan is never added; one she names gets a one-line warning', () => {
+test('county guard: an out-of-county grid plan is never a column, even when she names it', () => {
   const ids = ['H1045-001', 'H1609-093', 'H1609-018'];
   const docs = [doc('Cheryl Case-Diaz', '1184615874', ids, ids), doc('Nathan Hirsch', '1720196454', ['H1609-018'], ids)];
   const ranked = N.selectComparison(docs, 'ZIP 33018.\nHer current plan: H1045-001.\nRank all eligible plans.', {});
   assert.ok(!ranked.columns.some((c) => c.planId === 'H1609-018'));
   const named = N.selectComparison(docs, 'ZIP 33018. Compare UHC Preferred Care Preferred MA H1045-001, Aetna Medicare Select Care H1609-093 and Aetna Medicare Select H1609-018', {});
-  assert.ok(named.columns.some((c) => c.planId === 'H1609-018'));
+  assert.ok(!named.columns.some((c) => c.planId === 'H1609-018'));
   assert.ok(named.flags.some((f) => f === '⚠️ Not offered in Miami-Dade: H1609-018 (Broward grid).'), named.flags.join('\n'));
 });
 

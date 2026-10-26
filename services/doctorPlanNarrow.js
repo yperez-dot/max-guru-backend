@@ -585,9 +585,10 @@ function statementsFor(question, answer) {
   if (/must-keep/i.test(q)) return [`Must-keep doctors: ${a}.`];
   if (/HMO OK|PPO/i.test(q)) return [/ppo/i.test(a) && !/hmo ok|either/i.test(a) ? 'Needs a PPO.' : `Network: ${a} (HMO ok).`];
   if (/meds/i.test(q)) {
-    if (NO_RE.test(a)) return ['No meds.'];
-    // "both" / "yes" / "same" answers the question, it is not a drug name.
-    return R.isNonDrugAnswer(a) ? [] : [`Meds: ${a}`];
+    if (NO_RE.test(a) || R.saidNoMeds(a)) return ['No meds.'];
+    // A plan / carrier name is never a drug ("3. DrSelect-SFL" on "Any meds?").
+    if (R.isPlanOrCarrierName(a) || R.isNonDrugAnswer(a)) return [];
+    return [`Meds: ${a}`];
   }
   return [];
 }
@@ -787,6 +788,10 @@ function comparisonAskText(messages, baseText) {
       }
       break;
     }
+    // Two or more typed IDs in this message lock the set. A carrier word ("also show Solis")
+    // must not replace them with that carrier's core plan (Carla Nguyen, 2026-10-26).
+    const idsNamed = new Set((t.match(/\b[HR]\d{4}-\d{3}/gi) || []).map((x) => x.toUpperCase())).size;
+    if (idsNamed >= 2) break;
     // Unmatched names count on their own only in a "compare … to X" ask; otherwise next to a carrier she named.
     const unmatched = carriers.length || /\bcompar/i.test(t) ? R.carriersUnresolved(t) : [];
     if (carriers.length || unmatched.length) {
@@ -799,8 +804,7 @@ function comparisonAskText(messages, baseText) {
       break;
     }
     // A message that names plan IDs decides the columns — "lets do H5420-014, H4140-022, …" needs no verb.
-    const idsNamed = new Set((t.match(/\b[HR]\d{4}-\d{3}/gi) || []).map((x) => x.toUpperCase())).size;
-    if (idsNamed >= 2 || (idsNamed && /\b(compare|show|add|instead|vs|do|use|run|go with|check|re-?check|re-?run|verify)\b/i.test(t))) break;
+    if (idsNamed && /\b(compare|show|add|instead|vs|do|use|run|go with|check|re-?check|re-?run|verify)\b/i.test(t)) break;
   }
   // Plan removals in her newest message that are not exact (a typo, a name not in the table) are asked, never guessed
   // or ignored; her "yes" to "Did you mean remove X (ID)?" drops that ID (Evelyn Nieves, 2026-10-20).
@@ -1713,6 +1717,15 @@ function carrierKey(label) {
   return '';
 }
 
+/** Clinic / group (NPI-2 or a practice name). HealthSun org FHIR is a real NPI check; people stay partial-list. */
+function doctorIsOrg(d) {
+  if (d && d.isOrg) return true;
+  const orgTest = require('./npiRegistry').looksLikeOrganization;
+  const name = (d && (d.requestedName || d.doctorName)) || '';
+  if (typeof orgTest === 'function' && orgTest(name)) return true;
+  return /\b(?:llc|inc|corp|pllc|associates|group|center|clinic|hospital|institute|physical therapy|rehab(?:ilitation)?)\b/i.test(name);
+}
+
 /** Columns for the named plans: plan-level In/Out when a directory gave one, carrier-level In* otherwise. */
 /** A dentist (DDS/DMD, dental taxonomy): Medicare medical networks do not list dentists, so ❌ there is not a medical miss. */
 function isDentalProvider(d) {
@@ -1747,8 +1760,12 @@ function namedPlanColumns(named, matrix, doctors) {
       // One-network directory (Devoted; Doctors DrMax/DrSelect) finished and did not list
       // this NPI → Out. A failed or pending check stays ❔ unchecked (never assume Out).
       else if (carrier && carrierHitIsPlanHit(carrier, np.planId) && !PARTIAL_DIRECTORY_CARRIERS.includes(carrier) && directoryFinished(d, carrier)) col.out.push(who);
-      // Partial-list directory (CarePlus) answered and did not list this doctor: checked, not confirmed — not unchecked.
-      else if (carrier && PARTIAL_DIRECTORY_CARRIERS.includes(carrier) && directoryFinished(d, carrier)) { col.unknown.push(who); col.notConfirmed.push(who); }
+      // Partial-list directory (CarePlus; HealthSun people — PDF has no NPIs): checked, not confirmed — not unchecked.
+      // HealthSun clinics: Organization?identifier=NPI is a real NPI check. Empty Bundle = Out, never assumed.
+      else if (carrier && PARTIAL_DIRECTORY_CARRIERS.includes(carrier) && directoryFinished(d, carrier)) {
+        if (carrier === 'HealthSun' && doctorIsOrg(d)) col.out.push(who);
+        else { col.unknown.push(who); col.notConfirmed.push(who); }
+      }
       // UHC's directory is plan-level and complete: it finished, listed this doctor on no UHC plan and
       // answered "not listed" for UHC plans → ❌ Not in network (not listed), not "not confirmed".
       else if (carrier === 'UnitedHealthcare' && uhcUnlisted(d)) col.out.push(who);
@@ -2134,8 +2151,16 @@ function cleanGridPlanName(g) {
     .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 function planNamesInAsk(text, county) {
-  const segs = [...String(text || '').matchAll(PLAN_NAME_ASK_RE)].map((m) => m[1]);
   const out = { ids: [], ambiguous: [] };
+  // A typed contract-PBP wins over the marketing name. "add HealthSun Health Advantage Plus · H5431-018"
+  // must never also pull the other-county twin (H5431-017 on the Miami-Dade grid).
+  const typed = [...String(text || '').matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase().slice(0, 9));
+  if (typed.length) {
+    // Typed IDs only — never the other-county twin of the same marketing name.
+    out.ids = [...new Set(typed)];
+    return out;
+  }
+  const segs = [...String(text || '').matchAll(PLAN_NAME_ASK_RE)].map((m) => m[1]);
   if (!segs.length) return out;
   const byName = new Map();
   for (const g of R.gridPlansForCounty(county || '')) {
@@ -2741,9 +2766,9 @@ function selectComparison(doctors, askText, opts = {}) {
     }
     out.questions = personalize(qs.slice(0, 3), ask);
   }
-  // County guard (Maura, 2026-10-07: Broward-only H1609-018 landed in a Miami-Dade client's grid):
-  // a plan not offered in her county per the grid's county column is never added or suggested. A plan
-  // she named herself (or her current plan) stays, with a one-line county warning.
+  // County guard (Maura, 2026-10-07 / Carla Nguyen, 2026-10-26): a plan not offered in her county
+  // per the grid's county column is never a comparison column — even when she typed the ID. The
+  // exception is her CURRENT plan when it is on neither year's grid (off-grid current stays first).
   const countyIds = new Set(R.gridPlansForCounty(county).map((g) => String(g.planId || g.id).toUpperCase().slice(0, 9)));
   if (county && countyIds.size && !opts.skipCountyGuard) {
     const allRows = R.gridPlansForCounty('');
@@ -2766,7 +2791,7 @@ function selectComparison(doctors, askText, opts = {}) {
       if (!other && !in2026(k) && curAskIds.includes(k)) { c.offGrid = true; offGridCurrent2.push(k); return true; }
       if (!other && !in2026(k)) { unknown.push(k); return false; }
       away.push(other ? `${k} (${other.county} grid)` : `${k} (not on the 2027 grid)`);
-      return true;
+      return false;
     });
     if (out.ranked) out.ranked = out.ranked.filter((c) => out.columns.includes(c) || countyIds.has(String(c.planId || '').toUpperCase().slice(0, 9)));
     if (away.length) out.flags.push(`⚠️ Not offered in ${county}: ${away.join(', ')}.`);
@@ -3460,6 +3485,7 @@ module.exports = {
   gridTable,
   identityIssue,
   isDentalProvider,
+  doctorIsOrg,
   countsOf,
   medsTable,
   dedupeDoctorRows,
