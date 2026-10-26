@@ -81,11 +81,13 @@ test('unsure → asked, never dropped; a request doctor that could not be read i
   assert.deepEqual(f.doctors.map((d) => d.name), ['Jorge Perez', 'Ana Gil']);
   assert.deepEqual(f.unsureDoctors, ['waddah allaf']);
   const g = C.parseCompareAsk('Ana Ruiz, 33156, Dr. Jorge Perez, Dr. Lopez, Dr. Ana Gil. meds: metformin');
-  assert.deepEqual(g.unreadDoctors, ['Lopez']);
+  assert.deepEqual(g.doctors.map((d) => d.name), ['Jorge Perez', 'Lopez', 'Ana Gil']);
+  assert.deepEqual(g.unreadDoctors, []);
   assert.equal(g.doctorCount, 3);
   const w = W.withRecoveredDoctors({ originalQuery: 'Ana Ruiz, 33156, Dr. Jorge Perez, Dr. Lopez, waddah allaf, Dr. Ana Gil. meds: metformin', zip: '33156', doctors: [] });
   const note = CW.recoveredDoctorsNote(w);
-  assert.match(note, /named 3 doctors and I could read 2\. Couldn't read: "Lopez"/);
+  assert.deepEqual(w.doctors.map((d) => d.name), ['Jorge Perez', 'Lopez', 'Ana Gil']);
+  assert.match(note, /Added back Jorge Perez, Lopez, Ana Gil from the original request/);
   assert.match(note, /Is "waddah allaf" a doctor\? \(yes \/ no\)/);
 });
 

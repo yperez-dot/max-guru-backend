@@ -117,8 +117,9 @@ function unlabeledDoctorList(t, zip) {
     return w.length >= 2 && w.length <= 5 && /^[A-Z]/.test(w[0]) && /^[A-Z]/.test(w[w.length - 1]) && alpha(x) && notWords(x);
   };
   // "Dr." / "dr." is the strong signal: the case she typed the name in does not matter.
-  // The same reader as any "Dr. …" in the ask, so "Dr. Lopez for her heart" is "Lopez" (one word: not a plain-list name).
-  const titledName = (it) => it.titled && titledDoctorNames('Dr. ' + it.text).length > 0;
+  // A titled surname-only name ("Dr. Voss") is a doctor — keep it. The lookup asks for a full name
+  // if it cannot resolve; never drop a titled name because it is one word.
+  const titledName = (it) => it.titled && titledDoctorNames('Dr. ' + it.text, { minWords: 1 }).length > 0;
   const good = items.filter((it) => titledName(it) || (!it.titled && capitalized(it.text)));
   if (!entries && (!good.length || good.length * 2 < items.length)) return none;
   const DN = require('../artifacts/doctor-name.js');
@@ -227,7 +228,7 @@ function parseCompareAsk(text) {
     const plain = unlabeledDoctorList(t, zip);
     unsureDoctors = plain.unsure;
     plainEntries = plain.entries || [];
-    for (const n of [...plain.names, ...titledDoctorNames(t)]) {
+    for (const n of [...plain.names, ...titledDoctorNames(t, { minWords: 1 })]) {
       const k = n.trim().toLowerCase();
       if (k && !names.some((x) => x.toLowerCase() === k)) names.push(n.trim());
     }
@@ -772,6 +773,7 @@ module.exports = {
   parseCompareAsk,
   doctorMentions,
   titledDoctorNames,
+  normalizePlanIds,
   normalizeInput,
   askTextFor,
   cardCurrentPlans,

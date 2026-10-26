@@ -416,7 +416,14 @@ function withRecoveredDoctors(workup0) {
   } catch (_) {
     return workup;
   }
-  const parsed = ask.doctors || [];
+  const parsed = [...(ask.doctors || [])];
+  // Titled surname-only names belong on the list (asked as needing a full name) — never left only
+  // as unread and then dropped from "Added back".
+  for (const name of ask.unreadDoctors || []) {
+    if (name && !parsed.some((d) => d && d.name && String(d.name).toLowerCase() === String(name).toLowerCase())) {
+      parsed.push({ name });
+    }
+  }
   const saved = Array.isArray(workup.doctors) ? workup.doctors : [];
   // The request's doctors the parser could not read, or could not tell were doctors: listed / asked, never dropped
   // silently (Martha Muraglia, 2026-10-20: 8 typed, 2 recovered, nothing said about the other 6).
