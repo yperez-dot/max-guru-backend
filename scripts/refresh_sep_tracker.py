@@ -15,7 +15,8 @@ from collections import defaultdict
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-OUT = Path("/workspace/max-knowledge/hub")
+OUT = Path(__file__).resolve().parent.parent / "max-knowledge" / "hub"
+
 STATE_DIR = OUT / "seps-by-state"
 UA = "Mozilla/5.0 (compatible; THEI-Max-SEP-refresh/1.0)"
 
