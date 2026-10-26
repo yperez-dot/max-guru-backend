@@ -55,7 +55,27 @@ const TIMED_OUT_LEGEND = '⏱ timed out = ran out of time, not an answer — re-
 const UNKNOWN_LEGEND = '❔ unchecked = never checked · ❔ not confirmed = checked, no result';
 const LEGEND = `✅ In · ${NOT_LISTED_CELL} = checked in the carrier's directory, not listed for this plan · ${UNKNOWN_LEGEND} (never assume not in network unless checked)`;
 const IN_STAR_LEGEND = '✅ In* = in the carrier network; confirm this specific plan in the carrier directory';
-const MEDS_LEGEND = `T = tier (covered) · PA = prior auth · ST = step therapy · QL = quantity limit · ❌ not covered · ⚠️ confirm = read not covered, check the exact product in Sunfire · ${UNKNOWN_LEGEND}`;
+// Yahoska (2026-10-26): quantity limits stay off the cell and the legend until she asks.
+const MEDS_LEGEND = `T = tier (covered) · PA = prior auth · ST = step therapy · ❌ not covered · ⚠️ confirm = read not covered, check the exact product in Sunfire · ${UNKNOWN_LEGEND}`;
+const MEDS_LEGEND_WITH_QL = `T = tier (covered) · PA = prior auth · ST = step therapy · QL = quantity limit · ❌ not covered · ⚠️ confirm = read not covered, check the exact product in Sunfire · ${UNKNOWN_LEGEND}`;
+const QL_OFFER = 'Show quantity limits?';
+const SHOW_QL_LINE = 'Show quantity limits.';
+
+/** true = include QL, false = hide, null = no explicit choice (default hide). */
+function quantityLimitsChoice(text) {
+  const t = String(text || '');
+  if (/\b(?:hide|without|don'?t show|do not show|remove|drop)\s+(?:the\s+)?(?:quantity\s+limits?|ql\b)/i.test(t)
+    || /\bquantity\s+limits?\s*[:=-]\s*(?:no|off|hide|false)\b/i.test(t)
+    || /\bno quantity limits\b/i.test(t)) {
+    return false;
+  }
+  if (/\bshow quantity limits\b/i.test(t)
+    || /\binclude (?:the )?(?:quantity limits?|ql)\b/i.test(t)
+    || /\bquantity limits?\s*[:=-]?\s*(?:yes|on|please|true)\b/i.test(t)) {
+    return true;
+  }
+  return null;
+}
 // Every drug lookup failed: nothing to price, so drug cost must not rank plans (2026-10-09).
 const MEDS_FAILED_BANNER = '🛑 **Medication lookup failed — do not rank by drug cost**';
 const MEDS_UNREADABLE = "⚠️ Couldn't read the medication list. Re-send as 'Meds: a, b, c'";
@@ -199,6 +219,34 @@ function conditionsIn(text) {
   return CONDITION_WORDS.filter(([, re]) => re.test(String(text || ''))).map(([k]) => k);
 }
 
+function currentPlanIdsFromAsk(askText) {
+  const line = (String(askText || '').match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '';
+  return [...line.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
+}
+
+function planRowById(id) {
+  const key = String(id || '').toUpperCase().slice(0, 9);
+  if (!key) return null;
+  return gridPlansForCounty('').find((p) => String(p.planId || p.id).toUpperCase().slice(0, 9) === key)
+    || gridPlansForCounty('', 2026).find((p) => String(p.planId || p.id).toUpperCase().slice(0, 9) === key)
+    || null;
+}
+
+/** Client is already on a C-SNP: treat that as presumptive eligibility for other C-SNPs. */
+function currentPlanIsCsnp(askText) {
+  return currentPlanIdsFromAsk(askText).some((id) => snpKind(planRowById(id) || { name: id }) === 'csnp');
+}
+
+/** A real Part B giveback (dollar > 0 or the marketing name says Giveback) — "$0" / No / N/A do not count. */
+function hasPartBGiveback(planLike) {
+  const p = planLike || {};
+  if (/\bgive\s*back\b/i.test(String(p.planName || p.name || p.label || ''))) return true;
+  const v = p.partBGiveback;
+  if (v == null || v === '' || /^(?:no|n\/a)$/i.test(String(v).trim())) return false;
+  const n = parseFloat(String(v).replace(/[^0-9.]/g, ''));
+  return Number.isFinite(n) && n > 0;
+}
+
 function eligibilityFromAsk(askText) {
   // Plan names carry these words too ("Aetna Medicare QMB Only Select H1609-043",
   // "Dual Complete") — strip plan references so a named plan never reads as the
@@ -222,6 +270,12 @@ function eligibilityFromAsk(askText) {
   else if (/\bc-?snp\s*(eligible|qualif\w*|[:=-]\s*yes|ok)\b|\bqualifies for (a )?c-?snp\b|\b(chronic condition|qualifying condition|diagnos\w+)\s*[:=-]?\s*(confirmed|yes)\b|\b(has|diagnosed with|dx(?: of)?:?)\s+(diabetes|chf|heart failure|copd|esrd|afib|atrial fibrillation|cardiovascular|coronary artery disease|cad|chronic lung|dementia|ckd)\b/i.test(t)) csnp = 'confirmed';
 
   const out = { medicaid, levels, csnp };
+  // Already on a C-SNP (HealthSun VitalCare H5431-021, etc.): include county C-SNP
+  // alternatives and flag "confirm eligibility at enrollment" — do not hold them back.
+  if (out.csnp === 'unknown' && currentPlanIsCsnp(askText)) {
+    out.csnp = 'confirmed';
+    out.csnpPresumedFromCurrent = true;
+  }
   if (csnpRunAsk(askText) && csnp !== 'none') {
     out.csnp = 'confirmed';
     out.csnpAgentConfirmed = true;
@@ -571,7 +625,7 @@ const CARRIER_WORDS = [
   ['Devoted', /\b[cd]evoted\b|\bdevote\b|\bdvoted\b|\bdevot?e?d\b|\bdevoed\b|\bdeovted\b/i],
   // "Human Gold" / "Humanna" / "Humna" (Robin Forte, 2026-10-17: "Compare it to Doctors Health Plan and Human Gold" —
   // Humana was silently dropped). Bare "human" counts only when a Humana plan word follows.
-  ['Humana', /\bhu+m+a+n+n?a\b|\bhumn?a\b|\bhum(?:an|na)n?a?\b(?=\s+(?:gold|choice|plans?|medicare|ppo|hmo|honor|healthy|dual|cash|value|full\s+access|ga\b))/i],
+  ['Humana', /\bhu+m+a+n+n?a\b|\bhumn?a\b|\bhum(?:an|na)n?a?\b(?=\s+(?:gold|choice|plans?|medicare|ppo|hmo|honor|healthy|dual|cash|value|full\s+access|ga\b|chronic|c-?snp))/i],
   ['Aetna', /\b(?:aetna|aentna|aeatna|atena|aetan|aetnna)\b/i],
   ['UnitedHealthcare', /\buhc\b|\bunited\s*health|\baarp\b|\bmedicaremax\b/i],
   ['Simply', /\bsimply\b/i],
@@ -715,6 +769,10 @@ module.exports = {
   UNKNOWN_LEGEND,
   LEGEND,
   MEDS_LEGEND,
+  MEDS_LEGEND_WITH_QL,
+  QL_OFFER,
+  SHOW_QL_LINE,
+  quantityLimitsChoice,
   MEDS_FAILED_BANNER,
   MEDS_UNREADABLE,
   IN_STAR_LEGEND,
@@ -729,6 +787,9 @@ module.exports = {
   networkType,
   levelsIn,
   eligibilityFromAsk,
+  currentPlanIsCsnp,
+  currentPlanIdsFromAsk,
+  hasPartBGiveback,
   planEligibility,
   csnpHintsFromMeds,
   medsFromAsk,

@@ -54,7 +54,26 @@ function workupFacts(msgs) {
       const m = part.match(/^\s*(.+?)(?:\s*\([^)]*\))?\s+NPI\s+(\d{10})\s*$/);
       if (m) npis[m[1].trim()] = m[2];
     }
-    return { doctors, plans, zip, current, npis };
+    const intakeLines = [];
+    for (const re of [
+      /^No Medicaid\.?$/m,
+      /^Medicaid:\s+.+$/m,
+      /^Full Medicaid.*$/m,
+      /^MSP only.*$/m,
+      /^C-SNP qualifying condition confirmed:.*$/m,
+      /^No C-SNP qualifying condition\.?$/m,
+      /^Must-keep doctors:.*$/m,
+      /^Show quantity limits\.?$/m,
+    ]) {
+      const hit = t.match(re);
+      if (hit) intakeLines.push(hit[0].replace(/\s+$/, '').replace(/\.$/, '') + '.');
+    }
+    const showQl = /Show quantity limits/i.test(t);
+    const eligibility = {
+      medicaid: /^No Medicaid/m.test(t) ? 'none' : /^Full Medicaid|^Medicaid:\s+full/im.test(t) ? 'full' : /^MSP only|^Medicaid:\s+MSP/im.test(t) ? 'msp' : 'unknown',
+      csnp: /^C-SNP qualifying condition confirmed/m.test(t) ? 'confirmed' : /^No C-SNP qualifying condition/m.test(t) ? 'none' : 'unknown',
+    };
+    return { doctors, plans, zip, current, npis, intakeLines, showQl, eligibility };
   }
   return null;
 }
@@ -239,7 +258,8 @@ const NEW_SET_VERB_RE = new RegExp(String.raw`\blet'?s\s+do\s+` + PLAN_START + S
 // "just check Glinos on H5420-001" is not a new set ("just" there means "simply").
 const ONLY_PLANS_RE = /\bonly\b|\bexclusively\b|\bjust\s+(?:(?:the|these|this|that|on|use|keep|show|compare|run)\s+)*(?:[HR]\d{4}-\d{3}|plans?\b|one\s+plan\b)/i;
 
-const REMOVE_RE = /\b(?:remove|drop|take out|delete|no more|get rid of|without|exclude|excluding)\s+(?:the\s+)?([^,.;\n]+?)(?=\s+(?:from|and|,)|[,.;\n]|$)/gi;
+// Stop at "and add" / ", add" / "from the table" — never at "and H1036-305" or ", H1036-305".
+const REMOVE_RE = /\b(?:remove|drop|take out|delete|no more|get rid of|without|exclude|excluding)\s+(?:the\s+)?([^.;\n]+?)(?=\s+(?:from\b|and\s+(?:add|include|replace|swap|instead|keep|show|plus|with)\b)|,\s*(?:add|include|replace|swap|instead|keep|show|plus|with)\b|[.;\n]|$)/gi;
 
 // "remove it" / "drop that one" / "take this off": a pronoun never names a plan — and never drops her current plan.
 const PRONOUN_TARGET_RE = /^(?:it|that|this|them|those|these|that one|this one|the other(?: one)?|one)\b/i;
@@ -247,7 +267,7 @@ const PRONOUN_TARGET_RE = /^(?:it|that|this|them|those|these|that one|this one|t
 function droppedIdsIn(line) {
   const dropped = new Set();
   for (const r2 of String(line || '').matchAll(/\b(?:remove|drop|take out|delete|no more|get rid of|without)\s+([^.;\n]*)/gi)) {
-    const target = r2[1].split(/[,]|\b(?:and\s+)?(?:add|instead|but|then|show|keep|include|plus|with)\b/i)[0];
+    const target = r2[1].split(/\s*(?:,\s*|\band\s+)?(?:add|instead|but|then|show|keep|include|plus|with)\b/i)[0];
     for (const idm of target.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)) dropped.add(idm[1].toUpperCase().slice(0, 9));
   }
   // "take H5420-001 off the grid"

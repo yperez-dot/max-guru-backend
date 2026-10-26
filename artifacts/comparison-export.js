@@ -311,7 +311,13 @@
     "both all none no nope yes yeah yep ok okay sure same correct right wrong those these them they it this that either neither each other others another any meds med medication medications drug drugs rx generic brand unknown na idk she he her his their unchanged covered".split(" ")
   );
 
+  function isChatPromptDrugName(name) {
+    const s = String(name || "");
+    return /[❓❔]|did you mean|check name|not a drug name|check spelling|name not confirmed|auto-corrected, verify/i.test(s);
+  }
+
   function isNonDrugName(name) {
+    if (isChatPromptDrugName(name)) return true;
     const words = String(name || "")
       .toLowerCase()
       .replace(/\*+$/, "")
@@ -325,7 +331,7 @@
   // Salt / dosage-form / packaging words: "Amlodipine Besy-Benazepril HCL" and
   // "Amlodipine/Benazepril" are one drug; "Levothyroxine Sodium" is "Levothyroxine".
   const DRUG_SALT_WORDS = new Set(
-    "besy besylate hcl hydrochloride hcl. hbr hydrobromide sodium na potassium calcium magnesium maleate mesylate succinate tartrate fumarate citrate sulfate acetate bromide phosphate hyclate monohydrate dihydrate trihydrate anhydrous dipropionate propionate valerate oral tablet tablets tab tabs capsule capsules cap caps caplet caplets chewable solution suspension pen injector injection auto autoinjector sureclick prefilled syringe generic mg mcg ml g unit units iu".split(" ")
+    "besy besylate hcl hydrochloride hcl. hbr hydrobromide sodium na potassium calcium magnesium maleate mesylate succinate tartrate fumarate citrate sulfate acetate bromide phosphate hyclate monohydrate dihydrate trihydrate anhydrous dipropionate propionate valerate oral tablet tablets tab tabs capsule capsules cap caps caplet caplets chewable solution suspension pen injector injection auto autoinjector sureclick prefilled syringe generic mg mcg ml g unit units iu lotion lot cream ointment gel diprop dipr topical".split(" ")
   );
 
   /** Active-ingredient list for dedupe/matching ("Amlodipine Besy-Benazepril HCL 10-40mg" → ["amlodipine","benazepril"]). */
@@ -355,6 +361,31 @@
     const ings = drugIngredients(name);
     if (!ings.length) return String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
     return ings.slice().sort().join("+");
+  }
+
+  /** One row per requested med: combo variants and "did you mean" fragments collapse. */
+  function foldExportDrugs(drugs) {
+    const list = (drugs || []).filter((d) => d && !isChatPromptDrugName(d && d.name));
+    const ingsOf = (d) => drugIngredients(d.name);
+    const keepLotion = (n) => /\blot(?:ion)?\b/i.test(String(n || ""));
+    const out = [];
+    list.forEach((d) => {
+      const ings = ingsOf(d);
+      const hit = out.find((x) => {
+        const o = ingsOf(x);
+        if (!o.length || !ings.length) return drugIdentityKey(x.name) === drugIdentityKey(d.name);
+        if (o.slice().sort().join("+") === ings.slice().sort().join("+")) return true;
+        if (o.length >= 2 && ings.length === 1 && o.indexOf(ings[0]) >= 0) return true;
+        if (ings.length >= 2 && o.length === 1 && ings.indexOf(o[0]) >= 0) return true;
+        return false;
+      });
+      if (!hit) { out.push(d); return; }
+      if (ings.length > ingsOf(hit).length || (keepLotion(d.name) && !keepLotion(hit.name))) hit.name = d.name;
+      else hit.name = preferredDrugName(hit.name, d.name);
+      Object.keys(d.byPlanId || {}).forEach((id) => mergeDrugPlanStatus(hit.byPlanId || (hit.byPlanId = {}), id, d.byPlanId[id], null));
+      if (d.screen) hit.screen = Object.assign({}, hit.screen || {}, d.screen);
+    });
+    return out;
   }
 
   /** Cleaner display between two aliases of one drug: no salt abbreviations, then shorter. */
@@ -945,6 +976,7 @@
 
   function looksLikeDrugName(name) {
     const s = String(name || "").replace(/\s+/g, " ").trim();
+    if (isChatPromptDrugName(s)) return false;
     if (s.length < 3 || s.length > 48) return false;
     if (/\d{5,}/.test(s)) return false;
     if (isCarrierAsDrugName(s)) return false;
@@ -1129,6 +1161,8 @@
         st: incoming.st,
         ql: incoming.ql,
         qlText: incoming.qlText || null,
+        bdPa: incoming.bdPa,
+        hrm: incoming.hrm,
         restrictionsKnown: typeof incoming.restrictionsKnown === "boolean" ? incoming.restrictionsKnown : undefined,
         source: incoming.source || null,
         unsure: Boolean(incoming.unsure),
@@ -1241,15 +1275,30 @@
   function stripStrengthSameNote(text) {
     return String(text == null ? "" : text).replace(/\s*[·,;-]?\s*\(?cost (?:is )?(?:the )?same across (?:all )?strengths\)?/gi, "");
   }
-  function formatDrugCell(status, plan) {
+  function stripQuantityLimits(text) {
+    return String(text == null ? "" : text)
+      .split(" · ")
+      .filter((part) => !/^QL(?:\s|$)/i.test(String(part).trim()))
+      .join(" · ");
+  }
+  function formatDrugCell(status, plan, opts) {
     if (!status || !status.verified) return "Unverified";
     if (status.coverage === "not_covered" && status.unsure) return "Confirm in Sunfire";
     if (status.coverage === "not_covered") return "Not covered";
     if (!status.tier) return "Unverified";
+    const showQl = opts && opts.showQl === true;
     const cost =
       status.costShare ||
       formatBenefitValue(plan && plan["tier" + status.tier], "tier" + status.tier);
-    const flags = [status.pa ? "PA" : "", status.st ? "ST" : "", status.qlText || (status.ql ? "QL" : "")].filter(Boolean).join("/");
+    // Same restriction flags as the chat meds table (doctorPlanNarrow.drugCell): PA / ST /
+    // plus HealthSun book flags B/D PA and HRM (PA 65+). QL only when she asked.
+    const flags = [
+      status.pa ? "PA" : "",
+      status.st ? "ST" : "",
+      showQl ? (status.qlText || (status.ql ? "QL" : "")) : "",
+      status.bdPa ? "B/D PA" : "",
+      status.hrm ? "HRM (PA 65+)" : "",
+    ].filter(Boolean).join(" · ");
     const costBit = cost && cost !== "Not listed" ? " · " + cost : "";
     return stripStrengthSameNote("Tier " + status.tier + costBit + (flags ? " · " + flags : ""));
   }
@@ -1325,9 +1374,16 @@
           map = mergeByPlanIdMaps(map, byPlanIdFromStatuses(d.statuses, plans));
         }
       }
-      const statuses = plans.map((p) => {
+      const statuses = plans.map((p, i) => {
         const fromMap = normalizeNetworkStatus(lookupPlanStatus(map, p));
-        if (fromMap === NETWORK_IN || fromMap === NETWORK_OUT) return fromMap;
+        const existing = typeof d !== "string"
+          ? normalizeNetworkStatus(Array.isArray(d.statuses) ? d.statuses[i] : "")
+          : "";
+        // Chat / saved In or Out is never downgraded to Not confirmed by a later empty lookup.
+        if (fromMap === NETWORK_IN || fromMap === NETWORK_OUT) {
+          return mergeStatusPair(existing === NETWORK_NOT_CONFIRMED ? "" : existing, fromMap) || fromMap;
+        }
+        if (existing === NETWORK_IN || existing === NETWORK_OUT) return existing;
         const fromNet =
           typeof d !== "string" && d.networks
             ? statusFromProviderNetworks(p, d.networks, { missIsUnknown: looksLikeOrganization(name) })
@@ -1398,12 +1454,17 @@
 
   const SHARED_NETWORK_PLAN_IDS = { doctors: ["H4140-022", "H4140-023", "H4140-001", "H4140-012"] };
 
+  function isPartialDirectoryCarrier(carrierLabel) {
+    return /healthsun|careplus/.test(String(carrierLabel || "").toLowerCase());
+  }
+
   function carrierHitIsPlanHit(carrierLabel, plan) {
     const c = String(carrierLabel || "").toLowerCase();
     if (!carrierMatchesPlan(carrierLabel, plan)) return false;
-    // Solis: one network per county directory. Devoted: fallback only — a 2027 lookup carries
-    // plan-level In/Out by network (C-SNP plans have their own network), checked first above.
-    if (/devoted|solis/.test(c)) return true;
+    // Same single-network list as the chat table (doctorPlanNarrow.SINGLE_NETWORK_CARRIERS):
+    // one county directory covers every HMO plan — Devoted, Solis, CarePlus, HealthSun.
+    // Doctors DrMax-Dade / DrSelect-SFL share one network; C-SNP/D-SNP stay In*.
+    if (/devoted|solis|careplus|healthsun/.test(c)) return true;
     if (/doctors/.test(c)) {
       const id = String((plan && (plan.planId || plan.id)) || "").toUpperCase().slice(0, 9);
       return SHARED_NETWORK_PLAN_IDS.doctors.indexOf(id) >= 0;
@@ -1430,13 +1491,16 @@
         fallback = fallback || NETWORK_NEED_MORE;
         continue;
       }
-      // A carrier-level hit (no plan IDs) only counts as In where every plan shares one
-      // network: Devoted (all plans) and Doctors DrMax-Dade / DrSelect-SFL (Yahoska,
-      // 2026-10-06). Same rule as the chat table (doctorPlanNarrow.carrierHitIsPlanHit).
+      // A carrier-level hit (no plan IDs) counts as In on a single-network carrier — the same
+      // list as the chat table, including HealthSun's 2027 county PDF index.
       if (net.inNetwork === true && !(net.plans && net.plans.length) && carrierHitIsPlanHit(net.carrier, plan)) return NETWORK_IN;
-      // One-network directory (Devoted; Doctors DrMax/DrSelect) that answered and did not
-      // list the doctor → Out. Same rule as the chat table (doctorPlanNarrow.directoryFinished).
-      if (net.inNetwork === false && net.status === "checked" && !missIsUnknown && carrierHitIsPlanHit(net.carrier, plan)) return NETWORK_OUT;
+      if (net.inNetwork === false && net.status === "checked" && carrierHitIsPlanHit(net.carrier, plan)) {
+        // HealthSun clinics: Organization?identifier=NPI is a real check — empty = Out.
+        // HealthSun people and CarePlus stay Not confirmed (partial name-index lists).
+        if (/healthsun/i.test(String(net.carrier)) && missIsUnknown) return NETWORK_OUT;
+        if (isPartialDirectoryCarrier(net.carrier) || net.partialList) continue;
+        if (!missIsUnknown) return NETWORK_OUT;
+      }
       // Everything else is not an Out: an In for a DIFFERENT plan of the same carrier, a
       // carrier-level miss on a plan with its own network, or a clinic/org stays "Not confirmed".
     }
@@ -2301,11 +2365,12 @@
         }
       });
     }
-    drugs = settleBrandNotCovered(applyKnownGenericSuggestions(drugs, resolvedPlans));
+    drugs = foldExportDrugs(settleBrandNotCovered(applyKnownGenericSuggestions(drugs, resolvedPlans)));
     // The on-screen Meds table is the truth (Paula Harris, 2026-10-13: the sheet said "Confirm in Sunfire" /
     // "Not covered" where the screen said "check Medicare.gov").
     if (extra.chatTable && Array.isArray(extra.chatTable.meds) && extra.chatTable.meds.length) {
       extra.chatTable.meds.forEach((m) => {
+        if (!m || isChatPromptDrugName(m.name)) return;
         const key = drugIdentityKey(m.name);
         let hit = drugs.find((d) => drugIdentityKey(d.name) === key);
         if (!hit) { hit = { name: m.name, byPlanId: {} }; drugs.push(hit); }
@@ -2313,6 +2378,7 @@
         // "Atorvastatin Calcium 80 mg": the screen shows the strength in the drug name, so the sheet does too.
         if (m.name && hit.name && m.name.length > hit.name.length && m.name.toLowerCase().startsWith(String(hit.name).toLowerCase())) hit.name = m.name;
       });
+      drugs = foldExportDrugs(drugs);
     }
     const mineText = (Array.isArray(extra.userMessages) ? extra.userMessages.join("\n") : "") + "\n" + String(extra.latestUserText || "");
     const payload = {
@@ -2331,6 +2397,7 @@
       sobBenefits: extra.sobBenefits || extra.sobExtras || {},
       keepPlanOrder: extra.planSetFixed === true,
       askedExportSob: extra.askedExportSob === true || askedExportSobBenefits(extra.askText != null ? extra.askText : text),
+      showQl: extra.showQl === true || /\bshow quantity limits\b/i.test(mineText),
     };
     if (drugs.some((d) => d.brandNotCovered || /\*$/.test(d.name || "") || d.genericOf)) {
       payload.genericOnlyNote = GENERIC_ONLY_NOTE;
@@ -2478,7 +2545,9 @@
           const shown = drug.screen && drug.screen[String(displayContractPbp(plans[i]) || "").toUpperCase().slice(0, 9)];
           if (shown && /^⏱|timed\s*out/i.test(String(shown))) return NETWORK_TIMED_OUT;
           if (!shown && drug.timedOut && !(s && s.verified)) return NETWORK_TIMED_OUT;
-          return shown || formatDrugCell(s, plans[i]);
+          const showQl = payload.showQl === true;
+          const text = shown || formatDrugCell(s, plans[i], { showQl: showQl });
+          return showQl ? text : stripQuantityLimits(text);
         });
         const values = [drug.name, ...cells];
         const rowKinds = ["label", ...cells.map((c) => (c === "Unverified" || c === NETWORK_TIMED_OUT ? "pending" : "text"))];
@@ -2916,7 +2985,10 @@
             const c = String(cells[j + 1] || "").replace(/^[✅❌❔❓⚠️\s]+/u, "").replace(/\s+/g, " ").trim();
             if (id && c) byPlan[id.slice(0, 9)] = c.charAt(0).toUpperCase() + c.slice(1);
           });
-          if (cells[0]) meds.push({ name: cells[0].replace(/\*+$/, "").trim(), byPlan });
+          const medName = cells[0] ? cells[0].replace(/\*+$/, "").trim() : "";
+          if (medName && !isChatPromptDrugName(medName) && !/^check name$/i.test(String(cells[1] || ""))) {
+            meds.push({ name: medName, byPlan });
+          }
         }
       }
       found.push({ at: i, planIds: planIds.filter(Boolean), rows, meds });
@@ -3055,12 +3127,21 @@
         if (tr) {
           row.statuses = (plans || []).map((p, i) => {
             const id = String(p.planId || p.id || "").toUpperCase().slice(0, 9);
-            const key = Object.keys(tr.byPlan).find((k) => k.slice(0, 9) === id);
-            return key ? tr.byPlan[key] : (row.statuses || [])[i];
+            const key = Object.keys(tr.byPlan || {}).find((k) => String(k).toUpperCase().slice(0, 9) === id);
+            const chat = key ? tr.byPlan[key] : "";
+            const was = (row.statuses || [])[i];
+            if (!chat) return was;
+            const chatN = normalizeNetworkStatus(chat) || chat;
+            const wasN = normalizeNetworkStatus(was);
+            // Chat table is the truth — never replace a chat In with Not confirmed.
+            if (chatN === NETWORK_NOT_CONFIRMED && wasN === NETWORK_IN) return was;
+            return chatN || chat;
           });
-          if (row.byPlanId) {
-            (plans || []).forEach((p, i) => { const id = p.planId || p.id; if (id && row.statuses[i]) row.byPlanId[id] = row.statuses[i]; });
-          }
+          row.byPlanId = Object.assign({}, row.byPlanId || {});
+          (plans || []).forEach((p, i) => {
+            const id = p.planId || p.id;
+            if (id && row.statuses[i]) row.byPlanId[id] = row.statuses[i];
+          });
         }
       }
       return row;
@@ -3472,6 +3553,8 @@
     drugIngredients,
     drugIdentityKey,
     isNonDrugName,
+    isChatPromptDrugName,
+    foldExportDrugs,
     doctorIdentity,
     sameDoctorIdentity,
     userDoctorAliases,
@@ -3535,6 +3618,7 @@
     parseFormularyLookupLine,
     normalizeDrugs,
     formatDrugCell,
+    stripQuantityLimits,
     stripStrengthSameNote,
     normalizeNetworkStatus,
     normalizeExportPayload,

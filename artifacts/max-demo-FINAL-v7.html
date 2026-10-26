@@ -653,7 +653,13 @@
     "both all none no nope yes yeah yep ok okay sure same correct right wrong those these them they it this that either neither each other others another any meds med medication medications drug drugs rx generic brand unknown na idk she he her his their unchanged covered".split(" ")
   );
 
+  function isChatPromptDrugName(name) {
+    const s = String(name || "");
+    return /[❓❔]|did you mean|check name|not a drug name|check spelling|name not confirmed|auto-corrected, verify/i.test(s);
+  }
+
   function isNonDrugName(name) {
+    if (isChatPromptDrugName(name)) return true;
     const words = String(name || "")
       .toLowerCase()
       .replace(/\*+$/, "")
@@ -667,7 +673,7 @@
   // Salt / dosage-form / packaging words: "Amlodipine Besy-Benazepril HCL" and
   // "Amlodipine/Benazepril" are one drug; "Levothyroxine Sodium" is "Levothyroxine".
   const DRUG_SALT_WORDS = new Set(
-    "besy besylate hcl hydrochloride hcl. hbr hydrobromide sodium na potassium calcium magnesium maleate mesylate succinate tartrate fumarate citrate sulfate acetate bromide phosphate hyclate monohydrate dihydrate trihydrate anhydrous dipropionate propionate valerate oral tablet tablets tab tabs capsule capsules cap caps caplet caplets chewable solution suspension pen injector injection auto autoinjector sureclick prefilled syringe generic mg mcg ml g unit units iu".split(" ")
+    "besy besylate hcl hydrochloride hcl. hbr hydrobromide sodium na potassium calcium magnesium maleate mesylate succinate tartrate fumarate citrate sulfate acetate bromide phosphate hyclate monohydrate dihydrate trihydrate anhydrous dipropionate propionate valerate oral tablet tablets tab tabs capsule capsules cap caps caplet caplets chewable solution suspension pen injector injection auto autoinjector sureclick prefilled syringe generic mg mcg ml g unit units iu lotion lot cream ointment gel diprop dipr topical".split(" ")
   );
 
   /** Active-ingredient list for dedupe/matching ("Amlodipine Besy-Benazepril HCL 10-40mg" → ["amlodipine","benazepril"]). */
@@ -697,6 +703,31 @@
     const ings = drugIngredients(name);
     if (!ings.length) return String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
     return ings.slice().sort().join("+");
+  }
+
+  /** One row per requested med: combo variants and "did you mean" fragments collapse. */
+  function foldExportDrugs(drugs) {
+    const list = (drugs || []).filter((d) => d && !isChatPromptDrugName(d && d.name));
+    const ingsOf = (d) => drugIngredients(d.name);
+    const keepLotion = (n) => /\blot(?:ion)?\b/i.test(String(n || ""));
+    const out = [];
+    list.forEach((d) => {
+      const ings = ingsOf(d);
+      const hit = out.find((x) => {
+        const o = ingsOf(x);
+        if (!o.length || !ings.length) return drugIdentityKey(x.name) === drugIdentityKey(d.name);
+        if (o.slice().sort().join("+") === ings.slice().sort().join("+")) return true;
+        if (o.length >= 2 && ings.length === 1 && o.indexOf(ings[0]) >= 0) return true;
+        if (ings.length >= 2 && o.length === 1 && ings.indexOf(o[0]) >= 0) return true;
+        return false;
+      });
+      if (!hit) { out.push(d); return; }
+      if (ings.length > ingsOf(hit).length || (keepLotion(d.name) && !keepLotion(hit.name))) hit.name = d.name;
+      else hit.name = preferredDrugName(hit.name, d.name);
+      Object.keys(d.byPlanId || {}).forEach((id) => mergeDrugPlanStatus(hit.byPlanId || (hit.byPlanId = {}), id, d.byPlanId[id], null));
+      if (d.screen) hit.screen = Object.assign({}, hit.screen || {}, d.screen);
+    });
+    return out;
   }
 
   /** Cleaner display between two aliases of one drug: no salt abbreviations, then shorter. */
@@ -1287,6 +1318,7 @@
 
   function looksLikeDrugName(name) {
     const s = String(name || "").replace(/\s+/g, " ").trim();
+    if (isChatPromptDrugName(s)) return false;
     if (s.length < 3 || s.length > 48) return false;
     if (/\d{5,}/.test(s)) return false;
     if (isCarrierAsDrugName(s)) return false;
@@ -1471,6 +1503,8 @@
         st: incoming.st,
         ql: incoming.ql,
         qlText: incoming.qlText || null,
+        bdPa: incoming.bdPa,
+        hrm: incoming.hrm,
         restrictionsKnown: typeof incoming.restrictionsKnown === "boolean" ? incoming.restrictionsKnown : undefined,
         source: incoming.source || null,
         unsure: Boolean(incoming.unsure),
@@ -1583,15 +1617,30 @@
   function stripStrengthSameNote(text) {
     return String(text == null ? "" : text).replace(/\s*[·,;-]?\s*\(?cost (?:is )?(?:the )?same across (?:all )?strengths\)?/gi, "");
   }
-  function formatDrugCell(status, plan) {
+  function stripQuantityLimits(text) {
+    return String(text == null ? "" : text)
+      .split(" · ")
+      .filter((part) => !/^QL(?:\s|$)/i.test(String(part).trim()))
+      .join(" · ");
+  }
+  function formatDrugCell(status, plan, opts) {
     if (!status || !status.verified) return "Unverified";
     if (status.coverage === "not_covered" && status.unsure) return "Confirm in Sunfire";
     if (status.coverage === "not_covered") return "Not covered";
     if (!status.tier) return "Unverified";
+    const showQl = opts && opts.showQl === true;
     const cost =
       status.costShare ||
       formatBenefitValue(plan && plan["tier" + status.tier], "tier" + status.tier);
-    const flags = [status.pa ? "PA" : "", status.st ? "ST" : "", status.qlText || (status.ql ? "QL" : "")].filter(Boolean).join("/");
+    // Same restriction flags as the chat meds table (doctorPlanNarrow.drugCell): PA / ST /
+    // plus HealthSun book flags B/D PA and HRM (PA 65+). QL only when she asked.
+    const flags = [
+      status.pa ? "PA" : "",
+      status.st ? "ST" : "",
+      showQl ? (status.qlText || (status.ql ? "QL" : "")) : "",
+      status.bdPa ? "B/D PA" : "",
+      status.hrm ? "HRM (PA 65+)" : "",
+    ].filter(Boolean).join(" · ");
     const costBit = cost && cost !== "Not listed" ? " · " + cost : "";
     return stripStrengthSameNote("Tier " + status.tier + costBit + (flags ? " · " + flags : ""));
   }
@@ -1667,9 +1716,16 @@
           map = mergeByPlanIdMaps(map, byPlanIdFromStatuses(d.statuses, plans));
         }
       }
-      const statuses = plans.map((p) => {
+      const statuses = plans.map((p, i) => {
         const fromMap = normalizeNetworkStatus(lookupPlanStatus(map, p));
-        if (fromMap === NETWORK_IN || fromMap === NETWORK_OUT) return fromMap;
+        const existing = typeof d !== "string"
+          ? normalizeNetworkStatus(Array.isArray(d.statuses) ? d.statuses[i] : "")
+          : "";
+        // Chat / saved In or Out is never downgraded to Not confirmed by a later empty lookup.
+        if (fromMap === NETWORK_IN || fromMap === NETWORK_OUT) {
+          return mergeStatusPair(existing === NETWORK_NOT_CONFIRMED ? "" : existing, fromMap) || fromMap;
+        }
+        if (existing === NETWORK_IN || existing === NETWORK_OUT) return existing;
         const fromNet =
           typeof d !== "string" && d.networks
             ? statusFromProviderNetworks(p, d.networks, { missIsUnknown: looksLikeOrganization(name) })
@@ -1740,12 +1796,17 @@
 
   const SHARED_NETWORK_PLAN_IDS = { doctors: ["H4140-022", "H4140-023", "H4140-001", "H4140-012"] };
 
+  function isPartialDirectoryCarrier(carrierLabel) {
+    return /healthsun|careplus/.test(String(carrierLabel || "").toLowerCase());
+  }
+
   function carrierHitIsPlanHit(carrierLabel, plan) {
     const c = String(carrierLabel || "").toLowerCase();
     if (!carrierMatchesPlan(carrierLabel, plan)) return false;
-    // Solis: one network per county directory. Devoted: fallback only — a 2027 lookup carries
-    // plan-level In/Out by network (C-SNP plans have their own network), checked first above.
-    if (/devoted|solis/.test(c)) return true;
+    // Same single-network list as the chat table (doctorPlanNarrow.SINGLE_NETWORK_CARRIERS):
+    // one county directory covers every HMO plan — Devoted, Solis, CarePlus, HealthSun.
+    // Doctors DrMax-Dade / DrSelect-SFL share one network; C-SNP/D-SNP stay In*.
+    if (/devoted|solis|careplus|healthsun/.test(c)) return true;
     if (/doctors/.test(c)) {
       const id = String((plan && (plan.planId || plan.id)) || "").toUpperCase().slice(0, 9);
       return SHARED_NETWORK_PLAN_IDS.doctors.indexOf(id) >= 0;
@@ -1772,13 +1833,16 @@
         fallback = fallback || NETWORK_NEED_MORE;
         continue;
       }
-      // A carrier-level hit (no plan IDs) only counts as In where every plan shares one
-      // network: Devoted (all plans) and Doctors DrMax-Dade / DrSelect-SFL (Yahoska,
-      // 2026-10-06). Same rule as the chat table (doctorPlanNarrow.carrierHitIsPlanHit).
+      // A carrier-level hit (no plan IDs) counts as In on a single-network carrier — the same
+      // list as the chat table, including HealthSun's 2027 county PDF index.
       if (net.inNetwork === true && !(net.plans && net.plans.length) && carrierHitIsPlanHit(net.carrier, plan)) return NETWORK_IN;
-      // One-network directory (Devoted; Doctors DrMax/DrSelect) that answered and did not
-      // list the doctor → Out. Same rule as the chat table (doctorPlanNarrow.directoryFinished).
-      if (net.inNetwork === false && net.status === "checked" && !missIsUnknown && carrierHitIsPlanHit(net.carrier, plan)) return NETWORK_OUT;
+      if (net.inNetwork === false && net.status === "checked" && carrierHitIsPlanHit(net.carrier, plan)) {
+        // HealthSun clinics: Organization?identifier=NPI is a real check — empty = Out.
+        // HealthSun people and CarePlus stay Not confirmed (partial name-index lists).
+        if (/healthsun/i.test(String(net.carrier)) && missIsUnknown) return NETWORK_OUT;
+        if (isPartialDirectoryCarrier(net.carrier) || net.partialList) continue;
+        if (!missIsUnknown) return NETWORK_OUT;
+      }
       // Everything else is not an Out: an In for a DIFFERENT plan of the same carrier, a
       // carrier-level miss on a plan with its own network, or a clinic/org stays "Not confirmed".
     }
@@ -2643,11 +2707,12 @@
         }
       });
     }
-    drugs = settleBrandNotCovered(applyKnownGenericSuggestions(drugs, resolvedPlans));
+    drugs = foldExportDrugs(settleBrandNotCovered(applyKnownGenericSuggestions(drugs, resolvedPlans)));
     // The on-screen Meds table is the truth (Paula Harris, 2026-10-13: the sheet said "Confirm in Sunfire" /
     // "Not covered" where the screen said "check Medicare.gov").
     if (extra.chatTable && Array.isArray(extra.chatTable.meds) && extra.chatTable.meds.length) {
       extra.chatTable.meds.forEach((m) => {
+        if (!m || isChatPromptDrugName(m.name)) return;
         const key = drugIdentityKey(m.name);
         let hit = drugs.find((d) => drugIdentityKey(d.name) === key);
         if (!hit) { hit = { name: m.name, byPlanId: {} }; drugs.push(hit); }
@@ -2655,6 +2720,7 @@
         // "Atorvastatin Calcium 80 mg": the screen shows the strength in the drug name, so the sheet does too.
         if (m.name && hit.name && m.name.length > hit.name.length && m.name.toLowerCase().startsWith(String(hit.name).toLowerCase())) hit.name = m.name;
       });
+      drugs = foldExportDrugs(drugs);
     }
     const mineText = (Array.isArray(extra.userMessages) ? extra.userMessages.join("\n") : "") + "\n" + String(extra.latestUserText || "");
     const payload = {
@@ -2673,6 +2739,7 @@
       sobBenefits: extra.sobBenefits || extra.sobExtras || {},
       keepPlanOrder: extra.planSetFixed === true,
       askedExportSob: extra.askedExportSob === true || askedExportSobBenefits(extra.askText != null ? extra.askText : text),
+      showQl: extra.showQl === true || /\bshow quantity limits\b/i.test(mineText),
     };
     if (drugs.some((d) => d.brandNotCovered || /\*$/.test(d.name || "") || d.genericOf)) {
       payload.genericOnlyNote = GENERIC_ONLY_NOTE;
@@ -2820,7 +2887,9 @@
           const shown = drug.screen && drug.screen[String(displayContractPbp(plans[i]) || "").toUpperCase().slice(0, 9)];
           if (shown && /^⏱|timed\s*out/i.test(String(shown))) return NETWORK_TIMED_OUT;
           if (!shown && drug.timedOut && !(s && s.verified)) return NETWORK_TIMED_OUT;
-          return shown || formatDrugCell(s, plans[i]);
+          const showQl = payload.showQl === true;
+          const text = shown || formatDrugCell(s, plans[i], { showQl: showQl });
+          return showQl ? text : stripQuantityLimits(text);
         });
         const values = [drug.name, ...cells];
         const rowKinds = ["label", ...cells.map((c) => (c === "Unverified" || c === NETWORK_TIMED_OUT ? "pending" : "text"))];
@@ -3258,7 +3327,10 @@
             const c = String(cells[j + 1] || "").replace(/^[✅❌❔❓⚠️\s]+/u, "").replace(/\s+/g, " ").trim();
             if (id && c) byPlan[id.slice(0, 9)] = c.charAt(0).toUpperCase() + c.slice(1);
           });
-          if (cells[0]) meds.push({ name: cells[0].replace(/\*+$/, "").trim(), byPlan });
+          const medName = cells[0] ? cells[0].replace(/\*+$/, "").trim() : "";
+          if (medName && !isChatPromptDrugName(medName) && !/^check name$/i.test(String(cells[1] || ""))) {
+            meds.push({ name: medName, byPlan });
+          }
         }
       }
       found.push({ at: i, planIds: planIds.filter(Boolean), rows, meds });
@@ -3397,12 +3469,21 @@
         if (tr) {
           row.statuses = (plans || []).map((p, i) => {
             const id = String(p.planId || p.id || "").toUpperCase().slice(0, 9);
-            const key = Object.keys(tr.byPlan).find((k) => k.slice(0, 9) === id);
-            return key ? tr.byPlan[key] : (row.statuses || [])[i];
+            const key = Object.keys(tr.byPlan || {}).find((k) => String(k).toUpperCase().slice(0, 9) === id);
+            const chat = key ? tr.byPlan[key] : "";
+            const was = (row.statuses || [])[i];
+            if (!chat) return was;
+            const chatN = normalizeNetworkStatus(chat) || chat;
+            const wasN = normalizeNetworkStatus(was);
+            // Chat table is the truth — never replace a chat In with Not confirmed.
+            if (chatN === NETWORK_NOT_CONFIRMED && wasN === NETWORK_IN) return was;
+            return chatN || chat;
           });
-          if (row.byPlanId) {
-            (plans || []).forEach((p, i) => { const id = p.planId || p.id; if (id && row.statuses[i]) row.byPlanId[id] = row.statuses[i]; });
-          }
+          row.byPlanId = Object.assign({}, row.byPlanId || {});
+          (plans || []).forEach((p, i) => {
+            const id = p.planId || p.id;
+            if (id && row.statuses[i]) row.byPlanId[id] = row.statuses[i];
+          });
         }
       }
       return row;
@@ -3814,6 +3895,8 @@
     drugIngredients,
     drugIdentityKey,
     isNonDrugName,
+    isChatPromptDrugName,
+    foldExportDrugs,
     doctorIdentity,
     sameDoctorIdentity,
     userDoctorAliases,
@@ -3877,6 +3960,7 @@
     parseFormularyLookupLine,
     normalizeDrugs,
     formatDrugCell,
+    stripQuantityLimits,
     stripStrengthSameNote,
     normalizeNetworkStatus,
     normalizeExportPayload,
@@ -4163,6 +4247,7 @@
       const name = clip(d.name || d.drug || "", 48);
       // A role word ("PCP" from "Cheryl Diaz PCP") is never a med.
       if (!name || /^(?:pcp|primary(?:\s+care)?|cardiolog\w*|dermatolog\w*|neurolog\w*|specialist|doctors?|both|none|n\/a)$/i.test(name)) return;
+      if (/\b[HR]\d{4}-\d{3}\b/i.test(name) || /\b(?:drselect(?:[- ]sfl)?|drmax(?:[- ]dade)?|health\s*advantage|healthy\s+living|preferred\s+ma|gold\s+plus)\b/i.test(name)) return;
       const map = d.byPlanId || {};
       const byPlanId = {};
       Object.keys(map).forEach((id) => {
@@ -4239,6 +4324,8 @@
       needs: needs,
       terminatingPlan: terminatingPlan,
       currentPlanIds: (Array.isArray(extra.currentPlanIds) && extra.currentPlanIds.length ? extra.currentPlanIds : extractCurrentPlanIds(thread)).slice(0, 3),
+      eligibility: extra.eligibility || src.eligibility || undefined,
+      showQl: extra.showQl === true || src.showQl === true ? true : extra.showQl === false || src.showQl === false ? false : undefined,
     };
   }
 
@@ -4290,6 +4377,8 @@
       currentPlanIds: Array.isArray(w.currentPlanIds) ? w.currentPlanIds.slice(0, 3) : [],
       doctors: doctors,
       drugs: drugs,
+      eligibility: w.eligibility || undefined,
+      showQl: w.showQl === true,
     };
   }
 
@@ -4348,6 +4437,16 @@
       needs.forEach((n) => lines.push("- " + n));
     }
     if (w.terminatingPlan) lines.push("Plan Terminating: " + w.terminatingPlan);
+    const el = w.eligibility && typeof w.eligibility === "object" ? w.eligibility : {};
+    if (el.medicaid === "none") lines.push("No Medicaid.");
+    else if (el.medicaid === "full") lines.push("Full Medicaid" + (el.levels && el.levels.length ? " (" + el.levels.join(", ") + ")" : "") + ".");
+    else if (el.medicaid === "msp") lines.push(el.levels && el.levels.length ? "MSP only: " + el.levels.join(", ") + "." : "MSP only.");
+    if (el.csnp === "confirmed") {
+      const conds = Array.isArray(el.conditions) && el.conditions.length ? el.conditions.join(", ") : "yes";
+      lines.push("C-SNP qualifying condition confirmed: " + conds + ".");
+    } else if (el.csnp === "none") lines.push("No C-SNP qualifying condition.");
+    if (el.mustKeep) lines.push("Must-keep doctors: " + el.mustKeep + ".");
+    if (w.showQl === true) lines.push("Show quantity limits.");
     return lines.join("\n");
   }
 
@@ -4569,6 +4668,20 @@
     return /\b(?:doctors?|providers?)\s*:/i.test(t) && /\b(?:meds?|medications?|prescriptions?)\s*:/i.test(t);
   }
 
+  // A complete new client ask in chat or on the card (labels optional): name, ZIP, 2+ doctors, plus meds or a plan.
+  function isFullClientRequest(text) {
+    const t = String(text || "");
+    if (t.indexOf(WORKUP_CONTEXT_PREFIX) === 0) return false;
+    if (isFullClientList(t)) return true;
+    const zip = /\b3[0-4]\d{3}\b/.test(t);
+    const named = /^\s*[A-Z][a-z]+(?:\s+(?:and|&)\s+[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]+/.test(t);
+    const docs = (t.match(/\b(?:dr|dra|doctor|doctora)\b\.?\s+[A-Za-z]/gi) || []).length >= 2
+      || /\b(?:doctors?|providers?)\s*:/i.test(t);
+    const extras = /\b(?:meds?|medications?|rx)\s*:/i.test(t) || /\b[HR]\d{4}-\d{1,3}/i.test(t)
+      || /\bgiveback\b/i.test(t) || /\b(?:meds?|medications?)\b/i.test(t);
+    return Boolean(zip && named && docs && extras);
+  }
+
   // The client's ZIP from her newest message that states one ("Ana Ruiz, 33196" / "ZIP 33196") — never a doctor's
   // or pharmacy's address ZIP, and never the older original request once she gave a new one.
   function newestClientZip(messages, textFn) {
@@ -4595,6 +4708,21 @@
     const orig = String(w.originalQuery || "").match(/^[^\n]{0,120}?\b(\d{5})\b/);
     const was = orig && orig[1] !== w.zip ? " — latest; the original request said " + orig[1] : "";
     return "ZIP " + w.zip + (county ? " (" + county + ")" : "") + was;
+  }
+
+  /** Same person? First names must agree. "Maya Ortega" never matches "Jordan Hale" or a spouse lead. */
+  function sameClientLead(savedName, lead) {
+    const a = String(savedName || "").toLowerCase().replace(/[^a-z\s&]/g, " ").trim();
+    const b = String(lead || "").toLowerCase().replace(/\bzip(?:\s*code)?\s*:?\s*\d{5}.*$/i, "").replace(/[^a-z\s&,]/g, " ").trim();
+    if (!a || !b) return false;
+    if (a === b) return true;
+    if (b === a || b.startsWith(a + " ") || b.startsWith(a + ",") || b.startsWith(a + "\n")) return true;
+    const first = (n) => n.split(/\s+/).filter((w) => w && !["mr", "mrs", "ms", "and", "the"].includes(w))[0] || "";
+    const last = (n) => {
+      const w = n.split(/\s+/).filter((x) => x && !["mr", "mrs", "ms", "and", "the"].includes(x));
+      return w.length >= 2 ? w[w.length - 1] : "";
+    };
+    return first(a) && first(a) === first(b) && last(a) && last(a) === last(b);
   }
 
   // Drug cells are tier · cost only: an old saved meds table loses its "cost same across strengths" notes (Yahoska, 2026-10-17).
@@ -4639,6 +4767,8 @@
     comparePlansLine,
     pastePlanSet,
     isFullClientList,
+    isFullClientRequest,
+    sameClientLead,
     newestClientZip,
     workupZipLine,
   };
@@ -6344,6 +6474,7 @@ function collectComparisonExport(history, plans, extras) {
     currentPlanIds: (wkSaved && Array.isArray(wkSaved.currentPlanIds) && wkSaved.currentPlanIds) || [],
     chatTable: typeof window.MaxComparisonExport.latestChatTable === "function" ? window.MaxComparisonExport.latestChatTable(history, userMessageText) : null,
     ...extra0,
+    showQl: extra0.showQl === true || (wkSaved && wkSaved.showQl === true),
   };
   // A loaded workup keeps its client name on every export: a follow-up ("Add Dr. Mario del Cid, …") is never a rename
   // (Martha Muraglia, 2026-10-20: the Excel title read "Add Dr"). Only Rename changes it (it updates the card too).
@@ -7406,6 +7537,9 @@ function CompareResult({ result, onExport }) {
                     {result.medsLegend || "T = tier · ⚠️ confirm = read not covered, check the exact product in Sunfire · ❔ unchecked = never checked · ❔ not confirmed = checked, no result"}
                   </div>
                 )}
+                {result.hasQl && !result.showQl && (
+                  <div data-testid="ql-offer" style={{ fontSize: 12.5, color: "var(--plum)", marginTop: 8 }}>Show quantity limits?</div>
+                )}
                 {onExport && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
                   <button onClick={() => void onExport("excel")} style={btn(true)}>Export Excel</button>
                   <button onClick={() => void onExport("pdf")} style={btn(false)}>Export PDF</button>
@@ -7741,7 +7875,8 @@ function App() {
   const tableOffer = (payload) => {
     const tableId = "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     exportSnapshotsRef.current[tableId] = sessionToolResultsRef.current;
-    return { role: "offer", content: "export", tableId, plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, sobBenefits: payload.sobBenefits, time: nowLabel() };
+    const hasQl = Boolean(payload.hasQl) || (payload.drugs || []).some((d) => Object.values((d && d.byPlanId) || {}).some((s) => s && (s.ql === true || s.qlText)));
+    return { role: "offer", content: "export", tableId, plans: payload.plans, clientName: payload.clientName, terminatingPlan: payload.terminatingPlan, doctors: payload.doctors, drugs: payload.drugs, sobBenefits: payload.sobBenefits, hasQl, showQl: Boolean(payload.showQl), eligibility: payload.eligibility || undefined, time: nowLabel() };
   };
   // An older table keeps its own Export buttons; other offers are replaced as before.
   const keepTableOffers = (h) => h.filter((m) => m.role !== "offer" || Boolean(m.tableId));
@@ -7965,7 +8100,8 @@ function App() {
     // A full new list in her newest message (typed, pasted or from a PDF) replaces the saved doctors and meds.
     const lastUser = [...messagesRef.current].reverse().find((m) => m && m.role === "user");
     const lastUserText = lastUser ? userMessageText(lastUser.content) : "";
-    const fullList = Boolean(prev) && window.MaxClientWorkups.isFullClientList(lastUserText);
+    const fullList = Boolean(prev) && (window.MaxClientWorkups.isFullClientList(lastUserText)
+      || (window.MaxClientWorkups.isFullClientRequest && window.MaxClientWorkups.isFullClientRequest(lastUserText)));
     if (prev) {
       // Renamed by the agent → keep her name, never the one re-read from the chat.
       // A loaded workup keeps its client name: a correction turn ("Pinecrest Dentisry is Dr. Salome Fraga") is never
@@ -8044,6 +8180,11 @@ function App() {
         built.medications = built.medications.concat(prev.medications.filter((m) => !have.has(key(m))));
       }
     }
+    const prevEl = prev && prev.eligibility;
+    const payloadEl = payload && payload.eligibility;
+    built.eligibility = payloadEl || prevEl || undefined;
+    const askedQl = /\bshow quantity limits\b/i.test(lastUserText);
+    built.showQl = (payload && payload.showQl === true) || askedQl || (prev && prev.showQl === true) || false;
     if (built.clientName && payload && !payload.clientName) payload.clientName = built.clientName;
     return built;
   };
@@ -8067,6 +8208,8 @@ function App() {
       medications: body.medications,
       needs: body.needs,
       terminatingPlan: body.terminatingPlan,
+      eligibility: body.eligibility || null,
+      showQl: body.showQl === true,
     });
     if (silent && sig === lastSavedSigRef.current) return loadedWorkupRef.current;
     if (!silent) setSavingWorkup(true);
@@ -8129,6 +8272,7 @@ function App() {
 
   const openWorkup = async (id, extra) => {
     try {
+      const pendingAsk = extra && extra.pendingAsk ? String(extra.pendingAsk).trim() : "";
       const data = await workupsRequest("GET", "/" + id);
       const workup = data.workup;
       const payload = window.MaxClientWorkups.workupToExportPayload(workup, PLANS);
@@ -8148,6 +8292,8 @@ function App() {
         medications: workup.medications,
         needs: workup.needs,
         terminatingPlan: workup.terminatingPlan,
+        eligibility: workup.eligibility || null,
+        showQl: workup.showQl === true,
       });
       const card = { role: "workup", workup, time: nowLabel() };
       const next = [card];
@@ -8162,10 +8308,21 @@ function App() {
           terminatingPlan: payload.terminatingPlan,
           doctors: payload.doctors,
           drugs: payload.drugs, sobBenefits: payload.sobBenefits,
+          hasQl: (payload.drugs || []).some((d) => Object.values((d && d.byPlanId) || {}).some((s) => s && (s.ql === true || s.qlText))),
+          showQl: workup.showQl === true,
           time: nowLabel(),
         });
       }
       const wsHere = wsMapRef.current[workup.id];
+      // A card left at "Checking doctors 0/N" (expired server job or a lookup that never answered) must not sit forever.
+      if (wsHere && wsHere.stage === "running") {
+        const started = Date.parse(wsHere.startedAt || (wsHere.job && wsHere.job.startedAt) || 0);
+        const done = wsHere.job && wsHere.job.progress && wsHere.job.progress.doctors ? wsHere.job.progress.doctors.done : 0;
+        const age = started ? Date.now() - started : 0;
+        if (!wsHere.job || (done === 0 && age > 45_000) || age > 180_000) {
+          setWs(workup.id, { stage: "error", error: "Doctor check timed out — send the request again.", job: wsHere.job });
+        }
+      }
       // A saved comparison grid that is missing saved plans is stale: Robin Forte (2026-10-17) had 4 saved plans and
       // the first New-client run's 1-plan grid ("Plans: H5420-001") reopened under them every time. Don't show it.
       const missingFrom = (r) => window.MaxClientWorkups.stalePlansForResult(workup, r);
@@ -8198,7 +8355,10 @@ function App() {
       // Doctors added back from the original request are checked right away, with the meds (Martha Muraglia,
       // 2026-10-20: "Ask me to check the doctors" under a card stuck at "Checking meds 0/5").
       const runAsk = window.MaxClientWorkups.recoveredDoctorsRunAsk ? window.MaxClientWorkups.recoveredDoctorsRunAsk(workup) : "";
-      if (runAsk && !(parked && parked.pending)) {
+      if (pendingAsk) {
+        const genAtOpen = chatGenRef.current;
+        setTimeout(() => { if (chatGenRef.current === genAtOpen && currentWorkupIdRef.current === workup.id) send(pendingAsk); }, 120);
+      } else if (runAsk && !(parked && parked.pending)) {
         const genAtOpen = chatGenRef.current;
         setTimeout(() => { if (chatGenRef.current === genAtOpen && currentWorkupIdRef.current === workup.id) send(runAsk); }, 120);
       }
@@ -8261,13 +8421,14 @@ function App() {
     }
   };
 
-  const setWs = (id, patch) => setWsMap((cur) => {
-    const prev = cur[id] || {};
-    const next = { ...cur, [id]: { ...prev, ...(typeof patch === "function" ? patch(prev) : patch) } };
+  const setWs = (id, patch) => {
+    const prev = wsMapRef.current[id] || {};
+    const row = { ...prev, ...(typeof patch === "function" ? patch(prev) : patch) };
+    const next = { ...wsMapRef.current, [id]: row };
     wsMapRef.current = next;
     saveWsStore(next);
-    return next;
-  });
+    setWsMap(next);
+  };
 
   const addWorkupSummary = (workup) => setWorkups((current) => {
     const summary = {
@@ -8324,7 +8485,21 @@ function App() {
       }
       const CWk = window.MaxClientWorkups;
       const fullList = CWk.isFullClientList(rawText);
-      const saved = await workupsRequest("PUT", "", { clientName: fields.clientName, zip: fields.zip, plans: [], ...(fullList ? { latestQuery: rawText } : {}), ...(f.pharmacy ? { pharmacy: f.pharmacy } : {}), originalQuery: rawText });
+      const fullRequest = fullList || (CWk.isFullClientRequest && CWk.isFullClientRequest(rawText));
+      const doctorRows = linesOf(fields.doctors).map((n) => ({ name: n.replace(/\s*\*$/, ""), byPlanId: {} }));
+      const medRows = linesOf(fields.meds).map((n) => ({ name: n, byPlanId: {} }));
+      const typedPlanIds = [...new Set([
+        ...((String(fields.plans || "").match(/\b[HR]\d{4}-\d{3}[A-Z]?\b/gi) || []).map((x) => x.toUpperCase())),
+        ...((fields.currentPlans || []).map((x) => String(x || "").toUpperCase()).filter(Boolean)),
+      ])];
+      const saved = await workupsRequest("PUT", "", {
+        clientName: fields.clientName, zip: fields.zip,
+        plans: typedPlanIds.map((planId) => ({ planId })),
+        doctors: doctorRows, medications: medRows,
+        currentPlanIds: (fields.currentPlans && fields.currentPlans.length) ? fields.currentPlans : (typedPlanIds.length === 1 ? typedPlanIds : []),
+        ...(fullRequest ? { latestQuery: rawText } : {}),
+        ...(f.pharmacy ? { pharmacy: f.pharmacy } : {}),
+        originalQuery: rawText });
       const workup = saved.workup;
       // Her paste on a client she already saved (same name): the saved plan set stays unless she says otherwise.
       // Live bug, 2026-10-21: the paste named H5420-014 and the card ran only that, not her 4 saved plans.
@@ -8353,7 +8528,9 @@ function App() {
       }
       setWs(workup.id, { id: workup.id, workupId: workup.id, stage: "questions", rawText, fields, answers: {}, name: fields.clientName, error: "" });
       setWs("new", { busy: false, error: "" });
-      await openWorkup(workup.id);
+      // A full new request on a name that already has a workup must be processed as THIS ask
+      // (current plan + giveback / alternatives), never swallowed by only reopening the old card.
+      await openWorkup(workup.id, fullRequest ? { pendingAsk: rawText } : undefined);
     } catch (err) {
       setWs("new", { busy: false, error: err.message || "Could not set up this client." });
     }
@@ -8372,8 +8549,18 @@ function App() {
       if (wsNeedsMust(ws.fields) && Array.isArray(a.must)) doctorLines = doctorLines.map((d, idx) => (a.must.includes(idx) ? d + " *" : d));
       else doctorLines = linesOf(ws.fields.doctors);
       const fields = { ...ws.fields, doctors: doctorLines.join("\n"), noMedicaid: Boolean(f.noMedicaid), eligibility: f.eligibility || null };
+      if (ws.workupId && f.eligibility) {
+        try {
+          await workupsRequest("PUT", "/" + ws.workupId, {
+            id: ws.workupId,
+            clientName: fields.clientName,
+            zip: fields.zip,
+            eligibility: f.eligibility,
+          });
+        } catch (_) { /* keep the job running even if the save lags */ }
+      }
       const created = await compareRequest("POST", "/jobs", buildQueueJobBody(fields));
-      setWs(id, { stage: "running", fields, jobId: created.job.id, job: created.job });
+      setWs(id, { stage: "running", fields, jobId: created.job.id, job: created.job, startedAt: new Date().toISOString() });
     } catch (err) {
       setWs(id, { stage: "error", error: err.message || "Could not start the comparison." });
     }
@@ -8436,13 +8623,21 @@ function App() {
     try {
       const ws = wsMapRef.current[id];
       if (!ws || ws.stage !== "running" || !ws.jobId) return;
+      const started = Date.parse(ws.startedAt || (ws.job && ws.job.startedAt) || 0);
+      const age = started ? Date.now() - started : 0;
+      const done = ws.job && ws.job.progress && ws.job.progress.doctors ? ws.job.progress.doctors.done : 0;
+      if ((done === 0 && age > 90_000) || age > 180_000) {
+        setWs(id, { stage: "error", error: "Doctor check timed out — send the request again.", job: ws.job });
+        return;
+      }
       const data = await compareRequest("GET", "/jobs/" + ws.jobId);
       const job = data.job;
       if (job.status === "done") await wsFinish(id, job);
       else if (job.status === "error") setWs(id, { stage: "error", error: "Comparison failed: " + (job.error || "unknown error"), job });
       else setWs(id, { job });
     } catch (err) {
-      if (/not found|expired/i.test(String(err.message))) setWs(id, { stage: "error", error: "This comparison expired. Tap Start over and add the client again." });
+      if (/not found|expired|timed out|timeout/i.test(String(err.message))) setWs(id, { stage: "error", error: /timed out|timeout/i.test(String(err.message)) ? "Doctor check timed out — send the request again." : "This comparison expired. Tap Start over and add the client again." });
+      else setWs(id, { stage: "error", error: err.message || "Doctor check failed — send the request again." });
     } finally {
       wsBusyRef.current.delete(id);
     }
@@ -8614,6 +8809,48 @@ function App() {
   };
 
   const sendNow = async (content, images) => {
+    // A spouse / new client paste on someone else's open tab never inherits that plan set.
+    if (!images.length && window.MaxClientWorkups && typeof window.MaxClientWorkups.isFullClientRequest === "function"
+      && window.MaxClientWorkups.isFullClientRequest(content) && currentWorkupIdRef.current) {
+      const lead = String(content).split(/[\n,]/)[0].replace(/\bzip(?:\s*code)?\s*:?\s*\d{5}.*$/i, "").replace(/[.\s]+$/, "").trim();
+      const cur = (workups || []).find((w) => w && w.id === currentWorkupIdRef.current);
+      if (cur && lead && window.MaxClientWorkups.sameClientLead && !window.MaxClientWorkups.sameClientLead(cur.clientName, lead)) {
+        currentWorkupIdRef.current = null;
+        loadedWorkupRef.current = null;
+        setCurrentWorkupId(null);
+      }
+    }
+    // Fresh chat + a full new request that names a saved client: merge into that workup and
+    // process THIS text (current plan / giveback). Never only reopen the old card.
+    if (!images.length && !loadedWorkupRef.current && !currentWorkupIdRef.current
+      && window.MaxClientWorkups && typeof window.MaxClientWorkups.isFullClientRequest === "function"
+      && window.MaxClientWorkups.isFullClientRequest(content)) {
+      const lead = String(content).split(/[\n,]/)[0].replace(/\bzip(?:\s*code)?\s*:?\s*\d{5}.*$/i, "").replace(/[.\s]+$/, "").trim();
+      const hit = (workups || []).find((w) => {
+        const n = String((w && w.clientName) || "").trim();
+        if (!n) return false;
+        return window.MaxClientWorkups.sameClientLead
+          ? window.MaxClientWorkups.sameClientLead(n, lead)
+          : n.toLowerCase() === lead.toLowerCase();
+      });
+      if (hit && hit.id) {
+        try {
+          const parsed = await compareRequest("POST", "/parse", { text: content });
+          const f = parsed.fields || {};
+          await workupsRequest("PUT", "/" + hit.id, {
+            clientName: f.clientName || hit.clientName,
+            zip: f.zip || hit.zip,
+            doctors: (f.doctors || []).map((d) => ({ name: d.name, npi: d.npi, byPlanId: {} })),
+            medications: (f.meds || []).map((name) => ({ name, byPlanId: {} })),
+            plans: (f.plans || []).map((planId) => ({ planId })),
+            currentPlanIds: f.currentPlans || [],
+            latestQuery: content,
+          });
+          await openWorkup(hit.id, { pendingAsk: content });
+          return;
+        } catch (_) { /* fall through to a normal chat turn */ }
+      }
+    }
     const gen = chatGenRef.current;
     const startWorkupId = currentWorkupIdRef.current || null;
     inflightChatRef.current = { gen, workupId: startWorkupId };
@@ -9403,6 +9640,12 @@ function App() {
                     <button data-testid="show-benefits" onClick={() => send("Show benefits for these plans")}
                       style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
                       Show benefits
+                    </button>
+                    )}
+                    {m.hasQl && !m.showQl && (
+                    <button data-testid="show-quantity-limits" onClick={() => send("Show quantity limits")}
+                      style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--line)", background: "rgba(255,255,255,0.8)", color: "var(--plum)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}>
+                      Show quantity limits?
                     </button>
                     )}
                     <button data-testid="offer-export-excel" onClick={() => { const exp = window.MaxComparisonExport; void runComparisonExport("excel", typeof exp.historyForExportOffer === "function" ? exp.historyForExportOffer(messagesRef.current, m) : messagesRef.current, m.plans || [], { doctors: m.doctors || [], drugs: m.drugs || [], clientName: m.clientName || "", sobBenefits: m.sobBenefits || {}, toolResults: (m.tableId && exportSnapshotsRef.current[m.tableId]) || sessionToolResultsRef.current, rememberedPlans: m.plans || [], planSetFixed: (m.plans || []).length > 0 }).then(() => setMessages(prev => prev.filter((_,j) => j !== i))); }}

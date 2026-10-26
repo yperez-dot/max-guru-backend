@@ -21,7 +21,7 @@ const FORM_WORDS = [
   ['ointment', /^(?:oint|ointments?)$/i],
   ['cream', /^(?:creams?|crema)$/i],
   ['gel', /^gels?$/i],
-  ['lotion', /^lotions?$/i],
+  ['lotion', /^(?:lotions?|lot)$/i],
   ['drops', /^(?:drops?|gotas)$/i],
   ['patch', /^(?:patch|patches|parches?)$/i],
 ];
@@ -116,14 +116,16 @@ function expandMedList(list) {
 // "Clobetasol 0.05% cream" / "… 0.05% solution": the strength ("0.05%" — '%' has no word boundary after it) and the
 // form word are stripped for the RxNorm check; the med keeps them as its label (Live bug, 2026-10-21: cream and
 // solution read "not a drug name RxNorm knows" while shampoo resolved).
-const STRIP_RE = /\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|units?|iu|meq|%)(?![A-Za-z0-9])|\b(?:shampoo|foam|scalp|external|wash|lotion|liquid|er|xr|xl|sr|cr|dr|ec|odt|la|hcl|pah|bph|oral|topical|ophthalmic|eye|ear|otic|solution|soln|suspension|susp|pen|injection|inhaler|vial|ellipta|diskus|respimat|flexpen|kwikpen|flextouch|hfa|turbuhaler|handihaler|breezhaler|autoinjector|sureclick|daily|bid|tid|qd|prn)\b/gi;
+const STRIP_RE = /\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|units?|iu|meq|%)(?![A-Za-z0-9])|\b(?:shampoo|foam|scalp|external|wash|lotion|lot|liquid|er|xr|xl|sr|cr|dr|ec|odt|la|hcl|pah|bph|oral|topical|ophthalmic|eye|ear|otic|solution|soln|suspension|susp|pen|injection|inhaler|vial|ellipta|diskus|respimat|flexpen|kwikpen|flextouch|hfa|turbuhaler|handihaler|breezhaler|autoinjector|sureclick|daily|bid|tid|qd|prn|diprop|dipr)\b/gi;
 
 /** "rasuvostatin 10mg tablets" → "rasuvostatin" (the part RxNorm should match). */
 function drugNameBase(raw) {
   return String(raw || '')
     .split(/\s+/).filter((w) => !formOfWord(w)).join(' ')
     .replace(STRIP_RE, ' ')
-    .replace(/[^A-Za-z0-9\s'-]+/g, ' ')
+    // Keep a slash between ingredients ("clotrimazole/betamethasone"); never collapse to the last one.
+    .replace(/[^A-Za-z0-9\s'/-]+/g, ' ')
+    .replace(/\s*\/\s*/g, '/')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
@@ -190,18 +192,31 @@ const nameCache = new Map();
  * the caller keeps the old behavior rather than blocking the lookup).
  * `query` is the string to price with: the agent's words, with the drug name swapped when corrected.
  */
+function slashComboIngredients(raw) {
+  if (!/[A-Za-z]\s*\/\s*[A-Za-z]/.test(String(raw || ''))) return [];
+  return (medNameParts(raw).ingredients || []).map((x) => String(x || '').toLowerCase().trim()).filter(Boolean);
+}
+
+function conceptKeepsIngredients(conceptName, ings) {
+  const hay = String(conceptName || '').toLowerCase();
+  return ings.every((ing) => ing.split(/\s+/).every((w) => w.length < 3 || hay.includes(w)));
+}
+
 async function resolveDrugName(raw, fetchImpl = fetch) {
   const input = String(raw || '').trim();
   const base = drugNameBase(input);
+  const comboIngs = slashComboIngredients(input);
+  const askedForm = requestedForm(input);
   if (!base || /^\d[\d-]*$/.test(base) || base.length < 3) return { status: 'exact', input, query: input, name: base || input };
   if (nameCache.has(base)) return { ...nameCache.get(base), input, query: swapName(input, base, nameCache.get(base)) };
 
-  const exact = await getJson(`${RXNORM_BASE}/rxcui.json?name=${encodeURIComponent(base)}&search=1`, fetchImpl);
+  const comboQuery = comboIngs.length >= 2 ? comboIngs.join(' / ') : '';
+  const exact = await getJson(`${RXNORM_BASE}/rxcui.json?name=${encodeURIComponent(comboQuery || base)}&search=1`, fetchImpl);
   if (!exact) return { status: 'unavailable', input, query: input, name: base };
   const exactIds = (exact.idGroup && exact.idGroup.rxnormId) || [];
   if (exactIds.length) return remember(base, input, { status: 'exact', name: base, rxcui: String(exactIds[0]) });
 
-  const approx = await getJson(`${RXNORM_BASE}/approximateTerm.json?term=${encodeURIComponent(base)}&maxEntries=12&option=1`, fetchImpl);
+  const approx = await getJson(`${RXNORM_BASE}/approximateTerm.json?term=${encodeURIComponent(comboQuery || base)}&maxEntries=12&option=1`, fetchImpl);
   if (!approx) return { status: 'unavailable', input, query: input, name: base };
   // Best-scoring RxNorm name per concept, in RxNorm's own order.
   const byRxcui = new Map();
@@ -211,7 +226,15 @@ async function resolveDrugName(raw, fetchImpl = fetch) {
     const prev = byRxcui.get(c.rxcui);
     if (!prev || score > prev.score) byRxcui.set(c.rxcui, { rxcui: String(c.rxcui), name: String(c.name), score });
   }
-  const cands = [...byRxcui.values()].sort((a, b) => b.score - a.score);
+  let cands = [...byRxcui.values()].sort((a, b) => b.score - a.score);
+  if (comboIngs.length >= 2) {
+    const keep = cands.filter((c) => conceptKeepsIngredients(c.name, comboIngs));
+    const formKeep = askedForm ? keep.filter((c) => conceptHasForm(c.name, askedForm)) : keep;
+    cands = formKeep.length ? formKeep : keep;
+    if (!cands.length) {
+      return remember(base, input, { status: 'not_found', name: comboQuery, suggestion: null, alternatives: [], reason: 'combo_drop' });
+    }
+  }
   if (!cands.length) {
     // RxNorm's own spelling suggestion ("farxica" → "farxiga") is a "did you mean", never a silent correction.
     const sp = await getJson(`${RXNORM_BASE}/spellingsuggestions.json?name=${encodeURIComponent(base)}`, fetchImpl);
@@ -233,7 +256,7 @@ async function resolveDrugName(raw, fetchImpl = fetch) {
   // A misspelled brand corrects to that brand ("Eliquiss" → "eliquis"), a generic to the generic.
   const topName = similarity(base, top.name) >= similarity(base, topIngredient) ? top.name.toLowerCase() : topIngredient;
   const sim = similarity(base, topName);
-  if (distinct.length > 1) {
+  if (distinct.length > 1 && comboIngs.length < 2) {
     const others = [...new Set(ingredientSets.slice(1).map((s) => s[0]))].filter((n) => n !== topName);
     return remember(base, input, { status: 'ambiguous', name: base, suggestion: topName, alternatives: others, reason: 'different_ingredients' });
   }
@@ -254,8 +277,8 @@ async function resolveDrugName(raw, fetchImpl = fetch) {
   return remember(base, input, { status: 'corrected', name: topName, rxcui: top.rxcui, from: base, similarity: Number(sim.toFixed(2)) });
 }
 
-const CORE_SKIP_WORDS = new Set(('maleate tartrate hydrochloride hcl sodium potassium calcium magnesium besylate mesylate succinate citrate sulfate acetate phosphate fumarate bromide chloride propionate furoate monohydrate dihydrate ' +
-  'solution soln sol suspension susp drops drop tablet tablets tab tabs capsule capsules cap caps ophthalmic oral topical extended release er xr sr dr cream ointment gel injection pen mg mcg ml').split(/\s+/));
+const CORE_SKIP_WORDS = new Set(('maleate tartrate hydrochloride hcl sodium potassium calcium magnesium besylate mesylate succinate citrate sulfate acetate phosphate fumarate bromide chloride propionate dipropionate furoate monohydrate dihydrate ' +
+  'solution soln sol suspension susp drops drop tablet tablets tab tabs capsule capsules cap caps ophthalmic oral topical extended release er xr sr dr cream ointment gel lotion lot injection pen mg mcg ml diprop dipr').split(/\s+/));
 /** Same ingredient words, salts / forms / strengths aside. */
 function sameCoreDrug(a, b) {
   const core = (x) => [...new Set(String(x || '').toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 2 && !CORE_SKIP_WORDS.has(w)))].sort().join('+');
@@ -357,10 +380,11 @@ function edLabel(row) {
 // A pharmacy-label / ALL-CAPS / salt-named med reads the way medicare.gov and Sunfire list it before any formulary
 // is asked: "BRIMONIDINE TARTRATE/TIMOLOL MALEATE SOLUTION 0.2/0.5%" → "brimonidine / timolol 0.2%/0.5% ophthalmic
 // solution" (Nancy Blanco De Pajaro). Plain names ("Farxiga", "gabapentin 300 mg") are left exactly as typed.
-const MED_SALT_WORDS = new Set(['maleate', 'tartrate', 'hydrochloride', 'hcl', 'sodium', 'potassium', 'calcium', 'magnesium', 'besylate', 'mesylate', 'succinate', 'citrate', 'sulfate', 'acetate', 'phosphate', 'fumarate', 'bromide', 'chloride', 'propionate', 'furoate', 'monohydrate', 'dihydrate', 'trihydrate']);
-const MED_FORM_WORDS = new Set(['solution', 'soln', 'sol', 'suspension', 'susp', 'drops', 'drop', 'tablet', 'tablets', 'tab', 'tabs', 'capsule', 'capsules', 'cap', 'caps', 'ophthalmic', 'opth', 'oph', 'cream', 'ointment', 'gel', 'inhaler', 'injection', 'pen', 'oral', 'topical']);
+const MED_SALT_WORDS = new Set(['maleate', 'tartrate', 'hydrochloride', 'hcl', 'sodium', 'potassium', 'calcium', 'magnesium', 'besylate', 'mesylate', 'succinate', 'citrate', 'sulfate', 'acetate', 'phosphate', 'fumarate', 'bromide', 'chloride', 'propionate', 'dipropionate', 'furoate', 'monohydrate', 'dihydrate', 'trihydrate']);
+const MED_FORM_WORDS = new Set(['solution', 'soln', 'sol', 'suspension', 'susp', 'drops', 'drop', 'tablet', 'tablets', 'tab', 'tabs', 'capsule', 'capsules', 'cap', 'caps', 'ophthalmic', 'opth', 'oph', 'cream', 'ointment', 'gel', 'lotion', 'lot', 'inhaler', 'injection', 'pen', 'oral', 'topical']);
+const MED_JUNK_WORDS = new Set(['diprop', 'dipr']);
 const EYE_DRUG_RE = /\b(?:brimonidine|timolol|latanoprost|dorzolamide|travoprost|bimatoprost|brinzolamide|netarsudil|tafluprost)\b/i;
-const FORM_DISPLAY = { tab: 'tablet', tabs: 'tablet', tablets: 'tablet', tablet: 'tablet', cap: 'capsule', caps: 'capsule', capsules: 'capsule', capsule: 'capsule', cream: 'cream', ointment: 'ointment', gel: 'gel', inhaler: 'inhaler', injection: 'injection', pen: 'pen' };
+const FORM_DISPLAY = { tab: 'tablet', tabs: 'tablet', tablets: 'tablet', tablet: 'tablet', cap: 'capsule', caps: 'capsule', capsules: 'capsule', capsule: 'capsule', cream: 'cream', ointment: 'ointment', gel: 'gel', lotion: 'lotion', lot: 'lotion', inhaler: 'inhaler', injection: 'injection', pen: 'pen' };
 
 /** Does a typed med need normalizing? ALL CAPS, a combo slash, a salt word, or a pharmacy-label length. */
 function medNameIsMessy(raw) {
@@ -389,6 +413,7 @@ function medNameParts(raw) {
   const forms = [];
   const comps = noStrength.split(/\s*\/\s*/).map((c) => c.split(/\s+/).filter((w) => {
     if (!w) return false;
+    if (MED_JUNK_WORDS.has(w)) return false;
     if (MED_FORM_WORDS.has(w)) { forms.push(w); return false; }
     return true;
   })).filter((ws) => ws.length);
@@ -397,6 +422,7 @@ function medNameParts(raw) {
   let form = '';
   if (forms.some((f) => /^(?:solution|soln|sol|drops?|ophthalmic|opth|oph)$/.test(f))) form = EYE_DRUG_RE.test(low) ? 'ophthalmic solution' : (forms.includes('suspension') || forms.includes('susp') ? 'suspension' : 'solution');
   else if (forms.length) form = FORM_DISPLAY[forms.find((f) => FORM_DISPLAY[f])] || '';
+  if (!form && forms.some((f) => /^(?:lot|lotion)$/.test(f))) form = 'lotion';
   return { ingredients, salted, strength: strengths.join(' '), form };
 }
 
