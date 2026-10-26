@@ -1,7 +1,7 @@
 # SEP Tracker — CO
 
-12 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
-Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
+12 entries from Agent Medicare Hub SEP snapshot (2026-10-26).
+Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
 
 ## sep-0029 — Colorado - Elk Fire  8/2/2025
 - **status**: active
@@ -33,7 +33,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: August 6, 2026 – November 30, 2026
 - **incident_effective**: 2025-08-02
 - **incident_window_raw**: Aug 2, 2025 – ongoing
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 - **declaration_number**: FM-5603-CO
 
 ## sep-0031 — Colorado - Oak Fire 8/10/25
@@ -50,7 +50,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: Aug 10, 2025 – Oct 31, 2026
 - **incident_effective**: 2025-08-10
 - **incident_window_raw**: Aug 10, 2025 – ongoing
-- **days_until_expiry**: 26
+- **days_until_expiry**: 5
 - **declaration_number**: FM-5606-CO
 
 ## sep-0209 — Colorado - 310 Fire 8/6/2026
@@ -68,7 +68,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **incident_effective**: 2026-08-06
 - **incident_termination**: 2026-10-04
 - **incident_window_raw**: Aug 6, 2026 – Oct 4, 2026
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-0210 — Colorado - Post Fire 8/12/2026
 - **status**: active
@@ -85,7 +85,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **incident_effective**: 2026-08-12
 - **incident_termination**: 2026-10-10
 - **incident_window_raw**: Aug 12, 2026 – Oct 10, 2026
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-0211 — Colorado - The Sheep Pen Fire 8/11/2026
 - **status**: active
@@ -102,7 +102,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **incident_effective**: 2026-08-11
 - **incident_termination**: 2026-10-10
 - **incident_window_raw**: Aug 11, 2026 – Oct 10, 2026
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-0212 — Colorado - The High Fence Fire 8/12/2026
 - **status**: active
@@ -119,7 +119,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **incident_effective**: 2026-08-12
 - **incident_termination**: 2026-10-10
 - **incident_window_raw**: Aug 12, 2026 – Oct 10, 2026
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-0213 — Colorado - The Gotera Fire 8/12/2026
 - **status**: active
@@ -136,7 +136,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **incident_effective**: 2026-08-12
 - **incident_termination**: 2026-10-10
 - **incident_window_raw**: Aug 12, 2026 – Oct 10, 2026
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-xl-co-aspenacresfire-202708 — Colorado FEMA — Aspen Acres Fire
 - **status**: active
@@ -152,7 +152,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: June 29, 2026 – August 31, 2027
 - **incident_effective**: 2026-06-29
 - **incident_window_raw**: June 29, 2026 – ongoing
-- **days_until_expiry**: 330
+- **days_until_expiry**: 309
 
 ## sep-xl-co-goldmountainfir-202708 — Colorado FEMA — Gold Mountain Fire
 - **status**: active
@@ -168,7 +168,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: June 28, 2026 – August 31, 2027
 - **incident_effective**: 2026-06-28
 - **incident_window_raw**: June 28, 2026 – ongoing
-- **days_until_expiry**: 330
+- **days_until_expiry**: 309
 
 ## sep-xl-co-willowfire-202709 — Colorado FEMA — Willow Fire
 - **status**: active
@@ -184,7 +184,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: June 28, 2026 – September 30, 2027
 - **incident_effective**: 2026-06-28
 - **incident_window_raw**: June 28, 2026 – ongoing
-- **days_until_expiry**: 360
+- **days_until_expiry**: 339
 
 ## sep-lis-co — Colorado — Dual / LIS PDP Monthly SEP
 - **status**: yearround

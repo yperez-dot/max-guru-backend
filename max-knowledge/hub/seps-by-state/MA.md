@@ -1,7 +1,7 @@
 # SEP Tracker — MA
 
-2 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
-Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
+2 entries from Agent Medicare Hub SEP snapshot (2026-10-26).
+Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
 
 ## sep-0092 — Massachusetts - Winter Storm 2/22/2026
 - **status**: active
@@ -18,7 +18,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **incident_effective**: 2026-02-22
 - **incident_termination**: 2027-02-22
 - **incident_window_raw**: Feb 22, 2026 – Feb 22, 2027
-- **days_until_expiry**: 207
+- **days_until_expiry**: 186
 - **declaration_number**: 2.22.26
 
 ## sep-lis-ma — Massachusetts — Dual / LIS PDP Monthly SEP

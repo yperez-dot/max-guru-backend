@@ -1,14 +1,14 @@
 # SEP Tracker — AS
 
-1 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
-Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
+1 entries from Agent Medicare Hub SEP snapshot (2026-10-26).
+Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
 
 ## sep-0006 — America Samoa - Flooding, High Surf, & Landslide Hazards - 7/28/2025
 - **status**: active
 - **raw_status**: active
 - **entity**: Hub tracker
 - **declaration_name**: America Samoa - Flooding, High Surf, & Landslide Hazards - 7/28/2025
-- **disaster_types**: ["Floods","Landslides/Mudslides"]
+- **disaster_types**: ["Floods", "Landslides/Mudslides"]
 - **disaster_type_raw**: Floods;Landslides/Mudslides
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL

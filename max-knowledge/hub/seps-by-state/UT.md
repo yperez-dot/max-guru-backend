@@ -1,7 +1,7 @@
 # SEP Tracker — UT
 
-10 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
-Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
+10 entries from Agent Medicare Hub SEP snapshot (2026-10-26).
+Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
 
 ## sep-0240 — Utah - Rocky Canyon Fire 8/7/2026
 - **status**: active
@@ -10,7 +10,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Utah - Rocky Canyon Fire 8/7/2026
 - **disaster_types**: ["Fires/Wildfires"]
 - **disaster_type_raw**: Fires/Wildfires
-- **counties**: ["Morgan","Summit"]
+- **counties**: ["Morgan", "Summit"]
 - **counties_raw**: Morgan, Summit
 - **sep_effective**: 2026-08-07
 - **sep_termination**: 2027-10-31
@@ -18,7 +18,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **incident_effective**: 2026-08-07
 - **incident_termination**: 2027-08-08
 - **incident_window_raw**: Aug 7, 2026 – Aug 8, 2027
-- **days_until_expiry**: 391
+- **days_until_expiry**: 370
 
 ## sep-xl-ut-cherryfire-202708 — Utah FEMA — Cherry Fire
 - **status**: active
@@ -27,14 +27,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Utah FEMA — Cherry Fire
 - **disaster_types**: ["Cherry Fire"]
 - **disaster_type_raw**: Cherry Fire
-- **counties**: ["Juab","Tooele"]
+- **counties**: ["Juab", "Tooele"]
 - **counties_raw**: Juab and Tooele Counties
 - **sep_effective**: 2026-06-26
 - **sep_termination**: 2027-08-31
 - **sep_window_raw**: June 26, 2026 – August 31, 2027
 - **incident_effective**: 2026-06-26
 - **incident_window_raw**: June 26, 2026 – ongoing
-- **days_until_expiry**: 330
+- **days_until_expiry**: 309
 
 ## sep-xl-ut-cottonwoodfire-202708 — Utah FEMA — Cottonwood Fire
 - **status**: active
@@ -50,7 +50,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: June 22, 2026 – August 31, 2027
 - **incident_effective**: 2026-06-22
 - **incident_window_raw**: June 22, 2026 – ongoing
-- **days_until_expiry**: 330
+- **days_until_expiry**: 309
 
 ## sep-xl-ut-deercreekfire-202609 — Utah — Deer Creek Fire
 - **status**: active
@@ -89,14 +89,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Utah FEMA — Iron Fire
 - **disaster_types**: ["Iron Fire"]
 - **disaster_type_raw**: Iron Fire
-- **counties**: ["Juab","Toole","Utah"]
+- **counties**: ["Juab", "Toole", "Utah"]
 - **counties_raw**: Juab, Toole, and Utah Counties
 - **sep_effective**: 2026-06-19
 - **sep_termination**: 2027-08-31
 - **sep_window_raw**: June 19, 2026 – August 31, 2027
 - **incident_effective**: 2026-06-19
 - **incident_window_raw**: June 19, 2026 – ongoing
-- **days_until_expiry**: 330
+- **days_until_expiry**: 309
 
 ## sep-xl-ut-monroecanyonfir-202609 — Utah — Monroe Canyon Fire
 - **status**: active
@@ -105,7 +105,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Utah — Monroe Canyon Fire
 - **disaster_types**: ["Monroe Canyon Fire"]
 - **disaster_type_raw**: Monroe Canyon Fire
-- **counties**: ["Sevier","Piute"]
+- **counties**: ["Sevier", "Piute"]
 - **counties_raw**: Sevier and Piute Counties
 - **sep_effective**: 2025-07-07
 - **sep_termination**: 2026-09-30
@@ -120,14 +120,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Utah — Wildfires and Catastrophic flooding
 - **disaster_types**: ["Wildfires and Catastrophic flooding"]
 - **disaster_type_raw**: Wildfires and Catastrophic flooding
-- **counties**: ["Beaver","Piute","Sevier"]
+- **counties**: ["Beaver", "Piute", "Sevier"]
 - **counties_raw**: Beaver, Piute and Sevier Counties
 - **sep_effective**: 2026-07-22
 - **sep_termination**: 2026-10-31
 - **sep_window_raw**: July 22, 2026 – October 31, 2026
 - **incident_effective**: 2026-07-22
 - **incident_window_raw**: July 22, 2026 – ongoing
-- **days_until_expiry**: 26
+- **days_until_expiry**: 5
 
 ## sep-xl-ut-forsythfire-202608 — Utah — Forsyth Fire
 - **status**: expiring

@@ -1,7 +1,7 @@
 # SEP Tracker — IN
 
-8 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
-Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
+8 entries from Agent Medicare Hub SEP snapshot (2026-10-26).
+Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
 
 ## sep-0063 — Indiana - Severe Winter Storm 1/23/2026
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: Jan 23, 2026 – Mar 31, 2027
 - **incident_effective**: 2026-01-23
 - **incident_window_raw**: Jan 23, 2026 – ongoing
-- **days_until_expiry**: 177
+- **days_until_expiry**: 156
 - **declaration_number**: EM-3641-IN
 
 ## sep-0226 — Indiana - Flooding, Severe Weather 8/11/2026
@@ -35,7 +35,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **incident_effective**: 2026-08-11
 - **incident_termination**: 2026-10-10
 - **incident_window_raw**: Aug 11, 2026 – Oct 10, 2026
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-xl-in-severestormsstr-202710 — Indiana — Severe Storms, Straight-line Winds, Tornadoes, and Flooding
 - **status**: active
@@ -44,14 +44,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Indiana — Severe Storms, Straight-line Winds, Tornadoes, and Flooding
 - **disaster_types**: ["Severe Storms, Straight-line Winds, Tornadoes, and Flooding"]
 - **disaster_type_raw**: Severe Storms, Straight-line Winds, Tornadoes, and Flooding
-- **counties**: ["llen","Bartholomew","Boone","Carroll","Cass","Clinton","Dearborn","Decatur","Delaware","Fayette","Fountain","Franklin","Fulton","Grant","Hamilton","Hancock","Harrison","Hendricks","Henry","Jasper","Jay","Jefferson","Jennings","Knox","Kosciusko","Lake","LaPorte","Madison","Marion","Marshall","Miami","Morgan","Newton","Orange","Owen","Parke","Perry","Pike","Porter","Pulaski","Randolph","Ripley","Rush","Shelby","St. Joseph","Starke","Tipton","Union","Wabash","Warren","Washington","Wayne","White counties"]
+- **counties**: ["llen", "Bartholomew", "Boone", "Carroll", "Cass", "Clinton", "Dearborn", "Decatur", "Delaware", "Fayette", "Fountain", "Franklin", "Fulton", "Grant", "Hamilton", "Hancock", "Harrison", "Hendricks", "Henry", "Jasper", "Jay", "Jefferson", "Jennings", "Knox", "Kosciusko", "Lake", "LaPorte", "Madison", "Marion", "Marshall", "Miami", "Morgan", "Newton", "Orange", "Owen", "Parke", "Perry", "Pike", "Porter", "Pulaski", "Randolph", "Ripley", "Rush", "Shelby", "St. Joseph", "Starke", "Tipton", "Union", "Wabash", "Warren", "Washington", "Wayne", "White"]
 - **counties_raw**: llen, Bartholomew, Boone, Carroll, Cass, Clinton, Dearborn, Decatur, Delaware, Fayette, Fountain, Franklin, Fulton, Grant, Hamilton, Hancock, Harrison, Hendricks, Henry, Jasper, Jay, Jefferson, Jennings, Knox, Kosciusko, Lake, LaPorte, Madison, Marion, Marshall, Miami, Morgan, Newton, Orange, Owen, Parke, Perry, Pike, Porter, Pulaski, Randolph, Ripley, Rush, Shelby, St. Joseph, Starke, Tipton, Union, Wabash, Warren, Washington, Wayne and White counties.
 - **sep_effective**: 2026-08-11
 - **sep_termination**: 2027-10-31
 - **sep_window_raw**: August 11, 2026 – October 31, 2027
 - **incident_effective**: 2026-08-11
 - **incident_window_raw**: August 11, 2026 – ongoing
-- **days_until_expiry**: 391
+- **days_until_expiry**: 370
 
 ## sep-xl-in-severeweatheran-202609 — Indiana — Severe Weather and Tornadic activity
 - **status**: active
@@ -60,7 +60,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Indiana — Severe Weather and Tornadic activity
 - **disaster_types**: ["Severe Weather and Tornadic activity"]
 - **disaster_type_raw**: Severe Weather and Tornadic activity
-- **counties**: ["Allen","Bartholomew","Benton","Boone","Brown","Carroll","Cass","Clay","Clinton","Dearborn","Decatur","Delaware","Elkhart","Fountain","Franklin","Fulton","Grant","Greene","Hamilton","Hancock","Harrison","Hendricks","Howard","Huntington","Jackson","Jasper","Jay","Jefferson","Jennings","Johnson","Knox","Kosciusko","LaGrange","LaPorte","Lake","Lawrence","Madison","Marion","Marshall","Miami","Monroe","Montgomery","Morgan","Newton","Ohio","Owen","Parke","Porter","Putnam","Randolph","Ripley","Rush","Shelby","St. Joseph","Steuben","Switzerland","Tippecanoe","Vanderburgh","Vermillion","Vigo","Wabash","Warren","White"]
+- **counties**: ["Allen", "Bartholomew", "Benton", "Boone", "Brown", "Carroll", "Cass", "Clay", "Clinton", "Dearborn", "Decatur", "Delaware", "Elkhart", "Fountain", "Franklin", "Fulton", "Grant", "Greene", "Hamilton", "Hancock", "Harrison", "Hendricks", "Howard", "Huntington", "Jackson", "Jasper", "Jay", "Jefferson", "Jennings", "Johnson", "Knox", "Kosciusko", "LaGrange", "LaPorte", "Lake", "Lawrence", "Madison", "Marion", "Marshall", "Miami", "Monroe", "Montgomery", "Morgan", "Newton", "Ohio", "Owen", "Parke", "Porter", "Putnam", "Randolph", "Ripley", "Rush", "Shelby", "St. Joseph", "Steuben", "Switzerland", "Tippecanoe", "Vanderburgh", "Vermillion", "Vigo", "Wabash", "Warren", "White"]
 - **counties_raw**: Allen, Bartholomew, Benton, Boone, Brown, Carroll, Cass, Clay, Clinton, Dearborn, Decatur, Delaware, Elkhart, Fountain, Franklin, Fulton, Grant, Greene, Hamilton, Hancock, Harrison, Hendricks, Howard, Huntington, Jackson, Jasper, Jay, Jefferson, Jennings, Johnson, Knox, Kosciusko, LaGrange, LaPorte, Lake, Lawrence, Madison, Marion, Marshall, Miami, Monroe, Montgomery, Morgan, Newton, Ohio, Owen, Parke, Porter, Putnam, Randolph, Ripley, Rush, Shelby, St. Joseph, Steuben, Switzerland, Tippecanoe, Vanderburgh, Vermillion, Vigo, Wabash, Warren, and White.
 - **sep_effective**: 2026-06-06
 - **sep_termination**: 2026-09-30
@@ -86,7 +86,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Indiana - Waiver of Hours of Service Regs. Relating to Motor Carriers & Drivers Transporting Propane Gas 12/13/2025
-- **disaster_types**: ["Fuel Shortage","Other"]
+- **disaster_types**: ["Fuel Shortage", "Other"]
 - **disaster_type_raw**: Fuel Shortage;Other
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
@@ -103,7 +103,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Indiana - Waiver of Hours of Service Regulations Relating to Motor Carriers & Drivers Transporting Propane Gas & Crucial Agriculture Products 1/22/2026
-- **disaster_types**: ["Fuel Shortage","Other"]
+- **disaster_types**: ["Fuel Shortage", "Other"]
 - **disaster_type_raw**: Fuel Shortage;Other
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL
@@ -120,7 +120,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Indiana - Severe Winter Storm 1/23/2026
-- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix","Temperature - Arctic Blast/Dangerous Cold"]
+- **disaster_types**: ["Storms - Snowstorm/Blizzard/Mix", "Temperature - Arctic Blast/Dangerous Cold"]
 - **disaster_type_raw**: Storms - Snowstorm/Blizzard/Mix;Temperature - Arctic Blast/Dangerous Cold
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL

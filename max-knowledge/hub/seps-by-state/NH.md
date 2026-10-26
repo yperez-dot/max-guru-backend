@@ -1,7 +1,7 @@
 # SEP Tracker — NH
 
-1 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
-Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
+1 entries from Agent Medicare Hub SEP snapshot (2026-10-26).
+Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
 
 ## sep-lis-nh — New Hampshire — Dual / LIS PDP Monthly SEP
 - **status**: yearround

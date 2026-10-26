@@ -1,7 +1,7 @@
 # SEP Tracker — IL
 
-17 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
-Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
+17 entries from Agent Medicare Hub SEP snapshot (2026-10-26).
+Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
 
 ## sep-0216 — Illinois - Tornadoes, Damaging Winds, and Torrential Rain 3/10/2026
 - **status**: active
@@ -90,7 +90,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Illinois - Tornadoes 6/11/2026
 - **disaster_types**: ["Tornado"]
 - **disaster_type_raw**: Tornado
-- **counties**: ["LaSalle","Woodford"]
+- **counties**: ["LaSalle", "Woodford"]
 - **counties_raw**: LaSalle, Woodford
 - **sep_effective**: 2026-06-11
 - **sep_termination**: 2026-09-30
@@ -177,7 +177,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: May 16, 2026 – November 30, 2026
 - **incident_effective**: 2026-05-16
 - **incident_window_raw**: May 16, 2026 – ongoing
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-xl-il-extremerainfall-202611 — Illinois — Extreme Rainfall
 - **status**: active
@@ -193,7 +193,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: June 19, 2026 – November 30, 2026
 - **incident_effective**: 2026-06-19
 - **incident_window_raw**: June 19, 2026 – ongoing
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-xl-il-flashflooding-202611 — Illinois — Flash Flooding
 - **status**: active
@@ -202,14 +202,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Illinois — Flash Flooding
 - **disaster_types**: ["Flash Flooding"]
 - **disaster_type_raw**: Flash Flooding
-- **counties**: ["Alexander","Pulaski"]
+- **counties**: ["Alexander", "Pulaski"]
 - **counties_raw**: Alexander and Pulaski Counties
 - **sep_effective**: 2026-07-09
 - **sep_termination**: 2026-11-30
 - **sep_window_raw**: July 9, 2026 – November 30, 2026
 - **incident_effective**: 2026-07-09
 - **incident_window_raw**: July 9, 2026 – ongoing
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-xl-il-severestorms-202611 — Illinois — Severe Storms
 - **status**: active
@@ -225,7 +225,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: July 2, 2026 – November 30, 2026
 - **incident_effective**: 2026-07-02
 - **incident_window_raw**: July 2, 2026 – ongoing
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-xl-il-straightlinewin-202611 — Illinois — Straight-line winds, and damaging hail
 - **status**: active
@@ -234,14 +234,14 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Illinois — Straight-line winds, and damaging hail
 - **disaster_types**: ["Straight-line winds, and damaging hail"]
 - **disaster_type_raw**: Straight-line winds, and damaging hail
-- **counties**: ["Cook","DuPage","Lake","Vermilion","Will"]
+- **counties**: ["Cook", "DuPage", "Lake", "Vermilion", "Will"]
 - **counties_raw**: Cook, DuPage, Lake, Vermilion, and Will Counties
 - **sep_effective**: 2026-07-27
 - **sep_termination**: 2026-11-30
 - **sep_window_raw**: July 27, 2026 – November 30, 2026
 - **incident_effective**: 2026-07-27
 - **incident_window_raw**: July 27, 2026 – ongoing
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-xl-il-tornadoes-202611 — Illinois — Tornadoes
 - **status**: active
@@ -257,7 +257,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: June 10, 2026 – November 30, 2026
 - **incident_effective**: 2026-06-10
 - **incident_window_raw**: June 10, 2026 – ongoing
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-lis-il — Illinois — Dual / LIS PDP Monthly SEP
 - **status**: yearround

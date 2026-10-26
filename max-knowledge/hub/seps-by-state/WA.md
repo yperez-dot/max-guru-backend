@@ -1,14 +1,14 @@
 # SEP Tracker — WA
 
-18 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
-Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
+18 entries from Agent Medicare Hub SEP snapshot (2026-10-26).
+Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
 
 ## sep-0199 — Washington - Severe Storms, Straight-line Winds, Flooding, Landslides, and Mudslides 12/9/2025
 - **status**: active
 - **raw_status**: active
 - **entity**: Hub tracker
 - **declaration_name**: Washington - Severe Storms, Straight-line Winds, Flooding, Landslides, and Mudslides 12/9/2025
-- **disaster_types**: ["Storms - Rain","Straight-Line Winds","Landslides/Mudslides","Floods"]
+- **disaster_types**: ["Storms - Rain", "Straight-Line Winds", "Landslides/Mudslides", "Floods"]
 - **disaster_type_raw**: Storms - Rain;Straight-Line Winds;Landslides/Mudslides;Floods
 - **counties**: ["Benton  Chelan  Clallam  Grays Harbor  Jefferson  King  Kittitas  Lewis  Mason  Pierce  Samish (TDSA) Skagit  Snohomish  Thurston  Wahkiakum  Whatcom  Yakima"]
 - **counties_raw**: Benton  Chelan  Clallam  Grays Harbor  Jefferson  King  Kittitas  Lewis  Mason  Pierce  Samish (TDSA) Skagit  Snohomish  Thurston  Wahkiakum  Whatcom  Yakima
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: Dec 9, 2025 – Feb 28, 2027
 - **incident_effective**: 2025-12-09
 - **incident_window_raw**: Dec 9, 2025 – ongoing
-- **days_until_expiry**: 146
+- **days_until_expiry**: 125
 - **declaration_number**: EM-3629-WA
 
 ## sep-0241 — Washington - Burn Ban, Drought Conditions and Wildfires 8/1/2026
@@ -35,7 +35,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **incident_effective**: 2026-08-01
 - **incident_termination**: 2026-10-08
 - **incident_window_raw**: Aug 1, 2026 – Oct 8, 2026
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-xl-wa-atmosphericrive-202609 — Washington — Atmospheric River Storm Damage
 - **status**: active
@@ -44,7 +44,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Washington — Atmospheric River Storm Damage
 - **disaster_types**: ["Atmospheric River Storm Damage"]
 - **disaster_type_raw**: Atmospheric River Storm Damage
-- **counties**: ["Asotin","Cowlitz","Grays Harbor","King","Lewis","Pierce","Walla Walla","Whatcom","Whitman","Yakima"]
+- **counties**: ["Asotin", "Cowlitz", "Grays Harbor", "King", "Lewis", "Pierce", "Walla Walla", "Whatcom", "Whitman", "Yakima"]
 - **counties_raw**: Asotin, Cowlitz, Grays Harbor, King, Lewis, Pierce, Walla Walla, 
 Whatcom, Whitman, and Yakima counties
 - **sep_effective**: 2026-03-10
@@ -60,14 +60,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Washington FEMA — Autumn Lane Fire
 - **disaster_types**: ["Autumn Lane Fire"]
 - **disaster_type_raw**: Autumn Lane Fire
-- **counties**: ["Spokane","Stevens County"]
+- **counties**: ["Spokane", "Stevens County"]
 - **counties_raw**: Spokane and Stevens County
 - **sep_effective**: 2026-08-01
 - **sep_termination**: 2027-10-31
 - **sep_window_raw**: August 1, 2026 – October 31, 2027
 - **incident_effective**: 2026-08-01
 - **incident_window_raw**: August 1, 2026 – ongoing
-- **days_until_expiry**: 391
+- **days_until_expiry**: 370
 
 ## sep-xl-wa-burdoinfire-202609 — Washington — Burdoin Fire
 - **status**: active
@@ -98,7 +98,7 @@ Whatcom, Whitman, and Yakima counties
 - **sep_window_raw**: August 1, 2026 – October 31, 2027
 - **incident_effective**: 2026-08-01
 - **incident_window_raw**: August 1, 2026 – ongoing
-- **days_until_expiry**: 391
+- **days_until_expiry**: 370
 
 ## sep-xl-wa-kaisercanyonfir-202709 — Washington FEMA — Kaiser Canyon Fire
 - **status**: active
@@ -114,7 +114,7 @@ Whatcom, Whitman, and Yakima counties
 - **sep_window_raw**: July 16, 2026 – September 30, 2027
 - **incident_effective**: 2026-07-16
 - **incident_window_raw**: July 16, 2026 – ongoing
-- **days_until_expiry**: 360
+- **days_until_expiry**: 339
 
 ## sep-xl-wa-lowersugarloafc-202611 — Washington — Lower Sugarloaf Complex Fire
 - **status**: active
@@ -130,7 +130,7 @@ Whatcom, Whitman, and Yakima counties
 - **sep_window_raw**: September 1, 2025 – November 30, 2026
 - **incident_effective**: 2025-09-01
 - **incident_window_raw**: September 1, 2025 – ongoing
-- **days_until_expiry**: 56
+- **days_until_expiry**: 35
 
 ## sep-xl-wa-modritefire-202709 — Washington FEMA — Modrite Fire
 - **status**: active
@@ -146,7 +146,7 @@ Whatcom, Whitman, and Yakima counties
 - **sep_window_raw**: July 17, 2026 – September 30, 2027
 - **incident_effective**: 2026-07-17
 - **incident_window_raw**: July 17, 2026 – ongoing
-- **days_until_expiry**: 360
+- **days_until_expiry**: 339
 
 ## sep-xl-wa-oldtrailsfire-202710 — Washington FEMA — Old Trails Fire
 - **status**: active
@@ -162,7 +162,7 @@ Whatcom, Whitman, and Yakima counties
 - **sep_window_raw**: August 1, 2026 – October 31, 2027
 - **incident_effective**: 2026-08-01
 - **incident_window_raw**: August 1, 2026 – ongoing
-- **days_until_expiry**: 391
+- **days_until_expiry**: 370
 
 ## sep-xl-wa-ransierfire-202709 — Washington FEMA — Ransier Fire
 - **status**: active
@@ -171,14 +171,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Washington FEMA — Ransier Fire
 - **disaster_types**: ["Ransier Fire"]
 - **disaster_type_raw**: Ransier Fire
-- **counties**: ["Yakama Reservation","Yakima County"]
+- **counties**: ["Yakama Reservation", "Yakima County"]
 - **counties_raw**: Yakama Reservation and Yakima County
 - **sep_effective**: 2026-07-26
 - **sep_termination**: 2027-09-30
 - **sep_window_raw**: July 26, 2026 – September 30, 2027
 - **incident_effective**: 2026-07-26
 - **incident_window_raw**: July 26, 2026 – ongoing
-- **days_until_expiry**: 360
+- **days_until_expiry**: 339
 
 ## sep-xl-wa-sinlahekinfire-202710 — Washington FEMA — Sinlahekin Fire
 - **status**: active
@@ -194,7 +194,7 @@ Whatcom, Whitman, and Yakima counties
 - **sep_window_raw**: July 26, 2026 – October 31, 2027
 - **incident_effective**: 2026-07-26
 - **incident_window_raw**: July 26, 2026 – ongoing
-- **days_until_expiry**: 391
+- **days_until_expiry**: 370
 
 ## sep-xl-wa-upriverfire-202708 — Washington FEMA — Upriver Fire
 - **status**: active
@@ -210,7 +210,7 @@ Whatcom, Whitman, and Yakima counties
 - **sep_window_raw**: June 16, 2026 – August 31, 2027
 - **incident_effective**: 2026-06-16
 - **incident_window_raw**: June 16, 2026 – ongoing
-- **days_until_expiry**: 330
+- **days_until_expiry**: 309
 
 ## sep-xl-wa-wildfires-202710 — Washington — Wildfires
 - **status**: active
@@ -219,14 +219,14 @@ Whatcom, Whitman, and Yakima counties
 - **declaration_name**: Washington — Wildfires
 - **disaster_types**: ["Wildfires"]
 - **disaster_type_raw**: Wildfires
-- **counties**: ["Chelan","Ferry","Okanogan","Spokane","Stevens","Yakima","alongside the Confederated Tribes","Bands of the Yakama Nation","the Confederated Tribes of the Colville Reservation","the Spokane Tribe of Indians"]
+- **counties**: ["Chelan", "Ferry", "Okanogan", "Spokane", "Stevens", "Yakima", "alongside the Confederated Tribes", "Bands of the Yakama Nation", "the Confederated Tribes of the Colville Reservation", "the Spokane Tribe of Indians"]
 - **counties_raw**: Chelan, Ferry, Okanogan, Spokane, Stevens, and Yakima counties, alongside the Confederated Tribes and Bands of the Yakama Nation, the Confederated Tribes of the Colville Reservation, and the Spokane Tribe of Indians.
 - **sep_effective**: 2026-08-01
 - **sep_termination**: 2027-10-31
 - **sep_window_raw**: August 1, 2026 – October 31, 2027
 - **incident_effective**: 2026-08-01
 - **incident_window_raw**: August 1, 2026 – ongoing
-- **days_until_expiry**: 391
+- **days_until_expiry**: 370
 
 ## sep-lis-wa — Washington — Dual / LIS PDP Monthly SEP
 - **status**: yearround
@@ -275,7 +275,7 @@ Whatcom, Whitman, and Yakima counties
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Washington - December Atmospheric River & Windy Weather 12/2/2025
-- **disaster_types**: ["Straight-Line Winds","Floods","Landslides/Mudslides"]
+- **disaster_types**: ["Straight-Line Winds", "Floods", "Landslides/Mudslides"]
 - **disaster_type_raw**: Straight-Line Winds;Floods;Landslides/Mudslides
 - **counties**: ["STATEWIDE"]
 - **counties_raw**: ALL

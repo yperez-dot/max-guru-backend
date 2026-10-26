@@ -1,7 +1,7 @@
 # SEP Tracker — KS
 
-8 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
-Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
+8 entries from Agent Medicare Hub SEP snapshot (2026-10-26).
+Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
 
 ## sep-0068 — Kansas - 2026 FIFA World Cup 6/11/2026 thru 7/19/2026
 - **status**: active
@@ -10,7 +10,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Kansas - 2026 FIFA World Cup 6/11/2026 thru 7/19/2026
 - **disaster_types**: ["Other"]
 - **disaster_type_raw**: Other
-- **counties**: ["Douglas","Johnson","& Wyandotte"]
+- **counties**: ["Douglas", "Johnson", "& Wyandotte"]
 - **counties_raw**: Douglas, Johnson, & Wyandotte
 - **sep_effective**: 2026-06-20
 - **sep_termination**: 2026-09-30
@@ -42,7 +42,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Kansas — Severe Weather  (Wildland Fires)
 - **disaster_types**: ["Severe Weather  (Wildland Fires)"]
 - **disaster_type_raw**: Severe Weather  (Wildland Fires)
-- **counties**: ["Clark","Cloud","Comanche","Meade","Morton","Thomas"]
+- **counties**: ["Clark", "Cloud", "Comanche", "Meade", "Morton", "Thomas"]
 - **counties_raw**: Clark, Cloud, Comanche, Meade, Morton, and Thomas counties
 - **sep_effective**: 2026-05-14
 - **sep_termination**: 2026-08-31
@@ -68,7 +68,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **raw_status**: ended
 - **entity**: Hub tracker
 - **declaration_name**: Kansas - Severe Storms, Straight-line Winds, and Flooding 7/17/2025 thru 7/22/2025
-- **disaster_types**: ["Floods","Straight-Line Winds","Storms - Rain"]
+- **disaster_types**: ["Floods", "Straight-Line Winds", "Storms - Rain"]
 - **disaster_type_raw**: Floods;Straight-Line Winds;Storms - Rain
 - **counties**: ["Barton  Comanche  Edwards  Hodgeman  Logan  Morris  Ottawa  Rawlins  Saline  Stevens  Sumner  Wyandotte"]
 - **counties_raw**: Barton  Comanche  Edwards  Hodgeman  Logan  Morris  Ottawa  Rawlins  Saline  Stevens  Sumner  Wyandotte
@@ -121,7 +121,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Kansas - Dangerous Fire Weather 2/15/2026
 - **disaster_types**: ["Fires/Wildfires"]
 - **disaster_type_raw**: Fires/Wildfires
-- **counties**: ["Allen","Barber","Barton","Bourbon","Chautauqua","Cherokee","Cheyenne","Clark","Clay","Cloud","Comanche","Cowley","Crawford","Decatur","Dickinson","Edwards","Elk","Ellis","Ellsworth","Finney","Ford","Gove","Graham","Grant","Gray","Greeley","Hamilton","Harper","Haskell","Hodgeman","Jewell","Kearny","Kingman","Kiowa","Labette","Lane","Lincoln","Linn","Logan","Marshall","McPherson","Meade","Mitchell","Montgomery","Morton","Neosho","Ness","Norton","Osborne","Ottawa","Pawnee","Phillips","Pratt","Rawlins","Reno","Republic","Rice","Riley","Rooks","Rush","Russell","Saline","Scott","Seward","Sheridan","Sherman","Smith","Stafford","Stanton","Stevens","Sumner","Thomas","Trego","Wallace","Washington","Wichita","Wilson"]
+- **counties**: ["Allen", "Barber", "Barton", "Bourbon", "Chautauqua", "Cherokee", "Cheyenne", "Clark", "Clay", "Cloud", "Comanche", "Cowley", "Crawford", "Decatur", "Dickinson", "Edwards", "Elk", "Ellis", "Ellsworth", "Finney", "Ford", "Gove", "Graham", "Grant", "Gray", "Greeley", "Hamilton", "Harper", "Haskell", "Hodgeman", "Jewell", "Kearny", "Kingman", "Kiowa", "Labette", "Lane", "Lincoln", "Linn", "Logan", "Marshall", "McPherson", "Meade", "Mitchell", "Montgomery", "Morton", "Neosho", "Ness", "Norton", "Osborne", "Ottawa", "Pawnee", "Phillips", "Pratt", "Rawlins", "Reno", "Republic", "Rice", "Riley", "Rooks", "Rush", "Russell", "Saline", "Scott", "Seward", "Sheridan", "Sherman", "Smith", "Stafford", "Stanton", "Stevens", "Sumner", "Thomas", "Trego", "Wallace", "Washington", "Wichita", "Wilson"]
 - **counties_raw**: Allen, Barber, Barton, Bourbon, Chautauqua, Cherokee, Cheyenne, Clark, Clay, Cloud, Comanche, Cowley, Crawford, Decatur, Dickinson, Edwards, Elk, Ellis, Ellsworth, Finney, Ford, Gove, Graham, Grant, Gray, Greeley, Hamilton, Harper, Haskell, Hodgeman, Jewell, Kearny, Kingman, Kiowa, Labette, Lane, Lincoln, Linn, Logan, Marshall, McPherson, Meade, Mitchell, Montgomery, Morton, Neosho, Ness, Norton, Osborne, Ottawa, Pawnee, Phillips, Pratt, Rawlins, Reno, Republic, Rice, Riley, Rooks, Rush, Russell, Saline, Scott, Seward, Sheridan, Sherman, Smith, Stafford, Stanton, Stevens, Sumner, Thomas, Trego, Wallace, Washington, Wichita, Wilson
 - **sep_effective**: 2026-02-15
 - **sep_termination**: 2026-05-31

@@ -1,7 +1,7 @@
 # SEP Tracker — MN
 
-6 entries from Agent Medicare Hub SEP snapshot (2026-10-05).
-Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
+6 entries from Agent Medicare Hub SEP snapshot (2026-10-26).
+Source: Agent Medicare Hub live sep-tracker-app.html (Aug 2026 refresh incl. FEMA xl entries)
 
 ## sep-xl-mn-severestormsand-202612 — Minnesota — Severe Storms and Straight-line Winds
 - **status**: active
@@ -17,7 +17,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: June 21, 2025 – December 31, 2026
 - **incident_effective**: 2025-06-21
 - **incident_window_raw**: June 21, 2025 – ongoing
-- **days_until_expiry**: 87
+- **days_until_expiry**: 66
 
 ## sep-xl-mn-wildfires-202610 — Minnesota — Wildfires
 - **status**: active
@@ -33,7 +33,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **sep_window_raw**: July 11, 2026 – October 31, 2026
 - **incident_effective**: 2026-07-11
 - **incident_window_raw**: July 11, 2026 – ongoing
-- **days_until_expiry**: 26
+- **days_until_expiry**: 5
 
 ## sep-xl-mn-wildfires-202608 — Minnesota — Wildfires
 - **status**: expiring
@@ -42,7 +42,7 @@ Source: Agent Medicare Hub live sep-tracker-app.html (runtime refresh: startup)
 - **declaration_name**: Minnesota — Wildfires
 - **disaster_types**: ["Wildfires"]
 - **disaster_type_raw**: Wildfires
-- **counties**: ["Lake","Crow Wing","St. Louis"]
+- **counties**: ["Lake", "Crow Wing", "St. Louis"]
 - **counties_raw**: Lake, Crow Wing, and St. Louis Counties
 - **sep_effective**: 2026-05-15
 - **sep_termination**: 2026-08-31
