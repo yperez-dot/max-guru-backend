@@ -283,7 +283,9 @@ function parseCompareAsk(text) {
   let meds = expandMedList(splitList(medsText).map((m) => require('./comparisonRules').cleanMedItem(m.replace(/\.$/, ''))).filter(Boolean)).slice(0, MAX_MEDS);
   // A sentence is a note, not a drug: "UM means University of Miami", "only Humana has those doctors".
   meds = meds.filter((m) => !/\b(?:means|only|has|have|those|doctors?|wants?|please)\b/i.test(m));
-  meds = require('./comparisonRules').dropDoctorNamesFromMeds(meds, doctors).filter((m) => !require('./comparisonRules').INSTRUCTION_WORD_RE.test(m));
+  meds = require('./comparisonRules').dropDoctorNamesFromMeds(meds, doctors)
+    .filter((m) => !require('./comparisonRules').INSTRUCTION_WORD_RE.test(m) && !require('./comparisonRules').isPlanOrCarrierName(m));
+  if (require('./comparisonRules').saidNoMeds(t)) meds = [];
   // A pasted MedicarePro "Prescriptions (5)" block ("atorvastatin calcium TAB 10MG" lines) — the
   // section parser above caught only the first line (Victor, 2026-10-08). Use the full Rx-line read.
   const rxMeds = require('./comparisonRules').medsFromAsk(t);

@@ -246,6 +246,34 @@ async function fhirCheck(npi, { isOrg = false } = {}) {
   let devotedNetworks = null;
   await Promise.all(FHIR_CARRIERS.map(async (carrier) => {
     try {
+      // HealthSun clinics: PractitionerRole is empty by construction (no Practitioner). Organization?identifier=NPI
+      // is a real NPI check — empty Bundle = miss (Out), a matching identifier = In. Never OrganizationAffiliation
+      // (it ignores identifier and dumps ~1800 rows). People stay on PractitionerRole + the PDF index.
+      if (isOrg && carrier.key === 'healthsun') {
+        const url = `${carrier.base}/Organization?identifier=${encodeURIComponent(npi)}${carrier.extra ? `&${carrier.extra}` : ''}`;
+        const r = await fetch(url, { headers: { Accept: 'application/fhir+json' }, signal: AbortSignal.timeout(8000) });
+        if (!r.ok) {
+          console.warn(`[fhir] ${carrier.key} Organization HTTP ${r.status} npi=${npi}`);
+          failed.push(carrier.name);
+          return;
+        }
+        const fd = await r.json().catch(() => null);
+        if (!fd || typeof fd !== 'object' || Array.isArray(fd) || fd.resourceType !== 'Bundle') {
+          console.warn(`[fhir] ${carrier.key} Organization 200 non-Bundle reply npi=${npi}`);
+          failed.push(carrier.name);
+          return;
+        }
+        const entries = fd.entry || [];
+        const n = Math.max(Number(fd.total) || 0, entries.length);
+        const npiDigits = String(npi).replace(/\D/g, '');
+        const hasNpi = entries.some((e) => ((e.resource && e.resource.identifier) || [])
+          .some((id) => String(id.value || '').replace(/\D/g, '') === npiDigits));
+        if (DIRECTORY_DEBUG) console.log(`[fhir] ${carrier.key} Organization 200 entries=${n} npiMatch=${hasNpi} npi=${npi}`);
+        if (hasNpi) hits.push(carrier.name);
+        else if (n > 0 && entries.length === 0) failed.push(carrier.name);
+        else if (entries.length > 20) failed.push(carrier.name);
+        return;
+      }
       const devoted = carrier.key === 'devoted';
       let url = carrier.extra
         ? `${carrier.base}/PractitionerRole?practitioner.identifier=${npi}&${carrier.extra}`
@@ -452,6 +480,7 @@ function summarizeNpi(state, planYear) {
     npi: state.npi,
     specialty: state.specialty,
     address: state.address,
+    isOrg: Boolean(state.isOrg),
     inNetworkFor,
     lookupErrors,
     checkedGuest,
@@ -585,6 +614,7 @@ function structuredFor(doctorName, providerResults, { status, sunfireLabels = []
     npi: firstProvider.npi,
     // NPI taxonomy ("Internal Medicine"): medical-group rules apply to primary care only.
     ...(firstProvider.specialty ? { specialty: firstProvider.specialty } : {}),
+    ...(firstProvider.isOrg ? { isOrg: true } : {}),
     status,
     pending: firstProvider.pending || [],
     // Carrier checks that ran but failed (HTTP error) — shown as ❔ unchecked, never a miss.

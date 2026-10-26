@@ -105,6 +105,20 @@ function workupCarrierEditSet(text, msgs) {
  */
 const PLAN_ASK_VERB_RE = /\b(?:check|show|add|include|run|price|look\s*at|compare|want|try|see|put)\b/i;
 const PLAN_EDIT_ONLY_RE = /\b(?:remove|drop|delete|take\s+(?:out|off)|without|instead\s+of|replace|swap|only|just)\b[^.;\n]{0,40}\b[HR]\d{4}-\d{3}/i;
+/** "replace H0982-007 with H5431-018" / "remove X and replace with Y" / "add Y instead of X". */
+function replacePlanPairs(text) {
+  const t = String(text || '');
+  const pairs = [];
+  const add = (from, to) => {
+    const a = String(from || '').toUpperCase().slice(0, 9);
+    const b = String(to || '').toUpperCase().slice(0, 9);
+    if (a && b && a !== b && !pairs.some((p) => p.from === a && p.to === b)) pairs.push({ from: a, to: b });
+  };
+  for (const m of t.matchAll(/\b(?:replace|swap)\s+([HR]\d{4}-\d{3}[A-Z]?)\s+(?:with|for|to)\s+([HR]\d{4}-\d{3}[A-Z]?)/gi)) add(m[1], m[2]);
+  for (const m of t.matchAll(/\b(?:remove|drop|delete|take\s+(?:out|off)|without)\s+([HR]\d{4}-\d{3}[A-Z]?)\b[^.;\n]{0,80}?\b(?:replace|swap|add|include)\s+(?:(?:it|that|them)\s+)?(?:with|for)?\s*([HR]\d{4}-\d{3}[A-Z]?)/gi)) add(m[1], m[2]);
+  for (const m of t.matchAll(/\b(?:add|include|put)\s+([HR]\d{4}-\d{3}[A-Z]?)\s+instead\s+of\s+([HR]\d{4}-\d{3}[A-Z]?)/gi)) add(m[2], m[1]);
+  return pairs;
+}
 /** Plan IDs in the header of Max's newest Doctor × plan table in this chat (its columns, in order). */
 function lastTablePlanIds(msgs) {
   const list = Array.isArray(msgs) ? msgs : [];
@@ -139,16 +153,19 @@ function workupPlanAddSet(text, msgs) {
   const rowOf = (id) => rows.find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9)) || gridRowFor(id, '');
   const carrierOfId = (id) => { const g = rowOf(id); return g ? R.carrierOfPlan(g) : ''; };
   const typed = [...t.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase());
+  const pairs = replacePlanPairs(t);
   let adds = [];
   // "add Humana Choice Giveback" / "run Humana Gold Plus too": grid plans she names by marketing name (one plan per name).
   const byName = typed.length ? [] : N().planNamesInAsk(t, county).ids;
   if (byName.length && PLAN_ASK_VERB_RE.test(t) && !PLAN_EDIT_ONLY_RE.test(t) && !ONLY_PLANS_RE.test(t) && !NEW_SET_VERB_RE.test(t)) {
     adds = byName;
   } else if (typed.length) {
-    // "Compare X and Y only" / "lets do X, Y" / "compare X and Y" (two or more IDs) is a new set: the edit rules decide.
-    if (!PLAN_ASK_VERB_RE.test(t) || PLAN_EDIT_ONLY_RE.test(t) || ONLY_PLANS_RE.test(t) || NEW_SET_VERB_RE.test(t)) return [];
-    if (typed.length > 1 && /\bcompare\b/i.test(t)) return [];
-    adds = typed;
+    // "remove X and replace with Y": keep the saved set, put Y in X's place (Carla Nguyen, 2026-10-26).
+    if (pairs.length) {
+      adds = pairs.map((p) => p.to);
+    } else if (!PLAN_ASK_VERB_RE.test(t) || PLAN_EDIT_ONLY_RE.test(t) || ONLY_PLANS_RE.test(t) || NEW_SET_VERB_RE.test(t)) return [];
+    else if (typed.length > 1 && /\bcompare\b/i.test(t)) return [];
+    else adds = typed;
   } else {
     // "add dvoted to the grid": the plan of that carrier she named earlier in this chat (H1290-067).
     const segs = [...t.matchAll(/\b(?:add|include|plus|put)\s+([^.;\n]+)/gi)].map((m) => m[1]);
@@ -167,8 +184,18 @@ function workupPlanAddSet(text, msgs) {
   const nameOf0 = (id) => { const g = rowOf(id); if (!g) return id; return carrierKey(String(g.planName || '')) ? String(g.planName) : `${g.carrier || ''} ${g.planName || ''}`.trim(); };
   const rm = planRemovals(t, wk.plans.map((id) => ({ planId: String(id).toUpperCase(), name: nameOf0(id) })), wk.current || []);
   const removed = new Set(rm.remove.map((id) => id.toUpperCase().slice(0, 9)));
+  for (const p of pairs) removed.add(p.from);
   let ids = wk.plans.filter((id) => isCur(id) || (!removed.has(String(id).toUpperCase().slice(0, 9)) && !dropped.includes(carrierOfId(id))));
-  for (const id of adds) if (!dropped.includes(carrierOfId(id)) && !ids.some((x) => x.slice(0, 9) === id.slice(0, 9))) ids.push(id);
+  // A replacement sits in the removed plan's slot so the rest of the set keeps its order.
+  for (const p of pairs) {
+    if (dropped.includes(carrierOfId(p.to))) continue;
+    const at = wk.plans.findIndex((x) => String(x).toUpperCase().slice(0, 9) === p.from);
+    if (at >= 0 && !ids.some((x) => x.slice(0, 9) === p.to.slice(0, 9))) {
+      const before = ids.filter((x) => wk.plans.findIndex((y) => String(y).toUpperCase().slice(0, 9) === String(x).toUpperCase().slice(0, 9)) < at);
+      ids = [...before, p.to, ...ids.filter((x) => !before.includes(x))];
+    } else if (!ids.some((x) => x.slice(0, 9) === p.to.slice(0, 9))) ids.push(p.to);
+  }
+  for (const id of adds) if (!dropped.includes(carrierOfId(id)) && !removed.has(String(id).toUpperCase().slice(0, 9)) && !ids.some((x) => x.slice(0, 9) === id.slice(0, 9))) ids.push(id);
   ids = currentPlanFirst(ids, wk.current);
   if (ids.length === wk.plans.length && ids.every((id, k) => id === wk.plans[k]) && !adds.length) return [];
   const nameOf = (id) => { const g = rowOf(id); if (!g) return id; return carrierKey(String(g.planName || '')) ? String(g.planName) : `${g.carrier || ''} ${g.planName || ''}`.trim(); };
@@ -732,7 +759,7 @@ module.exports = {
   planRemovalLines,
   messageText,
   // plans
-  workupFacts, workupCarrierEditSet, workupPlanAddSet, lastTablePlanIds, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,
+  workupFacts, workupCarrierEditSet, workupPlanAddSet, replacePlanPairs, lastTablePlanIds, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,
   NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, PRONOUN_TARGET_RE, KEEPS_CURRENT_RE, lineKeepsCurrentPlan, droppedIdsIn, removePlansNamedIn, OFF_GRID_RE, DROPS_CURRENT_RE, currentPlanRemovedBy, planLineVerdict, currentPlanFirst,
   // doctors
   respelledDoctors, looseSameDoctor, fuzzySameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords,

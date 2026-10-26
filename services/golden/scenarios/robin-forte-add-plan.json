@@ -76,6 +76,15 @@
       "H1036-054C",
       "H1609-093",
       "H1045-005"
+    ],
+    "gridPlans": [
+      "H5420-001",
+      "H1290-001",
+      "H1036-054C",
+      "H1609-093"
+    ],
+    "followUpIncludes": [
+      "Not offered in Miami-Dade: H1045-005"
     ]
   }
 }

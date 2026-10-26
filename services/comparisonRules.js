@@ -453,10 +453,28 @@ const NOT_MED_RE = /^(?:no|none|not|medicaid|plan|plans|compare|they|their|for|a
 // choice?") and replaced the 6 saved meds (Gerry Cabrera, 2026-10-19).
 const INSTRUCTION_WORD_RE = /\b(?:check|checks|checking|manually|manual|doctors?|i'?ll|aill|ill|please|pls|plz|add|remove|delete|drop|grid|plans?|re-?run|run|show|look|verify|confirm|compare|keep|want|wants|them|those|these|everything|again|thanks?|ok(?:ay)?)\b/i;
 
+// "no meds" / "Meds: none" is an empty list — never fall through to unlabeled leftovers or a plan name
+// (Carla Nguyen, 2026-10-26: "no meds" still priced DrSelect-SFL as a prenatal vitamin).
+const SAID_NO_MEDS_RE = /\bno\s+(?:listed\s+)?(?:meds?|medications?|medicines?|prescriptions?|rx|drugs?)\b|\b(?:doesn'?t|does\s+not|do\s+not|don't)\s+take\s+(?:any\s+)?(?:meds?|medications?|drugs?)\b|\b(?:meds?|medications?|rx|drugs?)\s*:\s*(?:no|none|n\/?a|nada|nothing)\b/i;
+
+// Plan / carrier marketing names are never drugs. "Meds: DrSelect-SFL" looked up a prenatal vitamin.
+const PLAN_NAME_AS_MED_RE = /\b(?:drselect(?:[- ]sfl)?|drmax(?:[- ]dade)?|drflex|drextra|health\s*advantage(?:\s+plus)?|medicaremax|healthy\s+living|vitalcare|medimax|carebreeze|careaccess|carecomplete|careone|gold\s+plus|preferred\s+ma)\b/i;
+function isPlanOrCarrierName(s) {
+  const t = String(s || '').trim();
+  if (!t) return false;
+  if (/\b[HR]\d{4}-\d{3}/i.test(t)) return true;
+  if (PLAN_NAME_AS_MED_RE.test(t)) return true;
+  if (/^(?:doctors?(?:\s+health(?:care|care\s+plans?|care\s+plans?)?)?|humana|uhc|united(?:healthcare)?|aetna|devoted|solis|care\s*plus|well\s*care|health\s*sun|florida\s*blue|simply)$/i.test(t)) return true;
+  return false;
+}
+function saidNoMeds(text) {
+  return SAID_NO_MEDS_RE.test(String(text || ''));
+}
+
 function medsFromAsk(askText) {
   const t = String(askText || '');
   const out = [];
-  const add = (s0) => { const s = tidyLongMedName(cleanMedItem(s0)); if (s && !INSTRUCTION_WORD_RE.test(s) && s.length > 2 && s.length < 60 && !isNonDrugAnswer(s) && !/\b[HR]\d{4}-\d{3}|\b(?:grid|table|columns?)\b/i.test(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
+  const add = (s0) => { const s = tidyLongMedName(cleanMedItem(s0)); if (s && !INSTRUCTION_WORD_RE.test(s) && !isPlanOrCarrierName(s) && s.length > 2 && s.length < 60 && !isNonDrugAnswer(s) && !/\b[HR]\d{4}-\d{3}|\b(?:grid|table|columns?)\b/i.test(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
   // "Meds: a, b" / "Medications a, b" / "Medicamentos: a y b" / "Takes a, b" — colon optional
   // (Martin Wiesenthal, 2026-10-09: "…, Medications esomeprazole, rasuvostatin, …" read 0 meds).
   // A practice / person name is never read as a label: "Med Eye Associates" (Tony Cabrera, 2026-10-19: "…, Med Eye
@@ -507,7 +525,7 @@ function medsFromAsk(askText) {
     for (const line of m[1].split('\n')) {
       if (!line.trim()) continue;
       const name = tidyLongMedName(cleanMedItem(line.replace(/^\s*[-•*]\s*/, '').split(/:\s/)[0]));
-      if (name && name.length > 2 && name.length < 60 && !isNonDrugAnswer(name) && !out.some((o) => sameDrug(o, name))) out.push(name);
+      if (name && name.length > 2 && name.length < 60 && !isPlanOrCarrierName(name) && !isNonDrugAnswer(name) && !out.some((o) => sameDrug(o, name))) out.push(name);
     }
   }
   // MedicarePro "Prescriptions (5)" paste: one "atorvastatin calcium TAB 10MG" line per drug (with
@@ -520,19 +538,23 @@ function medsFromAsk(askText) {
     const name = `${base.replace(/\bHcl\b/, 'HCl')} ${m[2]}${m[3].toLowerCase()}`;
     if (!isNonDrugAnswer(name) && !out.some((o) => sameDrug(o, name))) out.push(name);
   }
-  // Nothing labeled: a plain list after the ZIP and the doctors.
-  if (!out.length) {
+  // Nothing labeled: a plain list after the ZIP and the doctors. "no meds" is an empty list —
+  // do not scrape leftover plan names or C-SNP hint words from the same paste.
+  if (!out.length && !saidNoMeds(t)) {
     const zip = (t.match(/\b(\d{5})\b/) || [])[1] || '';
     unlabeledMeds(t, zip, []).forEach(add);
   }
-  for (const h of CSNP_HINTS) {
-    const hit = t.match(h.re);
-    if (hit && !out.some((o) => sameDrug(o, hit[0]))) out.push(hit[0]);
+  if (!saidNoMeds(t)) {
+    for (const h of CSNP_HINTS) {
+      const hit = t.match(h.re);
+      if (hit && !out.some((o) => sameDrug(o, hit[0]))) out.push(hit[0]);
+    }
   }
   // Loaded workup: every saved med stays unless she names it for removal ("remove Farxiga", "she stopped metformin") —
   // loadedWorkup.medRemovalsIn, read from her own lines only (not the saved-workup block).
   if (/structured facts only/i.test(t)) {
     const own = t.split('\n').filter((l) => !/^\s*(?:-\s|LOADED CLIENT WORKUP|Client:|ZIP\/county:|Plans:|Doctors \(|Doctor NPIs|Medications \(|Current plan|Saved In\/Out)/.test(l)).join('\n');
+    if (saidNoMeds(own)) return [];
     const gone = require('./loadedWorkup').medRemovalsIn(own, out);
     const kept = gone.length ? out.filter((m) => !gone.includes(m)) : out;
     return require('./loadedWorkup').applyConfirmedDoses(own, kept);
@@ -729,4 +751,6 @@ module.exports = {
   carriersRejected,
   wantsOtherCarrier,
   carrierOfPlan,
+  isPlanOrCarrierName,
+  saidNoMeds,
 };

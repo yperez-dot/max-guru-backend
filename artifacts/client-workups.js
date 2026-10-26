@@ -262,6 +262,7 @@
       const name = clip(d.name || d.drug || "", 48);
       // A role word ("PCP" from "Cheryl Diaz PCP") is never a med.
       if (!name || /^(?:pcp|primary(?:\s+care)?|cardiolog\w*|dermatolog\w*|neurolog\w*|specialist|doctors?|both|none|n\/a)$/i.test(name)) return;
+      if (/\b[HR]\d{4}-\d{3}\b/i.test(name) || /\b(?:drselect(?:[- ]sfl)?|drmax(?:[- ]dade)?|health\s*advantage|healthy\s+living|preferred\s+ma|gold\s+plus)\b/i.test(name)) return;
       const map = d.byPlanId || {};
       const byPlanId = {};
       Object.keys(map).forEach((id) => {
