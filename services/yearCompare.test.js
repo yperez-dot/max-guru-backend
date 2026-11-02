@@ -101,9 +101,39 @@ describe('value normalization', () => {
     assert.equal(c('Yes', 'No', 'referral'), 'Changed');
     assert.equal(c('*', 'Yes — included in $6,000 allowance', 'dentalCrowns'), 'Review');
     assert.equal(c('SilverSneakers', 'SilverSneakers + Nifty', 'fitness'), 'Review');
-    assert.equal(c('$1,500', '$1,500 allowance · $0 copay', 'dental'), 'Review');
+    assert.equal(c('$1,500', '$1,500 allowance · $0 copay', 'dental'), 'Same');
     assert.equal(c('', '$50', 'otc'), 'Review');
     assert.equal(c('', '', 'otc'), '');
+  });
+
+  it('compares dollars, counts and coverage after wording is ignored', () => {
+    const c = (a, b, k) => yc.compareValues(a, b, k);
+    // Inpatient: $0 unlimited vs $95 days 1-4 then $0 — cost went up.
+    const inpatient = c('$0 unlimited', '$95 days 1-4 $0 after that, unlimited days', 'inpatientHospital');
+    assert.equal(inpatient.change, 'Changed');
+    assert.equal(inpatient.label, 'Changed (cost up)');
+    // Transportation: same $0 copay, fewer trips.
+    const trips = c('$0 x 36 one way trips', '$0 INN · 24 one-way trips to plan-approved locations', 'transportation');
+    assert.equal(trips.change, 'Changed');
+    assert.equal(trips.label, 'Changed (trips down)');
+    // Outpatient: $0 component disappeared; $75 and $150 remain — not Same.
+    const op = c('$0 / $75 / $150', 'OP surgery $150 · ASC $75', 'outpatientHospital');
+    assert.equal(op.change, 'Changed');
+    assert.equal(op.label, 'Changed');
+    // Dental: coverage wording plus "$0 copay" is not a new amount.
+    assert.equal(c('Preventive & Comprehensive', 'Preventive & Comprehensive — $0 copay', 'dental').change, 'Same');
+    // Extractions: "as needed" and "Yes" both mean covered.
+    assert.equal(c('as needed', 'Yes', 'dentalExtractions').change, 'Same');
+    // Not listed is missing data, not the same as No / Not covered.
+    const deep = c('Not covered', 'Not listed', 'dentalDeepCleaning');
+    assert.equal(deep.change, 'Review');
+    assert.equal(deep.label, 'Review — not on 2027 grid');
+    const implants = c('No', 'Not listed', 'dentalImplants');
+    assert.equal(implants.change, 'Review');
+    assert.equal(implants.label, 'Review — not on 2027 grid');
+    assert.equal(c('n/a', 'N/A', 'groceryCardDetail').change, 'Same');
+    assert.equal(c('1 x 5 years', '1 every 5 years', 'dentalDentures').change, 'Same');
+    assert.equal(c('2 x year', '2/year', 'dentalFillings').change, 'Same');
   });
 });
 
@@ -189,6 +219,70 @@ describe('CMS crosswalk pairing', () => {
     const r = yc.resolveYearPairs(['H9999-999'], ctx);
     assert.deepEqual(r.pairs, []);
     assert.deepEqual(r.unresolved, ['H9999-999']);
+  });
+});
+
+describe('H1045-005 Broward year-over-year Change column', () => {
+  const r = run('compare 2026 vs 2027 for H1045-005 Broward');
+  const m = r.model;
+  const labels = Object.fromEntries(m.rows.map((row) => [row.label, row.cells[0].changeLabel || row.cells[0].change]));
+  const changeOf = Object.fromEntries(m.rows.map((row) => [row.label, row.cells[0].change]));
+
+  it('keeps every already-correct Same / Changed / Pending row', () => {
+    const keep = {
+      'Monthly Premium (CMS, before Extra Help)': 'Same',
+      'Max Out of Pocket — in-network (CMS)': 'Changed',
+      'Part D Deductible (CMS, before Extra Help)': 'Changed',
+      'Overall Star Rating (CMS)': 'Pending',
+      'Part B Rebate': 'Changed',
+      'Referrals Needed?': 'Same',
+      PCP: 'Same',
+      Specialist: 'Changed',
+      ER: 'Same',
+      'Urgent Care': 'Same',
+      'Advanced Imaging (MRI, CT, PET)': 'Changed',
+      'Hearing Services': 'Changed',
+      Dentures: 'Same',
+      Fillings: 'Same',
+      'Vision Allowance': 'Changed',
+      Ambulance: 'Same',
+      'RX Deductible': 'Changed',
+      'Tier 1': 'Same',
+      'Tier 2': 'Same',
+      'Tier 3': 'Changed',
+      'Tier 4': 'Changed',
+      'Tier 5': 'Changed',
+      'Tier 6': 'Same',
+      OTC: 'Changed',
+      'Grocery Card': 'Same',
+      Acupuncture: 'Changed',
+      Fitness: 'Same',
+    };
+    Object.entries(keep).forEach(([label, change]) => {
+      assert.equal(changeOf[label], change, label);
+    });
+  });
+
+  it('regrades the false-Review rows by the meaningful values', () => {
+    assert.equal(labels['Inpatient Hospital'], 'Changed (cost up)');
+    assert.equal(labels['Outpatient Hospital'], 'Changed');
+    assert.equal(labels.Dental, 'Same');
+    assert.equal(labels.Extractions, 'Same');
+    assert.equal(labels.Transportation, 'Changed (trips down)');
+    assert.equal(labels['Deep Cleaning'], 'Review — not on 2027 grid');
+    assert.equal(labels.Implants, 'Review — not on 2027 grid');
+  });
+
+  it('prints the graded label in the export Change column and keeps the legend accurate', () => {
+    const inpatient = m.aoa.find((row) => row[0] === 'Inpatient Hospital');
+    assert.equal(inpatient[3], 'Changed (cost up)');
+    const deep = m.aoa.find((row) => row[0] === 'Deep Cleaning');
+    assert.equal(deep[3], 'Review — not on 2027 grid');
+    const footer = m.aoa[m.aoa.length - 1][0];
+    assert.match(footer, /Changed = dollars, percents, counts/);
+    assert.match(footer, /Same = those match after wording is ignored/);
+    assert.match(footer, /Review = a year is missing or the comparison is unclear/);
+    assert.doesNotMatch(footer, /wording differs or one year not listed/);
   });
 });
 
