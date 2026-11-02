@@ -10,7 +10,7 @@ const { lookupDoctor, NOT_CONFIRMED } = require('./providerNetwork');
 const { lookupFormulary, toExportDrug, toExportDrugs, formatFormularyText } = require('./formularyLookup');
 const { askConstraints, gridTable, medsTable, selectComparison, strengthNotes, medsLegendFor, quietRestrictionMarks, textPlanTypeAsk, planTypeAskLines, planTypeLineFor, currentPlanIdsIn } = require('./doctorPlanNarrow');
 const { dedupeDoctorRows, duplicateQuestions } = require('./loadedWorkup');
-const { eligibilityFromAsk, carriersRequested, LEGEND, MEDS_LEGEND, MEDS_FAILED_BANNER, IN_STAR_LEGEND, unlabeledMeds: unlabeledMedsList } = require('./comparisonRules');
+const { eligibilityFromAsk, carriersRequested, LEGEND, MEDS_LEGEND, MEDS_FAILED_BANNER, IN_STAR_LEGEND, unlabeledMeds: unlabeledMedsList, stripListConnectors } = require('./comparisonRules');
 const { expandMedList } = require('./drugNames');
 
 // Candidates priced before the final top 3, so drug cost can break ties (rule 3).
@@ -31,7 +31,7 @@ const MAX_MEDS = 20;
 const MAX_PLANS = 6; // same cap as the UI (max-demo MAX_PLANS) — a 5th named plan was silently dropped
 
 // "wondering if there's something better", "other options", "alternatives" → keep her plan as a column AND shop the county.
-const ALTERNATIVES_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\bother\s+(?:options?|plans?)\b|\balternatives?\b|\bsee\s+what\s+else\b|\bwhat\s+else\b|\bshop(?:ping)?\s+around\b|\bcompare\s+(?:it\s+)?(?:to|against|with)\s+others?\b|\bsomething\s+else\b|\banother\s+(?:\w+\s+){0,3}(?:option|plan)s?\b|\bgiveback\s+options?\b|\blooking\s+for\s+(?:another|other|a\s+different)/i;
+const ALTERNATIVES_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\bother\s+(?:options?|plans?)\b|\balternatives?\b|\bsee\s+what\s+else\b|\bwhat\s+else\b|\bshop(?:ping)?\s+around\b|\bcompare\s+(?:it\s+)?(?:to|against|with)\s+others?\b|\bsomething\s+else\b|\banother\s+(?:\w+\s+){0,3}(?:option|plan)s?\b|\bgiveback\s+options?\b|\blooking\s+for\s+(?:another|other|a\s+different)|\b(?:suggest|recommend|find)\s+(?:(?:me|her|him|us|some|a few|better|other)\s+)*(?:plans?|options?)\b|\bfind\s+better\b/i;
 
 const PLAN_ID_RE = /\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
 
@@ -39,8 +39,8 @@ const PLAN_ID_RE = /\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
 
 function splitList(text) {
   return String(text || '')
-    .split(/\n|,|;|\band\b(?=\s+[A-Z])/)
-    .map((s) => s.replace(/^[\s\-•*\d.)]+/, '').trim())
+    .split(/\n|,|;|\band\b(?=\s+[A-Z])|\s&\s|\sy\s/i)
+    .map((s) => stripListConnectors(s.replace(/^[\s\-•*\d.)]+/, '')))
     .filter((s) => s && s.length > 1);
 }
 
@@ -333,7 +333,7 @@ function parseCompareAsk(text) {
     planType: typeAsk ? typeAsk.type : '',
     planTop: typeAsk ? typeAsk.top : 0,
     terminatingPlan,
-    wantsAlternatives: ALTERNATIVES_RE.test(t) || (doctors.length > 0 && meds.length > 0 && require('./comparisonRules').impliesCompareToCurrentPlan(t, plans.length)),
+    wantsAlternatives: ALTERNATIVES_RE.test(t) || require('./comparisonRules').impliesCompareToCurrentPlan(t, plans.length),
     carriers: carriersRequested(t),
     noMedicaid: constraints.noMedicaid,
     // Medicaid / MSP level / C-SNP condition exactly as the agent stated them (never inferred).
@@ -802,6 +802,7 @@ function getJob(id, owner) {
 
 module.exports = {
   parseCompareAsk,
+  splitList,
   doctorMentions,
   titledDoctorNames,
   normalizePlanIds,

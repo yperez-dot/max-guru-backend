@@ -37,6 +37,21 @@ describe('CarePlus plan columns', () => {
     carriersIn: net.inNetwork ? ['CarePlus'] : [], networks: [{ carrier: 'CarePlus', ...net }],
   });
   const plan = [{ planId: 'H1019-065', name: 'CarePlus Premier (HMO) (H1019-065)' }];
+  it('guest Find Care empty (partialList false) is Out, not "not confirmed"', () => {
+    const docs = [
+      doc('William J Rand', {
+        inNetwork: false,
+        status: 'checked',
+        partialList: false,
+        source: 'findcare',
+        outOfNetworkPlans: ['CarePlus CareOne Plus (H1019-001)'],
+      }),
+    ];
+    docs[0].outOfNetworkPlans = ['CarePlus CareOne Plus (H1019-001)'];
+    const [col] = namedPlanColumns([{ planId: 'H1019-001', name: 'CarePlus CareOne Plus' }], [], docs);
+    assert.deepEqual(col.out, ['William J Rand']);
+    assert.deepEqual(col.notConfirmed, []);
+  });
   it('listed → In; not listed → not confirmed, never Out; no index → unchecked', () => {
     const docs = [
       doc('A One', { inNetwork: true, status: 'checked' }),

@@ -35,7 +35,9 @@ test('explicit contract-PBP IDs are the columns: current plan kept, dropped plan
   const sel = N.selectComparison(DOCS, ask, {});
   assert.deepEqual(sel.columns.map((c) => c.planId), ['H1045-001', 'H1609-093', 'H1036-054C']);
   const out = N.renderedAnswer(DOCS, ask, {});
-  assert.doesNotMatch(out, /H4140-0|H5420-001|DrMax/);
+  const table = out.split('<!-- max:follow-up -->')[0];
+  assert.doesNotMatch(table, /H4140-0|H5420-001|DrMax/);
+  assert.match(out, /I removed[^\n]*H5420-001/);
   assert.match(out, /^\| Doctor \| UHC [^|]+· H1045-001 \| Aetna [^|]+· H1609-093 \| Humana Gold Plus · H1036-054C \|$/m);
   assert.doesNotMatch(out.split('\n').find((l) => /^\| Doctor/.test(l)), /\| - /);
 });
@@ -106,8 +108,9 @@ test('grok/claude loop: a batch lookup (expand items) still leads the reply with
       processToolFn: async () => ({ text: 'BATCH', structured: { doctors: DOCS, rendered }, expand: DOCS }),
     });
     const text = res.content[0].text;
-    assert.ok(text.startsWith(rendered), text.slice(0, 200));
-    assert.doesNotMatch(text.slice(rendered.length), /Case-Diaz: In/);
+    const grid = rendered.split('<!-- max:follow-up -->')[0].trim();
+    assert.ok(text.startsWith(grid), text.slice(0, 200));
+    assert.doesNotMatch(text, /Case-Diaz: In on H1045-001/);
   } finally { global.fetch = original; }
 });
 

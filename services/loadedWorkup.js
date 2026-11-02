@@ -95,17 +95,23 @@ function workupCarrierEditSet(text, msgs) {
     if (/\b(?:dr|dra|doctor|doctora)\b\.?\s+[A-Z]/i.test(seg)) continue; // "add Dr. X" adds a doctor
     for (const c of R.carriersRequested(`add ${seg}`)) if (!addCarriers.includes(c)) addCarriers.push(c);
   }
-  // An edit of the saved set needs a carrier drop. A bare "add doctors, devoted, and aetna" stays a carrier ask
-  // (best plans per carrier — Gail Carreno, 2026-10-08).
-  if (!dropped.length) return [];
   const rows = R.gridPlansForCounty(county);
   const rowOf = (id) => rows.find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9)) || gridRowFor(id, '');
   const carrierOfId = (id) => { const g = rowOf(id); return g ? R.carrierOfPlan(g) : ''; };
   const nameOf = (id) => { const g = rowOf(id); if (!g) return id; return carrierKey(String(g.planName || '')) ? String(g.planName) : `${g.carrier || ''} ${g.planName || ''}`.trim(); };
   const fullId = (id) => { const g = rowOf(id); return g ? String(g.planId || g.id).toUpperCase() : String(id).toUpperCase(); };
+  // An edit of the saved set needs a carrier drop. A bare "add doctors, devoted, and aetna" stays a carrier ask
+  // (best plans per carrier — Gail Carreno, 2026-10-08). "remove healthsun and humana" splits into both carriers.
+  const rm = planRemovals(t, wk.plans.map((id) => ({ planId: String(id).toUpperCase(), name: nameOf(id) })), wk.current || []);
+  const removedIds = new Set((rm.remove || []).map((id) => String(id).toUpperCase().slice(0, 9)));
+  if (!dropped.length && !removedIds.size) return [];
   const offGrid = currentPlanRemovedBy(t, wk.current, carrierOfId);
   const isCur = (id) => (wk.current || []).some((c) => String(c).toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9));
-  let ids = wk.plans.filter((id) => !dropped.includes(carrierOfId(id)) || (isCur(id) && !offGrid.has(String(id).toUpperCase().slice(0, 9))));
+  let ids = wk.plans.filter((id) => {
+    const key = String(id).toUpperCase().slice(0, 9);
+    if (removedIds.has(key) && !(isCur(id) && !offGrid.has(key))) return false;
+    return !dropped.includes(carrierOfId(id)) || (isCur(id) && !offGrid.has(key));
+  });
   for (const c of addCarriers) {
     if (dropped.includes(c) || ids.some((id) => carrierOfId(id) === c)) continue;
     const core = corePlanIdsFor(c, county)[0];
@@ -249,6 +255,16 @@ function isPlanEditLine(line) {
     && (/\b[HR]\d{4}-\d{3}/i.test(s) || Boolean(carrierKey(s.replace(/\b(?:dr|dra|doctor|doctora)\.?\s+[A-Z][^,.;]*/g, ' ')))));
 }
 
+/** "remove healthsun and humana from comparison" is a set edit, not "check another carrier". */
+function isComparisonRemoval(text) {
+  const t = String(text || '');
+  if (!/\b(?:remove|drop|take out|delete|no more|get rid of|exclude|excluding)\b/i.test(t)) return false;
+  if (/\b(?:add|include|instead|swap|replace)\b/i.test(t) && /\b(?:add|include|swap|replace)\b/i.test(t)) return false;
+  if (R.wantsOtherCarrier(t)) return false;
+  return /\b(?:from|off)\s+(?:the\s+|her\s+|this\s+)?(?:comparison|table|grid|columns?|comp)\b/i.test(t)
+    || /\b(?:remove|drop|exclude)\b/i.test(t);
+}
+
 // A pasted list of 2+ plans with a "use these" verb is a new set: "okao lets do H5420-014, H4140-022, …" (Gail Carreno).
 const PLAN_START = String.raw`(?=["“]|[HR]\d{4}-|(?:uhc|united\w*|humana|aetna|devoted|doctors|solis|careplus|simply|wellcare|healthsun|florida\s+blue|these|those|this|plans?)\b)`;
 
@@ -256,7 +272,7 @@ const NEW_SET_VERB_RE = new RegExp(String.raw`\blet'?s\s+do\s+` + PLAN_START + S
 
 // A new plan set needs clear intent: "only H5420-001", "H5420-001 only", "just these plans", "just H1609-093".
 // "just check Glinos on H5420-001" is not a new set ("just" there means "simply").
-const ONLY_PLANS_RE = /\bonly\b|\bexclusively\b|\bjust\s+(?:(?:the|these|this|that|on|use|keep|show|compare|run)\s+)*(?:[HR]\d{4}-\d{3}|plans?\b|one\s+plan\b)/i;
+const ONLY_PLANS_RE = /\bonly\b|\bexclusively\b|\bno other plans\b|\bning[uú]n\s+otro\s+plan|\breplace(?:\s+\w+)?\s+with\b|\bsol(?:o|amente)\b|\bsólo\b|\bú?nicamente\b|\bjust\s+(?:(?:the|these|this|that|on|use|keep|show|compare|run|look(?:\s+at)?)\s+)*(?:[HR]\d{4}-\d{3}|plans?\b|one\s+plan\b)/i;
 
 // Stop at "and add" / ", add" / "from the table" — never at "and H1036-305" or ", H1036-305".
 const REMOVE_RE = /\b(?:remove|drop|take out|delete|no more|get rid of|without|exclude|excluding)\s+(?:the\s+)?([^.;\n]+?)(?=\s+(?:from\b|and\s+(?:add|include|replace|swap|instead|keep|show|plus|with)\b)|,\s*(?:add|include|replace|swap|instead|keep|show|plus|with)\b|[.;\n]|$)/gi;
@@ -276,9 +292,9 @@ function droppedIdsIn(line) {
   }
   return dropped;
 }
-// Her current plan leaves the grid only when she says so outright (Yahoska, 2026-10-17): "remove uhc off the grid",
-// "remove the current plan", "take H5420-001 off the grid", or a drop that types its ID. "drop UHC" / "exclude UHC"
-// drops UHC's other plans and keeps her current one.
+// Her current plan leaves the grid only when she names it by H-number or plan name, or says "the current plan"
+// (owner, 2026-11-02). "drop UHC" / "remove uhc off the grid" / "exclude UHC" drops UHC's other plans and keeps
+// her current one.
 const OFF_GRID_RE = /\b(?:remove|take|drop|delete|pull|get)\b([^.;\n]{0,60}?)\b(?:off|out\s+of|from)\s+(?:of\s+)?(?:the\s+|her\s+|this\s+)?(?:grid|table|comparison|columns?)\b/gi;
 const DROPS_CURRENT_RE = /\b(?:without|not|exclude|excluding|skip|drop|remove|take\s+out|delete|no)\s+(?:her\s+|the\s+|my\s+|his\s+)?current(?:\s+plans?)?\b/i;
 /** Her current plan IDs (first 9 chars) this line takes off the grid. carrierOfId(id) → that plan's carrier. */
@@ -293,8 +309,7 @@ function currentPlanRemovedBy(line, currentIds, carrierOfId) {
     const seg = m[1] || '';
     if (/\bcurrent\b/i.test(seg)) cur.forEach((id) => out.add(id));
     for (const idm of seg.matchAll(/\b([HR]\d{4}-\d{3})/gi)) if (cur.includes(idm[1].toUpperCase())) out.add(idm[1].toUpperCase());
-    const c = carrierOf(seg);
-    if (c && carrierOfId) cur.filter((id) => carrierOfId(id) === c).forEach((id) => out.add(id));
+    // Carrier-only "off the grid" never drops the current plan — name / H-number only.
   }
   return out;
 }
@@ -311,7 +326,19 @@ function currentPlanRemovedBy(line, currentIds, carrierOfId) {
 // plan is asked as "Remove X (ID)? (yes/no)", several are listed, none is said in one line (Evelyn Nieves, 2026-10-20:
 // "lets remove Doctors Dade Mac and add … H1036-121" added H1036-121 and silently kept H4140-022).
 const REMOVAL_STOP = new Set(['the', 'plan', 'plans', 'column', 'columns', 'one', 'from', 'table', 'grid', 'please', 'pls', 'her', 'his', 'option', 'lets', 'let', 's']);
-const CARRIER_WORDS = { careplus: 'CarePlus', humana: 'Humana', aetna: 'Aetna', devoted: 'Devoted', solis: 'Solis', wellcare: 'Wellcare', simply: 'Simply', uhc: 'UnitedHealthcare', unitedhealthcare: 'UnitedHealthcare', aarp: 'UnitedHealthcare', doctors: 'Doctors HealthCare', doctor: 'Doctors HealthCare' };
+const CARRIER_WORDS = {
+  careplus: 'CarePlus',
+  humana: 'Humana',
+  aetna: 'Aetna',
+  devoted: 'Devoted',
+  solis: 'Solis',
+  wellcare: 'Wellcare',
+  simply: 'Simply',
+  uhc: 'UnitedHealthcare', unitedhealthcare: 'UnitedHealthcare', aarp: 'UnitedHealthcare',
+  doctors: 'Doctors HealthCare', doctor: 'Doctors HealthCare',
+  healthsun: 'HealthSun',
+  floridablue: 'Florida Blue',
+};
 function removalTokens(x) {
   return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z0-9]+/).filter((w) => w && !REMOVAL_STOP.has(w));
 }
@@ -334,6 +361,26 @@ function editDistance(x, y) {
   }
   return row[y.length];
 }
+function splitRemovalTargets(target) {
+  return String(target || '')
+    .split(/\s*(?:,|&|and|y)\s+/i)
+    .map((s) => s.replace(/^(?:the\s+|all\s+)/i, '').trim())
+    .filter((s) => s && !/^(?:from|the|table|grid|comparison|comp|please|pls|her|his|columns?)$/i.test(s));
+}
+function carrierFromRemovalWords(words) {
+  if (!words.length) return '';
+  const joined = words.join('');
+  if (CARRIER_WORDS[joined]) return CARRIER_WORDS[joined];
+  const COMPOUND = { healthsun: 'HealthSun', careplus: 'CarePlus', wellcare: 'Wellcare', floridablue: 'Florida Blue', unitedhealthcare: 'UnitedHealthcare' };
+  if (COMPOUND[joined]) return COMPOUND[joined];
+  const carriers = [...new Set(words.map((w) => CARRIER_WORDS[w]).filter(Boolean))];
+  if (carriers.length === 1 && words.every((w) => !CARRIER_WORDS[w] || CARRIER_WORDS[w] === carriers[0])) {
+    // "health sun" → HealthSun (both tokens of one carrier). "healthsun humana" is two carriers.
+    const mapped = words.filter((w) => CARRIER_WORDS[w]);
+    if (mapped.length === words.length) return carriers[0];
+  }
+  return '';
+}
 function planRemovals(text, plans, currentIds = [], opts = {}) {
   const out = { remove: [], confirm: [], unmatched: [] };
   const list = (plans || []).filter((p) => p && p.planId);
@@ -342,16 +389,15 @@ function planRemovals(text, plans, currentIds = [], opts = {}) {
   const isCur = (p) => cur.includes(p.planId.toUpperCase().slice(0, 9));
   const carrierOfP = (p) => carrierOf(p.name) || (() => { const g = gridRowFor(p.planId, ''); return g ? R.carrierOfPlan(g) : ''; })();
   const skipWords = (opts.skip || []).map((x) => String(x || '').toLowerCase()).filter(Boolean);
-  for (const r of String(text || '').matchAll(REMOVE_RE)) {
-    const target = r[1].trim();
+  const applyTarget = (target, text, r) => {
     const low = target.toLowerCase();
-    if (!low || PRONOUN_TARGET_RE.test(low)) continue;
+    if (!low || PRONOUN_TARGET_RE.test(low)) return;
     // "remove Dr. Pasquel …" (the capture stops at the period): a doctor row, not a plan.
-    if (/^(?:dr|dra|doctor|doctora)$/.test(low) && /^\s*\.?\s*[A-Za-z]/.test(String(text).slice(r.index + r[0].length))) continue;
-    if (/^(?:dr|dra|doctor|doctora)\.?\s+[a-z]/i.test(low) && !/^doctors?\s+(?:health|dr|plan)/i.test(low)) continue;
-    if (/\brows?\b|\bmeds?\b|\bmedications?\b|\bdoctors?\s+(?:rows?|list)\b/.test(low)) continue;
+    if (/^(?:dr|dra|doctor|doctora)$/.test(low) && /^\s*\.?\s*[A-Za-z]/.test(String(text).slice(r.index + r[0].length))) return;
+    if (/^(?:dr|dra|doctor|doctora)\.?\s+[a-z]/i.test(low) && !/^doctors?\s+(?:health|dr|plan)/i.test(low)) return;
+    if (/\brows?\b|\bmeds?\b|\bmedications?\b|\bdoctors?\s+(?:rows?|list)\b/.test(low)) return;
     // A saved doctor or med she is removing is not a plan.
-    if (skipWords.some((w) => w && (low.includes(w) || w.includes(low)))) continue;
+    if (skipWords.some((w) => w && (low.includes(w) || w.includes(low)))) return;
     const ids = [...target.matchAll(/\b([HR]\d{4}-\d{1,3})/gi)].map((x) => x[1].toUpperCase().replace(/-(\d{1,3})$/, (m, d) => `-${d.padStart(3, '0')}`));
     if (ids.length) {
       for (const id of ids) {
@@ -359,21 +405,28 @@ function planRemovals(text, plans, currentIds = [], opts = {}) {
         if (hit) out.remove.push(hit.planId);
         else out.unmatched.push(target);
       }
-      continue;
+      return;
     }
     const words = removalTokens(target);
-    if (!words.length) continue;
-    // Carrier only ("careplus", "the doctors plan", "humana plans").
+    if (!words.length) return;
+    // Carrier only ("careplus", "the doctors plan", "humana plans", "health sun").
+    const carrierOnly = carrierFromRemovalWords(words);
+    if (carrierOnly) {
+      const hits = list.filter((p) => carrierOfP(p) === carrierOnly && !isCur(p));
+      if (hits.length) { out.remove.push(...hits.map((p) => p.planId)); return; }
+      out.unmatched.push(target);
+      return;
+    }
     const carriers = [...new Set(words.map((w) => CARRIER_WORDS[w]).filter(Boolean))];
     if (carriers.length === 1 && words.every((w) => CARRIER_WORDS[w] === carriers[0])) {
       const hits = list.filter((p) => carrierOfP(p) === carriers[0] && !isCur(p));
-      if (hits.length) { out.remove.push(...hits.map((p) => p.planId)); continue; }
+      if (hits.length) { out.remove.push(...hits.map((p) => p.planId)); return; }
       out.unmatched.push(target);
-      continue;
+      return;
     }
     // Every word of a plan name (any order).
     const exact = list.filter((p) => { const pt = planTokens(`${p.name} ${carrierOfP(p)}`); return words.every((w) => pt.includes(w)); });
-    if (exact.length) { out.remove.push(...exact.filter((p) => !isCur(p) || exact.length === 1).map((p) => p.planId)); continue; }
+    if (exact.length) { out.remove.push(...exact.filter((p) => !isCur(p) || exact.length === 1).map((p) => p.planId)); return; }
     // Close but not exact: scored, then asked.
     const near = (a, b) => a === b || (Math.min(a.length, b.length) >= 3 && editDistance(a, b) <= (Math.min(a.length, b.length) >= 6 ? 2 : 1)) || (a.length >= 4 && b.length >= 4 && (a.startsWith(b) || b.startsWith(a)));
     const scored = list.map((p) => {
@@ -381,26 +434,46 @@ function planRemovals(text, plans, currentIds = [], opts = {}) {
       const hit = words.filter((w) => pt.some((x) => near(w, x))).length;
       return { p, score: hit / words.length };
     }).filter((x) => x.score >= 0.5).sort((a, b) => b.score - a.score);
-    if (!scored.length) { out.unmatched.push(target); continue; }
+    if (!scored.length) { out.unmatched.push(target); return; }
     const best = scored.filter((x) => x.score === scored[0].score).map((x) => x.p);
     out.confirm.push({ target, plans: best });
+  };
+  for (const r of String(text || '').matchAll(REMOVE_RE)) {
+    const raw = r[1].trim();
+    if (!raw) continue;
+    const parts = splitRemovalTargets(raw);
+    for (const target of (parts.length ? parts : [raw])) applyTarget(target, text, r);
   }
   out.remove = [...new Set(out.remove)];
   return out;
 }
-/** One-line questions / notes for planRemovals results (shared by chat and the compare card). */
+function joinEnglishList(items) {
+  const list = (items || []).filter(Boolean);
+  if (list.length <= 1) return list[0] || '';
+  if (list.length === 2) return `${list[0]} and ${list[1]}`;
+  return `${list.slice(0, -1).join(', ')}, and ${list[list.length - 1]}`;
+}
+/** One-line confirmation / questions for planRemovals (shared by chat and the compare card). */
 function planRemovalLines(rm, plans = []) {
-  const lines = [];
   const label = (p) => `${p.name} (${p.planId})`;
+  const named = (id) => {
+    const p = (plans || []).find((x) => String(x.planId).toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9));
+    return p ? label(p) : String(id);
+  };
+  const bits = [];
+  if ((rm.remove || []).length) bits.push(`I removed ${joinEnglishList(rm.remove.map(named))}.`);
   for (const c of rm.confirm || []) {
-    lines.push(c.plans.length === 1
+    bits.push(c.plans.length === 1
       ? `Did you mean remove ${label(c.plans[0])}? (yes/no)`
       : `"${c.target}" could be ${c.plans.map(label).join(' or ')} — which one should I remove?`);
   }
-  for (const u of rm.unmatched || []) {
-    lines.push(`Couldn't find "${u}" in the table${plans.length ? ` (${plans.map((p) => p.planId).join(', ')})` : ''} — nothing removed.`);
+  if ((rm.unmatched || []).length) {
+    const u = joinEnglishList((rm.unmatched || []).map((x) => `"${x}"`));
+    bits.push((rm.remove || []).length
+      ? `Couldn't match ${u}.`
+      : `Couldn't find ${u} in the table${plans.length ? ` (${plans.map((p) => p.planId).join(', ')})` : ''} — nothing removed.`);
   }
-  return lines;
+  return bits.length ? [bits.join(' ')] : [];
 }
 
 function removePlansNamedIn(current, line, currentIds) {
@@ -418,12 +491,17 @@ function removePlansNamedIn(current, line, currentIds) {
     if (!gone.has(id9)) return true;
     return cur.includes(id9) && !offGrid.has(id9) && !byId.has(id9);
   });
-  // "take H5420-014 off the grid" / "remove uhc off the grid" / "remove the current plan".
+  // "take H5420-014 off the grid" / "remove the current plan". Carrier-only "off the grid" keeps her current plan.
   for (const m of String(line || '').matchAll(OFF_GRID_RE)) {
     const seg = m[1] || '';
     const ids = [...seg.matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((x) => x[1].toUpperCase());
     const c = ids.length ? '' : carrierOf(seg);
-    out = out.filter((p) => !ids.includes(p.planId.slice(0, 9).toUpperCase()) && !(c && carrierOf(p.name) === c));
+    out = out.filter((p) => {
+      const id9 = p.planId.slice(0, 9).toUpperCase();
+      if (ids.includes(id9)) return false;
+      if (c && carrierOf(p.name) === c && !cur.includes(id9)) return false;
+      return true;
+    });
   }
   return out.filter((p) => !offGrid.has(p.planId.slice(0, 9).toUpperCase()));
 }
@@ -777,6 +855,8 @@ function resolveWorkupSets(messages) {
 module.exports = {
   planRemovals,
   planRemovalLines,
+  splitRemovalTargets,
+  isComparisonRemoval,
   messageText,
   // plans
   workupFacts, workupCarrierEditSet, workupPlanAddSet, replacePlanPairs, lastTablePlanIds, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,

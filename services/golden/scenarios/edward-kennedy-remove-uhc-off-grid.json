@@ -1,6 +1,6 @@
 {
-  "name": "Edward Kennedy — \"remove uhc off the grid\" removes every UHC plan, her current one too",
-  "source": "Yahoska's rule 2026-10-17 (Edward Kennedy workup)",
+  "name": "Edward Kennedy — \"remove uhc off the grid\" drops other UHC plans and keeps her current H5420-001",
+  "source": "Owner 2026-11-02: current plan stays unless named by name/H-number (Edward Kennedy workup)",
   "workup": {
     "clientName": "Edward Kennedy",
     "zip": "33165",
@@ -94,10 +94,12 @@
   },
   "expect": {
     "plans": [
+      "H5420-001",
       "H1036-054C",
       "H4140-022"
     ],
     "gridPlans": [
+      "H5420-001",
       "H1036-054C",
       "H4140-022"
     ],
