@@ -1,0 +1,2240 @@
+{
+  "about": "THEI 2027 Plan Comparison Grid, Hospitals x Carrier tab. Yes/No per carrier. PCP questions use the Baptist PCPs and UM PCP rows; hospital questions use Baptist Hospital / University of Miami and the other hospital rows. Grid wins over any other 2027 hospital source.",
+  "year": 2027,
+  "source": {
+    "kind": "thei-grid",
+    "workbook": "https://docs.google.com/spreadsheets/d/1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg/edit?gid=369609513",
+    "sheetId": "1Vz9XBPwTO3a7181otdTf_NFkZFCXK4OT8O05ooeB0xg",
+    "gid": "369609513",
+    "tab": "Hospitals x Carrier",
+    "pulled": "11.02.2026"
+  },
+  "carriers": [
+    "AARP/UHC Choice PPO",
+    "Aetna PPO",
+    "Aetna",
+    "CarePlus",
+    "Devoted HMO",
+    "Doctors",
+    "FL BLUE",
+    "HealthSun",
+    "Humana",
+    "Humana PPO",
+    "MedicareMax",
+    "Preferred Care Partner",
+    "Simply",
+    "Solis",
+    "WellCare",
+    "UHC Dual Complete"
+  ],
+  "rows": [
+    {
+      "hospital": "Aventura",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Baptist Hospital",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Baptist PCPs",
+      "kind": "pcp",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "No",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Bascom Palmer",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "Yes",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Bethesda West",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "No",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "Yes",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "Yes",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Broward Health",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Broward Health (ALL)",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Broward Health Coral Springs",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Broward Health Imperial Point",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Broward Health Medical Center",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Broward Health North",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Cleveland Clinic",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "No",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Coral Gables",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Coral Springs Medical Center",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Delray Medical",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Doctors",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Douglas Gardens",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Emergency Mount Sinai",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Florida Medical Center",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Florida Medical Center Center",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Fort Lauderdale Hosp",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "HCA Florida",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "Yes",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "HCA Florida Aventura",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "HCA Northwest",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "HCA Davie",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "HCA University",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "HCA Westside",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "HCA Woodmont",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "HealthSouth",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Henderson Behavioral",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Hialeah",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Holy Cross",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "No",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Homestead",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Jackson North",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Jackson South",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Jackson West",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "No",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Kendall Regional",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "No",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Kindred",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Kindred FTL",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Kindred Hollywood",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Kindred Hospital",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "Yes",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Kindred Hospital of Coral Gables",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Larkin",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Larkin Hollywood",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "LCH Palm Springs",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Memorial Hospitals",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "",
+        "Aetna": "Yes",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "Yes",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "No",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Memorial Miramar",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "Yes",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "No",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Memorial Pembroke",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "No",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Memorial Regional",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "Yes",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "No",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Memorial West",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "Yes",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "No",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Mercy",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Mount Sinai",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "No",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "North Shore",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "No",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Northwest Medical",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Palm Springs",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Palmetto",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Plantation",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Promise",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "Yes",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Select Specialty",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Select Specialty Hospital",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Solera",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "South Broward",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "Yes",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "South Miami",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "No",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "South Miami Baptist",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "Yes",
+        "Aetna": "No",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "St Catherines West Rehab",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "St. Anthony Rehab",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Steward",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Steward Coral Gables",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Steward Florida",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Steward Florida Medical Center",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Steward Hialeah",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Steward Hialeah & North Shore",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "Yes",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Steward Medical Center",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Steward Palmetto",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Trinity",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "Yes",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "No",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "University of Miami",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "No",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "UM PCP",
+      "kind": "pcp",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "No",
+        "Aetna": "No",
+        "CarePlus": "No",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "No",
+        "Humana PPO": "No",
+        "MedicareMax": "No",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "University Hospital",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "West Boca",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "West Boca Medical",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "West Gables Rehab",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "No",
+        "Aetna PPO": "",
+        "Aetna": "No",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "No",
+        "FL BLUE": "No",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "No",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "West Kendall Baptist",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "No",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "No",
+        "Simply": "No",
+        "Solis": "No",
+        "WellCare": "No",
+        "UHC Dual Complete": "No"
+      }
+    },
+    {
+      "hospital": "Keralty (Westchester)",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Westchester General (Keralty)",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Westchester Hospital (Keralty)",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "No",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "Yes",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    },
+    {
+      "hospital": "Westside Regional",
+      "kind": "hospital",
+      "byCarrier": {
+        "AARP/UHC Choice PPO": "Yes",
+        "Aetna PPO": "Yes",
+        "Aetna": "Yes",
+        "CarePlus": "Yes",
+        "Devoted HMO": "Yes",
+        "Doctors": "Yes",
+        "FL BLUE": "Yes",
+        "HealthSun": "Yes",
+        "Humana": "Yes",
+        "Humana PPO": "Yes",
+        "MedicareMax": "Yes",
+        "Preferred Care Partner": "Yes",
+        "Simply": "Yes",
+        "Solis": "No",
+        "WellCare": "Yes",
+        "UHC Dual Complete": "Yes"
+      }
+    }
+  ],
+  "umSiteSupplement": {
+    "about": "UHealth Insurance Plans Accepted (2027 tab). Grid wins on every overlapping carrier. This block only adds carriers the grid has no column for, and plan-level IDs that agree with the grid UM PCP / University of Miami rows.",
+    "source": {
+      "url": "https://umiamihealth.org/en/billing-,-a-,-financial-information/insurance-plans-accepted",
+      "fetched": "11.02.2026",
+      "tab": "Health Plan - 2027"
+    },
+    "extraCarriers": [
+      {
+        "carrier": "Prominence",
+        "counties": [
+          "Palm Beach"
+        ],
+        "plans": [
+          "Prominence Plus (HMO)",
+          "Prominence Giveback (HMO)",
+          "Prominence Diabetes and Heart Giveback (HMO C-SNP)",
+          "Prominence Dual (HMO D-SNP)",
+          "Prominence Extra Help (HMO)",
+          "Prominence Meridian (HMO-POS)"
+        ],
+        "pcp": true,
+        "specialty": true,
+        "hospital": true,
+        "matchedPlanIds": []
+      },
+      {
+        "carrier": "Freedom",
+        "counties": [
+          "Broward",
+          "Palm Beach"
+        ],
+        "plans": [
+          "Freedom VIP Savings (HMO C-SNP)",
+          "Freedom VIP Savings COPD (HMO C-SNP)",
+          "Freedom Medi-Medi Partial (HMO D-SNP)",
+          "Freedom VIP Care (HMO C-SNP)",
+          "Freedom Savings Plan (HMO)",
+          "Freedom Medicare Plan Rx (HMO)"
+        ],
+        "pcp": false,
+        "specialty": true,
+        "hospital": true,
+        "matchedPlanIds": []
+      },
+      {
+        "carrier": "Optimum",
+        "counties": [
+          "Broward",
+          "Palm Beach"
+        ],
+        "plans": [
+          "Optimum Emerald Partial (HMO D-SNP)",
+          "Optimum Platinum Plan (HMO)",
+          "Optimum Gold Rewards Plan (HMO)"
+        ],
+        "pcp": false,
+        "specialty": true,
+        "hospital": true,
+        "matchedPlanIds": []
+      }
+    ],
+    "planLevelAgrees": [
+      {
+        "listedAs": "HealthSun MediMax (HMO)",
+        "planIds": [
+          "H5431-006"
+        ],
+        "counties": [
+          "Miami-Dade",
+          "Broward"
+        ],
+        "pcp": true,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP / University of Miami"
+      },
+      {
+        "listedAs": "HealthSun HealthAdvantage Plan (HMO)",
+        "planIds": [
+          "H5431-001",
+          "H5431-012"
+        ],
+        "counties": [
+          "Miami-Dade",
+          "Broward"
+        ],
+        "pcp": true,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP / University of Miami"
+      },
+      {
+        "listedAs": "HealthSun HealthAdvantage Plus (HMO)",
+        "planIds": [
+          "H5431-017",
+          "H5431-018"
+        ],
+        "counties": [
+          "Miami-Dade",
+          "Broward"
+        ],
+        "pcp": true,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP / University of Miami"
+      },
+      {
+        "listedAs": "HealthSun VitalCare (HMO C-SNP)",
+        "planIds": [
+          "H5431-021"
+        ],
+        "counties": [
+          "Miami-Dade",
+          "Broward"
+        ],
+        "pcp": true,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP / University of Miami"
+      },
+      {
+        "listedAs": "HealthSun MediSun Extra (HMO D-SNP)",
+        "planIds": [
+          "H5431-019"
+        ],
+        "counties": [
+          "Miami-Dade",
+          "Broward"
+        ],
+        "pcp": true,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP / University of Miami"
+      },
+      {
+        "listedAs": "HealthSun MediSun Full Dual Extra (HMO D-SNP)",
+        "planIds": [
+          "H5431-026"
+        ],
+        "counties": [
+          "Miami-Dade",
+          "Broward"
+        ],
+        "pcp": true,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP / University of Miami",
+        "theiName": "HealthSun MediSun Full Dual Plus"
+      },
+      {
+        "listedAs": "Humana Gold Plus H1036-054C (HMO)",
+        "planIds": [
+          "H1036-054C"
+        ],
+        "counties": [
+          "Miami-Dade"
+        ],
+        "pcp": false,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP No / University of Miami Yes (Humana)"
+      },
+      {
+        "listedAs": "Humana Gold Plus H1036-065C (HMO)",
+        "planIds": [
+          "H1036-065C"
+        ],
+        "counties": [
+          "Broward"
+        ],
+        "pcp": false,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP No / University of Miami Yes (Humana)"
+      },
+      {
+        "listedAs": "Humana Gold Plus Giveback H1036-305 (HMO)",
+        "planIds": [
+          "H1036-305"
+        ],
+        "counties": [
+          "Miami-Dade",
+          "Broward"
+        ],
+        "pcp": false,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP No / University of Miami Yes (Humana)"
+      },
+      {
+        "listedAs": "Humana Gold Plus - Diabetes and Heart (HMO C-SNP)",
+        "planIds": [
+          "H1036-121"
+        ],
+        "counties": [
+          "Miami-Dade",
+          "Broward"
+        ],
+        "pcp": false,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP No / University of Miami Yes (Humana)"
+      },
+      {
+        "listedAs": "Humana Gold Plus Lung (HMO C-SNP)",
+        "planIds": [
+          "H1036-297"
+        ],
+        "counties": [
+          "Miami-Dade",
+          "Broward"
+        ],
+        "pcp": false,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP No / University of Miami Yes (Humana)"
+      },
+      {
+        "listedAs": "Humana Dual Select H1036-077 (HMO D-SNP)",
+        "planIds": [
+          "H1036-077"
+        ],
+        "counties": [
+          "Miami-Dade",
+          "Broward"
+        ],
+        "pcp": false,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP No / University of Miami Yes (Humana)"
+      },
+      {
+        "listedAs": "Humana Dual Select H1036-304 (HMO D-SNP)",
+        "planIds": [
+          "H1036-304"
+        ],
+        "counties": [
+          "Miami-Dade",
+          "Broward"
+        ],
+        "pcp": false,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP No / University of Miami Yes (Humana)"
+      },
+      {
+        "listedAs": "Humana Dual Integrated (HMO D-SNP)",
+        "planIds": [
+          "H1036-339"
+        ],
+        "counties": [
+          "Miami-Dade"
+        ],
+        "pcp": false,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP No / University of Miami Yes (Humana)"
+      },
+      {
+        "listedAs": "Simply Complete Platinum (HMO D-SNP)",
+        "planIds": [
+          "H5471-125"
+        ],
+        "counties": [
+          "Miami-Dade",
+          "Broward"
+        ],
+        "pcp": true,
+        "specialty": true,
+        "hospital": true,
+        "gridRow": "UM PCP / University of Miami"
+      }
+    ],
+    "unmatchedToTheiGrid": [
+      {
+        "listedAs": "Humana USAA Honor Giveback (HMO)",
+        "counties": [
+          "Miami-Dade",
+          "Broward",
+          "Palm Beach"
+        ],
+        "reason": "no matching 2027 THEI grid plan in Miami-Dade/Broward"
+      },
+      {
+        "listedAs": "Humana Fully Integrated H1036-280 (HMO D-SNP)",
+        "counties": [
+          "Miami-Dade",
+          "Broward",
+          "Palm Beach"
+        ],
+        "reason": "H1036-280 is not on the 2027 THEI Miami-Dade/Broward grid"
+      },
+      {
+        "listedAs": "Humana Gold Plus H1036-062C (HMO)",
+        "counties": [
+          "Palm Beach"
+        ],
+        "reason": "Palm Beach is not on the THEI 2027 grid"
+      },
+      {
+        "listedAs": "Simply Complete Platinum (HMO D-SNP)",
+        "counties": [
+          "Palm Beach"
+        ],
+        "reason": "Palm Beach is not on the THEI 2027 grid; Miami-Dade/Broward matched H5471-125"
+      },
+      {
+        "listedAs": "HealthSun plans in Palm Beach (VitalCare, HealthAdvantage, HealthAdvantage Plus, MediSun Extra, MediSun Full Dual Extra)",
+        "counties": [
+          "Palm Beach"
+        ],
+        "reason": "Palm Beach is not on the THEI 2027 grid; HealthSun PCP Yes still comes from the grid HealthSun column for Dade/Broward"
+      }
+    ]
+  }
+}

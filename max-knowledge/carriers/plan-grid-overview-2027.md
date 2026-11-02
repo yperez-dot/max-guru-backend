@@ -59,8 +59,10 @@ These carriers are on the 2027 workbook but every benefit cell is still yellow. 
 
 ## Hospital / network notes already confirmed for 2027
 
-- **UHealth / University of Miami** and **Bascom Palmer** are **out of MedicareMax (Preferred Care Network)** as of **1/1/2027**. In-network through 12/31/2026. University Hospital on the Hospitals tab is HCA Davie — not UM.
-- Other hospital Yes/— marks stay 2026 until a public 2027 directory lands (due Oct 1, 2026).
+- Full 2027 Yes/No matrix (including **Baptist PCPs** and **UM PCP**) is the **Hospitals x Carrier** tab → `data/hospitals-x-carrier-2027.json` / `carriers/hospital-networks-2027`. Refresh: `python3 scripts/export_2027_hospitals.py`.
+- **Baptist PCPs:** Yes for FL BLUE and MedicareMax only. **UM PCP:** Yes for HealthSun and Simply only. Do not confuse those rows with **Baptist Hospital** / **University of Miami**.
+- **University of Miami** hospital is Yes for HealthSun, Humana, and Simply. Humana has the UM hospital, not UM primary care. MedicareMax is **No** for UM hospital and UM PCP.
+- University Hospital on the Hospitals tab is HCA Davie — not UM.
 
 ## Workbook notes (from the 2027 NOTES tab)
 

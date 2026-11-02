@@ -133,15 +133,44 @@ describe('BHMG primary care carrier rule (Yahoska, 2026-10-17)', () => {
     assert.ok(r.flags.some((f) => /Baptist Health Medical Group primary care takes only/.test(f)));
   });
 
-  it('accepted carriers: Aetna (not HMO), HealthSpring, Florida Blue, UHC MedicareMax only', () => {
+  it('accepted carriers 2026: Aetna (not HMO), HealthSpring, Florida Blue, UHC MedicareMax only', () => {
     const rule = G.GROUP_RULES.find((x) => x.key === 'bhmg-pcp');
-    assert.ok(rule.acceptsPlan({ carrier: 'UnitedHealthcare', planId: 'H5420-001', name: 'UHC MedicareMax FL-0028' }));
-    assert.ok(!rule.acceptsPlan({ carrier: 'UnitedHealthcare', planId: 'H1045-001', name: 'UHC Preferred MA FL-0001' }));
-    assert.ok(!rule.acceptsPlan({ carrier: 'Aetna', planId: 'H1609-093', name: 'Aetna Medicare Select HMO', type: 'HMO' }));
-    assert.ok(rule.acceptsPlan({ carrier: 'Aetna', planId: 'H5521-306', name: 'Aetna Medicare Premier PPO', type: 'PPO' }));
-    assert.ok(rule.acceptsPlan({ carrier: 'Florida Blue', planId: 'H1035-001', name: 'Florida Blue Medicare' }));
-    assert.ok(!rule.acceptsPlan({ carrier: 'Humana', planId: 'H1036-054C', name: 'Humana Gold Plus' }));
-    assert.ok(!rule.acceptsPlan({ carrier: 'Doctors HealthCare', planId: 'H4140-022', name: 'Doctors DrMax-Dade' }));
+    assert.ok(rule.acceptsPlan({ carrier: 'UnitedHealthcare', planId: 'H5420-001', name: 'UHC MedicareMax FL-0028' }, 2026));
+    assert.ok(!rule.acceptsPlan({ carrier: 'UnitedHealthcare', planId: 'H1045-001', name: 'UHC Preferred MA FL-0001' }, 2026));
+    assert.ok(!rule.acceptsPlan({ carrier: 'Aetna', planId: 'H1609-093', name: 'Aetna Medicare Select HMO', type: 'HMO' }, 2026));
+    assert.ok(rule.acceptsPlan({ carrier: 'Aetna', planId: 'H5521-306', name: 'Aetna Medicare Premier PPO', type: 'PPO' }, 2026));
+    assert.ok(rule.acceptsPlan({ carrier: 'Florida Blue', planId: 'H1035-001', name: 'Florida Blue Medicare' }, 2026));
+    assert.ok(!rule.acceptsPlan({ carrier: 'Humana', planId: 'H1036-054C', name: 'Humana Gold Plus' }, 2026));
+    assert.ok(!rule.acceptsPlan({ carrier: 'Doctors HealthCare', planId: 'H4140-022', name: 'Doctors DrMax-Dade' }, 2026));
+  });
+
+  it('accepted carriers 2027 from Hospitals x Carrier Baptist PCPs: Florida Blue and MedicareMax only (Aetna PPO Out)', () => {
+    const rule = G.GROUP_RULES.find((x) => x.key === 'bhmg-pcp');
+    assert.ok(rule.acceptsPlan({ carrier: 'UnitedHealthcare', planId: 'H5420-001', name: 'UHC MedicareMax FL-0028' }, 2027));
+    assert.ok(rule.acceptsPlan({ carrier: 'Florida Blue', planId: 'H1035-017', name: 'Florida Blue Medicare' }, 2027));
+    assert.ok(!rule.acceptsPlan({ carrier: 'Aetna', planId: 'H5521-306', name: 'Aetna Medicare Premier PPO', type: 'PPO' }, 2027));
+    assert.ok(!rule.acceptsPlan({ carrier: 'Aetna', planId: 'H1609-093', name: 'Aetna Medicare Select HMO', type: 'HMO' }, 2027));
+    assert.ok(!rule.acceptsPlan({ carrier: 'Humana', planId: 'H1036-054C', name: 'Humana Gold Plus' }, 2027));
+    assert.ok(!rule.acceptsPlan({ carrier: 'HealthSun', planId: 'H5431-006', name: 'HealthSun MediMax' }, 2027));
+  });
+
+  it('UM PCP 2027: HealthSun and Simply only (Humana Out even if directory says In)', () => {
+    const rule = G.GROUP_RULES.find((x) => x.key === 'um-pcp');
+    assert.ok(rule.acceptsPlan({ carrier: 'HealthSun', planId: 'H5431-006', name: 'HealthSun MediMax' }, 2027));
+    assert.ok(rule.acceptsPlan({ carrier: 'Simply', planId: 'H5471-125', name: 'Simply Complete Platinum' }, 2027));
+    assert.ok(!rule.acceptsPlan({ carrier: 'Humana', planId: 'H1036-054C', name: 'Humana Gold Plus' }, 2027));
+    const docs = [doc('UM Family Doctor', {
+      doctorName: 'UM Family Doctor, MD', specialty: 'Family Medicine',
+      inNetworkPlans: ['HealthSun MediMax (H5431-006)', 'Humana Gold Plus (H1036-054C)', 'Simply Complete Platinum (H5471-125)'],
+      networks: [{ carrier: 'Humana', inNetwork: true }, { carrier: 'HealthSun', inNetwork: true }],
+      carriersIn: ['Humana', 'HealthSun'],
+    })];
+    const r = N.selectComparison(docs, 'ZIP 33136.\nDr. UM Family Doctor, UHealth PCP. Compare H5431-006, H1036-054C, H5471-125.', {});
+    const col = (id) => r.columns.find((c) => c.planId === id);
+    assert.deepEqual(col('H5431-006').in, ['UM Family Doctor']);
+    assert.deepEqual(col('H5471-125').in, ['UM Family Doctor']);
+    assert.deepEqual(col('H1036-054C').out, ['UM Family Doctor']);
+    assert.ok(r.flags.some((f) => /University of Miami primary care takes only/.test(f)));
   });
 
   it('BHMG specialists and non-BHMG PCPs are not touched', () => {

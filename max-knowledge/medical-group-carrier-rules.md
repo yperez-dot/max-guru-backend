@@ -7,20 +7,19 @@ Max applies them in the doctor × plan table (services/medicalGroupRules.js). A 
 
 ## Baptist Health Medical Group (BHMG), primary care
 
-Rule from Yahoska, 2026-10-17.
+**2027 (AEP default):** Yahoska added a **Baptist PCPs** row to the live THEI 2027 Plan Comparison Grid, tab **Hospitals x Carrier** (gid 369609513). That row is Max's source of truth. BHMG / Baptist primary care is **Yes** only for **FL BLUE** and **MedicareMax**. Aetna (HMO and PPO), Humana, HealthSun, and every other column is **No**. Do not answer a Baptist *hospital* question from this row — use **Baptist Hospital**.
 
-BHMG primary care doctors (Family Medicine, Internal Medicine, General Practice, Geriatrics, or the agent says PCP / primary)
-take these Medicare Advantage carriers only:
-
-- Aetna, but NOT Aetna Medicare HMO plans
-- HealthSpring (Cigna has no 2027 Florida MA plans, so this rarely matters for 2027)
-- Florida Blue
-- Preferred Care Network, which is UHC MedicareMax (H5420 plans)
-
-Every other carrier is out for BHMG primary care: Humana, Doctors HealthCare Plans, UHC plans other than
-MedicareMax, Devoted, Solis, CarePlus, Simply, Wellcare, HealthSun and so on.
+**2026 only:** the older Yahoska rule (2026-10-17) still applies: Aetna but not Aetna Medicare HMO, HealthSpring, Florida Blue, Preferred Care Network (UHC MedicareMax H5420).
 
 BHMG specialists (endocrinology, surgery, spine and so on) are NOT covered by this rule. Check them in the carrier directories as usual.
+
+## University of Miami primary care (UM PCP), 2027
+
+Yahoska added a **UM PCP** row on the same Hospitals x Carrier tab. UM / UHealth / UMMG **primary care** is **Yes** only for **HealthSun** and **Simply**. Humana is **No** for UM PCP and **Yes** for the **University of Miami** *hospital* row — do not confuse PCP with hospital.
+
+Carriers the grid has no column for (Prominence, Freedom, Optimum) stay on UHealth's Insurance Plans Accepted page (`data/hospitals-x-carrier-2027.json` umSiteSupplement), labeled as from UM's site. The grid wins on every overlapping carrier.
+
+This overlay is **2027 only**. 2026 UM doctors stay on the 2026 HOSPITALS list / directories.
 
 How Max spots a BHMG primary care doctor:
 - the agent writes "Baptist Medical Group", "Baptist Health Medical Group" or "BHMG" next to the doctor's name, and
