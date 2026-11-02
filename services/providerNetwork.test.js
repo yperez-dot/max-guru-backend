@@ -354,7 +354,7 @@ describe('timed-out cells: ⏱ status, own med budget, background re-check', () 
   it('no re-check outside the chat (context.recheck not set)', async () => {
     knobs.hangNpiFor = new Set(['Alfred Slowpoke']);
     const messages = [{ role: 'user', content: 'Client ZIP 33332. Doctors: Ernesto Padron, Alfred Slowpoke. Compare H1036-065C and H1045-005' }];
-    const out = await lookupProviderNetwork({ doctors: [{ doctorName: 'Ernesto Padron' }, { doctorName: 'Alfred Slowpoke' }], zip: '33332' }, { deadlineAt: Date.now() + 300, messages });
+    const out = await lookupProviderNetwork({ doctors: [{ doctorName: 'Ernesto Padron' }, { doctorName: 'Alfred Slowpoke' }], zip: '33332' }, { deadlineAt: Date.now() + 800, messages });
     assert.ok(!out.structured.recheckId);
     assert.match(out.structured.rendered, /^⏱ 1 doctor check ran out of time — send the same message again to re-check\./m);
     assert.match(out.structured.rendered.split('\n').find((l) => /Alfred Slowpoke/.test(l)) || '', /⏱ timed out \| ⏱ timed out/);

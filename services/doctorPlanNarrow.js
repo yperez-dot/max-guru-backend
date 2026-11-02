@@ -61,7 +61,7 @@ function shortDoctor(d) {
 const CORE_ALL_RE = /\b(?:all|every|each)\s+(?:the\s+|of\s+the\s+)?(?:(?:miami[-\s]?)?dade\s+|broward\s+)?core\s+plans?\b|\bcore\s+plans?\s+(?:in|for|across)\s+(?:miami[-\s]?)?(?:dade|broward)\b/i;
 const CORE_ALL_LINE = 'Core plans: every regular (non-SNP) plan on the county grid, every carrier.';
 const RANK_ASK_RE = /\bcover(?:s|ing)?\s+(?:the\s+)?most\b|\bmost\s+of\s+(?:her|his|their|the)\s+(?:\d+\s+)?doctors\b|\btop\s+\d\b|\brank(?:ed|ing)?\b|\bbest\s+plans?\s+for\s+(?:her|his)\s+doctors\b/i;
-const WANTS_ALTERNATIVES_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\b(?:any\s+)?other\s+(?:options?|plans?)\b|\balternatives?\b|\bwhat\s+else\b|\bsee\s+what\s+else\b|\bshop(?:ping)?\s+around\b|\bsomething\s+else\b|\b(?:comparable|similar)\s+(?:to|plans?|options?)\b|\bplans?\s+(?:comparable|similar)\b|\banother\s+(?:\w+\s+){0,3}(?:option|plan)s?\b|\bgiveback\s+options?\b|\blooking\s+for\s+(?:another|other|a\s+different)/i;
+const WANTS_ALTERNATIVES_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\b(?:any\s+)?other\s+(?:options?|plans?)\b|\balternatives?\b|\bwhat\s+else\b|\bsee\s+what\s+else\b|\bshop(?:ping)?\s+around\b|\bsomething\s+else\b|\b(?:comparable|similar)\s+(?:to|plans?|options?)\b|\bplans?\s+(?:comparable|similar)\b|\banother\s+(?:\w+\s+){0,3}(?:option|plan)s?\b|\bgiveback\s+options?\b|\blooking\s+for\s+(?:another|other|a\s+different)|\b(?:suggest|recommend|find)\s+(?:(?:me|her|him|us|some|a few|better|other)\s+)*(?:plans?|options?)\b|\bfind\s+better\b/i;
 
 function askConstraints(askText) {
   const t = String(askText || '');
@@ -621,7 +621,8 @@ function comparisonAskText(messages, baseText) {
       if (!m || m.role !== 'user') continue;
       const t = messageText(m);
       if (isWorkupMessage(t) || !/\b(?:doctors?|drs?)\s*:/i.test(t)) continue;
-      const ids = [...new Set([...(t.match(/^Plans?:\s*([^\n]+)$/im) || ['', ''])[1].matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase()))];
+      const planLine = (t.match(/(?:^|\b)Plans?:\s*([^\n]+)/im) || ['', ''])[1];
+      const ids = [...new Set([...planLine.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase()))];
       if (ids.length === 1) lines.unshift(`Her current plan: ${ids[0]}.`);
       break;
     }
@@ -834,7 +835,8 @@ function comparisonAskText(messages, baseText) {
       if (replaceSet) {
         const namedOnly = namedPlansFromAsk(t, askConstraints(t));
         if (namedOnly.length) {
-          const cur = exclusive ? [] : currentPlanOf(msgs.slice(0, i + 1));
+          // Exclusive "only A, B, C" is still current plan + exactly those plans — never drop current.
+          const cur = currentPlanOf(msgs.slice(0, i + 1));
           const set = [];
           const add = (p) => { if (p && p.planId && !set.some((x) => x.planId.slice(0, 9) === String(p.planId).slice(0, 9))) set.push(p); };
           const named = (id) => {
@@ -848,12 +850,7 @@ function comparisonAskText(messages, baseText) {
           cur.forEach((id) => add(named(id)));
           namedOnly.forEach(add);
           lines.push(`Named plan set: ${set.map((pl) => `${pl.name} (${pl.planId})`).join('; ')}.`);
-          if (exclusive) {
-            lines.push('Exclusive named plan set.');
-            const onFile = currentPlanOf(msgs.slice(0, i + 1));
-            const omitted = onFile.filter((id) => !set.some((p) => p.planId.slice(0, 9) === String(id).slice(0, 9)));
-            if (omitted.length) lines.push(`Current plan ${omitted.join(', ')} is on file but not a column (you asked for no other plans).`);
-          }
+          if (exclusive) lines.push('Exclusive named plan set.');
         }
       }
       if (idsNamed >= 2 || exclusive) break;
@@ -2389,7 +2386,7 @@ function selectComparison(doctors, askText, opts = {}) {
   if (constraints.noMedicaid) { elig.medicaid = 'none'; elig.levels = []; }
   const county = R.countyFromAsk(ask);
   const matrix = coverageMatrix(docs);
-  // An excluded carrier ("drop UHC") never takes her current plan off; "remove uhc off the grid" does (Yahoska, 2026-10-17).
+  // An excluded carrier ("drop UHC" / "remove uhc off the grid") never takes her current plan off unless she names it by H-number or plan name.
   const curAskIds = [...String((ask.match(/^Her current plan:\s*([^\n]+)$/m) || ['', ''])[1]).matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((m) => m[1].toUpperCase());
   const offGridCurrent = LW.currentPlanRemovedBy(ask.replace(/^Her current plan:[^\n]*$/gm, ''), curAskIds, (id) => R.carrierOfPlan(gridRowFor(id, county) || { name: '' }));
   const carrierExcludes = (id) => {
@@ -2435,13 +2432,12 @@ function selectComparison(doctors, askText, opts = {}) {
     named = [];
   }
   // Carrier ask ("show me Doctors HealthCare"): her current plan is still a column.
-  // An exclusive "only these plans / no other plans" set does not keep it as a column.
-  if (!Array.isArray(opts.named) && !wantsOther && !exclusiveSet && carriers.length && !pinFromAsk.length) {
+  if (!Array.isArray(opts.named) && !wantsOther && carriers.length && !pinFromAsk.length) {
     const current = (ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '';
     pinFromAsk = [...current.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
   }
-  // Her current plan is a column in every table, not only in carrier / rank asks — unless she said no other plans.
-  if (!Array.isArray(opts.named) && !wantsOther && !exclusiveSet && !pinFromAsk.length) {
+  // Her current plan is a column in every table, including "only A, B, C / no other plans".
+  if (!Array.isArray(opts.named) && !wantsOther && !pinFromAsk.length) {
     const current = (ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '';
     pinFromAsk = [...current.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
   }
@@ -2521,6 +2517,18 @@ function selectComparison(doctors, askText, opts = {}) {
     const cur = new Set([...(((ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '').matchAll(/\b([HR]\d{4}-\d{3})/gi))].map((m) => m[1].toUpperCase()));
     named = named.filter((p) => !cur.has(String(p.planId).toUpperCase().slice(0, 9)));
   }
+  // Current plan only, no shop-around ask: those pinned IDs ARE the columns. Ranking would invent
+  // HealthSun/Humana as extra columns (Helen Cole / owner, 2026-11-02).
+  const shopAround = rankAll || wantsOther || carriers.length || Boolean(typeAskType)
+    || /Wants alternatives to the named plan\(s\)\./.test(ask)
+    || /^Run C-SNPs/m.test(ask0);
+  if (!named.length && pinFromAsk.length && !shopAround && !Array.isArray(opts.named)) {
+    named = pinFromAsk.map((id) => {
+      const row = gridRowFor(id, county);
+      const nm = row ? (carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim()) : id;
+      return { planId: id, name: nm || id };
+    });
+  }
   // 2026 PBPs that THEI remaps for 2027 become the 2027 column (H4140-012 → H4140-023 DrSelect-SFL).
   const year = /\b2026\b/.test(ask) && !/\b2027\b/.test(ask) ? 2026 : 2027;
   const remapNotices = [];
@@ -2555,7 +2563,7 @@ function selectComparison(doctors, askText, opts = {}) {
     // Her current plan persists across follow-up turns: a later turn whose plan set came from the previous
     // table's other columns still leads with it (Jacqueline Alexander, 2026-10-13: answering the doctor
     // questions dropped H5420-001). Not when she skipped it / it is terminating / its carrier is excluded.
-    if (!dropsCurrent && !exclusiveSet) {
+    if (!dropsCurrent) {
       for (const id of curIds) {
         if (cols.some((c) => String(c.planId || '').toUpperCase().slice(0, 9) === id)) continue;
         if ([...constraints.skip].some((x) => x.slice(0, 9) === id)) continue;

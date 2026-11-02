@@ -3359,25 +3359,63 @@
     return out;
   }
 
+  /** Same exclusive-set wording as comparisonRules.isExclusivePlanSet (kept local so the HTML bundle stays standalone). */
+  function isExclusivePlanSet(text) {
+    const t = String(text || "");
+    if (/\bno other plans\b|\bning[uú]n\s+otro\s+plan\b/i.test(t)) return true;
+    const n = (t.match(/\b[HR]\d{4}-\d{3}/gi) || []).length;
+    if (/\breplace(?:\s+\w+)?\s+with\b/i.test(t) && n >= 1) return true;
+    if (/\bnada\s+m[aá]s\b/i.test(t) && (n >= 1 || /\bplanes?\b/i.test(t))) return true;
+    const limit = "(?:only|just|exclusively|sol(?:o|amente)|sólo|ú?nicamente)";
+    const filler = "(?:(?:look(?:ing)?|check(?:ing)?|compare|run|show|use|keep|see|at|on|the|these|those|this|that|estos?|esas?)\\s+)*";
+    const target = "(?:[HR]\\d{4}-\\d{3}|(?:these|those|the|estos?|esas?)\\s+plans?\\b|planes\\b)";
+    if (new RegExp("\\b" + limit + "\\s+" + filler + target, "i").test(t)) return true;
+    if (new RegExp("\\b(?:look(?:ing)?|check(?:ing)?|compare|run|show|use|keep|see)\\s+" + limit + "\\s+(?:at\\s+|on\\s+)?" + filler + target, "i").test(t)) return true;
+    return false;
+  }
+
+  function prependCurrentIds(ids, current) {
+    const out = [];
+    const add = (id) => {
+      const key = String(id || "").toUpperCase();
+      if (!key || out.some((x) => x.slice(0, 9) === key.slice(0, 9))) return;
+      out.push(id);
+    };
+    (current || []).forEach(add);
+    (ids || []).forEach(add);
+    return out;
+  }
+
   /**
    * The plans she is working with NOW, from her own messages only: the latest message that
    * lists 2+ plan IDs sets the columns; later "add/also/too … H…" adds, "remove/drop H…"
-   * removes. Plans Max mentioned, couldn't verify, or that came up earlier are not columns.
-   * [] when her messages never listed plans (callers fall back to the old resolution).
+   * removes. "look only at A, B, C. No other plans" is current plan + exactly those IDs.
+   * A first paste that only names the current plan is that one column — Max-mentioned extras
+   * are never columns. [] when her messages never listed plans (callers fall back).
    */
   function workingPlanIdsFromUserMessages(messages) {
     let set = null;
+    let current = [];
     (messages || []).forEach((raw) => {
       const t = String(raw || "");
-      // Statements about her current/old plan are not asks ("she was switched to … H5420-14-0 for 2026").
       const ids = typedPlanIds(t);
+      const curHere = currentPlanIdsFromText(t);
+      if (curHere.length) current = curHere;
+      const curKeys = current.map((id) => String(id).toUpperCase().slice(0, 9));
+      const isCurId = (id) => curKeys.indexOf(String(id).toUpperCase().slice(0, 9)) >= 0;
       if (PLAN_REMOVE_RE.test(t) && set) {
         if (ids.length) {
           set = set.filter((id) => ids.indexOf(id) < 0);
         } else {
           const prefixes = carrierPrefixesIn(t);
-          if (prefixes.length) set = set.filter((id) => !prefixes.some((p) => String(id).toUpperCase().indexOf(p) === 0));
+          if (prefixes.length) {
+            set = set.filter((id) => isCurId(id) || !prefixes.some((p) => String(id).toUpperCase().indexOf(p) === 0));
+          }
         }
+        return;
+      }
+      if (isExclusivePlanSet(t) && ids.length) {
+        set = prependCurrentIds(ids, current);
         return;
       }
       if (!ids.length) return;
@@ -3394,7 +3432,9 @@
       if (PLAN_ADD_RE.test(t) || PLAN_USE_RE.test(t)) {
         set = set || [];
         if (set.indexOf(ids[0]) < 0) set.push(ids[0]);
+        return;
       }
+      if (ids.length === 1 && isCurId(ids[0]) && !set) set = ids.slice();
     });
     return set || [];
   }
@@ -3462,7 +3502,7 @@
     if (Array.isArray(meta.userMessages)) {
       const working = workingPlanIdsFromUserMessages(meta.userMessages);
       const picked = working.map((id) => pick(id) || (plans || []).find((p) => planColumnId(p) === compactContractPbp(id))).filter(Boolean);
-      if (picked.length >= 2) {
+      if (picked.length) {
         return uniquePlansByContractPbp(canonicalize2027ComparisonPlans(picked, latest || text, pool));
       }
     }

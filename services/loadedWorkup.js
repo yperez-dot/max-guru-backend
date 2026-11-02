@@ -292,9 +292,9 @@ function droppedIdsIn(line) {
   }
   return dropped;
 }
-// Her current plan leaves the grid only when she says so outright (Yahoska, 2026-10-17): "remove uhc off the grid",
-// "remove the current plan", "take H5420-001 off the grid", or a drop that types its ID. "drop UHC" / "exclude UHC"
-// drops UHC's other plans and keeps her current one.
+// Her current plan leaves the grid only when she names it by H-number or plan name, or says "the current plan"
+// (owner, 2026-11-02). "drop UHC" / "remove uhc off the grid" / "exclude UHC" drops UHC's other plans and keeps
+// her current one.
 const OFF_GRID_RE = /\b(?:remove|take|drop|delete|pull|get)\b([^.;\n]{0,60}?)\b(?:off|out\s+of|from)\s+(?:of\s+)?(?:the\s+|her\s+|this\s+)?(?:grid|table|comparison|columns?)\b/gi;
 const DROPS_CURRENT_RE = /\b(?:without|not|exclude|excluding|skip|drop|remove|take\s+out|delete|no)\s+(?:her\s+|the\s+|my\s+|his\s+)?current(?:\s+plans?)?\b/i;
 /** Her current plan IDs (first 9 chars) this line takes off the grid. carrierOfId(id) → that plan's carrier. */
@@ -309,8 +309,7 @@ function currentPlanRemovedBy(line, currentIds, carrierOfId) {
     const seg = m[1] || '';
     if (/\bcurrent\b/i.test(seg)) cur.forEach((id) => out.add(id));
     for (const idm of seg.matchAll(/\b([HR]\d{4}-\d{3})/gi)) if (cur.includes(idm[1].toUpperCase())) out.add(idm[1].toUpperCase());
-    const c = carrierOf(seg);
-    if (c && carrierOfId) cur.filter((id) => carrierOfId(id) === c).forEach((id) => out.add(id));
+    // Carrier-only "off the grid" never drops the current plan — name / H-number only.
   }
   return out;
 }
@@ -492,12 +491,17 @@ function removePlansNamedIn(current, line, currentIds) {
     if (!gone.has(id9)) return true;
     return cur.includes(id9) && !offGrid.has(id9) && !byId.has(id9);
   });
-  // "take H5420-014 off the grid" / "remove uhc off the grid" / "remove the current plan".
+  // "take H5420-014 off the grid" / "remove the current plan". Carrier-only "off the grid" keeps her current plan.
   for (const m of String(line || '').matchAll(OFF_GRID_RE)) {
     const seg = m[1] || '';
     const ids = [...seg.matchAll(/\b([HR]\d{4}-\d{3})/gi)].map((x) => x[1].toUpperCase());
     const c = ids.length ? '' : carrierOf(seg);
-    out = out.filter((p) => !ids.includes(p.planId.slice(0, 9).toUpperCase()) && !(c && carrierOf(p.name) === c));
+    out = out.filter((p) => {
+      const id9 = p.planId.slice(0, 9).toUpperCase();
+      if (ids.includes(id9)) return false;
+      if (c && carrierOf(p.name) === c && !cur.includes(id9)) return false;
+      return true;
+    });
   }
   return out.filter((p) => !offGrid.has(p.planId.slice(0, 9).toUpperCase()));
 }

@@ -1,8 +1,10 @@
-// Helen Cole (fictional) — four workup bugs from 2026-11-02:
+// Helen Cole (fictional) — four workup bugs from 2026-11-02 + owner correction on item 2:
 // 1. "Meds: alprazolam, levothyroxine, and gabepentin" must not create a junk "and gabepentin" row
 //    or re-ask "Did you mean gabapentin?" after auto-correct.
-// 2. "look only at A, B, and C. No other plans" replaces the comparison set (no leftover current-plan column).
-// 3. "remove healthsun and humana from comparison" drops both; chat + export columns match; one confirmation.
+// 2. "look only at A, B, and C. No other plans" = current plan + exactly A, B, C. A first paste of
+//    doctors/meds/current plan must not invent HealthSun/Humana columns.
+// 3. "remove healthsun and humana from comparison" drops both; never drops the current plan unless
+//    named by name/H-number; chat + export columns match; one confirmation.
 // 4. CarePlus Find Care guest lookup (mocked): listed → In, empty → Out, failed → not confirmed.
 
 const { describe, it, beforeEach } = require('node:test');
@@ -77,7 +79,12 @@ describe('1. medication list connectors', () => {
   });
 });
 
-describe('2. exclusive "only these plans / no other plans" replaces the set', () => {
+describe('2. exclusive "only these plans / no other plans" keeps current + those plans', () => {
+  const glick = {
+    requestedName: 'Brad Glick', doctorName: 'Brad Glick', npi: '1', status: 'done',
+    pending: [], failed: [], networks: [], inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [],
+  };
+
   it('detects exclusive wording including Spanish solo', () => {
     assert.equal(R.isExclusivePlanSet(ONLY), true);
     assert.equal(R.isExclusivePlanSet('solo estos planes H1019-001 y H4140-023'), true);
@@ -85,7 +92,7 @@ describe('2. exclusive "only these plans / no other plans" replaces the set', ()
     assert.equal(R.isExclusivePlanSet("Only the 'Current plan' line is the client's current plan. Plans:\n- UHC (H1045-005)"), false);
   });
 
-  it('look only at three IDs. No other plans → exactly those three, no current UHC column', () => {
+  it('look only at A, B, C. No other plans → current plan first, then exactly A, B, C', () => {
     const msgs = [
       { role: 'user', content: PASTE },
       { role: 'assistant', content: assistantTable(TABLE_PLANS) },
@@ -97,15 +104,47 @@ describe('2. exclusive "only these plans / no other plans" replaces the set', ()
     assert.match(ask, /H4140-023/);
     assert.match(ask, /H0982-007/);
     assert.match(ask, /Exclusive named plan set/);
+    assert.doesNotMatch(ask, /Wants alternatives/);
     const named = N.namedPlansFromAsk(ask);
-    assert.deepEqual(named.map((p) => p.planId.slice(0, 9)).sort(), ['H0982-007', 'H1019-001', 'H4140-023']);
-    assert.ok(!named.some((p) => p.planId.slice(0, 9) === 'H1045-005'), 'current plan must not stay as a column');
-    const docs = [{
-      requestedName: 'Brad Glick', doctorName: 'Brad Glick', npi: '1', status: 'done',
-      pending: [], failed: [], networks: [], inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [],
-    }];
-    const sel = N.selectComparison(docs, ask, { answered: true });
-    assert.deepEqual(sel.columns.map((c) => c.planId.slice(0, 9)).sort(), ['H0982-007', 'H1019-001', 'H4140-023']);
+    assert.deepEqual(named.map((p) => p.planId.slice(0, 9)), ['H1045-005', 'H1019-001', 'H4140-023', 'H0982-007']);
+    const sel = N.selectComparison([glick], ask, { answered: true });
+    assert.deepEqual(sel.columns.map((c) => c.planId.slice(0, 9)), ['H1045-005', 'H1019-001', 'H4140-023', 'H0982-007']);
+  });
+
+  it('first paste of current plan + doctors + meds does not invent HealthSun/Humana columns', () => {
+    const msgs = [{ role: 'user', content: PASTE }];
+    const ask = N.comparisonAskText(msgs);
+    assert.doesNotMatch(ask, /Wants alternatives/);
+    assert.equal(C.parseCompareAsk(PASTE).wantsAlternatives, false);
+    assert.equal(R.impliesCompareToCurrentPlan(PASTE), false);
+    const named = N.namedPlansFromAsk(ask);
+    const ids = named.map((p) => p.planId.slice(0, 9));
+    assert.ok(ids.includes('H1045-005'), ids.join(','));
+    assert.ok(!ids.some((id) => id.slice(0, 5) === 'H5431'), ids.join(','));
+    assert.ok(!ids.some((id) => id.slice(0, 5) === 'H1036'), ids.join(','));
+    const sel = N.selectComparison([glick], ask, { answered: true });
+    const colIds = sel.columns.map((c) => c.planId.slice(0, 9));
+    assert.deepEqual(colIds, ['H1045-005']);
+    assert.ok(!colIds.some((id) => id.slice(0, 5) === 'H5431'));
+    assert.ok(!colIds.some((id) => id.slice(0, 5) === 'H1036'));
+  });
+
+  it('Excel/PDF exclusive columns are current + A, B, C; first paste is current only', () => {
+    assert.deepEqual(
+      exp.workingPlanIdsFromUserMessages([PASTE, ONLY]).map((id) => id.slice(0, 9)),
+      ['H1045-005', 'H1019-001', 'H4140-023', 'H0982-007']
+    );
+    assert.deepEqual(
+      exp.workingPlanIdsFromUserMessages([PASTE]).map((id) => id.slice(0, 9)),
+      ['H1045-005']
+    );
+  });
+
+  it('explicit suggest / recommend / find better still shops alternatives', () => {
+    assert.equal(C.parseCompareAsk(`${PASTE}. Suggest better plans.`).wantsAlternatives, true);
+    assert.equal(C.parseCompareAsk(`${PASTE}. Recommend some other options.`).wantsAlternatives, true);
+    const ask = N.comparisonAskText([{ role: 'user', content: PASTE }, { role: 'user', content: 'find better plans' }]);
+    assert.match(ask, /Wants alternatives to the named plan/);
   });
 });
 
@@ -155,6 +194,16 @@ describe('3. multi-carrier removal + export columns + one confirmation', () => {
     assert.ok(!working.some((id) => id.slice(0, 5) === 'H1036'), working.join(','));
     assert.ok(!working.some((id) => id.slice(0, 5) === 'H5431'), working.join(','));
     assert.ok(working.some((id) => id.slice(0, 9) === 'H1019-001'));
+    assert.ok(working.some((id) => id.slice(0, 9) === 'H1045-005'), 'current plan stays on carrier-name removal');
+  });
+
+  it('remove uhc keeps the current UHC plan; remove H1045-005 drops it', () => {
+    const keep = LW.planRemovals('remove uhc from comparison', TABLE_PLANS, ['H1045-005']);
+    assert.ok(!keep.remove.some((id) => id.slice(0, 9) === 'H1045-005'), keep.remove.join(','));
+    const drop = LW.planRemovals('remove H1045-005 from comparison', TABLE_PLANS, ['H1045-005']);
+    assert.ok(drop.remove.some((id) => id.slice(0, 9) === 'H1045-005'), drop.remove.join(','));
+    const offGrid = LW.planRemovals('remove uhc off the grid', TABLE_PLANS, ['H1045-005']);
+    assert.ok(!offGrid.remove.some((id) => id.slice(0, 9) === 'H1045-005'), offGrid.remove.join(','));
   });
 });
 

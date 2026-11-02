@@ -375,9 +375,9 @@ const NON_DRUG_WORDS = new Set(
 const OTC_SUPPLEMENT_RE = /^\s*(?:vitamins?\s*(?:[a-ek]\d{0,2}|b[\s-]?complex)\b|multi-?vitamins?\b|cholecalciferol\b|fish\s+oil\b|omega[\s-]?3\b|probiotics?\b|melatonin\b|biotin\b)/i;
 const isOtcSupplement = (name) => OTC_SUPPLEMENT_RE.test(String(name || ''));
 
-// The point of a comparison: one plan + a doctor list + a med list is her CURRENT plan to compare other plans
-// against, not "check only this plan" (Candy Winfrey, 2026-10-13). Wording that limits it to the named plan
-// ("only", "just", "is Dr. X in network on H...") keeps it single.
+// A first paste of doctors + meds + one current plan is NOT "shop the county". Extra columns only when she
+// asks for better / alternatives / suggest / recommend / find better (owner, 2026-11-02). "only" / "just" /
+// "is Dr. X in network on H..." also keeps it single.
 const ONLY_THIS_PLAN_RE = /\b(?:only|just|this plan|that plan|these plans|as is|no other|don'?t (?:add|swap)|is (?:she|he|dr)|are they|does (?:it|she|he)|check (?:if|whether)|in[- ]network on)\b/i;
 // "look only at A, B, and C. No other plans" / "solo estos planes" / "replace with" — the named IDs ARE the set.
 // A bare "only" is not enough: loaded-workup boilerplate says "Only the 'Current plan' line".
@@ -397,10 +397,13 @@ function isExclusivePlanSet(text) {
 }
 function impliesCompareToCurrentPlan(text, planCount) {
   const t = String(text || '');
-  const ids = new Set((t.match(/\b[HR]\d{4}-\d{3}/gi) || []).map((x) => x.toUpperCase()));
-  if ((planCount != null ? planCount : ids.size) !== 1) return false;
   if (isExclusivePlanSet(t)) return false;
-  return /\b(?:doctors?|physicians?|providers?|specialists?|drs?)\b/i.test(t) && /\b(?:meds?|medications?|rx)\b/i.test(t) && !ONLY_THIS_PLAN_RE.test(t);
+  const ids = new Set((t.match(/\b[HR]\d{4}-\d{3}/gi) || []).map((x) => x.toUpperCase()));
+  if ((planCount != null ? planCount : ids.size) > 1) return false;
+  // Explicit shop-around only. A first paste of doctors + meds + current plan is NOT
+  // "suggest HealthSun/Humana" — that used to invent columns she never asked for.
+  return /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\b(?:any\s+)?other\s+(?:options?|plans?)\b|\balternatives?\b|\bwhat\s+else\b|\bsee\s+what\s+else\b|\bshop(?:ping)?\s+around\b|\bsomething\s+else\b|\b(?:comparable|similar)\s+(?:to|plans?|options?)\b|\bplans?\s+(?:comparable|similar)\b|\banother\s+(?:\w+\s+){0,3}(?:option|plan)s?\b|\bgiveback\s+options?\b|\blooking\s+for\s+(?:another|other|a\s+different)|\b(?:suggest|recommend|find)\s+(?:(?:me|her|him|us|some|a few|better|other)\s+)*(?:plans?|options?)\b|\bfind\s+better\b/i.test(t)
+    && !/\bno other plans\b/i.test(t);
 }
 
 // A pasted med line carries brand names, doses and how often it is taken ("Metformin ER (glucophage) 500mg one daily",
