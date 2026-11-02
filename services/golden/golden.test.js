@@ -102,7 +102,10 @@ describe('golden scenarios', () => {
           it('follow-up bubble: nothing about plans outside the set / equal-cost strengths', () => {
             const W = require('../../artifacts/client-workups.js');
             const fu = W.compareFollowUpLines(run.job.result);
-            const text = [...(fu.questions || []), ...(fu.notes || []), run.job.result.medsTable || '', run.chat.followUp || '', run.chat.grid || ''].join('\n');
+            // A "I removed CarePlus … (H1019-121)" confirmation may name the dropped ID; that is not a leaked column.
+            const text = [...(fu.questions || []), ...(fu.notes || []), run.job.result.medsTable || '', run.chat.followUp || '', run.chat.grid || '']
+              .join('\n')
+              .replace(/I removed [^\n]+/gi, '');
             for (const x of e.followUpExcludes) assert.ok(!text.toLowerCase().includes(x.toLowerCase()), `"${x}" should not appear:\n${text}`);
           });
         }

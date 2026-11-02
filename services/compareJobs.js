@@ -10,7 +10,7 @@ const { lookupDoctor, NOT_CONFIRMED } = require('./providerNetwork');
 const { lookupFormulary, toExportDrug, toExportDrugs, formatFormularyText } = require('./formularyLookup');
 const { askConstraints, gridTable, medsTable, selectComparison, strengthNotes, medsLegendFor, quietRestrictionMarks, textPlanTypeAsk, planTypeAskLines, planTypeLineFor, currentPlanIdsIn } = require('./doctorPlanNarrow');
 const { dedupeDoctorRows, duplicateQuestions } = require('./loadedWorkup');
-const { eligibilityFromAsk, carriersRequested, LEGEND, MEDS_LEGEND, MEDS_FAILED_BANNER, IN_STAR_LEGEND, unlabeledMeds: unlabeledMedsList } = require('./comparisonRules');
+const { eligibilityFromAsk, carriersRequested, LEGEND, MEDS_LEGEND, MEDS_FAILED_BANNER, IN_STAR_LEGEND, unlabeledMeds: unlabeledMedsList, stripListConnectors } = require('./comparisonRules');
 const { expandMedList } = require('./drugNames');
 
 // Candidates priced before the final top 3, so drug cost can break ties (rule 3).
@@ -39,8 +39,8 @@ const PLAN_ID_RE = /\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
 
 function splitList(text) {
   return String(text || '')
-    .split(/\n|,|;|\band\b(?=\s+[A-Z])/)
-    .map((s) => s.replace(/^[\s\-•*\d.)]+/, '').trim())
+    .split(/\n|,|;|\band\b(?=\s+[A-Z])|\s&\s|\sy\s/i)
+    .map((s) => stripListConnectors(s.replace(/^[\s\-•*\d.)]+/, '')))
     .filter((s) => s && s.length > 1);
 }
 
@@ -802,6 +802,7 @@ function getJob(id, owner) {
 
 module.exports = {
   parseCompareAsk,
+  splitList,
   doctorMentions,
   titledDoctorNames,
   normalizePlanIds,

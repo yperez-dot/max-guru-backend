@@ -2195,7 +2195,7 @@ function formatFormularyText(result) {
     lines.push(`NAME NOT VERIFIED: RxNorm was unreachable, so "${result.inputName || result.drugName}" was priced exactly as typed, without a spelling check. Show "(name not verified)" and ask the agent to confirm the drug name.`);
   }
   if (result.nameCorrection) {
-    lines.push(`NAME AUTO-CORRECTED: ${result.nameCorrection.from} → ${result.nameCorrection.to} (auto-corrected, verify). Show this correction to the agent.`);
+    lines.push(`NAME AUTO-CORRECTED: ${result.nameCorrection.from} → ${result.nameCorrection.to} (auto-corrected, verify). Show the verify note on the row; do not also ask "Did you mean …?".`);
   }
   if (result.edDrug) {
     lines.push('ED DRUG: Part D excludes ED use. Quote each plan with its label below exactly; never call it "not confirmed" when a plan answered.');

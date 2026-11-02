@@ -112,6 +112,7 @@ const ZIP_GEO = {
   '33009': { lat: 25.985, lng: -80.148, county: COUNTY_BROWARD },
   '33019': { lat: 26.021, lng: -80.116, county: COUNTY_BROWARD },
   '33021': { lat: 26.021, lng: -80.187, county: COUNTY_BROWARD },
+  '33026': { lat: 26.013, lng: -80.313, county: COUNTY_BROWARD }, // Pembroke Pines / 33026 workups
   '33060': { lat: 26.230, lng: -80.125, county: COUNTY_BROWARD },
   '33064': { lat: 26.248, lng: -80.125, county: COUNTY_BROWARD },
   '33312': { lat: 26.118, lng: -80.171, county: COUNTY_BROWARD },

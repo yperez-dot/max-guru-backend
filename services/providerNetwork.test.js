@@ -49,6 +49,10 @@ stub('uhcGuestSearch', {
   PLAN_YEAR: '2027',
   formatUhcAgentNote: () => 'UHC note',
 });
+stub('careplusFindcare', {
+  queryCareplusFindcare: async () => ({ inNetwork: false, plans: [], outOfNetworkPlans: [], error: null, status: 'checked', source: 'findcare', partialList: false, year: '2027' }),
+  CARRIER_LABEL: 'CarePlus',
+});
 stub('humanaFindcare', {
   queryHumanaFindcare: async (npi) => {
     knobs.humanaCalls += 1;

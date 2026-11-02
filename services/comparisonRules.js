@@ -379,21 +379,48 @@ const isOtcSupplement = (name) => OTC_SUPPLEMENT_RE.test(String(name || ''));
 // against, not "check only this plan" (Candy Winfrey, 2026-10-13). Wording that limits it to the named plan
 // ("only", "just", "is Dr. X in network on H...") keeps it single.
 const ONLY_THIS_PLAN_RE = /\b(?:only|just|this plan|that plan|these plans|as is|no other|don'?t (?:add|swap)|is (?:she|he|dr)|are they|does (?:it|she|he)|check (?:if|whether)|in[- ]network on)\b/i;
+// "look only at A, B, and C. No other plans" / "solo estos planes" / "replace with" — the named IDs ARE the set.
+// A bare "only" is not enough: loaded-workup boilerplate says "Only the 'Current plan' line".
+function isExclusivePlanSet(text) {
+  const t = String(text || '');
+  if (/\bno other plans\b|\bning[uú]n\s+otro\s+plan\b/i.test(t)) return true;
+  const ids = (t.match(/\b[HR]\d{4}-\d{3}/gi) || []).length;
+  if (/\breplace(?:\s+\w+)?\s+with\b/i.test(t) && ids >= 1) return true;
+  if (/\bnada\s+m[aá]s\b/i.test(t) && (ids >= 1 || /\bplanes?\b/i.test(t))) return true;
+  const limit = '(?:only|just|exclusively|sol(?:o|amente)|sólo|ú?nicamente)';
+  const filler = '(?:(?:look(?:ing)?|check(?:ing)?|compare|run|show|use|keep|see|at|on|the|these|those|this|that|estos?|esas?)\\s+)*';
+  // Plural plans / Spanish planes / a contract-PBP — never singular "plan" in "Only the Current plan line".
+  const target = '(?:[HR]\\d{4}-\\d{3}|(?:these|those|the|estos?|esas?)\\s+plans?\\b|planes\\b)';
+  if (new RegExp(`\\b${limit}\\s+${filler}${target}`, 'i').test(t)) return true;
+  if (new RegExp(`\\b(?:look(?:ing)?|check(?:ing)?|compare|run|show|use|keep|see)\\s+${limit}\\s+(?:at\\s+|on\\s+)?${filler}${target}`, 'i').test(t)) return true;
+  return false;
+}
 function impliesCompareToCurrentPlan(text, planCount) {
   const t = String(text || '');
   const ids = new Set((t.match(/\b[HR]\d{4}-\d{3}/gi) || []).map((x) => x.toUpperCase()));
   if ((planCount != null ? planCount : ids.size) !== 1) return false;
+  if (isExclusivePlanSet(t)) return false;
   return /\b(?:doctors?|physicians?|providers?|specialists?|drs?)\b/i.test(t) && /\b(?:meds?|medications?|rx)\b/i.test(t) && !ONLY_THIS_PLAN_RE.test(t);
 }
 
 // A pasted med line carries brand names, doses and how often it is taken ("Metformin ER (glucophage) 500mg one daily",
 // "ipratropium nasal spray 0.03% 2 sprays bid"): only name + strength + form go to the lookup. Devices are not drugs.
 const MED_DEVICE_RE = /\b(?:c-?pap|bipap|machine|device|walker|wheelchair|oxygen|nebulizer|glucometer|monitor)\b/i;
+/** Leading/trailing list connectors ("and gabepentin", "& lisinopril", Spanish "y") and trailing punctuation. */
+function stripListConnectors(raw) {
+  let s = String(raw || '').trim();
+  s = s.replace(/^["'`“”‘’]+|["'`“”‘’]+$/g, '');
+  s = s.replace(/^(?:and|&|y|plus|then)\s+/i, '');
+  s = s.replace(/\s+(?:and|&|y|plus)$/i, '');
+  s = s.replace(/[.,;:]+$/g, '');
+  return s.replace(/^[\s\-•*]+/, '').trim();
+}
 function cleanMedItem(raw) {
-  let s = String(raw || '').replace(/^[\s\-\u2022*]+/, '').replace(/^\d{1,2}[.)]\s+/, '').replace(/\([^)]*\)/g, ' ');
+  let s = stripListConnectors(String(raw || '')).replace(/^[\s\-\u2022*]+/, '').replace(/^\d{1,2}[.)]\s+/, '').replace(/\([^)]*\)/g, ' ');
   s = s.replace(/\s+\d+\s+(?:sprays?|puffs?|drops?|tablets?|capsules?|pills?)\b.*$/i, '');
   s = s.replace(/\s+(?:one|once|two|twice|three|daily|every|each|at|bid|tid|qid|qd|qhs|qam|qpm|prn|weekly|monthly|nightly|per)\b.*$/i, '');
   s = s.replace(/\s{2,}/g, ' ').replace(/[\s.,;-]+$/, '').trim();
+  s = stripListConnectors(s);
   return !s || MED_DEVICE_RE.test(s) ? '' : s;
 }
 
@@ -429,12 +456,12 @@ const UNLABELED_ITEM_RE = /^[A-Za-z][A-Za-z0-9-]*(?:\s+(?:\d+(?:\.\d+)?\s?(?:mg|
 function splitMedList(list) {
   const out = [];
   for (const seg of String(list || '').split(/[,;\n]/)) {
-    const s = seg.replace(/\(.*?\)/g, '').replace(/[.\s]+$/, '').trim();
+    const s = stripListConnectors(seg.replace(/\(.*?\)/g, ''));
     if (!s) continue;
     const forms = expandDosageForms(s);
     const parts = forms.length > 1 ? forms : s.split(/\band\b|\s&\s|\s\+\s|\sy\s/i);
     for (const p of parts) {
-      const item = p.replace(/[.\s]+$/, '').trim();
+      const item = stripListConnectors(p);
       if (item) out.push(item);
     }
   }
@@ -643,11 +670,19 @@ const REQUEST_VERBS = /\b(show|compare|instead|use|switch|swap|look at|look ?up|
 // she rules out. Words right after the carrier name, or right before it.
 const REJECT_AFTER_RE = /^[^.!?\n]{0,25}?\b(?:won'?t|wont|will\s+not|doesn'?t|does\s+not|didn'?t|did\s+not|isn'?t|is\s+not|aren'?t|are\s+not|can'?t|cannot|not\s+going\s+to)\s+(?:\w+\s+)?(?:work|do|cut|be|cover|take|accept|help|fit|an?\s+option)\b|^\W*(?:is|are)?\s*(?:out|no\s+good|a\s+no|not\s+an?\s+option|off\s+the\s+table)\b/i;
 const REJECT_BEFORE_RE = /\b(?:no|not|other\s+than|besides|except|excluding|exclude|leave\s+out|remove|instead\s+of|anything\s+but|skip|drop|forget|without|no\s+more|rather\s+than)\s+(?:the\s+|all\s+)?$/i;
+const REMOVE_CLAUSE_RE = /\b(?:remove|drop|take out|delete|no more|get rid of|without|exclude|excluding)\s+(?:the\s+)?([^.;\n]+?)(?=\s+(?:from\b|and\s+(?:add|include|replace|swap|instead|keep|show|plus|with)\b)|,\s*(?:add|include|replace|swap|instead|keep|show|plus|with)\b|[.;\n]|$)/gi;
 
 /** Carriers she rules out in ONE message ("YIKES, HUMANA WONT WORK THEN") → ['Humana']. */
 function carriersRejected(message) {
   const t = String(message || '').replace(/\b(?:doctors?|drs?|providers?)\s*:[^\n]*/gi, ' ');
   const out = [];
+  const add = (name) => { if (name && !out.includes(name)) out.push(name); };
+  // "remove healthsun and humana from comparison": every carrier in the remove-clause, not only the one
+  // sitting right after "remove". A single carrier + plan name ("remove Humana Gold Plus") stays a plan drop.
+  for (const r of t.matchAll(REMOVE_CLAUSE_RE)) {
+    const hits = CARRIER_WORDS.filter(([, re]) => re.test(r[1] || '')).map(([name]) => name);
+    if (hits.length >= 2) hits.forEach(add);
+  }
   for (const [name, re] of CARRIER_WORDS) {
     const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : `${re.flags}g`);
     for (const m of t.matchAll(g)) {
@@ -660,7 +695,7 @@ function carriersRejected(message) {
       if (/^(?:medicaremax|drmax|drselect)$/i.test(m[0].trim()) || /\b[HR]\d{4}-\d{3}/i.test(clauseAfter)
         || /^\s+(?:gold\s+plus|medicare\s+\w+|preferred|choice|select|complete|core|giveback|value|max|plus|care\s*\w*)\b/i.test(clauseAfter)) continue;
       if (REJECT_AFTER_RE.test(t.slice(end, end + 50)) || REJECT_BEFORE_RE.test(t.slice(Math.max(0, start - 25), start))) {
-        if (!out.includes(name)) out.push(name);
+        add(name);
         break;
       }
     }
@@ -695,7 +730,9 @@ function carriersUnresolved(message) {
 /** "check on another plan", "a different carrier", "something else" — she wants other carriers' plans. */
 const OTHER_CARRIER_RE = /\b(?:an)?other\s+(?:plans?|carriers?|compan(?:y|ies)|insurances?|insurers?|options?|networks?)\b|\bdifferent\s+(?:plans?|carriers?|compan(?:y|ies)|insurances?|insurers?|options?|networks?)\b|\bsomething\s+else\b|\bsomewhere\s+else\b/i;
 function wantsOtherCarrier(message) {
-  return OTHER_CARRIER_RE.test(String(message || '').replace(/\b(?:doctors?|drs?|providers?)\s*:[^\n]*/gi, ' '));
+  const t = String(message || '').replace(/\b(?:doctors?|drs?|providers?)\s*:[^\n]*/gi, ' ');
+  if (isExclusivePlanSet(t) || /\bno other plans\b|\bning[uú]n\s+otro\s+plan\b/i.test(t)) return false;
+  return OTHER_CARRIER_RE.test(t);
 }
 
 /**
@@ -704,6 +741,7 @@ function wantsOtherCarrier(message) {
  * Doctor lists ("Doctors: …") and pasted plan names with IDs are not carrier asks.
  */
 function carriersRequested(message) {
+  if (isExclusivePlanSet(message) && (String(message || '').match(/\b[HR]\d{4}-\d{3}/gi) || []).length >= 1) return [];
   const t = String(message || '')
     .replace(/\b(?:doctors?|drs?|providers?)\s*:[^\n]*/gi, ' ')
     // "she is with UHC" says where a doctor / the client is, it is not a carrier ask.
@@ -799,6 +837,8 @@ module.exports = {
   PRACTICE_WORD_RE,
   unlabeledMeds,
   splitMedList,
+  stripListConnectors,
+  isExclusivePlanSet,
   knownMedsNote,
   isNonDrugAnswer,
   sameDrug,

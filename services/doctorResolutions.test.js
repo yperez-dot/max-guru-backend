@@ -210,12 +210,11 @@ test('plan removal matches the current table: exact applies, a typo is asked, no
   assert.deepEqual(rm('remove it').remove, []);
 });
 
-test('a med RxNorm auto-corrected is asked once ("Did you mean famotidine?"), not swapped silently', () => {
+test('a med RxNorm auto-corrected is priced with a verify note, not re-asked as Did you mean', () => {
   const drugs = [{ drugName: 'famotidine', inputName: 'famotdidine', nameCorrection: { from: 'famotdidine', to: 'famotidine' }, lookups: [], byPlanId: {} }];
   const out = N.renderedAnswer([{ doctorName: 'A B', requestedName: 'A B', byPlanId: {} }], 'Jorge, 33156, meds: famotdidine. Compare H5420-014 and H1036-054C', { drugs });
-  assert.match(out, /Did you mean famotidine for "famotdidine"\? \(yes\/no\)/);
-  const typed = N.renderedAnswer([{ doctorName: 'A B', requestedName: 'A B', byPlanId: {} }], 'Jorge, 33156, meds: famotdidine. Compare H5420-014 and H1036-054C\nfamotidine is right', { drugs });
-  assert.doesNotMatch(typed, /Did you mean famotidine/);
+  assert.match(out, /famotdidine → famotidine \(auto-corrected, verify\)/);
+  assert.doesNotMatch(out, /Did you mean famotidine/);
 });
 
 test('a bare "export" in the chat is answered on the page (chips), never sent or queued', () => {

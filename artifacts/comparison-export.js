@@ -1437,6 +1437,7 @@
     if (/simply/.test(c)) return /simply/.test(hay);
     if (/devoted/.test(c)) return /devoted/.test(hay);
     if (/healthsun/.test(c)) return /healthsun/.test(hay);
+    if (/careplus/.test(c)) return /careplus/.test(hay);
     if (/solis/.test(c)) return /solis/.test(hay);
     return false;
   }
@@ -1496,8 +1497,10 @@
       if (net.inNetwork === true && !(net.plans && net.plans.length) && carrierHitIsPlanHit(net.carrier, plan)) return NETWORK_IN;
       if (net.inNetwork === false && net.status === "checked" && carrierHitIsPlanHit(net.carrier, plan)) {
         // HealthSun clinics: Organization?identifier=NPI is a real check — empty = Out.
-        // HealthSun people and CarePlus stay Not confirmed (partial name-index lists).
+        // CarePlus guest Find Care (partialList false / source findcare) is complete: empty = Out.
+        // HealthSun people and the CarePlus PDF name index stay Not confirmed (partial lists).
         if (/healthsun/i.test(String(net.carrier)) && missIsUnknown) return NETWORK_OUT;
+        if (net.partialList === false || String(net.source || "").toLowerCase() === "findcare") return NETWORK_OUT;
         if (isPartialDirectoryCarrier(net.carrier) || net.partialList) continue;
         if (!missIsUnknown) return NETWORK_OUT;
       }
@@ -3335,6 +3338,26 @@
   const PLAN_ADD_RE = /\b(add|also|include|plus|too|as\s+well|another)\b/i;
   const PLAN_USE_RE = /\b(use|go\s+with|pick|choose|want)\b/i;
   const PLAN_REMOVE_RE = /\b(remove|drop|take\s+off|take\s+out|without|skip|exclude|delete|no\s+longer)\b/i;
+  const CARRIER_PREFIXES = [
+    { re: /\bhumana\b/i, prefixes: ["H1036", "H7617", "H5216"] },
+    { re: /\bhealth\s*sun\b/i, prefixes: ["H5431"] },
+    { re: /\bcare\s*plus\b/i, prefixes: ["H1019"] },
+    { re: /\bdevoted\b/i, prefixes: ["H1290"] },
+    { re: /\bsol[iy]s\b/i, prefixes: ["H0982"] },
+    { re: /\baetna\b/i, prefixes: ["H1609"] },
+    { re: /\bsimply\b/i, prefixes: ["H5422"] },
+    { re: /\bwell\s*care\b/i, prefixes: ["H1032"] },
+    { re: /\b(?:uhc|united\s*health)\b/i, prefixes: ["H1045", "H5420"] },
+    { re: /\bdoctors?\b/i, prefixes: ["H4140"] },
+  ];
+  function carrierPrefixesIn(text) {
+    const t = String(text || "");
+    const out = [];
+    for (const row of CARRIER_PREFIXES) {
+      if (row.re.test(t)) row.prefixes.forEach((p) => { if (out.indexOf(p) < 0) out.push(p); });
+    }
+    return out;
+  }
 
   /**
    * The plans she is working with NOW, from her own messages only: the latest message that
@@ -3348,11 +3371,16 @@
       const t = String(raw || "");
       // Statements about her current/old plan are not asks ("she was switched to … H5420-14-0 for 2026").
       const ids = typedPlanIds(t);
-      if (!ids.length) return;
       if (PLAN_REMOVE_RE.test(t) && set) {
-        set = set.filter((id) => ids.indexOf(id) < 0);
+        if (ids.length) {
+          set = set.filter((id) => ids.indexOf(id) < 0);
+        } else {
+          const prefixes = carrierPrefixesIn(t);
+          if (prefixes.length) set = set.filter((id) => !prefixes.some((p) => String(id).toUpperCase().indexOf(p) === 0));
+        }
         return;
       }
+      if (!ids.length) return;
       if (PLAN_ADD_RE.test(t) && set) {
         ids.forEach((id) => {
           if (set.indexOf(id) < 0) set.push(id);

@@ -667,6 +667,7 @@ function comparisonAskText(messages, baseText) {
     // The loaded-workup message is not her ask: its rules text says "other, comparable or better
     // plans" and its plan list held the Aetna comparison column (Maura, 2026-10-07).
     if (/structured facts only/i.test(mt)) continue;
+    if (R.isExclusivePlanSet(lastUserText)) break;
     if (!WANTS_ALTERNATIVES_RE.test(mt) && !R.impliesCompareToCurrentPlan(mt)) continue;
     lines.push('Wants alternatives to the named plan(s).');
     // Plan IDs she typed with that ask — unless the recent messages already carry them.
@@ -755,6 +756,18 @@ function comparisonAskText(messages, baseText) {
       lines.push(`Named plan set: ${editSet.map((pl) => `${pl.name} (${pl.planId})`).join('; ')}.`);
       break;
     }
+    // "remove healthsun and humana from comparison" on the table on screen (no loaded-workup carrier edit).
+    if (LW.isComparisonRemoval(t)) {
+      const tablePlans = tablePlansFor(msgs.slice(0, i + 1));
+      if (tablePlans.length) {
+        const rm = LW.planRemovals(t, tablePlans, currentPlanOf(msgs.slice(0, i + 1)));
+        if (rm.remove.length) {
+          const remaining = tablePlans.filter((p) => !rm.remove.some((id) => String(id).toUpperCase().slice(0, 9) === p.planId.slice(0, 9)));
+          if (remaining.length) lines.push(`Named plan set: ${remaining.map((pl) => `${pl.name} (${pl.planId})`).join('; ')}.`);
+          break;
+        }
+      }
+    }
     const typeSet = planTypeSetFromAsk(t, msgs.slice(0, i + 1));
     if (typeSet.length || (typeSet.misses && typeSet.misses.length)) {
       const county = R.countyFromAsk(t) || R.countyFromAsk(msgs.map(messageText).join('\n')) || 'Miami-Dade';
@@ -792,7 +805,7 @@ function comparisonAskText(messages, baseText) {
       }
       break;
     }
-    const other = R.carriersRejected(t).length > 0 || R.wantsOtherCarrier(t);
+    const other = !R.isExclusivePlanSet(t) && !LW.isComparisonRemoval(t) && (R.carriersRejected(t).length > 0 || R.wantsOtherCarrier(t));
     if (other) {
       const excluded = excludedCarriers(msgs.slice(0, i + 1));
       if (excluded.length) lines.push(`Carriers excluded: ${excluded.join(', ')}.`);
@@ -811,15 +824,17 @@ function comparisonAskText(messages, baseText) {
     // must not replace them with that carrier's core plan (Carla Nguyen, 2026-10-26).
     // Emit the set from THIS message only — a loaded spouse/prior workup's extras never ride along.
     const idsNamed = new Set((t.match(/\b[HR]\d{4}-\d{3}/gi) || []).map((x) => x.toUpperCase())).size;
-    if (idsNamed >= 2) {
-      // A fresh "compare X with Y" locks the set. "add X and Y" / "do they take X and Y?" do not.
-      const replaceSet = /\b(?:compare|show|use|run|go with|lets? do)\b/i.test(t)
+    if (idsNamed >= 1 && (idsNamed >= 2 || R.isExclusivePlanSet(t))) {
+      // A fresh "compare X with Y" / "look only at X, Y, Z. No other plans" locks the set.
+      // "add X and Y" / "do they take X and Y?" do not.
+      const exclusive = R.isExclusivePlanSet(t);
+      const replaceSet = exclusive || (/\b(?:compare|show|use|run|go with|lets? do|look\s+only)\b/i.test(t)
         && !/\b(?:add|include)\b/i.test(t)
-        && !/\b(?:do they take|does (?:he|she|it) take|what (?:is|are)|how much)\b/i.test(t);
+        && !/\b(?:do they take|does (?:he|she|it) take|what (?:is|are)|how much)\b/i.test(t));
       if (replaceSet) {
         const namedOnly = namedPlansFromAsk(t, askConstraints(t));
         if (namedOnly.length) {
-          const cur = currentPlanOf(msgs.slice(0, i + 1));
+          const cur = exclusive ? [] : currentPlanOf(msgs.slice(0, i + 1));
           const set = [];
           const add = (p) => { if (p && p.planId && !set.some((x) => x.planId.slice(0, 9) === String(p.planId).slice(0, 9))) set.push(p); };
           const named = (id) => {
@@ -833,9 +848,15 @@ function comparisonAskText(messages, baseText) {
           cur.forEach((id) => add(named(id)));
           namedOnly.forEach(add);
           lines.push(`Named plan set: ${set.map((pl) => `${pl.name} (${pl.planId})`).join('; ')}.`);
+          if (exclusive) {
+            lines.push('Exclusive named plan set.');
+            const onFile = currentPlanOf(msgs.slice(0, i + 1));
+            const omitted = onFile.filter((id) => !set.some((p) => p.planId.slice(0, 9) === String(id).slice(0, 9)));
+            if (omitted.length) lines.push(`Current plan ${omitted.join(', ')} is on file but not a column (you asked for no other plans).`);
+          }
         }
       }
-      break;
+      if (idsNamed >= 2 || exclusive) break;
     }
     // Unmatched names count on their own only in a "compare … to X" ask; otherwise next to a carrier she named.
     const unmatched = carriers.length || /\bcompar/i.test(t) ? R.carriersUnresolved(t) : [];
@@ -908,17 +929,11 @@ function planRemovalAskLines(msgs) {
 // A med name RxNorm auto-corrected ("famotdidine" → famotidine): the row is priced and marked "verify", and Max asks
 // once — never a silent swap (standing rule, Yahoska 2026-10-20). Gone once she types the corrected name or says yes.
 function drugSpellingQuestions(drugs, askText) {
-  const text = String(askText || '');
-  const out = [];
-  for (const r of drugs || []) {
-    const nc = r && r.nameCorrection;
-    if (!nc || !nc.from || !nc.to) continue;
-    const esc = (x) => String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    if (new RegExp(`\\b${esc(nc.to)}\\b`, 'i').test(text.replace(new RegExp(esc(nc.from), 'gi'), ''))) continue;
-    const q = `⚠️ Did you mean ${nc.to} for "${nc.from}"? (yes/no)`;
-    if (!out.includes(q)) out.push(q);
-  }
-  return out;
+  // RxNorm auto-correct already prices the row as "from → to (auto-corrected, verify)".
+  // Do not also ask "Did you mean …?" — one verify note is enough.
+  void drugs;
+  void askText;
+  return [];
 }
 const LW_planAddSet = (t, msgs) => require('./loadedWorkup').workupPlanAddSet(t, msgs);
 function planRemovalQuestions(askText) {
@@ -1102,7 +1117,7 @@ function comparisonFollowUpRaw(messages) {
   const carriers = R.carriersRequested(latest);
   if (carriers.length) reasons.push(`carriers asked: ${carriers.join(', ')}`);
   const rejected = R.carriersRejected(latest);
-  const wantsOther = rejected.length > 0 || R.wantsOtherCarrier(latest);
+  const wantsOther = !R.isExclusivePlanSet(latest) && !LW.isComparisonRemoval(latest) && (rejected.length > 0 || R.wantsOtherCarrier(latest));
   if (wantsOther) reasons.push(`another carrier${rejected.length ? ` (not ${rejected.join(', ')})` : ''}`);
   if (WANTS_ALTERNATIVES_RE.test(latest)) {
     const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
@@ -1779,6 +1794,12 @@ const SINGLE_NETWORK_CARRIERS = ['Devoted', 'Solis', 'CarePlus', 'Doctors Health
 // A listing is plan-level In, a miss is never Out: CarePlus's PDF says "partial list"; HealthSun's
 // has no NPIs, so its match is by name and can miss a real listing.
 const PARTIAL_DIRECTORY_CARRIERS = ['CarePlus', 'HealthSun'];
+function isPartialDirectory(d, carrier) {
+  if (!PARTIAL_DIRECTORY_CARRIERS.includes(carrier)) return false;
+  const net = ((d && d.networks) || []).find((x) => carrierKey(x.carrier) === carrier || new RegExp(carrier.replace(/\s+/g, '\\s*'), 'i').test(String(x.carrier || '')));
+  if (net && (net.partialList === false || net.source === 'findcare')) return false;
+  return true;
+}
 // Plans that share one carrier network, so a directory hit counts as plan-level In.
 // Doctors HealthCare: DrMax-Dade (H4140-022) and DrSelect-SFL (H4140-023) share one
 // network — confirmed by Yahoska 2026-10-06. 001/012 are the same products' prior IDs.
@@ -1844,10 +1865,11 @@ function namedPlanColumns(named, matrix, doctors) {
       }
       // One-network directory (Devoted; Doctors DrMax/DrSelect) finished and did not list
       // this NPI → Out. A failed or pending check stays ❔ unchecked (never assume Out).
-      else if (carrier && carrierHitIsPlanHit(carrier, np.planId) && !PARTIAL_DIRECTORY_CARRIERS.includes(carrier) && directoryFinished(d, carrier)) col.out.push(who);
-      // Partial-list directory (CarePlus; HealthSun people — PDF has no NPIs): checked, not confirmed — not unchecked.
+      else if (carrier && carrierHitIsPlanHit(carrier, np.planId) && !isPartialDirectory(d, carrier) && directoryFinished(d, carrier)) col.out.push(who);
+      // Partial-list directory (CarePlus PDF; HealthSun people — PDF has no NPIs): checked, not confirmed — not unchecked.
       // HealthSun clinics: Organization?identifier=NPI is a real NPI check. Empty Bundle = Out, never assumed.
-      else if (carrier && PARTIAL_DIRECTORY_CARRIERS.includes(carrier) && directoryFinished(d, carrier)) {
+      // CarePlus guest Find Care (partialList false) is a complete directory: empty = Out, never guessed.
+      else if (carrier && isPartialDirectory(d, carrier) && directoryFinished(d, carrier)) {
         if (carrier === 'HealthSun' && doctorIsOrg(d)) col.out.push(who);
         else { col.unknown.push(who); col.notConfirmed.push(who); }
       }
@@ -1919,6 +1941,11 @@ function manualCheckNotes(cols) {
 }
 
 function careplusFlag(docs) {
+  const usedGuest = (docs || []).some((d) => {
+    const net = (d.networks || []).find((x) => /careplus/i.test(String(x.carrier)));
+    return net && (net.source === 'findcare' || net.partialList === false);
+  });
+  if (usedGuest) return '';
   const listed = [];
   let unchecked = 0;
   let missed = 0;
@@ -2343,7 +2370,10 @@ function selectComparison(doctors, askText, opts = {}) {
   // "Carriers requested: Doctors HealthCare, Solis, Devoted" (comparisonAskText) — newest wins.
   const carrierAsks = [...ask0.matchAll(/Carriers requested:\s*([^\n.]+)/gi)];
   const namedSetLine = (ask0.match(/^Named plan set: (.+)$/m) || [])[1];
-  const carriers = carrierAsks.length && !/^Rank all eligible plans\.$/m.test(ask0) && !namedSetLine
+  // Only the line comparisonAskText emits — never scan the whole ask for "only"
+  // (loaded workups say "Only the 'Current plan' line").
+  const exclusiveSet = /^Exclusive named plan set\.$/m.test(ask0);
+  const carriers = carrierAsks.length && !/^Rank all eligible plans\.$/m.test(ask0) && !namedSetLine && !exclusiveSet
     ? carrierAsks[carrierAsks.length - 1][1].split(',').map((c) => c.trim()).filter(Boolean)
     : [];
   const excludedAsks = [...ask0.matchAll(/Carriers excluded:\s*([^\n.]+)/gi)];
@@ -2377,7 +2407,7 @@ function selectComparison(doctors, askText, opts = {}) {
     if (gone.size) named = named.filter((p) => !gone.has(p.planId.slice(0, 9)));
   }
   let pinFromAsk = [];
-  if (!Array.isArray(opts.named) && !carriers.length && /Wants alternatives to the named plan\(s\)\./.test(ask) && named.length) {
+  if (!Array.isArray(opts.named) && !carriers.length && /Wants alternatives to the named plan\(s\)\./.test(ask) && named.length && !exclusiveSet && !namedSetLine) {
     pinFromAsk = named.map((p) => p.planId);
     named = [];
   }
@@ -2405,12 +2435,13 @@ function selectComparison(doctors, askText, opts = {}) {
     named = [];
   }
   // Carrier ask ("show me Doctors HealthCare"): her current plan is still a column.
-  if (!Array.isArray(opts.named) && !wantsOther && carriers.length && !pinFromAsk.length) {
+  // An exclusive "only these plans / no other plans" set does not keep it as a column.
+  if (!Array.isArray(opts.named) && !wantsOther && !exclusiveSet && carriers.length && !pinFromAsk.length) {
     const current = (ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '';
     pinFromAsk = [...current.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
   }
-  // Her current plan is a column in every table, not only in carrier / rank asks.
-  if (!Array.isArray(opts.named) && !wantsOther && !pinFromAsk.length) {
+  // Her current plan is a column in every table, not only in carrier / rank asks — unless she said no other plans.
+  if (!Array.isArray(opts.named) && !wantsOther && !exclusiveSet && !pinFromAsk.length) {
     const current = (ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '';
     pinFromAsk = [...current.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase());
   }
@@ -2524,7 +2555,7 @@ function selectComparison(doctors, askText, opts = {}) {
     // Her current plan persists across follow-up turns: a later turn whose plan set came from the previous
     // table's other columns still leads with it (Jacqueline Alexander, 2026-10-13: answering the doctor
     // questions dropped H5420-001). Not when she skipped it / it is terminating / its carrier is excluded.
-    if (!dropsCurrent) {
+    if (!dropsCurrent && !exclusiveSet) {
       for (const id of curIds) {
         if (cols.some((c) => String(c.planId || '').toUpperCase().slice(0, 9) === id)) continue;
         if ([...constraints.skip].some((x) => x.slice(0, 9) === id)) continue;
