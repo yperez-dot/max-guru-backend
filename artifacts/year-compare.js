@@ -478,13 +478,6 @@
     dentalDeepCleaning: 1, dentalDentures: 1, dentalFillings: 1, dentalRootCanals: 1,
     dentalExtractions: 1, dentalCrowns: 1, dentalBridges: 1, dentalImplants: 1,
   };
-  // Rows read as money / percent amounts → Changed or Same.
-  const NUMERIC_KEYS = {
-    premium: 1, partBGiveback: 1, moop: 1, pcpCopay: 1, specialistCopay: 1, erCopay: 1,
-    urgentCareCopay: 1, rxDeductible: 1, tier1: 1, tier2: 1, tier3: 1, tier4: 1, tier5: 1,
-    tier6: 1, otc: 1, vision: 1, dental: 1, hearing: 1, inpatientHospital: 1,
-    outpatientHospital: 1, advancedImaging: 1, ambulance: 1, partDDeductible: 1,
-  };
   const BOOL_KEYS = { referral: 1, dentalImplants: 1 };
 
   function fmtMoney(n) {
@@ -504,7 +497,22 @@
   }
 
   const NONE_RE = /^(no|none|not covered|not offered|n\/a|na|not applicable|no coverage|\$?0 \(not covered\))$/i;
-  const YES_RE = /^(yes|y|covered|included|required)$/i;
+  const YES_RE = /^(yes|y|covered|included|required|as needed|when needed|as required)$/i;
+  // Member-cost rows where a single dollar moving up/down is obvious enough to hint.
+  const COST_HINT_KEYS = {
+    premium: 1, moop: 1, pcpCopay: 1, specialistCopay: 1, erCopay: 1,
+    urgentCareCopay: 1, inpatientHospital: 1, outpatientHospital: 1,
+    advancedImaging: 1, ambulance: 1, rxDeductible: 1, partDDeductible: 1,
+  };
+  const FILLER_WORDS = {
+    inn: 1, oon: 1, copay: 1, copays: 1, coinsurance: 1, allowance: 1, allowances: 1,
+    innetwork: 1, outofnetwork: 1, in: 1, out: 1, network: 1,
+    the: 1, a: 1, an: 1, of: 1, for: 1, to: 1, and: 1, or: 1, at: 1, with: 1, per: 1,
+    plan: 1, approved: 1, location: 1, locations: 1, one: 1, way: 1, oneway: 1,
+    x: 1, vs: 1, from: 1, after: 1, that: 1, unlimited: 1, covered: 1, included: 1,
+    month: 1, monthly: 1, mo: 1, quarter: 1, quarterly: 1, qtr: 1, year: 1, yearly: 1,
+    annually: 1, annual: 1, yr: 1, days: 1, day: 1,
+  };
 
   /** Bare number → its display/compare reading for this row. */
   function readNumber(n, key) {
@@ -521,33 +529,145 @@
     return "";
   }
 
+  function emptyFacts() {
+    return { dollars: [], percents: [], counts: [], freqs: [], ranges: [], unlimited: false };
+  }
+
+  function pushUnique(arr, rec, eq) {
+    if (!arr.some((x) => eq(x, rec))) arr.push(rec);
+  }
+
+  function factsFromTokensAndRaw(tokens, raw) {
+    const facts = emptyFacts();
+    (tokens || []).forEach((t) => {
+      if (t && t[0] === "$") {
+        const n = Number(String(t).replace(/[^0-9.]/g, ""));
+        if (!facts.dollars.includes(n)) facts.dollars.push(n);
+      } else if (t && /%$/.test(t)) {
+        const n = Number(t.slice(0, -1));
+        if (!facts.percents.includes(n)) facts.percents.push(n);
+      } else {
+        const range = /^days (\d+)-(\d+)$/.exec(t);
+        if (range) facts.ranges.push(range[1] + "-" + range[2]);
+        const count = /^#(\d+(?:\.\d+)?)$/.exec(t);
+        if (count) facts.counts.push({ n: Number(count[1]), unit: "covered" });
+      }
+    });
+    const s = String(raw || "");
+    if (/\bunlimited\b/i.test(s)) facts.unlimited = true;
+    s.replace(/(\d+)\s*(?:one[-\s]?way\s+)?trips?\b/gi, (_m, n) => {
+      pushUnique(facts.counts, { n: Number(n), unit: "trips" }, (a, b) => a.n === b.n && a.unit === b.unit);
+      return _m;
+    });
+    s.replace(/(\d+)\s*visits?\b/gi, (_m, n) => {
+      pushUnique(facts.counts, { n: Number(n), unit: "visits" }, (a, b) => a.n === b.n && a.unit === b.unit);
+      return _m;
+    });
+    s.replace(/(\d+)\s+hearing\s+aids?\b/gi, (_m, n) => {
+      pushUnique(facts.counts, { n: Number(n), unit: "aids" }, (a, b) => a.n === b.n && a.unit === b.unit);
+      return _m;
+    });
+    s.replace(/(\d+)\s*[x×]\s*(?:(\d+)\s+)?(years?|year|months?|month|yr|mo)\b/gi, (_m, n, every, unit) => {
+      const rec = { n: Number(n), every: every ? Number(every) : 1, unit: /^mo/.test(unit) ? "mo" : "yr" };
+      pushUnique(facts.freqs, rec, (a, b) => a.n === b.n && a.every === b.every && a.unit === b.unit);
+      return _m;
+    });
+    s.replace(/(\d+)\s*(?:per|\/)\s*(years?|year|yr|months?|month|mo)\b/gi, (_m, n, unit) => {
+      const rec = { n: Number(n), every: 1, unit: /^mo/.test(unit) ? "mo" : "yr" };
+      pushUnique(facts.freqs, rec, (a, b) => a.n === b.n && a.every === b.every && a.unit === b.unit);
+      return _m;
+    });
+    s.replace(/\bevery\s+(\d+)?\s*(years?|year|yr|months?|month|mo)\b/gi, (_m, n, unit) => {
+      const rec = { n: 1, every: n ? Number(n) : 1, unit: /^mo/.test(unit) ? "mo" : "yr" };
+      pushUnique(facts.freqs, rec, (a, b) => a.n === b.n && a.every === b.every && a.unit === b.unit);
+      return _m;
+    });
+    s.replace(/\bmax\s+(\d+)\s*\/\s*(yr|year)\b/gi, (_m, n) => {
+      const rec = { n: Number(n), every: 1, unit: "yr" };
+      pushUnique(facts.freqs, rec, (a, b) => a.n === b.n && a.every === b.every && a.unit === b.unit);
+      return _m;
+    });
+    facts.dollars.sort((a, b) => a - b);
+    facts.percents.sort((a, b) => a - b);
+    facts.counts.sort((a, b) => a.unit.localeCompare(b.unit) || a.n - b.n);
+    facts.freqs.sort((a, b) => a.unit.localeCompare(b.unit) || a.every - b.every || a.n - b.n);
+    facts.ranges.sort();
+    return facts;
+  }
+
+  function attachFacts(n, raw) {
+    n.facts = factsFromTokensAndRaw(n.tokens, raw);
+    return n;
+  }
+
+  function significantText(raw) {
+    let t = String(raw || "").toLowerCase();
+    t = t.replace(/\$\s*[\d,]+(?:\.\d+)?/g, " ");
+    t = t.replace(/\d+(?:\.\d+)?\s*%/g, " ");
+    t = t.replace(/\bdays?\s*\d+\s*[-–]\s*\d+/g, " ");
+    t = t.replace(/\d+\s*(?:one[-\s]?way\s+)?trips?\b/g, " ");
+    t = t.replace(/\d+\s*visits?\b/g, " ");
+    t = t.replace(/\d+\s+hearing\s+aids?\b/g, " ");
+    t = t.replace(/\d+\s*[x×]\s*(?:\d+\s+)?(?:years?|year|months?|month|yr|mo)\b/g, " ");
+    t = t.replace(/\d+\s*(?:per|\/)\s*(?:years?|year|yr|months?|month|mo)\b/g, " ");
+    t = t.replace(/\bevery\s+(?:\d+\s+)?(?:years?|year|yr|months?|month|mo)\b/g, " ");
+    t = t.replace(/\bmax\s+\d+\s*\/\s*(?:yr|year)\b/g, " ");
+    t = t.replace(/[^a-z0-9]+/g, " ");
+    return t.split(/\s+/).filter((w) => w && !FILLER_WORDS[w]).join(" ");
+  }
+
+  function sameArr(a, b) {
+    return a.length === b.length && a.every((v, i) => v === b[i]);
+  }
+
+  function sameCounts(a, b) {
+    return a.length === b.length && a.every((v, i) => v.n === b[i].n && v.unit === b[i].unit);
+  }
+
+  function sameFreqs(a, b) {
+    return a.length === b.length && a.every((v, i) => v.n === b[i].n && v.every === b[i].every && v.unit === b[i].unit);
+  }
+
+  function meaningfulFacts(f) {
+    if (!f) return false;
+    return f.percents.length > 0 || f.counts.length > 0 || f.freqs.length > 0 || f.ranges.length > 0 || f.unlimited || f.dollars.some((n) => n !== 0);
+  }
+
+  function changeLabel(change, hint) {
+    if (!change) return "";
+    if (!hint) return change;
+    if (change === REVIEW) return "Review — " + hint;
+    return change + " (" + hint + ")";
+  }
+
   /**
    * Normalize one cell for comparing. Returns
-   * { kind: blank|unclear|none|yes|amount|text, tokens: [...], period, display, text }.
+   * { kind: blank|unclear|none|yes|amount|text, tokens: [...], period, display, text, facts }.
    */
   function normalizeValue(v, key) {
-    if (isBlank(v)) return { kind: "blank", tokens: [], period: "", display: "Not listed", text: "" };
+    const blank = { kind: "blank", tokens: [], period: "", display: "Not listed", text: "", facts: emptyFacts() };
+    if (isBlank(v)) return blank;
     if (typeof v === "number" && key === "partBGiveback" && v > 0 && v < 10 && Number.isInteger(v)) {
-      return { kind: "unclear", tokens: [], period: "", display: v + " (unclear, check SOB)", text: String(v) };
+      return { kind: "unclear", tokens: [], period: "", display: v + " (unclear, check SOB)", text: String(v), facts: emptyFacts() };
     }
-    if (typeof v === "number") return Object.assign({ period: "", text: String(v) }, readNumber(v, key));
+    if (typeof v === "number") return attachFacts(Object.assign({ period: "", text: String(v) }, readNumber(v, key)), String(v));
     if (Array.isArray(v)) v = v.join("; ");
     const raw = String(v).replace(/\s+/g, " ").trim();
-    if (/^[*\s]+$/.test(raw)) return { kind: "unclear", tokens: [], period: "", display: "* (see SOB)", text: "*" };
+    if (/^[*\s]+$/.test(raw)) return { kind: "unclear", tokens: [], period: "", display: "* (see SOB)", text: "*", facts: emptyFacts() };
     const bare = raw.match(/^\$?\s*([\d,]+(?:\.\d+)?)\s*(%)?$/);
     if (bare) {
       const n = Number(bare[1].replace(/,/g, ""));
-      if (bare[2]) return { kind: "amount", tokens: [fmtPct(n)], period: "", display: fmtPct(n), text: raw };
+      if (bare[2]) return attachFacts({ kind: "amount", tokens: [fmtPct(n)], period: "", display: fmtPct(n), text: raw }, raw);
       // "50" on a drug tier could be $50 or 50%; "2" as a Part B giveback is not a real amount.
       // Show it exactly as stored and send it to Review instead of guessing.
       if (!/^\$/.test(raw) && ((TIER_KEYS[key] && n >= 1) || (key === "partBGiveback" && n > 0 && n < 10 && !/\./.test(raw)))) {
-        return { kind: "unclear", tokens: [], period: "", display: raw + " (unclear, check SOB)", text: raw };
+        return { kind: "unclear", tokens: [], period: "", display: raw + " (unclear, check SOB)", text: raw, facts: emptyFacts() };
       }
       const r = readNumber(n, key);
-      return Object.assign({ period: "", text: raw }, r);
+      return attachFacts(Object.assign({ period: "", text: raw }, r), raw);
     }
-    if (NONE_RE.test(raw)) return { kind: "none", tokens: [], period: "", display: raw, text: raw.toLowerCase() };
-    if (YES_RE.test(raw)) return { kind: "yes", tokens: [], period: "", display: raw, text: raw.toLowerCase() };
+    if (NONE_RE.test(raw)) return { kind: "none", tokens: [], period: "", display: raw, text: raw.toLowerCase(), facts: emptyFacts() };
+    if (YES_RE.test(raw)) return { kind: "yes", tokens: [], period: "", display: raw, text: raw.toLowerCase(), facts: emptyFacts() };
     const tokens = [];
     raw.replace(/\$\s*([\d,]+(?:\.\d+)?)/g, (_m, n) => {
       const t = fmtMoney(Number(n.replace(/,/g, "")));
@@ -566,50 +686,83 @@
     });
     // A leading "Yes"/"No" on a yes/no row (e.g. "Yes — PCP referral") still reads as yes/no.
     if (BOOL_KEYS[key] && !tokens.length) {
-      if (/^yes\b/i.test(raw)) return { kind: "yes", tokens: [], period: "", display: raw, text: raw.toLowerCase() };
-      if (/^no\b/i.test(raw)) return { kind: "none", tokens: [], period: "", display: raw, text: raw.toLowerCase() };
+      if (/^yes\b/i.test(raw)) return { kind: "yes", tokens: [], period: "", display: raw, text: raw.toLowerCase(), facts: emptyFacts() };
+      if (/^no\b/i.test(raw)) return { kind: "none", tokens: [], period: "", display: raw, text: raw.toLowerCase(), facts: emptyFacts() };
     }
-    return {
+    return attachFacts({
       kind: tokens.length ? "amount-text" : "text",
       tokens: tokens.sort(),
       period: periodOf(raw),
       display: raw,
       text: raw.toLowerCase().replace(/[^a-z0-9$%.]+/g, " ").trim(),
-    };
+    }, raw);
   }
 
-  function sameTokens(a, b) {
-    if (a.tokens.length !== b.tokens.length) return false;
-    return a.tokens.every((t, i) => t === b.tokens[i]);
+  function costHintFor(key, fa, fb, aNZ, bNZ) {
+    if (!COST_HINT_KEYS[key]) return "";
+    if (aNZ.length === 0 && bNZ.length === 1 && bNZ[0] > 0) return "cost up";
+    if (bNZ.length === 0 && aNZ.length === 1 && aNZ[0] > 0) return "cost down";
+    if (fa.dollars.length === fb.dollars.length && aNZ.length === 1 && bNZ.length === 1 && aNZ[0] !== bNZ[0]) {
+      return bNZ[0] > aNZ[0] ? "cost up" : "cost down";
+    }
+    return "";
   }
 
-  /** Changed | Same | Review | "" (both blank). */
+  function countHintFor(fa, fb) {
+    if (!sameCounts(fa.counts, fb.counts) && fa.counts.length === 1 && fb.counts.length === 1 && fa.counts[0].unit === fb.counts[0].unit) {
+      const dir = fb.counts[0].n < fa.counts[0].n ? "down" : "up";
+      return fa.counts[0].unit === "trips" ? "trips " + dir : "count " + dir;
+    }
+    return "";
+  }
+
+  /** Changed | Same | Review | "" (both blank). Optional hint for the export label. */
   function compareValues(v26, v27, key) {
     const a = normalizeValue(v26, key);
     const b = normalizeValue(v27, key);
-    if (a.kind === "blank" && b.kind === "blank") return { change: "", a, b };
-    if (a.kind === "blank" || b.kind === "blank" || a.kind === "unclear" || b.kind === "unclear") {
-      return { change: REVIEW, a, b };
-    }
-    if (a.text && a.text === b.text) return { change: SAME, a, b };
+    const out = (change, hint) => ({ change, hint: hint || "", a, b, label: changeLabel(change, hint) });
+    if (a.kind === "blank" && b.kind === "blank") return out("");
+    if (a.kind === "unclear" || b.kind === "unclear") return out(REVIEW, "check SOB");
+    if (a.kind === "blank") return out(REVIEW, "not on 2026 grid");
+    if (b.kind === "blank") return out(REVIEW, "not on 2027 grid");
+    if (a.text && a.text === b.text) return out(SAME);
     const flat = (x) => (x.kind === "none" || x.kind === "yes" ? x.kind : null);
-    if (flat(a) && flat(b)) return { change: flat(a) === flat(b) ? SAME : CHANGED, a, b };
+    if (flat(a) && flat(b)) return out(flat(a) === flat(b) ? SAME : CHANGED);
     const isAmt = (x) => x.kind === "amount" || x.kind === "amount-text";
-    if (flat(a) === "none" && isAmt(b)) {
-      return { change: b.tokens.every((t) => t === "$0") ? REVIEW : CHANGED, a, b };
+    const zeroOnlyAmt = (x) => isAmt(x) && x.facts.dollars.length > 0 && x.facts.dollars.every((n) => n === 0) && !meaningfulFacts(x.facts);
+    if (flat(a) === "none" && isAmt(b)) return out(zeroOnlyAmt(b) ? REVIEW : CHANGED, zeroOnlyAmt(b) ? "check SOB" : "");
+    if (flat(b) === "none" && isAmt(a)) return out(zeroOnlyAmt(a) ? REVIEW : CHANGED, zeroOnlyAmt(a) ? "check SOB" : "");
+
+    const fa = a.facts || emptyFacts();
+    const fb = b.facts || emptyFacts();
+    const aNZ = fa.dollars.filter((n) => n !== 0);
+    const bNZ = fb.dollars.filter((n) => n !== 0);
+    const periodDiff = a.period && b.period && a.period !== b.period;
+    const dollarDiff = !sameArr(aNZ, bNZ) || (fa.dollars.includes(0) && !fb.dollars.includes(0) && aNZ.length > 0);
+    const pctDiff = !sameArr(fa.percents, fb.percents);
+    const countDiff = !sameCounts(fa.counts, fb.counts);
+    const freqDiff = !sameFreqs(fa.freqs, fb.freqs);
+    const rangeDiff = !sameArr(fa.ranges, fb.ranges);
+    const unlimitedDiff = fa.unlimited !== fb.unlimited;
+    if (periodDiff || dollarDiff || pctDiff || countDiff || freqDiff || rangeDiff || unlimitedDiff) {
+      const hints = [];
+      if (dollarDiff) {
+        const h = costHintFor(key, fa, fb, aNZ, bNZ);
+        if (h) hints.push(h);
+      }
+      if (countDiff) {
+        const h = countHintFor(fa, fb);
+        if (h) hints.push(h);
+      }
+      return out(CHANGED, hints.length === 1 ? hints[0] : "");
     }
-    if (flat(b) === "none" && isAmt(a)) {
-      return { change: a.tokens.every((t) => t === "$0") ? REVIEW : CHANGED, a, b };
-    }
-    if (isAmt(a) && isAmt(b) && (NUMERIC_KEYS[key] || (a.kind === "amount" && b.kind === "amount"))) {
-      const samePeriod = !a.period || !b.period || a.period === b.period;
-      if (sameTokens(a, b)) return { change: samePeriod ? SAME : CHANGED, a, b };
-      // One side only adds detail ("$1,500" vs "$1,500 allowance · $0 copay"): wording, not a clear change.
-      const sub = (x, y) => x.tokens.length && x.tokens.every((t) => y.tokens.includes(t));
-      if (samePeriod && (sub(a, b) || sub(b, a))) return { change: REVIEW, a, b };
-      return { change: CHANGED, a, b };
-    }
-    return { change: REVIEW, a, b };
+    const ta = significantText(a.display);
+    const tb = significantText(b.display);
+    if (ta === tb) return out(SAME);
+    if (meaningfulFacts(fa) || meaningfulFacts(fb)) return out(SAME);
+    const zeroOnly = (f) => f.dollars.includes(0) && !meaningfulFacts(f);
+    if ((zeroOnly(fa) || zeroOnly(fb)) && (!ta || !tb)) return out(SAME);
+    return out(REVIEW);
   }
 
   // ─── Rows ──────────────────────────────────────────────────────────────────
@@ -648,25 +801,26 @@
       const l27 = pair.id27 ? landscapeRow(cms, 2027, pair.id27, pair.county) : null;
       const raw26 = cmsCell(l26, key);
       const raw27 = cmsCell(l27, key);
-      if (pair.kind === "new") return { v26: "No 2026 plan", v27: raw27 || (key === "starRating" ? "Not posted yet" : "Not listed"), change: NEW };
-      if (pair.kind === "ending") return { v26: raw26 || "Not listed", v27: "Not offered", change: DASH };
+      if (pair.kind === "new") return { v26: "No 2026 plan", v27: raw27 || (key === "starRating" ? "Not posted yet" : "Not listed"), change: NEW, changeLabel: NEW };
+      if (pair.kind === "ending") return { v26: raw26 || "Not listed", v27: "Not offered", change: DASH, changeLabel: DASH };
       if (key === "starRating" && !raw27) {
-        return { v26: raw26 || "Not listed", v27: "Not posted yet", change: "Pending" };
+        return { v26: raw26 || "Not listed", v27: "Not posted yet", change: "Pending", changeLabel: "Pending" };
       }
-      if (!raw26 && !raw27) return { v26: "Not listed", v27: "Not listed", change: "" };
+      if (!raw26 && !raw27) return { v26: "Not listed", v27: "Not listed", change: "", changeLabel: "" };
       const cmp = compareValues(raw26, raw27, key);
-      return { v26: raw26 || "Not listed", v27: raw27 || "Not listed", change: cmp.change };
+      return { v26: raw26 || "Not listed", v27: raw27 || "Not listed", change: cmp.change, changeLabel: cmp.label };
     }
     const p26 = pair.plan26;
     const p27 = pair.plan27;
-    if (pair.kind === "new") return { v26: DASH, v27: displayFor(p27 && p27[key], key), change: NEW, blank: isBlank(p27 && p27[key]) };
-    if (pair.kind === "ending") return { v26: displayFor(p26 && p26[key], key), v27: "Not offered", change: DASH, blank: isBlank(p26 && p26[key]) };
-    if (pair.kind === "no2026row") return { v26: "Not on file", v27: displayFor(p27 && p27[key], key), change: DASH, blank: isBlank(p27 && p27[key]) };
+    if (pair.kind === "new") return { v26: DASH, v27: displayFor(p27 && p27[key], key), change: NEW, changeLabel: NEW, blank: isBlank(p27 && p27[key]) };
+    if (pair.kind === "ending") return { v26: displayFor(p26 && p26[key], key), v27: "Not offered", change: DASH, changeLabel: DASH, blank: isBlank(p26 && p26[key]) };
+    if (pair.kind === "no2026row") return { v26: "Not on file", v27: displayFor(p27 && p27[key], key), change: DASH, changeLabel: DASH, blank: isBlank(p27 && p27[key]) };
     const cmp = compareValues(p26 && p26[key], p27 && p27[key], key);
     return {
       v26: cmp.a.kind === "blank" ? "Not listed" : cmp.a.display,
       v27: cmp.b.kind === "blank" ? "Not listed" : cmp.b.display,
       change: cmp.change,
+      changeLabel: cmp.label,
       blank: cmp.change === "",
     };
   }
@@ -864,7 +1018,7 @@
       const vals = [row.label];
       const rk = ["label"];
       row.cells.forEach((cell) => {
-        vals.push(cell.v26, cell.v27, cell.change || "");
+        vals.push(cell.v26, cell.v27, cell.changeLabel || cell.change || "");
         const k = cell.change === CHANGED ? "changed" : cell.change === SAME ? "same" : cell.change === REVIEW ? "review" : "text";
         rk.push(k === "changed" ? "changed-cell" : "text", k === "changed" ? "changed-cell" : "text", k);
       });
@@ -909,7 +1063,7 @@
 
     const sources = (cms && cms.sources) || {};
     const srcText = [
-      "Change: Changed = amounts differ · Same = same amounts · Review = wording differs or one year not listed, check the SOB.",
+      "Change: Changed = dollars, percents, counts, allowances, frequencies, or covered vs not covered differ · Same = those match after wording is ignored · Review = a year is missing or the comparison is unclear (reason shown; check the SOB).",
       "Sources: THEI 2026 / 2027 Plan Comparison Grids" +
         (sources.landscape2026 ? "; " + sources.landscape2026 : "") +
         (sources.landscape2027 ? "; " + sources.landscape2027 : "") +
@@ -932,7 +1086,7 @@
       hyperlinks,
       colCount,
       counts: pairs.map((_, i) => pairCounts(rows, i)),
-      cols: [{ wch: 30 }].concat(...pairs.map(() => [{ wch: 30 }, { wch: 30 }, { wch: 11 }])),
+      cols: [{ wch: 30 }].concat(...pairs.map(() => [{ wch: 30 }, { wch: 30 }, { wch: 28 }])),
       filenameXlsx: yearCompareFilename(pairs, clientName, "xlsx"),
       filenamePdf: yearCompareFilename(pairs, clientName, "pdf"),
     };
@@ -982,7 +1136,7 @@
       const n = model.counts[i];
       if (pair.kind !== "new" && pair.kind !== "ending") {
         const rowsWord = (k) => k + (k === 1 ? " row" : " rows");
-        lines.push(`Unchanged: ${rowsWord(n.same)}` + (n.review ? ` · Review (wording differs / not listed one year): ${rowsWord(n.review)} — see export` : ""));
+        lines.push(`Unchanged: ${rowsWord(n.same)}` + (n.review ? ` · Review (missing a year / unclear): ${rowsWord(n.review)} — see export` : ""));
       }
       const s26 = pair.plan26 && pair.plan26.sobUrl;
       const s27 = pair.plan27 && pair.plan27.sobUrl;
@@ -1070,7 +1224,7 @@
         return { hpt: Math.min(15 * Math.max(1, Math.ceil(longest / 80)) + 6, 120) };
       }
       const lines = row.reduce((mx, cell, c) => {
-        const per = c === 0 ? 28 : (c - 1) % 3 === 2 ? 10 : 28;
+        const per = c === 0 ? 28 : (c - 1) % 3 === 2 ? 26 : 28;
         const n = String(cell == null ? "" : cell).split("\n").reduce((s, part) => s + Math.max(1, Math.ceil(part.length / per)), 0);
         return Math.max(mx, n);
       }, 1);
@@ -1194,7 +1348,7 @@
         theme: "grid",
         styles: { fontSize: 8, cellPadding: 3, valign: "top", overflow: "linebreak" },
         headStyles: { fillColor: [91, 44, 139], textColor: 255, fontStyle: "bold", halign: "center" },
-        columnStyles: { 0: { cellWidth: 130, fontStyle: "bold" }, 3: { cellWidth: 56, halign: "center" } },
+        columnStyles: { 0: { cellWidth: 130, fontStyle: "bold" }, 3: { cellWidth: 88, halign: "center" } },
         didParseCell: function (data) {
           if (data.section !== "body") return;
           const kind = (bodyKinds[data.row.index] || [])[data.column.index];
@@ -1264,6 +1418,7 @@
     resolveYearPairs,
     normalizeValue,
     compareValues,
+    changeLabel,
     buildYearCompareModel,
     buildYearCompareChat,
     buildYearCompareWorkbook,
