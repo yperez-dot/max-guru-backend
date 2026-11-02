@@ -2310,6 +2310,7 @@ function bump(map, reason) {
  */
 function selectComparison(doctors, askText, opts = {}) {
   const ask0 = String(askText || '');
+  const groupYear = require('./planYear').detectPlanYear(ask0);
   // Rule 10: until she confirms a doctor match, its In/Out results do not count.
   const confirmedMatches = [...ask0.matchAll(/Doctor matches confirmed:\s*([^\n]+)/gi)]
     .flatMap((m) => m[1].split(/[,;]/)).map((x) => x.replace(/\.$/, '').trim()).filter(Boolean);
@@ -2336,7 +2337,7 @@ function selectComparison(doctors, askText, opts = {}) {
     });
     if (!issue || typedNpi || saidYes || confirmedMatches.some((nm) => sameDoctorName(nm, who))) return { ...d, identityPending: '' };
     return { ...d, identityPending: issue, inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] };
-  }).map((d) => (d.identityPending ? d : GROUPS.applyGroupRuleToDoctor(d, ask0, (label) => carrierKey(label))));
+  }).map((d) => (d.identityPending ? d : GROUPS.applyGroupRuleToDoctor(d, ask0, (label) => carrierKey(label), groupYear)));
   // Dentists are drawn in the grid but never counted ("No single plan has all the doctors", ranking, counts).
   const n = docs.filter((d) => !isDentalProvider(d)).length;
   // "Carriers requested: Doctors HealthCare, Solis, Devoted" (comparisonAskText) — newest wins.
@@ -2944,9 +2945,9 @@ function selectComparison(doctors, askText, opts = {}) {
   } else {
     remapNotices.forEach((n) => { if (!out.flags.includes(n)) out.flags.push(n); });
   }
-  // Medical-group carrier rules win over a directory In (BHMG primary care — Yahoska, 2026-10-17).
+  // Medical-group carrier rules win over a directory In (BHMG / UM PCP — Yahoska).
   const cols = [...new Set([...(out.columns || []), ...(out.ranked || [])])];
-  for (const line of GROUPS.applyGroupRulesToColumns(cols, docs, shortDoctor)) out.flags.push(line);
+  for (const line of GROUPS.applyGroupRulesToColumns(cols, docs, shortDoctor, groupYear)) out.flags.push(line);
   return out;
 }
 

@@ -17,7 +17,7 @@ Agents may ask for **2027** anytime. Live `#plan-data` **defaults to 2027** (AEP
 | Doctors 2027 (9 plans with green cells; DrMax, DrSelect, DrExtraCare, DrFullDual, DrPartialDual) | `carriers/doctors-plans-florida-2027` |
 | Aetna 2027 (including new Partial Dual Select H1609-103) | `carriers/aetna-plans-florida-2027` |
 | HealthSun 2027 (12 plans with green cells across Miami-Dade/Broward; includes VitalCare / MediSun Extra / MediSun Full Dual Extra) | `carriers/healthsun-plans-florida-2027` |
-| 2027 hospital cuts (UM / Bascom Palmer off MedicareMax 1/1/2027) | `carriers/hospital-networks-2027` |
+| 2027 hospital × carrier Yes/No (Baptist PCPs, UM PCP, UM hospital) | `carriers/hospital-networks-2027`, `carriers/uhealth-ma-network-2027`, `data/hospitals-x-carrier-2027.json` |
 | HealthSpring / Cigna: **no** 2027 MA in Miami-Dade or Broward | `carriers/healthspring-plans-florida-2027` |
 
 ## Plan dollars

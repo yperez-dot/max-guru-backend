@@ -2,7 +2,7 @@
 
 > 84 hospitals tracked across South Florida. Data current as of 2026 plan year.
 
-**2027:** UHealth / UM and Bascom Palmer drop off MedicareMax (PCN) on **1/1/2027**. Other hospital Yes/— marks are still 2026 until the Oct 1 directory. See `carriers/hospital-networks-2027`.
+**2027:** Use the live THEI **Hospitals x Carrier** tab (`data/hospitals-x-carrier-2027.json`, `carriers/hospital-networks-2027`) — including **Baptist PCPs** (FL BLUE + MedicareMax only) and **UM PCP** (HealthSun + Simply only). Do not answer a PCP question from a hospital row. This 2026 table is for 2026-only asks.
 
 ## Full Lookup Table
 

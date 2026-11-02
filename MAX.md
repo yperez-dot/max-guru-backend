@@ -94,6 +94,7 @@ Full chat rules: `services/claude.js` `SYSTEM_PROMPT` (also baked into the HTML 
 | Finished client-comp archive (Yahoska) | https://docs.google.com/spreadsheets/d/1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A/edit — **not** the 2027 benefit grid, **not** a formulary source |
 | In-progress client Drs/Rx sheet | https://docs.google.com/spreadsheets/d/17yvEEoToayROnm6jR0sIfk9IbxJwVYWVhiqOJzsiCBc/edit |
 | Refresh 2027 KB from that sheet | `scripts/export_2027_grid_to_kb.py` |
+| 2027 Hospitals x Carrier (Baptist PCPs / UM PCP / hospital Yes-No) | `data/hospitals-x-carrier-2027.json` ← `scripts/export_2027_hospitals.py` (gid 369609513) |
 | SoB URL refresh from the **2026** workbook | `scripts/sync_sob_urls_from_grid.py` (hyperlinks only) |
 | Benefit dollars from the **2026** workbook | `scripts/sync_thei_grid_to_max.py` (default `--year 2026`) |
 | Live `#plan-data` → **2027** (non-yellow) | `scripts/sync_thei_grid_to_max.py --year 2027` |
@@ -212,7 +213,7 @@ Last live sync: **2026-10-02** from Google export of `1BYhBfOzdeJOMEVXIKJkHrZzEo
 - **Plan names drop the grid's working tags.** `**NEW 2027**`, `(NEW 2027)`, `- NEW 2027`, bare `**NEW**` and stray `**` are not part of a marketing name. The 2027 sync strips them (`clean_plan_marketing_name` in `scripts/thei_grid_common.py`) and every render path runs the same rules again (`artifacts/plan-name.js`: chat tables, compare card, Excel/PDF, year compare, saved workups). `NON-COMMISSIONABLE` on `R0759-001` stays. The KB still flags new plans as `NEW 2027` in the heading.
 - **New 2027 PBPs already on the sheet:** CarePlus CareBreeze `H1019-154`, CarePlus CareFree Giveback `H1019-065`, Devoted GIVEBACK EXTRAS `H1290-110`, Aetna Partial Dual Select `H1609-103`, HumanaChoice Giveback `H7617-145`.
 - **Closed new enroll 2027:** UHC Dual Complete Choice PPO `H1889-002`, Dual Complete FL-Y4 PPO `H1889-026`.
-- **Hospital:** UHealth / UM and Bascom Palmer **out of MedicareMax 1/1/2027**. Other hospital Yes/— stay 2026 until the Oct 1 directory (`carriers/hospital-networks-2027`).
+- **Hospital / PCP rows (2027):** THEI **Hospitals x Carrier** tab is the source of truth (`data/hospitals-x-carrier-2027.json`, gid 369609513). **Baptist PCPs** = FL BLUE and MedicareMax only. **UM PCP** = HealthSun and Simply only. Baptist Hospital and University of Miami stay hospital rows — Humana has the UM *hospital*, not UM primary care. Extra carriers with no grid column (Prominence, Freedom, Optimum) are from UHealth's site, labeled as such (`carriers/uhealth-ma-network-2027`). 2026 hospital Yes/— stay in `hospital-networks` for 2026-only asks.
 - Live `#plan-data` **defaults to 2027** (AEP). After the Oct 2026 restyle the working sheet cleared classic light-green fills — confirmed / working 2027 numbers are typically white/uncolored; **yellow still means leftover/unconfirmed** and is never copied into live plan-data. 2026 stays in `#plan-data-2026` / `artifacts/plan-data-2026.json`. Re-sync: `python3 scripts/sync_thei_grid_to_max.py --year 2027` plus `python3 scripts/export_2027_grid_to_kb.py`.
 
 Phase 2 artifacts: `artifacts/reports/sob-phase2-audit.md`, `sob-phase2-corrections.xlsx`, `sob-phase2-applied-fixes.json`.
@@ -247,6 +248,7 @@ The booklet is two-column: **DrMax-Dade left, DrSelect-SFL right**. Reading the 
 python3 scripts/sync_thei_grid_to_max.py --year 2027   # non-yellow → live #plan-data
 python3 scripts/export_2027_grid_to_kb.py              # same cells → max-knowledge/
 python3 scripts/export_2027_plan_info_to_kb.py         # Plan Info tab → max-knowledge/carriers/plan-info-2027.md
+python3 scripts/export_2027_hospitals.py               # Hospitals x Carrier tab → data/hospitals-x-carrier-2027.json + hospital-networks-2027.md
 
 # 2026 workbook (archive / year toggle only)
 # Fresh THEI xlsx at /tmp/thei-grid.xlsx
