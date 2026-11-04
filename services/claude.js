@@ -130,9 +130,11 @@ You have access to THEI's knowledge base via search_knowledge and get_knowledge_
 
 It includes:
 - Plan / carrier / hospital reference markdown under max-knowledge/
-- Agent Medicare Hub pack under hub/* (compliance, SEPs by state, certs, Medicaid/LIS, contracting, retention, HRA, carrier contacts, AEP training, libraries, etc.)
+- Agent Medicare Hub pack under hub/* (compliance, SEPs by state, certs, Medicaid/LIS, contracting blackouts, retention, HRA, carrier contacts, AEP training, libraries, etc.)
+- THEI agent onboarding pack under onboarding/* (process, per-carrier contracting, release/transfer, Nextere steps)
 
-For Hub topics (SEP, compliance, SOA, certs, contracting, Medicaid/LIS, retention, "what's on the Hub"): ALWAYS search_knowledge first. Prefer hub/seps-by-state/FL for Florida SEPs.
+For Hub topics (SEP, compliance, SOA, certs, Medicaid/LIS, retention, "what's on the Hub"): ALWAYS search_knowledge first. Prefer hub/seps-by-state/FL for Florida SEPs.
+For agent onboarding, carrier contracting, appointments, release/transfer, Nextere, or AgentSync: ALWAYS search_knowledge first. Prefer onboarding/carrier-contracting, onboarding/process, onboarding/release-transfer, and onboarding/nextere-steps over generic hub/getting-started, hub/nextere-guide, or hub/agentsync-guide. hub/contracting-blackout is Hub blackout dates only — per-carrier steps live in onboarding/*. Nextere is only Doctors, HealthSun, and Solis (tenant NHP).
 For 2027 / PY2027 / AEP 2027 questions: ALWAYS search_knowledge first (medicare-reference, hub/aep-2027-training, hub/compliance, hub/contracting-blackout, plan-year-2027, carriers/2027-ma-blackout-dates, carriers/healthspring-plans-florida-2027, any *2027* plan notes). PLAN DATA itself is 2027 by default. For HealthSpring/Cigna + Miami-Dade/Broward 2027, the answer is "no plan to enroll into" -- not "I don't have 2027 dollars yet."
 For 2026 plan benefit dollars / plan IDs, use archived 2026 PLAN DATA only when the agent asked for 2026; never fill a blank 2027 cell from 2026.
 For crowns / bridges / implants / dentures / fillings / root canals / extractions on a named plan: read those dental* fields and search_knowledge (plan ID + procedure) before hedging to SoB.
@@ -157,13 +159,13 @@ ${COMPARISON_TABLE_RULES}`;
 const TOOLS = [
   {
     name: 'search_knowledge',
-    description: 'Search THEI knowledge base: Agent Medicare Hub docs (SEP tracker, compliance, certs, contracting, Medicaid/LIS, retention, HRA, carrier contacts) plus carrier/plan reference markdown. Use for Hub/ops/SEP/compliance questions.',
+    description: 'Search THEI knowledge base: Agent Medicare Hub docs (SEP tracker, compliance, certs, Medicaid/LIS, retention, HRA, carrier contacts), THEI onboarding/carrier-contracting docs, plus carrier/plan reference markdown. Use for Hub/ops/SEP/compliance/onboarding/contracting questions.',
     input_schema: {
       type: 'object',
       properties: {
         query: {
           type: 'string',
-          description: 'Search query — e.g. "Florida disaster SEP", "SOA 48-hour", "AHIP certification", "Humana non-commissionable"'
+          description: 'Search query — e.g. "Florida disaster SEP", "SOA 48-hour", "UnitedHealthcare contracting", "AHIP certification", "Humana non-commissionable"'
         }
       },
       required: ['query']
