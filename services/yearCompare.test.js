@@ -104,6 +104,17 @@ describe('value normalization', () => {
     assert.equal(c('$1,500', '$1,500 allowance · $0 copay', 'dental'), 'Same');
     assert.equal(c('', '$50', 'otc'), 'Review');
     assert.equal(c('', '', 'otc'), '');
+    // Format / wording only — same dollars, counts, coverage.
+    assert.equal(c(0, '$0 per admit · unlimited days', 'inpatientHospital'), 'Same');
+    assert.equal(c('$0', '$0 per admit · unlimited days', 'inpatientHospital'), 'Same');
+    assert.equal(c('Combined with OTC if member qualifies', 'Combined with OTC Card ($110/mo)', 'groceryCardDetail'), 'Same');
+    assert.equal(
+      c('$0 x 25 visits x 1 year', '$0 · chronic LBP up to 20/yr Routine acupuncture: $0, up to 25 visits', 'acupuncture'),
+      'Same'
+    );
+    // Real number / coverage changes stay Changed.
+    assert.equal(c('$0 / $50', 'OP surgery $20 · ASC $0', 'outpatientHospital'), 'Changed');
+    assert.equal(c(50, '40%', 'tier4'), 'Changed');
   });
 
   it('compares dollars, counts and coverage after wording is ignored', () => {
@@ -134,6 +145,23 @@ describe('value normalization', () => {
     assert.equal(c('n/a', 'N/A', 'groceryCardDetail').change, 'Same');
     assert.equal(c('1 x 5 years', '1 every 5 years', 'dentalDentures').change, 'Same');
     assert.equal(c('2 x year', '2/year', 'dentalFillings').change, 'Same');
+    // Grocery "combined with OTC ($110/mo)" restates the OTC row when OTC is $110 both years.
+    const grocery = yc.compareValues(
+      'Combined with OTC if member qualifies',
+      'Combined with OTC Card ($110/mo)',
+      'groceryCardDetail',
+      {
+        related26: { otc: '$110 x month' },
+        related27: { otc: '$110/mo Healthy Options (OTC for all members)' },
+      }
+    );
+    assert.equal(grocery.change, 'Same');
+    const acu = c(
+      '$0 x 25 visits x 1 year',
+      '$0 · chronic LBP up to 20/yr\nRoutine acupuncture: $0, up to 25 visits/yr',
+      'acupuncture'
+    );
+    assert.equal(acu.change, 'Same');
   });
 });
 
@@ -308,8 +336,15 @@ describe('H1036-054C example', () => {
   it('grades the benefit rows', () => {
     assert.equal(rowFor(m, 'Hearing Services').cells[0].change, 'Changed');
     assert.equal(rowFor(m, 'Tier 4').cells[0].change, 'Changed');
+    assert.equal(rowFor(m, 'Outpatient Hospital').cells[0].change, 'Changed');
     assert.equal(rowFor(m, 'Vision Allowance').cells[0].change, 'Same');
     assert.equal(rowFor(m, 'OTC').cells[0].change, 'Same');
+    assert.equal(rowFor(m, 'Grocery Card').cells[0].change, 'Same');
+    assert.equal(rowFor(m, 'Inpatient Hospital').cells[0].change, 'Same');
+    assert.equal(rowFor(m, 'Acupuncture').cells[0].change, 'Same');
+    assert.equal(rowFor(m, 'Advanced Imaging (MRI, CT, PET)').cells[0].change, 'Same');
+    assert.equal(rowFor(m, 'Ambulance').cells[0].change, 'Same');
+    assert.equal(rowFor(m, 'Dental').cells[0].change, 'Same');
     assert.equal(rowFor(m, 'Tier 5').cells[0].change, 'Same');
     assert.equal(rowFor(m, 'Crowns').cells[0].change, 'Review');
     const giveback = rowFor(m, 'Part B Rebate').cells[0];
@@ -322,7 +357,11 @@ describe('H1036-054C example', () => {
     assert.match(t, /\*\*2026 → 2027: Humana Gold Plus H1036-054C \(Miami-Dade\)\*\*/);
     assert.match(t, /- Hearing Services: \$1000 x 1 ear x 1 year → /);
     assert.match(t, /- Tier 4: \$50 → 40%/);
+    assert.match(t, /- Outpatient Hospital: \$0 \/ \$50 → /);
     assert.doesNotMatch(t, /- Vision Allowance/);
+    assert.doesNotMatch(t, /- Grocery Card/);
+    assert.doesNotMatch(t, /- Inpatient Hospital/);
+    assert.doesNotMatch(t, /- Acupuncture/);
     assert.doesNotMatch(t, /- Part B Rebate/);
     assert.match(t, /Unchanged: \d+ rows/);
     assert.match(t, /\[2026 SoB\]\(https:\/\/www\.humana-medicare\.com\/BenefitSummary\/2026PDFs\/H1036054000SB26\.pdf\)/);
