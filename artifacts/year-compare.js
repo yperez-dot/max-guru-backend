@@ -511,7 +511,7 @@
     plan: 1, approved: 1, location: 1, locations: 1, one: 1, way: 1, oneway: 1,
     x: 1, vs: 1, from: 1, after: 1, that: 1, unlimited: 1, covered: 1, included: 1,
     month: 1, monthly: 1, mo: 1, quarter: 1, quarterly: 1, qtr: 1, year: 1, yearly: 1,
-    annually: 1, annual: 1, yr: 1, days: 1, day: 1,
+    annually: 1, annual: 1, yr: 1, days: 1, day: 1, admit: 1, admission: 1, routine: 1,
   };
 
   /** Bare number → its display/compare reading for this row. */
@@ -533,11 +533,71 @@
     return { dollars: [], percents: [], counts: [], freqs: [], ranges: [], unlimited: false };
   }
 
+  function cloneFacts(f) {
+    const src = f || emptyFacts();
+    return {
+      dollars: src.dollars.slice(),
+      percents: src.percents.slice(),
+      counts: src.counts.map((c) => ({ n: c.n, unit: c.unit })),
+      freqs: src.freqs.map((x) => ({ n: x.n, every: x.every, unit: x.unit })),
+      ranges: src.ranges.slice(),
+      unlimited: src.unlimited,
+    };
+  }
+
   function pushUnique(arr, rec, eq) {
     if (!arr.some((x) => eq(x, rec))) arr.push(rec);
   }
 
-  function factsFromTokensAndRaw(tokens, raw) {
+  /**
+   * Medicare-covered acupuncture for chronic low back pain is a national benefit
+   * (12 visits / 90 days, max 20/yr), not a plan-specific change. Strip that clause
+   * so the classifier compares the plan's own routine copay / visit limit.
+   */
+  function stripMedicareChronicLbp(s) {
+    let t = String(s || "");
+    t = t.replace(
+      /chronic\s+(?:lbp|low\s+back\s+pain)(?:\s+acupuncture)?\s*[:·,]?\s*(?:up\s+to\s+|max\s+)?20\s*(?:\/\s*yr|visits?\s*(?:per|\/|a)\s*year)/gi,
+      " "
+    );
+    t = t.replace(
+      /chronic\s+(?:lbp|low\s+back\s+pain)(?:\s+acupuncture)?\s*[:·,]?\s*12\s+visits?\s*(?:in|\/)\s*90\s*days(?:[^.]{0,80}(?:max\s+)?20\s*(?:\/\s*yr|visits?\s*(?:per|\/|a)\s*year))?/gi,
+      " "
+    );
+    t = t.replace(/chronic\s+(?:lbp|low\s+back\s+pain)(?:\s+acupuncture)?(?:\s*\([^)]*\))?/gi, " ");
+    return t;
+  }
+
+  function combinedWithOtc(s) {
+    return /\bcombin(?:ed|e|ing)\b[\s\S]{0,80}\botc\b|\botc\b[\s\S]{0,80}\bcombin(?:ed|e|ing)\b/i.test(String(s || ""));
+  }
+
+  function dollarsNearOtc(raw) {
+    const found = [];
+    String(raw || "").replace(/otc[\s\S]{0,48}?\$\s*([\d,]+(?:\.\d+)?)/gi, (_m, n) => {
+      const v = Number(String(n).replace(/,/g, ""));
+      if (!found.includes(v)) found.push(v);
+      return _m;
+    });
+    String(raw || "").replace(/\$\s*([\d,]+(?:\.\d+)?)[\s\S]{0,48}?otc/gi, (_m, n) => {
+      const v = Number(String(n).replace(/,/g, ""));
+      if (!found.includes(v)) found.push(v);
+      return _m;
+    });
+    return found;
+  }
+
+  function dropDollars(facts, dollars) {
+    const drop = {};
+    (dollars || []).forEach((n) => {
+      drop[n] = true;
+    });
+    facts.dollars = facts.dollars.filter((n) => !drop[n]);
+    facts.freqs = facts.freqs.filter((x) => !drop[x.n]);
+    return facts;
+  }
+
+  function factsFromTokensAndRaw(tokens, raw, key) {
     const facts = emptyFacts();
     (tokens || []).forEach((t) => {
       if (t && t[0] === "$") {
@@ -553,7 +613,7 @@
         if (count) facts.counts.push({ n: Number(count[1]), unit: "covered" });
       }
     });
-    const s = String(raw || "");
+    const s = key === "acupuncture" ? stripMedicareChronicLbp(raw) : String(raw || "");
     if (/\bunlimited\b/i.test(s)) facts.unlimited = true;
     s.replace(/(\d+)\s*(?:one[-\s]?way\s+)?trips?\b/gi, (_m, n) => {
       pushUnique(facts.counts, { n: Number(n), unit: "trips" }, (a, b) => a.n === b.n && a.unit === b.unit);
@@ -567,12 +627,16 @@
       pushUnique(facts.counts, { n: Number(n), unit: "aids" }, (a, b) => a.n === b.n && a.unit === b.unit);
       return _m;
     });
+    const isDollarAmt = (n) => facts.dollars.includes(Number(n));
     s.replace(/(\d+)\s*[x×]\s*(?:(\d+)\s+)?(years?|year|months?|month|yr|mo)\b/gi, (_m, n, every, unit) => {
+      // "$110 x month" is money per period, not a count of 110.
+      if (!every && isDollarAmt(n)) return _m;
       const rec = { n: Number(n), every: every ? Number(every) : 1, unit: /^mo/.test(unit) ? "mo" : "yr" };
       pushUnique(facts.freqs, rec, (a, b) => a.n === b.n && a.every === b.every && a.unit === b.unit);
       return _m;
     });
     s.replace(/(\d+)\s*(?:per|\/)\s*(years?|year|yr|months?|month|mo)\b/gi, (_m, n, unit) => {
+      if (isDollarAmt(n)) return _m;
       const rec = { n: Number(n), every: 1, unit: /^mo/.test(unit) ? "mo" : "yr" };
       pushUnique(facts.freqs, rec, (a, b) => a.n === b.n && a.every === b.every && a.unit === b.unit);
       return _m;
@@ -583,6 +647,7 @@
       return _m;
     });
     s.replace(/\bmax\s+(\d+)\s*\/\s*(yr|year)\b/gi, (_m, n) => {
+      if (isDollarAmt(n)) return _m;
       const rec = { n: Number(n), every: 1, unit: "yr" };
       pushUnique(facts.freqs, rec, (a, b) => a.n === b.n && a.every === b.every && a.unit === b.unit);
       return _m;
@@ -595,13 +660,14 @@
     return facts;
   }
 
-  function attachFacts(n, raw) {
-    n.facts = factsFromTokensAndRaw(n.tokens, raw);
+  function attachFacts(n, raw, key) {
+    n.facts = factsFromTokensAndRaw(n.tokens, raw, key);
     return n;
   }
 
-  function significantText(raw) {
-    let t = String(raw || "").toLowerCase();
+  function significantText(raw, key) {
+    let t = key === "acupuncture" ? stripMedicareChronicLbp(raw) : String(raw || "");
+    t = t.toLowerCase();
     t = t.replace(/\$\s*[\d,]+(?:\.\d+)?/g, " ");
     t = t.replace(/\d+(?:\.\d+)?\s*%/g, " ");
     t = t.replace(/\bdays?\s*\d+\s*[-–]\s*\d+/g, " ");
@@ -650,21 +716,21 @@
     if (typeof v === "number" && key === "partBGiveback" && v > 0 && v < 10 && Number.isInteger(v)) {
       return { kind: "unclear", tokens: [], period: "", display: v + " (unclear, check SOB)", text: String(v), facts: emptyFacts() };
     }
-    if (typeof v === "number") return attachFacts(Object.assign({ period: "", text: String(v) }, readNumber(v, key)), String(v));
+    if (typeof v === "number") return attachFacts(Object.assign({ period: "", text: String(v) }, readNumber(v, key)), String(v), key);
     if (Array.isArray(v)) v = v.join("; ");
     const raw = String(v).replace(/\s+/g, " ").trim();
     if (/^[*\s]+$/.test(raw)) return { kind: "unclear", tokens: [], period: "", display: "* (see SOB)", text: "*", facts: emptyFacts() };
     const bare = raw.match(/^\$?\s*([\d,]+(?:\.\d+)?)\s*(%)?$/);
     if (bare) {
       const n = Number(bare[1].replace(/,/g, ""));
-      if (bare[2]) return attachFacts({ kind: "amount", tokens: [fmtPct(n)], period: "", display: fmtPct(n), text: raw }, raw);
+      if (bare[2]) return attachFacts({ kind: "amount", tokens: [fmtPct(n)], period: "", display: fmtPct(n), text: raw }, raw, key);
       // "50" on a drug tier could be $50 or 50%; "2" as a Part B giveback is not a real amount.
       // Show it exactly as stored and send it to Review instead of guessing.
       if (!/^\$/.test(raw) && ((TIER_KEYS[key] && n >= 1) || (key === "partBGiveback" && n > 0 && n < 10 && !/\./.test(raw)))) {
         return { kind: "unclear", tokens: [], period: "", display: raw + " (unclear, check SOB)", text: raw, facts: emptyFacts() };
       }
       const r = readNumber(n, key);
-      return attachFacts(Object.assign({ period: "", text: raw }, r), raw);
+      return attachFacts(Object.assign({ period: "", text: raw }, r), raw, key);
     }
     if (NONE_RE.test(raw)) return { kind: "none", tokens: [], period: "", display: raw, text: raw.toLowerCase(), facts: emptyFacts() };
     if (YES_RE.test(raw)) return { kind: "yes", tokens: [], period: "", display: raw, text: raw.toLowerCase(), facts: emptyFacts() };
@@ -695,7 +761,7 @@
       period: periodOf(raw),
       display: raw,
       text: raw.toLowerCase().replace(/[^a-z0-9$%.]+/g, " ").trim(),
-    }, raw);
+    }, raw, key);
   }
 
   function costHintFor(key, fa, fb, aNZ, bNZ) {
@@ -717,7 +783,7 @@
   }
 
   /** Changed | Same | Review | "" (both blank). Optional hint for the export label. */
-  function compareValues(v26, v27, key) {
+  function compareValues(v26, v27, key, ctx) {
     const a = normalizeValue(v26, key);
     const b = normalizeValue(v27, key);
     const out = (change, hint) => ({ change, hint: hint || "", a, b, label: changeLabel(change, hint) });
@@ -733,8 +799,25 @@
     if (flat(a) === "none" && isAmt(b)) return out(zeroOnlyAmt(b) ? REVIEW : CHANGED, zeroOnlyAmt(b) ? "check SOB" : "");
     if (flat(b) === "none" && isAmt(a)) return out(zeroOnlyAmt(a) ? REVIEW : CHANGED, zeroOnlyAmt(a) ? "check SOB" : "");
 
-    const fa = a.facts || emptyFacts();
-    const fb = b.facts || emptyFacts();
+    let fa = cloneFacts(a.facts);
+    let fb = cloneFacts(b.facts);
+    const bothCombinedOtc = combinedWithOtc(v26) && combinedWithOtc(v27);
+    if (bothCombinedOtc) {
+      const restated = [];
+      const addDollars = (arr) => (arr || []).forEach((n) => {
+        if (!restated.includes(n)) restated.push(n);
+      });
+      if (ctx && ctx.related26) addDollars(normalizeValue(ctx.related26.otc, "otc").facts.dollars);
+      if (ctx && ctx.related27) addDollars(normalizeValue(ctx.related27.otc, "otc").facts.dollars);
+      addDollars(dollarsNearOtc(v26));
+      addDollars(dollarsNearOtc(v27));
+      if (!restated.length) {
+        addDollars(fa.dollars);
+        addDollars(fb.dollars);
+      }
+      fa = dropDollars(fa, restated);
+      fb = dropDollars(fb, restated);
+    }
     const aNZ = fa.dollars.filter((n) => n !== 0);
     const bNZ = fb.dollars.filter((n) => n !== 0);
     const periodDiff = a.period && b.period && a.period !== b.period;
@@ -743,7 +826,10 @@
     const countDiff = !sameCounts(fa.counts, fb.counts);
     const freqDiff = !sameFreqs(fa.freqs, fb.freqs);
     const rangeDiff = !sameArr(fa.ranges, fb.ranges);
-    const unlimitedDiff = fa.unlimited !== fb.unlimited;
+    // "$0" vs "$0 unlimited days" is wording; extra unlimited trips/visits is a real add.
+    const unlimitedDiff =
+      fa.unlimited !== fb.unlimited &&
+      (fa.counts.length > 0 || fb.counts.length > 0 || fa.ranges.length > 0 || fb.ranges.length > 0);
     if (periodDiff || dollarDiff || pctDiff || countDiff || freqDiff || rangeDiff || unlimitedDiff) {
       const hints = [];
       if (dollarDiff) {
@@ -756,11 +842,13 @@
       }
       return out(CHANGED, hints.length === 1 ? hints[0] : "");
     }
-    const ta = significantText(a.display);
-    const tb = significantText(b.display);
+    if (bothCombinedOtc) return out(SAME);
+    const ta = significantText(a.display, key);
+    const tb = significantText(b.display, key);
     if (ta === tb) return out(SAME);
     if (meaningfulFacts(fa) || meaningfulFacts(fb)) return out(SAME);
-    const zeroOnly = (f) => f.dollars.includes(0) && !meaningfulFacts(f);
+    const zeroOnly = (f) => f.dollars.includes(0) && !f.percents.length && !f.counts.length && !f.freqs.length && !f.ranges.length;
+    if (zeroOnly(fa) && zeroOnly(fb)) return out(SAME);
     if ((zeroOnly(fa) || zeroOnly(fb)) && (!ta || !tb)) return out(SAME);
     return out(REVIEW);
   }
@@ -815,7 +903,7 @@
     if (pair.kind === "new") return { v26: DASH, v27: displayFor(p27 && p27[key], key), change: NEW, changeLabel: NEW, blank: isBlank(p27 && p27[key]) };
     if (pair.kind === "ending") return { v26: displayFor(p26 && p26[key], key), v27: "Not offered", change: DASH, changeLabel: DASH, blank: isBlank(p26 && p26[key]) };
     if (pair.kind === "no2026row") return { v26: "Not on file", v27: displayFor(p27 && p27[key], key), change: DASH, changeLabel: DASH, blank: isBlank(p27 && p27[key]) };
-    const cmp = compareValues(p26 && p26[key], p27 && p27[key], key);
+    const cmp = compareValues(p26 && p26[key], p27 && p27[key], key, { related26: p26, related27: p27 });
     return {
       v26: cmp.a.kind === "blank" ? "Not listed" : cmp.a.display,
       v27: cmp.b.kind === "blank" ? "Not listed" : cmp.b.display,
