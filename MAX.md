@@ -103,7 +103,7 @@ Full chat rules: `services/claude.js` `SYSTEM_PROMPT` (also baked into the HTML 
 | Benefit dollars from the **2026** workbook | `scripts/sync_thei_grid_to_max.py` (default `--year 2026`) |
 | Live `#plan-data` → **2027** (non-yellow) | `scripts/sync_thei_grid_to_max.py --year 2027` |
 | SEPs, SOA, certs, Hub ops | `max-knowledge/hub/*` — live tracker is SoT, not the old JSON snapshot |
-| Agent onboarding, per-carrier contracting, release/transfer, Nextere | `max-knowledge/onboarding/*` (Notion + THEI decks; prefer over generic Hub getting-started) |
+| Agent onboarding, per-carrier contracting, release/transfer, Nextere | `max-knowledge/onboarding/*` — files keep sources (Notion + THEI decks); Max must NEVER show them in chat. Asks first-time vs moving (and corp vs individual) when unclear — claude.js Rule 2a-ii |
 | Behavior / non-comm | `max-knowledge/max-behavior-rules.md`, `thei-plan-grid-noncommissionable.md` |
 
 Grid workbook (export) is expected at `/tmp/thei-grid.xlsx` when you run the sync scripts.
@@ -416,7 +416,7 @@ Cursor Max reads the whole repo. **Live chat only searches `max-knowledge/**/*.m
 
 Write it in this file (or `max-knowledge/` if the **chatbot** must cite it). Next Max session has no other memory. Confirmed 2027 plan dollars belong in `max-knowledge/` as soon as they are SoB-checked — that is how live Max “has it.”
 
-- 2026-11-04 agent onboarding / carrier contracting: live Max cites `onboarding/process`, `onboarding/carrier-contracting`, `onboarding/release-transfer`, `onboarding/nextere-steps` (THEI Notion + decks). Nextere = Doctors / HealthSun / Solis only, tenant NHP. Prefer those over Hub getting-started when an agent asks e.g. UHC contracting.
+- 2026-11-04 agent onboarding / carrier contracting: live Max answers from `max-knowledge/onboarding/*`. 2026-11-04 Yahoska: for onboarding / contracting / release-transfer / Nextere, NEVER cite or mention sources (no Source line, Sources footer, Notion, slides, decks, Hub, documents, or KB file names) — just state the answer (claude.js Rule 2a). Nextere = Doctors / HealthSun / Solis only, tenant NHP. Use those over Hub getting-started when an agent asks e.g. UHC contracting.
 
 - 2026-10-07 paste parser: New-client paste accepts lowercase surnames, doctors listed with no "Doctors:" label right after the ZIP (incl. middle initials like "Jorge G. Ruiz"), and short plan ids (H1045-5-0 → H1045-005, added to the comparison).
 

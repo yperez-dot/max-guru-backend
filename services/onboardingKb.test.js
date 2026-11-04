@@ -52,6 +52,13 @@ describe('THEI onboarding / carrier contracting KB', () => {
     assert.match(doc, /USE MGA form[\s\S]*Humana MGA/i);
   });
 
+  it('prompt forbids sources for onboarding answers', () => {
+    const src = fs.readFileSync(path.join(__dirname, 'claude.js'), 'utf8');
+    assert.match(src, /ONBOARDING \/ CONTRACTING -- NO SOURCES IN CHAT/);
+    assert.match(src, /contracting for the first time, or moving from another agency/);
+    assert.match(src, /corporate \(agency\) contract or an individual one/);
+  });
+
   it('onboarding markdown has no SSN-shaped values', () => {
     const files = fs.readdirSync(ONBOARDING_DIR).filter((f) => f.endsWith('.md'));
     assert.ok(files.length >= 4);
