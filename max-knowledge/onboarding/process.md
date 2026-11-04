@@ -1,12 +1,10 @@
 # THEI Agent Onboarding Process
 
-Source: THEI Notion pages **Agent Onboarding & Contracting** (2026-07-13) and **Agent Onboarding Process Guide** playbook (2026-05-30).
-Conflict rule: prefer these Notion pages over generic Hub `hub/getting-started`. Hub still has AgentSync / Nextere portal how-tos.
 This file is process only — no agent names, SSNs, DOBs, NPNs, license numbers, or personal contact info.
 
-Nextere vs AgentSync: **Nextere is only for Doctors, HealthSun, and Solis** (tenant **NHP**). Other carriers go through AgentSync / AgentX / the carrier portal. See `onboarding/nextere-steps` and `onboarding/carrier-contracting`.
+Nextere vs AgentSync: **Nextere is only for Doctors, HealthSun, and Solis** (tenant **NHP**). Other carriers go through AgentSync / AgentX / the carrier portal.
 
-FMOs: **New Health Partners (NHP)** and **YourPlanChoice, LLC** are both active, for different carriers. Carriers are tagged by FMO in `onboarding/carrier-contracting`.
+FMOs: **New Health Partners (NHP)** and **YourPlanChoice, LLC** are both active, for different carriers. Each carrier is tied to one FMO.
 
 ---
 
@@ -37,7 +35,7 @@ Portal: https://www.agentmedicarehub.com/start (bilingual EN/ES).
 
 ### STEP 1 — New agent recruited (about 2 minutes)
 
-1. Open the Agent Onboarding Tracker in Notion and add a row.
+1. Open the Agent Onboarding Tracker and add a row.
 2. Fill type (GA or Individual), language preference, date added, status **New Lead**, next action: send portal link + DocuSign.
 3. Save.
 
@@ -93,4 +91,3 @@ Thirty days after Active: personal check-in. Record the date and any feedback.
 
 Process forms only (blank): W-9, ACH authorization, Aetna Notice of Intent / Transfer Release, Doctors HealthCare Joinder Agreement, Doctors HealthCare Assignment of Commission.
 
-Related: Carrier Contracting & Release Guide (`onboarding/carrier-contracting`, `onboarding/release-transfer`), Nextere walkthrough (`onboarding/nextere-steps`).

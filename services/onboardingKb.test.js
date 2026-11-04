@@ -45,11 +45,23 @@ describe('THEI onboarding / carrier contracting KB', () => {
     assert.match(doc, /Do not use Nextere for UnitedHealthcare/i);
   });
 
-  it('unattributed release slides stay unlabeled', () => {
+  it('unattributed release processes stay unlabeled', () => {
     const doc = getKnowledgeByKey('onboarding/release-transfer');
-    assert.match(doc, /Unattributed slides/);
+    assert.match(doc, /Unattributed release processes/);
     assert.match(doc, /Do not guess a carrier|do not guess the carrier/i);
     assert.match(doc, /USE MGA form[\s\S]*Humana MGA/i);
+  });
+
+  it('onboarding markdown never cites sources', () => {
+    for (const f of fs.readdirSync(ONBOARDING_DIR).filter((x) => x.endsWith('.md'))) {
+      const text = fs.readFileSync(path.join(ONBOARDING_DIR, f), 'utf8');
+      assert.doesNotMatch(text, /Notion|slide|deck|Source:|onboarding\//i, `${f} mentions a source`);
+    }
+  });
+
+  it('prompt forbids sources for onboarding answers', () => {
+    const src = fs.readFileSync(path.join(__dirname, 'claude.js'), 'utf8');
+    assert.match(src, /ONBOARDING \/ CONTRACTING -- NO SOURCES/);
   });
 
   it('onboarding markdown has no SSN-shaped values', () => {

@@ -1,9 +1,6 @@
 # Nextere onboarding steps (Doctors, HealthSun, Solis)
 
-Source: THEI **Nextere Complete Agent Onboarding** PowerPoint (Nextere onboarding deck). Hub `hub/nextere-guide` is the short Hub page — this file is the step-by-step.
-Conflict rule: prefer this deck + Notion onboarding pages over the Hub page when they disagree.
-
-**Nextere is only for Doctors HealthPlan, HealthSun, and Solis.** Do not use Nextere for UnitedHealthcare / UHC, Humana, Aetna, or other YourPlanChoice carriers — those go through AgentSync / AgentX / the carrier portal (`onboarding/carrier-contracting`).
+**Nextere is only for Doctors HealthPlan, HealthSun, and Solis.** Do not use Nextere for UnitedHealthcare / UHC, Humana, Aetna, or other YourPlanChoice carriers — those go through AgentSync / AgentX / the carrier portal.
 
 **Tenant: always enter `NHP`.** That field must be consistent across accounts.
 
@@ -46,7 +43,7 @@ After logging back in: left sidebar **Contracts** → open the carrier request f
 
 ## STEPS 19–23 — Set up the Medicare contract
 
-1. **Carrier:** only **Doctors HealthPlan**, **HealthSun**, or **Solis**. (The deck example uses Solis.)
+1. **Carrier:** only **Doctors HealthPlan**, **HealthSun**, or **Solis**.
 2. **States:** Florida, Kansas, Missouri, and/or Texas, as applicable.
 3. Say whether currently contracted with that carrier.
 4. **View Licenses** for the selected state(s) before continuing.
@@ -63,4 +60,4 @@ Confirm then **Save**:
 - State (example): Florida
 - Contract status: No (when it is a new contract)
 
-Updates come by email. Transfers often need a release letter uploaded when prompted (`onboarding/release-transfer`).
+Updates come by email. Transfers often need a release letter uploaded when prompted.
