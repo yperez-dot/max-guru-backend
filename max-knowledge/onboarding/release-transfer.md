@@ -1,5 +1,8 @@
 # THEI agency–agent release and transfer by carrier
 
+Source (preferred): THEI Notion **Carrier Contracting & Release Guide** database (includes 2026 MA Carrier FAQ). Supplement: Google Slides **Agency-Agent Release & Transfer by Carrier**. Hub `hub/contracting-blackout` is the Hub blackout table only.
+Conflict rule: **prefer the Notion guide**. Where the slides disagree (dates, extra steps), keep Notion and note the slide text. **Do not guess a carrier** for unattributed slides.
+
 Nextere carriers (Doctors, HealthSun, Solis) sit under New Health Partners. YourPlanChoice, LLC carriers use the FAQ rows below.
 
 ---
@@ -8,12 +11,12 @@ Nextere carriers (Doctors, HealthSun, Solis) sit under New Health Partners. Your
 
 - **Release type:** Full release required. Top of hierarchy must release. No partial releases. Corp release covers downlines if the Downline box is checked on the Aetna MA/PDP release form **and** those downlines are not the same contract level as the moving agent (otherwise they roll to the next upline). Written release, or 90-day intent to transfer.
 - **Contract level / upline change:** new link at the target level. Agent must move at the same level; can upgrade after 90 days.
-- **Blackout:** 10/1 – 12/31. No transfers during AEP; requests made during AEP wait until January 1.
-- **Notes:** All pending business resolved first. Commissions / book follow the agent.
+- **Blackout:** 10/1 – 12/31 (Notion). Slides also say cannot transfer during AEP and wait until January 1 if requesting during AEP; prefer Notion dates.
+- **Notes:** All pending business resolved first. Commissions / book follow the agent (slides).
 
 ## Anthem (Elevance / New Health Partners release path)
 
-Anthem (NHP):
+From the Release & Transfer deck (NHP), labeled **Anthem** in Notion:
 
 - Immediate release if approved electronically. Automatic release if the upline does not approve within **10 days**. One release every 12 months without upline approval.
 - Upload the release during contracting. If none uploaded, Anthem notifies the current upline for electronic approval.
@@ -29,10 +32,10 @@ Anthem (NHP):
 
 ## Devoted
 
-- **Release type:** Full release required. See Devoted Broker Manual p.5: https://assets.devoted.com/brokers/Devoted_Health-Broker_Manual.pdf
-- No fixed blackout for **immediate** release. Delayed releases from Aug 15 are not effective until Dec 8.
-- **THEI / NHP portal steps (Devoted transfer process):** In the Devoted broker portal: left menu **Messages** → **ADD NEW MESSAGE** → category **RELEASE & TRANSFER REQUEST**. Attach the release. Message template: attaching a release from (current upline); change upline to **Your Plan Choice** (agency NPN: 1904190). **Must attach the release.**
-- Also: written request to current upline; 7–10 days; no transfers Oct 1 – Dec 31; first-of-month effective; renewals stay with agent; no outstanding chargebacks; may recertify.
+- **Release type (Notion / FAQ):** Full release required. See Devoted Broker Manual p.5: https://assets.devoted.com/brokers/Devoted_Health-Broker_Manual.pdf
+- No fixed blackout for **immediate** release (Notion). Hub `hub/contracting-blackout` says delayed releases from Aug 15 are not effective until Dec 8 — that is delayed-release only.
+- **THEI / NHP portal steps (slides — Devoted Transfer process):** In the Devoted broker portal: left menu **Messages** → **ADD NEW MESSAGE** → category **RELEASE & TRANSFER REQUEST**. Attach the release. Message template: attaching a release from (current upline); change upline to **Your Plan Choice** (agency NPN on the slide: 1904190). **Must attach the release.**
+- Slides also list: written request to current upline; 7–10 days; no transfers Oct 1 – Dec 31; first-of-month effective; renewals stay with agent; no outstanding chargebacks; may recertify. Prefer Notion for blackout on immediate vs delayed.
 
 ## Doctors (Doctors HealthCare / Doctors HealthPlan)
 
@@ -49,9 +52,9 @@ Anthem (NHP):
 
 ## Florida Blue
 
-- Level change = new commission schedule; same-company hierarchy change = new transmittal; affiliate-to-affiliate follows transfer guidelines. Internal TPA forms path is under `2024_Medicare_Advantage/FL_Blue/Transfers`.
-- **Blackout:** Sept 1 – Dec 31.
-- 10–15 business days; book stays with agent; no outstanding debt.
+- Notion: level change = new commission schedule; same-company hierarchy change = new transmittal; affiliate-to-affiliate follows transfer guidelines. Internal TPA forms path is under `2024_Medicare_Advantage/FL_Blue/Transfers`.
+- **Blackout (Notion, preferred):** Sept 1 – Dec 31. Hub `hub/contracting-blackout` still lists Florida Blue as **TBD** — use Notion.
+- Slides: 10–15 business days; no AEP transfers Oct 15 – Dec 7; book stays with agent; no outstanding debt. Prefer Notion dates.
 
 ## Freedom
 
@@ -86,8 +89,8 @@ Anthem (NHP):
 ## Humana MGA
 
 - MGA-level release. Written release or 3-month intent to transfer — both need the **MGA Assignment / ABTF** form to agentsupport@humana.com. No new contract unless termed.
-- **Blackout:** 7/11 – 1/1 (varies immediate vs not — see Humana blackout chart).
-- The “USE MGA form!” process is **Humana MGA**.
+- **Blackout (Notion):** 7/11 – 1/1 (varies immediate vs not — see Humana blackout chart). Hub table says Humana transfer blackout Jul 15 – Dec 31; prefer Notion for MGA vs SA split.
+- Slides “USE MGA form!” were confirmed as **Humana MGA** (not unattributed).
 
 ## Humana SA
 
@@ -118,10 +121,10 @@ Anthem (NHP):
 
 ## UnitedHealthcare (UHC, United, MedicareMax, Preferred Care Partner)
 
-- **Release type:** **ITM (Intent to Move)** or written release. 90-day intent to transfer, or written release. New contracting at the **same level** (upgrade after 12 months). Hierarchy level changes submitted electronically through **Producer Express**.
-- **Blackout:** 9/1 – 12/31.
+- **Release type (Notion, preferred):** **ITM (Intent to Move)** or written release. 90-day intent to transfer, or written release. New contracting at the **same level** (upgrade after 12 months). Hierarchy level changes submitted electronically through **Producer Express**.
+- **Blackout (Notion, preferred):** 9/1 – 12/31. Slides say Sep 1 – Dec 15 — use Notion / Hub 9/1 – 12/31.
 
-How THEI submits:
+Slides (THEI how-to; use when asking how THEI submits):
 
 - Written release **or** ITM if a release cannot be obtained.
 - Release: on upline or NMA letterhead, signed by authorized signer, identifies the producer, dated within last **90 days**. Send to contracting@healthexps.com and christyne@levelupinsurancegroup.com.
@@ -131,7 +134,7 @@ How THEI submits:
 ## Wellcare
 
 - Agent requests transfer in their portal. If upline does not grant: **14-day** delay for brokers changing uplines, **45-day** delay for agencies. New Agent X TPA contract required.
-- **Blackout:** broker blackout 9/1 – 12/31. 
+- **Blackout:** broker blackout 9/1 – 12/31. Hub still lists WellCare transfer dates as TBD — prefer Notion.
 
 ## Zing
 
@@ -140,31 +143,31 @@ How THEI submits:
 
 ---
 
-## Unattributed release processes (do not guess the carrier)
+## Unattributed slides (do not guess the carrier)
 
-These release processes have **no carrier name**. **Do not attribute these to a carrier.**
+Four slides in the Release & Transfer deck had **no visible carrier name** in the extracted text (titles may have been images). Notion flagged them as unlabeled. **Do not attribute these to a carrier.**
 
-The “USE MGA form!” process is **Humana MGA** (above), not unattributed.
+The “USE MGA form!” slide was later confirmed as **Humana MGA** (above), not unattributed.
 
-### Unattributed process A 
+### Unattributed slide A (appears right after Gold Kidney)
 
 - Full release required; good standing mandatory; no pending investigations.
 - Formal written request to current FMO with all agent identifiers.
 - 5–10 business days; AEP blackout applies; first-of-month effective date.
 - Renewals transfer with agent; must clear all debts; new upline training required.
 
-### Unattributed process B (generic)
+### Unattributed slide B (generic)
 
 - Full release required; good standing mandatory; active certification needed.
 - Written request to upline with credentials and new upline specified.
 - 5–10 business days; AEP blackout applies; first of month effective.
 - Renewals transfer with agent; must clear all debts; training may be required.
 
-### Unattributed process C 
+### Unattributed slide C (last carrier before “Questions?”)
 
 - Full release from current FMO; active status; clean compliance record.
 - Email or written request to current upline with NPN and agent ID.
 - 10–15 business days; AEP blackout Oct 15 – Dec 7; first-of-month effective.
-- Agent must request the upline change through the broker portal.
+- Agent must request the upline change through the broker portal. Slide mentions a video link (URL not in the text extract).
 
 Questions on any release: contracting@healthexps.com.

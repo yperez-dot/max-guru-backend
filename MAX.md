@@ -103,7 +103,7 @@ Full chat rules: `services/claude.js` `SYSTEM_PROMPT` (also baked into the HTML 
 | Benefit dollars from the **2026** workbook | `scripts/sync_thei_grid_to_max.py` (default `--year 2026`) |
 | Live `#plan-data` → **2027** (non-yellow) | `scripts/sync_thei_grid_to_max.py --year 2027` |
 | SEPs, SOA, certs, Hub ops | `max-knowledge/hub/*` — live tracker is SoT, not the old JSON snapshot |
-| Agent onboarding, per-carrier contracting, release/transfer, Nextere | `max-knowledge/onboarding/*` — Max must NEVER cite or mention sources (no Source line, Notion, slides, decks, Hub, or KB file names) in these answers |
+| Agent onboarding, per-carrier contracting, release/transfer, Nextere | `max-knowledge/onboarding/*` — files keep sources (Notion + THEI decks); Max must NEVER show them in chat. Asks first-time vs moving (and corp vs individual) when unclear — claude.js Rule 2a-ii |
 | Behavior / non-comm | `max-knowledge/max-behavior-rules.md`, `thei-plan-grid-noncommissionable.md` |
 
 Grid workbook (export) is expected at `/tmp/thei-grid.xlsx` when you run the sync scripts.

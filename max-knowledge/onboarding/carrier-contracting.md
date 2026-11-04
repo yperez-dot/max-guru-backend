@@ -1,8 +1,13 @@
 # THEI carrier contracting (per carrier)
 
-**Nextere** (tenant **NHP**) is **only** for **Doctors**, **HealthSun**, and **Solis**. Everyone else: AgentSync / AgentX / carrier portal as listed.
+Source (preferred): THEI Notion **Carrier Contracting & Release Guide** (2026 MA Carrier FAQ + contracting/release decks). Also **Agent Onboarding & Contracting**. Google Slides **Carrier Contracting Guide for New Agents** only fills in **Florida Blue**; HealthSun is marked coming soon.
+Conflict rule: **prefer this Notion guide** over Hub `hub/getting-started`, `hub/agentsync-guide`, `hub/nextere-guide`. Hub `hub/contracting-blackout` is Hub blackout dates, not per-carrier steps.
 
-FMO: **YourPlanChoice, LLC** (most FAQ carriers) vs **New Health Partners / New Health Plans, LLC** (Doctors, Gold Kidney, HealthSun, Solis, Anthem).
+**Nextere** (tenant **NHP**) is **only** for **Doctors**, **HealthSun**, and **Solis**. See `onboarding/nextere-steps`. Everyone else: AgentSync / AgentX / carrier portal as listed.
+
+FMO: **YourPlanChoice, LLC** (most FAQ carriers) vs **New Health Partners / New Health Plans, LLC** (Doctors, Gold Kidney, HealthSun, Solis, Anthem in the release deck).
+
+Release / transfer / blackout detail: `onboarding/release-transfer`. Onboarding playbook: `onboarding/process`.
 
 YPC contracting contact on many FAQ rows: Info@YourFMO.com. THEI contracting: contracting@healthexps.com.
 
@@ -19,8 +24,8 @@ YPC contracting contact on many FAQ rows: Info@YourFMO.com. THEI contracting: co
 - **How to get contracted:** AgentX or PDF contracts sent to **ucontracting@aiasvcs.com**. To have LOAs, the agent must be a **GA Corp or higher with a Corp contract**.
 - **Licensing:** All states pre-appointment. Non-resident fees may apply via **Producer Express**.
 - **Not Nextere.** Do not send UHC through Nextere (Nextere is Doctors / HealthSun / Solis only).
-- **Release / transfer (summary):** 90-day **Intent to Move (ITM)** or written release. New contracting at the **same level** (upgrade after 12 months). Hierarchy changes through **Producer Express**. **Blackout: 9/1 – 12/31**.
-- Full ITM / letter steps (THEI emails, 6-month tenure, IMO vs ICA) are in the UHC release/transfer steps.
+- **Release / transfer (summary):** 90-day **Intent to Move (ITM)** or written release. New contracting at the **same level** (upgrade after 12 months). Hierarchy changes through **Producer Express**. **Blackout: 9/1 – 12/31** (Notion; prefer over slide “Sep 1 – Dec 15”).
+- Full ITM / letter steps (THEI emails, 6-month tenure, IMO vs ICA): `onboarding/release-transfer` § UnitedHealthcare.
 
 ---
 
@@ -29,19 +34,19 @@ YPC contracting contact on many FAQ rows: Info@YourFMO.com. THEI contracting: co
 - **FMO:** YourPlanChoice, LLC. **Type:** Direct – Carrier Online. **Products:** MA & PDP. **Levels:** LOA, Agent4, LMO, GMO, MMO, RMO.
 - **Documents:** Non-resident license: email brokersupport@aetna.com (cc MAContracting) or LAAUMedicare@aetna.com.
 - **Pre-appointment states:** AL, KY, LA, MT, OH, UT, VT, WA, WI.
-- **Release:** Full release; blackout 10/1 – 12/31.
-- No step-by-step portal walkthrough is documented yet.
+- **Release:** Full release; blackout 10/1 – 12/31. Details in `onboarding/release-transfer`.
+- Step-by-step portal walkthrough is **not** in the contracting-guide slides (those only filled Florida Blue).
 
 ## Anthem
 
-- NHP release path is documented (electronic / 10-day automatic; blackout Jul 1 – Sep 30 held until Jan 2). No separate contracting steps are documented.
+- NHP release path is documented (electronic / 10-day automatic; blackout Jul 1 – Sep 30 held until Jan 2). Contracting-steps field is empty in Notion. See `onboarding/release-transfer` § Anthem.
 - YourPlanChoice **Elevance** is a separate row below.
 
 ## Clover
 
 - **FMO:** YourPlanChoice, LLC. **Type:** Direct. **Products:** MA. **Levels:** GA, GA+, MGA, MGA+SGA, SGA+.
 - Non-resident license during initial certification, or later email contracting@cloverhealth.com. No JIT appointments — Clover pays for 2 appointments per agent, then $6/state (agent-paid).
-- **Blackout:** 10/1 – 12/31. Upline change once per calendar year, 1st of month.
+- **Blackout:** 10/1 – 12/31. Upline change once per calendar year, 1st of month. Details in `onboarding/release-transfer`.
 
 ## Devoted
 
@@ -49,12 +54,12 @@ YPC contracting contact on many FAQ rows: Info@YourFMO.com. THEI contracting: co
 - AgentX or PDF to macontracting@aiasvcs.com. New Agent X TPA contract required for re-contracting.
 - Non-res: ticket at agent.devoted.com, 1-877-764-9446, or agent-support@devoted.com.
 - **Pre-appointment:** FL, OH, TN, TX, SC, NC, GA, HI, MS, NC.
-- Transfer how-to (broker portal Messages) is in the Devoted release/transfer steps.
+- Transfer how-to (broker portal Messages): `onboarding/release-transfer` § Devoted.
 
 ## Doctors (Doctors HealthCare, Doctors HealthPlan)
 
-- **Use Nextere** (tenant NHP). Carriers in Nextere: Doctors, HealthSun, Solis only.
-- No separate contracting steps are documented; release is a written request to the current upline. **No transfers during AEP (Oct 15 – Dec 7).**
+- **Use Nextere** (tenant NHP). Carriers in Nextere: Doctors, HealthSun, Solis only. Walkthrough: `onboarding/nextere-steps`.
+- Notion has no separate “contracting steps” field; release is a written request to the current upline. **No transfers during AEP (Oct 15 – Dec 7).**
 - Blank forms on file: Joinder Agreement and Assignment of Commission (Doctors HealthCare Plans).
 
 ## Elevance
@@ -65,7 +70,7 @@ YPC contracting contact on many FAQ rows: Info@YourFMO.com. THEI contracting: co
 
 ## Florida Blue
 
-Only carrier with fully documented contracting steps:
+Only carrier with a filled **Contracting Steps** field and a completed slide in **Carrier Contracting Guide for New Agents**:
 
 1. Contract **directly** through Florida Blue’s online portal.
 2. Choose **Florida license** or **out-of-state license** during setup.
@@ -75,7 +80,7 @@ Only carrier with fully documented contracting steps:
 6. Approval about **7–10 business days**; Producer ID and portal access on approval (email + agent portal).
 
 - **FMO:** YourPlanChoice LLC. **Type:** Direct. **Products:** MA & MS. **Levels:** Bronze, Silver, Gold. All states pre-appointment. Upgrade 6 months after transfer.
-- **Blackout:** Sept 1 – Dec 31.
+- **Blackout (Notion, preferred):** Sept 1 – Dec 31. Hub still says TBD.
 
 ## Freedom
 
@@ -104,8 +109,8 @@ Only carrier with fully documented contracting steps:
 
 ## HealthSun
 
-- **Use Nextere** (tenant NHP).
-- HealthSun contracting steps are not documented yet.
+- **Use Nextere** (tenant NHP) — `onboarding/nextere-steps`.
+- Contracting Guide slides: HealthSun steps marked **coming soon** (not documented there).
 - Documents: signed HealthSun Broker Contract. Send release + contract to contracting@carepointinsurance.com and contracting@healthexps.com. New contract in all cases.
 - No transfers Jul 1 – Sep 30; after Oct 1 → Jan 1.
 
@@ -113,8 +118,8 @@ Only carrier with fully documented contracting steps:
 
 - **FMO:** YourPlanChoice, LLC. **Type:** Direct. **Products:** MA, PDP & MS. **Level:** Agent; build-out needs 10 ready-to-go downlines.
 - Non-res: email agencymgt@humana.com with PDF proof of active license from NIPR. **Pre-appointment:** MT, PA, PR.
-- Use the **MGA Assignment / ABTF** form (Humana MGA form).
-- **Blackout:** 7/11 – 1/1 (see Humana blackout chart for immediate vs not).
+- Use the **MGA Assignment / ABTF** form (slides “USE MGA form!” = Humana MGA).
+- **Blackout (Notion):** 7/11 – 1/1 (see Humana blackout chart for immediate vs not).
 
 ## Humana SA
 
@@ -141,14 +146,14 @@ Only carrier with fully documented contracting steps:
 
 ## Solis
 
-- **Use Nextere** (tenant NHP).
+- **Use Nextere** (tenant NHP) — `onboarding/nextere-steps`.
 - Release: email salessupport@solishealthplans.com, cc contracting@healthexps.com, align under **New Health Plans, LLC**. No transfer blackout.
 
 ## Wellcare (WellCare)
 
 - **FMO:** YourPlanChoice, LLC. **Type:** TPA + Carrier Online. **Products:** MA & PDP. **Levels:** LOA, Agent, NA, GA, MGA, SGA, FMO, FMO+.
 - AgentX or PDF to macontracting@aiasvcs.com. Non-res via Agent portal. **Pre-appointment:** AL, OH, OK, PA, TX, VT, WA. Set up as Non-Selling Principal if applicable.
-- **Blackout:** broker 9/1 – 12/31.
+- **Blackout:** broker 9/1 – 12/31. Hub still TBD — prefer this guide.
 
 ## Zing
 
@@ -160,10 +165,10 @@ Only carrier with fully documented contracting steps:
 
 ## Gaps (no contracting steps in this material)
 
-These carriers **do not have documented per-carrier contracting steps**:
+These names appear on the THEI grid, Hub, or blackout table but **do not have per-carrier contracting steps** in the Notion guide or the two slide decks:
 
 - **CarePlus**
 - **Simply**
-- **SCAN** (blackout dates only)
-- **Clover / Freedom / Optimum / Kaiser / Zing / most YPC carriers:** documents + contract type are above; **no click-by-click portal walkthrough** (only Florida Blue is fully documented; HealthSun steps not documented yet).
-- **Unattributed release processes:** three release processes with no carrier name — do not guess the carrier.
+- **SCAN** (Hub blackout dates only)
+- **Clover / Freedom / Optimum / Kaiser / Zing / most YPC carriers:** documents + contract type are above; **no click-by-click portal walkthrough** (the new-agent contracting slides only completed Florida Blue; HealthSun = coming soon).
+- **Unattributed release slides:** three unlabeled slides — do not guess the carrier (`onboarding/release-transfer`).
