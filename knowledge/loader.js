@@ -60,10 +60,15 @@ function excerptAround(content, query, radius = 1200) {
   const q = query.toLowerCase().trim();
   if (!q) return content.slice(0, 8000);
   const terms = q.split(/\s+/).filter(Boolean);
+  // Prefer the longest term so "unitedhealthcare" wins over "the" / "for".
+  const ranked = [...terms].sort((a, b) => b.length - a.length);
   let best = -1;
-  for (const term of terms) {
+  for (const term of ranked) {
     const idx = lower.indexOf(term);
-    if (idx >= 0 && (best < 0 || idx < best)) best = idx;
+    if (idx >= 0) {
+      best = idx;
+      break;
+    }
   }
   if (best < 0) return content.slice(0, 8000);
   const start = Math.max(0, best - radius);
@@ -99,6 +104,8 @@ function searchKnowledge(query, { limit = 8 } = {}) {
     // Prefer Florida SEP file for FL/SEP queries
     if (/sep/.test(q) && /florida|\bfl\b/.test(q) && key.includes('seps-by-state/FL')) score += 40;
     if (/hub\//.test(key)) score += 2;
+    if (/onboarding\//.test(key)) score += 2;
+    if (/(contract|onboard|release|transfer|nextere|agentsync)/.test(q) && /onboarding\//.test(key)) score += 25;
     scored.push({ key, content, score });
   }
   scored.sort((a, b) => b.score - a.score);

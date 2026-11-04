@@ -14,6 +14,11 @@ max-knowledge/
 │   ├── compliance.md
 │   ├── medicare-basics.md
 │   └── ...
+├── onboarding/          # THEI agent onboarding + per-carrier contracting (not Hub HTML)
+│   ├── process.md
+│   ├── carrier-contracting.md
+│   ├── release-transfer.md
+│   └── nextere-steps.md
 ├── carriers/            # Per-carrier notes, non-commissionables, blackouts
 └── *.md                 # Medicare reference, hospitals, contacts, behavior rules
 ```
@@ -44,7 +49,8 @@ Hub pages (compliance, AEP training, etc.): update the Hub repo, then `python3 s
 | Need | Source |
 |------|--------|
 | Plan premiums, MOOP, copays, drug tiers, givebacks | Embedded PLAN DATA in `artifacts/max-demo-FINAL-v7.html` (THEI grid) |
-| SEPs, compliance, SOA, certs, contracting, Hub ops | `max-knowledge/hub/*` via tools |
+| SEPs, compliance, SOA, certs, Hub ops | `max-knowledge/hub/*` via tools |
+| Agent onboarding, per-carrier contracting, release/transfer, Nextere | `max-knowledge/onboarding/*` (prefer over generic Hub getting-started) |
 
 ## Refresh Hub content
 
