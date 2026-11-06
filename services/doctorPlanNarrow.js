@@ -332,6 +332,11 @@ function threadDoctorResolutions(msgs, lastUserAt) {
     for (const pk of picks) out.push({ asked: pk.asked, name: pk.name, npi: pk.npi || '' });
     if (picks.length) continue;
     for (const c of doctorEqualsCorrections(t)) out.push({ asked: c.said, name: c.name, npi: c.npi });
+    const ident = identityFromUserMessage(t);
+    const listEdit = /\b(?:replace|change|swap|correct|remove|delete|drop|take\s+out)\b/i.test(t);
+    if (!listEdit && ident && ident.name && plainWords(ident.name).length >= 2) {
+      out.push({ asked: ident.name, name: ident.name, npi: ident.npi || '' });
+    }
   }
   return out;
 }
@@ -343,16 +348,85 @@ function applyDoctorResolutions(doctors, resolutions, npis0) {
     let cur = nm;
     for (const r of resolutions || []) {
       if (plainWords(cur).join(' ') === plainWords(r.name).join(' ')) { if (r.npi && !npis[cur]) npis[cur] = r.npi; continue; }
-      if (sameDoctorName(cur, r.asked) || fuzzySameDoctor(cur, r.asked)) {
-        if (npis[cur] && npis[cur] !== r.npi) delete npis[cur];
+      const hit = sameDoctorName(cur, r.asked) || fuzzySameDoctor(cur, r.asked) || fuzzySameDoctor(r.asked, cur)
+        || sameDoctorName(cur, r.name) || fuzzySameDoctor(cur, r.name) || fuzzySameDoctor(r.name, cur);
+      if (!hit) continue;
+      const incomingLonger = plainWords(r.name).length > plainWords(cur).length;
+      const sameCount = plainWords(r.name).length === plainWords(cur).length;
+      // A fuller name wins; a same-length spelling ("Richardo" → "Ricardo") replaces; a shorter
+      // later mention ("Dr. Ricardo Machado") must not strip "Ricardo Leoncio Machado".
+      if (incomingLonger || (sameCount && r.name !== cur)) {
+        if (npis[cur] && r.name !== cur) {
+          if (!npis[r.name]) npis[r.name] = r.npi || npis[cur];
+          delete npis[cur];
+        }
         cur = r.name;
-        if (r.npi) npis[cur] = r.npi;
       }
+      if (r.npi) npis[cur] = r.npi;
     }
     return cur;
   });
   const unique = list.filter((nm, k) => list.findIndex((o) => plainWords(o).join(' ') === plainWords(nm).join(' ')) === k);
   return { doctors: unique, npis };
+}
+
+/**
+ * A titled name and/or NPI in the agent's message: "Dr. Ricardo Machado", "Dr. Ricardo Leoncio Machado
+ * is a cardiologist with the NPI number 1598736969". Surname-only ("Dr. Machado") is not an identity.
+ */
+function identityFromUserMessage(text) {
+  const t = String(text || '').trim();
+  if (!t) return null;
+  const npi = (t.match(/\b(\d{10})\b/) || [])[1] || '';
+  let titled = [];
+  try {
+    titled = require('./compareJobs').titledDoctorNames(t, { minWords: 2 }) || [];
+  } catch (_) {
+    titled = [];
+  }
+  if (titled.length === 1) return { name: titled[0], npi };
+  if (npi && titled.length > 1) return { name: titled[titled.length - 1], npi };
+  if (npi) return { name: '', npi };
+  return null;
+}
+
+/**
+ * Map an explicit correction / full name / NPI onto one existing unresolved doctor (replace, never
+ * a duplicate row). NPI wins over fuzzy name suggestions. Returns true when a saved row was updated.
+ */
+function bindDoctorIdentity(people, ident, savedNpis) {
+  if (!people || !ident || (!ident.name && !ident.npi)) return false;
+  const saved = savedNpis || {};
+  const resolved = (p) => Boolean(p.npi) || Object.keys(saved).some((k) => sameDoctorName(k, p.name) && saved[k]);
+  const pending = people.filter((p) => !resolved(p));
+  let hit = ident.npi ? people.find((p) => p.npi === ident.npi) : null;
+  if (!hit && ident.name) {
+    const fuzzy = people.filter((p) => fuzzySameDoctor(p.name, ident.name) || fuzzySameDoctor(ident.name, p.name));
+    if (fuzzy.length === 1) hit = fuzzy[0];
+    else if (fuzzy.length > 1) hit = fuzzy.find((p) => !resolved(p)) || (fuzzy.length === 1 ? fuzzy[0] : null);
+  }
+  if (!hit && ident.name) {
+    const sw = plainWords(ident.name);
+    if (sw.length >= 2) {
+      const first = sw[0];
+      const last = sw[sw.length - 1];
+      const near = pending.filter((p) => {
+        const pw = plainWords(p.name);
+        return pw.length >= 2 && editDistance(pw[0], first) <= 2 && editDistance(pw[pw.length - 1], last) <= 2;
+      });
+      if (near.length === 1) hit = near[0];
+    }
+  }
+  // An NPI with one unresolved doctor in the table is that doctor (screenshot / registry identity).
+  if (!hit && ident.npi && pending.length === 1) hit = pending[0];
+  if (!hit) return false;
+  if (ident.name && plainWords(ident.name).length >= 2) {
+    const incomingLonger = plainWords(ident.name).length > plainWords(hit.name).length;
+    const sameCount = plainWords(ident.name).length === plainWords(hit.name).length;
+    if (incomingLonger || (sameCount && ident.name !== hit.name) || !hit.name) hit.name = ident.name;
+  }
+  if (ident.npi) hit.npi = ident.npi;
+  return true;
 }
 
 /** Her candidate picks in every reply up to lastUserAt, applied to the doctor list: { doctors, npis }. */
@@ -1093,7 +1167,8 @@ function comparisonFollowUp(messages) {
   const lastUserAt = msgs.map((m) => m && m.role).lastIndexOf('user');
   const latest = lastUserAt >= 0 ? messageText(msgs[lastUserAt]) : '';
   const respelled = respelledDoctors(latest, out.doctors);
-  const npis0 = { ...(out.npis || {}) };
+  const wkNpis = (workupFacts(msgs) || {}).npis || {};
+  const npis0 = { ...wkNpis, ...(out.npis || {}) };
   out.doctors.forEach((d, k) => { if (respelled[k] !== d && npis0[d]) { npis0[respelled[k]] = npis0[d]; delete npis0[d]; } });
   // Doctors she resolved earlier in this thread stay resolved on every re-run (plan swap, filter, rank, card).
   const res = applyDoctorResolutions(respelled, threadDoctorResolutions(msgs, lastUserAt), npis0);
@@ -1366,10 +1441,12 @@ function workupDoctorCheck(msgs, lastUserAt) {
   const allAsk = /\b(?:check|re-?check|run|re-?run|look\s*up)\s+(?:all|every)\b[^.\n]{0,40}\bdoctors?\b/i.test(latest);
   const planAsk = named.length || added || allAsk ? [] : namedPlanAskIds(latest, msgs.slice(0, lastUserAt + 1));
   if (!named.length && !added && !planAsk.length && !allAsk) return null;
+  const npis = { ...(wk.npis || {}) };
   return {
     reason: `check on her saved workup — all ${doctors.length} saved doctors on all saved plans${added ? ` (added ${added})` : ''}${planAsk.length ? ` + plans she named: ${planAsk.join(', ')}` : ''}`,
     doctors,
     zip: wk.zip || newestZip(msgs.slice(0, lastUserAt + 1)),
+    ...(Object.keys(npis).length ? { npis } : {}),
   };
 }
 
@@ -1384,7 +1461,12 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
   const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
   if (!wk || !wk.doctors.length) return null;
   const wkAt = msgs.findIndex((m) => m && m.role === 'user' && isWorkupMessage(messageText(m)));
-  const people = wk.doctors.map((name) => ({ name, npi: '' }));
+  const npiOf = (name) => {
+    if (wk.npis && wk.npis[name]) return wk.npis[name];
+    const hit = Object.entries(wk.npis || {}).find(([k]) => sameDoctorName(k, name) || fuzzySameDoctor(k, name) || fuzzySameDoctor(name, k));
+    return hit ? hit[1] : '';
+  };
+  const people = wk.doctors.map((name) => ({ name, npi: npiOf(name) }));
   let touched = false;
   for (let i = wkAt + 1; i <= lastUserAt; i += 1) {
     const m = msgs[i];
@@ -1402,6 +1484,15 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
       touched = true;
     }
     if (picks.length) continue;
+    const savedNpisEarly = (wk && wk.npis) || {};
+    // "Dr. Ricardo Machado" / "Dr. Ricardo Leoncio Machado is a cardiologist with the NPI number …": map onto the
+    // existing unresolved row (replace, never a duplicate). NPI dominates fuzzy Rafael/Alfredo suggestions.
+    const ident = identityFromUserMessage(t);
+    const listEdit = /\b(?:replace|change|swap|correct|remove|delete|drop|take\s+out)\b/i.test(t);
+    if (!listEdit && ident && bindDoctorIdentity(people, ident, savedNpisEarly)) {
+      touched = true;
+      continue;
+    }
     // "it didnt add her primary… Dr. Kelys Caballero" / "add Dr. Kelys Caballero": a doctor added to the saved list.
     if (ADD_DOCTOR_RE.test(t) && !/\b[HR]\d{4}-\d{3}/i.test(t) && !R.carriersRequested(t).length) {
       // EVERY doctor in the message, in any case ("Add Dr. Mario del Cid, Dr. Darrel Gachette, … and Dr. Simone Vanhorn"
@@ -1409,6 +1500,7 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
       const added = require('./compareJobs').titledDoctorNames(t);
       const one = (t.match(/\b(?:dr|dra|doctor|doctora)\.?\s+([A-ZÀ-Ý][\wÀ-ÿ'.-]+(?:\s+[A-ZÀ-Ý][\wÀ-ÿ'.-]+){0,3})/) || [])[1];
       for (const nm of (added.length ? added : one ? [one] : [])) {
+        if (bindDoctorIdentity(people, { name: nm.trim(), npi: '' }, savedNpisEarly)) { touched = true; continue; }
         if (!people.some((p) => looseSameDoctor(p.name, nm) || sameDoctorName(p.name, nm))) { people.push({ name: nm.trim(), npi: '' }); touched = true; }
       }
     }
@@ -3133,8 +3225,9 @@ function strengthSplitCell(row, result, opts = {}) {
     const text = describe(v);
     const key = `${text}|${v.indication || ''}`;
     const g = groups.find((x) => x.key === key);
-    if (g) g.strengths.push(v.strength);
-    else groups.push({ key, text, indication: v.indication, strengths: [v.strength] });
+    if (g) {
+      if (!g.strengths.includes(v.strength)) g.strengths.push(v.strength);
+    } else groups.push({ key, text, indication: v.indication, strengths: [v.strength] });
   }
   const label = (g) => {
     const units = [...new Set(g.strengths.map((s) => s.split(' ')[1]))];
@@ -3696,6 +3789,8 @@ module.exports = {
   planRemovalAskLines,
   dropEmptySectionHeaders,
   doctorEqualsCorrections,
+  identityFromUserMessage,
+  bindDoctorIdentity,
   threadDoctorResolutions,
   applyDoctorResolutions,
   rankAskAt,

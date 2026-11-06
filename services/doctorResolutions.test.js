@@ -55,7 +55,7 @@ test('reloading a workup whose saved doctors lost names re-reads them from the o
 });
 
 test('fuzzy same doctor: spelling, accents, Dr./MD, missing middle names — not a different first or last name', () => {
-  const yes = [['Priscila Escalona', 'Priscilla Escalona'], ['Priscila Escalona', 'Dr. Priscilla Escalona, MD'], ['Priscilla Gabriela Escalona Villasmil', 'Priscilla Escalona'], ['José Martínez', 'Jose Martinez']];
+  const yes = [['Priscila Escalona', 'Priscilla Escalona'], ['Priscila Escalona', 'Dr. Priscilla Escalona, MD'], ['Priscilla Gabriela Escalona Villasmil', 'Priscilla Escalona'], ['José Martínez', 'Jose Martinez'], ['Richardo Machado', 'Ricardo Machado'], ['Richardo Machado', 'Ricardo Leoncio Machado']];
   const no = [['Priscila Escalona', 'Karina Escalona'], ['Jose Martinez', 'Jorge Martinez'], ['Priscila Escalona', 'Priscila Gonzalez']];
   for (const [a, b] of yes) assert.ok(LW.fuzzySameDoctor(a, b), `${a} ≈ ${b}`);
   for (const [a, b] of no) assert.ok(!LW.fuzzySameDoctor(a, b), `${a} ≠ ${b}`);

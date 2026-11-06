@@ -84,6 +84,54 @@ test('rosuvastatin: typed 10 mg → T1 · QL 45/30; no strength → split by QL'
   assert.equal(cell(await price('rosuvastatin')), '5/10/20 mg: T1 $0 · QL 45/30 ‖ 40 mg: T1 $0 · QL 30/30');
 });
 
+function solisCell(drugName, variants, showQl) {
+  const strengths = variants.map((v) => ({ ...v, costShare: v.costShare || '$0' }));
+  const r = {
+    drugName,
+    byPlanId: { [PLAN]: { verified: true, coverage: 'covered', tier: strengths[0].tier, costShare: '$0', pa: false, st: false, ql: strengths.some((v) => v.ql), source: strengths[0].source, strengths } },
+  };
+  return N.medsTable([r], [{ planId: PLAN, name: 'Solis Healthy Living' }], { showQl }).split('\n')[2].split(' | ').slice(1).join(' | ').replace(/ \|$/, '');
+}
+
+test('plain amlodipine: concise T1 $0; QL toggle does not leak combos or change identity', () => {
+  const vars = S.solisStrengthVariants('amlodipine', PLAN, 2027);
+  assert.equal(vars.length, 3);
+  const off = solisCell('amlodipine', vars, false);
+  const on = solisCell('amlodipine', vars, true);
+  assert.equal(off, 'T1 $0');
+  assert.equal(on, 'T1 $0', 'QL off vs on is the same matched product');
+  assert.doesNotMatch(off, /160|320|80 mg|10\/10\/10/);
+  assert.doesNotMatch(on, /atorvastatin|valsartan|benazepril/);
+});
+
+test('rosuvastatin default is concise T1 $0; QL details only when requested', () => {
+  const vars = S.solisStrengthVariants('rosuvastatin', PLAN, 2027);
+  assert.equal(solisCell('rosuvastatin', vars, false), 'T1 $0');
+  assert.equal(solisCell('rosuvastatin', vars, true), '5/10/20 mg: T1 $0 · QL 45/30 ‖ 40 mg: T1 $0 · QL 30/30');
+});
+
+test('amlodipine chat cell and Excel/PDF screen stay in parity', () => {
+  const E = require('../artifacts/comparison-export.js');
+  const vars = S.solisStrengthVariants('amlodipine', PLAN, 2027);
+  const shown = solisCell('amlodipine', vars, false);
+  const reply = [
+    '| Doctor | Solis Healthy Living · H0982-007 |', '|---|---|', '| x | ❔ |', '',
+    '**Meds**', '',
+    '| Drug | Solis Healthy Living · H0982-007 |', '|---|---|',
+    `| amlodipine | ${shown} |`,
+  ].join('\n');
+  const msgs = [{ role: 'user', content: 'Meds: amlodipine' }, { role: 'assistant', content: reply }];
+  const tbl = E.latestChatTable(msgs);
+  assert.equal(tbl.meds[0].byPlan['H0982-007'] || tbl.meds[0].byPlan[PLAN], shown);
+  const grid = require('./comparisonRules').gridPlansForCounty('Miami-Dade');
+  const plan = grid.find((p) => String(p.planId).toUpperCase().startsWith('H0982')) || { planId: PLAN, name: 'Solis Healthy Living' };
+  const payload = E.buildExportPayload([plan], msgs.map((m) => m.content).join('\n'), { chatTable: tbl, planSetFixed: true, showQl: false });
+  const drug = payload.drugs.find((d) => /amlodipine/i.test(d.name));
+  const screen = drug.screen[String(plan.planId).toUpperCase().slice(0, 9)] || drug.screen[PLAN];
+  assert.equal(screen, 'T1 $0');
+  assert.doesNotMatch(screen, /160|320|10\/10\/10/);
+});
+
 test('acyclovir tablet 400/800 mg: T2 · no PA/QL (known, no marker)', async () => {
   const r = await price('acyclovir tablets');
   assert.equal(cell(r), 'T2 $0');

@@ -289,6 +289,41 @@ describe('compound names do not suggest people who share only the last word', ()
   });
 });
 
+describe('same-surname suggestions prefer a near first name (Meg / Machado, 2026-11-06)', () => {
+  const { suggestSimilarProviders } = require('./npiRegistry');
+  it('Richardo Machado → Ricardo, not Alfredo or Rafael; NPI 1598736969 is identity', async () => {
+    const saved = global.fetch;
+    const rec = (npi, first, middle, last, cred, zip, tax) => ({
+      number: npi, enumeration_type: 'NPI-1',
+      basic: { first_name: first, middle_name: middle, last_name: last, credential: cred },
+      addresses: [{ address_purpose: 'LOCATION', postal_code: zip, city: zip.startsWith('330') ? 'HIALEAH' : 'MIAMI' }],
+      taxonomies: [{ primary: true, desc: tax }],
+    });
+    const dir = [
+      rec('1598736969', 'RICARDO', 'LEONCIO', 'MACHADO', 'MD', '33133', 'Internal Medicine, Cardiovascular Disease'),
+      rec('1111111111', 'RAFAEL', '', 'MACHADO', 'MD', '33176', 'Family Medicine'),
+      rec('2222222222', 'ALFREDO', '', 'MACHADO', 'MD', '33016', 'Internal Medicine'),
+    ];
+    global.fetch = async (url) => {
+      const q = new URL(url).searchParams;
+      if (q.get('number')) return { ok: true, json: async () => ({ results: dir.filter((r) => r.number === q.get('number')) }) };
+      if (q.get('enumeration_type') === 'NPI-2') return { ok: true, json: async () => ({ results: [] }) };
+      const last = (q.get('last_name') || '').toUpperCase().replace(/\*$/, '');
+      const first = (q.get('first_name') || '').toUpperCase();
+      const results = dir.filter((r) => r.basic.last_name.startsWith(last) && (!first || r.basic.first_name === first));
+      return { ok: true, json: async () => ({ results }) };
+    };
+    try {
+      const s = await suggestSimilarProviders({ doctorName: 'Richardo Machado', zip: '33176' });
+      assert.ok(s.some((x) => x.npi === '1598736969'), 'Ricardo Leoncio Machado is the near first-name match');
+      assert.ok(!s.some((x) => x.npi === '2222222222'), 'Alfredo Machado is a different person');
+      assert.ok(!s.some((x) => x.npi === '1111111111'), 'Rafael Machado is a different person');
+      const byNpi = await require('./npiRegistry').resolveNpiRecords({ npi: '1598736969', doctorName: 'Ricardo Leoncio Machado', zip: '33176' });
+      assert.equal(byNpi[0] && byNpi[0].number, '1598736969');
+    } finally { global.fetch = saved; }
+  });
+});
+
 describe('spelling-tolerant suggestions', () => {
   const { suggestSimilarProviders, spellingDistance } = require('./npiRegistry');
   it('a swapped letter is one typo', () => {

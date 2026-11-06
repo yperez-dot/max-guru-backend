@@ -327,6 +327,9 @@ function mergeDoctors(existing, incoming) {
       // A respelled saved doctor: the screen row replaces it (name, NPI and results), never a second row.
       const fix = out.find((x) => correctedSpelling(x, d) && !(incoming || []).some((o) => o !== d && sameDoctorRow(x, o)));
       if (fix) {
+        // A resolved row (NPI on file) is never overwritten by the original misspelling recovered
+        // from originalQuery ("Richardo Machado" must not replace "Ricardo Leoncio Machado" + NPI).
+        if (fix.npi && !d.npi) continue;
         const at = out.indexOf(fix);
         out[at] = { ...fix, ...d, byPlanId: { ...(d.byPlanId || {}) } };
         continue;
