@@ -562,10 +562,17 @@ function fuzzySameDoctor(known, said) {
   };
   const near = (x, y) => x === y || (Math.min(x.length, y.length) >= 4 && lev(x, y) <= (Math.min(x.length, y.length) >= 7 ? 2 : 1));
   if (!near(a[0], b[0])) return false;
-  // Last name she typed is one of the saved name's later words (two-part surnames: "Escalona Villasmil").
-  if (!a.slice(1).some((w) => near(w, b[b.length - 1]))) return false;
-  // Any middle word she typed is in the saved name (an initial is fine).
-  return b.slice(1, -1).every((w) => w.length <= 1 || a.some((x) => near(x, w)));
+  // Last names: the last word of each, or a later word of a two-part surname ("Escalona Villasmil").
+  const lastOk = near(a[a.length - 1], b[b.length - 1])
+    || a.slice(1).some((w) => near(w, b[b.length - 1]))
+    || b.slice(1).some((w) => near(w, a[a.length - 1]));
+  if (!lastOk) return false;
+  // Extra / missing middle names are the same person either way (Richardo Machado ≈ Ricardo Leoncio Machado).
+  // A middle that appears on both sides still has to agree; an initial is fine.
+  const aMid = a.slice(1, -1);
+  const bMid = b.slice(1, -1);
+  const [short, long] = aMid.length <= bMid.length ? [aMid, bMid] : [bMid, aMid];
+  return short.every((w) => w.length <= 1 || long.some((x) => near(x, w)));
 }
 
 /** Fuzzy "same doctor" for typo'd names: "Hoa Nguyne" ≈ "Hoa Nguyen", "Gloria St" ⊂ "Theresa Gloria St. Phillipe". */

@@ -51,6 +51,27 @@ function strengthOf(name) {
   return m ? `${Number(m[1])} ${m[2].toLowerCase()}` : null;
 }
 
+/**
+ * Ingredient tokens in a book row or a query. "amlodipine besylate tab 2.5 mg" → ["amlodipine"];
+ * "amlodipine besylate-atorvastatin calcium tab 5-10 mg" → ["amlodipine", "atorvastatin"].
+ * A hyphen / slash / "and" / "w/" between ingredients is a combination product.
+ */
+function productIngredients(name) {
+  const n = String(name || '').toLowerCase().replace(/[*^#†‡]+/g, '');
+  const generic = n.includes(' - ') ? n.split(/\s+-\s+/).pop() : n;
+  const head = generic
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\d+(?:\.\d+)?(?:\s*-\s*\d+(?:\.\d+)?)+\s*(?:mg|mcg|g|ml|%|unit)\b/gi, ' ')
+    .replace(STRENGTH_RE, ' ')
+    .replace(/\b(?:tabs?|tablets?|caps?|capsules?|tab|cap|soln|susp|oint|cream|gel|patch|chew|odt|er|xr|dr|ec|24hr|12hr|inj|iv|ophth)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!head) return [];
+  return head.split(/\s*(?:\/|-|\band\b|\bw\/\b|\bwith\b)\s*/)
+    .map((p) => p.replace(SALTS, '').replace(/\s+/g, ' ').trim())
+    .filter((p) => p.length > 2 && !/^\d/.test(p));
+}
+
 /** "QL (8 tablets/30 days)" → "QL 8/30". */
 function qlShort(req) {
   const m = String(req || '').match(/QL\s*\((\d+)\s*\w+\s*\/\s*(\d+)\s*days?\)/i);
@@ -81,11 +102,17 @@ function hitFromRow(hit, idx) {
   };
 }
 
+function sameIngredient(a, b) {
+  return a === b || a.startsWith(`${b} `) || b.startsWith(`${a} `);
+}
+
 /** Every book row for the drug's base name, one per product ("tadalafil tab 2.5 mg", "… 10 mg^", "… 20 mg (pah)"). */
 function rowsForDrug(drugName, idx) {
   const base = String(drugName || '').toLowerCase().replace(STRENGTH_RE, ' ').replace(/\((?:pah|bph)\)|\b(?:pah|bph)\b/g, ' ')
     .replace(/\b(?:tabs?|tablets?|caps?|capsules?)\b/g, ' ').replace(/\s+/g, ' ').trim();
   if (!base || !idx || !idx.drugs) return [];
+  const askedIngs = productIngredients(base);
+  const askedCombo = askedIngs.length > 1;
   const seen = new Set();
   const out = [];
   for (const hit of Object.values(idx.drugs)) {
@@ -93,8 +120,19 @@ function rowsForDrug(drugName, idx) {
     if (seen.has(name)) continue;
     seen.add(name);
     const clean = name.replace(/[*^#†‡]+/g, '');
-    if (!(clean === base || clean.startsWith(`${base} `))) continue;
     if (!strengthOf(clean)) continue;
+    const ings = productIngredients(clean);
+    if (!ings.length) continue;
+    if (!askedCombo) {
+      // Plain "amlodipine" must not pick up amlodipine-atorvastatin / -valsartan / HCTZ combos
+      // (`clean.startsWith("amlodipine ")` matches "amlodipine besylate-atorvastatin …").
+      if (ings.length !== 1) continue;
+      if (!(clean === base || clean.startsWith(`${base} `))) continue;
+      if (askedIngs[0] && !sameIngredient(ings[0], askedIngs[0])) continue;
+    } else {
+      if (ings.length !== askedIngs.length) continue;
+      if (!askedIngs.every((ing) => ings.some((x) => sameIngredient(x, ing)))) continue;
+    }
     out.push(hit);
   }
   return out;
@@ -178,6 +216,7 @@ function parseSolisRow(hit) {
     first: (head.match(/^[a-z][a-z'’-]*/) || [''])[0],
     alt: generic ? (generic.match(/^[a-z][a-z'’-]*/) || [''])[0] : null,
     base: head.replace(STRENGTH_RE, ' ').replace(/\s+/g, ' ').trim(),
+    ingredients: productIngredients(name),
     route: solisRoute(name),
     form: (SOLIS_FORMS.find(([, re]) => re.test(name)) || [null])[0],
     release: /\b(?:er|24hr|12hr|extended release)\b/.test(name) ? 'er' : /\b(?:dr|ec|delayed release)\b/.test(name) ? 'dr' : null,
@@ -238,4 +277,4 @@ function solisRestrictions(query, planId, year) {
   };
 }
 
-module.exports = { solisFormularyLookup, solisStrengthVariants, solisRestrictions, strengthOf, isSolisPlan, keysFor, INDEX_PATH };
+module.exports = { solisFormularyLookup, solisStrengthVariants, solisRestrictions, strengthOf, isSolisPlan, keysFor, INDEX_PATH, productIngredients, rowsForDrug };

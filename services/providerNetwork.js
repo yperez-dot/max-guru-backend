@@ -76,7 +76,7 @@ function solisFor(rec, zip, planYear) {
   }
 }
 const npiRegistryMod = require('./npiRegistry');
-const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery, suggestSimilarProviders } = npiRegistryMod;
+const { resolveNpiRecords, displayName, allLocationAddresses, cleanDoctorQuery, suggestSimilarProviders, parseName, spellingDistance } = npiRegistryMod;
 const extractNpi = (x) => ((String(x || '').match(/\b(\d{10})\b/) || [])[1] || '');
 const sameNameCandidates = (...a) => (typeof npiRegistryMod.sameNameCandidates === 'function' ? npiRegistryMod.sameNameCandidates(...a) : []);
 const DENTAL_HINT_RE = /\b(?:dds|d\.d\.s|dmd|d\.m\.d|dentist\w*|dentisry|dental)\b/i;
@@ -240,6 +240,34 @@ function cacheSet(key, value) {
 
 function clearProviderCache() {
   cache.clear();
+}
+
+/**
+ * An NPI lookup is the identity: drop name-only cache rows for the same person (Richardo Machado
+ * "not found" must not hide Ricardo Leoncio Machado NPI 1598736969). Same last name + near first
+ * name only — never Alfredo Machado because Ricardo was corrected.
+ */
+function invalidateProviderCacheFor({ doctorName, npi } = {}) {
+  const npiNorm = normalizeNpi(npi);
+  if (!npiNorm || typeof parseName !== 'function') return 0;
+  const parsed = parseName(cleanDoctorQuery(doctorName));
+  const last = String(parsed.lastName || '').toLowerCase();
+  const first = String(parsed.firstName || '').toLowerCase();
+  if (!last) return 0;
+  let n = 0;
+  for (const key of [...cache.keys()]) {
+    const who = String(key).split('|')[0];
+    if (/^\d{10}$/.test(who) || who === npiNorm) continue;
+    const p = parseName(who);
+    const candLast = String(p.lastName || '').toLowerCase();
+    const candFirst = String(p.firstName || '').toLowerCase();
+    if (candLast !== last || !candFirst) continue;
+    const near = !first || candFirst[0] === first[0] || (typeof spellingDistance === 'function' && spellingDistance(candFirst, first) <= 2);
+    if (!near) continue;
+    cache.delete(key);
+    n += 1;
+  }
+  return n;
 }
 
 // ─── per-NPI carrier fan-out ────────────────────────────────────────────────
@@ -759,6 +787,7 @@ async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCac
   const planKey = guestPlanIds.join(',');
   const key = cacheKey({ doctorName, npi: input.npi, zip, year: planYear, planId: planKey });
   const until = Number(deadlineAt) > 0 ? Number(deadlineAt) : Date.now() + DEFAULT_BUDGET_MS;
+  if (extractNpi(input.npi) || extractNpi(doctorName)) invalidateProviderCacheFor({ doctorName, npi: input.npi || doctorName });
 
   if (useCache) {
     const hit = cacheGet(key);
@@ -969,9 +998,10 @@ function savedNpiFor(name, saved) {
   const w = words(name);
   if (w.length < 2) return '';
   const surname = (arr) => arr.slice(1).flatMap((x) => x.split('-')).filter((x) => x.length >= 3);
+  const firstNear = (a, b) => a === b || (a[0] === b[0] && typeof spellingDistance === 'function' && spellingDistance(a, b) <= 2);
   const hits = saved.filter((s) => {
     const sw = words(s.name);
-    if (sw.length < 2 || sw[0] !== w[0]) return false;
+    if (sw.length < 2 || !firstNear(sw[0], w[0])) return false;
     const a = surname(w);
     return surname(sw).some((x) => a.includes(x));
   });
@@ -1168,6 +1198,8 @@ module.exports = {
   dentalDoctorResult,
   normalizeDoctorList,
   clearProviderCache,
+  invalidateProviderCacheFor,
+  cacheKey,
   raceDeadline,
   createLimiter,
   NOT_CONFIRMED,

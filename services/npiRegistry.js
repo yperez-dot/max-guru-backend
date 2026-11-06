@@ -520,20 +520,32 @@ async function suggestSimilarProviders({ doctorName = '', zip, state = 'FL', lim
     if (/\b(MD|DO)\b/i.test(String(r.basic?.credential || '').replace(/\./g, ''))) s += 5;
     return { r, dist, s };
   }).filter((x) => x.dist <= maxTypos)
-    // A different spelling only counts when the first name also agrees (or there is none).
+    // A different last-name spelling only counts when the first name also agrees (or there is none).
     .filter((x) => x.dist === 0 || !qf || String(x.r.basic?.first_name || '').toUpperCase()[0] === qf[0]);
+  // When a near first-name exists (Richardo → Ricardo), drop unrelated same-surname people
+  // (Alfredo / Rafael Machado). No near first name (Carlos Sosa, no treating Carlos) → keep
+  // the last-name pool so Max can still ask "which one?".
+  const firstNear = (x) => {
+    if (!qf) return true;
+    const fn = String(x.r.basic?.first_name || '').toUpperCase();
+    return firstNameAgrees(x.r, first) || spellingDistance(fn, qf) <= 2;
+  };
+  const nearFirst = scored.filter(firstNear);
   // Compound names ("Carlos Alberto Sosa Rosales"): a candidate that shares only the last
   // word (Julio Cesar Rosales) is a different person. Keep a surname-only match when the
   // first name is the same / one typo away, or the candidate also carries another word she gave.
   const askedWords = new Set(surnameTokens(parsed.middleName));
+  // Near first-name wins for a simple last-name search (Richardo → Ricardo, drop Alfredo).
+  // A compound name still keeps relatives who share another surname token (Sosa Rosales).
+  const pool = qf && nearFirst.length && !askedWords.size ? nearFirst : scored;
   const relevant = askedWords.size
-    ? scored.filter((x) => {
+    ? pool.filter((x) => {
       const b = x.r.basic || {};
       const fn = String(b.first_name || '').toUpperCase();
       if (!qf || fn === qf || spellingDistance(qf, fn) <= 1) return true;
       return surnameTokens(`${b.middle_name || ''} ${b.last_name || ''}`).some((w) => askedWords.has(w));
     })
-    : scored;
+    : pool;
   relevant.sort((a, b) => b.s - a.s);
   return relevant.slice(0, limit).map(({ r, dist }) => {
     const loc = (r.addresses || []).find((a) => a.address_purpose === 'LOCATION') || {};

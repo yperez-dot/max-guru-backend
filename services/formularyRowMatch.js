@@ -37,8 +37,10 @@ function parseQuery({ drugName = '', productName = '', strength = null, indicati
   const form = /\btab(let)?s?\b/.test(all) ? 'tablet' : /\bcap(sule)?s?\b/.test(all) ? 'capsule'
     : FORMS.find((f) => new RegExp(`\\b${f}s?\\b`).test(all)) || null;
   const route = /\b(?:ointment|cream|gel|lotion|topical)\b/.test(all) ? 'external' : /\b(?:ophthalmic|eye)\b/.test(all) ? 'ophthalmic' : 'oral';
+  const ingredients = String(ingredient || '').split(/\s*(?:\/|-|\band\b|\bw\/\b)\s*/).map((x) => x.trim()).filter((x) => x.length > 2);
   return {
     ingredient,
+    ingredients: ingredients.length ? ingredients : (ingredient ? [ingredient] : []),
     // RxNorm branded product "apixaban 5 MG Oral Tablet [Eliquis]": the book lists it as "ELIQUIS …".
     brand: ((String(productName || '').match(/\[([^\]]+)\]/) || [])[1] || '').toLowerCase().split(/\s+/)[0] || null,
     form,
@@ -60,6 +62,13 @@ function matchRows(parsedRows, query) {
   if (!q.ingredient) return null;
   const names = [q.ingredient, q.brand].filter(Boolean);
   let cands = (parsedRows || []).filter((p) => (names.includes(p.first) || (p.alt && names.includes(p.alt))) && !p.otc);
+  // A single-ingredient ask never takes a combination product (amlodipine ≠ amlodipine-valsartan).
+  // Combination searches ("amlodipine-benazepril") still match the combo rows.
+  if (q.ingredients && q.ingredients.length === 1) {
+    cands = cands.filter((p) => !Array.isArray(p.ingredients) || p.ingredients.length <= 1);
+  } else if (q.ingredients && q.ingredients.length > 1) {
+    cands = cands.filter((p) => Array.isArray(p.ingredients) && q.ingredients.every((ing) => p.ingredients.some((x) => x === ing || x.startsWith(ing) || ing.startsWith(x))));
+  }
   // Same route (an ointment row never answers for the tablet); rows without a route are oral.
   cands = cands.filter((p) => (p.route ? p.route === q.route : q.route === 'oral'));
   if (q.form) cands = cands.filter((p) => !p.form || p.form === q.form);
