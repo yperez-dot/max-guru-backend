@@ -375,10 +375,6 @@ const NON_DRUG_WORDS = new Set(
 const OTC_SUPPLEMENT_RE = /^\s*(?:vitamins?\s*(?:[a-ek]\d{0,2}|b[\s-]?complex)\b|multi-?vitamins?\b|cholecalciferol\b|fish\s+oil\b|omega[\s-]?3\b|probiotics?\b|melatonin\b|biotin\b)/i;
 const isOtcSupplement = (name) => OTC_SUPPLEMENT_RE.test(String(name || ''));
 
-// A first paste of doctors + meds + one current plan is NOT "shop the county". Extra columns only when she
-// asks for better / alternatives / suggest / recommend / find better (owner, 2026-11-02). "only" / "just" /
-// "is Dr. X in network on H..." also keeps it single.
-const ONLY_THIS_PLAN_RE = /\b(?:only|just|this plan|that plan|these plans|as is|no other|don'?t (?:add|swap)|is (?:she|he|dr)|are they|does (?:it|she|he)|check (?:if|whether)|in[- ]network on)\b/i;
 // "look only at A, B, and C. No other plans" / "solo estos planes" / "replace with" — the named IDs ARE the set.
 // A bare "only" is not enough: loaded-workup boilerplate says "Only the 'Current plan' line".
 function isExclusivePlanSet(text) {
@@ -395,15 +391,33 @@ function isExclusivePlanSet(text) {
   if (new RegExp(`\\b(?:look(?:ing)?|check(?:ing)?|compare|run|show|use|keep|see)\\s+${limit}\\s+(?:at\\s+|on\\s+)?${filler}${target}`, 'i').test(t)) return true;
   return false;
 }
+// A yes/no network check of one named plan is selected-only — not a county shop.
+// "She is currently on H5420-001" is a baseline, not this.
+function isSelectedPlanCheck(text) {
+  const t = String(text || '');
+  if (isExclusivePlanSet(t)) return true;
+  if (/\bin[- ]network on\b/i.test(t)) return true;
+  const ids = (t.match(/\b[HR]\d{4}-\d{3}/gi) || []).length;
+  if (ids === 1 && /\bcheck\s+(?:if|whether)\b/i.test(t)) return true;
+  if (/\bas is\b|\bdon'?t (?:add|swap|change)\b/i.test(t)) return true;
+  return false;
+}
+const SHOP_AROUND_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\b(?:any\s+)?other\s+(?:options?|plans?)\b|\balternatives?\b|\bwhat\s+else\b|\bsee\s+what\s+else\b|\bshop(?:ping)?\s+around\b|\bsomething\s+else\b|\b(?:comparable|similar)\s+(?:to|plans?|options?)\b|\bplans?\s+(?:comparable|similar)\b|\banother\s+(?:\w+\s+){0,3}(?:option|plan)s?\b|\bgiveback\s+options?\b|\blooking\s+for\s+(?:another|other|a\s+different)|\b(?:suggest|recommend|find)\s+(?:(?:me|her|him|us|some|a few|better|other)\s+)*(?:plans?|options?)\b|\bfind\s+better\b/i;
 function impliesCompareToCurrentPlan(text, planCount) {
   const t = String(text || '');
-  if (isExclusivePlanSet(t)) return false;
+  if (isExclusivePlanSet(t) || isSelectedPlanCheck(t)) return false;
   const ids = new Set((t.match(/\b[HR]\d{4}-\d{3}/gi) || []).map((x) => x.toUpperCase()));
   if ((planCount != null ? planCount : ids.size) > 1) return false;
-  // Explicit shop-around only. A first paste of doctors + meds + current plan is NOT
-  // "suggest HealthSun/Humana" — that used to invent columns she never asked for.
-  return /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\b(?:any\s+)?other\s+(?:options?|plans?)\b|\balternatives?\b|\bwhat\s+else\b|\bsee\s+what\s+else\b|\bshop(?:ping)?\s+around\b|\bsomething\s+else\b|\b(?:comparable|similar)\s+(?:to|plans?|options?)\b|\bplans?\s+(?:comparable|similar)\b|\banother\s+(?:\w+\s+){0,3}(?:option|plan)s?\b|\bgiveback\s+options?\b|\blooking\s+for\s+(?:another|other|a\s+different)|\b(?:suggest|recommend|find)\s+(?:(?:me|her|him|us|some|a few|better|other)\s+)*(?:plans?|options?)\b|\bfind\s+better\b/i.test(t)
-    && !/\bno other plans\b/i.test(t);
+  if (/\bno other plans\b/i.test(t)) return false;
+  if (SHOP_AROUND_RE.test(t)) return true;
+  // A current-plan mention (or a single named plan) with doctors/meds is a comparison:
+  // the current plan is the baseline, not an exclusive candidate filter.
+  const hasWorkup = /\b(?:doctors?|drs?|providers?|meds?|medications?)\s*:/i.test(t)
+    || /\b(?:dr|dra|doctor|doctora)\.?\s+[A-Za-zÀ-ÿ]/i.test(t);
+  if (!hasWorkup) return false;
+  const hasCurrent = /\b(?:current(?:ly)?(?:\s+plan)?|is\s+on|stay(?:ing)?\s+on)\b/i.test(t)
+    || (planCount != null ? planCount : ids.size) === 1;
+  return hasCurrent;
 }
 
 // A pasted med line carries brand names, doses and how often it is taken ("Metformin ER (glucophage) 500mg one daily",
@@ -641,9 +655,9 @@ function medsFromAsk(askText) {
     if (saidNoMeds(own)) return [];
     const gone = require('./loadedWorkup').medRemovalsIn(own, out);
     const kept = gone.length ? out.filter((m) => !gone.includes(m)) : out;
-    return require('./loadedWorkup').applyConfirmedDoses(own, kept);
+    return require('./loadedWorkup').applyMedSubstitutions(t, require('./loadedWorkup').applyConfirmedDoses(own, kept));
   }
-  return out;
+  return require('./loadedWorkup').applyMedSubstitutions(t, out);
 }
 
 // ─── carriers the agent asks for by name ("show me Doctors, Solis, Devoted") ──
@@ -842,6 +856,7 @@ module.exports = {
   splitMedList,
   stripListConnectors,
   isExclusivePlanSet,
+  isSelectedPlanCheck,
   knownMedsNote,
   isNonDrugAnswer,
   sameDrug,

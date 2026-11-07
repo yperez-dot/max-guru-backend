@@ -165,8 +165,15 @@ describe('current plan + "is there something better?"', () => {
     assert.ok(job.result.planIds.length >= 2, `got ${job.result.planIds}`);
     assert.match(job.result.selection, /current plan \(H1045-005\) first/);
   });
-  it('without the intent, a named plan stays the only column', async () => {
+  it('a current-only named plan still shops alternatives unless the set is exclusive', async () => {
     const job = mkJob({});
+    await runJob(job, { lookupOneDoctor: fakeDoctor(plansIn), lookupRx: fakeRx });
+    assert.equal(job.result.planIds[0], 'H1045-005');
+    assert.ok(job.result.planIds.length >= 2, `got ${job.result.planIds}`);
+    assert.equal(job.result.planSource, 'current_plus_alternatives');
+  });
+  it('exclusive "only this plan" stays a single named column', async () => {
+    const job = mkJob({ exclusivePlanSet: true, wantsAlternatives: false });
     await runJob(job, { lookupOneDoctor: fakeDoctor(plansIn), lookupRx: fakeRx });
     assert.deepEqual(job.result.planIds, ['H1045-005']);
     assert.equal(job.result.planSource, 'named');
@@ -293,22 +300,22 @@ describe('audit 3: the Rx cache keeps only final answers', () => {
   });
 });
 
-describe('one named plan is current; alternatives only when she asks (owner 2026-11-02)', () => {
+describe('one named plan is current; it is a baseline unless she locks the set (2026-11-07)', () => {
   const { parseCompareAsk } = require('./compareJobs');
   const n = require('./doctorPlanNarrow');
   const base = 'Candy Winfrey, ZIP 33157. Doctors: Yusleidi Gil; Peter Citron. Meds: metformin; losartan. ';
-  it('a single named plan with doctors + meds is NOT an alternatives ask', () => {
-    assert.equal(parseCompareAsk(`${base}Plans: H5420-001`).wantsAlternatives, false);
+  it('a single named plan with doctors + meds shops alternatives beside current', () => {
+    assert.equal(parseCompareAsk(`${base}Plans: H5420-001`).wantsAlternatives, true);
   });
   it('"only", a yes/no network question, or two plans keep it as named', () => {
     assert.equal(parseCompareAsk(`${base}Only H5420-001`).wantsAlternatives, false);
     assert.equal(parseCompareAsk(`${base}Is Dr Gil in network on H5420-001`).wantsAlternatives, false);
     assert.equal(parseCompareAsk(`${base}Compare H5420-001, H1036-065`).wantsAlternatives, false);
   });
-  it('the chat path pins the plan as current and does not shop unless asked', () => {
+  it('the chat path pins the plan as current and shops the county', () => {
     const ask = n.comparisonAskText([{ role: 'user', content: `${base}Plans: H5420-001` }]);
     assert.match(ask, /^Her current plan: H5420-001\.$/m);
-    assert.doesNotMatch(ask, /^Wants alternatives to the named plan\(s\)\.$/m);
+    assert.match(ask, /^Wants alternatives to the named plan\(s\)\.$/m);
   });
   it('explicit suggest / recommend / find better still shops', () => {
     assert.equal(parseCompareAsk(`${base}Plans: H5420-001. Suggest better plans.`).wantsAlternatives, true);

@@ -42,7 +42,7 @@ function conversationAskText(messages) {
   const wkAt = older.map((t) => /structured facts only/i.test(t)).lastIndexOf(true);
   if (wkAt >= 0) keep.push(older[wkAt]);
   const MEDS_LIST_RE = /\b(?:meds?|medications?|medicines?|rx|drugs?|prescriptions?|medicamentos?)\b\s*(?::|-\s)|\bmedications?\s+[a-z]/i;
-  const MED_EDIT_RE = /\b(?:stopped(?:\s+taking)?|no\s+longer\s+(?:takes?|taking|on)|discontinued)\b|\b(?:remove|drop|delete)\b[^.;\n]{0,40}\b(?:meds?|medications?|pills?)\b|^[^\n]{0,60}\b(?:is|=|dose\s+is)\s*\d+(?:\.\d+)?\s*(?:mg|mcg|ml|units?)\b/im;
+  const MED_EDIT_RE = /\b(?:stopped(?:\s+taking)?|no\s+longer\s+(?:takes?|taking|on)|discontinued)\b|\b(?:remove|drop|delete)\b[^.;\n]{0,40}\b(?:meds?|medications?|pills?)\b|^[^\n]{0,60}\b(?:is|=|dose\s+is)\s*\d+(?:\.\d+)?\s*(?:mg|mcg|ml|units?)\b|\b[A-Za-z][A-Za-z0-9-]{2,}\s*(?:=|→|->|\bis actually\b|\bshould be\b)\s*[A-Za-z]/im;
   older.forEach((t, k) => {
     if (k === wkAt) return;
     // Plan edits too ("remove careplus and add Doctors DrMax-Dade"): a removal or add never comes undone after 4 more
