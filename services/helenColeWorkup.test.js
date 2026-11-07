@@ -1,8 +1,10 @@
-// Helen Cole (fictional) — four workup bugs from 2026-11-02 + owner correction on item 2:
+// Helen Cole (fictional) — four workup bugs from 2026-11-02 + owner correction on item 2,
+// updated 2026-11-07: current-plan mention is a baseline, not an exclusive filter.
 // 1. "Meds: alprazolam, levothyroxine, and gabepentin" must not create a junk "and gabepentin" row
 //    or re-ask "Did you mean gabapentin?" after auto-correct.
 // 2. "look only at A, B, and C. No other plans" = current plan + exactly A, B, C. A first paste of
-//    doctors/meds/current plan must not invent HealthSun/Humana columns.
+//    doctors/meds/current plan ranks county alternatives beside the current plan (no SNP until
+//    eligibility is confirmed).
 // 3. "remove healthsun and humana from comparison" drops both; never drops the current plan unless
 //    named by name/H-number; chat + export columns match; one confirmation.
 // 4. CarePlus Find Care guest lookup (mocked): listed → In, empty → Out, failed → not confirmed.
@@ -111,33 +113,25 @@ describe('2. exclusive "only these plans / no other plans" keeps current + those
     assert.deepEqual(sel.columns.map((c) => c.planId.slice(0, 9)), ['H1045-005', 'H1019-001', 'H4140-023', 'H0982-007']);
   });
 
-  it('first paste of current plan + doctors + meds does not invent HealthSun/Humana columns', () => {
+  it('first paste of current plan + doctors + meds shops county alternatives beside current', () => {
     const msgs = [{ role: 'user', content: PASTE }];
     const ask = N.comparisonAskText(msgs);
-    assert.doesNotMatch(ask, /Wants alternatives/);
-    assert.equal(C.parseCompareAsk(PASTE).wantsAlternatives, false);
-    assert.equal(R.impliesCompareToCurrentPlan(PASTE), false);
-    const named = N.namedPlansFromAsk(ask);
-    const ids = named.map((p) => p.planId.slice(0, 9));
-    assert.ok(ids.includes('H1045-005'), ids.join(','));
-    assert.ok(!ids.some((id) => id.slice(0, 5) === 'H5431'), ids.join(','));
-    assert.ok(!ids.some((id) => id.slice(0, 5) === 'H1036'), ids.join(','));
+    assert.match(ask, /Wants alternatives/);
+    assert.equal(C.parseCompareAsk(PASTE).wantsAlternatives, true);
+    assert.equal(R.impliesCompareToCurrentPlan(PASTE), true);
     const sel = N.selectComparison([glick], ask, { answered: true });
     const colIds = sel.columns.map((c) => c.planId.slice(0, 9));
-    assert.deepEqual(colIds, ['H1045-005']);
-    assert.ok(!colIds.some((id) => id.slice(0, 5) === 'H5431'));
-    assert.ok(!colIds.some((id) => id.slice(0, 5) === 'H1036'));
+    assert.equal(colIds[0], 'H1045-005', colIds.join(','));
+    assert.ok(colIds.length >= 2, `expected alternatives beside current, got ${colIds.join(',')}`);
+    assert.ok(!sel.columns.some((c) => c.snp === 'dsnp' || c.snp === 'csnp'), colIds.join(','));
   });
 
-  it('Excel/PDF exclusive columns are current + A, B, C; first paste is current only', () => {
+  it('Excel/PDF exclusive columns are current + A, B, C; first paste is not a one-plan lock', () => {
     assert.deepEqual(
       exp.workingPlanIdsFromUserMessages([PASTE, ONLY]).map((id) => id.slice(0, 9)),
       ['H1045-005', 'H1019-001', 'H4140-023', 'H0982-007']
     );
-    assert.deepEqual(
-      exp.workingPlanIdsFromUserMessages([PASTE]).map((id) => id.slice(0, 9)),
-      ['H1045-005']
-    );
+    assert.deepEqual(exp.workingPlanIdsFromUserMessages([PASTE]), []);
   });
 
   it('explicit suggest / recommend / find better still shops alternatives', () => {

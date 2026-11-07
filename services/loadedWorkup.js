@@ -7,6 +7,8 @@
 //   DOCTORS  keep every saved doctor; her corrected spelling replaces the stale row; remove only the doctors she
 //            names; a near-duplicate is asked about (never auto-dropped); rows merge only on the exact same NPI.
 //   MEDS     keep every saved med (pharmacy-label names normalized, never dropped); remove only the meds she names.
+//            An accepted alias / "did you mean" correction REPLACES that original row — never a ghost unresolved
+//            name plus the priced spelling (Georgie / xcopi = Xcopri, 2026-11-07). Distinct drugs she actually adds stay.
 //
 // doctorPlanNarrow.js (comparisonAskText / namedPlansFromAsk / comparisonFollowUp / selectComparison) and the golden
 // suite (services/golden) read these rules from here. Plan-grid helpers stay in doctorPlanNarrow (lazy require: it
@@ -760,12 +762,153 @@ function applyConfirmedDoses(text, meds) {
   });
 }
 
+function medHead(name) {
+  return String(name || '').toLowerCase().replace(/[^a-z0-9\s/-]/g, ' ').trim().split(/[\s/-]+/).find((w) => /^[a-z]{3,}$/.test(w)) || '';
+}
+
+function lev(a, b) {
+  const x = String(a || '');
+  const y = String(b || '');
+  let row = Array.from({ length: y.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= x.length; i += 1) {
+    const cur = [i];
+    for (let j = 1; j <= y.length; j += 1) {
+      cur[j] = Math.min(row[j] + 1, cur[j - 1] + 1, row[j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+    }
+    row = cur;
+  }
+  return row[y.length];
+}
+
+/** Close spelling of one drug name ("xcopi" vs "xcopri") — not a different ingredient. */
+function medTypoAlias(a, b) {
+  const x = medHead(a);
+  const y = medHead(b);
+  if (!x || !y || x === y) return false;
+  if (x.length < 5 && y.length < 5) return false;
+  if (Math.abs(x.length - y.length) > 2) return false;
+  return lev(x, y) <= 1;
+}
+
+function tidyMedReplacement(raw) {
+  return String(raw || '')
+    .replace(/^\s*(?:the\s+)?(?:med(?:ication)?|drug|brand|generic)\s+/i, '')
+    .replace(/[.,;:!?\s]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isDoseOnly(s) {
+  return /^\d+(?:\.\d+)?\s*(?:mg|mcg|ml|units?|%)$/i.test(String(s || '').trim());
+}
+
+function looksLikePersonReplacement(s) {
+  const t = String(s || '').trim();
+  if (/\b(?:mg|mcg|tab|tabs|tablet|cap|capsule|cenobamate|xcopri)\b/i.test(t)) return false;
+  return /^(?:dr\.?\s+)?[A-ZÀ-Ý][a-zà-ÿ'’-]+(?:\s+[A-ZÀ-Ý][a-zà-ÿ'’-]+){1,3}$/.test(t);
+}
+
+function findKnownMed(knownMeds, fromToken) {
+  const list = knownMeds || [];
+  if (!list.length) return null;
+  const head = medHead(fromToken);
+  const exact = list.filter((m) => medHead(m) === head || R.sameDrug(m, fromToken));
+  if (exact.length) return exact[0];
+  const typo = list.filter((m) => medTypoAlias(m, fromToken));
+  return typo.length === 1 ? typo[0] : null;
+}
+
+/**
+ * "xcopi = Xcopri (cenobamate) 200 mg", "replace xcopi with Xcopri", "Med substitution: xcopi => Xcopri.".
+ * Only names already on her med list are replaced — doctor "X = Dr. Y" and dose "Levo is 0.2 mg" stay out.
+ */
+function medSubstitutionsIn(text, knownMeds) {
+  const out = [];
+  const add = (from0, to0) => {
+    const to = tidyMedReplacement(to0);
+    const fromTok = String(from0 || '').trim();
+    if (!fromTok || !to || isDoseOnly(to) || looksLikePersonReplacement(to)) return;
+    const known = findKnownMed(knownMeds, fromTok);
+    if (!known) return;
+    if (R.sameDrug(known, to) && medHead(known) === medHead(to)) return;
+    if (out.some(([f]) => medHead(f) === medHead(known))) return;
+    out.push([known, to]);
+  };
+  const t = String(text || '');
+  for (const m of t.matchAll(/^Med substitution:\s*(.+?)\s*=>\s*(.+?)\.\s*$/gim)) add(m[1], m[2]);
+  for (const m of t.matchAll(/\b(?:replace|change|swap|correct)\s+(?:the\s+)?([A-Za-z][A-Za-z0-9-]{2,})(?:\s+tab(?:let)?s?|\s+cap(?:sule)?s?)?(?:\s+\d+(?:\.\d+)?\s*mg)?\s+(?:with|to|by)\s+(.+?)(?=[.;\n]|$)/gi)) {
+    add(m[1], m[2]);
+  }
+  for (const part of t.split(/[;\n]/)) {
+    const line = part.replace(/^\s*(?:yes|yep|yeah|correct|ok(?:ay)?)[\s.,!:;-]*/i, '').trim();
+    const m = line.match(/^([A-Za-z][A-Za-z0-9-]{2,})\b(?:\s+tab(?:let)?s?|\s+cap(?:sule)?s?)?(?:\s+\d+(?:\.\d+)?\s*mg)?\s*(?:=|→|->|\bis actually\b|\bis really\b|\bshould be\b|\bmeans\b)\s*(.+)$/i);
+    if (m) { add(m[1], m[2]); continue; }
+    const isLine = line.match(/^([A-Za-z][A-Za-z0-9-]{2,})\b(?:\s+tab(?:let)?s?|\s+cap(?:sule)?s?)?(?:\s+\d+(?:\.\d+)?\s*mg)?\s+\bis\b\s+(.+)$/i);
+    if (isLine && !isDoseOnly(isLine[2]) && (/\b(?:mg|mcg|tab|cap)\b|\([^)]{3,}\)/i.test(isLine[2]))) add(isLine[1], isLine[2]);
+  }
+  return out;
+}
+
+const NAMECHECK_ROW_RE = /❓\s*'([^']+)'\s*[—–-]\s*did you mean\s+([^?\n]+)\?/gi;
+
+/** Yes / typed suggestion for a table ❓ 'xcopi tab 200' — did you mean cenobamate 200 mg [xcopri]? */
+function acceptedNameCheckMeds(userText, assistantText, knownMeds) {
+  const asked = [...String(assistantText || '').matchAll(NAMECHECK_ROW_RE)].map((m) => ({
+    from: m[1].trim(),
+    suggestion: m[2].trim(),
+  }));
+  if (!asked.length) return [];
+  const t = String(userText || '').trim();
+  if (!t) return [];
+  const out = [];
+  const explicit = medSubstitutionsIn(t, [...asked.map((a) => a.from), ...(knownMeds || [])]);
+  const yes = /^(?:yes|yep|yeah|correct|ok(?:ay)?|sure|right|exactly)\b/i.test(t) && !/\b(?:no|nope|not|wrong)\b/i.test(t);
+  const doctorOrPlanQ = /No exact match|Did you mean remove |Confirm the (?:doctor )?match/i.test(String(assistantText || ''));
+  for (const a of asked) {
+    const hit = explicit.find(([from]) => medHead(from) === medHead(a.from) || R.sameDrug(from, a.from));
+    if (hit) { out.push(hit); continue; }
+    const brand = (a.suggestion.match(/\[([^\]]+)\]/) || [])[1];
+    const generic = a.suggestion.replace(/\s*\[[^\]]*\]/g, '').trim();
+    const low = t.toLowerCase();
+    const named = (brand && low.includes(brand.toLowerCase())) || (generic && low.includes(generic.toLowerCase()));
+    if (named || (yes && !doctorOrPlanQ)) {
+      const to = /\b(?:mg|mcg|tab|cap)\b|\([^)]+\)/i.test(t) && !/^(?:yes|yep|yeah|correct|ok(?:ay)?|sure|right|exactly)\b/i.test(t)
+        ? tidyMedReplacement(t.replace(/^(?:yes|yep|yeah|correct|ok(?:ay)?|sure)[,.]?\s*/i, ''))
+        : (brand ? `${brand} (${generic})` : a.suggestion);
+      out.push([a.from, to]);
+    }
+  }
+  return out;
+}
+
+function applyMedSubstitutions(text, meds, assistantText) {
+  const list = (meds || []).map((m) => String(m || '').trim()).filter(Boolean);
+  const subs = [...medSubstitutionsIn(text, list), ...acceptedNameCheckMeds(text, assistantText, list)];
+  if (!subs.length) return list;
+  const replacedHeads = new Set();
+  const mapped = list.map((med) => {
+    const hit = subs.find(([from]) => R.sameDrug(from, med) || medHead(from) === medHead(med) || medTypoAlias(from, med));
+    if (!hit) return med;
+    replacedHeads.add(medHead(hit[0]));
+    return hit[1];
+  });
+  const seen = new Set();
+  const out = [];
+  for (const med of mapped) {
+    const h = medHead(med);
+    if (h && seen.has(h)) continue;
+    if (h) seen.add(h);
+    out.push(med);
+  }
+  return out;
+}
+
 /** Saved meds + the newest message → the med set for the re-run (names normalized, removals applied). */
-function workupMedSet(savedMeds, latestText) {
+function workupMedSet(savedMeds, latestText, assistantText) {
   const tidy = (x) => R.tidyLongMedName ? R.tidyLongMedName(x) : String(x || '');
   const meds = (savedMeds || []).map(tidy).filter(Boolean);
   const gone = medRemovalsIn(latestText, meds);
-  return applyConfirmedDoses(latestText, meds.filter((m) => !gone.includes(m)));
+  return applyMedSubstitutions(latestText, applyConfirmedDoses(latestText, meds.filter((m) => !gone.includes(m))), assistantText);
 }
 
 // ═══ A NEW FULL LIST REPLACES THE SAVED ONES ═════════════════════════════════════════════════════════════════
@@ -874,6 +1017,7 @@ module.exports = {
   duplicateQuestions, confirmedDuplicateRemovals,
   // meds
   MED_REMOVE_RE, medRemovalsIn, workupMedSet, confirmedDosesIn, applyConfirmedDoses,
+  medHead, medTypoAlias, medSubstitutionsIn, acceptedNameCheckMeds, applyMedSubstitutions,
   // all three
   resolveWorkupSets, isFullClientList, withCurrentLists,
 };

@@ -333,7 +333,10 @@ function parseCompareAsk(text) {
     planType: typeAsk ? typeAsk.type : '',
     planTop: typeAsk ? typeAsk.top : 0,
     terminatingPlan,
-    wantsAlternatives: ALTERNATIVES_RE.test(t) || require('./comparisonRules').impliesCompareToCurrentPlan(t, plans.length),
+    exclusivePlanSet: require('./comparisonRules').isExclusivePlanSet(t),
+    wantsAlternatives: !require('./comparisonRules').isExclusivePlanSet(t)
+      && !require('./comparisonRules').isSelectedPlanCheck(t)
+      && (ALTERNATIVES_RE.test(t) || require('./comparisonRules').impliesCompareToCurrentPlan(t, plans.length)),
     carriers: carriersRequested(t),
     noMedicaid: constraints.noMedicaid,
     // Medicaid / MSP level / C-SNP condition exactly as the agent stated them (never inferred).
@@ -545,6 +548,7 @@ function normalizeInput(raw) {
     terminatingPlan: String(src.terminatingPlan || '').trim().toUpperCase(),
     noMedicaid: Boolean(src.noMedicaid),
     wantsAlternatives: Boolean(src.wantsAlternatives),
+    exclusivePlanSet: Boolean(src.exclusivePlanSet),
     carriers: list(src.carriers).map((c) => String(c || '').trim()).filter(Boolean).slice(0, 8),
     eligibility: normalizeEligibility(src.eligibility, Boolean(src.noMedicaid)),
     skip: list(src.skip).map((s) => String(s).toUpperCase()),
@@ -581,7 +585,13 @@ function askTextFor(input) {
   if (input.plans.length) parts.push(`Compare ${input.plans.join(', ')}.`);
   if ((input.carriers || []).length) parts.push(`Carriers requested: ${input.carriers.join(', ')}.`);
   const text = parts.join(' ');
-  return (input.addedPlans || []).length ? `${text}\nPlans she added: ${input.addedPlans.join(', ')}.` : text;
+  const extras = [];
+  const current = cardCurrentPlans(input);
+  if (current.length) extras.push(`Her current plan: ${current.join(', ')}.`);
+  if (input.exclusivePlanSet) extras.push('Exclusive named plan set.');
+  else if (input.wantsAlternatives) extras.push('Wants alternatives to the named plan(s).');
+  if ((input.addedPlans || []).length) extras.push(`Plans she added: ${input.addedPlans.join(', ')}.`);
+  return extras.length ? `${text}\n${extras.join('\n')}` : text;
 }
 
 async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFormularyCached, lookupTimeoutMs } = {}) {
@@ -651,8 +661,14 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     // with no named / pinned set): her current plan and named plans come from the ask lines (askTextFor).
     const typeMode = input.planType === 'ppo' || input.planType === 'hmo';
     const named = typeMode ? [] : input.plans.map((id) => ({ planId: id, name: (input.planNames && input.planNames[id]) || id }));
-    // Her plan(s) + "is there something better?": keep them as the first column and shop the county for the rest.
-    const pinned = named.length && (input.wantsAlternatives || (input.carriers || []).length) ? named.map((p) => p.planId) : [];
+    // Her plan(s) + "is there something better?" / a current-plan-only paste: keep them as the
+    // first column and shop the county for the rest. Exclusive "only these plans" stays named.
+    const currentIds = cardCurrentPlans(input);
+    const namedIsCurrentOnly = !input.exclusivePlanSet && named.length > 0 && currentIds.length > 0
+      && named.every((p) => currentIds.some((id) => String(id).slice(0, 9) === String(p.planId).slice(0, 9)))
+      && currentIds.every((id) => named.some((p) => String(p.planId).slice(0, 9) === String(id).slice(0, 9)));
+    const pinned = named.length && (input.wantsAlternatives || namedIsCurrentOnly || (input.carriers || []).length)
+      ? named.map((p) => p.planId) : [];
     const planSource = typeMode ? `plan_type_${input.planType}` : pinned.length ? 'current_plus_alternatives' : named.length ? 'named' : 'top_doctor_coverage';
     let rxPlanIds = named.map((p) => p.planId);
     if (typeMode) {
@@ -728,7 +744,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
     const showQl = require('./comparisonRules').quantityLimitsChoice(askText) === true
       || input.showQl === true
       || (input.eligibility && input.eligibility.showQl === true);
-    const medsFull = medsTable(drugs, columns, input.meds, { showQl });
+    const medsFull = medsTable(drugs, columns, input.meds, { showQl, askText });
     job.result.medsTable = quietRestrictionMarks(medsFull);
     job.result.legend = LEGEND + (columns.some((p) => (p.inCarrier || []).length) ? ` · ${IN_STAR_LEGEND}` : '');
     job.result.medsLegend = medsLegendFor(medsFull, { showQl });

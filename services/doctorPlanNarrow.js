@@ -948,6 +948,37 @@ function comparisonAskText(messages, baseText) {
   lines.push(...planRemovalAskLines(msgs));
   // The plan type comes from her newest message only (askConstraints reads this line, not the older messages).
   lines.push(planTypeLine(msgs));
+  // Accepted med aliases persist the same way doctor substitutions do: "xcopi = Xcopri" replaces the original row
+  // after it scrolls out of the last-4 window (Georgie, 2026-11-07).
+  {
+    const seed = [];
+    for (const m of msgs) {
+      if (!m || m.role !== 'user') continue;
+      const raw = messageText(m);
+      if (!/\b(?:meds?|medications?|rx|drugs?|prescriptions?)\s*:/i.test(raw) && !/structured facts only/i.test(raw)) continue;
+      for (const name of R.medsFromAsk(raw)) {
+        if (name && !seed.some((x) => R.sameDrug(x, name) || LW.medHead(x) === LW.medHead(name))) seed.push(name);
+      }
+    }
+    const seenSub = new Set();
+    for (let i = 0; i < msgs.length; i += 1) {
+      const m = msgs[i];
+      if (!m || m.role !== 'user') continue;
+      const tUser = messageText(m);
+      const prevA = [...msgs.slice(0, i)].reverse().find((x) => x && x.role === 'assistant');
+      const subs = [
+        ...LW.medSubstitutionsIn(tUser, seed),
+        ...LW.acceptedNameCheckMeds(tUser, prevA ? messageText(prevA) : '', seed),
+      ];
+      for (const [from, to] of subs) {
+        const key = `${LW.medHead(from)}=>${LW.medHead(to)}`;
+        if (seenSub.has(key)) continue;
+        seenSub.add(key);
+        lines.push(`Med substitution: ${from} => ${to}.`);
+        if (!seed.some((x) => LW.medHead(x) === LW.medHead(to))) seed.push(to);
+      }
+    }
+  }
   return lines.join('\n');
 }
 
@@ -1247,6 +1278,12 @@ function comparisonFollowUpRaw(messages) {
     ];
     if (substitutionsIn(latest, names).length) reasons.push('doctor corrections');
     const prevQ = prevAssistant ? messageText(prevAssistant) : '';
+    const listedMeds = [...(f.meds || []), ...R.medsFromAsk(t)];
+    const medSubs = [
+      ...LW.medSubstitutionsIn(latest, listedMeds),
+      ...LW.acceptedNameCheckMeds(latest, prevQ, listedMeds),
+    ];
+    if (medSubs.length) reasons.push('med spelling correction');
     // A candidate she picked from the "No exact match" list: that provider (name + NPI) replaces the doctor she typed.
     const picks = candidatePicks(prevQ, latest);
     const pickNpis = {};
@@ -1401,6 +1438,10 @@ function comparisonFollowUpRaw(messages) {
   {
     const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
     const medsListed = /\b(?:meds?|medications?|medicines?|rx|drugs?|prescriptions?|medicamentos?)\b\s*(?::|-\s)/i.test(latest) && R.medsFromAsk(latest).length > 0;
+    const wkMeds = wk ? R.medsFromAsk(messageText(msgs.slice(0, lastUserAt + 1).find((m) => m && m.role === 'user' && /structured facts only/i.test(messageText(m))) || { content: '' })) : [];
+    const prevAText = prevAssistant ? messageText(prevAssistant) : '';
+    const medCorrected = LW.medSubstitutionsIn(latest, wkMeds).length > 0
+      || LW.acceptedNameCheckMeds(latest, prevAText, wkMeds).length > 0;
     // A plan add / remove on the saved table ("remove aetna and add … H1036-121"): the same full re-run, so the
     // removal question or "couldn't find" line comes from the server with the new table.
     // "Please remove Doctors DrMax-Dade · H4140-022 from her comparison" is a plan edit too: re-run now without it. Left to
@@ -1411,9 +1452,12 @@ function comparisonFollowUpRaw(messages) {
       return rm && rm.remove && rm.remove.length > 0;
     };
     const planEdit = !medsListed && wk && wk.plans.length && (LW_planAddSet(latest, msgs.slice(0, lastUserAt + 1)).length > 0 || savedRemoval() || planRemovalAskLines(msgs.slice(0, lastUserAt + 1)).some((l) => /^Plan removal questions:/.test(l)));
-    if (wk && wk.doctors.length && wk.plans.length && (medsListed || planEdit)) {
+    if (wk && wk.doctors.length && wk.plans.length && (medsListed || planEdit || medCorrected)) {
       const picked = applyDoctorResolutions(wk.doctors, threadDoctorResolutions(msgs, lastUserAt), {});
-      return { reason: medsListed ? 'meds she listed — full table with every saved doctor and plan' : 'plan edit on her saved table — every saved doctor and med', doctors: picked.doctors, zip: wk.zip || newestZip(msgs.slice(0, lastUserAt + 1)), ...(Object.keys(picked.npis).length ? { npis: picked.npis } : {}) };
+      const reason = medCorrected
+        ? 'med spelling correction — replace the original row'
+        : (medsListed ? 'meds she listed — full table with every saved doctor and plan' : 'plan edit on her saved table — every saved doctor and med');
+      return { reason, doctors: picked.doctors, zip: wk.zip || newestZip(msgs.slice(0, lastUserAt + 1)), ...(Object.keys(picked.npis).length ? { npis: picked.npis } : {}) };
     }
   }
   return null;
@@ -1814,7 +1858,7 @@ function namedPlansFromAskRaw(askText0, constraints) {
     }
     if (!line.trim()) continue;
     // comparisonAskText's marker of the plans she just added (selectComparison reads it) is not a plan list.
-    if (/^(?:Plans she added|Plan names not matched|Plan removal questions|Med spelling confirmed|Confirmed plan removal):/.test(line)) continue;
+    if (/^(?:Plans she added|Plan names not matched|Plan removal questions|Med spelling confirmed|Med substitution|Confirmed plan removal):/.test(line)) continue;
     // Removals first ("remove devoted", "drop H1290-073") — loadedWorkup.js rules: whole words / carrier / ID; a pronoun
     // ("remove it") never removes a plan.
     current = LW.removePlansNamedIn(current, line, [...currentIds, ...workupCurrentIds]);
@@ -2470,7 +2514,7 @@ function selectComparison(doctors, askText, opts = {}) {
   const wantsOther = /^Wants another carrier\.$/m.test(ask0);
   const rankAll = /^Rank all eligible plans\.$/m.test(ask0);
   const topN = Math.max(1, Math.min(5, Number((ask0.match(/^Top (\d)\.$/m) || [])[1]) || 3));
-  const drugs = (opts.drugs || []).filter(Boolean);
+  const drugs = dropSupersededNameChecks((opts.drugs || []).filter(Boolean), ask0);
   const answered = Boolean(opts.answered);
   const ask = String(askText || '');
   const constraints = askConstraints(ask);
@@ -2609,11 +2653,19 @@ function selectComparison(doctors, askText, opts = {}) {
     const cur = new Set([...(((ask.match(/^Her current plan:\s*([^\n]+)$/m) || [])[1] || '').matchAll(/\b([HR]\d{4}-\d{3})/gi))].map((m) => m[1].toUpperCase()));
     named = named.filter((p) => !cur.has(String(p.planId).toUpperCase().slice(0, 9)));
   }
-  // Current plan only, no shop-around ask: those pinned IDs ARE the columns. Ranking would invent
-  // HealthSun/Humana as extra columns (Helen Cole / owner, 2026-11-02).
+  // Current-plan mention is a baseline, not an exclusive candidate filter. Shop the county's
+  // eligible plans unless she locked a named set ("only A, B, C" / 2+ typed IDs / in-network check).
+  const pinKey = (id) => String(id || '').toUpperCase().slice(0, 9);
+  const extrasBeyondCurrent = named.filter((p) => !pinFromAsk.some((id) => pinKey(id) === pinKey(p.planId)));
+  const currentPlanBaseline = !exclusiveSet && !R.isSelectedPlanCheck(ask0) && !Array.isArray(opts.named)
+    && pinFromAsk.length > 0 && extrasBeyondCurrent.length === 0
+    && !rankAll && !wantsOther && !carriers.length && !typeAskType
+    && !/^Run C-SNPs/m.test(ask0);
+  if (currentPlanBaseline) named = [];
   const shopAround = rankAll || wantsOther || carriers.length || Boolean(typeAskType)
     || /Wants alternatives to the named plan\(s\)\./.test(ask)
-    || /^Run C-SNPs/m.test(ask0);
+    || /^Run C-SNPs/m.test(ask0)
+    || currentPlanBaseline;
   if (!named.length && pinFromAsk.length && !shopAround && !Array.isArray(opts.named)) {
     named = pinFromAsk.map((id) => {
       const row = gridRowFor(id, county);
@@ -2698,7 +2750,7 @@ function selectComparison(doctors, askText, opts = {}) {
     if (snpNamed.length) out.flags.push(`SNP eligibility (${snpNamed.join(', ')}) is confirmed at enrollment.`);
     if (n > 0 && cols.some((c) => c.carrier === 'Solis')) out.flags.push(solisFlag(docs));
     if (n > 0 && cols.some((c) => c.carrier === 'CarePlus')) out.flags.push(careplusFlag(docs));
-  } else if (n > 0 || carriers.length) {
+  } else if (n > 0 || carriers.length || shopAround) {
     const gridRows = R.gridPlansForCounty(county);
     const pool = gridRows.length
       ? gridRows.map((g) => {
@@ -3361,6 +3413,31 @@ function drugAnswers(r, med) {
   return R.sameDrug(drugNameOf(r), med) || Boolean(r && r.inputName && R.sameDrug(r.inputName, med));
 }
 
+/** Drop a ❓ did-you-mean row once she accepted the alias or a priced lookup answers it. */
+function dropSupersededNameChecks(drugResults, askText) {
+  const list = (drugResults || []).filter(Boolean);
+  if (!list.length) return list;
+  const names = list.map((r) => r.inputName || drugNameOf(r)).filter(Boolean);
+  const subs = [
+    ...LW.medSubstitutionsIn(askText, names),
+    ...[...String(askText || '').matchAll(/^Med substitution:\s*(.+?)\s*=>\s*(.+?)\.\s*$/gim)].map((m) => [m[1].trim(), m[2].trim()]),
+  ];
+  return list.filter((r) => {
+    if (!r.nameCheck) return true;
+    const input = r.nameCheck.input || r.inputName || drugNameOf(r);
+    const suggestion = String(r.nameCheck.suggestion || '');
+    if (subs.some(([from]) => R.sameDrug(from, input) || LW.medHead(from) === LW.medHead(input) || LW.medTypoAlias(from, input))) return false;
+    return !list.some((o) => {
+      if (!o || o === r || o.nameCheck) return false;
+      const n = drugNameOf(o);
+      const inName = String(o.inputName || '');
+      if (suggestion && (R.sameDrug(n, suggestion) || suggestion.toLowerCase().includes(String(n).toLowerCase()) || (inName && suggestion.toLowerCase().includes(inName.toLowerCase())))) return true;
+      if (LW.medTypoAlias(input, n) || LW.medTypoAlias(input, inName)) return true;
+      return subs.some(([, to]) => R.sameDrug(n, to) || R.sameDrug(inName, to) || LW.medHead(n) === LW.medHead(to));
+    });
+  });
+}
+
 /** True when meds were looked up and not one plan answered for any of them. */
 function allDrugLookupsFailed(drugResults) {
   const all = (drugResults || []).filter(Boolean);
@@ -3381,6 +3458,8 @@ function medsTable(drugResults, plans, knownMeds = [], opts = {}) {
   }
   if (!plans.length) return '';
   const cellOpts = { showQl: opts.showQl === true };
+  drugResults = dropSupersededNameChecks(drugResults, opts.askText || '');
+  knownMeds = LW.applyMedSubstitutions(opts.askText || '', knownMeds || []);
   const rows = [];
   const seen = new Set();
   for (const r of drugResults || []) {
@@ -3498,7 +3577,8 @@ function withTimedOutNote(text, doctors, drugs, opts) {
   return `${note}\n\n${legendAdded}`;
 }
 function renderedAnswer(doctors, askText, opts = {}) {
-  return withTimedOutNote(renderedAnswerRaw(doctors, askText, opts), doctors, opts.drugs, { recheck: Boolean(opts.recheck) });
+  const drugsIn = dropSupersededNameChecks(opts.drugs || [], askText);
+  return withTimedOutNote(renderedAnswerRaw(doctors, askText, { ...opts, drugs: drugsIn }), doctors, drugsIn, { recheck: Boolean(opts.recheck) });
 }
 function renderedAnswerRaw(doctors, askText, { answered = false, drugs = [], medsUnreadable = false } = {}) {
   if (String(askText || '').includes(CORE_ALL_LINE)) {
@@ -3515,7 +3595,7 @@ function renderedAnswerRaw(doctors, askText, { answered = false, drugs = [], med
   const lines = [sel.header, '', gridTable(sel.doctors, top), '',
     R.LEGEND + (top.some((p) => (p.inCarrier || []).length) ? ` · ${R.IN_STAR_LEGEND}` : '')];
   const showQl = R.quantityLimitsChoice(askText) === true;
-  const meds = medsTable(drugs, top, sel.meds, { showQl });
+  const meds = medsTable(drugs, top, sel.meds, { showQl, askText });
   if (meds) {
     lines.push('', '**Meds**', '', quietRestrictionMarks(meds), '', medsLegendFor(meds, { showQl }), ...strengthNotes(drugs, top.map((p) => p.planId)));
   }
@@ -3698,7 +3778,8 @@ function enforceRenderedTable(replyText, rendered) {
 }
 
 function fallbackAnswer(doctors, askText, opts = {}) {
-  return withTimedOutNote(fallbackAnswerRaw(doctors, askText, opts), doctors, opts.drugs, { recheck: Boolean(opts.recheck) });
+  const drugsIn = dropSupersededNameChecks(opts.drugs || [], askText);
+  return withTimedOutNote(fallbackAnswerRaw(doctors, askText, { ...opts, drugs: drugsIn }), doctors, drugsIn, { recheck: Boolean(opts.recheck) });
 }
 function fallbackAnswerRaw(doctors, askText, { answered = false, drugs = [] } = {}) {
   const sel = selectComparison(doctors, askText, { answered, drugs });
@@ -3714,7 +3795,7 @@ function fallbackAnswerRaw(doctors, askText, { answered = false, drugs = [] } = 
     const extras = extrasLines(sel);
     if (extras.length) { lines.push(''); extras.forEach((l) => lines.push(l)); }
     const showQl = R.quantityLimitsChoice(askText) === true;
-    const meds = medsTable(drugs, top, sel.meds, { showQl });
+    const meds = medsTable(drugs, top, sel.meds, { showQl, askText });
     if (meds) {
       lines.push('');
       lines.push('**Meds**');
@@ -3812,6 +3893,7 @@ module.exports = {
   doctorIsOrg,
   countsOf,
   medsTable,
+  dropSupersededNameChecks,
   dedupeDoctorRows,
   duplicateQuestions,
   confirmedDuplicateRemovals,

@@ -348,11 +348,27 @@ function mergeDoctors(existing, incoming) {
   return out.slice(0, MAX_DOCTORS);
 }
 
-/** Never drop a saved med: same drug (first word) merges, verified tiers per plan win. */
+function unresolvedMed(m) {
+  const bp = (m && m.byPlanId) || {};
+  return !Object.values(bp).some((v) => v && (v.verified || v.coverage === 'not_covered'));
+}
+
+/** Never drop a saved med: same drug (first word) merges, verified tiers per plan win.
+ *  An accepted alias ("xcopi" → "Xcopri") replaces the unresolved original row instead of appending. */
 function mergeMedications(existing, incoming) {
+  const LW = require('./loadedWorkup');
   const out = (existing || []).filter((m) => !NON_MED_RE.test(String(m.name || ''))).map((m) => ({ ...m, byPlanId: { ...(m.byPlanId || {}) } }));
   for (const m of incoming || []) {
-    const hit = out.find((x) => medKey(x.name) && medKey(x.name) === medKey(m.name));
+    let hit = out.find((x) => medKey(x.name) && medKey(x.name) === medKey(m.name));
+    if (!hit && typeof LW.medTypoAlias === 'function') {
+      hit = out.find((x) => LW.medTypoAlias(x.name, m.name) && unresolvedMed(x));
+      if (hit) {
+        hit.name = m.name;
+        hit.byPlanId = { ...(m.byPlanId || {}) };
+        if (m.screen) hit.screen = { ...m.screen };
+        continue;
+      }
+    }
     if (!hit) { out.push({ ...m, byPlanId: { ...(m.byPlanId || {}) } }); continue; }
     // A confirmed dose ("Levothyroxine Sodium is 0.2 mg") renames the saved med and its cells are for that strength
     // (Gerry Cabrera, 2026-10-19: the export still read "Levothyroxine Sodium" with the every-strength cell).
@@ -416,6 +432,35 @@ function dropRemovedMeds(rows, text) {
     if (!gone.length) return rows;
     const drop = new Set(gone.map((n) => medKey(n)));
     return rows.filter((m) => !drop.has(medKey(m.name)));
+  } catch (_) {
+    return rows;
+  }
+}
+
+function applyMedNameFixes(rows, text) {
+  if (!text || !rows || !rows.length) return rows || [];
+  try {
+    const LW = require('./loadedWorkup');
+    const names = rows.map((m) => m.name);
+    const next = LW.applyMedSubstitutions(text, names);
+    if (next.length === names.length && next.every((n, i) => n === names[i])) return rows;
+    const used = new Set();
+    const out = [];
+    for (let i = 0; i < next.length; i += 1) {
+      const name = next[i];
+      const k = medKey(name);
+      if (k && used.has(k)) {
+        const prev = out.find((x) => medKey(x.name) === k);
+        if (!prev) continue;
+        if (String(name).length > String(prev.name).length) prev.name = name;
+        Object.assign(prev.byPlanId, rows[i].byPlanId || {});
+        if (rows[i].screen) prev.screen = { ...(prev.screen || {}), ...rows[i].screen };
+        continue;
+      }
+      if (k) used.add(k);
+      out.push({ ...rows[i], name, byPlanId: { ...(rows[i].byPlanId || {}) } });
+    }
+    return out.slice(0, MAX_MEDS);
   } catch (_) {
     return rows;
   }
@@ -785,6 +830,7 @@ class WorkupStore {
       : mergeMedications(mergeMedications(prev.medications || [], body.medications), requested.medications);
     doctors = dropRemovedDoctors(doctors, body.latestQuery || '');
     medications = dropRemovedMeds(medications, body.latestQuery || '');
+    medications = applyMedNameFixes(medications, body.latestQuery || '');
     // Exact IDs she typed (current + named) lock the set: leftover / prior-client extras stay off.
     const namedExact = requested.plans.length >= 2 && !requested.wantsAlternatives;
     const plans = namedExact

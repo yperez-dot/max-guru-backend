@@ -385,7 +385,47 @@
       Object.keys(d.byPlanId || {}).forEach((id) => mergeDrugPlanStatus(hit.byPlanId || (hit.byPlanId = {}), id, d.byPlanId[id], null));
       if (d.screen) hit.screen = Object.assign({}, hit.screen || {}, d.screen);
     });
-    return out;
+    const firstTok = (name) => String(name || "").toLowerCase()
+      .replace(/(\d+(?:\.\d+)?)\s*(mg|mcg|µg|ug|ml|g|iu|units?|%)/g, " ")
+      .replace(/[^a-z0-9\s/-]/g, " ").trim().split(/[\s/-]+/).find((w) => /^[a-z]{3,}$/.test(w)) || "";
+    const levTok = (a, b) => {
+      const x = String(a || "");
+      const y = String(b || "");
+      let row = Array.from({ length: y.length + 1 }, (_, j) => j);
+      for (let i = 1; i <= x.length; i += 1) {
+        const cur = [i];
+        for (let j = 1; j <= y.length; j += 1) cur[j] = Math.min(row[j] + 1, cur[j - 1] + 1, row[j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+        row = cur;
+      }
+      return row[y.length];
+    };
+    const verifiedDrug = (d) => Object.values((d && d.byPlanId) || {}).some((v) => v && (v.verified || v.coverage === "not_covered"));
+    const collapsed = [];
+    out.forEach((d) => {
+      const tok = firstTok(d.name);
+      const hit = collapsed.find((x) => {
+        const t = firstTok(x.name);
+        if (!t || !tok) return false;
+        if (t === tok) return true;
+        if (tok.length >= 5 && t.length >= 5 && Math.abs(tok.length - t.length) <= 2 && levTok(tok, t) <= 1) return true;
+        return false;
+      });
+      if (!hit) { collapsed.push(d); return; }
+      const dOk = verifiedDrug(d);
+      const hOk = verifiedDrug(hit);
+      if (dOk && !hOk) {
+        hit.name = d.name;
+        Object.keys(d.byPlanId || {}).forEach((id) => mergeDrugPlanStatus(hit.byPlanId || (hit.byPlanId = {}), id, d.byPlanId[id], null));
+        if (d.screen) hit.screen = Object.assign({}, hit.screen || {}, d.screen);
+      } else if (!dOk && hOk) {
+        return;
+      } else {
+        hit.name = preferredDrugName(hit.name, d.name);
+        Object.keys(d.byPlanId || {}).forEach((id) => mergeDrugPlanStatus(hit.byPlanId || (hit.byPlanId = {}), id, d.byPlanId[id], null));
+        if (d.screen) hit.screen = Object.assign({}, hit.screen || {}, d.screen);
+      }
+    });
+    return collapsed;
   }
 
   /** Cleaner display between two aliases of one drug: no salt abbreviations, then shorter. */
@@ -3390,8 +3430,8 @@
    * The plans she is working with NOW, from her own messages only: the latest message that
    * lists 2+ plan IDs sets the columns; later "add/also/too … H…" adds, "remove/drop H…"
    * removes. "look only at A, B, C. No other plans" is current plan + exactly those IDs.
-   * A first paste that only names the current plan is that one column — Max-mentioned extras
-   * are never columns. [] when her messages never listed plans (callers fall back).
+   * A first paste that only names the current plan is not a lock — callers fall back to the
+   * table that ranked geographically available alternatives. [] when her messages never listed plans.
    */
   function workingPlanIdsFromUserMessages(messages) {
     let set = null;
@@ -3434,7 +3474,7 @@
         if (set.indexOf(ids[0]) < 0) set.push(ids[0]);
         return;
       }
-      if (ids.length === 1 && isCurId(ids[0]) && !set) set = ids.slice();
+      // A single current-plan ID is a baseline, not an exclusive working set.
     });
     return set || [];
   }
