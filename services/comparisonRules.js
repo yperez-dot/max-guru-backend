@@ -33,6 +33,7 @@ B. TABLE DISPLAY
 10. PROVIDER IDENTITY: Display each doctor as full name + specialty or NPI as matched. If only a last name was provided, confirm the match with the agent before running network checks.
 11. SNP FLAGS: If meds suggest a possible C-SNP qualifying condition (e.g., an anticoagulant suggesting a cardiovascular condition), flag it as "Possible C-SNP eligibility — agent must confirm diagnosis." Never assume it.
 12. CARRIERS ASKED BY NAME: When the agent asks for specific carriers ("show me Doctors, Solis, Devoted", "client wants Devoted"), the columns are those carriers' best eligible plans — never swap in other carriers or keep the old top 3. If a carrier has no eligible plan in the county, say so and why.
+12b. COUNTY BEFORE FILTERING: If the client's county is not yet known (no ZIP, no Broward/Miami-Dade on the workup or in this thread) and a requested plan is county-specific (on only one county's grid) or the comparison would change by county, ask ONE question: is the client in Broward or Miami-Dade? Do not assume Miami-Dade. Do not drop a plan she asked to include, and do not lead with a "not offered in Miami-Dade" warning, until she answers. Once county is known, filter to that county and only then mention a plan that is not offered there. Do not ask again if county is already known.
 13. NUMBERED REPLIES ARE ANSWERS: "1. no, 2. cardiovascular disorder, 3. yes" answers Max's numbered questions in order — apply them; never re-ask what she answered.
 14. NO EXACT DOCTOR MATCH: Never ask the agent to look up an NPI. Show the closest real providers the tool found (name, specialty, city) and let her pick ("Carlos Sosa = Glenda Sosa"), or ask for the spelling / specialty / office name.
 15. SHORT FIRST REPLY (she skims long replies): the first reply to a comparison is ONLY the header, the doctor table, the meds table, at most TWO notes (SNP eligibility first), and at most TWO questions (the one that blocks the work first). No benefits / grid snapshot, no "Sources:" line for grid or lookup data, and no note that repeats what a table already shows. Never mention a lookup failure for a carrier that is not a column in the table (e.g. Simply FindCare when Simply is not compared). Benefits go in a second reply only when she taps "Show benefits" or asks for them.
@@ -139,6 +140,46 @@ function countyFromAsk(askText) {
     if (/\bmiami[- ]?dade\b|\bdade\b/i.test(line) && !/broward/i.test(line)) return 'Miami-Dade';
   }
   return '';
+}
+
+/** One question — used in chat, AutoTool, and the UI clarify path. Do not assume Miami-Dade. */
+const COUNTY_QUESTION = 'Is the client in Broward or Miami-Dade?';
+
+/** Counties on the THEI grid for a contract-PBP (both copies — do not first-win). */
+function countiesForPlanId(planId, year = 2027) {
+  const key = String(planId || '').toUpperCase().slice(0, 9);
+  if (!key) return [];
+  const out = [];
+  for (const g of loadGrid(year) || []) {
+    if (String(g.planId || g.id || '').toUpperCase().slice(0, 9) !== key) continue;
+    const c = String(g.county || '');
+    if (c && !out.includes(c)) out.push(c);
+  }
+  return out;
+}
+
+function isCountySpecificPlan(planId, year = 2027) {
+  const cs = countiesForPlanId(planId, year).filter((c) => c === 'Miami-Dade' || c === 'Broward');
+  return cs.length === 1;
+}
+
+/**
+ * True when we must ask Broward vs Miami-Dade before filtering or dropping a plan.
+ * County already known (ZIP, workup, or words) → false.
+ */
+function needsCountyAsk(askText, planIds, opts) {
+  if (countyFromAsk(askText)) return false;
+  const ids = [...new Set((Array.isArray(planIds) ? planIds : [])
+    .map((id) => String(id || '').toUpperCase().slice(0, 9))
+    .filter(Boolean))];
+  if (ids.some((id) => isCountySpecificPlan(id))) return true;
+  const extra = opts && typeof opts === 'object' ? opts : {};
+  if (extra.shopAround) return true;
+  // Two or more named plans: dollars and which PBPs exist can differ by county.
+  if (ids.length > 1 && ids.some((id) => countiesForPlanId(id).some((c) => c === 'Miami-Dade' || c === 'Broward'))) {
+    return true;
+  }
+  return false;
 }
 
 /** Grid rows for the county (both counties when unknown), one row per contract-PBP. */
@@ -837,6 +878,10 @@ module.exports = {
   setGridForTests,
   countyForZip,
   countyFromAsk,
+  COUNTY_QUESTION,
+  countiesForPlanId,
+  isCountySpecificPlan,
+  needsCountyAsk,
   gridPlansForCounty,
   snpKind,
   networkType,

@@ -789,7 +789,7 @@ function comparisonAskText(messages, baseText) {
     // H4140-023 appeared unasked and UHC H5420-001 was dropped).
     // "check this plan Devoted C-SNP ENHANCED H1290-067" / "add dvoted to the grid": saved plans + that plan (Gerry Cabrera, 2026-10-19).
     if (i === msgs.map((x) => x && x.role).lastIndexOf('user') && !/\b[HR]\d{4}-\d{3}/i.test(t)) {
-      const byName = planNamesInAsk(t, R.countyFromAsk(msgs.map(messageText).join('\n')) || 'Miami-Dade');
+      const byName = planNamesInAsk(t, R.countyFromAsk(msgs.map(messageText).join('\n')));
       const amb = byName.ambiguous;
       const cap = (x) => x.replace(/\b([a-z])/g, (c) => c.toUpperCase());
       if (amb.length) lines.push(`Plan names not matched: ${amb.map((a) => `${cap(a.name)} (${a.ids.join(' or ')})`).join(' | ')}.`);
@@ -845,7 +845,7 @@ function comparisonAskText(messages, baseText) {
     }
     const typeSet = planTypeSetFromAsk(t, msgs.slice(0, i + 1));
     if (typeSet.length || (typeSet.misses && typeSet.misses.length)) {
-      const county = R.countyFromAsk(t) || R.countyFromAsk(msgs.map(messageText).join('\n')) || 'Miami-Dade';
+      const county = R.countyFromAsk(t) || R.countyFromAsk(msgs.map(messageText).join('\n'));
       for (const miss of typeSet.misses || []) {
         lines.push(`⚠️ ${miss.carrier}: no eligible ${miss.label || miss.type} plan in ${miss.county || county} on the THEI grid.`);
       }
@@ -1100,7 +1100,7 @@ function planTypeSetFromAsk(text, msgs) {
   const sharedType = (t.match(PLAN_TYPE_RE) || [])[1] || '';
   const typed = parts.filter((x) => carrierKey(x) && (PLAN_TYPE_RE.test(x) || sharedType));
   if (!typed.length) return [];
-  const county = R.countyFromAsk(t) || R.countyFromAsk(msgs.map(messageText).join('\n')) || 'Miami-Dade';
+  const county = R.countyFromAsk(t) || R.countyFromAsk(msgs.map(messageText).join('\n'));
   const wk = workupFacts(msgs);
   const rows = R.gridPlansForCounty(county);
   const out = [];
@@ -1149,7 +1149,7 @@ function namedPlanAskIds(text, msgs) {
   if (/^\s*(?:remove|drop|delete|take\s+out|get\s+rid\s+of|without|no\s+more)\b/i.test(t)) return [];
   const ids = [...new Set([...t.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((m) => m[1].toUpperCase()))];
   if (ids.length) return ids;
-  const county = R.countyFromAsk((msgs || []).map(messageText).join('\n')) || 'Miami-Dade';
+  const county = R.countyFromAsk((msgs || []).map(messageText).join('\n'));
   const byName = planNamesInAsk(t, county);
   // An ambiguous name still re-runs: the follow-up bubble asks which plan ID she meant.
   return byName.ids.length ? byName.ids : byName.ambiguous.length ? ['a plan name that matches more than one plan'] : gridPlansByName(t, county);
@@ -2641,6 +2641,7 @@ function selectComparison(doctors, askText, opts = {}) {
     header: '',
     flags: [],
     questions: [],
+    needCounty: false,
     meds,
     medsToCheck: { drugs: [], planIds: [] },
   };
@@ -2695,6 +2696,8 @@ function selectComparison(doctors, askText, opts = {}) {
     if (mapped.from && mapped.notice && !remapNotices.includes(mapped.notice)) remapNotices.push(mapped.notice);
     return mapped.id;
   });
+  const askedIds = [...new Set([...named.map((p) => p.planId), ...pinFromAsk])];
+  const needCounty = R.needsCountyAsk(ask, askedIds, { shopAround: shopAround && !named.length });
   if (named.length) {
     let cols = decorate(namedPlanColumns(named, matrix, docs));
     // A client grid never carries a pile of plans (5+ are cut to 3; up to 4 she typed herself stay): her CURRENT plan (if she has one) + the 1–2 best others
@@ -2750,6 +2753,9 @@ function selectComparison(doctors, askText, opts = {}) {
     if (snpNamed.length) out.flags.push(`SNP eligibility (${snpNamed.join(', ')}) is confirmed at enrollment.`);
     if (n > 0 && cols.some((c) => c.carrier === 'Solis')) out.flags.push(solisFlag(docs));
     if (n > 0 && cols.some((c) => c.carrier === 'CarePlus')) out.flags.push(careplusFlag(docs));
+  } else if (needCounty) {
+    out.header = '**Doctors × top plans**';
+    out.needCounty = true;
   } else if (n > 0 || carriers.length || shopAround) {
     const gridRows = R.gridPlansForCounty(county);
     const pool = gridRows.length
@@ -3069,8 +3075,13 @@ function selectComparison(doctors, askText, opts = {}) {
   // per the grid's county column is never a comparison column — except her CURRENT plan, which
   // she named explicitly and must stay a column. Plans Max adds itself still drop when off-county.
   // A 2026 PBP that THEI remaps for 2027 (H4140-012 → H4140-023) becomes that 2027 column.
+  // When county is unknown and a named plan is county-specific, ASK Broward vs Miami-Dade
+  // instead of assuming Miami-Dade and dropping the plan (Yahoska / Ray Harris, 2026-11-12).
   const countyIds = new Set(R.gridPlansForCounty(county).map((g) => String(g.planId || g.id).toUpperCase().slice(0, 9)));
-  if (county && countyIds.size && !opts.skipCountyGuard) {
+  if (needCounty) {
+    out.needCounty = true;
+    out.questions = [R.COUNTY_QUESTION];
+  } else if (county && countyIds.size && !opts.skipCountyGuard) {
     const allRows = R.gridPlansForCounty('');
     const explicit = new Set([...named.map((p) => p.planId), ...pinFromAsk, ...(Array.isArray(opts.pinPlanIds) ? opts.pinPlanIds : []), ...(Array.isArray(opts.named) ? opts.named.map((p) => p.planId) : [])]
       .map((id) => String(id || '').toUpperCase().slice(0, 9)));
@@ -3189,7 +3200,9 @@ function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] }
   } else if (sel.meds.length) {
     lines.push('2) Meds are already checked on every table plan — add the meds table (Drug | same plan columns | "T1 $0" cells). Never ask for meds again.');
   }
-  if (sel.named && sel.doctorQuestion) {
+  if (sel.needCounty) {
+    lines.push(`3) COUNTY IS UNKNOWN — ask exactly this one question and STOP: ${R.COUNTY_QUESTION} Do not assume Miami-Dade. Do not drop a plan she named. Do not lead with a "not offered in Miami-Dade" warning until she answers.`);
+  } else if (sel.named && sel.doctorQuestion) {
     lines.push('3) The agent named the plans — compare exactly those. Do not add or swap plans and do not ask narrowing questions. The server already shows the doctor-match question with every candidate (name, specialty, city, NPI) under the table — do not ask about those doctors yourself.');
   } else if (sel.questions.filter((q) => q !== sel.doctorQuestion).length) {
     lines.push('3) Still missing — ask these (numbered, short), then STOP and wait. Do not list more plans and do not add SNP plans until eligibility is confirmed.');
@@ -3522,7 +3535,8 @@ function medsTable(drugResults, plans, knownMeds = [], opts = {}) {
  * of the plans where the doctor(s) are In, the rest counted by carrier — no grid of 40 columns, no narrowing questions.
  */
 function coreAllAnswer(doctors, askText) {
-  const county = R.countyFromAsk(askText) || 'Miami-Dade';
+  const county = R.countyFromAsk(askText);
+  if (!county) return R.COUNTY_QUESTION;
   const docs = (doctors || []).filter(Boolean);
   const rows = R.gridPlansForCounty(county).filter((g) => !R.snpKind(g));
   const plans = rows.map((g) => ({ planId: String(g.planId || g.id).toUpperCase().slice(0, 9), name: carrierKey(String(g.planName || '')) ? String(g.planName) : `${g.carrier || ''} ${g.planName || ''}`.trim(), grid: g }));
@@ -3588,6 +3602,7 @@ function renderedAnswerRaw(doctors, askText, { answered = false, drugs = [], med
   }
   const sel = selectComparison(doctors, askText, { answered, drugs });
   const top = sel.columns;
+  if (sel.needCounty && !top.length) return R.COUNTY_QUESTION;
   if (!top.length) return '';
   // The grid message is the title, the grid, its legend and the meds — nothing else. "Why these plans" (and its
   // Excluded list) is gone; notes, warnings and questions go in a SEPARATE message after the grid (Yahoska,
@@ -3602,6 +3617,7 @@ function renderedAnswerRaw(doctors, askText, { answered = false, drugs = [], med
   // She typed drugs but no list could be read: say so, never drop the section silently.
   else if (medsUnreadable) lines.push('', '**Meds**', '', R.MEDS_UNREADABLE);
   const follow = [];
+  if (sel.needCounty) follow.push(R.COUNTY_QUESTION);
   if (meds && medsHaveQuantityLimits(drugs, top) && !showQl) follow.push(R.QL_OFFER);
   // A checked plan with the same doctor results as a column (H1045-018 vs H1045-001) is named, not dropped.
   const twins = (sel.sameNetwork || []).slice(0, 4).map((x) => `${x.plan.planId} = same doctor results as ${x.twin.planId}`);
@@ -3784,6 +3800,7 @@ function fallbackAnswer(doctors, askText, opts = {}) {
 function fallbackAnswerRaw(doctors, askText, { answered = false, drugs = [] } = {}) {
   const sel = selectComparison(doctors, askText, { answered, drugs });
   const top = sel.columns;
+  if (sel.needCounty && !top.length) return R.COUNTY_QUESTION;
   const lines = [];
   if (top.length) {
     lines.push(sel.header);
