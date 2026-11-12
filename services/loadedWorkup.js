@@ -86,7 +86,7 @@ function workupCarrierEditSet(text, msgs) {
   if (!wk || !wk.plans.length) return [];
   // Plan IDs typed: the named-plan logic already handles "drop H5420-001, add H1036-054C" (Maura, 2026-10-07).
   if (/\b[HR]\d{4}-\d{3}/i.test(t)) return [];
-  const county = R.countyFromAsk(msgs.map(messageText).join('\n')) || 'Miami-Dade';
+  const county = R.countyFromAsk(msgs.map(messageText).join('\n'));
   const dropped = R.carriersRejected(t);
   const addCarriers = [];
   const addIds = [];
@@ -175,7 +175,7 @@ function workupPlanAddSet(text, msgs) {
   const savedOthers = wk ? wk.plans.filter((id) => !(wk.current || []).some((c) => String(c).toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9))) : [];
   if (wk && !savedOthers.length) wk.plans = [...wk.plans, ...shown.filter((id) => !wk.plans.some((x) => x.slice(0, 9) === id.slice(0, 9)))];
   if (!wk || !wk.plans.length || KEEP_EXACT_RE.test(t)) return [];
-  const county = R.countyFromAsk(msgs.map(messageText).join('\n')) || 'Miami-Dade';
+  const county = R.countyFromAsk(msgs.map(messageText).join('\n'));
   const rows = R.gridPlansForCounty(county);
   const rowOf = (id) => rows.find((g) => String(g.planId || g.id).toUpperCase().slice(0, 9) === String(id).toUpperCase().slice(0, 9)) || gridRowFor(id, '');
   const carrierOfId = (id) => { const g = rowOf(id); return g ? R.carrierOfPlan(g) : ''; };
