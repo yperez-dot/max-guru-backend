@@ -36,6 +36,15 @@ describe('plan ID normalization', () => {
     assert.equal(yc.normalizePlanKey('H4140-13'), 'H4140-013');
     assert.equal(yc.normalizePlanKey('H5471-064-0'), 'H5471-064');
     assert.deepEqual(yc.planIdsInText('compare H1036-054C and h5471-125 vs H1036-054C'), ['H1036-054', 'H5471-125']);
+    // Grid / CMS / short / no-letter forms of the same Broward Gold Plus plan.
+    assert.equal(yc.normalizePlanKey('H1036-065C'), 'H1036-065');
+    assert.equal(yc.normalizePlanKey('H1036-065-0'), 'H1036-065');
+    assert.equal(yc.normalizePlanKey('H1036-65-0'), 'H1036-065');
+    assert.equal(yc.normalizePlanKey('H1036-065'), 'H1036-065');
+    assert.deepEqual(
+      yc.planIdsInText('Humana Gold Plus H1036-065C (HMO) (H1036-65-0) and H1036-065-0 / H1036-065'),
+      ['H1036-065']
+    );
   });
 });
 
@@ -543,4 +552,115 @@ describe('a plan named in the ask beats the plan from earlier in the chat', () =
     assert.deepEqual(yc.resolveAskPlans('what changed?', plans2027, earlier).ids, earlier);
   });
   it('UI uses resolveAskPlans', () => assert.match(html, /YC\.resolveAskPlans\(text, PLAN_DATA_BY_YEAR\[2027\], earlierIds\)/));
+});
+
+describe('natural 2026 vs 2027 phrasing', () => {
+  const yes = [
+    'give me 2026 - 2027 benefit changes for Humana Gold Plus H1036-065C (HMO) (H1036-65-0)',
+    '2026 - 2027 benefit changes for H1036-065C',
+    '2026–2027 benefit changes for H1036-065C',
+    '2026/2027 benefit changes for H1036-065C',
+    '2026 2027 benefit changes for H1036-065C',
+    '2026 v 2027',
+    '2026 vs 2027',
+    '2026 to 2027 changes for H1036-065C',
+    'what changed for H1036-065C',
+    'year over year for H1036-065C',
+    'YoY H1036-065C',
+    'compare to last year for H1036-065C',
+    'cambios 2026 2027 H1036-065C',
+    'cambios 2026-2027 para H1036-065C',
+    'comparar 2026 vs 2027 H1036-065C',
+    'qué cambió 2026 2027 H1036-065C',
+    'año contra año H1036-065C',
+  ];
+  const no = [
+    'compare H1036-054C and H5216-345',
+    "what's different between H1036-054C and H5471-125?",
+    'what is the 2027 MOOP for H1036-054C',
+    'does H1036-054C cover hearing aids in 2026',
+    '2026 to 2027 for me',
+    'what changed?',
+  ];
+  yes.forEach((s) => it(`yes: ${s}`, () => assert.equal(yc.wantsYearCompare(s), true)));
+  no.forEach((s) => it(`no: ${s}`, () => assert.equal(yc.wantsYearCompare(s), false)));
+});
+
+describe('year compare runs from natural phrasing and plan-ID forms', () => {
+  const asks = [
+    'give me 2026 - 2027 benefit changes for Humana Gold Plus H1036-065C (HMO) (H1036-65-0)',
+    'compare 2026 vs 2027 for H1036-065-0',
+    '2026 v 2027 H1036-65-0',
+    'cambios 2026 2027 H1036-065',
+  ];
+  asks.forEach((s) => {
+    it(`runs Broward Gold Plus from: ${s}`, () => {
+      const r = run(s);
+      assert.ok(r && r.pairs.length, 'expected a year-compare result');
+      assert.equal(r.pairs[0].county, 'Broward');
+      assert.match(String(r.pairs[0].plan27.planId || r.pairs[0].id27), /H1036-065/);
+      assert.match(r.chatText, /2026/);
+    });
+  });
+
+  it('a later "2026 v 2027" reuses the plan from fallback IDs', () => {
+    const r = yc.runYearCompare({
+      text: '2026 v 2027',
+      threadText: 'give me 2026 - 2027 benefit changes for Humana Gold Plus H1036-065C. this is Broward',
+      fallbackIds: ['H1036-065C'],
+      plans2026,
+      plans2027,
+      cms,
+    });
+    assert.ok(r && r.pairs.length);
+    assert.equal(r.pairs[0].county, 'Broward');
+    assert.match(String(r.pairs[0].plan27.planId || r.pairs[0].id27), /H1036-065/);
+  });
+});
+
+describe('year compare asks Broward vs Miami-Dade instead of guessing', () => {
+  it('a plan sold in both counties with no county hint asks, and does not pick Miami-Dade', () => {
+    const res = yc.resolveYearPairs(['H4140-023'], ctx);
+    assert.equal(res.needCounty, true);
+    assert.equal(res.pairs.length, 0);
+    const r = run('compare 2026 vs 2027 for H4140-023');
+    assert.equal(r.needCounty, true);
+    assert.equal(r.pairs.length, 0);
+    assert.match(r.chatText, /Broward or Miami-Dade/);
+  });
+
+  it('uses the named county when the plan is in both', () => {
+    const r = run('compare 2026 vs 2027 for H4140-023 Broward');
+    assert.ok(!r.needCounty);
+    assert.ok(r.pairs.length);
+    assert.equal(r.pairs[0].county, 'Broward');
+  });
+
+  it('a one-county plan (H1036-065C) does not ask', () => {
+    const res = yc.resolveYearPairs(['H1036-065'], ctx);
+    assert.equal(res.needCounty, false);
+    assert.equal(res.pairs[0].county, 'Broward');
+  });
+});
+
+describe('year compare UI no longer requires an exact command', () => {
+  it('does not tell the agent to retype compare 2026 vs 2027 for <plan ID>', () => {
+    assert.doesNotMatch(html, /tell her to type:\s*compare 2026 vs 2027/);
+    assert.match(html, /NEVER tell the agent to retype an exact command/);
+  });
+
+  it('shows year-compare replies that only ask a clarifying question', () => {
+    assert.match(html, /if \(yearCompare && yearCompare\.chatText\)/);
+    assert.match(html, /Which plan should I compare from 2026 to 2027/);
+  });
+
+  it('reuses earlier plan IDs on a bare 2026 v 2027 follow-up', () => {
+    assert.match(html, /const earlierIds = YC\.planIdsInText\(text\)\.length \? \[\] : yearCompareFallbackIds\(history, remembered\);/);
+    assert.doesNotMatch(html, /hasYearCompare \|\| refersBack \? yearCompareFallbackIds/);
+  });
+
+  it('tells the model not to claim a table failed to render', () => {
+    assert.match(html, /probably didn't render/);
+    assert.match(html, /Do not say a benefits or comparison table/);
+  });
 });
