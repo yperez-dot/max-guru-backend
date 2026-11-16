@@ -162,10 +162,11 @@
 
   // ─── Intent ────────────────────────────────────────────────────────────────
 
-  const YEAR_PAIR_RE = /\b2026\s*(?:vs\.?|versus|v\.?|to|→|->|and|&|with|against|or)\s*2027\b|\b2027\s*(?:vs\.?|versus|v\.?|and|&|with|against|or)\s*2026\b/i;
-  const COMPARE_WORD_RE = /\b(compar\w*|vs\.?|v|versus|side[-\s]?by[-\s]?side|changes?|changed|changing|differences?|different|diff)\b|→|->/i;
-  const YOY_RE = /\byear[-\s]?over[-\s]?year\b|\byoy\b/i;
-  const WHAT_CHANGED_RE = /\bwhat(?:'?s|\s+has|\s+is|\s+will)?\s+chang(?:ed|ing|e)\b|\b(?:changes?|differences?)\s+(?:from|since|vs\.?|versus)\s+(?:last\s+year|this\s+year|2026)\b|\b(?:changed|changing)\s+(?:from|since)\s+(?:last\s+year|2026)\b|\bsame\s+plan\b.*\b(?:2026|last\s+year)\b/i;
+  // Years may be joined by vs/v/to/and, a dash or slash, or just a space ("2026 - 2027", "2026 2027").
+  const YEAR_PAIR_RE = /\b2026(?:\s*(?:vs\.?|versus|v\.?|to|y|–|—|-|\/|→|->|and|&|with|against|or)\s*|\s+)2027\b|\b2027(?:\s*(?:vs\.?|versus|v\.?|to|y|–|—|-|\/|→|->|and|&|with|against|or)\s*|\s+)2026\b/i;
+  const COMPARE_WORD_RE = /\b(compar\w*|vs\.?|v|versus|side[-\s]?by[-\s]?side|changes?|changed|changing|differences?|different|diff|cambios?|comparar|comparaci[oó]n(?:es)?|diferencias?|distint[oa]s?|diferentes?)\b|cambi[oó](?!\w)|→|->/i;
+  const YOY_RE = /\byear[-\s]?over[-\s]?year\b|\byoy\b|\ba[nñ]o[-\s]?(?:contra|tras|sobre|vs\.?|versus)\s*a[nñ]o\b/i;
+  const WHAT_CHANGED_RE = /\bwhat(?:'?s|\s+has|\s+is|\s+will)?\s+chang(?:ed|ing|e)\b|\b(?:changes?|differences?)\s+(?:from|since|vs\.?|versus)\s+(?:last\s+year|this\s+year|2026)\b|\b(?:changed|changing)\s+(?:from|since)\s+(?:last\s+year|2026)\b|\bsame\s+plan\b.*\b(?:2026|last\s+year)\b|\bcompar\w*\s+(?:to|with|vs\.?|versus|contra)\s+last\s+year\b|\bqu[eé]\s+(?:ha\s+)?cambi(?:[oó]|ado|a)(?!\w)/i;
   const WHAT_DIFFERENT_RE = /\bwhat(?:'?s|\s+is|\s+will\s+be)?\s+different\b|\bdifferences?\b/i;
   const TIME_CONTEXT_RE = /\b(2026|2027|last\s+year|next\s+year|this\s+year|new\s+year|aep)\b/i;
 
@@ -422,6 +423,7 @@
     const hint = options.county || "";
     const pairs = [];
     const unresolved = [];
+    let needCounty = false;
     const seen = {};
     const add = (p) => {
       const k = (p.id27 || "x") + "|" + (p.id26 || "x") + "|" + p.county;
@@ -434,13 +436,15 @@
       if (live.length) {
         let pick = live;
         if (hint && live.some((p) => p.county === hint)) pick = live.filter((p) => p.county === hint);
-        else if (live.length > 1) pick = [live.find((p) => p.county === "Miami-Dade") || live[0]];
+        else if (live.length > 1) {
+          const counties = live.map((p) => p.county).filter((c, i, a) => c && a.indexOf(c) === i);
+          if (counties.length > 1 && !hint) {
+            needCounty = true;
+            return;
+          }
+        }
         pick.forEach((p) => {
           const pair = pairFor(p, ctx);
-          if (!hint && live.length > 1) {
-            const other = live.find((x) => x.county !== p.county);
-            if (other) pair.notes.push(`Also offered in ${other.county} — say "${other.county}" for that county's numbers`);
-          }
           add(pair);
         });
         return;
@@ -468,7 +472,7 @@
         }
       }
     });
-    return { pairs: pairs.slice(0, MAX_PLANS), unresolved, truncated: pairs.length > MAX_PLANS };
+    return { pairs: pairs.slice(0, MAX_PLANS), unresolved, truncated: pairs.length > MAX_PLANS, needCounty };
   }
 
   // ─── Normalization + compare ───────────────────────────────────────────────
@@ -1270,6 +1274,15 @@
     const ctx = { plans2026: o.plans2026 || [], plans2027: o.plans2027 || [], cms };
     const county = countyHint(o.text) || countyHint(o.threadText);
     const res = resolveYearPairs(ids, ctx, { county });
+    if (res.needCounty) {
+      return {
+        pairs: [],
+        unresolved: res.unresolved,
+        needCounty: true,
+        chatText: "Is the client in Broward or Miami-Dade?",
+        payload: null,
+      };
+    }
     if (!res.pairs.length) {
       return { pairs: [], unresolved: res.unresolved, chatText: `I couldn't find ${ids.join(", ")} in the 2026 or 2027 plan data.`, payload: null };
     }
