@@ -39,7 +39,6 @@ function loadSelector() {
 
 const { selectPlansForAsk, countyScopeLine, PLANS } = loadSelector();
 const user = (content) => ({ role: 'user', content });
-const size = (rows) => JSON.stringify(rows).length;
 
 describe('gridCountyForZip', () => {
   it('maps Miami-Dade and Broward ZIPs, and returns "" outside the grid', () => {
@@ -74,13 +73,42 @@ describe('county-only plan attachment', () => {
     assert.equal(sel.meta.countyVia, 'zip');
   });
 
-  it('is much smaller than the same ask with no county known', () => {
+  it('a carrier ask with no county asks Broward vs Miami-Dade instead of attaching both', () => {
     const scoped = selectPlansForAsk([user('ZIP 33332. Humana plans with dental.')]);
     const unscoped = selectPlansForAsk([user('Humana plans with dental.')]);
-    assert.equal(unscoped.meta.countyVia, '');
-    assert.ok(unscoped.plans.some((p) => p.county === 'Miami-Dade') && unscoped.plans.some((p) => p.county === 'Broward'));
-    assert.ok(scoped.plans.length < unscoped.plans.length);
-    assert.ok(size(scoped.plans) <= size(unscoped.plans) * 0.6);
+    assert.equal(unscoped.needClarify, true);
+    assert.match(unscoped.clarifyMessage, /Broward or Miami-Dade/);
+    assert.equal(unscoped.plans.length, 0);
+    assert.equal(scoped.needClarify, false);
+    assert.ok(scoped.plans.length > 0 && scoped.plans.every((p) => p.county === 'Broward'));
+  });
+
+  it('named county-only Humana plans without county ask instead of assuming Miami-Dade', () => {
+    const sel = selectPlansForAsk([user('Compare Humana Gold Plus H1036-065C, Humana Gold Plus Giveback H1036-305, and HumanaChoice Giveback H7617-110 for Ray Harris.')]);
+    assert.equal(sel.needClarify, true);
+    assert.match(sel.clarifyMessage, /Broward or Miami-Dade/);
+    assert.equal(sel.plans.length, 0);
+  });
+
+  it('does not ask again once the agent says Broward', () => {
+    const sel = selectPlansForAsk([
+      user('Compare H1036-065C, H1036-305, H7617-110 for Ray Harris.'),
+      { role: 'assistant', content: 'Is the client in Broward or Miami-Dade?' },
+      user('this is Broward'),
+    ]);
+    assert.equal(sel.needClarify, false);
+    assert.deepEqual(Array.from(sel.meta.counties), ['Broward']);
+    assert.ok(sel.plans.some((p) => String(p.planId).toUpperCase().startsWith('H1036-065')));
+    assert.ok(sel.plans.some((p) => String(p.planId).toUpperCase().startsWith('H1036-305')));
+    assert.ok(sel.plans.some((p) => String(p.planId).toUpperCase().startsWith('H7617-110')));
+  });
+
+  it('does not guess Miami-Dade from the first plan row when ZIP and county are unknown', () => {
+    const w = workups.buildWorkupFromExport(
+      { plans: [{ planId: 'H1036-305', planName: 'Humana Gold Plus Giveback', carrier: 'Humana', county: 'Miami-Dade' }] },
+      { threadText: 'Ray Harris. Compare H1036-065C, H1036-305, H7617-110' }
+    );
+    assert.equal(w.county, '');
   });
 
   it('the Padron plan IDs resolve to one Broward row each', () => {

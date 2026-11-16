@@ -149,6 +149,25 @@ HealthSpring left Miami-Dade and Broward for 2027. A live Cigna FHIR API can sti
 
 ---
 
+## Rule 20b — Ask Broward vs Miami-Dade before dropping a county-only plan (Added 2026-11-12)
+
+**Trigger:** Agent names one or more plans (or a comparison that would change by county) and the client's county is not yet known — no ZIP, no Broward/Miami-Dade on the workup, and she has not said which county in this thread.
+
+**What Max must do:**
+- Ask **one** question: "Is the client in Broward or Miami-Dade?"
+- Keep every plan she asked to include until she answers
+- After she answers (or county is already known), filter to that county and only then mention a plan that is not offered there
+
+**What Max must NOT do:**
+- ❌ Assume Miami-Dade
+- ❌ Lead with "Not offered in Miami-Dade: H1036-065 (Broward grid)" and drop a plan she named
+- ❌ Ask again if ZIP, workup, or an earlier turn already established the county
+
+**Why this rule exists:**
+Yahoska asked Max to compare Humana Gold Plus H1036-065C, Gold Plus Giveback H1036-305, and HumanaChoice Giveback H7617-110 for Ray Harris without stating county. Max assumed Miami-Dade, warned that H1036-065 was Broward-only, and dropped it from the doctor and medication tables. After she said "this is Broward", all three plans belonged. If she is already telling Max to add a plan, ask county first.
+
+---
+
 ## Rule 21 — Daisy / paste Rx tiers are discarded (Updated 2026-10-02)
 
 **Trigger:** Agent pastes a med list with “Tier X” / “T4” (Daisy sheet, client claim, last year’s Sunfire screenshot, or a finished client-comp archive) and asks Max to quote tiers or T4 % cost on named plans.

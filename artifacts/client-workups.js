@@ -322,7 +322,9 @@
     const zip = clip(extra.zip || src.zip || extractZip(thread), 10);
     // ZIP is the authoritative county for the two counties the grid covers (a plan row's county is
     // only a guess — plans exist in both counties).
-    const county = clip(gridCountyForZip(zip) || extra.county || src.county || extractCounty(thread) || (plans[0] && plans[0].county) || "", 40);
+    // Never guess Miami-Dade from the first plan row — dual-county plans sit on both
+    // grids, and that guess dropped Broward-only IDs (Ray Harris, 2026-11-12).
+    const county = clip(gridCountyForZip(zip) || extra.county || src.county || extractCounty(thread) || "", 40);
     const contacts = clip(extra.contacts || src.contacts || extractContacts(thread), 200);
     const needs = Array.isArray(extra.needs) && extra.needs.length ? extra.needs.map((n) => clip(n, 120)).filter(Boolean).slice(0, 8) : extractNeeds(thread);
     const terminatingPlan = sanitizeWorkupTerminating(extra.terminatingPlan || src.terminatingPlan || "", thread);

@@ -2016,9 +2016,26 @@
     return list.find(match) || null;
   }
 
+  function exportCountyFromText(text) {
+    const t = String(text || "");
+    const lines = t.split("\n");
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i];
+      const zips = [...String(line).matchAll(/\b(3\d{4})\b/g)].map((x) => x[1]);
+      for (let z = zips.length - 1; z >= 0; z--) {
+        const n = Number(zips[z]);
+        if (n === 33004 || n === 33009 || (n >= 33019 && n <= 33029) || (n >= 33060 && n <= 33077) || (n >= 33301 && n <= 33394) || (n >= 33441 && n <= 33443)) return "Broward";
+        if ((n >= 33010 && n <= 33018) || (n >= 33030 && n <= 33039) || (n >= 33054 && n <= 33056) || (n >= 33090 && n <= 33092) || (n >= 33101 && n <= 33299)) return "Miami-Dade";
+      }
+      if (/\bbroward\b/i.test(line) && !/miami|dade/i.test(line)) return "Broward";
+      if (/\bmiami[- ]?dade\b/i.test(line) && !/broward/i.test(line)) return "Miami-Dade";
+    }
+    return "";
+  }
+
   function canonicalize2027ComparisonPlans(plans, text, catalog) {
     const t = String(text || "");
-    const county = /\bbroward\b/i.test(t) && !/miami/i.test(t) ? "Broward" : "Miami-Dade";
+    const county = exportCountyFromText(t);
     const muskat = isMuskatContext(t);
     const coreHumana = muskat || /\bcore\s+humana\b/i.test(t);
     const wantsGiveback = /\bgive\s*back\b/i.test(t) && !muskat && !coreHumana;
@@ -2116,8 +2133,8 @@
       return i === -1 ? 50 : i;
     };
     if (rank(ia) !== rank(ib)) return rank(ia) < rank(ib) ? a : b;
-    if (a && a.county === "Miami-Dade" && b && b.county !== "Miami-Dade") return a;
-    if (b && b.county === "Miami-Dade" && a && a.county !== "Miami-Dade") return b;
+    // Do not prefer Miami-Dade when county is unknown — that made Broward-only
+    // plans look "not offered" (Ray Harris, 2026-11-12).
     return a || b;
   }
 
@@ -3524,7 +3541,7 @@
     const pool = catalog.length ? catalog : plans;
     const text = String(threadText || "");
     const latest = String(meta.latestUserText || "");
-    const county = /\bbroward\b/i.test(text + " " + latest) && !/miami/i.test(text + " " + latest) ? "Broward" : "Miami-Dade";
+    const county = meta.county || exportCountyFromText(text + "\n" + latest);
     const pick = (id) => pickCatalogPlan(pool, id, county) || pickCatalogPlan(pool, id);
     // The latest chat table's set (current plan first) is final: no older typed IDs, no reorder
     // ("yes all three on the excel" exported 2 old columns — Maura, 2026-10-07).
@@ -3701,6 +3718,7 @@
     isMuskatContext,
     currentPlansMatchMuskatLock,
     sameExportPlanSet,
+    exportCountyFromText,
     canonicalize2027ComparisonPlans,
     doctorsFromProviderLookups,
     mergeDoctorLists,

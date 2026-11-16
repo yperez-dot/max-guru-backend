@@ -2358,9 +2358,26 @@
     return list.find(match) || null;
   }
 
+  function exportCountyFromText(text) {
+    const t = String(text || "");
+    const lines = t.split("\n");
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i];
+      const zips = [...String(line).matchAll(/\b(3\d{4})\b/g)].map((x) => x[1]);
+      for (let z = zips.length - 1; z >= 0; z--) {
+        const n = Number(zips[z]);
+        if (n === 33004 || n === 33009 || (n >= 33019 && n <= 33029) || (n >= 33060 && n <= 33077) || (n >= 33301 && n <= 33394) || (n >= 33441 && n <= 33443)) return "Broward";
+        if ((n >= 33010 && n <= 33018) || (n >= 33030 && n <= 33039) || (n >= 33054 && n <= 33056) || (n >= 33090 && n <= 33092) || (n >= 33101 && n <= 33299)) return "Miami-Dade";
+      }
+      if (/\bbroward\b/i.test(line) && !/miami|dade/i.test(line)) return "Broward";
+      if (/\bmiami[- ]?dade\b/i.test(line) && !/broward/i.test(line)) return "Miami-Dade";
+    }
+    return "";
+  }
+
   function canonicalize2027ComparisonPlans(plans, text, catalog) {
     const t = String(text || "");
-    const county = /\bbroward\b/i.test(t) && !/miami/i.test(t) ? "Broward" : "Miami-Dade";
+    const county = exportCountyFromText(t);
     const muskat = isMuskatContext(t);
     const coreHumana = muskat || /\bcore\s+humana\b/i.test(t);
     const wantsGiveback = /\bgive\s*back\b/i.test(t) && !muskat && !coreHumana;
@@ -2458,8 +2475,8 @@
       return i === -1 ? 50 : i;
     };
     if (rank(ia) !== rank(ib)) return rank(ia) < rank(ib) ? a : b;
-    if (a && a.county === "Miami-Dade" && b && b.county !== "Miami-Dade") return a;
-    if (b && b.county === "Miami-Dade" && a && a.county !== "Miami-Dade") return b;
+    // Do not prefer Miami-Dade when county is unknown — that made Broward-only
+    // plans look "not offered" (Ray Harris, 2026-11-12).
     return a || b;
   }
 
@@ -3866,7 +3883,7 @@
     const pool = catalog.length ? catalog : plans;
     const text = String(threadText || "");
     const latest = String(meta.latestUserText || "");
-    const county = /\bbroward\b/i.test(text + " " + latest) && !/miami/i.test(text + " " + latest) ? "Broward" : "Miami-Dade";
+    const county = meta.county || exportCountyFromText(text + "\n" + latest);
     const pick = (id) => pickCatalogPlan(pool, id, county) || pickCatalogPlan(pool, id);
     // The latest chat table's set (current plan first) is final: no older typed IDs, no reorder
     // ("yes all three on the excel" exported 2 old columns — Maura, 2026-10-07).
@@ -4043,6 +4060,7 @@
     isMuskatContext,
     currentPlansMatchMuskatLock,
     sameExportPlanSet,
+    exportCountyFromText,
     canonicalize2027ComparisonPlans,
     doctorsFromProviderLookups,
     mergeDoctorLists,
@@ -4415,7 +4433,9 @@
     const zip = clip(extra.zip || src.zip || extractZip(thread), 10);
     // ZIP is the authoritative county for the two counties the grid covers (a plan row's county is
     // only a guess — plans exist in both counties).
-    const county = clip(gridCountyForZip(zip) || extra.county || src.county || extractCounty(thread) || (plans[0] && plans[0].county) || "", 40);
+    // Never guess Miami-Dade from the first plan row — dual-county plans sit on both
+    // grids, and that guess dropped Broward-only IDs (Ray Harris, 2026-11-12).
+    const county = clip(gridCountyForZip(zip) || extra.county || src.county || extractCounty(thread) || "", 40);
     const contacts = clip(extra.contacts || src.contacts || extractContacts(thread), 200);
     const needs = Array.isArray(extra.needs) && extra.needs.length ? extra.needs.map((n) => clip(n, 120)).filter(Boolean).slice(0, 8) : extractNeeds(thread);
     const terminatingPlan = sanitizeWorkupTerminating(extra.terminatingPlan || src.terminatingPlan || "", thread);
@@ -6803,7 +6823,7 @@ function exportTablePlanSet(history) {
   });
   if (!ids.length) return [];
   const rank = (p) => { const i = ids.findIndex((id) => String(p.planId || p.id || "").toUpperCase().startsWith(id.slice(0, 9))); return i < 0 ? 99 : i; };
-  const found = findComparisonPlans(ids.join(", ") + " " + (county || "Miami-Dade"));
+  const found = findComparisonPlans(ids.join(", ") + (county ? " " + county : ""));
   // A table column the THEI grid doesn't carry (her current plan H5216-311, non-commissionable) is still an export
   // column: its name from the table header / saved workup, benefits "Not on grid" (Martha Muraglia, 2026-10-20).
   const tbl = exp.latestChatTable ? exp.latestChatTable(history, userMessageText) : null;
@@ -7102,6 +7122,38 @@ function detectPlanNameHints(text) {
   return PLAN_NAME_HINTS.filter((a) => a.re.test(t)).map((a) => a.match);
 }
 
+const COUNTY_QUESTION = "Is the client in Broward or Miami-Dade?";
+
+function countiesForPlanIdInPool(id, pool) {
+  const norm = (s) => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const w = norm(id);
+  if (!w) return [];
+  const out = [];
+  (pool || []).forEach((p) => {
+    const pid = norm(p.planId || p.id);
+    if (!pid) return;
+    if (pid === w || pid.indexOf(w) === 0 || w.indexOf(pid) === 0) {
+      if (p.county && out.indexOf(p.county) < 0) out.push(p.county);
+    }
+  });
+  return out;
+}
+
+function selectionNeedsCountyAsk(filtered, planIds, counties, wantsFull, pool) {
+  if (wantsFull || (counties && counties.length)) return false;
+  const ids = Array.isArray(planIds) ? planIds : [];
+  if (ids.some((id) => {
+    const cs = countiesForPlanIdInPool(id, pool).filter((c) => c === "Miami-Dade" || c === "Broward");
+    return cs.length === 1;
+  })) return true;
+  const rows = Array.isArray(filtered) ? filtered : [];
+  const dade = rows.some((p) => p.county === "Miami-Dade");
+  const bwd = rows.some((p) => p.county === "Broward");
+  if (!dade || !bwd) return false;
+  const uniq = new Set(rows.map((p) => String(p.planId || p.id || "").toUpperCase().slice(0, 9)).filter(Boolean));
+  return uniq.size > 1;
+}
+
 function selectPlansForAsk(conversationHistory) {
   const text = conversationAskText(conversationHistory);
   const year = detectPlanYear(text);
@@ -7204,6 +7256,17 @@ function selectPlansForAsk(conversationHistory) {
     // County-wide over cap is rare (~75); if somehow over, keep county filter as-is
   }
 
+  // Named county-only plan, or a comparison that would change by county: ask Broward vs
+  // Miami-Dade instead of assuming Dade and dropping the plan (Yahoska / Ray Harris, 2026-11-12).
+  if (filtered.length && selectionNeedsCountyAsk(filtered, planIds, counties, wantsFull, pool)) {
+    return {
+      needClarify: true,
+      clarifyMessage: COUNTY_QUESTION,
+      plans: [],
+      meta: { counties, carriers: carrierMatchers.length, planIds, matched: filtered.length, countyVia },
+    };
+  }
+
   return {
     needClarify: false,
     clarifyMessage: null,
@@ -7281,6 +7344,7 @@ HARD RULES -- these override everything else:
 21. CLIENT-STATED RX TIERS -- Daisy / paste / archive "Tier X" labels are discarded. Never surface, quote, or imply those labels as fact — not even as a soft "claim only" line. Paste is drug names only. ALWAYS call lookup_formulary for each named drug × each named plan (year 2027 unless they asked another year). Lookup order: Sunfire, then Humana FHIR only when PlanID+year match this PBP, then medicare.gov Plan Compare. If lookup fails, say unverified — do not invent a tier. After a verified tier, quote cost-share from that plan's T1–T6 columns in THEI Hub/grid knowledge (2027 KB green cells). When a brand is verified not covered, lookup_formulary automatically follows the generic (Lipitor → Atorvastatin, Benicar → Olmesartan) — do not wait for the agent to type the generic. Show the brand as not covered with the asterisk note. Quote the generic tier only from that live follow-up. Never invent a generic tier. Yahoska's sheet 1zer8DxamS9GFdp9tHqWSB4S0bPjHbyU2Jyi6exBn31A is an archive of finished client comps -- not the 2027 benefit grid and not a formulary source.
 
 FILTERED PLAN ATTACHMENT — PLAN DATA below is a FILTERED SUBSET for this question only (not the full THEI grid). It was narrowed by county, carrier, and/or plan ID from the agent's ask to control cost. If the plan they need is not in PLAN DATA, do NOT invent numbers from training knowledge — ask ONE short clarifying question for county, carrier, or plan ID. If PLAN DATA is empty and the question is general Medicare education (Rule 3), answer from training knowledge. If PLAN DATA is empty and they clearly want plan dollars, ask which county (Miami-Dade or Broward) and carrier/plan.
+COUNTY: If the client's county is not yet known and a named plan is only on one county's grid (or the comparison would change by county), ask exactly: "Is the client in Broward or Miami-Dade?" Do not assume Miami-Dade. Do not drop a plan she asked to include. Do not lead with a "not offered in Miami-Dade" warning until she answers. If county is already known (ZIP, workup, or she already said Broward or Dade), do not ask again — filter to that county.
 
 ${countyScopeLine(scopeMeta)}ATTACHED_PLAN_YEAR=${attachedYear}
 PLAN DATA (${(selectedPlans || []).length} plans attached for this ask; full grid has ${PLANS.length} across Miami-Dade and Broward, ${attachedYear} plan year, AEP default 2027):
