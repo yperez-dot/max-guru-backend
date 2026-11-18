@@ -2,7 +2,7 @@
 
 > 84 hospitals tracked across South Florida. Data current as of 2026 plan year.
 
-**2027:** Use the live THEI **Hospitals x Carrier** tab (`data/hospitals-x-carrier-2027.json`, `carriers/hospital-networks-2027`) — including **Baptist PCPs** (FL BLUE + MedicareMax only) and **UM PCP** (HealthSun + Simply only). Do not answer a PCP question from a hospital row. This 2026 table is for 2026-only asks.
+**2027:** Use the live THEI **Hospitals x Carrier** tab (`data/hospitals-x-carrier-2027.json`, `carriers/hospital-networks-2027`) — including **Baptist PCPs** (FL BLUE only; MedicareMax No effective 01.01.2027) and **UM PCP** (HealthSun + Simply only). Do not answer a PCP question from a hospital row. This 2026 table is for 2026-only asks.
 
 ## Full Lookup Table
 

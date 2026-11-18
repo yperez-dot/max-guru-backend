@@ -40,7 +40,11 @@ stub('npiRegistry', {
   displayName: (p) => `${p.basic.first_name} ${p.basic.last_name}`,
   allLocationAddresses: () => [{ address_1: '1 Main St', city: 'Weston', postal_code: '33332' }],
 });
-stub('doctorsHcp', { queryDoctorsHcp: async () => { await sleep(knobs.carrierMs); return { inNetwork: false }; }, PLAN_LABEL: 'Doctors HealthCare Plans' });
+stub('doctorsHcp', {
+  queryDoctorsHcp: async () => { await sleep(knobs.carrierMs); return { inNetwork: false }; },
+  PLAN_LABEL: 'Doctors HealthCare Plans',
+  formatDoctorsNetworkLine: (dr) => (dr && dr.inNetwork ? 'Doctors HealthCare: IN network (H4140).' : 'Doctors HealthCare: not found in the 2027 directory (H4140) — Not in network (not listed).'),
+});
 stub('aetnaPublicSearch', { queryAetnaPublic: async () => { await sleep(knobs.carrierMs); return { inNetwork: false, plans: [] }; }, CARRIER_LABEL: 'Aetna' });
 stub('simplyFindcare', { querySimplyFindcare: async () => { await sleep(knobs.carrierMs); return { inNetwork: false, plans: [] }; }, CARRIER_LABEL: 'Simply' });
 stub('uhcGuestSearch', {

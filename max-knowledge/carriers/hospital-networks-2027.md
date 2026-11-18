@@ -16,8 +16,9 @@ Refresh: `python3 scripts/export_2027_hospitals.py` (same `/tmp/thei-2027-grid.x
 
 ### Baptist PCPs
 
-- **Yes:** FL BLUE, MedicareMax
-- **No:** AARP/UHC Choice PPO, Aetna PPO, Aetna, CarePlus, Devoted HMO, Doctors, HealthSun, Humana, Humana PPO, Preferred Care Partner, Simply, Solis, WellCare, UHC Dual Complete
+- **Yes:** FL BLUE
+- **No:** AARP/UHC Choice PPO, Aetna PPO, Aetna, CarePlus, Devoted HMO, Doctors, HealthSun, Humana, Humana PPO, MedicareMax, Preferred Care Partner, Simply, Solis, WellCare, UHC Dual Complete
+- **Note (MedicareMax):** No effective 01.01.2027. Source: Baptist Health Medical Group South Primary Care accepted-plans PDF as of October 1, 2026, footnote 4: Preferred Care Network will exclude Baptist Health Medical Group Physicians, LLC as of 01/01/2027. https://baptisthealth.net/patient-resources/-/media/D4C27B2F56314000B809464F41058E65.ashx. Baptist Hospital × MedicareMax stays Yes.
 
 ### UM PCP
 
@@ -51,7 +52,7 @@ UM-listed plans with no 2027 THEI grid match (do not invent a contract-PBP):
 |----------|------|---------------------------|
 | Aventura | hospital | AARP/UHC Choice PPO, Aetna PPO, Aetna, CarePlus, Devoted HMO, Doctors, FL BLUE, HealthSun, Humana, Humana PPO, MedicareMax, Preferred Care Partner, Simply, Solis, WellCare, UHC Dual Complete |
 | Baptist Hospital | hospital | AARP/UHC Choice PPO, Aetna PPO, Aetna, CarePlus, Devoted HMO, Doctors, FL BLUE, Humana, Humana PPO, MedicareMax |
-| Baptist PCPs | pcp | FL BLUE, MedicareMax |
+| Baptist PCPs | pcp | FL BLUE |
 | Bascom Palmer | hospital | Aetna |
 | Bethesda West | hospital | AARP/UHC Choice PPO, Aetna PPO, CarePlus, Humana PPO, Preferred Care Partner, WellCare, UHC Dual Complete |
 | Broward Health | hospital | AARP/UHC Choice PPO, Aetna, CarePlus, Devoted HMO, Doctors, HealthSun, Humana, Humana PPO, MedicareMax, Preferred Care Partner, Simply, WellCare |

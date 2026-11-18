@@ -722,7 +722,7 @@ const CARRIER_WORDS = [
 // "add doctors, devoted, and aetna to her plan comp" is a carrier ask too (Gail, 2026-10-08).
 // "search her pcp in humana" is a carrier ask too — it fell back to the 4 plans named earlier and re-printed
 // the whole grid instead of checking Humana (Paula Harris, 2026-10-13).
-const REQUEST_VERBS = /\b(show|compare|instead|use|switch|swap|look at|look ?up|search|what about|how about|wants?|prefers?|only|give me|pull|run|check|try|those|these|add|include|plus|also)\b/i;
+const REQUEST_VERBS = /\b(show|compare|instead|use|switch|swap|look at|look ?up|search|what about|how about|wants?|prefers?|only|give me|pull|run|check|try|those|these|add|include|plus|also|did you)\b/i;
 
 // "HUMANA WONT WORK", "not Humana", "other than Humana", "instead of Humana" — a carrier
 // she rules out. Words right after the carrier name, or right before it.
@@ -811,7 +811,9 @@ function carriersRequested(message) {
     // A carrier word glued to a plan name ("Humana Gold Plus H1036-065C") is not an ask, but one
     // in a list ("Humana, HealthSun and Doctors (DrSelect H4140-023)") is — so stop at and/with/&.
     .replace(/(?:(?!\band\b|\bwith\b|&)[^,;.\n]){0,70}\b[HR]\d{4}-\d{3}[A-Z]?\b[^,;.\n]{0,60}/gi, ' ');
-  if (!REQUEST_VERBS.test(t)) return [];
+  const doctorsPlanAsk = /\b(?:drmax|drselect|doctors?\s+(?:hcp|healthcare|health\s*care)|doctors?\s+plan)\b/i.test(t)
+    && !/\b(?:remove|drop|delete|without|exclude|take off)\b/i.test(t);
+  if (!REQUEST_VERBS.test(t) && !doctorsPlanAsk) return [];
   // "HUMANA WONT WORK THEN. check on another plan" rules Humana out — it is not a Humana ask.
   const rejected = carriersRejected(message);
   return CARRIER_WORDS.filter(([name, re]) => re.test(t) && !rejected.includes(name)).map(([name]) => name);

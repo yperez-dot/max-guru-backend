@@ -100,6 +100,15 @@ def merge_into_json(carriers: list[str], rows: list[dict], pulled: str) -> dict:
     # Keep the UM public-page supplement: it is not on the grid tab.
     if isinstance(prev.get("umSiteSupplement"), dict):
         data["umSiteSupplement"] = prev["umSiteSupplement"]
+    # Keep per-row notes (e.g. Baptist PCPs MedicareMax out 01.01.2027) across sheet re-exports.
+    prev_notes = {
+        r.get("hospital"): r.get("notes")
+        for r in (prev.get("rows") or [])
+        if isinstance(r, dict) and r.get("hospital") and r.get("notes")
+    }
+    for row in data["rows"]:
+        if row.get("hospital") in prev_notes and "notes" not in row:
+            row["notes"] = prev_notes[row["hospital"]]
     return data
 
 
@@ -142,6 +151,9 @@ def render_kb(data: dict) -> str:
         lines.append("")
         lines.append(f"- **Yes:** {', '.join(yes) if yes else 'none'}")
         lines.append(f"- **No:** {', '.join(no) if no else 'none'}")
+        notes = row.get("notes") or {}
+        for col, note in notes.items():
+            lines.append(f"- **Note ({col}):** {note}")
         lines.append("")
     lines += [
         "## University of Miami hospital (not PCP)",

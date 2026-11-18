@@ -11,7 +11,11 @@
 //     keep running in the background so "send the same ask again" is instant.
 // A failed or timed-out check is never out-of-network.
 
-const { queryDoctorsHcp, PLAN_LABEL: DOCTORS_PLAN_LABEL } = require('./doctorsHcp');
+const doctorsHcp = require('./doctorsHcp');
+const { queryDoctorsHcp, PLAN_LABEL: DOCTORS_PLAN_LABEL } = doctorsHcp;
+const formatDoctorsNetworkLine = typeof doctorsHcp.formatDoctorsNetworkLine === 'function'
+  ? doctorsHcp.formatDoctorsNetworkLine
+  : () => '';
 const { queryAetnaPublic, CARRIER_LABEL: AETNA_PLAN_LABEL } = require('./aetnaPublicSearch');
 const { querySimplyFindcare, CARRIER_LABEL: SIMPLY_PLAN_LABEL } = require('./simplyFindcare');
 const {
@@ -535,6 +539,7 @@ function summarizeNpi(state, planYear) {
     careplusResult,
     healthsunResult,
     devotedResult: devoted,
+    doctorsResult,
   };
 }
 
@@ -575,7 +580,9 @@ function formatDoctorText({ doctorName, zip, planYear, providerResults, sunfire,
     if (pr.pending && pr.pending.length) {
       out += `${NOT_CONFIRMED} (still running at the chat wait): ${pr.pending.join(', ')} — not out-of-network.\n`;
     }
-    const realErrors = (pr.lookupErrors || []).filter((label) => !(pr.pending || []).includes(label));
+    const doctorsLine = formatDoctorsNetworkLine(pr.doctorsResult, zip);
+    const realErrors = (pr.lookupErrors || []).filter((label) => !(pr.pending || []).includes(label))
+      .filter((label) => !(doctorsLine && /Doctors HealthCare/i.test(label)));
     if (realErrors.length) {
       out += `Could not complete: ${realErrors.join(', ')} — that is not the same as out-of-network. Hand the agent the guest URL.\n`;
     }
@@ -605,13 +612,7 @@ function formatDoctorText({ doctorName, zip, planYear, providerResults, sunfire,
     } else {
       out += 'CarePlus: no 2027 directory index for this county yet — check CarePlusHealthPlans.com/FindCare.\n';
     }
-    const dr = pr.doctorsResult;
-    if (dr && dr.source === 'pdf_miss') {
-      out += `Doctors HealthCare: not listed in the 2027 ${(dr.pdfCounties || []).join(' / ')} directory PDF${dr.pdfAsOf ? ` (as of ${dr.pdfAsOf})` : ''} — checked, Not in network (not listed). The live search site was unreachable from the server, so the PDF answered. Do not call it "didn't finish".\n`;
-    }
-    if (dr && dr.error === 'other_county_only' && (dr.otherCountyOnly || []).length) {
-      out += `Doctors HealthCare 2027 directory: listed only outside the client's area (${dr.otherCountyOnly.join('; ')}) — UNCHECKED for her plans, not Out. Confirm with Doctors HealthCare.\n`;
-    }
+    if (doctorsLine) out += `${doctorsLine}\n`;
     const hr = pr.healthsunResult;
     if (hr && hr.inNetwork) {
       out += `HealthSun 2027 directory: LISTED as ${hr.matches.map((m) => `${m.name} (${HEALTHSUN_COUNTY[m.county] || m.county} PDF p. ${m.pages.join(', ')})`).join('; ')} — name match (the PDF has no NPIs).\n`;
@@ -1190,6 +1191,7 @@ module.exports = {
   planIdsFrom,
   guestPlanIdsFor,
   lookupProviderNetwork,
+  formatDoctorText,
   earlyMedPlanIds,
   fhirCheck,
   npiRecordInfo,

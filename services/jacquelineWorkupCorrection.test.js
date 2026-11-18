@@ -117,16 +117,17 @@ describe('saved-workup correction turn (Jacqueline Alexander, 2026-10-17)', () =
 
 describe('BHMG primary care carrier rule (Yahoska, 2026-10-17)', () => {
   const doc = (name, extra) => ({ status: 'done', requestedName: name, doctorName: name, npi: '', inNetworkPlans: [], outOfNetworkPlans: [], networks: [], carriersIn: [], ...extra });
-  it('Nathalie Regalado (BHMG PCP) is Out on Humana and Doctors HealthCare even when a directory says In', () => {
+  it('Nathalie Regalado (BHMG PCP) is Out on MedicareMax, Humana, and Doctors HealthCare even when a directory says In', () => {
     const docs = [doc('Nathalie Regalado', {
       doctorName: 'Nathalie Regalado, MD', npi: '1467795633', specialty: 'Internal Medicine',
       inNetworkPlans: ['UHC MedicareMax (H5420-001)', 'Humana Gold Plus (H1036-054C)'],
-      networks: [{ carrier: 'Humana', inNetwork: true }, { carrier: 'Doctors HealthCare Plans', inNetwork: true }],
-      carriersIn: ['Humana', 'Doctors HealthCare Plans'],
+      networks: [{ carrier: 'Humana', inNetwork: true }, { carrier: 'Doctors HealthCare Plans', inNetwork: true }, { carrier: 'UnitedHealthcare', inNetwork: true }],
+      carriersIn: ['Humana', 'Doctors HealthCare Plans', 'UnitedHealthcare'],
     })];
     const r = N.selectComparison(docs, 'ZIP 33186.\nDr. Nathalie Regalado, Baptist Medical Group, NPI 1467795633. Compare H5420-001, H4140-022, H1036-054C.', {});
     const col = (id) => r.columns.find((c) => c.planId === id);
-    assert.deepEqual(col('H5420-001').in, ['Nathalie Regalado']);
+    assert.deepEqual(col('H5420-001').out, ['Nathalie Regalado']);
+    assert.ok(!col('H5420-001').in.includes('Nathalie Regalado'));
     assert.deepEqual(col('H4140-022').out, ['Nathalie Regalado']);
     assert.deepEqual(col('H1036-054C').out, ['Nathalie Regalado']);
     assert.ok(!col('H1036-054C').in.includes('Nathalie Regalado'));
@@ -144,9 +145,11 @@ describe('BHMG primary care carrier rule (Yahoska, 2026-10-17)', () => {
     assert.ok(!rule.acceptsPlan({ carrier: 'Doctors HealthCare', planId: 'H4140-022', name: 'Doctors DrMax-Dade' }, 2026));
   });
 
-  it('accepted carriers 2027 from Hospitals x Carrier Baptist PCPs: Florida Blue and MedicareMax only (Aetna PPO Out)', () => {
+  it('accepted carriers 2027 from Hospitals x Carrier Baptist PCPs: Florida Blue only (MedicareMax Out 01.01.2027; Aetna PPO Out)', () => {
     const rule = G.GROUP_RULES.find((x) => x.key === 'bhmg-pcp');
-    assert.ok(rule.acceptsPlan({ carrier: 'UnitedHealthcare', planId: 'H5420-001', name: 'UHC MedicareMax FL-0028' }, 2027));
+    assert.ok(!rule.acceptsPlan({ carrier: 'UnitedHealthcare', planId: 'H5420-001', name: 'UHC MedicareMax FL-0028' }, 2027));
+    assert.ok(!rule.acceptsCarrier('UnitedHealthcare', 2027));
+    assert.ok(!rule.acceptsCarrier('MedicareMax', 2027));
     assert.ok(rule.acceptsPlan({ carrier: 'Florida Blue', planId: 'H1035-017', name: 'Florida Blue Medicare' }, 2027));
     assert.ok(!rule.acceptsPlan({ carrier: 'Aetna', planId: 'H5521-306', name: 'Aetna Medicare Premier PPO', type: 'PPO' }, 2027));
     assert.ok(!rule.acceptsPlan({ carrier: 'Aetna', planId: 'H1609-093', name: 'Aetna Medicare Select HMO', type: 'HMO' }, 2027));

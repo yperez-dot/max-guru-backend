@@ -3088,6 +3088,12 @@
     const removedAfter = (messages || []).some((m, idx) => idx > base.at && m && m.role === "user"
       && namesDoctor((typeof textFn === "function" ? textFn : messageContentToText)(m.content)));
     if (removedAfter) return latest;
+    // A later "create a comparison with Aetna, Devoted, MedicareMax" / "remove all CarePlus, add Aetna"
+    // is a new plan set even when it shares the current-plan ID with the wider workup table. Merging
+    // kept the old CarePlus columns on Export / Show benefits (Vilches-Olivera, 2026-11-18).
+    const replacedAfter = (messages || []).some((m, idx) => idx > base.at && m && m.role === "user"
+      && userReplacesPlanSet((typeof textFn === "function" ? textFn : messageContentToText)(m.content)));
+    if (replacedAfter && latest.planIds.length) return latest;
     const key = (r) => String(r.npi || r.name || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
     const rows = base.rows.map((r) => Object.assign({}, r, { byPlan: Object.assign({}, r.byPlan) }));
     found.filter((f) => f.at > base.at).reverse().forEach((f) => {
@@ -3103,6 +3109,53 @@
   }
 
   /**
+   * After the table at `afterIndex`, apply later "create a comparison" / "remove all CarePlus, add Aetna"
+   * edits. User IDs first; otherwise the following assistant's cited IDs (chat named the new set).
+   */
+  function applyThreadPlanSetEdits(ids, messages, toText, afterIndex, o) {
+    let set = (ids || []).slice();
+    const after = Number(afterIndex) || 0;
+    const list = messages || [];
+    const nextAssistantIds = (from) => {
+      for (let j = from + 1; j < list.length; j++) {
+        if (list[j] && list[j].role === "assistant") {
+          return citedPlanIdsFromText(toText(list[j].content)).map((x) => normalizeTypedPlanId(x)).filter(Boolean);
+        }
+      }
+      return [];
+    };
+    const pushIds = (addIds) => {
+      (addIds || []).forEach((id) => {
+        const n = String(id || "").toUpperCase().slice(0, 9);
+        if (n && !set.some((x) => String(x).toUpperCase().slice(0, 9) === n)) set.push(n);
+      });
+    };
+    for (let i = after + 1; i < list.length; i++) {
+      const m = list[i];
+      if (!m || m.role !== "user") continue;
+      const t = toText(m.content);
+      const userIds = citedPlanIdsFromText(t).map((x) => normalizeTypedPlanId(x)).filter(Boolean);
+      if (userReplacesPlanSet(t) && !PLAN_REMOVE_RE.test(t)) {
+        const next = userIds.length ? userIds : nextAssistantIds(i);
+        if (next.length) set = next.slice();
+        continue;
+      }
+      if (PLAN_REMOVE_RE.test(t)) {
+        const prefixes = carrierPrefixesIn(t);
+        if (userIds.length && !PLAN_ADD_RE.test(t)) {
+          set = set.filter((id) => !userIds.some((x) => String(id).slice(0, 9) === String(x).slice(0, 9)));
+        } else if (prefixes.length) {
+          set = set.filter((id) => !prefixes.some((p) => String(id).toUpperCase().indexOf(p) === 0));
+        }
+        if (PLAN_ADD_RE.test(t)) pushIds(userIds.length ? userIds : nextAssistantIds(i));
+        continue;
+      }
+      if (PLAN_ADD_RE.test(t)) pushIds(userIds.length ? userIds : nextAssistantIds(i));
+    }
+    return set;
+  }
+
+  /**
    * Plan set to export for "yes all three on the excel" / "add X too": the latest chat table's columns,
    * plus plans she adds in her newest message, with the current plan first. [] when there is no table.
    */
@@ -3111,7 +3164,7 @@
     const toText = typeof textFn === "function" ? textFn : messageContentToText;
     const tbl = latestChatTable(messages, toText);
     if (!tbl || !tbl.planIds.length) return [];
-    const ids = tbl.planIds.slice();
+    const ids = applyThreadPlanSetEdits(tbl.planIds.slice(), messages, toText, tbl.at, o);
     const lastUser = [...(messages || [])].reverse().find((m) => m && m.role === "user");
     const ut = lastUser ? toText(lastUser.content) : "";
     if (/\b(add|include|plus|also|too|as well)\b/i.test(ut)) {
@@ -3366,12 +3419,28 @@
     return lastUser;
   }
 
-  const CARRIER_ASK_RE = /\bdoc?to?r?s?'?\s*(?:health\s*care|healthcare|health|hc)\b|\bsol[iy]s\b|\b[cd]evoted\b|\bhumana\b|\baetna\b|\buhc\b|\bunited\s*health|\bsimply\b|\bwell\s*care\b|\bcare\s*plus\b|\bflorida blue\b|\bhealth\s*sun\b/i;
-  const PLAN_SET_VERB_RE = /\b(show|compare|instead|use|switch|swap|look at|what about|how about|wants?|prefers?|only|give me|pull|run|try)\b/i;
+  const CARRIER_ASK_RE = /\bdoc?to?r?s?'?\s*(?:health\s*care|healthcare|health|hc|plans?)\b|\bdrmax\b|\bdrselect\b|\bsol[iy]s\b|\b[cd]evoted\b|\bhumana\b|\baetna\b|\buhc\b|\bunited\s*health|\bmedicaremax\b|\bsimply\b|\bwell\s*care\b|\bcare\s*plus\b|\bflorida blue\b|\bhealth\s*sun\b/i;
+  const PLAN_SET_VERB_RE = /\b(show|compare|instead|use|switch|swap|look at|what about|how about|wants?|prefers?|only|give me|pull|run|try|create|make|build|did you)\b/i;
 
   function switchesPlanSet(latest) {
     const t = String(latest || "").replace(/\b(?:doctors?|drs?|providers?)\s*:[^\n]*/gi, " ");
     return /\binstead of (?:these|those|the) plans\b/i.test(t) || (PLAN_SET_VERB_RE.test(t) && CARRIER_ASK_RE.test(t));
+  }
+
+  /** She named a new comparison set (or remove-all-X + add-Y), not a doctor-row trim of the same table. */
+  function userReplacesPlanSet(text) {
+    const t = String(text || "");
+    if (!t) return false;
+    if (isExclusivePlanSet(t)) return true;
+    if (/\binstead of (?:these|those|the) plans\b/i.test(t)) return true;
+    if (/\b(?:create|make|build|start)\s+(?:a\s+)?(?:new\s+)?comparison\b/i.test(t)) return true;
+    if (/\blet'?s\s+(?:use|do|create|make|compare|go\s+with)\b/i.test(t)) return true;
+    if (PLAN_REMOVE_RE.test(t) && PLAN_ADD_RE.test(t)) return true;
+    if (/\bremove\s+all\b/i.test(t) && PLAN_ADD_RE.test(t)) return true;
+    // Carrier swap of the comparison — not "exclude Humana, try Alan Dal Pra" (doctor lookup).
+    if (/\b(?:show|compare|switch|swap|look at|what about|how about|give me|pull|run)\b/i.test(t)
+      && CARRIER_ASK_RE.test(t) && !/\b(?:try|dr\.?)\b/i.test(t)) return true;
+    return false;
   }
 
   // "H5420-14-0" / "H5420-14" as agents type them → "H5420-014".
@@ -3461,15 +3530,20 @@
       const curKeys = current.map((id) => String(id).toUpperCase().slice(0, 9));
       const isCurId = (id) => curKeys.indexOf(String(id).toUpperCase().slice(0, 9)) >= 0;
       if (PLAN_REMOVE_RE.test(t) && set) {
-        if (ids.length) {
+        if (ids.length && !PLAN_ADD_RE.test(t)) {
           set = set.filter((id) => ids.indexOf(id) < 0);
         } else {
           const prefixes = carrierPrefixesIn(t);
           if (prefixes.length) {
             set = set.filter((id) => isCurId(id) || !prefixes.some((p) => String(id).toUpperCase().indexOf(p) === 0));
           }
+          if (ids.length && PLAN_ADD_RE.test(t)) {
+            const removeClause = (t.match(/(?:remove|drop|take\s+off|take\s+out|without|skip|exclude|delete|no\s+longer)[\s\S]*?(?=\b(?:add|also|include|plus|too|as\s+well)\b|$)/i) || [""])[0];
+            const removeIds = typedPlanIds(removeClause);
+            if (removeIds.length) set = set.filter((id) => removeIds.indexOf(id) < 0);
+          }
         }
-        return;
+        if (!PLAN_ADD_RE.test(t)) return;
       }
       if (isExclusivePlanSet(t) && ids.length) {
         set = prependCurrentIds(ids, current);
@@ -3546,13 +3620,27 @@
     // The latest chat table's set (current plan first) is final: no older typed IDs, no reorder
     // ("yes all three on the excel" exported 2 old columns — Maura, 2026-10-07).
     if (meta.planSetFixed && (plans || []).length) {
-      const seenFixed = new Set();
-      return plans.map((p) => pick(String(p.planId || p.id || "")) || p).filter((p) => {
-        const id = planColumnId(p);
-        if (!id || seenFixed.has(id)) return false;
-        seenFixed.add(id);
-        return true;
-      });
+      const tableIds = ((meta.chatTable && meta.chatTable.planIds) || []).map((id) => String(id).toUpperCase().slice(0, 9)).filter(Boolean);
+      const fixedIds = (plans || []).map((p) => String(p.planId || p.id || "").toUpperCase().slice(0, 9)).filter(Boolean);
+      const tableDiffers = tableIds.length >= 2 && (tableIds.length !== fixedIds.length || tableIds.some((id) => !fixedIds.includes(String(id).slice(0, 9))));
+      // Stale workup offer.plans must not win over a later comparison table (Vilches-Olivera Excel still had CarePlus).
+      // Do not let older typed IDs in userMessages override planSetFixed — that reordered Maura's 3-plan Excel.
+      if (userReplacesPlanSet(latest) || tableDiffers) {
+        if (tableIds.length >= 2) {
+          const picked = tableIds.map((id) => pick(id) || (plans || []).find((p) => planColumnId(p) === compactContractPbp(id))).filter(Boolean);
+          if (picked.length >= 2) {
+            return uniquePlansByContractPbp(canonicalize2027ComparisonPlans(picked, latest || text, pool));
+          }
+        }
+      } else {
+        const seenFixed = new Set();
+        return plans.map((p) => pick(String(p.planId || p.id || "")) || p).filter((p) => {
+          const id = planColumnId(p);
+          if (!id || seenFixed.has(id)) return false;
+          seenFixed.add(id);
+          return true;
+        });
+      }
     }
     // Her working plan set wins over the union of every plan ever named in the thread
     // (Gail: 11 columns incl. HealthSun plans Max said it couldn't verify and a UHC plan never run).
@@ -3690,6 +3778,8 @@
     isExportOnlyAsk,
     isNarrowingReply,
     latestChatTable,
+    userReplacesPlanSet,
+    switchesPlanSet,
     exportPlanIdsFromThread,
     historyForExportOffer,
     sameNetworkTwinIds,

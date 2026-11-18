@@ -334,6 +334,42 @@ async function probeDoctors(npi) {
   return out;
 }
 
+/**
+ * Always-on Doctors HealthCare line for all-carrier doctor answers (Vilches-Olivera, 2026-11-18).
+ * Counties with Doctors MA plans must report In / not listed / error — never omit a miss when
+ * other carriers came back In.
+ */
+function formatDoctorsNetworkLine(result, zip) {
+  const keys = zip ? doctorsIndexKeysForZip(zip) : [];
+  const countyHasPlans = !zip || keys.length > 0;
+  const dr = result || {};
+  if (!countyHasPlans && !dr.inNetwork && dr.error !== 'other_county_only' && dr.source !== 'pdf_miss') {
+    return '';
+  }
+  if (dr.error === 'other_county_only' && (dr.otherCountyOnly || []).length) {
+    return `Doctors HealthCare: listed only outside the client's area (${dr.otherCountyOnly.join('; ')}) — UNCHECKED for her plans, not Out. Confirm with Doctors HealthCare.`;
+  }
+  if (dr.error === 'timeout') {
+    return 'Doctors HealthCare: lookup did not finish — not a miss. Confirm at providersearch.doctorshcp.com.';
+  }
+  if (dr.error && dr.error !== 'missing_npi') {
+    return `Doctors HealthCare: lookup error (${dr.error}) — not a miss. Confirm at providersearch.doctorshcp.com.`;
+  }
+  if (dr.inNetwork) {
+    const how = dr.source === 'pdf'
+      ? ' — listed in the 2027 county directory PDF'
+      : ' — listed on providersearch.doctorshcp.com';
+    return `Doctors HealthCare: IN network (H4140)${how}.`;
+  }
+  if (dr.source === 'pdf_miss') {
+    return `Doctors HealthCare: not listed in the 2027 ${(dr.pdfCounties || []).join(' / ')} directory PDF${dr.pdfAsOf ? ` (as of ${dr.pdfAsOf})` : ''} — checked, Not in network (not listed). The live search site was unreachable from the server, so the PDF answered. Do not call it "didn't finish".`;
+  }
+  if (dr.error === 'missing_npi') {
+    return 'Doctors HealthCare: lookup did not run (no NPI) — not a miss.';
+  }
+  return 'Doctors HealthCare: not found in the 2027 directory (H4140) — Not in network (not listed). Confirm at providersearch.doctorshcp.com.';
+}
+
 module.exports = {
   _resetForTests: () => { answers.clear(); lastCallAt = 0; droppedInARow = 0; breakerUntil = 0; },
   liveSearchDown,
@@ -348,4 +384,5 @@ module.exports = {
   npiMatches,
   formatMatch,
   queryDoctorsHcp,
+  formatDoctorsNetworkLine,
 };

@@ -25,7 +25,7 @@ Humana has the UM *hospital* (and, on UM's site, specialty / UMHC) but **not** U
 
 ### Baptist rows (same tab — not UM)
 
-- **Baptist PCPs:** Yes for FL BLUE and MedicareMax only.
+- **Baptist PCPs:** Yes for FL BLUE only (MedicareMax No effective 01.01.2027; Baptist Hospital × MedicareMax stays Yes).
 - **Baptist Hospital:** separate hospital row. A Humana member can have Baptist Hospital and still have **no** Baptist PCP.
 
 ## Extra carriers from UHealth's site (no grid column)

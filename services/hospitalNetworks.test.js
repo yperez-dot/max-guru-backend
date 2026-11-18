@@ -19,7 +19,8 @@ describe('Hospitals x Carrier 2027 JSON', () => {
     const um = HN.rowByName('UM PCP');
     assert.equal(baptist.kind, 'pcp');
     assert.equal(um.kind, 'pcp');
-    assert.deepEqual(HN.yesCarriers('Baptist PCPs').sort(), ['FL BLUE', 'MedicareMax']);
+    assert.deepEqual(HN.yesCarriers('Baptist PCPs').sort(), ['FL BLUE']);
+    assert.match(String((baptist.notes && baptist.notes.MedicareMax) || ''), /01\.01\.2027/);
     assert.deepEqual(HN.yesCarriers('UM PCP').sort(), ['HealthSun', 'Simply']);
     assert.equal(HN.rowByName('Baptist Hospital').kind, 'hospital');
     assert.equal(HN.rowByName('University of Miami').kind, 'hospital');
@@ -52,8 +53,8 @@ describe('2027 PCP rows (Yahoska, Hospitals x Carrier tab)', () => {
     assert.equal(HN.pcpIn('Baptist PCPs', simply), false);
   });
 
-  it('MedicareMax → Baptist PCP Yes; UM PCP No; UM hospital No', () => {
-    assert.equal(HN.pcpIn('Baptist PCPs', medicareMax), true);
+  it('MedicareMax → Baptist PCP No (01.01.2027); UM PCP No; UM hospital No; Baptist Hospital Yes', () => {
+    assert.equal(HN.pcpIn('Baptist PCPs', medicareMax), false);
     assert.equal(HN.pcpIn('UM PCP', medicareMax), false);
     assert.equal(HN.inNetwork('University of Miami', medicareMax), false);
     assert.equal(HN.inNetwork('Baptist Hospital', medicareMax), true);
@@ -154,7 +155,8 @@ describe('HTML 2027 hospital payload', () => {
     assert.ok(names.includes('Baptist PCPs'));
     assert.ok(names.includes('UM PCP'));
     const baptist = payload.rows.find((r) => r.hospital === 'Baptist PCPs');
-    assert.deepEqual([...baptist.yes].sort(), ['FL BLUE', 'MedicareMax']);
+    assert.deepEqual([...baptist.yes].sort(), ['FL BLUE']);
+    assert.ok(baptist.no.includes('MedicareMax'));
     const um = payload.rows.find((r) => r.hospital === 'UM PCP');
     assert.deepEqual([...um.yes].sort(), ['HealthSun', 'Simply']);
   });

@@ -221,6 +221,9 @@ describe('agent follow-ups (2026-10-06 replay: carriers by name, numbered answer
     assert.match(t, /^Carriers requested: Doctors HealthCare, Solis, Devoted\.$/m);
     assert.deepEqual(R.carriersRequested('client wants doctos health and solis and cevoted'), ['Doctors HealthCare', 'Solis', 'Devoted']);
     assert.deepEqual(R.carriersRequested('Doctors: Juan Cedeno, Carlos Sosa. Suggest plans'), [], 'a doctor list is not a carrier ask');
+    assert.deepEqual(R.carriersRequested('did you doctors plan?'), ['Doctors HealthCare']);
+    assert.deepEqual(R.carriersRequested('did you check Doctors Healthcare / DrSelect?'), ['Doctors HealthCare']);
+    assert.deepEqual(R.carriersRequested('remove the doctors plan'), [], 'a drop is not a Doctors carrier ask');
   });
 
   it('columns are the carriers she asked for — one best eligible plan each', () => {

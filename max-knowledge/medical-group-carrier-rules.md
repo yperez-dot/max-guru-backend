@@ -7,7 +7,7 @@ Max applies them in the doctor × plan table (services/medicalGroupRules.js). A 
 
 ## Baptist Health Medical Group (BHMG), primary care
 
-**2027 (AEP default):** Yahoska added a **Baptist PCPs** row to the live THEI 2027 Plan Comparison Grid, tab **Hospitals x Carrier** (gid 369609513). That row is Max's source of truth. BHMG / Baptist primary care is **Yes** only for **FL BLUE** and **MedicareMax**. Aetna (HMO and PPO), Humana, HealthSun, and every other column is **No**. Do not answer a Baptist *hospital* question from this row — use **Baptist Hospital**.
+**2027 (AEP default):** Yahoska added a **Baptist PCPs** row to the live THEI 2027 Plan Comparison Grid, tab **Hospitals x Carrier** (gid 369609513). That row is Max's source of truth. BHMG / Baptist primary care is **Yes** only for **FL BLUE**. **MedicareMax is No effective 01.01.2027** (Baptist Health Medical Group South Primary Care accepted-plans PDF as of October 1, 2026, footnote 4: Preferred Care Network will exclude Baptist Health Medical Group Physicians, LLC as of 01/01/2027 — https://baptisthealth.net/patient-resources/-/media/D4C27B2F56314000B809464F41058E65.ashx). Aetna (HMO and PPO), Humana, HealthSun, and every other column is **No**. Do not answer a Baptist *hospital* question from this row — use **Baptist Hospital**. Baptist Hospital × MedicareMax stays **Yes**.
 
 **2026 only:** the older Yahoska rule (2026-10-17) still applies: Aetna but not Aetna Medicare HMO, HealthSpring, Florida Blue, Preferred Care Network (UHC MedicareMax H5420).
 
