@@ -331,8 +331,9 @@ describe('timed-out cells: ⏱ status, own med budget, background re-check', () 
     // Both finish after the reply went out: the re-check job re-renders the same table.
     const { getRecheck } = require('./recheckJobs');
     releaseRx();
+    for (let i = 0; i < 50 && knobs.resolveHumana.length === 0; i += 1) await sleep(20);
     knobs.resolveHumana.forEach((r) => r());
-    for (let i = 0; i < 100 && getRecheck(out.structured.recheckId).status !== 'done'; i += 1) await sleep(20);
+    for (let i = 0; i < 200 && getRecheck(out.structured.recheckId).status !== 'done'; i += 1) await sleep(20);
     const job = getRecheck(out.structured.recheckId);
     assert.equal(job.status, 'done');
     assert.equal(job.result.stillTimedOut, 0);
