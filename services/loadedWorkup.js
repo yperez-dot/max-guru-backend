@@ -327,7 +327,7 @@ function currentPlanRemovedBy(line, currentIds, carrierOfId) {
 // Anything else — a typo or swapped words ("Doctors Dade Mac" for Doctors DrMax-Dade) — is never guessed: one close
 // plan is asked as "Remove X (ID)? (yes/no)", several are listed, none is said in one line (Evelyn Nieves, 2026-10-20:
 // "lets remove Doctors Dade Mac and add … H1036-121" added H1036-121 and silently kept H4140-022).
-const REMOVAL_STOP = new Set(['the', 'plan', 'plans', 'column', 'columns', 'one', 'from', 'table', 'grid', 'please', 'pls', 'her', 'his', 'option', 'lets', 'let', 's']);
+const REMOVAL_STOP = new Set(['the', 'plan', 'plans', 'column', 'columns', 'one', 'from', 'table', 'grid', 'please', 'pls', 'her', 'his', 'option', 'lets', 'let', 's', 'all']);
 const CARRIER_WORDS = {
   careplus: 'CarePlus',
   humana: 'Humana',

@@ -5,8 +5,10 @@
  *   2026 — Aetna (not Aetna Medicare HMO), HealthSpring, Florida Blue, Preferred Care Network
  *          (UHC MedicareMax, H5420). Not Humana, not Doctors HealthCare Plans
  *          (Yahoska, 2026-10-17: Nathalie Regalado NPI 1467795633 showed In on Humana).
- *   2027 — THEI Hospitals x Carrier tab, "Baptist PCPs" row: Florida Blue and MedicareMax only.
- *          Aetna PPO is Out. (Yahoska, 11.02.2026.)
+ *   2027 — THEI Hospitals x Carrier tab, "Baptist PCPs" row: Florida Blue only.
+ *          MedicareMax / Preferred Care Network is Out as of 01.01.2027 (Baptist Health Medical Group
+ *          South Primary Care accepted-plans PDF as of October 1, 2026, footnote 4). Aetna PPO is Out.
+ *          Baptist Hospital × MedicareMax stays Yes.
  *
  * University of Miami PRIMARY CARE (2027 only):
  *   THEI Hospitals x Carrier tab, "UM PCP" row: HealthSun and Simply only.
@@ -34,7 +36,7 @@ const GROUP_RULES = [
     short: 'BHMG primary care',
     knownNpis: ['1467795633'], // Nathalie Regalado, Internal Medicine (Yahoska, 2026-10-17)
     accepts: 'Aetna (not Aetna Medicare HMO), HealthSpring, Florida Blue, Preferred Care Network (UHC MedicareMax)',
-    accepts2027: 'Florida Blue and Preferred Care Network (UHC MedicareMax) — 2027 THEI Hospitals x Carrier, Baptist PCPs row',
+    accepts2027: 'Florida Blue only — 2027 THEI Hospitals x Carrier, Baptist PCPs row (MedicareMax out 01.01.2027)',
     groupRe: BHMG_RE,
     acceptsForYear(year) {
       return yearOf(year) === 2026 ? this.accepts : this.accepts2027;
@@ -62,8 +64,7 @@ const GROUP_RULES = [
       const t = String(label || '');
       if (yearOf(year) !== 2026) {
         if (/florida blue|bcbs/i.test(t)) return true;
-        if (/\buhc\b|unitedhealthcare|medicaremax/i.test(t)) return true; // plan level decides MedicareMax
-        return false;
+        return false; // MedicareMax / PCN out of BHMG primary care as of 01.01.2027
       }
       if (/florida blue|bcbs|healthspring|cigna/i.test(t)) return true;
       if (/aetna/i.test(t)) return true; // plan level decides HMO vs not

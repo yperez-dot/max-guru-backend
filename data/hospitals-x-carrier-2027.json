@@ -86,12 +86,15 @@
         "HealthSun": "No",
         "Humana": "No",
         "Humana PPO": "No",
-        "MedicareMax": "Yes",
+        "MedicareMax": "No",
         "Preferred Care Partner": "No",
         "Simply": "No",
         "Solis": "No",
         "WellCare": "No",
         "UHC Dual Complete": "No"
+      },
+      "notes": {
+        "MedicareMax": "No effective 01.01.2027. Source: Baptist Health Medical Group South Primary Care accepted-plans PDF as of October 1, 2026, footnote 4: Preferred Care Network will exclude Baptist Health Medical Group Physicians, LLC as of 01/01/2027. https://baptisthealth.net/patient-resources/-/media/D4C27B2F56314000B809464F41058E65.ashx. Baptist Hospital × MedicareMax stays Yes."
       }
     },
     {

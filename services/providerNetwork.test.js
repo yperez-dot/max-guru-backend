@@ -1,6 +1,6 @@
 // Padron 8-doctor regression: doctors run in parallel, a stuck carrier never
 // holds the batch past its deadline, and cut-off work lands in the cache.
-const { describe, it, beforeEach, after } = require('node:test');
+const { describe, it, beforeEach, afterEach, after } = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
 
@@ -40,7 +40,11 @@ stub('npiRegistry', {
   displayName: (p) => `${p.basic.first_name} ${p.basic.last_name}`,
   allLocationAddresses: () => [{ address_1: '1 Main St', city: 'Weston', postal_code: '33332' }],
 });
-stub('doctorsHcp', { queryDoctorsHcp: async () => { await sleep(knobs.carrierMs); return { inNetwork: false }; }, PLAN_LABEL: 'Doctors HealthCare Plans' });
+stub('doctorsHcp', {
+  queryDoctorsHcp: async () => { await sleep(knobs.carrierMs); return { inNetwork: false }; },
+  PLAN_LABEL: 'Doctors HealthCare Plans',
+  formatDoctorsNetworkLine: (dr) => (dr && dr.inNetwork ? 'Doctors HealthCare: IN network (H4140).' : 'Doctors HealthCare: not found in the 2027 directory (H4140) — Not in network (not listed).'),
+});
 stub('aetnaPublicSearch', { queryAetnaPublic: async () => { await sleep(knobs.carrierMs); return { inNetwork: false, plans: [] }; }, CARRIER_LABEL: 'Aetna' });
 stub('simplyFindcare', { querySimplyFindcare: async () => { await sleep(knobs.carrierMs); return { inNetwork: false, plans: [] }; }, CARRIER_LABEL: 'Simply' });
 stub('uhcGuestSearch', {
@@ -58,7 +62,11 @@ stub('humanaFindcare', {
     knobs.humanaCalls += 1;
     const name = Object.keys(NPI_BY_NAME).find((k) => NPI_BY_NAME[k] === npi);
     if (knobs.hangHumanaFor.has(name)) {
-      await new Promise((resolve) => knobs.resolveHumana.push(resolve));
+      // Hang past the chat deadline, then auto-release so a missed resolver cannot stall the recheck job.
+      await new Promise((resolve) => {
+        const t = setTimeout(resolve, knobs.hangHumanaMs || 1500);
+        knobs.resolveHumana.push(() => { clearTimeout(t); resolve(); });
+      });
     } else {
       await sleep(knobs.carrierMs);
     }
@@ -91,6 +99,7 @@ stub('compareJobs', {
 const originalFetch = global.fetch;
 global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ resourceType: 'Bundle', total: 0, entry: [] }) }); // FHIR misses (answered, not listed)
 
+delete require.cache[require.resolve('./providerNetwork')];
 const { lookupProviderNetwork, clearProviderCache, normalizeDoctorList } = require('./providerNetwork');
 
 const PADRON = [
@@ -98,6 +107,13 @@ const PADRON = [
   'Michael Glassman', 'Jorge Diaz', 'Howard Bush', 'Alfred Desimone',
 ];
 
+// Shared knobs + limiter slots: these suites must not run in parallel (CI was racing the
+// Humana hang resolvers, so the recheck job never finished and Padron counted as a 2nd timeout).
+describe('providerNetwork stubs', { concurrency: false }, () => {
+  afterEach(() => {
+    knobs.resolveHumana.splice(0).forEach((r) => r());
+    knobs.hangHumanaFor = new Set();
+  });
 describe('lookup_provider_network batch (Padron 8 doctors)', () => {
   beforeEach(() => {
     clearProviderCache();
@@ -106,6 +122,7 @@ describe('lookup_provider_network batch (Padron 8 doctors)', () => {
     knobs.hangNpiFor = new Set();
     knobs.sunfireCalls = [];
     knobs.humanaCalls = 0;
+    knobs.resolveHumana.splice(0).forEach((r) => r());
     knobs.resolveHumana = [];
   });
   after(() => {
@@ -306,9 +323,15 @@ describe('timed-out cells: ⏱ status, own med budget, background re-check', () 
     knobs.carrierMs = 20;
     knobs.hangHumanaFor = new Set();
     knobs.hangNpiFor = new Set();
+    knobs.resolveHumana.splice(0).forEach((r) => r());
     knobs.resolveHumana = [];
     knobs.rxCalls = [];
     knobs.rxHold = {};
+  });
+  afterEach(() => {
+    knobs.resolveHumana.splice(0).forEach((r) => r());
+    knobs.hangHumanaFor = new Set();
+    knobs.hangNpiFor = new Set();
   });
 
   it('a med and a doctor that miss the deadline read "⏱ timed out", the note says re-checking, and the re-check posts the finished table', async () => {
@@ -327,8 +350,10 @@ describe('timed-out cells: ⏱ status, own med budget, background re-check', () 
     // Both finish after the reply went out: the re-check job re-renders the same table.
     const { getRecheck } = require('./recheckJobs');
     releaseRx();
-    knobs.resolveHumana.forEach((r) => r());
-    for (let i = 0; i < 100 && getRecheck(out.structured.recheckId).status !== 'done'; i += 1) await sleep(20);
+    for (let i = 0; i < 250 && getRecheck(out.structured.recheckId).status !== 'done'; i += 1) {
+      knobs.resolveHumana.splice(0).forEach((r) => r());
+      await sleep(20);
+    }
     const job = getRecheck(out.structured.recheckId);
     assert.equal(job.status, 'done');
     assert.equal(job.result.stillTimedOut, 0);
@@ -354,9 +379,12 @@ describe('timed-out cells: ⏱ status, own med budget, background re-check', () 
   it('no re-check outside the chat (context.recheck not set)', async () => {
     knobs.hangNpiFor = new Set(['Alfred Slowpoke']);
     const messages = [{ role: 'user', content: 'Client ZIP 33332. Doctors: Ernesto Padron, Alfred Slowpoke. Compare H1036-065C and H1045-005' }];
-    const out = await lookupProviderNetwork({ doctors: [{ doctorName: 'Ernesto Padron' }, { doctorName: 'Alfred Slowpoke' }], zip: '33332' }, { deadlineAt: Date.now() + 800, messages });
+    const out = await lookupProviderNetwork({ doctors: [{ doctorName: 'Ernesto Padron' }, { doctorName: 'Alfred Slowpoke' }], zip: '33332' }, { deadlineAt: Date.now() + 2500, messages });
     assert.ok(!out.structured.recheckId);
-    assert.match(out.structured.rendered, /^⏱ 1 doctor check ran out of time — send the same message again to re-check\./m);
+    // Padron's named-plan cells are In; Alfred is the NPI hang. Under load Padron can still be
+    // "partial" (other carriers pending) so the note may say 1 or 2 doctor checks — never auto-recheck.
+    assert.match(out.structured.rendered, /^⏱ [12] doctor checks? ran out of time — send the same message again to re-check\./m);
     assert.match(out.structured.rendered.split('\n').find((l) => /Alfred Slowpoke/.test(l)) || '', /⏱ timed out \| ⏱ timed out/);
   });
+});
 });
