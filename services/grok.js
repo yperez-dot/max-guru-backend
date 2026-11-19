@@ -348,6 +348,7 @@ async function passThroughChat({ system, messages, processToolFn, deadlineMs }) 
       Promise.resolve().then(() => runTool('lookup_provider_network', {
         doctors: followUp.doctors.map((doctorName) => ({ doctorName, ...(followUp.npis && followUp.npis[doctorName] ? { npi: followUp.npis[doctorName] } : {}) })),
         zip: followUp.zip || undefined,
+        planIds: require('./providerNetwork').guestPlanIdsFor([], comparisonAskText(messages)),
       }, { messages, system, remainingMs: toolTimeLeft(), deadlineAt: toolDeadlineAt })).catch((e) => `lookup_provider_network error: ${e.message}`),
       toolDeadlineAt + toolGraceMs,
       () => '',

@@ -6,7 +6,7 @@
 // model timeouts, no plan dumps. Chat stays for questions.
 
 const crypto = require('crypto');
-const { lookupDoctor, NOT_CONFIRMED } = require('./providerNetwork');
+const { lookupDoctor, NOT_CONFIRMED, guestPlanIdsFor } = require('./providerNetwork');
 const { lookupFormulary, toExportDrug, toExportDrugs, formatFormularyText } = require('./formularyLookup');
 const { askConstraints, gridTable, medsTable, selectComparison, strengthNotes, medsLegendFor, quietRestrictionMarks, textPlanTypeAsk, planTypeAskLines, planTypeLineFor, currentPlanIdsIn } = require('./doctorPlanNarrow');
 const { dedupeDoctorRows, duplicateQuestions } = require('./loadedWorkup');
@@ -611,7 +611,13 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
       try {
         const left = Math.max(250, Math.min(perDoctorMs, deadlineAt - Date.now()));
         r = await Promise.race([
-          Promise.resolve().then(() => lookupOneDoctor({ doctorName: d.name, npi: d.npi, zip: input.zip, year: input.year }, { deadlineAt, npiCap: 2 })),
+          Promise.resolve().then(() => lookupOneDoctor({
+            doctorName: d.name,
+            npi: d.npi,
+            zip: input.zip,
+            year: input.year,
+            planIds: guestPlanIdsFor([input.plans, input.currentPlans, input.addedPlans], askText),
+          }, { deadlineAt, npiCap: 2 })),
           new Promise((_, rej) => { timer = setTimeout(() => rej(Object.assign(new Error('timed out'), { timedOut: true })), left); }),
         ]);
       } catch (e) {

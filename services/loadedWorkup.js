@@ -143,7 +143,11 @@ function replacePlanPairs(text) {
   };
   for (const m of t.matchAll(/\b(?:replace|swap)\s+([HR]\d{4}-\d{3}[A-Z]?)\s+(?:with|for|to)\s+([HR]\d{4}-\d{3}[A-Z]?)/gi)) add(m[1], m[2]);
   for (const m of t.matchAll(/\b(?:remove|drop|delete|take\s+(?:out|off)|without)\s+([HR]\d{4}-\d{3}[A-Z]?)\b[^.;\n]{0,80}?\b(?:replace|swap|add|include)\s+(?:(?:it|that|them)\s+)?(?:with|for)?\s*([HR]\d{4}-\d{3}[A-Z]?)/gi)) add(m[1], m[2]);
+  // "Remove CarePlus CareOne Plus H1019-006 and add Humana Gold Plus H1036-054C instead"
+  // — marketing name sits between the verb and the H-number (Joan Benjamin, 2026-11-19).
+  for (const m of t.matchAll(/\b(?:remove|drop|delete|take\s+(?:out|off)|without)\b[^.;\n]{0,80}?\b([HR]\d{4}-\d{3}[A-Z]?)\b[^.;\n]{0,80}?\b(?:and\s+)?(?:replace|swap|add|include)\b[^.;\n]{0,80}?\b([HR]\d{4}-\d{3}[A-Z]?)/gi)) add(m[1], m[2]);
   for (const m of t.matchAll(/\b(?:add|include|put)\s+([HR]\d{4}-\d{3}[A-Z]?)\s+instead\s+of\s+([HR]\d{4}-\d{3}[A-Z]?)/gi)) add(m[2], m[1]);
+  for (const m of t.matchAll(/\b(?:add|include|put)\b[^.;\n]{0,80}?\b([HR]\d{4}-\d{3}[A-Z]?)\b[^.;\n]{0,40}?\binstead\s+of\b[^.;\n]{0,80}?\b([HR]\d{4}-\d{3}[A-Z]?)/gi)) add(m[2], m[1]);
   return pairs;
 }
 /** Plan IDs in the header of Max's newest Doctor × plan table in this chat (its columns, in order). */
@@ -190,9 +194,9 @@ function workupPlanAddSet(text, msgs) {
     // "remove X and replace with Y": keep the saved set, put Y in X's place (Carla Nguyen, 2026-10-26).
     if (pairs.length) {
       adds = pairs.map((p) => p.to);
-    } else if (!PLAN_ASK_VERB_RE.test(t) || PLAN_EDIT_ONLY_RE.test(t) || ONLY_PLANS_RE.test(t) || NEW_SET_VERB_RE.test(t)) return [];
-    else if (typed.length > 1 && /\bcompare\b/i.test(t)) return [];
-    else adds = typed;
+    } else if (!PLAN_ASK_VERB_RE.test(t) || (PLAN_EDIT_ONLY_RE.test(t) && !/\b(?:add|include)\b/i.test(t)) || ONLY_PLANS_RE.test(t) || NEW_SET_VERB_RE.test(t)) return [];
+    else if (typed.length > 1 && /\bcompare\b/i.test(t) && !/\b(?:remove|drop|add|include)\b/i.test(t)) return [];
+    else adds = typed.filter((id) => !pairs.some((p) => p.from.slice(0, 9) === id.slice(0, 9)));
   } else {
     // "add dvoted to the grid": the plan of that carrier she named earlier in this chat (H1290-067).
     const segs = [...t.matchAll(/\b(?:add|include|plus|put)\s+([^.;\n]+)/gi)].map((m) => m[1]);
