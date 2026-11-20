@@ -387,6 +387,18 @@ FORMULARY_LOOKUP year=2027 drug=Atorvastatin plan=H1036-054C verified=no reason=
 });
 
 describe('HTML UI wiring', () => {
+  it('inlined comparison-export.js matches artifacts/comparison-export.js', () => {
+    const html = fs.readFileSync(HTML_PATH, 'utf8');
+    const js = fs.readFileSync(path.join(__dirname, '../artifacts/comparison-export.js'), 'utf8').replace(/\s+$/, '');
+    const begin = '<!-- MAX_COMPARISON_EXPORT_BEGIN -->';
+    const end = '<!-- MAX_COMPARISON_EXPORT_END -->';
+    const start = html.indexOf(begin);
+    const stop = html.indexOf(end);
+    assert.ok(start > 0 && stop > start, 'MAX_COMPARISON_EXPORT markers missing');
+    const expected = `${begin}\n<script>\n${js}\n</script>\n`;
+    assert.equal(html.slice(start, stop), expected, 'run: node scripts/sync_comparison_export.js');
+  });
+
   it('inlines the comparison export and offers Excel + PDF', () => {
     const html = fs.readFileSync(HTML_PATH, 'utf8');
     assert.match(html, /MaxComparisonExport/);
