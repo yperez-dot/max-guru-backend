@@ -2287,7 +2287,11 @@
     if (!Array.isArray(doctors) || !doctors.length) return doctors;
     const orig = originalPlans || [];
     const kept = keptPlans || [];
-    if (orig.length === kept.length) return doctors;
+    const origKeys = orig.map((p) => planColumnId(p));
+    const keptKeys = kept.map((p) => planColumnId(p));
+    // Same length is not the same set: dropping CarePlus and adding Humana kept 3 columns
+    // and mapped CarePlus's In/Out onto Humana (Joan Benjamin, 2026-11-19).
+    if (origKeys.length === keptKeys.length && origKeys.every((k, i) => k === keptKeys[i])) return doctors;
     const groupIdx = kept.map((k) => {
       const key = planColumnId(k);
       return orig.map((p, i) => (planColumnId(p) === key ? i : -1)).filter((i) => i >= 0);
@@ -3328,6 +3332,7 @@
     [/^✅\s*In\*/, "In network*"],
     [/^✅\s*In\b/, NETWORK_IN],
     [/^❌/, NETWORK_OUT],
+    [/^❔\s*unchecked/i, NETWORK_NOT_CONFIRMED],
     [/^❔\s*not confirmed/i, NETWORK_NOT_CONFIRMED],
     [/^⏱/, NETWORK_TIMED_OUT],
     [/^❔\s*check dental directory/i, dentalStatusText],
@@ -3483,13 +3488,24 @@
         continue;
       }
       if (PLAN_REMOVE_RE.test(t)) {
-        const prefixes = carrierPrefixesIn(t);
+        const edit = removeAddPlanIds(t);
         if (userIds.length && !PLAN_ADD_RE.test(t)) {
           set = set.filter((id) => !userIds.some((x) => String(id).slice(0, 9) === String(x).slice(0, 9)));
-        } else if (prefixes.length) {
-          set = set.filter((id) => !prefixes.some((p) => String(id).toUpperCase().indexOf(p) === 0));
+        } else if (PLAN_ADD_RE.test(t)) {
+          // Drop only the remove-clause IDs/carrier, then add only the add-clause IDs.
+          // Whole-message prefixes used to drop Humana (named as the add) and then
+          // pushIds(userIds) put CarePlus back (Joan Benjamin, 2026-11-19).
+          if (edit.removeIds.length) {
+            set = set.filter((id) => !edit.removeIds.some((x) => String(id).slice(0, 9) === String(x).slice(0, 9)));
+          } else if (edit.removePrefixes.length) {
+            set = set.filter((id) => !edit.removePrefixes.some((p) => String(id).toUpperCase().indexOf(p) === 0));
+          }
+          const addIds = edit.addIds.length ? edit.addIds : nextAssistantIds(i);
+          pushIds(addIds.filter((id) => !edit.removeIds.some((x) => String(id).slice(0, 9) === String(x).slice(0, 9))));
+          continue;
+        } else if (carrierPrefixesIn(t).length) {
+          set = set.filter((id) => !carrierPrefixesIn(t).some((p) => String(id).toUpperCase().indexOf(p) === 0));
         }
-        if (PLAN_ADD_RE.test(t)) pushIds(userIds.length ? userIds : nextAssistantIds(i));
         continue;
       }
       if (PLAN_ADD_RE.test(t)) pushIds(userIds.length ? userIds : nextAssistantIds(i));
@@ -3510,8 +3526,11 @@
     const lastUser = [...(messages || [])].reverse().find((m) => m && m.role === "user");
     const ut = lastUser ? toText(lastUser.content) : "";
     if (/\b(add|include|plus|also|too|as well)\b/i.test(ut)) {
-      const added = citedPlanIdsFromText(ut).map((x) => normalizeTypedPlanId(x));
-      const hay = " " + ut.toLowerCase().replace(/[^a-z0-9]+/g, " ") + " ";
+      const edit = removeAddPlanIds(ut);
+      const added = (edit.addIds.length ? edit.addIds : citedPlanIdsFromText(ut).map((x) => normalizeTypedPlanId(x)))
+        .filter((id) => !edit.removeIds.some((x) => String(id).slice(0, 9) === String(x).slice(0, 9)));
+      const addText = (ut.match(/\b(?:add|also|include|too|as\s+well)\b[\s\S]*/i) || [ut])[0];
+      const hay = " " + addText.toLowerCase().replace(/[^a-z0-9]+/g, " ") + " ";
       (Array.isArray(o.catalog) ? o.catalog : []).forEach((p) => {
         if (o.county && p.county && p.county !== o.county) return;
         const nm = String(p.planName || "").toLowerCase().replace(/\*+.*$/, "").replace(/[^a-z0-9]+/g, " ").trim();
@@ -3827,6 +3846,21 @@
     return out;
   }
 
+  /** Split "Remove CarePlus … H1019-006 and add Humana … H1036-054C instead" into drop vs add IDs.
+   *  Do not split on "plus" — that is the product suffix in CareOne Plus / Gold Plus. */
+  function removeAddPlanIds(text) {
+    const t = String(text || "");
+    const addVerb = /\b(?:add|also|include|too|as\s+well)\b/i;
+    const removeClause = (t.match(/(?:remove|drop|take\s+off|take\s+out|without|skip|exclude|delete|no\s+longer)[\s\S]*?(?=\b(?:add|also|include|too|as\s+well)\b|$)/i) || [""])[0];
+    const addAt = t.search(addVerb);
+    const addClause = addAt >= 0 ? t.slice(addAt) : "";
+    return {
+      removeIds: typedPlanIds(removeClause),
+      addIds: typedPlanIds(addClause),
+      removePrefixes: carrierPrefixesIn(removeClause),
+    };
+  }
+
   /** Same exclusive-set wording as comparisonRules.isExclusivePlanSet (kept local so the HTML bundle stays standalone). */
   function isExclusivePlanSet(text) {
     const t = String(text || "");
@@ -3874,15 +3908,16 @@
       if (PLAN_REMOVE_RE.test(t) && set) {
         if (ids.length && !PLAN_ADD_RE.test(t)) {
           set = set.filter((id) => ids.indexOf(id) < 0);
+        } else if (PLAN_ADD_RE.test(t)) {
+          const edit = removeAddPlanIds(t);
+          if (edit.removeIds.length) set = set.filter((id) => edit.removeIds.indexOf(id) < 0);
+          else if (edit.removePrefixes.length) {
+            set = set.filter((id) => isCurId(id) || !edit.removePrefixes.some((p) => String(id).toUpperCase().indexOf(p) === 0));
+          }
         } else {
           const prefixes = carrierPrefixesIn(t);
           if (prefixes.length) {
             set = set.filter((id) => isCurId(id) || !prefixes.some((p) => String(id).toUpperCase().indexOf(p) === 0));
-          }
-          if (ids.length && PLAN_ADD_RE.test(t)) {
-            const removeClause = (t.match(/(?:remove|drop|take\s+off|take\s+out|without|skip|exclude|delete|no\s+longer)[\s\S]*?(?=\b(?:add|also|include|plus|too|as\s+well)\b|$)/i) || [""])[0];
-            const removeIds = typedPlanIds(removeClause);
-            if (removeIds.length) set = set.filter((id) => removeIds.indexOf(id) < 0);
           }
         }
         if (!PLAN_ADD_RE.test(t)) return;
@@ -3893,7 +3928,9 @@
       }
       if (!ids.length) return;
       if (PLAN_ADD_RE.test(t) && set) {
-        ids.forEach((id) => {
+        const edit = removeAddPlanIds(t);
+        const toAdd = edit.addIds.length ? edit.addIds : ids.filter((id) => edit.removeIds.indexOf(id) < 0);
+        toAdd.forEach((id) => {
           if (set.indexOf(id) < 0) set.push(id);
         });
         return;
@@ -4104,6 +4141,9 @@
     keepCurrentComparisonPlans,
     resolveExportPlans,
     workingPlanIdsFromUserMessages,
+    applyThreadPlanSetEdits,
+    removeAddPlanIds,
+    realignDoctorStatuses,
     normalizeTypedPlanId,
     drugIngredients,
     drugIdentityKey,
