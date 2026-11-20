@@ -92,6 +92,21 @@ describe('pregabalin on Humana H1036-065C 2027 (Katy, 2026-10-07)', () => {
     assert.equal(F.missingStrengthCheck('pregabalin', CONCEPTS), null);
   });
 
+  it('meloxicam 5 mg is not a generic tablet strength — Vivlodex 5 MG does not count (Joan Benjamin, 2026-11-19)', () => {
+    const meloxicam = [
+      { name: 'meloxicam 5 MG Oral Capsule [Vivlodex]' },
+      { name: 'meloxicam 7.5 MG Oral Tablet' },
+      { name: 'meloxicam 15 MG Oral Tablet' },
+    ];
+    const note = F.missingStrengthCheck('meloxicam 5 MG', meloxicam);
+    assert.ok(note, '5 mg is unmatched against generic tablets');
+    assert.equal(note.asked, '5 mg');
+    assert.ok(note.nearest.includes('7.5 mg'), String(note.nearest));
+    assert.ok(note.nearest.includes('15 mg'), String(note.nearest));
+    assert.equal(F.conceptMatchesQuery({ name: 'meloxicam 5 MG Oral Capsule [Vivlodex]' }, 'meloxicam 5 MG'), false);
+    assert.equal(F.missingStrengthCheck('meloxicam 7.5 MG', meloxicam), null);
+  });
+
   it('duloxetine 30 mg DR: the Sunfire catalog\'s 40 mg NDC is a hint, not the asked product', async () => {
     assert.equal(F.medicareGovQueryName('duloxetine 30 MG Delayed Release Oral Capsule', 'Duloxetine HCL'), 'duloxetine 30 MG Delayed Release Oral Capsule');
     assert.equal(F.medicareGovQueryName('Fesoterodine Fumarate ER', 'Fesoterodine Fumarate ER'), 'Fesoterodine Fumarate ER');

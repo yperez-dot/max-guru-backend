@@ -922,7 +922,14 @@ function missingStrengthCheck(query, concepts) {
   if (!hints.strengths.length) return null;
   const real = [];
   for (const c of concepts || []) {
-    for (const t of conceptProductTraits(c && c.name).strengths) {
+    const traits = conceptProductTraits(c && c.name);
+    // A brand-only strength (Vivlodex 5 MG capsule) is not a match for a generic ask
+    // (meloxicam 5 mg — the common tablets are 7.5 / 15 mg). Joan Benjamin, 2026-11-19.
+    if (traits.brand) {
+      const brandWords = traits.brand.toLowerCase().split(/\s+/);
+      if (!brandWords.every((w) => hints.words.includes(w))) continue;
+    }
+    for (const t of traits.strengths) {
       if (!real.some((r) => sameStrength(r, t))) real.push(t);
     }
   }

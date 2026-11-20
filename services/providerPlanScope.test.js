@@ -22,7 +22,8 @@ describe('UHC guest check scope (bug 1)', () => {
   it('a Humana-only planId also checks the UHC plan named in her comparison', () => {
     const ask = 'Maura, ZIP 33165. Current plan UHC Preferred Care Preferred MA H1045-001. Compare with Humana H1036-054C and H1036-305.';
     assert.deepEqual(guestPlanIdsFor(['H1036-054C'], ask), ['H1036-054C', 'H1045-001', 'H1036-305']);
-    assert.deepEqual(guestPlanIdsFor([undefined, ''], ask), [], 'no planId = every THEI plan is checked');
+    assert.deepEqual(guestPlanIdsFor([undefined, ''], ask), ['H1045-001', 'H1036-054C', 'H1036-305'],
+      'empty tool planIds still read the comparison she asked for (Joan Benjamin, 2026-11-19)');
   });
 
   function jsonRes(body, cookies = []) {

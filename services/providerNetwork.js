@@ -207,15 +207,30 @@ function planIdsFrom(...values) {
  * Plan IDs the UHC / Humana guest checks are limited to. The tool's planId often names
  * only one carrier's plan (H1036-054C), so the plans of the comparison she asked for
  * (her current UHC H1045-001) are added — otherwise UHC checks nothing and every UHC
- * column reads "not confirmed" (Maura, 2026-10-07). No planId at all = check every plan.
+ * column reads "not confirmed" (Maura, 2026-10-07).
+ *
+ * AutoTool follow-up and the compare card often omit planIds. When the ask already names
+ * the comparison (Named plan set / Her current plan), use those IDs — checking every THEI
+ * UHC plan times out and the current plan stays ❔ unchecked (Joan Benjamin, 2026-11-19).
+ * Rank-all / C-SNP still returns [] so every county plan is checked plan-level.
  */
 function guestPlanIdsFor(toolIds, askText) {
   // A ranking / "run her drs on the C-SNPs" ask needs every county plan checked plan-level — a
   // tool planId naming one plan would leave the C-SNP columns carrier-level only (Maura, 2026-10-07).
-  if (/^Rank all eligible plans\.$/m.test(String(askText || ''))) return [];
-  const ids = planIdsFrom(toolIds);
-  if (!ids.length) return [];
-  return planIdsFrom(ids, askText);
+  const t = String(askText || '');
+  if (/^Rank all eligible plans\.$/m.test(t)) return [];
+  // comparisonAskText prepends the loaded workup, so every ID in the blob is not the
+  // comparison. Named plan set / current / added are the columns to check (Joan Benjamin,
+  // 2026-11-19: CarePlus stayed in the guest list after it was removed).
+  const namedIds = planIdsFrom((t.match(/^Named plan set:\s*(.+)$/m) || [])[1]);
+  const current = planIdsFrom((t.match(/^Her current plan:\s*(.+)$/m) || [])[1]);
+  const added = planIdsFrom((t.match(/^Plans she added:\s*(.+)$/m) || [])[1]);
+  if (namedIds.length || added.length) {
+    const allow = planIdsFrom(current, namedIds, added);
+    const fromTool = planIdsFrom(toolIds).filter((id) => allow.some((a) => a.slice(0, 9) === id.slice(0, 9)));
+    return planIdsFrom(fromTool, allow);
+  }
+  return planIdsFrom(toolIds, askText);
 }
 
 function cacheKey({ doctorName, npi, zip, year, planId }) {
