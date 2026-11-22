@@ -51,7 +51,7 @@ test('Excel/PDF: a timed-out doctor and med say "Timed out — re-check", never 
   const model = exp.buildComparisonModel({ ...payload, clientName: 'Client X', keepPlanOrder: true });
   const rowOf = (name) => model.aoa.find((r) => String(r[0] || '').toLowerCase().startsWith(name));
   assert.deepEqual(rowOf('losartan').slice(1), ['Timed out — re-check', 'Timed out — re-check']);
-  assert.ok(rowOf('ezetimibe').slice(1).every((c) => /Tier 1/.test(c)));
+  assert.ok(rowOf('ezetimibe').slice(1).every((c) => /T1/.test(c)));
   const doctorRow = rowOf('dr. ana diaz') || rowOf('ana diaz');
   assert.ok(doctorRow, model.aoa.map((r) => r[0]).join(' | '));
   assert.deepEqual(doctorRow.slice(1), ['Timed out — re-check', 'Timed out — re-check']);

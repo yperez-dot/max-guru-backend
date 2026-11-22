@@ -186,7 +186,8 @@ test('export doctor rows: saved name / NPI / role, never "( )"; cells = the late
     providerLookups: [{ requestedName: 'Dr. Nathan Hirsch Gynecologist ( )', doctorName: 'Nathan Hirsch Gynecologist ( )', networks: [] }],
   });
   const labels = payload.doctors.map((d) => E.doctorExportLabel(d));
-  assert.ok(labels.includes('Dr. Nathan Hirsch — Gynecologist · NPI 1720196454'), labels.join('\n'));
+  assert.ok(labels.includes('Dr. Nathan Hirsch — Gynecologist'), labels.join('\n'));
+  for (const l of labels) assert.doesNotMatch(l, /\bNPI\s*\d{10}\b/);
   for (const l of labels) assert.doesNotMatch(l, /\(\s*\)|Gynecologist \(|PCP \(/);
   const row = (n) => payload.doctors.find((d) => d.name.includes(n));
   assert.deepEqual(row('Case-Diaz').statuses, ['In network', 'In network', 'In network']);

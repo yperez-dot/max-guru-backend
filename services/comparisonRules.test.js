@@ -249,7 +249,7 @@ describe('agent follow-ups (2026-10-06 replay: carriers by name, numbered answer
     const table = n.gridTable(sel.doctors, sel.columns);
     // Doctors HealthCare shows both core plans (DrMax-Dade + DrSelect-SFL), then Solis, then Devoted.
     assert.match(table, /\| Cesar A Conde [^\n]*\| ❔ not confirmed \| ❔ not confirmed \| ❔ not confirmed \| ❔ not confirmed \|/);
-    assert.match(table, /\| Dileep Rajhavendra Yavagal [^|]*\| [^|]*\| [^|]*\| [^|]*\| ✅ In \|/, 'Devoted single network counts once confirmed');
+    assert.match(table, /\| Dileep Rajhavendra Yavagal [^|]*\| [^|]*\| [^|]*\| [^|]*\| ❔ not confirmed \|/, 'Devoted carrier hit is not plan In without a plan listing');
   });
 
   it('newest ask wins: plan IDs after a carrier ask switch back to the named plans', () => {
@@ -431,7 +431,7 @@ describe('stray words after "Meds:" and OTC vitamins (Paula Harris, 2026-10-13)'
       'H1036-065C': { verified: true, coverage: 'not_covered' },
     } };
     const t = n.medsTable([d], plans, ['metformin']);
-    assert.match(t, /\| Vitamin D[^|]*\| T2 \$0[^|\n]*\| Not on this plan's formulary · OTC vitamin/);
+    assert.match(t, /\| Vitamin D[^|]*\| T2 \$0[^|\n]*\| Not on this plan's formulary — OTC vitamin/);
     assert.doesNotMatch(t, /not covered/);
     assert.match(t, /\| metformin \| ❔ unchecked/i);
   });

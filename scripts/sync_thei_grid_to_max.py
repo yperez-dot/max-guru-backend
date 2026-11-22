@@ -113,6 +113,7 @@ LABEL_MAP = {
     "ssbci chronic conditions": "ssbciChronicConditions",
     "custodial care": "custodialCare",
     "other": "other",
+    "chiropractic": "chiropractic",
     "msp levels": "mspLevels",
     "deductible": "planDeductible",
     "plan deductible": "planDeductible",

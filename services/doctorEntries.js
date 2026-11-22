@@ -43,16 +43,17 @@ function isDoctorMetadata(segment) {
 }
 
 function splitTopLevel(text, seps) {
+  const protectedText = String(text || '').replace(/,\s*(?:inc|llc|l\.l\.c|pllc|pa|p\.a\.|md|m\.d\.|od|pc|p\.c\.|llp|ltd)\b\.?/gi, (m) => m.replace(/,/g, '\u201A'));
   const out = [];
   let depth = 0, cur = '';
-  for (const ch of String(text || '')) {
+  for (const ch of protectedText) {
     if (ch === '(') depth++;
     if (ch === ')') depth = Math.max(0, depth - 1);
     if (!depth && seps.includes(ch)) { out.push(cur); cur = ''; continue; }
     cur += ch;
   }
   out.push(cur);
-  return out.map((s) => s.trim()).filter(Boolean);
+  return out.map((s) => s.replace(/\u201A/g, ',').trim()).filter(Boolean);
 }
 
 function attachMeta(entry, seg) {

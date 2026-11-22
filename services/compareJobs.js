@@ -37,14 +37,20 @@ const PLAN_ID_RE = /\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
 
 // ─── parse ──────────────────────────────────────────────────────────────────
 
+const LEGAL_SUFFIX_RE = /,\s*(?:inc|llc|l\.l\.c|pllc|pa|p\.a\.|md|m\.d\.|od|d\.o\.|pc|p\.c\.|llp|ltd)\b\.?/i;
+
 function splitList(text) {
-  return String(text || '')
+  const raw = String(text || '');
+  // Never split "Cepero Eyecare Center, Inc" on the comma before Inc/LLC/PA/MD/OD.
+  const protectedText = raw.replace(LEGAL_SUFFIX_RE, (m) => m.replace(/,/g, '\u201A'));
+  return protectedText
     .split(/\n|,|;|\band\b(?=\s+[A-Z])|\s&\s|\sy\s/i)
     .map((s) => stripListConnectors(String(s || '')
+      .replace(/\u201A/g, ',')
       .replace(/^[\s\-•*]+/, '')
       .replace(/^\d+[.)]\s+/, '')
       .replace(/^\d{1,2}\s+(?!(?:HR|HRS|HOURS?|ER|XR|CR|SR|LA)\b)/i, '')))
-    .filter((s) => s && s.length > 1);
+    .filter((s) => s && s.length > 1 && !/^(?:inc|llc|pa|md|od|pc|llp|ltd)\.?$/i.test(s));
 }
 
 function section(text, label, stops) {

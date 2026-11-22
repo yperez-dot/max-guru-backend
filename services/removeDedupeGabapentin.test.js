@@ -110,8 +110,8 @@ test('gabapentin, no strength: same tier on every answered strength shows the ti
   const table = N.medsTable([gaba({ 'H5420-001': row(2), 'H4140-022': row(1) })], PLANS);
   const line = table.split('\n').find((l) => /Gabapentin/.test(l));
   // Just tier · cost — no "cost same across strengths" note (Yahoska, 2026-10-17).
-  assert.match(line, /\| T2 \$0( · PA\/QL \?)? \|/);
-  assert.match(line, /\| T1 \$0( · PA\/QL \?)? \|/);
+  assert.match(line, /\| T2 \$0( PA\/QL \?)? \|/);
+  assert.match(line, /\| T1 \$0( PA\/QL \?)? \|/);
   assert.doesNotMatch(line, /same across strengths/);
   assert.doesNotMatch(line, /check Medicare\.gov|strength not confirmed|doesn.t exist/i);
 });
@@ -127,6 +127,6 @@ test('gabapentin, no strength: tiers that really differ still ask to confirm the
 test('every strength answered the same: the plain row is just tier · cost (no note)', () => {
   const row = { verified: true, coverage: 'covered', tier: 1, costShare: '$0', source: 'medicare_gov', sameAcrossStrengths: true };
   const line = N.medsTable([gaba({ 'H5420-001': row, 'H4140-022': row })], PLANS).split('\n').find((l) => /Gabapentin/.test(l));
-  assert.match(line, /\| T1 \$0( · PA\/QL \?)? \|/);
+  assert.match(line, /\| T1 \$0( PA\/QL \?)? \|/);
   assert.doesNotMatch(line, /same across strengths/);
 });

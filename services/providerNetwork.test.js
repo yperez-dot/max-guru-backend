@@ -276,7 +276,7 @@ describe('named plans become the columns', () => {
     const doc = { requestedName: 'Howard Bush', doctorName: 'HOWARD BUSH M.D.', status: 'done', carriersIn: ['Devoted Health', 'Aetna Medicare', 'UnitedHealthcare'], inNetworkPlans: ['AARP Medicare Advantage from UHC FL-0031 (Regional PPO) (R0759-001)'], outOfNetworkPlans: ['Humana Gold Plus (H1036-065C)'] };
     const text = n.fallbackAnswer([doc], ask);
     assert.match(text, /\| Doctor \| Humana Gold Plus · H1036-065C \| Aetna Medicare Select · H1609-018 \| Devoted C-SNP Enhanced · H1290-073 \|/);
-    assert.match(text, /\| Howard Bush \| ❌ Not in network \(not listed\) \| ✅ In\* \| ✅ In \|/);
+    assert.match(text, /\| Howard Bush \| ❌ Not in network \(not listed\) \| ❔ not confirmed \| ❔ not confirmed \|/);
     assert.doesNotMatch(text, /R0759|H5420-014 ·|To narrow/);
   });
 });
@@ -295,7 +295,7 @@ describe('follow-up plan edits + Devoted single network', () => {
   it('a Devoted directory hit is ✅ In for the Devoted plan (one network for all plans)', () => {
     const doc = { requestedName: 'Howard Bush', status: 'done', carriersIn: ['Devoted Health'], inNetworkPlans: [], outOfNetworkPlans: [] };
     // No Aetna lookup ran for this doctor (no Aetna network entry) → ❔ unchecked, not "not confirmed".
-    assert.match(n.fallbackAnswer([doc], first), /\| Howard Bush \| ❔ not confirmed \| ❔ unchecked \| ✅ In \|/);
+    assert.match(n.fallbackAnswer([doc], first), /\| Howard Bush \| ❔ unchecked \| ❔ unchecked \| ❔ not confirmed \|/);
   });
 });
 

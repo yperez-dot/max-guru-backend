@@ -65,7 +65,7 @@ test('live results: Case-Diaz/Martinez In on H1045-001, Golomb In on Aetna + Hum
   assert.equal(cell('Case-Diaz', 0), '✅ In');
   assert.equal(cell('Case-Diaz', 1), '✅ In');
   assert.equal(cell('Martinez', 0), '✅ In');
-  assert.match(cell('Martinez', 1), /✅ In/); // carrier-level In* never downgraded
+  assert.equal(cell('Martinez', 1), '❔ not confirmed'); // Aetna carrier hit without this plan listed is not In*
   assert.equal(cell('Golomb', 0), '❌ Not in network (not listed)');
   assert.equal(cell('Golomb', 1), '✅ In');
   assert.equal(cell('Golomb', 2), '✅ In');

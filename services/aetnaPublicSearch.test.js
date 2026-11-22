@@ -33,6 +33,8 @@ describe('aetnaPublicSearch helpers', () => {
     assert.equal(isInNetworkStatus('In Network'), true);
     assert.equal(isInNetworkStatus('INN'), true);
     assert.equal(isInNetworkStatus('OON'), false);
+    assert.equal(isInNetworkStatus('Out-of-network at this location'), false);
+    assert.equal(isInNetworkStatus('Out of network'), false);
   });
 
   it('keeps Aetna plan_name which already has the CMS id', () => {

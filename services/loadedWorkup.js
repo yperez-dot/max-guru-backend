@@ -262,9 +262,18 @@ function isPlanEditLine(line) {
 }
 
 /** "remove healthsun and humana from comparison" is a set edit, not "check another carrier". */
+function isDoctorLikeRemoval(text) {
+  const t = String(text || '');
+  if (/\b[HR]\d{4}-\d{3}/i.test(t)) return false;
+  return /\bnpi\s*#?:?\s*\d{10}\b/i.test(t)
+    || /\b(?:pharmacist|pharmacy)\b/i.test(t)
+    || /\b(?:dr|dra|doctor|doctora)\.?\s+[A-Z]/i.test(t);
+}
+
 function isComparisonRemoval(text) {
   const t = String(text || '');
   if (!/\b(?:remove|drop|take out|delete|no more|get rid of|exclude|excluding)\b/i.test(t)) return false;
+  if (isDoctorLikeRemoval(t)) return false;
   if (/\b(?:add|include|instead|swap|replace)\b/i.test(t) && /\b(?:add|include|swap|replace)\b/i.test(t)) return false;
   if (R.wantsOtherCarrier(t)) return false;
   return /\b(?:from|off)\s+(?:the\s+|her\s+|this\s+)?(?:comparison|table|grid|columns?|comp)\b/i.test(t)
@@ -453,6 +462,43 @@ function planRemovals(text, plans, currentIds = [], opts = {}) {
   out.remove = [...new Set(out.remove)];
   return out;
 }
+/** Drop only the named plan IDs. Returns a new list; never mutates. */
+function removeNamedPlans(plans, removeIds) {
+  const gone = new Set((removeIds || []).map((id) => String(id || '').toUpperCase().slice(0, 9)).filter(Boolean));
+  return (plans || []).filter((p) => {
+    const id = String((p && (p.planId || p.id)) || p || '').toUpperCase().slice(0, 9);
+    return id && !gone.has(id);
+  });
+}
+
+function keepPlanColumns(result, remainingIds) {
+  const keep = new Set((remainingIds || []).map((id) => String(id || '').toUpperCase().slice(0, 9)).filter(Boolean));
+  if (!result || typeof result !== 'object' || !keep.size) return result;
+  const clipMap = (map) => {
+    const out = {};
+    Object.keys(map || {}).forEach((k) => {
+      if (keep.has(String(k).toUpperCase().slice(0, 9))) out[k] = map[k];
+    });
+    return out;
+  };
+  const out = { ...result };
+  if (Array.isArray(out.columns)) out.columns = out.columns.filter((c) => keep.has(String(c.planId || '').toUpperCase().slice(0, 9)));
+  if (Array.isArray(out.ranked)) out.ranked = out.ranked.filter((c) => keep.has(String(c.planId || '').toUpperCase().slice(0, 9)));
+  if (Array.isArray(out.doctors)) {
+    out.doctors = out.doctors.map((d) => (d && d.byPlanId ? { ...d, byPlanId: clipMap(d.byPlanId) } : d));
+  }
+  if (Array.isArray(out.drugs)) {
+    out.drugs = out.drugs.map((d) => {
+      if (!d) return d;
+      const next = { ...d };
+      if (d.byPlanId) next.byPlanId = clipMap(d.byPlanId);
+      if (d.screen) next.screen = clipMap(d.screen);
+      return next;
+    });
+  }
+  return out;
+}
+
 function joinEnglishList(items) {
   const list = (items || []).filter(Boolean);
   if (list.length <= 1) return list[0] || '';
@@ -473,13 +519,23 @@ function planRemovalLines(rm, plans = []) {
       ? `Did you mean remove ${label(c.plans[0])}? (yes/no)`
       : `"${c.target}" could be ${c.plans.map(label).join(' or ')} — which one should I remove?`);
   }
-  if ((rm.unmatched || []).length) {
+  if ((rm.unmatched || []).length && !(rm.remove || []).length && !(rm.confirm || []).length) {
     const u = joinEnglishList((rm.unmatched || []).map((x) => `"${x}"`));
-    bits.push((rm.remove || []).length
-      ? `Couldn't match ${u}.`
-      : `Couldn't find ${u} in the table${plans.length ? ` (${plans.map((p) => p.planId).join(', ')})` : ''} — nothing removed.`);
+    bits.push(`Couldn't find ${u} in the table${plans.length ? ` (${plans.map((p) => p.planId).join(', ')})` : ''} — nothing removed.`);
+  } else if ((rm.unmatched || []).length && (rm.remove || []).length) {
+    const u = joinEnglishList((rm.unmatched || []).map((x) => `"${x}"`));
+    bits.push(`Couldn't match ${u}.`);
   }
   return bits.length ? [bits.join(' ')] : [];
+}
+
+/** One result for a doctor-row removal (never also a plan unmatched line). */
+function doctorRemovalLines(removed, unmatched) {
+  if ((removed || []).length) return [`${joinEnglishList(removed)} is removed.`];
+  if ((unmatched || []).length) {
+    return [`Couldn't find ${joinEnglishList(unmatched.map((x) => `"${x}"`))} — nothing removed.`];
+  }
+  return [];
 }
 
 function removePlansNamedIn(current, line, currentIds) {
@@ -606,11 +662,20 @@ function looseSameDoctor(known, said) {
 // stays; the "since … already on the list" part is not a removal.
 const DOCTOR_REMOVE_RE = /\b(?:remove|delete|drop|take\s+out|get\s+rid\s+of|take\s+off)\s+([^.;\n]+)/gi;
 
+function stripRemovalSuffix(s) {
+  return String(s || '')
+    .replace(/\s*[·•|]\s*(?:pharmacist|pharmacy|md|do|np|aprn|pa|pcp|npi)\b.*$/i, '')
+    .replace(/\s*\([^)]*dba[^)]*\)\s*$/i, '')
+    .replace(/\s+npi\s*#?:?\s*\d{10}\s*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function doctorRemovalClauses(text) {
   const out = [];
   // "Dr." is not a sentence end.
   for (const m of String(text || '').replace(/\b(dr|dra|mr|mrs|ms|st)\./gi, '$1 ').matchAll(DOCTOR_REMOVE_RE)) {
-    const clause = m[1].split(/\b(?:since|because|as\s+(?:they|she|he|both)|keep|but|they(?:'re| are)|already)\b/i)[0];
+    const clause = stripRemovalSuffix(m[1].split(/\b(?:since|because|as\s+(?:they|she|he|both)|keep|but|they(?:'re| are)|already)\b/i)[0]);
     // A plan removal ("drop H1290-073", "remove devoted") is not a doctor removal.
     if (/\b[HR]\d{4}-\d{3}/i.test(clause) && !/\b(?:dr|dra|doctor)\b\.?/i.test(clause)) continue;
     // "Remove Dr. A, Dr. B and both C rows": list parts. "…, Pascual De Santis is already on the list" is a statement
@@ -1009,6 +1074,8 @@ function resolveWorkupSets(messages) {
 module.exports = {
   planRemovals,
   planRemovalLines,
+  removeNamedPlans,
+  keepPlanColumns,
   splitRemovalTargets,
   isComparisonRemoval,
   messageText,
@@ -1016,7 +1083,7 @@ module.exports = {
   workupFacts, workupCarrierEditSet, workupPlanAddSet, replacePlanPairs, lastTablePlanIds, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,
   NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, PRONOUN_TARGET_RE, KEEPS_CURRENT_RE, lineKeepsCurrentPlan, droppedIdsIn, removePlansNamedIn, OFF_GRID_RE, DROPS_CURRENT_RE, currentPlanRemovedBy, planLineVerdict, currentPlanFirst,
   // doctors
-  respelledDoctors, looseSameDoctor, fuzzySameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords,
+  respelledDoctors, looseSameDoctor, fuzzySameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, doctorRemovalLines, stripRemovalSuffix, isDoctorLikeRemoval, NAME_TAIL_RE, SPECIALTY_RE, rawWords,
   doctorCoreWords, specialtyWords, removedByClauses, sameCoreDoctor, RESOLVED_DOCTOR, dedupeDoctorRows, DUPLICATE_Q_RE,
   duplicateQuestions, confirmedDuplicateRemovals,
   // meds

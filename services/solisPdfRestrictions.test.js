@@ -69,9 +69,9 @@ async function price(drugName) {
 }
 const cell = (r) => N.medsTable([r], [{ planId: PLAN, name: 'Solis Healthy Living' }], { showQl: true }).split('\n')[2].split(' | ').slice(1).join(' | ').replace(/ \|$/, '');
 
-test('esomeprazole magnesium DR capsule 20/40 mg: T2 · QL 30/30 (medicare.gov tier, PDF restrictions)', async () => {
+test('esomeprazole magnesium DR capsule 20/40 mg: T2 QL 30/30 (medicare.gov tier, PDF restrictions)', async () => {
   const r = await price('esomeprazole');
-  assert.equal(cell(r), 'T2 $0 · QL 30/30');
+  assert.equal(cell(r), 'T2 $0 QL 30/30');
   assert.equal(r.byPlanId[PLAN].source, 'medicare_gov');
   for (const p of ['esomeprazole 20 MG Delayed Release Oral Capsule', 'esomeprazole 40 MG Delayed Release Oral Capsule']) {
     const s = S.solisRestrictions({ productName: p }, PLAN, 2027);
@@ -79,9 +79,9 @@ test('esomeprazole magnesium DR capsule 20/40 mg: T2 · QL 30/30 (medicare.gov t
   }
 });
 
-test('rosuvastatin: typed 10 mg → T1 · QL 45/30; no strength → split by QL', async () => {
-  assert.equal(cell(await price('rosuvastatin 10 mg')), 'T1 $0 · QL 45/30');
-  assert.equal(cell(await price('rosuvastatin')), '5/10/20 mg: T1 $0 · QL 45/30 ‖ 40 mg: T1 $0 · QL 30/30');
+test('rosuvastatin: typed 10 mg → T1 QL 45/30; no strength → split by QL', async () => {
+  assert.equal(cell(await price('rosuvastatin 10 mg')), 'T1 $0 QL 45/30');
+  assert.equal(cell(await price('rosuvastatin')), '5/10/20 mg: T1 $0 QL 45/30 ‖ 40 mg: T1 $0 QL 30/30');
 });
 
 function solisCell(drugName, variants, showQl) {
@@ -107,7 +107,7 @@ test('plain amlodipine: concise T1 $0; QL toggle does not leak combos or change 
 test('rosuvastatin default is concise T1 $0; QL details only when requested', () => {
   const vars = S.solisStrengthVariants('rosuvastatin', PLAN, 2027);
   assert.equal(solisCell('rosuvastatin', vars, false), 'T1 $0');
-  assert.equal(solisCell('rosuvastatin', vars, true), '5/10/20 mg: T1 $0 · QL 45/30 ‖ 40 mg: T1 $0 · QL 30/30');
+  assert.equal(solisCell('rosuvastatin', vars, true), '5/10/20 mg: T1 $0 QL 45/30 ‖ 40 mg: T1 $0 QL 30/30');
 });
 
 test('amlodipine chat cell and Excel/PDF screen stay in parity', () => {
@@ -132,17 +132,17 @@ test('amlodipine chat cell and Excel/PDF screen stay in parity', () => {
   assert.doesNotMatch(screen, /160|320|10\/10\/10/);
 });
 
-test('acyclovir tablet 400/800 mg: T2 · no PA/QL (known, no marker)', async () => {
+test('acyclovir tablet 400/800 mg: T2 no PA/QL (known, no marker)', async () => {
   const r = await price('acyclovir tablets');
   assert.equal(cell(r), 'T2 $0');
   assert.equal(r.byPlanId[PLAN].restrictionsKnown, true);
   assert.equal(S.solisRestrictions({ productName: 'acyclovir 800 MG Oral Tablet' }, PLAN, 2027).pdfTier, 2);
 });
 
-test('acyclovir ointment 5%: medicare.gov cannot confirm → PDF row: T4 · PA · QL 30 grams/30 days', async () => {
+test('acyclovir ointment 5%: medicare.gov cannot confirm → PDF row: T4 PA QL 30 grams/30 days', async () => {
   const r = await price('acyclovir ointment');
   const row = r.byPlanId[PLAN];
-  assert.equal(cell(r), 'T4 40% · PA · QL 30/30');
+  assert.equal(cell(r), 'T4 40% PA QL 30/30');
   assert.match(row.source, /^Solis 2027 Comprehensive Formulary PDF/);
   assert.equal(row.restrictionRow, 'acyclovir oint 5%');
   // Never an oral row for an ointment ask, and RxNorm's "0.05 MG/MG" is the book's 5%.
@@ -152,8 +152,8 @@ test('acyclovir ointment 5%: medicare.gov cannot confirm → PDF row: T4 · PA �
 test('trazodone and tadalafil: unchanged', async () => {
   assert.equal(cell(await price('trazodone')), '50/100/150 mg: T1 $0 ‖ 300 mg: T3 $15');
   assert.equal(cell(await price('tadalafil')),
-    '2.5/5 mg: T4 40% · PA (verify indication) · QL 30/30 ‖ 10/20 mg: T6 $0 · QL 8/30 · supplemental ‖ 20 mg (PAH): T4 40% · PA · QL 60/30');
-  assert.equal(cell(await price('tadalafil 10 mg')), 'Covered — supplemental benefit (excluded drug; not counted toward Part D OOP max) · T6 $0 · QL 8/30');
+    '2.5/5 mg: T4 40% PA (verify indication) QL 30/30 ‖ 10/20 mg: T6 $0 QL 8/30 supplemental ‖ 20 mg (PAH): T4 40% PA QL 60/30');
+  assert.equal(cell(await price('tadalafil 10 mg')), 'Covered — supplemental benefit (excluded drug; not counted toward Part D OOP max) T6 $0 QL 8/30');
 });
 
 test('no matching row: no answer from the book ("PA/QL ?" stays)', () => {
