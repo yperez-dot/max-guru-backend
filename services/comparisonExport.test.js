@@ -67,6 +67,10 @@ describe('Arias comparison export labels', () => {
       'Grocery Card',
       'Acupuncture',
       'Fitness',
+      'Chiropractic',
+      'Other',
+      'Medical Deductible',
+      'SSBCI Chronic Conditions',
     ]);
   });
 });
@@ -249,7 +253,10 @@ describe('Arias-like sheet model from live plan-data', () => {
     assert.ok(labels.indexOf('Doctors') < labels.indexOf('Premium'), 'doctors before benefits');
     assert.ok(labels.indexOf('Part B Rebate') < labels.indexOf('Referrals Needed?'));
     assert.equal(labels.includes('Chronic Conditions'), false);
-    assert.equal(labels.includes('Other'), false);
+    assert.equal(labels.includes('Other'), true);
+    assert.equal(labels.includes('Chiropractic'), true);
+    assert.equal(labels.includes('Medical Deductible'), true);
+    assert.equal(labels.includes('SSBCI Chronic Conditions'), true);
     assert.equal(labels.includes('MSP Levels'), true, 'D-SNP comparison keeps MSP Levels');
     const msp = model.aoa.find((row) => row[0] === 'MSP Levels');
     assert.ok(msp.slice(1).some((c) => c && c !== 'Not listed'));
@@ -336,10 +343,10 @@ Meds from Daisy: Lorazepam T2, Trintellix T4, Atorvastatin Tier 1.
     assert.ok(daisyLabels.indexOf('Medications') < daisyLabels.indexOf('Premium'));
     const trin = model.aoa.find((row) => row[0] === 'Trintellix');
     assert.ok(trin);
-    assert.deepEqual(trin.slice(1), ['Unverified', 'Unverified']);
+    assert.deepEqual(trin.slice(1), ['Confirm', 'Confirm']);
     assert.equal(trin.includes('Tier 4'), false);
     const lor = model.aoa.find((row) => row[0] === 'Lorazepam');
-    assert.deepEqual(lor.slice(1), ['Unverified', 'Unverified']);
+    assert.deepEqual(lor.slice(1), ['Confirm', 'Confirm']);
     const payloadDrug = payload.drugs.find((d) => d.name === 'Trintellix');
     assert.equal(payloadDrug.claimedTier, undefined);
   });
@@ -355,11 +362,11 @@ FORMULARY_LOOKUP year=2027 drug=Atorvastatin plan=H1036-054C verified=no reason=
     const payload = exp.buildExportPayload(plans, thread, {});
     const model = exp.buildComparisonModel(payload);
     const trin = model.aoa.find((row) => row[0] === 'Trintellix');
-    assert.match(trin[1], /Tier 5/);
+    assert.match(trin[1], /T5/);
     assert.match(trin[1], /33%/);
-    assert.match(trin[2], /Tier 3/);
+    assert.match(trin[2], /T3/);
     const atp = model.aoa.find((row) => row[0] === 'Atorvastatin');
-    assert.deepEqual(atp.slice(1), ['Unverified', 'Unverified']);
+    assert.deepEqual(atp.slice(1), ['Confirm', 'Confirm']);
   });
 
   it('uses structured extras.drugs lookup tiers and drops claimedTier', () => {
@@ -380,8 +387,8 @@ FORMULARY_LOOKUP year=2027 drug=Atorvastatin plan=H1036-054C verified=no reason=
     assert.equal(trin.byPlanId['H1036-054C'].tier, 5);
     const model = exp.buildComparisonModel(payload);
     const row = model.aoa.find((r) => r[0] === 'Trintellix');
-    assert.match(row[1], /Tier 5/);
-    assert.equal(row[2], 'Unverified');
+    assert.match(row[1], /T5/);
+    assert.equal(row[2], 'Confirm');
     assert.equal(row[1].includes('Tier 4'), false);
   });
 });
@@ -843,7 +850,7 @@ describe('auto-suggest generic when brand is not covered', () => {
     const lipRow = model.aoa.find((row) => row[0] === 'Lipitor*');
     assert.deepEqual(lipRow.slice(1), ['Not covered', 'Not covered', 'Not covered']);
     const atvRow = model.aoa.find((row) => row[0] === 'Atorvastatin (generic)');
-    assert.deepEqual(atvRow.slice(1), ['Unverified', 'Unverified', 'Unverified']);
+    assert.deepEqual(atvRow.slice(1), ['Confirm', 'Confirm', 'Confirm']);
     assert.equal(atvRow.includes('Tier 1'), false);
   });
 
@@ -875,9 +882,9 @@ describe('auto-suggest generic when brand is not covered', () => {
     assert.equal(atv.length, 1);
     const model = exp.buildComparisonModel(payload);
     const atvRow = model.aoa.find((row) => row[0] === 'Atorvastatin (generic)');
-    assert.match(atvRow[1], /Tier 1/);
+    assert.match(atvRow[1], /T1/);
     assert.match(atvRow[1], /\$0/);
-    assert.match(atvRow[3], /Tier 2/);
+    assert.match(atvRow[3], /T2/);
     assert.equal(atvRow[1].includes('Tier 4'), false);
   });
 
@@ -897,7 +904,7 @@ describe('auto-suggest generic when brand is not covered', () => {
     );
     const model = exp.buildComparisonModel(payload);
     const lipRow = model.aoa.find((row) => /Lipitor/i.test(row[0]));
-    assert.deepEqual(lipRow.slice(1), ['Unverified', 'Unverified', 'Unverified']);
+    assert.deepEqual(lipRow.slice(1), ['Confirm', 'Confirm', 'Confirm']);
   });
 
   it('pulls the generic from FORMULARY_LOOKUP not_covered lines in the thread', () => {
@@ -913,8 +920,8 @@ FORMULARY_LOOKUP year=2027 drug=Atorvastatin plan=H4140-023 verified_tier=1 cost
     const lip = model.aoa.find((row) => row[0] === 'Lipitor*');
     assert.deepEqual(lip.slice(1), ['Not covered', 'Not covered']);
     const atv = model.aoa.find((row) => row[0] === 'Atorvastatin (generic)');
-    assert.match(atv[1], /Tier 1/);
-    assert.match(atv[2], /Tier 1/);
+    assert.match(atv[1], /T1/);
+    assert.match(atv[2], /T1/);
   });
 });
 
@@ -1029,28 +1036,28 @@ describe('Muskat 2027 locked export', () => {
     const lipitor = model.aoa.find((row) => row[0] === 'Lipitor*');
     assert.deepEqual(lipitor.slice(1), ['Not covered', 'Not covered', 'Not covered']);
     const atv = model.aoa.find((row) => row[0] === 'Atorvastatin (generic)');
-    assert.ok(atv.slice(1).every((c) => /Tier 1/.test(c) && /\$0/.test(c)));
+    assert.ok(atv.slice(1).every((c) => /T1/.test(c) && /\$0/.test(c)));
     const benicar = model.aoa.find((row) => row[0] === 'Benicar*');
     assert.deepEqual(benicar.slice(1), ['Not covered', 'Not covered', 'Not covered']);
     const olm = model.aoa.find((row) => row[0] === 'Olmesartan (generic)');
-    assert.ok(olm.slice(1).every((c) => /Tier 1/.test(c) && /\$0/.test(c)));
+    assert.ok(olm.slice(1).every((c) => /T1/.test(c) && /\$0/.test(c)));
     const lor = model.aoa.find((row) => row[0] === 'Lorazepam');
-    assert.match(lor[1], /Tier 4/);
+    assert.match(lor[1], /T4/);
     assert.match(lor[1], /40%/);
-    assert.match(lor[2], /Tier 1/);
-    assert.match(lor[3], /Tier 2/);
+    assert.match(lor[2], /T1/);
+    assert.match(lor[3], /T2/);
     const gab = model.aoa.find((row) => row[0] === 'Gabapentin');
-    assert.match(gab[1], /Tier 2/);
-    assert.match(gab[2], /Tier 1/);
-    assert.match(gab[3], /Tier 2/);
+    assert.match(gab[1], /T2/);
+    assert.match(gab[2], /T1/);
+    assert.match(gab[3], /T2/);
     const trin = model.aoa.find((row) => row[0] === 'Trintellix');
-    assert.match(trin[1], /Tier 4/);
+    assert.match(trin[1], /T4/);
     assert.match(trin[1], /40%/);
-    assert.match(trin[2], /Tier 4/);
+    assert.match(trin[2], /T4/);
     assert.match(trin[2], /\$55/);
-    assert.match(trin[3], /Tier 3/);
+    assert.match(trin[3], /T3/);
     const mem = model.aoa.find((row) => row[0] === 'Memantine');
-    assert.ok(mem.slice(1).every((c) => /Tier 2/.test(c) && /\$0/.test(c)));
+    assert.ok(mem.slice(1).every((c) => /T2/.test(c) && /\$0/.test(c)));
 
     const prem = model.aoa.find((row) => row[0] === 'Premium');
     assert.equal(prem[1], '$0');
@@ -1119,7 +1126,7 @@ FORMULARY_LOOKUP year=2027 drug=Trintellix plan=H5420-001 verified_tier=3 cost_s
     const otc = model.aoa.find((row) => row[0] === 'OTC');
     assert.match(otc[3], /\$25/);
     const trin = model.aoa.find((row) => row[0] === 'Trintellix');
-    assert.match(trin[3], /Tier 3/);
+    assert.match(trin[3], /T3/);
     assert.match(trin[3], /\$25/);
     assert.equal(/\$0/.test(trin[3]), false);
   });
@@ -1245,15 +1252,15 @@ FORMULARY_LOOKUP year=2027 drug=Memantine plan=H5420-001 verified_tier=2 cost_sh
     assert.ok(names.includes('Benicar*'));
     assert.ok(names.includes('Olmesartan (generic)'));
     const trin = model.aoa.find((row) => row[0] === 'Trintellix');
-    assert.match(trin[3], /Tier 3/);
+    assert.match(trin[3], /T3/);
     assert.match(trin[3], /\$25/);
-    assert.equal(trin.slice(1).some((c) => c === 'Unverified'), false);
+    assert.equal(trin.slice(1).some((c) => c === 'Confirm'), false);
     const lor = model.aoa.find((row) => row[0] === 'Lorazepam');
-    assert.match(lor[1], /Tier 4/);
+    assert.match(lor[1], /T4/);
     const gab = model.aoa.find((row) => row[0] === 'Gabapentin');
-    assert.match(gab[2], /Tier 1/);
+    assert.match(gab[2], /T1/);
     const mem = model.aoa.find((row) => row[0] === 'Memantine');
-    assert.match(mem[3], /Tier 2/);
+    assert.match(mem[3], /T2/);
   });
 
   it('collapses an 8-column live payload to one column per contract-PBP and keeps doctors + Rx', () => {
@@ -1302,9 +1309,9 @@ FORMULARY_LOOKUP year=2027 drug=Lorazepam plan=H1036-054C verified_tier=4 cost_s
     assert.ok(labels.includes('Lipitor*'));
     assert.ok(labels.includes('Atorvastatin (generic)'));
     const trin = model.aoa.find((row) => row[0] === 'Trintellix');
-    assert.match(trin[3], /Tier 3/);
+    assert.match(trin[3], /T3/);
     assert.match(trin[3], /\$25/);
-    assert.equal(trin.slice(1).every((c) => c !== 'Unverified'), true);
+    assert.equal(trin.slice(1).every((c) => c !== 'Confirm'), true);
   });
 
   it('dedupes legal-name and short-name doctor rows and keeps Margolesky + Miami Neurology', () => {
@@ -1463,9 +1470,9 @@ FORMULARY_LOOKUP year=2027 drug=Trintellix plan=H5420-001 verified_tier=3 cost_s
     const lip = model.aoa.find((r) => r[0] === 'Lipitor*');
     assert.deepEqual(lip.slice(1), ['Not covered', 'Not covered', 'Not covered']);
     const atv = model.aoa.find((r) => r[0] === 'Atorvastatin (generic)');
-    assert.ok(atv.slice(1).every((c) => /Tier 1/.test(c) && /\$0/.test(c)));
+    assert.ok(atv.slice(1).every((c) => /T1/.test(c) && /\$0/.test(c)));
     const trin = model.aoa.find((r) => r[0] === 'Trintellix');
-    assert.match(trin[3], /Tier 3/);
+    assert.match(trin[3], /T3/);
     assert.match(trin[3], /\$25/);
   });
 });
@@ -1790,11 +1797,11 @@ describe('Padron export cleanup', () => {
 });
 
 describe('unverified not-covered in the Excel', () => {
-  it('shows "Confirm in Sunfire", never a flat "Not covered", when Max could not verify', () => {
+  it('shows Confirm (never Tier / middot) when Max could not verify; Not covered when verified not covered', () => {
     const f = require('./formularyLookup');
     const d = f.toExportDrug({ drugName: 'Levothyroxine Sodium', notCoveredNote: 'x', byPlanId: { 'H1036-065C': { verified: true, coverage: 'not_covered' } }, lookups: [] });
     const p = exp.buildExportPayload([{ planId: 'H1036-065C', carrier: 'Humana', planName: 'Gold Plus' }, { planId: 'H1045-005', carrier: 'UHC', planName: 'Preferred MA' }], 'Compare H1036-065C, H1045-005', { drugs: [d] });
-    assert.equal(exp.formatDrugCell(p.drugs[0].byPlanId['H1036-065C'], p.plans[0]), 'Confirm in Sunfire');
+    assert.equal(exp.formatDrugCell(p.drugs[0].byPlanId['H1036-065C'], p.plans[0]), 'Not covered');
     assert.equal(exp.formatDrugCell({ verified: true, coverage: 'not_covered' }, p.plans[0]), 'Not covered');
   });
 });
@@ -1812,12 +1819,12 @@ describe('export matches the chat table (2026-10-06 Doctors/Solis/Devoted export
     assert.deepEqual(docs[0].statuses, ['Not confirmed', 'In network']);
   });
 
-  it('a Doctors directory hit is In for DrMax-Dade only, Devoted for every plan', () => {
+  it('a Doctors directory hit is In for DrMax-Dade only; Devoted carrier hit is not In without a plan listing', () => {
     const docs = exp.doctorsFromProviderLookups([{ doctorName: 'JUAN DIEGO CEDENO', networks: [
       { carrier: 'Doctors HealthCare Plans', inNetwork: true, plans: [] },
       { carrier: 'Devoted Health', inNetwork: true },
     ] }], [drMax, drCsnp, devoted]);
-    assert.deepEqual(docs[0].statuses, ['In network', 'Not confirmed', 'In network']);
+    assert.deepEqual(docs[0].statuses, ['In network', 'Not confirmed', 'Not confirmed']);
   });
 
   it('"Krajewski" and "Eduardo Krajewski" are one row; In vs Out becomes Need more info', () => {
@@ -2073,14 +2080,14 @@ describe('chat table and export cells match (HealthSun VitalCare + Solis + Human
   it('formatDrugCell carries HRM (PA 65+) and never drops it', () => {
     assert.match(
       exp.formatDrugCell({ verified: true, coverage: 'covered', tier: 1, costShare: '$0', pa: true, hrm: true }, healthsun),
-      /Tier 1 · \$0 · PA · HRM \(PA 65\+\)/
+      /T1 \$0 PA HRM \(PA 65\+\)/
     );
   });
 
   it('formatDrugCell hides QL unless showQl is on', () => {
     const status = { verified: true, coverage: 'covered', tier: 1, costShare: '$0', pa: true, ql: true, qlText: 'QL 30/30', hrm: true };
-    assert.equal(exp.formatDrugCell(status, healthsun), 'Tier 1 · $0 · PA · HRM (PA 65+)');
-    assert.equal(exp.formatDrugCell(status, healthsun, { showQl: true }), 'Tier 1 · $0 · PA · QL 30/30 · HRM (PA 65+)');
+    assert.equal(exp.formatDrugCell(status, healthsun), 'T1 $0 PA HRM (PA 65+)');
+    assert.equal(exp.formatDrugCell(status, healthsun, { showQl: true }), 'T1 $0 PA QL 30/30 HRM (PA 65+)');
   });
 
   it('each requested med is one export row; chat prompts never become rows', () => {

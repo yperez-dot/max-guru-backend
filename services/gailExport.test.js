@@ -150,7 +150,7 @@ describe('Gail export: brand not covered reads "Not covered", generic row carrie
   it('Xanax cells say Not covered (not Confirm in Sunfire); Alprazolam (generic) has tiers', () => {
     const { drugRow } = gailExport();
     assert.deepEqual(drugRow(/^Xanax/), ['Not covered', 'Not covered', 'Not covered', 'Not covered']);
-    assert.ok(drugRow(/^Alprazolam/).every((c) => /^Tier \d/.test(c)));
+    assert.ok(drugRow(/^Alprazolam/).every((c) => /^T\d/.test(c)));
   });
 
   it('server: Xanax is a known brand now, so a not-covered result is not marked unsure', () => {

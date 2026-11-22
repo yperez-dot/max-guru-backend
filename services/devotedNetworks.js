@@ -44,18 +44,42 @@ function refId(ref) {
   return parts[parts.length - 1];
 }
 
+const KNOWN_BY_NAME = {
+  'fl hmo': FL_HMO.ref,
+  'fl hmo d-snp': FL_HMO_DSNP.ref,
+  'fl hmo dsnp': FL_HMO_DSNP.ref,
+  'fl hmo c-snp': FL_HMO_CSNP.ref,
+  'fl hmo csnp': FL_HMO_CSNP.ref,
+};
+
 /** Network Organization ids a Devoted PractitionerRole bundle links the doctor to. */
 function devotedNetworkRefs(bundle) {
   const out = new Set();
+  const orgNames = {};
+  for (const e of (bundle && bundle.entry) || []) {
+    const r = (e && e.resource) || {};
+    if (r.resourceType === 'Organization' && r.id) orgNames[r.id] = r.name || r.id;
+  }
   for (const e of (bundle && bundle.entry) || []) {
     const r = (e && e.resource) || {};
     if (r.resourceType && r.resourceType !== 'PractitionerRole') continue;
+    const roleNets = new Set();
     for (const ext of r.extension || []) {
       if (String(ext.url || '').includes('network-reference') && ext.valueReference && ext.valueReference.reference) {
-        out.add(refId(ext.valueReference.reference));
+        roleNets.add(refId(ext.valueReference.reference));
       }
     }
-    for (const n of r.network || []) if (n && n.reference) out.add(refId(n.reference));
+    for (const n of r.network || []) if (n && n.reference) roleNets.add(refId(n.reference));
+    // Same fallback as routes/providerLookup.parseNetworkNames: Devoted often puts the
+    // network on .organization when the PDex network-reference extension is missing.
+    if (!roleNets.size && r.organization && r.organization.reference) {
+      roleNets.add(refId(r.organization.reference));
+    }
+    for (const id of roleNets) {
+      out.add(id);
+      const nm = String(orgNames[id] || '').toLowerCase().replace(/\s+/g, ' ').trim();
+      if (KNOWN_BY_NAME[nm]) out.add(KNOWN_BY_NAME[nm]);
+    }
   }
   out.delete('');
   return [...out];
@@ -71,12 +95,19 @@ function planLabel(id, plan) {
  * all → Out everywhere). Returns null for years without a verified map, so callers
  * keep the carrier-level fallback instead of guessing.
  */
-function devotedPlanVerdicts(networkRefs, planYear) {
+function devotedPlanVerdicts(networkRefs, planYear, opts = {}) {
   if (!Array.isArray(networkRefs)) return null;
   if (Number(planYear) !== 2027) return null;
-  const have = new Set(networkRefs.map(refId));
+  const have = new Set(networkRefs.map(refId).filter(Boolean));
   const inPlans = [];
   const outPlans = [];
+  // Listed on Devoted (FHIR n>0) but no mapped network ref: that is not a plan-level miss.
+  // Painting every 2027 Devoted plan Out here is how a directory hit became "Not in network".
+  if (!have.size) {
+    if (opts.carrierListed) return { inPlans: [], outPlans: [], unmapped: true };
+    for (const [id, plan] of Object.entries(DEVOTED_PLANS_2027)) outPlans.push(planLabel(id, plan));
+    return { inPlans, outPlans };
+  }
   for (const [id, plan] of Object.entries(DEVOTED_PLANS_2027)) {
     (have.has(plan.network.ref) ? inPlans : outPlans).push(planLabel(id, plan));
   }

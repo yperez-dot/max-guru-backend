@@ -149,9 +149,16 @@ function npiMatches(value, npi) {
   return String(value || '') === String(npi || '');
 }
 
+function isOutOfNetworkBanner(status) {
+  const s = String(status || '').trim();
+  if (!s) return false;
+  return /out[- ]of[- ]network|\boon\b|\bnot\s+in[- ]network/i.test(s);
+}
+
 function isInNetworkStatus(status) {
   const s = String(status || '').trim();
-  return /in\s*network/i.test(s) || /^inn$/i.test(s);
+  if (isOutOfNetworkBanner(s)) return false;
+  return /(?:^|[^a-z])in[- ]?network\b/i.test(s) || /^inn$/i.test(s);
 }
 
 function formatPlanLabel(plan) {
@@ -421,10 +428,23 @@ async function queryAetnaPublic(npi, { zip = '33176', state = 'FL', lastName = '
       }
     }
 
+    const locationOon = sites.some((s) => {
+      const st = (s.specialties || []).find((x) => x.primary)?.medical_network_status
+        || (s.specialties || [])[0]?.medical_network_status
+        || '';
+      return isOutOfNetworkBanner(st);
+    });
+    const locationInn = sites.some((s) => {
+      const st = (s.specialties || []).find((x) => x.primary)?.medical_network_status
+        || (s.specialties || [])[0]?.medical_network_status
+        || '';
+      return isInNetworkStatus(st);
+    });
     return {
-      inNetwork: plans.length > 0 || sites.some((s) => isInNetworkStatus(s.specialties?.[0]?.medical_network_status)),
+      inNetwork: !locationOon && (plans.length > 0 || locationInn),
       plans,
       outOfNetworkPlans,
+      locationOon,
       year: String(year),
       matches: sites.slice(0, 3).map(formatMatch),
       directoryHit: true,
@@ -457,6 +477,7 @@ module.exports = {
   gridAetnaPlansFor,
   npiMatches,
   isInNetworkStatus,
+  isOutOfNetworkBanner,
   formatPlanLabel,
   buildTaxonomyBody,
   buildMedicareSearchBody,

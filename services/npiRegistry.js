@@ -82,6 +82,7 @@ function orgQueryVariants(name) {
   if (!raw) return [];
   const cleaned = raw.replace(/[.,/]/g, ' ').replace(/\s+/g, ' ').trim();
   const tokens = cleaned.split(' ').filter((t) => t && !ORG_STOP.has(t.toLowerCase()));
+  if (!tokens.length || tokens.join('').length < 4) return [];
   const expanded = tokens.map((t) => ORG_ABBREV[t.toLowerCase()] || t);
   const variants = new Set();
   const add = (s) => {
@@ -95,6 +96,12 @@ function orgQueryVariants(name) {
   if (expanded.length >= 3) add(expanded.slice(0, 3).join(' '));
   if (tokens.length >= 2) add(tokens.slice(0, 2).join(' '));
   return [...variants];
+}
+
+function isPharmacyRecord(r) {
+  const tax = (r?.taxonomies || []).map((t) => t.desc || t.code || '').join(' ');
+  const name = String(r?.basic?.organization_name || displayName(r) || '');
+  return /pharmac/i.test(tax) || /\bpharmacy\b/i.test(name);
 }
 
 function displayName(result) {
@@ -343,8 +350,10 @@ async function resolveNpiRecords({ doctorName = '', zip, state = 'FL', npi, limi
   }
 
   const orgFirst = looksLikeOrganization(doctorName);
+  const wantPharmacy = /pharmac/i.test(String(doctorName || ''));
+  const rejectPharmacy = (list) => wantPharmacy ? list : (list || []).filter((r) => !isPharmacyRecord(r));
   if (orgFirst) {
-    const org = await lookupByOrganizationName({ organizationName: doctorName, zip, state, limit });
+    const org = rejectPharmacy(await lookupByOrganizationName({ organizationName: doctorName, zip, state, limit }));
     if (org.length) return org;
   }
 
@@ -634,6 +643,7 @@ module.exports = {
   lookupByOrganizationName,
   looksLikeOrganization,
   orgQueryVariants,
+  isPharmacyRecord,
   displayName,
   formatClinicRecord,
   rankOrgScore,

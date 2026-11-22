@@ -14,6 +14,7 @@ const { plainWords, cleanName, titleCase, sameDoctorName, ROLE_WORDS_RE } = DN;
 // Loaded-workup set rules (plans / doctors / meds) live in one module.
 const LW = require('./loadedWorkup');
 const { workupFacts, workupCarrierEditSet, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START, NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, respelledDoctors, looseSameDoctor, fuzzySameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords, doctorCoreWords, specialtyWords, removedByClauses, sameCoreDoctor, RESOLVED_DOCTOR, dedupeDoctorRows, DUPLICATE_Q_RE, duplicateQuestions, confirmedDuplicateRemovals } = LW;
+const NS = require('./networkStatus');
 
 const PLAN_ID_RE = /\(([HR]\d{4}-\d{3}[A-Z]?)\)\s*$/i;
 
@@ -215,6 +216,45 @@ function doctorMatchCandidates(questionText) {
   }
   return out;
 }
+function scoreCandidate(answer, cand) {
+  const a = String(answer || '');
+  const info = String(cand.info || `${cand.name} ${cand.npi || ''}`);
+  const hay = info.toLowerCase();
+  let s = 0;
+  const npi10 = (a.match(/\b(\d{10})\b/) || [])[1];
+  if (npi10 && cand.npi === npi10) s += 1000;
+  else {
+    const digits = [...a.matchAll(/\b(\d{4,9})\b/g)].map((m) => m[1]);
+    for (const d of digits) if (cand.npi && cand.npi.endsWith(d)) s += 400;
+  }
+  const creds = [
+    [/\baprn\b|\barnp\b/i, /aprn|arnp/i, 80],
+    // MD is too common to pick a candidate by itself ("Pascual De Santis, MD" is a spelling
+    // of the asked name, not a vote for every listed MD).
+    [/\bmd\b|\bm\.d\b/i, /\bmd\b|\bm\.d/i, 15],
+    [/\bdmd\b|\bdds\b|\bdentist/i, /dmd|dds|dentist/i, 80],
+    [/\b(?:the\s+)?pa\b|physician assistant/i, /physician assistant|\bpa\b/i, 80],
+    [/\bnp\b|nurse practitioner/i, /\bnp\b|nurse practitioner/i, 80],
+    [/\bod\b|optometr/i, /\bod\b|optometr/i, 80],
+  ];
+  for (const [ask, is, n] of creds) if (ask.test(a) && is.test(info)) s += n;
+  const specBits = [
+    [/\bob\s*\/\s*gyn|obgyn|obstetric|gynecolog/i, /obstetric|gynecolog|ob\/gyn|obgyn/i],
+    [/\binternal medicine\b/i, /internal medicine/i],
+    [/\bfamily medicine\b/i, /family medicine/i],
+    [/\bneurolog/i, /neurolog/i],
+    [/\bcardiolog/i, /cardiolog/i],
+    [/\bendocrin/i, /endocrin/i],
+  ];
+  for (const [ask, is] of specBits) if (ask.test(a) && is.test(info)) s += 120;
+  const city = a.match(/\b(coral gables|miami|hialeah|hialeah gardens|virginia gardens|kendall|doral|homestead|hialeah gardens)\b/i);
+  if (city && new RegExp(city[1].replace(/\s+/g, '\\s+'), 'i').test(info)) s += 90;
+  const words = String(a).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(CRED_RE, ' ').split(/[^a-z]+/).filter((w) => w.length > 1);
+  const cw = hay.replace(CRED_RE, ' ').split(/[^a-z]+/).filter(Boolean);
+  s += words.filter((w) => cw.includes(w)).length;
+  return s;
+}
+
 function candidatePicks(questionText, answerText) {
   const rows = doctorMatchCandidates(questionText);
   if (!rows.length) return [];
@@ -260,7 +300,36 @@ function candidatePicks(questionText, answerText) {
     const aw = plainWords(row.asked);
     return fuzzySameDoctor(row.asked, said) || (sw.length >= 1 && aw.length >= 1 && editDistance(sw[sw.length - 1], aw[aw.length - 1]) <= 2 && (sw.length < 2 || editDistance(sw[0], aw[0]) <= 2));
   };
-  const segs = a.replace(CRED_RE, '').split(/[\n;]|,|\band\b|&/i);
+  // Name mentions: "Yekutiel Sandman, David Andrew Taub" / "yes, Yekutiel Sandman and David Andrew Taub"
+  // bind each listed candidate whose name appears in the reply.
+  for (const row of rows) {
+    const aw = plainWords(a);
+    const named = row.candidates.filter((c) => {
+      const cw = plainWords(c.name);
+      if (cw.length < 2 || aw.length < 2) return false;
+      return cw.every((w) => aw.includes(w) || (w.length > 3 && aw.some((x) => editDistance(x, w) <= 1)));
+    });
+    if (named.length === 1) take(row, named[0]);
+  }
+  if (picks.length === rows.length) return picks;
+  // Score the FULL reply against each listed candidate (specialty, city, credential, partial NPI).
+  // Never treat the raw reply as a new doctor name — a confirm reply binds to one NPI.
+  for (const row of rows) {
+    if (picks.some((p) => p.asked === row.asked)) continue;
+    // Bare "yes" is handled above (whole-message). A message that *starts* with yes
+    // but then names someone ("yes, and the endocrinologist is Pascual De Santis")
+    // must not steal every single-candidate row.
+    if (row.candidates.length === 1 && /^(?:that one|the (?:md|ob\/?gyn)|right)\b/i.test(a)) {
+      take(row, row.candidates[0]);
+      continue;
+    }
+    const scored = row.candidates.map((c) => ({ c, n: scoreCandidate(a, c) })).sort((x, y) => y.n - x.n);
+    if (scored[0] && scored[0].n >= 80 && (!scored[1] || scored[0].n > scored[1].n)) take(row, scored[0].c);
+  }
+  if (picks.length) return picks;
+  const segs = a.replace(/,\s*(?:inc|llc|l\.l\.c|pllc|pa|p\.a\.|md|m\.d\.|od|pc|p\.c\.|llp|ltd)\b\.?/gi, (m) => m.replace(/,/g, '\u201A'))
+    .split(/[\n;,]|\band\b|&/i)
+    .map((s) => s.replace(/\u201A/g, ','));
   for (const seg0 of segs) {
     const seg = seg0.replace(/^\s*(?:yes|yep|yeah|correct|ok(?:ay)?|its|it's|it is|use|try|the right one is|i mean)\b[\s,:-]*/i, '').replace(/^\s*(?:dr|dra|doctor)\.?\s+/i, '').replace(/[.!?]+\s*$/, '').trim();
     if (!seg) continue;
@@ -332,8 +401,13 @@ function threadDoctorResolutions(msgs, lastUserAt) {
     for (const pk of picks) out.push({ asked: pk.asked, name: pk.name, npi: pk.npi || '' });
     if (picks.length) continue;
     for (const c of doctorEqualsCorrections(t)) out.push({ asked: c.said, name: c.name, npi: c.npi });
+    const prevText = prev ? messageText(prev) : '';
+    const afterMatchPrompt = /No exact match/i.test(prevText);
     const ident = identityFromUserMessage(t);
     const listEdit = /\b(?:replace|change|swap|correct|remove|delete|drop|take\s+out)\b/i.test(t);
+    const descriptive = /\bis(?:\s+the)?\s+(?:ob\s*\/?\s*gyn|aprn|md|pa|np|dentist)|coral gables|npi\s*\d/i.test(t)
+      && !/^[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.\-]+(?:\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.\-]+){1,4}(?:,?\s*(?:MD|DO|APRN|NP|PA|DMD|DDS)\b)?\.?\s*$/i.test(t.trim());
+    if (afterMatchPrompt && descriptive) continue;
     if (!listEdit && ident && ident.name && plainWords(ident.name).length >= 2) {
       out.push({ asked: ident.name, name: ident.name, npi: ident.npi || '' });
     }
@@ -644,6 +718,10 @@ function statementsFor(question, answer) {
     return matchVerdicts(names, a);
   }
   if (/No exact match/i.test(q)) {
+    const picks = candidatePicks(q, a);
+    if (picks.length) {
+      return picks.map((p) => `Doctor substitution: ${p.asked} => ${p.name}${p.npi ? ` (NPI ${p.npi})` : ''}.`);
+    }
     const asked = [...q.matchAll(/"([^"]+)"\s*—/g)].map((m) => m[1].trim());
     const subs = substitutionsIn(a, asked);
     // "yes" → take every "did you mean …?" spelling fix offered in the question.
@@ -651,9 +729,8 @@ function statementsFor(question, answer) {
       for (const m of q.matchAll(/"([^"]+)"\s*—\s*did you mean ([^(?]+?)(?:,\s*[A-Z.]{2,8})?\s*(?:\(|\?)/g)) subs.push([m[1].trim(), m[2].trim()]);
       if (subs.length) return subs.map(([from, to]) => `Doctor substitution: ${from} => ${to}.`);
     }
-    if (!subs.length && asked.length === 1 && /[a-z]{3}/i.test(a) && !NO_RE.test(a)) {
-      subs.push([asked[0], a.replace(/^\s*(?:try|use|maybe|it'?s|its|is|=|check|add|change(?:\s+(?:it|him|her|that))?\s+to|switch(?:\s+(?:it|him|her))?\s+to|replace(?:\s+(?:it|him|her))?\s+with|should\s+be|spelled|instead)\s*/i, '').replace(/^dr\.?\s*/i, '').replace(/[.]+$/, '').trim()]);
-    }
+    // Never dump the raw reply as a replacement name. A confirm that did not uniquely
+    // identify a listed candidate is unanswered — Max asks again, it does not become a doctor.
     return subs.map(([from, to]) => `Doctor substitution: ${from} => ${to}.`);
   }
   if (/must-keep/i.test(q)) return [`Must-keep doctors: ${a}.`];
@@ -1020,6 +1097,9 @@ function planRemovalAskLines(msgs) {
     for (const q of (prev ? messageText(prev) : '').matchAll(/Did you mean ([^?\n]+?) for "[^"]+"\? \(yes\/no\)/g)) drops.push(`Med spelling confirmed: ${q[1]}.`);
   });
   if (REMOVAL_YES_RE.test(t)) return drops;
+  if (LW.isDoctorLikeRemoval(t)) {
+    return drops;
+  }
   const plans = tablePlansFor(before);
   if (!plans.length) return [];
   const wk = workupFacts(before);
@@ -1274,7 +1354,7 @@ function comparisonFollowUpRaw(messages) {
     const later = msgs.slice(i + 1, lastUserAt + 1).filter((x) => x && x.role === 'user').map(messageText);
     const subs = [
       ...later.flatMap((t2) => substitutionsIn(t2, names)),
-      ...[...comparisonAskText(msgs).matchAll(/Doctor substitution: (.+?) => (.+?)\.$/gm)].map((x) => [x[1], x[2]]),
+      ...[...comparisonAskText(msgs).matchAll(/Doctor substitution: (.+?) => (.+?)\.$/gm)].map((x) => [x[1], String(x[2]).replace(/\s*\((?:NPI\s*)?\d{10}\)\s*$/i, '').replace(/\s+NPI\s+\d{10}\s*$/i, '').trim()]),
     ];
     if (substitutionsIn(latest, names).length) reasons.push('doctor corrections');
     const prevQ = prevAssistant ? messageText(prevAssistant) : '';
@@ -1628,7 +1708,8 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
       if (who) who.npi = n[1];
     }
     // 2) "its Theresa Gloria St. Phillipe APRN, and Hoa Nguyen": each named part replaces the doctor it matches.
-    if (asked && !npis.length) {
+    // A "No exact match" confirm is resolved only by candidatePicks (NPI), never by treating the reply as a name.
+    if (asked && !npis.length && !(prev && /No exact match/i.test(messageText(prev)))) {
       for (const raw of t.split(/,|;|\band\b/i)) {
         const part = raw.replace(/^\s*(?:its|it's|it is|is|use|this is|actually|yes[,.]?)\s+/i, '').replace(/[.!]+\s*$/, '').trim();
         if (plainWords(part).length < 2 || /\b(correct|match|right|yes|no)\b/i.test(part) || ADD_DOCTOR_RE.test(part)) continue;
@@ -1923,7 +2004,7 @@ const isHmoTab = (c) => String((c.grid && c.grid.type) || '').toUpperCase() === 
 // Solis: one HMO network per county directory — a listing covers every Solis plan there.
 // Doctors HealthCare: one network for every H4140 plan (Yahoska, 2026-10-07).
 // HealthSun: one 2027 directory covers its HMO plans in a county (Yahoska sent the PDF, 2026-10-07).
-const SINGLE_NETWORK_CARRIERS = ['Devoted', 'Solis', 'CarePlus', 'Doctors HealthCare', 'HealthSun'];
+const SINGLE_NETWORK_CARRIERS = ['Solis', 'CarePlus', 'Doctors HealthCare', 'HealthSun'];
 // A listing is plan-level In, a miss is never Out: CarePlus's PDF says "partial list"; HealthSun's
 // has no NPIs, so its match is by name and can miss a real listing.
 const PARTIAL_DIRECTORY_CARRIERS = ['CarePlus', 'HealthSun'];
@@ -1973,6 +2054,18 @@ function isDentalProvider(d) {
   return /\b(?:dds|dmd|dentist\w*|dentisry|dental)\b/i.test(t);
 }
 
+function networkForCarrier(d, carrier) {
+  return ((d && d.networks) || []).find((x) => carrierKey(x.carrier) === carrier || new RegExp(String(carrier || '').replace(/\s+/g, '\\s*'), 'i').test(String(x.carrier || ''))) || null;
+}
+
+function locationOonAtPlan(d, carrier) {
+  const net = networkForCarrier(d, carrier);
+  if (!net) return false;
+  if (net.locationOon) return true;
+  if (NS.isOutOfNetworkBanner(net.status) || NS.isOutOfNetworkBanner(net.networkStatus)) return true;
+  return ((net.matches || [])).some((m) => NS.isOutOfNetworkBanner(m.networkStatus || m.status));
+}
+
 function namedPlanColumns(named, matrix, doctors) {
   return named.map((np) => {
     const row = matrix.find((p) => p.planId.slice(0, 9) === np.planId.slice(0, 9));
@@ -1990,25 +2083,30 @@ function namedPlanColumns(named, matrix, doctors) {
       const inIds = new Set((d.inNetworkPlans || []).map(planIdOf).filter(Boolean).map((x) => x.slice(0, 9)));
       const outIds = new Set((d.outOfNetworkPlans || []).map(planIdOf).filter(Boolean).map((x) => x.slice(0, 9)));
       const key = np.planId.slice(0, 9);
-      if (inIds.has(key)) col.in.push(who);
-      else if (outIds.has(key)) col.out.push(who);
-      else if (carrier && (d.carriersIn || []).some((c) => carrierKey(c) === carrier || c === carrier)) {
-        // One network for every plan (Devoted) or for these plans (Doctors DrMax/DrSelect) → a carrier hit is a plan hit.
-        (carrierHitIsPlanHit(carrier, np.planId) ? col.in : col.inCarrier).push(who);
-      }
-      // One-network directory (Devoted; Doctors DrMax/DrSelect) finished and did not list
-      // this NPI → Out. A failed or pending check stays ❔ unchecked (never assume Out).
-      else if (carrier && carrierHitIsPlanHit(carrier, np.planId) && !isPartialDirectory(d, carrier) && directoryFinished(d, carrier)) col.out.push(who);
-      // Partial-list directory (CarePlus PDF; HealthSun people — PDF has no NPIs): checked, not confirmed — not unchecked.
-      // HealthSun clinics: Organization?identifier=NPI is a real NPI check. Empty Bundle = Out, never assumed.
-      // CarePlus guest Find Care (partialList false) is a complete directory: empty = Out, never guessed.
-      else if (carrier && isPartialDirectory(d, carrier) && directoryFinished(d, carrier)) {
-        if (carrier === 'HealthSun' && doctorIsOrg(d)) col.out.push(who);
-        else { col.unknown.push(who); col.notConfirmed.push(who); }
-      }
-      // UHC's directory is plan-level and complete: it finished, listed this doctor on no UHC plan and
-      // answered "not listed" for UHC plans → ❌ Not in network (not listed), not "not confirmed".
-      else if (carrier === 'UnitedHealthcare' && uhcUnlisted(d)) col.out.push(who);
+      const locOon = locationOonAtPlan(d, carrier);
+      const carrierHit = Boolean(carrier && (d.carriersIn || []).some((c) => carrierKey(c) === carrier || c === carrier));
+      const net = ((d.networks || []).find((x) => carrier && (carrierKey(x.carrier) === carrier || new RegExp(String(carrier).split(/\s+/)[0], 'i').test(String(x.carrier || '')))));
+      const dirDone = directoryFinished(d, carrier);
+      const failed = ((d.failed || []).some((f) => carrier && new RegExp(carrier.split(/\s+/)[0], 'i').test(String(f))))
+        || (net && net.status === 'failed');
+      const pending = ((d.pending || []).some((f) => carrier && new RegExp(carrier.split(/\s+/)[0], 'i').test(String(f))))
+        || (net && net.status === 'pending');
+      const incompleteGuest = /^(Aetna|Simply|Wellcare)$/.test(carrier);
+      const status = NS.planNetworkStatus({
+        planListedIn: inIds.has(key) && !locOon,
+        planListedOut: outIds.has(key) || (carrier === 'UnitedHealthcare' && uhcUnlisted(d)),
+        locationOon: locOon,
+        checkFailed: Boolean(!dirDone && failed),
+        checkPending: Boolean(pending),
+        directoryFinished: dirDone,
+        carrierHit,
+        sharedNetworkTwinIn: Boolean(carrier && carrierHitIsPlanHit(carrier, np.planId) && carrierHit && !locOon),
+        partialDirectory: (isPartialDirectory(d, carrier) || incompleteGuest) && (dirDone || carrierWasAttempted(d, carrier)),
+        orgCompleteMiss: carrier === 'HealthSun' && doctorIsOrg(d),
+      });
+      if (status === NS.STATUS.IN) col.in.push(who);
+      else if (status === NS.STATUS.OUT) col.out.push(who);
+      else if (status === NS.STATUS.NOT_CONFIRMED) { col.unknown.push(who); col.notConfirmed.push(who); }
       else col.unknown.push(who);
     }
     return col;
@@ -2119,10 +2217,32 @@ function uhcUnlisted(d) {
   return (d.outOfNetworkPlans || []).some(uhc);
 }
 
+function carrierWasAttempted(d, carrier) {
+  if (!d || !carrier) return false;
+  if (carrier === 'Solis') return solisChecked(d);
+  if (carrier === 'CarePlus') return careplusChecked(d);
+  if (carrier === 'HealthSun' && healthsunChecked(d)) return true;
+  const re = PENDING_FOR[carrier];
+  const blob = (x) => String(x || '');
+  if ((d.carriersIn || []).some((c) => carrierKey(c) === carrier || (re && re.test(blob(c))))) return true;
+  if ((d.pending || []).some((p) => re && re.test(blob(p)))) return true;
+  if ((d.failed || []).some((p) => re && re.test(blob(p)))) return true;
+  if ((d.networks || []).some((n) => (carrierKey(n.carrier) === carrier || (re && re.test(blob(n.carrier)))) && n.status && n.status !== 'unchecked')) return true;
+  const planBlob = [...(d.inNetworkPlans || []), ...(d.outOfNetworkPlans || [])].join(' ');
+  if (re && re.test(planBlob)) return true;
+  // Doctors and Devoted are complete directories: a finished job with no pending/failed
+  // for that carrier is a real miss (fixtures often omit the network row).
+  if ((carrier === 'Doctors HealthCare' || carrier === 'Devoted') && ['done', 'partial'].includes(d.status)) {
+    if (re && !(d.pending || []).some((p) => re.test(blob(p))) && !(d.failed || []).some((p) => re.test(blob(p)))) return true;
+  }
+  return carrierCheckRan(d, carrier) && Boolean(RAN_CHECK_CARRIERS[carrier]);
+}
+
 function directoryFinished(d, carrier) {
   if (!d || d.identityPending) return false;
   if (carrier === 'Solis' && !solisChecked(d)) return false;
   if (carrier === 'CarePlus' && !careplusChecked(d)) return false;
+  if (!carrierWasAttempted(d, carrier)) return false;
   if (!carrierCheckRan(d, carrier)) return false;
   if (d.status !== 'done' && d.status !== 'partial') return false;
   // The directory index answered even if the live FHIR call did not.
@@ -2153,6 +2273,7 @@ function unknownCell(d, carrier) {
   if (!carrier || NO_LIVE_DIRECTORY.includes(carrier)) return R.UNCHECKED;
   if (carrier === 'Solis' && !solisChecked(d)) return R.UNCHECKED;
   if (carrier === 'CarePlus' && !careplusChecked(d)) return R.UNCHECKED;
+  if (!carrierWasAttempted(d, carrier)) return R.UNCHECKED;
   // No lookup ran for this carrier (skipped, no directory, never started) → unchecked, not "not confirmed".
   if (!carrierCheckRan(d, carrier)) return R.UNCHECKED;
   const re = PENDING_FOR[carrier];
@@ -2250,7 +2371,7 @@ function cellCountText(cells) {
   const outN = cells.filter((c) => c === CELL.out).length;
   const nc = cells.filter((c) => c === R.NOT_CONFIRMED_CELL).length;
   const tN = cells.filter((c) => c === R.TIMED_OUT_CELL).length;
-  const unchecked = cells.length - inN - outN - nc - tN;
+  const unchecked = cells.length - inN - outN - nc - tN - star;
   const rest = [unchecked || (!nc && !tN) ? `${unchecked} unchecked` : '', nc ? `${nc} not confirmed` : '', tN ? `${tN} timed out` : ''].filter(Boolean).join(' · ');
   return `${inN} in · ${outN} not in network · ${rest}${star ? ` (${star} ✅ In*)` : ''}`;
 }
@@ -2274,6 +2395,7 @@ function gridTable(doctors, plans) {
       p.in.includes(who) ? CELL.in
         : (p.inCarrier || []).includes(who) ? CELL.inCarrier
           : p.out.includes(who) ? CELL.out
+            : (p.notConfirmed || []).includes(who) ? R.NOT_CONFIRMED_CELL
             : unknownCell(d, p.carrier || carrierKey(p.name))
     ));
   });
@@ -2846,7 +2968,7 @@ function selectComparison(doctors, askText, opts = {}) {
         if (coreCols.length) {
           ranked_ = [...coreCols, ...ranked_.filter((x) => !coreCols.includes(x))];
           for (const coreCol of [...coreCols].reverse()) {
-            if (!coreCol.verifiable) out.flags.unshift(`⚠️ ${shortPlanHeader(coreCol)}: ${c}'s core plan leads, but its doctors could not be confirmed (the directory returned no plan-level result) — check it in the carrier's Find Care / directory.`);
+            if (coreCol.counts.inN + coreCol.counts.star === 0) out.flags.unshift(`⚠️ ${shortPlanHeader(coreCol)}: ${c}'s core plan leads, but its doctors could not be confirmed (the directory returned no plan-level result) — check it in the carrier's Find Care / directory.`);
           }
         }
         // Every core plan of the carrier shows (Doctors HealthCare has two in Miami-Dade), then the best others up to the per-carrier count.
@@ -3142,13 +3264,34 @@ function selectComparison(doctors, askText, opts = {}) {
   // Medical-group carrier rules win over a directory In (BHMG / UM PCP — Yahoska).
   const cols = [...new Set([...(out.columns || []), ...(out.ranked || [])])];
   for (const line of GROUPS.applyGroupRulesToColumns(cols, docs, shortDoctor, groupYear)) out.flags.push(line);
+  const keepNote = mustKeepCoverageNote(docs, out.columns);
+  if (keepNote && !(out.flags || []).includes(keepNote)) (out.flags || (out.flags = [])).push(keepNote);
   return out;
 }
 
 function planLine(p, total) {
-  const outs = p.out.length ? ` · Out: ${p.out.join(', ')}` : '';
-  const unk = p.unknown.length ? ` · unchecked/not confirmed: ${p.unknown.join(', ')}` : '';
-  return `- ${p.name} (${p.planId}) — ${countText(p, total)}${outs}${unk}`;
+  const outs = p.out.length ? ` · Not in network: ${p.out.join(', ')}` : '';
+  const ncNames = p.notConfirmed || [];
+  const nc = ncNames.length ? ` · not confirmed: ${ncNames.join(', ')}` : '';
+  const unkOnly = (p.unknown || []).filter((n) => !ncNames.includes(n));
+  const unk = unkOnly.length ? ` · unchecked: ${unkOnly.join(', ')}` : '';
+  return `- ${p.name} (${p.planId}) — ${countText(p, total)}${outs}${nc}${unk}`;
+}
+
+function mustKeepCoverageNote(doctors, columns) {
+  const cols = columns || [];
+  if (!cols.length) return '';
+  const bits = [];
+  for (const d of doctors || []) {
+    const who = shortDoctor(d);
+    const inN = cols.filter((p) => (p.in || []).includes(who)).length;
+    const outN = cols.filter((p) => (p.out || []).includes(who)).length;
+    const ncN = cols.filter((p) => (p.notConfirmed || []).includes(who)).length;
+    if (outN && !inN) {
+      bits.push(`${who} is not in network on ${outN} of ${cols.length} checked plan${cols.length === 1 ? '' : 's'}${ncN ? ` (${ncN} still not confirmed)` : ''} — not "not confirmed on all of them". I can search other 2027 plans where they ARE in network — want me to?`);
+    }
+  }
+  return bits[0] || '';
 }
 
 function extrasLines(sel) {
@@ -3224,7 +3367,7 @@ const PA_QL_UNKNOWN = 'PA/QL ?';
 const PA_QL_LEGEND = 'PA / QL shown only when the carrier source reports one';
 // A cell the source gave no PA / ST / QL for carries no marker (Yahoska, 2026-10-13: "if the formulary or
 // medicare.gov don't show it, don't add it"); the legend says restrictions appear only when reported.
-const quietRestrictionMarks = (table) => String(table || '').replace(new RegExp(` · ${PA_QL_UNKNOWN.replace('?', '\\?')}`, 'g'), '');
+const quietRestrictionMarks = (table) => String(table || '').replace(new RegExp(`(?: · | )${PA_QL_UNKNOWN.replace('?', '\\?')}`, 'g'), '');
 
 /** The meds legend, plus the "PA/QL ?" line only when a cell in this table uses it. QL stays off until she asks. */
 function medsLegendFor(table, opts = {}) {
@@ -3268,8 +3411,8 @@ function strengthSplitCell(row, result, opts = {}) {
     if (v.coverage === 'not_covered') return '❌ not covered';
     // Priced but not answered for this plan: shown, so the list never looks complete when it isn't.
     if (!v.verified || !v.coverage) return '❔ not found';
-    const cost = v.costShare ? ` ${v.costShare}` : ` · cost n/a${/pdf/i.test(String(v.source || '')) ? ' (PDF)' : ''}`;
-    const bits = [`T${v.tier}${cost}`];
+    const cost = v.costShare ? ` ${v.costShare}` : '';
+    const bits = [`T${v.tier}${cost}`.trim()];
     if (v.pa) bits.push(ed && !v.indication ? 'PA (verify indication)' : 'PA');
     if (v.st) bits.push('ST');
     const ql = qlFlag(v, opts.showQl);
@@ -3282,7 +3425,7 @@ function strengthSplitCell(row, result, opts = {}) {
     if (v.mixedProducts && (ed || opts.keepMixed)) bits.push('varies by product');
     // Per strength: the source that answered this strength decides whether PA/QL are known.
     if (restrictionsUnknown(v)) bits.push(PA_QL_UNKNOWN);
-    return bits.join(' · ');
+    return bits.join(' ');
   };
   const groups = [];
   const sorted = [...row.strengths].sort((a, b) => parseFloat(a.strength) - parseFloat(b.strength));
@@ -3326,7 +3469,7 @@ function oneStrengthCell(row, result, opts = {}) {
   if (!covered.length) {
     // The plan-level answer says covered but no single strength was confirmed: say the tier, flag the strength
     // (Paula Harris, 2026-10-13: gabapentin printed "check Medicare.gov" where the plan answered T2).
-    if (row.verified && row.coverage === 'covered' && row.tier) return `T${row.tier}${row.costShare ? ` ${row.costShare}` : ''} · strength not confirmed — confirm dose`;
+    if (row.verified && row.coverage === 'covered' && row.tier) return `T${row.tier}${row.costShare ? ` ${row.costShare}` : ''} — strength not confirmed — confirm dose`;
     return '❔ check Medicare.gov (strength not confirmed)';
   }
   const name = String(row.drugName || row.name || row.query || '').toLowerCase();
@@ -3348,14 +3491,15 @@ function oneStrengthCell(row, result, opts = {}) {
   // The usual strength was not among the answered ones: the strength shown is a different one — say so
   // (Jackie, 2026-10-13: atorvastatin 80 mg and levothyroxine 0.3 mg read as the answer for her dose).
   const isUsual = key && Math.abs(strengthMg(pick.strength) - USUAL_STRENGTH_MG[key]) < 1e-6;
-  if (key && !isUsual) return `${cell} · usual strength not confirmed — check Medicare.gov`;
+  if (key && !isUsual) return `${cell} — usual strength not confirmed — check Medicare.gov`;
   const differ = covered.some((v) => `${v.tier}|${v.costShare}` !== `${pick.tier}|${pick.costShare}`);
-  return differ ? `${cell} · other strengths differ — confirm dose` : cell;
+  return differ ? `${cell} — other strengths differ — confirm dose` : cell;
 }
 
-const OTC_SUPPLEMENT_CELL = 'Not on this plan\'s formulary · OTC vitamin — see the plan\'s OTC allowance';
+const OTC_SUPPLEMENT_CELL = 'Not on this plan\'s formulary — OTC vitamin — see the plan\'s OTC allowance';
 
 function drugCell(row, unsureNotCovered, result, opts = {}) {
+  const EXP = require('../artifacts/comparison-export.js');
   if (result && result.nameCheck) return '❓ check name';
   if (!row) return R.UNCHECKED;
   if (Array.isArray(row.strengths) && row.strengths.length > 1) {
@@ -3366,25 +3510,16 @@ function drugCell(row, unsureNotCovered, result, opts = {}) {
       ? strengthSplitCell(row, result, { showQl: opts.showQl })
       : oneStrengthCell(row, result, { showQl: opts.showQl });
   }
-  // A tier with no cost-share on file says so — a bare "T2" read as $0 (Solis H0982-007, 2026-10-09).
-  const cost = row.costShare ? ` ${row.costShare}` : ` · cost n/a${/pdf/i.test(String(row.source || '')) ? ' (PDF)' : ''}`;
-  // Every covered cell carries a restriction status from its source: the flags it reported, or
-  // "PA/QL ?" when it reports none at all (medicare.gov; a Sunfire / FHIR answer missing the fields).
-  const unknown = restrictionsUnknown(row) ? ` · ${PA_QL_UNKNOWN}` : '';
-  // Products that match the ask disagree (one covered, one not): say so, never let covered win silently.
-  const mixed = row.mixedProducts ? ' · varies by product' : '';
-  // The source's own restrictions ("PA · QL 8/30"), the same on ED-label cells as on any other.
-  // "B/D PA" (Part B vs D review) and "HRM" (PA required at 65+) are restrictions too (HealthSun book).
-  const flagList = [row.pa ? 'PA' : null, row.st ? 'ST' : null, qlFlag(row, opts.showQl),
-    row.bdPa ? 'B/D PA' : null, row.hrm ? 'HRM (PA 65+)' : null].filter(Boolean);
-  const flags = flagList.length ? ` · ${flagList.join(' · ')}` : '';
-  // ED drugs: the per-plan label says what the coverage means (supplemental / BPH-PAH only / …).
+  const unknown = restrictionsUnknown(row) ? ` ${PA_QL_UNKNOWN}` : '';
+  const mixed = row.mixedProducts ? ' varies by product' : '';
   if (result && result.edDrug && row.edLabel) {
     if (!(row.verified && row.tier)) return row.edLabel;
-    return `${row.edLabel} · T${row.tier}${cost}${flags}${mixed}${unknown}`;
+    return `${row.edLabel} ${EXP.formatMedCell(row, null, { showQl: opts.showQl })}${mixed}${unknown}`.replace(/\s+/g, ' ').trim();
   }
-  if (row.verified && row.coverage === 'not_covered') return unsureNotCovered ? '⚠️ confirm' : '❌ not covered';
-  if (row.verified && row.tier) return `T${row.tier}${cost}${flags}${mixed}${unknown}`;
+  if (row.verified && row.coverage === 'not_covered') return unsureNotCovered ? 'Confirm' : 'Not covered';
+  if (row.verified && row.tier) {
+    return `${EXP.formatMedCell(row, null, { showQl: opts.showQl })}${mixed}${unknown}`.replace(/\s+/g, ' ').trim();
+  }
   if (/form_not_found/.test(String(row.reason || ''))) return `${R.NOT_CONFIRMED_CELL} (form not found)`;
   return R.NOT_CONFIRMED_CELL;
 }
@@ -3925,4 +4060,9 @@ module.exports = {
   fallbackAnswer,
   doctorLabel,
   countText,
+  cellCountText,
+  planLine,
+  drugCell,
+  statementsFor,
+  shortDoctor,
 };

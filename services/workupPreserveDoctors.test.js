@@ -254,7 +254,7 @@ describe('quantity limits stay hidden until the agent asks', () => {
 
   it('chat cells hide QL by default, offer a chip, and show QL after she accepts', () => {
     const hidden = N.medsTable(drugs, plans);
-    assert.match(hidden, /T1 \$0 · PA · HRM \(PA 65\+\)/);
+    assert.match(hidden, /T1 \$0 PA HRM \(PA 65\+\)/);
     assert.doesNotMatch(hidden, /QL 30\/30| · QL(?:\s|$)/);
     assert.doesNotMatch(N.medsLegendFor(hidden), /QL = quantity limit/);
     assert.equal(N.medsHaveQuantityLimits(drugs, plans), true);
@@ -301,7 +301,7 @@ describe('quantity limits stay hidden until the agent asks', () => {
     assert.match(hidden, /HRM \(PA 65\+\)/);
     assert.doesNotMatch(hidden, /\bQL\b/);
     assert.match(visible, /QL 30\/30/);
-    assert.equal(exp.stripQuantityLimits('Tier 1 · $0 · PA · QL 30/30 · HRM (PA 65+)'), 'Tier 1 · $0 · PA · HRM (PA 65+)');
+    assert.equal(exp.stripQuantityLimits('T1 $0 PA QL 30/30 HRM (PA 65+)'), 'T1 $0 PA HRM (PA 65+)');
   });
 });
 

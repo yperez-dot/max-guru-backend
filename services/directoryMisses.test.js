@@ -20,7 +20,7 @@ describe('Doctors + Devoted cells', () => {
       doc('Juan Diego Cedeno', ['Doctors HealthCare Plans', 'Devoted Health']),
       doc('Dileep Yavagal', []),
     ], ASK, {}).text;
-    assert.deepEqual(rowOf(t, 'Juan Diego Cedeno').slice(1), ['❌ Not in network (not listed)', '✅ In', '❔ unchecked', '✅ In']);
+    assert.deepEqual(rowOf(t, 'Juan Diego Cedeno').slice(1), ['❌ Not in network (not listed)', '✅ In', '❔ unchecked', '❔ not confirmed']);
     assert.deepEqual(rowOf(t, 'Dileep Yavagal').slice(1), ['❌ Not in network (not listed)', '❌ Not in network (not listed)', '❔ unchecked', '❌ Not in network (not listed)']);
   });
 

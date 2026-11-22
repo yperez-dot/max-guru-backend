@@ -747,6 +747,58 @@
     return String(text == null ? '' : text).replace(/\s*[·,;-]?\s*\(?cost (?:is )?(?:the )?same across (?:all )?strengths\)?/gi, '');
   }
 
+  function answersFromEligibility(workup) {
+    const el = (workup && workup.eligibility && typeof workup.eligibility === "object") ? workup.eligibility : {};
+    const med = String(el.medicaid || el.medicaidStatus || "").toLowerCase();
+    const medicaid = med === "none" || med === "no" ? 0
+      : med === "full" ? 1
+        : med === "qmb" || /qmb/.test(med) ? 2
+          : med === "slmb" || /slmb/.test(med) ? 3
+            : med === "qi" || med === "msp" ? (med === "qi" ? 4 : 2)
+              : (el.medicaidIndex != null ? el.medicaidIndex : undefined);
+    const c = String(el.csnp || el.csnpStatus || "").toLowerCase();
+    const csnp = c === "none" || c === "no" ? 0
+      : /diabetes/.test(c) ? 1
+        : /chf|heart/.test(c) ? 2
+          : /copd|lung/.test(c) ? 3
+            : c === "confirmed" || c === "yes" ? 4
+              : (el.csnpIndex != null ? el.csnpIndex : undefined);
+    const names = Array.isArray(el.mustKeep) ? el.mustKeep : (typeof el.mustKeep === "string" && el.mustKeep ? el.mustKeep.split(/;|,/) : []);
+    const docs = ((workup && workup.doctors) || []).map((d) => String((d && d.name) || d || "").toLowerCase());
+    const mustPick = names.map((n) => docs.findIndex((d) => d && String(n).toLowerCase().trim() && d.indexOf(String(n).toLowerCase().trim()) >= 0)).filter((i) => i >= 0);
+    const out = {};
+    if (medicaid != null && medicaid !== "") out.medicaid = medicaid;
+    if (csnp != null && csnp !== "") out.csnp = csnp;
+    if (mustPick.length) out.mustPick = mustPick;
+    else if (el.mustKeep === "none" || el.must === "none") out.must = "none";
+    return out;
+  }
+
+  /**
+   * Reopening a saved workup must restore tables, rankings, and eligibility answers.
+   * A leftover local "questions" / "running" card never wins over a finished compareResult.
+   */
+  function restoreWorkspaceFromWorkup(workup, wsHere) {
+    const answers = answersFromEligibility(workup);
+    const cr = workup && workup.compareResult;
+    const live = wsHere && (wsHere.stage === "running" || wsHere.stage === "starting")
+      && wsHere.job && ["queued", "running", "starting"].indexOf(String(wsHere.job.status || "")) >= 0;
+    if (live) return { preferSnapshot: false, ws: wsHere, answers: answers };
+    if (cr && !stalePlansForResult(workup, cr).length) {
+      return {
+        preferSnapshot: true,
+        ws: Object.assign({}, wsHere || {}, {
+          stage: "done",
+          result: cr,
+          seen: true,
+          answers: Object.assign({}, (wsHere && wsHere.answers) || {}, answers),
+        }),
+        answers: answers,
+      };
+    }
+    return { preferSnapshot: false, ws: wsHere, answers: answers };
+  }
+
   return {
     WORKUP_CONTEXT_PREFIX,
     NETWORK_IN,
@@ -788,5 +840,7 @@
     sameClientLead,
     newestClientZip,
     workupZipLine,
+    answersFromEligibility,
+    restoreWorkspaceFromWorkup,
   };
 });

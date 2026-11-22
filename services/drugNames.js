@@ -23,9 +23,10 @@ const FORM_WORDS = [
   ['gel', /^gels?$/i],
   ['lotion', /^(?:lotions?|lot)$/i],
   ['drops', /^(?:drops?|gotas)$/i],
-  ['patch', /^(?:patch|patches|parches?)$/i],
+  ['patch', /^(?:patch|patches|parches?|transdermal)$/i],
+  ['solution', /^(?:soln|solution|sol)$/i],
 ];
-const NON_ORAL_FORMS = new Set(['ointment', 'cream', 'gel', 'lotion', 'drops', 'patch']);
+const NON_ORAL_FORMS = new Set(['ointment', 'cream', 'gel', 'lotion', 'drops', 'patch', 'solution']);
 // What an RxNorm product name says for each form.
 const CONCEPT_FORM_RE = {
   tablet: /\btablet\b/i,
@@ -36,6 +37,7 @@ const CONCEPT_FORM_RE = {
   lotion: /\blotion\b/i,
   drops: /\b(?:ophthalmic|otic)\b.*\b(?:solution|suspension|drops?)\b|\bdrops?\b/i,
   patch: /\btransdermal\b|\bpatch\b/i,
+  solution: /\bsolution\b/i,
 };
 
 function formOfWord(word) {
@@ -116,12 +118,12 @@ function expandMedList(list) {
 // "Clobetasol 0.05% cream" / "… 0.05% solution": the strength ("0.05%" — '%' has no word boundary after it) and the
 // form word are stripped for the RxNorm check; the med keeps them as its label (Live bug, 2026-10-21: cream and
 // solution read "not a drug name RxNorm knows" while shampoo resolved).
-const STRIP_RE = /\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|units?|iu|meq|%)(?![A-Za-z0-9])|\b(?:shampoo|foam|scalp|external|wash|lotion|lot|liquid|er|xr|xl|sr|cr|dr|ec|odt|la|hcl|pah|bph|oral|topical|ophthalmic|eye|ear|otic|solution|soln|suspension|susp|pen|injection|inhaler|vial|ellipta|diskus|respimat|flexpen|kwikpen|flextouch|hfa|turbuhaler|handihaler|breezhaler|autoinjector|sureclick|daily|bid|tid|qd|prn|diprop|dipr)\b/gi;
+const STRIP_RE = /\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|units?|iu|meq|%)(?:\s*\/\s*(?:mg|ml|hr|h))?|\b24\s*hrs?\b|\b(?:shampoo|foam|scalp|external|wash|lotion|lot|liquid|er|xr|xl|sr|cr|dr|ec|odt|la|hcl|pah|bph|oral|ophthalmic|eye|ear|otic|pen|inhaler|vial|ellipta|diskus|respimat|flexpen|kwikpen|flextouch|hfa|turbuhaler|handihaler|breezhaler|autoinjector|sureclick|daily|bid|tid|qd|prn|diprop|dipr|extended\s+release|delayed\s+release)\b/gi;
 
 /** "rasuvostatin 10mg tablets" → "rasuvostatin" (the part RxNorm should match). */
 function drugNameBase(raw) {
   return String(raw || '')
-    .split(/\s+/).filter((w) => !formOfWord(w)).join(' ')
+    .split(/\s+/).filter((w) => !formOfWord(w) && !/^topical$/i.test(w)).join(' ')
     .replace(STRIP_RE, ' ')
     // Keep a slash between ingredients ("clotrimazole/betamethasone"); never collapse to the last one.
     .replace(/[^A-Za-z0-9\s'/-]+/g, ' ')
@@ -268,7 +270,10 @@ async function resolveDrugName(raw, fetchImpl = fetch) {
   if (distinct.length === 1 && base.replace(/[^a-z]/g, '') === topName.replace(/[^a-z]/g, '')) {
     return remember(base, input, { status: 'exact', name: topName, rxcui: top.rxcui });
   }
-  if (sim < MIN_SIMILARITY && sameCoreDrug(base, topName)) {
+  if (askedForm && !conceptHasForm(top.name, askedForm) && NON_ORAL_FORMS.has(askedForm)) {
+    return remember(base, input, { status: 'exact', name: base });
+  }
+  if (sim < MIN_SIMILARITY && sameCoreDrug(base, topName) && (!askedForm || conceptHasForm(top.name, askedForm))) {
     return remember(base, input, { status: 'corrected', name: topName, rxcui: top.rxcui, from: base, similarity: Number(sim.toFixed(2)) });
   }
   if (sim < MIN_SIMILARITY) {
@@ -277,8 +282,8 @@ async function resolveDrugName(raw, fetchImpl = fetch) {
   return remember(base, input, { status: 'corrected', name: topName, rxcui: top.rxcui, from: base, similarity: Number(sim.toFixed(2)) });
 }
 
-const CORE_SKIP_WORDS = new Set(('maleate tartrate hydrochloride hcl sodium potassium calcium magnesium besylate mesylate succinate citrate sulfate acetate phosphate fumarate bromide chloride propionate dipropionate furoate monohydrate dihydrate ' +
-  'solution soln sol suspension susp drops drop tablet tablets tab tabs capsule capsules cap caps ophthalmic oral topical extended release er xr sr dr cream ointment gel lotion lot injection pen mg mcg ml diprop dipr').split(/\s+/));
+const CORE_SKIP_WORDS = new Set(('maleate tartrate hydrochloride hcl sodium calcium magnesium besylate mesylate succinate citrate sulfate acetate phosphate fumarate bromide chloride propionate dipropionate furoate monohydrate dihydrate ' +
+  'suspension susp drops drop tablet tablets tab tabs capsule capsules cap caps ophthalmic oral extended release er xr sr dr lotion lot injection pen mg mcg ml diprop dipr hr hrs hour hours').split(/\s+/));
 /** Same ingredient words, salts / forms / strengths aside. */
 function sameCoreDrug(a, b) {
   const core = (x) => [...new Set(String(x || '').toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 2 && !CORE_SKIP_WORDS.has(w)))].sort().join('+');
@@ -354,7 +359,7 @@ const isEdDrug = (name) => ED_DRUG_RE.test(String(name || ''));
 const ED_LABELS = {
   supplemental: 'Covered — supplemental benefit (excluded drug; not counted toward Part D OOP max)',
   bphPah: 'Covered — Part D for BPH/PAH only (PA required, verify diagnosis)',
-  paOnly: 'Covered · PA required (verify indication)',
+  paOnly: 'Covered PA required (verify indication)',
   notCovered: 'Not covered by this plan',
   notConfirmed: 'Not confirmed',
   verify: 'Covered — verify if supplemental benefit',
@@ -381,10 +386,10 @@ function edLabel(row) {
 // is asked: "BRIMONIDINE TARTRATE/TIMOLOL MALEATE SOLUTION 0.2/0.5%" → "brimonidine / timolol 0.2%/0.5% ophthalmic
 // solution" (Nancy Blanco De Pajaro). Plain names ("Farxiga", "gabapentin 300 mg") are left exactly as typed.
 const MED_SALT_WORDS = new Set(['maleate', 'tartrate', 'hydrochloride', 'hcl', 'sodium', 'potassium', 'calcium', 'magnesium', 'besylate', 'mesylate', 'succinate', 'citrate', 'sulfate', 'acetate', 'phosphate', 'fumarate', 'bromide', 'chloride', 'propionate', 'dipropionate', 'furoate', 'monohydrate', 'dihydrate', 'trihydrate']);
-const MED_FORM_WORDS = new Set(['solution', 'soln', 'sol', 'suspension', 'susp', 'drops', 'drop', 'tablet', 'tablets', 'tab', 'tabs', 'capsule', 'capsules', 'cap', 'caps', 'ophthalmic', 'opth', 'oph', 'cream', 'ointment', 'gel', 'lotion', 'lot', 'inhaler', 'injection', 'pen', 'oral', 'topical']);
-const MED_JUNK_WORDS = new Set(['diprop', 'dipr']);
+const MED_FORM_WORDS = new Set(['solution', 'soln', 'sol', 'suspension', 'susp', 'drops', 'drop', 'tablet', 'tablets', 'tab', 'tabs', 'capsule', 'capsules', 'cap', 'caps', 'ophthalmic', 'opth', 'oph', 'cream', 'ointment', 'gel', 'lotion', 'lot', 'inhaler', 'injection', 'injectable', 'pen', 'oral', 'topical', 'transdermal', 'patch', 'patches']);
+const MED_JUNK_WORDS = new Set(['diprop', 'dipr', 'hr', 'hrs', 'hour', 'hours']);
 const EYE_DRUG_RE = /\b(?:brimonidine|timolol|latanoprost|dorzolamide|travoprost|bimatoprost|brinzolamide|netarsudil|tafluprost)\b/i;
-const FORM_DISPLAY = { tab: 'tablet', tabs: 'tablet', tablets: 'tablet', tablet: 'tablet', cap: 'capsule', caps: 'capsule', capsules: 'capsule', capsule: 'capsule', cream: 'cream', ointment: 'ointment', gel: 'gel', lotion: 'lotion', lot: 'lotion', inhaler: 'inhaler', injection: 'injection', pen: 'pen' };
+const FORM_DISPLAY = { tab: 'tablet', tabs: 'tablet', tablets: 'tablet', tablet: 'tablet', cap: 'capsule', caps: 'capsule', capsules: 'capsule', capsule: 'capsule', cream: 'cream', ointment: 'ointment', gel: 'gel', lotion: 'lotion', lot: 'lotion', inhaler: 'inhaler', injection: 'injection', pen: 'pen', patch: 'patch', patches: 'patch', transdermal: 'patch', solution: 'solution', soln: 'solution', topical: 'topical' };
 
 /** Does a typed med need normalizing? ALL CAPS, a combo slash, a salt word, or a pharmacy-label length. */
 function medNameIsMessy(raw) {
@@ -404,7 +409,13 @@ function medNameParts(raw) {
   const low = s.toLowerCase();
   // "0.2/0.5%" → "0.2%/0.5%"; "20 mg" stays.
   const strengths = [];
-  const noStrength = low.replace(/\b(\d+(?:\.\d+)?(?:\s*[\/-]\s*\d+(?:\.\d+)?)*)\s*(%|mg|mcg|ml|g|units?|iu|meq)?(?=[\s,/]|$)/g, (m, nums, unit) => {
+  const low0 = low.replace(/\b24\s*hrs?\b/g, ' ').replace(/\bextended\s+release\b/g, ' ').replace(/\bdelayed\s+release\b/g, ' ');
+  const noStrength = low0.replace(/\b(\d+(?:\.\d+)?)\s*(mg)\s*\/\s*(mg|ml|hr|h)\b/gi, (_, n, u, d) => {
+    const den = String(d).toLowerCase();
+    if (den === 'mg') strengths.push(`${Number((Number(n) * 100).toPrecision(6))}%`);
+    else strengths.push(`${n} ${u}/${den === 'h' ? 'hr' : den}`);
+    return ' ';
+  }).replace(/\b(\d+(?:\.\d+)?(?:\s*[\/-]\s*\d+(?:\.\d+)?)*)\s*(%|mg|mcg|ml|g|units?|iu|meq)(?=[\s,/]|$)/g, (m, nums, unit) => {
     const sep = /-/.test(nums) ? '-' : '/';
     const parts = nums.split(/\s*[\/-]\s*/);
     strengths.push(unit === '%' ? parts.map((n) => `${n}%`).join('/') : `${parts.join(sep)}${unit ? ` ${unit}` : ''}`);
@@ -421,6 +432,8 @@ function medNameParts(raw) {
   const ingredients = comps.map((ws) => ws.filter((w) => !MED_SALT_WORDS.has(w)).join(' ') || ws.join(' '));
   let form = '';
   if (forms.some((f) => /^(?:solution|soln|sol|drops?|ophthalmic|opth|oph)$/.test(f))) form = EYE_DRUG_RE.test(low) ? 'ophthalmic solution' : (forms.includes('suspension') || forms.includes('susp') ? 'suspension' : 'solution');
+  else if (forms.includes('gel') && (forms.includes('topical') || /\btopical\b/.test(low))) form = 'topical gel';
+  else if (forms.includes('patch') || forms.includes('transdermal')) form = 'transdermal patch';
   else if (forms.length) form = FORM_DISPLAY[forms.find((f) => FORM_DISPLAY[f])] || '';
   if (!form && forms.some((f) => /^(?:lot|lotion)$/.test(f))) form = 'lotion';
   return { ingredients, salted, strength: strengths.join(' '), form };

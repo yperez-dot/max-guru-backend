@@ -114,23 +114,23 @@ test('reader: only plans the book covers; none for CarePlus', () => {
 // ─── H5431-006: the exact facts ──────────────────────────────────────────────
 
 test('H5431-006 cells: medicare.gov tier/cost + the book\'s PA/ST/QL', async () => {
-  assert.equal(cell(await price('esomeprazole')), 'T2 $0 · QL 30/30');
-  assert.equal(cell(await price('rosuvastatin')), 'T1 $0 · QL 30/30');
+  assert.equal(cell(await price('esomeprazole')), 'T2 $0 QL 30/30');
+  assert.equal(cell(await price('rosuvastatin')), 'T1 $0 QL 30/30');
   assert.equal(cell(await price('trazodone')), 'T1 $0', 'trazodone hcl oral is "MO; 100D" only: known, no PA/QL');
   assert.equal(cell(await price('acyclovir tablets')), 'T1 $0');
-  assert.equal(cell(await price('acyclovir ointment')), 'T2 $0 · PA · QL 30/30');
+  assert.equal(cell(await price('acyclovir ointment')), 'T2 $0 PA QL 30/30');
 });
 
 test('H5431-006 tadalafil: per-strength rows stay separate; supplemental label stays', async () => {
   const split = await price('tadalafil');
   assert.equal(cell(split),
-    '2.5 mg: ❌ not covered ‖ 5 mg: T4 25% · PA (verify indication) · QL 30/30 ‖ 10/20 mg: T6 $0 · QL 6/30 · supplemental ‖ 20 mg (PAH): T4 25% · PA · QL 60/30');
+    '2.5 mg: ❌ not covered ‖ 5 mg: T4 25% PA (verify indication) QL 30/30 ‖ 10/20 mg: T6 $0 QL 6/30 supplemental ‖ 20 mg (PAH): T4 25% PA QL 60/30');
   assert.equal(cell(await price('tadalafil 20 mg')),
-    'Covered — supplemental benefit (excluded drug; not counted toward Part D OOP max) · T6 $0 · QL 6/30');
+    'Covered — supplemental benefit (excluded drug; not counted toward Part D OOP max) T6 $0 QL 6/30');
   assert.equal(cell(await price('tadalafil 10 mg')),
-    'Covered — supplemental benefit (excluded drug; not counted toward Part D OOP max) · T6 $0 · QL 6/30');
-  assert.equal(cell(await price('tadalafil 5 mg')), 'Covered · PA required (verify indication) · T4 25% · PA · QL 30/30');
-  assert.equal(cell(await price('tadalafil 20 mg pah')), 'Covered — Part D for BPH/PAH only (PA required, verify diagnosis) · T4 25% · PA · QL 60/30');
+    'Covered — supplemental benefit (excluded drug; not counted toward Part D OOP max) T6 $0 QL 6/30');
+  assert.equal(cell(await price('tadalafil 5 mg')), 'Covered PA required (verify indication) T4 25% PA QL 30/30');
+  assert.equal(cell(await price('tadalafil 20 mg pah')), 'Covered — Part D for BPH/PAH only (PA required, verify diagnosis) T4 25% PA QL 60/30');
   const r = (await price('tadalafil 20 mg')).byPlanId['H5431-006'];
   assert.equal(r.source, 'medicare_gov', 'tier and cost stay medicare.gov');
   assert.match(r.restrictionSource, /^HealthSun 2027 formulary PDF \(updated 08\/21\/2026, ID 27026 v8\)$/);
@@ -141,7 +141,7 @@ test('H5431-006 tadalafil: per-strength rows stay separate; supplemental label s
 test('no row for that drug / strength → "PA/QL ?", never "no restrictions"', async () => {
   const z = await price('zetamol');
   assert.equal(z.byPlanId['H5431-006'].restrictionsKnown, false);
-  assert.match(cell(z), /^T3 .* · PA\/QL \?$/);
+  assert.match(cell(z), /^T3 .* PA\/QL \?$/);
   // A row exists for tadalafil, but not at 2.5 mg.
   assert.equal(H.healthsunRestrictions({ drugName: 'tadalafil 2.5 mg' }, 'H5431-006', 2027), null);
   // Rows that disagree (no strength, no product) are not a match either.
@@ -155,7 +155,7 @@ test('a medicare.gov "not covered" is never overridden by the book', async () =>
   assert.equal(row.restrictionSource, undefined);
   assert.equal(row.pa, null, 'the book\'s "PA" is not applied to a not-covered answer');
   // Every plan read not covered, so the existing "confirm the exact product" cell shows — no PDF flags.
-  assert.equal(cell(r, 'H5431-012'), '⚠️ confirm');
+  assert.equal(cell(r, 'H5431-012'), 'Confirm');
 });
 
 test('MO / 90D / 100D only means no PA/QL (known); other plans keep "PA/QL ?"', async () => {

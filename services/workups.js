@@ -274,6 +274,13 @@ function nameKey(name) {
 }
 
 function medKey(name) {
+  try {
+    const p = require('./drugNames').medNameParts(name);
+    const ings = (p.ingredients || []).filter(Boolean).join('+');
+    const form = p.form || '';
+    const str = String(p.strength || '').replace(/\s+/g, '');
+    if (ings) return [ings, form, str].filter(Boolean).join('|');
+  } catch (_) { /* fall through */ }
   const first = String(name || '').toLowerCase().replace(/[^a-z0-9\s/-]/g, ' ').trim().split(/[\s/-]+/)[0] || '';
   return first;
 }
@@ -360,6 +367,21 @@ function mergeMedications(existing, incoming) {
   const out = (existing || []).filter((m) => !NON_MED_RE.test(String(m.name || ''))).map((m) => ({ ...m, byPlanId: { ...(m.byPlanId || {}) } }));
   for (const m of incoming || []) {
     let hit = out.find((x) => medKey(x.name) && medKey(x.name) === medKey(m.name));
+    if (!hit) {
+      const core = (n) => {
+        try {
+          const p = require('./drugNames').medNameParts(n);
+          return (p.ingredients || []).filter(Boolean).join('+') + '|' + (p.form || '');
+        } catch (_) { return ''; }
+      };
+      const STRENGTH0 = /\d(?:\.\d+)?\s*(?:mg|mcg|ml|%|units?)\b/i;
+      hit = out.find((x) => {
+        const a = core(x.name); const b = core(m.name);
+        if (!a || a !== b) return false;
+        return STRENGTH0.test(String(m.name || '')) !== STRENGTH0.test(String(x.name || ''))
+          || (!STRENGTH0.test(String(x.name || '')) && STRENGTH0.test(String(m.name || '')));
+      });
+    }
     if (!hit && typeof LW.medTypoAlias === 'function') {
       hit = out.find((x) => LW.medTypoAlias(x.name, m.name) && unresolvedMed(x));
       if (hit) {

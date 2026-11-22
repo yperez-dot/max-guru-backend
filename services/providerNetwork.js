@@ -337,7 +337,7 @@ async function fhirCheck(npi, { isOrg = false } = {}) {
         : `${carrier.base}/PractitionerRole?practitioner.identifier=${npi}`;
       // Devoted lists one role per network × location (50+ for a busy doctor): page through so
       // every network is seen — a plan counts as In only when its own network is linked.
-      if (devoted) url += '&_count=100';
+      if (devoted) url += '&_count=100&_include=PractitionerRole%3Aorganization';
       const r = await fetch(url, { headers: { Accept: 'application/fhir+json' }, signal: AbortSignal.timeout(8000) });
       if (!r.ok) {
         console.warn(`[fhir] ${carrier.key} HTTP ${r.status} npi=${npi}`);
@@ -472,8 +472,10 @@ const TIMED_OUT = { inNetwork: false, plans: [], outOfNetworkPlans: [], error: '
 function devotedVerdictsFor(state, planYear) {
   const dn = state && state.devotedNetworks;
   if (!dn || (state.fhirFailed || []).includes('Devoted Health')) return null;
-  const v = devotedPlanVerdicts(dn.refs || [], planYear);
+  const listed = Array.isArray(state.fhir) && state.fhir.includes('Devoted Health');
+  const v = devotedPlanVerdicts(dn.refs || [], planYear, { carrierListed: listed });
   if (!v) return null;
+  if (v.unmapped) return { inPlans: [], outPlans: [], unmapped: true };
   return dn.complete === false ? { inPlans: v.inPlans, outPlans: [] } : v;
 }
 
@@ -729,7 +731,14 @@ function structuredFor(doctorName, providerResults, { status, sunfireLabels = []
         directoryMatches: (firstProvider.careplusResult && firstProvider.careplusResult.matches) || [],
       },
       { carrier: DOCTORS_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.includes(DOCTORS_PLAN_LABEL), status: (firstProvider.lookupErrors || []).includes('Doctors HealthCare Plans') ? 'failed' : 'checked' },
-      { carrier: AETNA_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.some((p) => /aetna/i.test(p)), status: guestCheckStatus(firstProvider.aetnaResult) },
+      {
+        carrier: AETNA_PLAN_LABEL,
+        inNetwork: firstProvider.inNetworkFor.some((p) => /aetna/i.test(p)) && !(firstProvider.aetnaResult && firstProvider.aetnaResult.locationOon),
+        status: guestCheckStatus(firstProvider.aetnaResult),
+        plans: (firstProvider.aetnaResult && firstProvider.aetnaResult.plans) || [],
+        outOfNetworkPlans: (firstProvider.aetnaResult && firstProvider.aetnaResult.outOfNetworkPlans) || [],
+        locationOon: Boolean(firstProvider.aetnaResult && firstProvider.aetnaResult.locationOon),
+      },
       { carrier: SIMPLY_PLAN_LABEL, inNetwork: firstProvider.inNetworkFor.some((p) => /simply/i.test(p)), status: guestCheckStatus(firstProvider.simplyResult) },
       // Wellcare has no directory of its own here: Sunfire's provider search is its only check.
       { carrier: 'Wellcare', inNetwork: sunfireLabels.some((p) => /wellcare/i.test(p)), status: sunfireCheckStatus(sunfire) },

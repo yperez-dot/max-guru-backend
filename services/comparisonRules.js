@@ -399,6 +399,17 @@ function sameDrug(a, b) {
   const fx = requestedForm(x);
   const fy = requestedForm(y);
   if (fx && fy && fx !== fy) return false;
+  if ((fx || fy) && fx !== fy) return false;
+  try {
+    const DN = require('./drugNames');
+    const px = DN.medNameParts(x);
+    const py = DN.medNameParts(y);
+    if (px.form && py.form && px.form !== py.form) return false;
+    if (px.strength && py.strength && px.strength.replace(/\s+/g, '') !== py.strength.replace(/\s+/g, '')) return false;
+    const ix = (px.ingredients || []).join('+');
+    const iy = (py.ingredients || []).join('+');
+    if (ix && iy) return ix === iy;
+  } catch (_) { /* fall through */ }
   const head = (s) => s.split(/[\s/(-]+/)[0];
   return x.startsWith(y) || y.startsWith(x) || head(x) === head(y);
 }

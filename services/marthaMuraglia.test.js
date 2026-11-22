@@ -164,11 +164,13 @@ test('Excel/PDF: client "Martha Muraglia" (never "Add Dr"), the same 8 resolved 
   assert.deepEqual(model.aoa[1].slice(1), ['Humana Full Access Giveback\nH5216-311', 'Humana Choice\nH7617-107', 'Humana Choice Giveback\nH7617-110']);
   const row = (re) => model.aoa.find((r) => re.test(String(r[0])));
   assert.deepEqual(row(/Kherada/).slice(1), ['In network', 'In network', 'In network']);
-  assert.match(row(/Kherada/)[0], /Nisharahmed Ishakbhai Kherada · NPI 1235373143/);
+  assert.match(row(/Kherada/)[0], /Nisharahmed Ishakbhai Kherada/);
+  assert.doesNotMatch(row(/Kherada/)[0], /NPI/);
   assert.deepEqual(row(/Van-?Horne?/).slice(1), ['Not in network (not listed)', 'Not in network (not listed)', 'Not in network (not listed)']);
-  assert.match(row(/Van-?Horne?/)[0], /Simone Van-Horne · NPI 1225052103/);
+  assert.match(row(/Van-?Horne?/)[0], /Simone Van-Horne/);
+  assert.doesNotMatch(row(/Van-?Horne?/)[0], /NPI/);
   assert.ok(!model.aoa.some((r) => /^Dr\. Simone Vanhorn$|Nisharajmed/.test(String(r[0]))), 'no stale uncorrected row');
-  assert.equal(model.aoa.filter((r) => /· NPI \d{10}/.test(String(r[0]))).length, 8);
+  assert.equal(model.aoa.filter((r) => /· NPI \d{10}/.test(String(r[0]))).length, 0);
   assert.equal(row(/^Premium$/)[1], 'Not on grid');
   // The page keeps an off-grid table column in the export and the loaded workup's client name.
   const html = fs.readFileSync(path.join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');

@@ -67,6 +67,10 @@
     ["Grocery Card", "groceryCardDetail"],
     ["Acupuncture", "acupuncture"],
     ["Fitness", "fitness"],
+    ["Chiropractic", "chiropractic"],
+    ["Other", "other"],
+    ["Medical Deductible", "planDeductible"],
+    ["SSBCI Chronic Conditions", "ssbciChronicConditions"],
   ];
 
   const HIGHLIGHT_KEYS = { hearing: true, otc: true };
@@ -356,11 +360,13 @@
     return out;
   }
 
-  /** Dedupe key for a medication row: sorted active ingredients. */
+  /** Dedupe key for a medication row: ingredients + form + strength. Never first-token only. */
   function drugIdentityKey(name) {
     const ings = drugIngredients(name);
-    if (!ings.length) return String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
-    return ings.slice().sort().join("+");
+    const n = String(name || "").toLowerCase();
+    const form = (n.match(/\b(gel|ointment|cream|lotion|patch|transdermal|solution|injection|spray)\b/) || [])[1] || "";
+    const ing = ings.length ? ings.slice().sort().join("+") : n.replace(/[^a-z0-9]+/g, "");
+    return [ing, form].filter(Boolean).join("|");
   }
 
   /** One row per requested med: combo variants and "did you mean" fragments collapse. */
@@ -373,7 +379,32 @@
       const ings = ingsOf(d);
       const hit = out.find((x) => {
         const o = ingsOf(x);
-        if (!o.length || !ings.length) return drugIdentityKey(x.name) === drugIdentityKey(d.name);
+        const firstTokName = (n) => String(n || "").toLowerCase().replace(/[^a-z\s]/g, " ").trim().split(/\s+/)[0] || "";
+        const fa = firstTokName(x.name); const fb = firstTokName(d.name);
+        if (fa.length >= 4 && fb.length >= 4 && Math.abs(fa.length - fb.length) <= 2) {
+          let dist = 0;
+          const aa = fa.length >= fb.length ? fa : fb; const bb = fa.length >= fb.length ? fb : fa;
+          if (aa.startsWith(bb) || bb.startsWith(aa)) dist = Math.abs(aa.length - bb.length);
+          else {
+            const m = [];
+            for (let i = 0; i <= aa.length; i += 1) m[i] = [i];
+            for (let j = 0; j <= bb.length; j += 1) m[0][j] = j;
+            for (let i = 1; i <= aa.length; i += 1) for (let j = 1; j <= bb.length; j += 1) m[i][j] = Math.min(m[i-1][j]+1, m[i][j-1]+1, m[i-1][j-1] + (aa[i-1] === bb[j-1] ? 0 : 1));
+            dist = m[aa.length][bb.length];
+          }
+          if (dist === 1) {
+            const formOf = (n) => (String(n || "").toLowerCase().match(/\b(gel|ointment|cream|lotion|patch|transdermal|solution|injection|spray)\b/) || [])[1] || "";
+            const fx = formOf(x.name); const fd = formOf(d.name);
+            if (fx && fd && fx !== fd) return false;
+            return true;
+          }
+        }
+        if (!o.length || !ings.length) {
+          const core = (n) => String(n || "").toLowerCase().replace(/[^a-z]/g, "");
+          const a = core(x.name); const b = core(d.name);
+          if (a && b && (a === b || a.indexOf(b) === 0 || b.indexOf(a) === 0 || a.indexOf(b) >= 0 || b.indexOf(a) >= 0) && Math.min(a.length, b.length) >= 4) return true;
+          return drugIdentityKey(x.name) === drugIdentityKey(d.name);
+        }
         if (o.slice().sort().join("+") === ings.slice().sort().join("+")) return true;
         if (o.length >= 2 && ings.length === 1 && o.indexOf(ings[0]) >= 0) return true;
         if (ings.length >= 2 && o.length === 1 && ings.indexOf(o[0]) >= 0) return true;
@@ -385,9 +416,7 @@
       Object.keys(d.byPlanId || {}).forEach((id) => mergeDrugPlanStatus(hit.byPlanId || (hit.byPlanId = {}), id, d.byPlanId[id], null));
       if (d.screen) hit.screen = Object.assign({}, hit.screen || {}, d.screen);
     });
-    const firstTok = (name) => String(name || "").toLowerCase()
-      .replace(/(\d+(?:\.\d+)?)\s*(mg|mcg|µg|ug|ml|g|iu|units?|%)/g, " ")
-      .replace(/[^a-z0-9\s/-]/g, " ").trim().split(/[\s/-]+/).find((w) => /^[a-z]{3,}$/.test(w)) || "";
+    const firstTok = (name) => drugIdentityKey(name);
     const levTok = (a, b) => {
       const x = String(a || "");
       const y = String(b || "");
@@ -1317,30 +1346,47 @@
   }
   function stripQuantityLimits(text) {
     return String(text == null ? "" : text)
-      .split(" · ")
-      .filter((part) => !/^QL(?:\s|$)/i.test(String(part).trim()))
-      .join(" · ");
+      .replace(/\s*QL(?:\s+\S+)?/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
   }
-  function formatDrugCell(status, plan, opts) {
-    if (!status || !status.verified) return "Unverified";
-    if (status.coverage === "not_covered" && status.unsure) return "Confirm in Sunfire";
+  /** Copay/coinsurance token: "$30" or "33%". Never "Tier", never a middot. */
+  function formatMedCost(raw) {
+    const s = String(raw == null ? "" : raw).trim();
+    if (!s || /^not listed$/i.test(s)) return "";
+    const pct = s.match(/(\d+(?:\.\d+)?)\s*%/);
+    if (pct) return pct[1].replace(/\.0+$/, "") + "%";
+    if (/^0\.\d+$/.test(s)) return Math.round(Number(s) * 1000) / 10 + "%";
+    const dol = s.match(/\$\s*(\d+(?:\.\d+)?)/);
+    if (dol) return "$" + dol[1].replace(/\.0+$/, "");
+    if (/^\$/.test(s)) return s.replace(/\s+/g, "");
+    return s.replace(/\s+/g, " ");
+  }
+  /**
+   * ONE med-cell formatter for chat, Excel and PDF.
+   * Covered: "T# $X" or "T# X%" (single spaces). Unpriced: "Not covered" or "Confirm".
+   * Never "Tier 2 · $0" or "Tier 3 - 15%". Lookup status.tier / status.costShare is the
+   * source of truth (HealthSun 2027 book has no Prolia/denosumab row — do not guess T5 from the grid).
+   */
+  function formatMedCell(status, plan, opts) {
+    if (!status || !status.verified) return "Confirm";
     if (status.coverage === "not_covered") return "Not covered";
-    if (!status.tier) return "Unverified";
+    if (!status.tier) return "Confirm";
     const showQl = opts && opts.showQl === true;
-    const cost =
-      status.costShare ||
-      formatBenefitValue(plan && plan["tier" + status.tier], "tier" + status.tier);
-    // Same restriction flags as the chat meds table (doctorPlanNarrow.drugCell): PA / ST /
-    // plus HealthSun book flags B/D PA and HRM (PA 65+). QL only when she asked.
+    const cost = formatMedCost(
+      status.costShare || formatBenefitValue(plan && plan["tier" + status.tier], "tier" + status.tier)
+    );
     const flags = [
       status.pa ? "PA" : "",
       status.st ? "ST" : "",
       showQl ? (status.qlText || (status.ql ? "QL" : "")) : "",
       status.bdPa ? "B/D PA" : "",
       status.hrm ? "HRM (PA 65+)" : "",
-    ].filter(Boolean).join(" · ");
-    const costBit = cost && cost !== "Not listed" ? " · " + cost : "";
-    return stripStrengthSameNote("Tier " + status.tier + costBit + (flags ? " · " + flags : ""));
+    ].filter(Boolean);
+    return stripStrengthSameNote(["T" + status.tier, cost].filter(Boolean).concat(flags).join(" "));
+  }
+  function formatDrugCell(status, plan, opts) {
+    return formatMedCell(status, plan, opts);
   }
 
   function planIdAliases(plan) {
@@ -1505,7 +1551,7 @@
     // Same single-network list as the chat table (doctorPlanNarrow.SINGLE_NETWORK_CARRIERS):
     // one county directory covers every HMO plan — Devoted, Solis, CarePlus, HealthSun.
     // Doctors DrMax-Dade / DrSelect-SFL share one network; C-SNP/D-SNP stay In*.
-    if (/devoted|solis|careplus|healthsun/.test(c)) return true;
+    if (/solis|careplus|healthsun/.test(c)) return true;
     if (/doctors/.test(c)) {
       const id = String((plan && (plan.planId || plan.id)) || "").toUpperCase().slice(0, 9);
       return SHARED_NETWORK_PLAN_IDS.doctors.indexOf(id) >= 0;
@@ -1522,6 +1568,7 @@
       const outBlob = (net.outOfNetworkPlans || []).join(" ");
       if (blobHasPlanId(inBlob, plan)) return NETWORK_IN;
       if (blobHasPlanId(outBlob, plan)) return NETWORK_OUT;
+      if (net.locationOon && carrierMatchesPlan(net.carrier, plan)) return NETWORK_OUT;
       if (!carrierMatchesPlan(net.carrier, plan)) continue;
       if (net.status === "pending") {
         // Still answering when the chat turn ended: a timeout, not "need more info".
@@ -1535,7 +1582,9 @@
       // A carrier-level hit (no plan IDs) counts as In on a single-network carrier — the same
       // list as the chat table, including HealthSun's 2027 county PDF index.
       if (net.inNetwork === true && !(net.plans && net.plans.length) && carrierHitIsPlanHit(net.carrier, plan)) return NETWORK_IN;
-      if (net.inNetwork === false && net.status === "checked" && carrierHitIsPlanHit(net.carrier, plan)) {
+      const missApplies = carrierHitIsPlanHit(net.carrier, plan)
+        || (/devoted/i.test(String(net.carrier || "")) && carrierMatchesPlan(net.carrier, plan));
+      if (net.inNetwork === false && net.status === "checked" && missApplies) {
         // HealthSun clinics: Organization?identifier=NPI is a real check — empty = Out.
         // CarePlus guest Find Care (partialList false / source findcare) is complete: empty = Out.
         // HealthSun people and the CarePlus PDF name index stay Not confirmed (partial lists).
@@ -2610,7 +2659,8 @@
           if (shown && /^⏱|timed\s*out/i.test(String(shown))) return NETWORK_TIMED_OUT;
           if (!shown && drug.timedOut && !(s && s.verified)) return NETWORK_TIMED_OUT;
           const showQl = payload.showQl === true;
-          const text = shown || formatDrugCell(s, plans[i], { showQl: showQl });
+          const formatted = formatMedCell(s, plans[i], { showQl: showQl });
+          const text = shown && !/Tier|·/.test(String(shown)) ? String(shown) : formatted;
           return showQl ? text : stripQuantityLimits(text);
         });
         const values = [drug.name, ...cells];
@@ -3316,12 +3366,11 @@
     }
   }
 
-  /** Sheet label for a doctor row: "Dr. Nathan Hirsch — Gynecologist · NPI 1720196454" (never "( )"). */
+  /** Sheet label for a doctor row: name + specialty only (never NPI). */
   function doctorExportLabel(doc) {
     const name = String((doc && doc.name) || "").replace(/\(\s*\)/g, "").replace(/\s+/g, " ").trim();
     const role = String((doc && doc.role) || "").trim();
-    const npi = /^\d{10}$/.test(String((doc && doc.npi) || "")) ? String(doc.npi) : "";
-    return name + (role ? " — " + role : "") + (npi ? " · NPI " + npi : "");
+    return name + (role ? " — " + role : "");
   }
 
   // "Show benefits for these plans": every column, looked up by contract-PBP across the WHOLE grid
@@ -3349,6 +3398,8 @@
     ["Specialist", "specialistCopay"], ["ER", "erCopay"], ["Urgent care", "urgentCareCopay"],
     ["Inpatient", "inpatientHospital"], ["Dental", "dental"], ["Vision", "vision"], ["Hearing", "hearing"],
     ["OTC", "otc"], ["Food / grocery card", "groceryCardDetail"], ["Referral", "referral"],
+    ["Chiropractic", "chiropractic"], ["Other", "other"],
+    ["Medical Deductible", "planDeductible"], ["SSBCI Chronic Conditions", "ssbciChronicConditions"],
   ];
 
   /** One side-by-side benefit table for every column (same rows for all plans), from the grid. */
@@ -3493,7 +3544,7 @@
     { re: /\bsimply\b/i, prefixes: ["H5422"] },
     { re: /\bwell\s*care\b/i, prefixes: ["H1032"] },
     { re: /\b(?:uhc|united\s*health)\b/i, prefixes: ["H1045", "H5420"] },
-    { re: /\bdoctors?\b/i, prefixes: ["H4140"] },
+    { re: /\bdoctors?\s+(?:healthcare|health\s*care|drmax|drselect|plan)/i, prefixes: ["H4140"] },
   ];
   function carrierPrefixesIn(text) {
     const t = String(text || "");
@@ -3564,14 +3615,13 @@
       const curKeys = current.map((id) => String(id).toUpperCase().slice(0, 9));
       const isCurId = (id) => curKeys.indexOf(String(id).toUpperCase().slice(0, 9)) >= 0;
       if (PLAN_REMOVE_RE.test(t) && set) {
-        if (ids.length && !PLAN_ADD_RE.test(t)) {
+        const edit = removeAddPlanIds(t);
+        if (edit.removeIds.length) {
+          set = set.filter((id) => edit.removeIds.indexOf(id) < 0);
+        } else if (edit.removePrefixes.length) {
+          set = set.filter((id) => isCurId(id) || !edit.removePrefixes.some((p) => String(id).toUpperCase().indexOf(p) === 0));
+        } else if (ids.length && !PLAN_ADD_RE.test(t)) {
           set = set.filter((id) => ids.indexOf(id) < 0);
-        } else if (PLAN_ADD_RE.test(t)) {
-          const edit = removeAddPlanIds(t);
-          if (edit.removeIds.length) set = set.filter((id) => edit.removeIds.indexOf(id) < 0);
-          else if (edit.removePrefixes.length) {
-            set = set.filter((id) => isCurId(id) || !edit.removePrefixes.some((p) => String(id).toUpperCase().indexOf(p) === 0));
-          }
         } else {
           const prefixes = carrierPrefixesIn(t);
           if (prefixes.length) {
@@ -3873,6 +3923,8 @@
     extractVerifiedLookups,
     parseFormularyLookupLine,
     normalizeDrugs,
+    formatMedCell,
+    formatMedCost,
     formatDrugCell,
     stripQuantityLimits,
     stripStrengthSameNote,
