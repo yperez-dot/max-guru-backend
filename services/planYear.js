@@ -12,6 +12,13 @@ function hasYearToken(text, year) {
   return new RegExp(`\\b${year}\\b`).test(String(text || ''));
 }
 
+/** Calendar dates on a CRM print ("Jan 1, 2026", "01.01.2026") are not a 2026-only ask. */
+function stripCalendarDates(text) {
+  return String(text || '')
+    .replace(/\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s+20\d{2}\b/gi, ' ')
+    .replace(/\b\d{1,2}[./-]\d{1,2}[./-](?:20)?\d{2}\b/g, ' ');
+}
+
 function userMessageText(content) {
   if (typeof content === 'string') {
     return content.trim().startsWith('data:image/') ? '' : String(content || '');
@@ -62,7 +69,7 @@ function conversationAskText(messages) {
  * neither → fallback (toggle / default)
  */
 function detectPlanYear(text, fallback = DEFAULT_PLAN_YEAR) {
-  const t = String(text || '');
+  const t = stripCalendarDates(text);
   const has26 = hasYearToken(t, 2026);
   const has27 = hasYearToken(t, 2027);
   if (has26 && !has27) return 2026;
@@ -97,7 +104,7 @@ function resolveDocumentYear({
   systemText = '',
   plans = [],
 } = {}) {
-  const ask = String(askText || '');
+  const ask = stripCalendarDates(askText);
   const has26 = hasYearToken(ask, 2026);
   const has27 = hasYearToken(ask, 2027);
   if (has26 && has27) return DEFAULT_PLAN_YEAR;
@@ -146,6 +153,7 @@ module.exports = {
   DEFAULT_PLAN_YEAR,
   ATTACHED_YEAR_RE,
   conversationAskText,
+  stripCalendarDates,
   detectPlanYear,
   resolveDocumentYear,
   resolveDocumentUrl,

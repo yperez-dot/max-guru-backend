@@ -7560,7 +7560,7 @@ function PdfIntakePreview({ preview, zipDefault, useLabel, onUse, onCancel }) {
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
         <label style={{ fontSize: 12.5, fontWeight: 600 }}>Client ZIP</label>
         <input data-testid="pdf-intake-zip" inputMode="numeric" maxLength={5} value={zip} onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))} style={{ ...box, width: 90 }} placeholder="33196" />
-        {!zipOk && <span style={{ fontSize: 12, color: "#9B1C3C" }}>Enter her ZIP (the PDF only has the doctors' addresses).</span>}
+        {!zipOk && <span style={{ fontSize: 12, color: "#9B1C3C" }}>{(intake.zipHints || []).length ? "Enter her ZIP (pharmacy hints: " + intake.zipHints.join(", ") + " — confirm hers, don't auto-fill)." : "Enter her ZIP (the PDF only has the doctors' addresses)."}</span>}
       </div>
       <textarea data-testid="pdf-intake-text" value={text} onChange={(e) => setText(e.target.value)} rows={8} style={{ ...box, marginTop: 8 }} />
       <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>

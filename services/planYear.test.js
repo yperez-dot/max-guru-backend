@@ -27,6 +27,12 @@ describe('detectPlanYear / resolveDocumentYear', () => {
     );
   });
 
+  it('an effective date of 01.01.2026 / Jan 1, 2026 is not a 2026-only ask', () => {
+    assert.equal(detectPlanYear('Current plan: DEVOTED CORE 062 FL (HMO)\nEffective Date: Jan 1, 2026'), 2027);
+    assert.equal(detectPlanYear('Current plan effective 01.01.2026'), 2027);
+    assert.equal(resolveDocumentYear({ askText: 'Plan Name: DEVOTED CORE 062 FL (HMO)\nEffective Date: Jan 1, 2026' }), 2027);
+  });
+
   it('uses 2027 when she says 2027', () => {
     assert.equal(detectPlanYear('2027 AEP SNF on H1609-093'), 2027);
     assert.equal(resolveDocumentYear({ askText: 'Need the 2027 SOB for CareComplete' }), 2027);
