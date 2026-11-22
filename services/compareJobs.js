@@ -40,7 +40,10 @@ const PLAN_ID_RE = /\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
 function splitList(text) {
   return String(text || '')
     .split(/\n|,|;|\band\b(?=\s+[A-Z])|\s&\s|\sy\s/i)
-    .map((s) => stripListConnectors(s.replace(/^[\s\-•*\d.)]+/, '')))
+    .map((s) => stripListConnectors(String(s || '')
+      .replace(/^[\s\-•*]+/, '')
+      .replace(/^\d+[.)]\s+/, '')
+      .replace(/^\d{1,2}\s+(?!(?:HR|HRS|HOURS?|ER|XR|CR|SR|LA)\b)/i, '')))
     .filter((s) => s && s.length > 1);
 }
 
@@ -201,11 +204,23 @@ function unlabeledMeds(t, zip, doctors) {
 
 /** "Maria & Gaspar Padron, ZIP 33332 … Doctors: … Meds: … Compare H… " → fields. */
 function parseCompareAsk(text) {
-  const t = normalizePlanIds(String(text || '').replace(/\r/g, ''));
+  let t = normalizePlanIds(String(text || '').replace(/\r/g, ''));
+  const P = require('./pdfIntake');
+  if (P.isMedicareProClientPrint(t)) {
+    const cleaned = P.intakeRequestText(P.parseIntakeText(t));
+    if (cleaned && cleaned.trim() && !P.isMedicareProClientPrint(cleaned)) t = normalizePlanIds(cleaned);
+  }
   const stops = ['doctors?', 'drs?', 'providers?', 'meds?', 'medications?', 'rx', 'drugs?', 'current\\s+plans?', 'plans?', 'compare', 'pharmacy', 'pharmacies', 'preferred\\s+pharmacy'];
   const constraints = askConstraints(t);
 
-  const zip = (t.match(/\b(?:zip\s*(?:code)?\s*:?\s*)?(\d{5})\b/i) || [])[1] || '';
+  // Labeled ZIP anywhere. Otherwise the first 5-digit before Doctors:/Meds:/Pharmacy: — never a
+  // pharmacy house number, "0.00025 MG/MG" (ZIP 00025), or a doctor's address later in the paste.
+  const zip = (() => {
+    const labeled = t.match(/\bzip(?:\s*code)?\s*:?\s*(?<![.\d])(\d{5})(?!\d)/i);
+    if (labeled) return labeled[1];
+    const head = t.split(/\n(?=(?:Doctors|Meds|Pharmacy|Pharmacies|Current plan)\s*:)/i)[0];
+    return (head.match(/(?<![.\d])(\d{5})(?!\d)/) || [])[1] || '';
+  })();
   const clientMatch = t.replace(/^\s*(?:new\s+)?(?:client|patient|cliente)\s*[:\-–—]\s*/i, '').match(/^\s*([A-Z][a-z]+(?:\s*(?:&|and|y)\s*[A-Z][a-z]+)?\s+[A-Z][A-Za-z'-]+)/);
   // A doctor mapping or a dose answer ("Pinecrest Dentisry is Dr. Salome Fraga", "X = Dr. Y", "Levothyroxine is 0.2 mg")
   // names no client (Gerry Cabrera, 2026-10-19: the client was renamed after the practice).
@@ -343,8 +358,8 @@ function parseCompareAsk(text) {
     eligibility: eligibilityFromAsk(t),
     skip: [...skip].filter((id) => id !== terminatingPlan),
     // "Pharmacy: Walmart Neighborhood Pharmacy, 14720 SW 26th Street …" (typed or from a PDF): saved with the workup.
-    pharmacy: section(t, '(?:preferred\\s+)?pharmacy', stops.filter((x) => !/pharmac/.test(x))).split('\n')[0].trim().slice(0, 200),
-    year: /\b2026\b/.test(t) && !/\b2027\b/.test(t) ? 2026 : 2027,
+    pharmacy: section(t, '(?:preferred\\s+)?pharmacy', stops.filter((x) => !/pharmac/.test(x))).split('\n')[0].trim().slice(0, 400),
+    year: require('./planYear').detectPlanYear(t),
   };
 }
 

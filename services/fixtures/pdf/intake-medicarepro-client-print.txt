@@ -1,0 +1,110 @@
+11/22/26, 8:41 AM                                                                                                                                       Client Print
+
+
+
+
+                                                                                                                                         Marina Solano
+                                                                                      Below is a list of your annual healthcare information that you
+          Camila Romero                                                             helped me gather. You will see your current healthcare plan(s)
+          Co-Owner & Health Insurance                                                 along with a listing of your current providers and prescription
+          Agent                                                                     drugs. Also, I included a handy drug sheet that you can cut out
+          The Health Experts Insurance                                                and keep with you. If you have any questions please contact
+          (305) 555-0148                                                                                                                         me.
+          cromero@example.com
+          1695 NW 110 AVE 224 DORAL, FL 33172
+
+
+
+
+     Plans
+          Devoted Health
+              Plan Name: DEVOTED CORE 062 FL (HMO)
+              Effective Date: Jan 1, 2026
+              Status: Active
+              Plan Type: Medicare Advantage
+
+
+     Providers
+          MARTA SOLANO RUIZ (PCP)
+          Luis Herrera (Dentist)
+          Marco Vidal (Urologist)
+          Elena Castro (Cardiologist)
+          Tomas Navarro (Neurologist)
+          Rosa Benitez (Dermatologist)
+          Pablo Rivas (Gastroenterologist)
+          Coral Eyes (Optometrist)
+          Diego Molina (PCP)
+
+     Prescription Drugs
+          alprazolam 0.25 MG Oral Tablet
+          atorvastatin 20 MG Oral Tablet
+          meloxicam 15 MG Oral Tablet
+          meloxicam 5 MG Oral Capsule
+          24 HR oxcarbazepine 600 MG Extended Release Oral Tablet
+
+
+
+
+https://www.medicareproapp.com/agent/profileController/clientPrint/overview=1,plan=1,pro=1,rx=1,pharmacy=1,questionnaire=1,rxCutOut=1,logo=1,labelPos=,ind_id=1000001,spouse_id
+                                                                                                                                                                  1/4
+11/22/26, 8:41 AM                                                                                                                                       Client Print
+
+
+          sertraline 50 MG Oral Tablet
+          triamcinolone acetonide 0.00025 MG/MG Topical Ointment
+
+
+     Pharmacies
+          WALGREENS #01999
+            Address: 12345 SW 200TH ST HOMESTEAD, FL 33032
+            Phone: (305) 246-0100
+
+          CVS PHARMACY #08888
+            Address: 9876 S DIXIE HWY HOMESTEAD, FL 33033
+            Phone: (305) 247-0200
+
+
+
+
+https://www.medicareproapp.com/agent/profileController/clientPrint/overview=1,plan=1,pro=1,rx=1,pharmacy=1,questionnaire=1,rxCutOut=1,logo=1,labelPos=,ind_id=1000001,spouse_id
+                                                                                                                                                                  2/4
+11/22/26, 8:41 AM                                                                                                                                       Client Print
+
+
+
+     Rx Cards
+
+          My Drug List
+          Drug Name                                                                            Dosage            Frequency            Per
+               alprazolam 0.25 MG Oral Tablet
+               atorvastatin 20 MG Oral Tablet
+               meloxicam 15 MG Oral Tablet
+               meloxicam 5 MG Oral Capsule
+               24 HR oxcarbazepine 600 MG Extended Release Oral Tablet
+               sertraline 50 MG Oral Tablet
+               triamcinolone acetonide 0.00025 MG/MG Topical Ointment
+
+
+          My Drug List
+          Drug Name                                                                            Dosage            Frequency
+               alprazolam 0.25 MG Oral Tablet
+               atorvastatin 20 MG Oral Tablet
+               meloxicam 15 MG Oral Tablet
+               meloxicam 5 MG Oral Capsule
+               24 HR oxcarbazepine 600 MG Extended Release Oral Tablet
+               sertraline 50 MG Oral Tablet
+               triamcinolone acetonide 0.00025 MG/MG Topical Ointment
+
+
+
+
+https://www.medicareproapp.com/agent/profileController/clientPrint/overview=1,plan=1,pro=1,rx=1,pharmacy=1,questionnaire=1,rxCutOut=1,logo=1,labelPos=,ind_id=1000001,spouse_id
+                                                                                                                                                                  3/4
+11/22/26, 8:41 AM                                                                                                                                       Client Print
+
+
+
+
+https://www.medicareproapp.com/agent/profileController/clientPrint/overview=1,plan=1,pro=1,rx=1,pharmacy=1,questionnaire=1,rxCutOut=1,logo=1,labelPos=,ind_id=1000001,spouse_id
+                                                                                                                                                                  4/4
+

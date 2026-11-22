@@ -155,4 +155,119 @@ test('page: paperclip takes PDFs (desktop and mobile file picker), preview befor
   assert.match(html, /app\.use|compareRequest\("POST", "\/pdf"/);
   const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
   assert.match(server, /app\.use\('\/compare\/pdf', express\.json\(\{ limit: process\.env\.MAX_PDF_BODY_LIMIT \|\| '60mb' \}\)\);\napp\.use\(express\.json/);
+  assert.match(html, /pharmacy hints/);
+});
+
+const MP = require('./medicareProPrint');
+const PRINT_TXT = fs.readFileSync(path.join(FIX, 'intake-medicarepro-client-print.txt'), 'utf8');
+const PRINT_PEOPLE = ['Marta Solano Ruiz', 'Luis Herrera', 'Marco Vidal', 'Elena Castro', 'Tomas Navarro', 'Rosa Benitez', 'Pablo Rivas', 'Coral Eyes', 'Diego Molina'];
+const PRINT_MEDS = [
+  'alprazolam 0.25 MG Oral Tablet',
+  'atorvastatin 20 MG Oral Tablet',
+  'meloxicam 15 MG Oral Tablet',
+  'meloxicam 5 MG Oral Capsule',
+  '24 HR oxcarbazepine 600 MG Extended Release Oral Tablet',
+  'sertraline 50 MG Oral Tablet',
+  'triamcinolone acetonide 0.00025 MG/MG Topical Ointment',
+];
+
+test('24 HR ER drugs keep the 24; numbered "1. Lipitor" still strips the list marker', () => {
+  assert.match(P.medItem('24 HR oxcarbazepine 600 MG Extended Release Oral Tablet').name, /^24 HR oxcarbazepine/);
+  assert.match(P.medItem('1. Atorvastatin 20 mg').name, /^Atorvastatin 20 mg/i);
+  assert.equal(P.medItem('24 HR oxcarbazepine 600 MG Extended Release Oral Tablet').strength, '600 mg');
+});
+
+test('MedicarePro Client Print: detect, strip chrome, client vs agent, plan, providers, meds, pharmacies', () => {
+  assert.equal(MP.isMedicareProClientPrint(PRINT_TXT), true);
+  assert.equal(MP.matchPlanName('DEVOTED CORE 062 FL (HMO)').planId, 'H1290-062');
+  assert.equal(MP.matchPlanName('DEVOTED CORE 062 FL (HMO)').confidence, 'high');
+  const gold = MP.matchPlanName('Humana Gold Plus');
+  assert.equal(gold.confidence, 'ambiguous');
+  assert.ok(gold.candidates.some((id) => id.slice(0, 9) === 'H1036-054') && gold.candidates.some((id) => id.slice(0, 9) === 'H1036-065'), String(gold.candidates));
+
+  const it = P.parseIntakeText(PRINT_TXT);
+  assert.equal(it.clientName, 'Marina Solano');
+  assert.equal(it.zip, '', 'never the office ZIP 33172 or a pharmacy ZIP');
+  assert.deepEqual(it.zipHints, ['33032', '33033']);
+  assert.equal(it.currentPlan.planId, 'H1290-062');
+  assert.equal(it.currentPlan.confidence, 'high');
+  assert.equal(it.currentPlan.effectiveDate, '01.01.2026');
+  assert.deepEqual(it.doctors.map((d) => d.name), PRINT_PEOPLE);
+  assert.equal(it.doctors.find((d) => d.name === 'Marta Solano Ruiz').specialty, 'PCP');
+  assert.equal(it.doctors.find((d) => d.name === 'Diego Molina').specialty, 'PCP');
+  const eyes = it.doctors.find((d) => d.name === 'Coral Eyes');
+  assert.equal(eyes.role, 'practice');
+  assert.match(eyes.note, /practice — no doctor named/);
+  assert.equal(eyes.specialty, 'Optometrist');
+  assert.ok(it.questions.some((q) => q.kind === 'pcp' && /Marta Solano Ruiz and Diego Molina/.test(q.text)));
+  assert.ok(it.questions.some((q) => q.kind === 'doctor' && /Coral Eyes/.test(q.text)));
+  assert.deepEqual(it.meds.map((m) => m.name), PRINT_MEDS);
+  assert.ok(!it.meds.some((m) => /medicareproapp|Client Print|Drug Name|1\/4/.test(m.name)));
+  assert.ok(!it.doctors.some((d) => /medicareproapp|Client Print|Camila Romero/.test(d.name)));
+  assert.equal(it.pharmacies.length, 2);
+  assert.equal(it.pharmacies[0].name, 'WALGREENS #01999');
+  assert.match(it.pharmacies[0].address, /33032/);
+  assert.equal(it.pharmacies[1].name, 'CVS PHARMACY #08888');
+  assert.match(it.pharmacies[1].phone, /305\) 247-0200/);
+  assert.ok(it.notes.some((n) => /Pharmacy ZIP hints/.test(n) && /33032/.test(n) && /33033/.test(n)));
+  assert.ok(it.notes.some((n) => /enter her ZIP/i.test(n)));
+  assert.doesNotMatch(it.notes.join('\n'), /33172/);
+
+  const preview = P.intakeRequestText(it);
+  assert.match(preview, /^Marina Solano\nCurrent plan: Devoted CORE 062 \(H1290-062\)/);
+  assert.match(preview, /Coral Eyes \(Optometrist — practice — no doctor named\)/);
+  assert.match(preview, /24 HR oxcarbazepine 600 MG Extended Release Oral Tablet/);
+  assert.match(preview, /meloxicam 15 MG Oral Tablet/);
+  assert.match(preview, /meloxicam 5 MG Oral Capsule/);
+  assert.doesNotMatch(preview, /33172|33032|33033|\b2026\b/);
+  assert.match(preview, /WALGREENS #01999.*CVS PHARMACY #08888/s);
+});
+
+test('MedicarePro Client Print PDF extract matches the text fixture', { skip: !hasPdftotext }, async () => {
+  const r = await read('intake-medicarepro-client-print.pdf');
+  assert.equal(r.results[0].ok, true);
+  assert.equal(r.intake.clientName, 'Marina Solano');
+  assert.equal(r.intake.currentPlan.planId, 'H1290-062');
+  assert.equal(r.intake.doctors.length, 9);
+  assert.equal(r.intake.meds.length, 7);
+  assert.equal(r.intake.pharmacies.length, 2);
+  assert.equal(r.intake.zip, '');
+  assert.match(r.requestText, /Current plan: Devoted CORE 062 \(H1290-062\)/);
+});
+
+test('a pasted MedicarePro Client Print parses the same way (no office ZIP, no 2026 year, current plan mapped)', () => {
+  const f = C.parseCompareAsk(PRINT_TXT);
+  assert.equal(f.clientName, 'Marina Solano');
+  assert.equal(f.zip, '', 'office ZIP 33172 and pharmacy ZIPs stay out');
+  assert.equal(f.year, 2027);
+  assert.deepEqual(f.currentPlans, ['H1290-062']);
+  assert.ok(f.plans.includes('H1290-062'));
+  assert.equal(f.wantsAlternatives, true);
+  assert.deepEqual(f.doctors.map((d) => d.name.replace(/\s*\([^)]*\)\s*$/, '')), PRINT_PEOPLE);
+  assert.ok(f.doctors.find((d) => /Coral Eyes/.test(d.name)));
+  assert.equal(f.meds.length, 7);
+  assert.ok(f.meds.some((m) => /24 HR oxcarbazepine/.test(m)));
+  assert.ok(f.meds.some((m) => /meloxicam 15 MG Oral Tablet/.test(m)));
+  assert.ok(f.meds.some((m) => /meloxicam 5 MG Oral Capsule/.test(m)));
+  assert.ok(!f.meds.some((m) => /medicareproapp|Client Print/.test(m)));
+  assert.match(f.pharmacy, /WALGREENS #01999/);
+  assert.match(f.pharmacy, /CVS PHARMACY #08888/);
+  assert.doesNotMatch(f.pharmacy, /33032|33033|33172/);
+
+  const withZip = P.intakeRequestText(P.parseIntakeText(PRINT_TXT), { zip: '33177' });
+  const g = C.parseCompareAsk(withZip);
+  assert.equal(g.zip, '33177');
+  assert.equal(g.year, 2027);
+  assert.deepEqual(g.currentPlans, ['H1290-062']);
+});
+
+test('unmapped Plan Name is shown and asked; 0.00025 is not a ZIP', () => {
+  const text = PRINT_TXT.replace('DEVOTED CORE 062 FL (HMO)', 'SOME UNKNOWN PLAN FL (HMO)');
+  const it = P.parseIntakeText(text);
+  assert.equal(it.currentPlan.planId, '');
+  assert.ok(it.questions.some((q) => q.kind === 'plan' && /SOME UNKNOWN PLAN/.test(q.text)));
+  assert.match(P.intakeRequestText(it), /Current plan: SOME UNKNOWN PLAN FL \(HMO\)/);
+  assert.doesNotMatch(P.intakeRequestText(it), /H1290-062/);
+  const f = C.parseCompareAsk('Marina Solano\nMeds: triamcinolone acetonide 0.00025 MG/MG Topical Ointment');
+  assert.notEqual(f.zip, '00025');
 });

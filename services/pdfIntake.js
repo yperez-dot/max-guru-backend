@@ -1,17 +1,20 @@
 /**
  * Client PDFs (care-team / medication lists) → the same typed request Max already reads. Yahoska, 2026-10-21: clients
- * send PDFs with their doctors and meds; she uploads them instead of retyping.
+ * send PDFs with their doctors and meds; she uploads them instead of retyping. 2026-11-22: MedicarePro CRM "Client Print"
+ * PDFs (letterhead + Plans / Providers / Prescription Drugs / Pharmacies / Rx Cards) are detected in
+ * services/medicareProPrint.js — letterhead, footers and cut-outs stripped; marketing plan name mapped to a grid ID.
  *
  * 1. extractPdfText: the PDF's own text layer (poppler `pdftotext -layout`, piped through stdin — the PDF is never
  *    written to disk and nothing of it is kept after the request). No text layer (a scan) → said plainly, never guessed.
  * 2. parseIntakeText: client, ZIP, providers (name, specialty, practice, address, phone — an NP/PA and the supervising MD
  *    both kept as doctors), meds (name, strength, form; "10/20 mg" asks which one; OTC supplements skipped and said so),
- *    pharmacy.
+ *    pharmacy. MedicarePro Client Print also returns currentPlan, pharmacies[], zipHints.
  * 3. intakeRequestText: the typed request ("Name, ZIP …\nDoctors:\n…\nMeds: …\nPharmacy: …") she reviews and edits; it
  *    then runs exactly like a typed request (parseCompareAsk → workup → doctor / drug lookups).
  */
 const { spawn } = require('child_process');
 const DE = require('./doctorEntries');
+const MP = require('./medicareProPrint');
 
 const MAX_PDF_BYTES = Number(process.env.MAX_PDF_BYTES || 10 * 1024 * 1024);
 const MAX_PDFS = 4;
@@ -87,9 +90,9 @@ async function extractPdfText(bytes, deps = {}) {
 
 // ─── parse ──────────────────────────────────────────────────────────────────────────────────────────────────────
 
-const FOOTER_RE = /informational purposes only|AI responses may include mistakes|^\s*page\s+\d+(?:\s+of\s+\d+)?\s*$/i;
+const FOOTER_RE = /informational purposes only|AI responses may include mistakes|^\s*page\s+\d+(?:\s+of\s+\d+)?\s*$|medicareproapp\.com|^\s*\d+\s*\/\s*\d+\s*$/i;
 const PROVIDERS_HEAD_RE = /^\s*(?:■\s*|#+\s*)?(?:(?:my\s+)?care\s+team\b.*|(?:my\s+)?(?:doctors|providers|physicians|specialists)(?:\s*(?:&|and)\s*\w+)*\s*:?)\s*$/i;
-const MEDS_HEAD_RE = /^\s*(?:■\s*|#+\s*)?(?:current\s+|active\s+|my\s+)?(?:medications?|prescriptions?|meds|medicines?|drugs?)(?:\s*(?:&|and|\/)\s*\w+)*(?:\s+list)?\s*:?\s*$/i;
+const MEDS_HEAD_RE = /^\s*(?:■\s*|#+\s*)?(?:current\s+|active\s+|my\s+)?(?:medications?|prescriptions?|prescription\s+drugs?|meds|medicines?|drugs?)(?:\s*(?:&|and|\/)\s*\w+)*(?:\s+list)?\s*:?\s*$/i;
 const PHARMACY_HEAD_RE = /^\s*(?:■\s*|#+\s*)?(?:preferred\s+|my\s+)?pharmac(?:y|ies)\s*:?\s*$/i;
 const OTC_RE = /\b(?:probiotics?|fiber|fibre|gumm(?:y|ies)|chewables?|align\b|culturelle|florastor|metamucil|benefiber|citrucel|melatonin|multi-?vitamins?|supplements?|fish\s+oil|omega-?3|glucosamine|chondroitin|turmeric|coq-?10|biotin|elderberry|collagen)\b/i;
 const CREDENTIAL_RE = /,?\s*\b(MD|M\.D\.|DO|D\.O\.|DPM|DDS|DMD|OD|PA-C|PA|P\.A\.|NP|APRN|ARNP|FNP|FNP-C|CNP|PhD)\b\.?/gi;
@@ -168,7 +171,7 @@ function blockRows(lines) {
   return rows;
 }
 
-const titleCaseWord = (w) => (w === w.toUpperCase() && w.length > 3 ? w.charAt(0) + w.slice(1).toLowerCase() : w);
+const titleCaseWord = (w) => (w === w.toUpperCase() && w.length > 3 && /^[A-Z]+$/.test(w) ? w.charAt(0) + w.slice(1).toLowerCase() : w);
 
 /** "Dr. Yanette Barcelo (with Dr. Hector Wiltz)" → people; "Sirven & Associates (Dr. Robert Sirven)" → practice + person. */
 function peopleOf(providerText, specialty) {
@@ -275,7 +278,11 @@ function providersFrom(lines) {
 const STRENGTH_RE = /(\d+(?:\.\d+)?(?:\s*\/\s*\d+(?:\.\d+)?)*)\s*(mg|mcg|µg|g|ml|mL|%|units?|iu|meq)\b|(\d+(?:\.\d+)?(?:\s*\/\s*\d+(?:\.\d+)?)*)\s*%/i;
 
 function medItem(raw, extra = {}) {
-  let text = String(raw || '').replace(/\s+/g, ' ').replace(/^\s*(?:\d+[.)]?|[-•*·])\s+/, '').replace(/\s*\.\s*$/, '').trim();
+  // Numbered lists: "1. Lipitor" / "1 Hydrochlorothiazide". "24 HR oxcarbazepine" keeps the 24.
+  let text = String(raw || '').replace(/\s+/g, ' ')
+    .replace(/^\s*(?:\d+[.)]|[-•*·])\s+/, '')
+    .replace(/^\s*\d{1,2}\s+(?!(?:HR|HRS|HOURS?|ER|XR|CR|SR|LA)\b)/i, '')
+    .replace(/\s*\.\s*$/, '').trim();
   if (!text || /^\.+$/.test(text)) return null;
   const parens = [...text.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]);
   const otc = OTC_RE.test(text);
@@ -345,8 +352,44 @@ function pharmacyFrom(lines) {
   return { name: ls[0].replace(/\s{2,}.*/, ''), address: [d.practice, d.address].filter(Boolean).join(', '), phone: d.phone };
 }
 
+function flattenDoctors(providers) {
+  return providers.flatMap((p) => p.people.map((who) => ({
+    name: who.name,
+    ...(who.credential ? { credential: who.credential } : {}),
+    ...(who.titled ? { titled: true } : {}),
+    role: who.role,
+    specialty: p.specialty,
+    practice: p.practice,
+    address: p.address,
+    phone: p.phone,
+    ...(who.note ? { note: who.note } : {}),
+  })));
+}
+
+function intakeFromMedicarePro(text) {
+  const parsed = MP.parseMedicareProPrint(text);
+  const allMeds = (parsed.meds || []).map((m) => (typeof m === 'string' ? medItem(m) : m)).filter(Boolean);
+  const meds = allMeds.filter((m) => !m.otc);
+  const skippedOtc = allMeds.filter((m) => m.otc);
+  const questions = [...(parsed.questions || [])];
+  for (const m of meds) {
+    if (m.strengthOptions) questions.push({ kind: 'strength', med: m.name, text: `"${m.name}" lists two strengths — which one does she take?`, options: [...m.strengthOptions] });
+  }
+  const notes = [...(parsed.notes || [])];
+  if (skippedOtc.length) notes.unshift(`Skipped ${skippedOtc.length} over-the-counter supplement${skippedOtc.length > 1 ? 's' : ''} (not covered by Part D): ${skippedOtc.map((m) => m.name).join(', ')}.`);
+  return {
+    ...parsed,
+    meds,
+    skippedOtc,
+    doctors: parsed.doctors && parsed.doctors.length ? parsed.doctors : flattenDoctors(parsed.providers || []),
+    questions,
+    notes,
+  };
+}
+
 /** The structured intake from a PDF's text layer. Nothing is dropped: every provider row and every med line comes back. */
 function parseIntakeText(text) {
+  if (MP.isMedicareProClientPrint(text)) return intakeFromMedicarePro(text);
   const sec = sectionsOf(text);
   const { clientName, zip } = clientFrom(sec.head, []);
   const providers = providersFrom(sec.providers);
@@ -361,17 +404,7 @@ function parseIntakeText(text) {
   for (const p of providers) {
     for (const who of p.people) if (who.note) questions.push({ kind: 'doctor', doctor: who.name, text: `${who.name}${p.specialty ? ` (${p.specialty})` : ''}: ${who.note}.` });
   }
-  const doctors = providers.flatMap((p) => p.people.map((who) => ({
-    name: who.name,
-    ...(who.credential ? { credential: who.credential } : {}),
-    ...(who.titled ? { titled: true } : {}),
-    role: who.role,
-    specialty: p.specialty,
-    practice: p.practice,
-    address: p.address,
-    phone: p.phone,
-    ...(who.note ? { note: who.note } : {}),
-  })));
+  const doctors = flattenDoctors(providers);
   return {
     clientName,
     zip,
@@ -391,12 +424,16 @@ function parseIntakeText(text) {
 
 /** Several PDFs for one client: one list, nothing dropped, duplicates (same name) once. */
 function mergeIntakes(list) {
-  const out = { clientName: '', zip: '', providers: [], doctors: [], meds: [], skippedOtc: [], pharmacy: null, questions: [], notes: [] };
+  const out = { clientName: '', zip: '', providers: [], doctors: [], meds: [], skippedOtc: [], pharmacy: null, pharmacies: [], currentPlan: null, zipHints: [], questions: [], notes: [] };
   const key = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   for (const p of list.filter(Boolean)) {
     out.clientName = out.clientName || p.clientName;
     out.zip = out.zip || p.zip;
     out.pharmacy = out.pharmacy || p.pharmacy;
+    out.currentPlan = out.currentPlan || p.currentPlan;
+    const extraPharmacies = p.pharmacies && p.pharmacies.length ? p.pharmacies : (p.pharmacy ? [p.pharmacy] : []);
+    for (const ph of extraPharmacies) if (ph && ph.name && !out.pharmacies.some((x) => key(x.name) === key(ph.name))) out.pharmacies.push(ph);
+    for (const z of p.zipHints || []) if (!out.zipHints.includes(z)) out.zipHints.push(z);
     out.providers.push(...p.providers);
     for (const d of p.doctors) if (!out.doctors.some((x) => key(x.name) === key(d.name))) out.doctors.push(d);
     for (const m of p.meds) if (!out.meds.some((x) => key(x.name) === key(m.name))) out.meds.push(m);
@@ -416,10 +453,15 @@ function intakeRequestText(intake, { zip = '', clientName = '', strengthPicks = 
   const name = clientName || it.clientName || '';
   const z = zip || it.zip || '';
   const lines = [[name, z ? `ZIP ${z}` : ''].filter(Boolean).join(', ')];
+  const plan = it.currentPlan || {};
+  if (plan.planId || plan.marketingName || plan.name) {
+    const label = plan.name || plan.marketingName;
+    lines.push(plan.planId ? `Current plan: ${label} (${plan.planId})` : `Current plan: ${label}`);
+  }
   lines.push('Doctors:');
   for (const d of it.doctors || []) {
-    const tag = [d.specialty, d.credential && NON_MD_RE.test(d.credential) ? d.credential : '', d.role === 'supervising' ? 'supervising doctor' : '']
-      .filter(Boolean).join('; ').replace(/,/g, ' ');
+    const tag = [d.specialty, d.credential && NON_MD_RE.test(d.credential) ? d.credential : '', d.role === 'supervising' ? 'supervising doctor' : '', d.role === 'practice' ? 'practice — no doctor named' : '']
+      .filter(Boolean).join(' — ').replace(/,/g, ' ');
     const head = `${d.titled ? 'Dr. ' : ''}${d.name}${tag ? ` (${tag})` : ''}`;
     lines.push([head, d.role === 'practice' ? '' : d.practice, d.address, d.phone].filter(Boolean).join(', '));
   }
@@ -429,7 +471,11 @@ function intakeRequestText(intake, { zip = '', clientName = '', strengthPicks = 
     return m.name;
   });
   lines.push('Meds: ' + meds.join('; '));
-  if (it.pharmacy && it.pharmacy.name) lines.push('Pharmacy: ' + [it.pharmacy.name, it.pharmacy.address].filter(Boolean).join(', ').replace(/;/g, ','));
+  const pharmacies = (it.pharmacies && it.pharmacies.length) ? it.pharmacies : (it.pharmacy && it.pharmacy.name ? [it.pharmacy] : []);
+  if (pharmacies.length) {
+    const bits = pharmacies.map((ph) => [ph.name, MP.addressWithoutZip(ph.address)].filter(Boolean).join(', '));
+    lines.push('Pharmacy: ' + bits.join('; '));
+  }
   return lines.join('\n');
 }
 
@@ -461,4 +507,5 @@ module.exports = {
   MAX_PDF_BYTES, MAX_PDFS,
   decodePdf, runPdftotext, extractPdfText, parseIntakeText, mergeIntakes, intakeRequestText, readPdfIntake,
   sectionsOf, peopleOf, medItem, chunksOf,
+  isMedicareProClientPrint: MP.isMedicareProClientPrint,
 };
