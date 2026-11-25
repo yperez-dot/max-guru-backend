@@ -1,0 +1,43 @@
+11/25/26, 10:22 AM                                                                                                                                       Client Print
+
+
+
+          Yahoska Perez
+          Co-Owner & Health Insurance
+          Agent
+          The Health Experts Insurance
+          (305) 555-0199
+          yperez@example.com
+          1695 NW 110 AVE 224 DORAL, FL 33172
+                                                                                      Below is a list of your annual healthcare information that you
+                                                                                        helped me gather. You will see your current healthcare plan(s)
+                                                                                      along with a listing of your current providers and prescription
+                                                                                        drugs.
+
+
+     Plans
+          UnitedHealthcare
+              Plan Name: UHC MedicareMax Medicare Advantage FL-0028 (HMO)
+              Effective Date: Jan 1, 2026
+              Status: Active
+              Plan Type: Medicare Advantage
+
+
+     Providers
+          Michele Taubman (Vascular surgeon)
+          Rebecca Hook (Oncologist)
+
+     Prescription Drugs
+          lisinopril 10 MG Oral Tablet
+          Null
+          metformin 500 MG Oral Tablet
+
+
+     Pharmacies
+          WALGREENS #01234
+            Address: 12345 SW 152ND ST MIAMI, FL 33186
+            Phone: (305) 555-0200
+
+
+https://www.medicareproapp.com/agent/profileController/clientPrint/overview=1,plan=1,pro=1,rx=1,pharmacy=1,questionnaire=1,rxCutOut=1,logo=1,labelPos=
+                                                                                                                                                                  1/2

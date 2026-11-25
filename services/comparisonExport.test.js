@@ -34,6 +34,7 @@ describe('Arias comparison export labels', () => {
       'Referrals Needed?',
       'MSP Levels',
       'Max Out of Pocket',
+      'Medical Deductible',
       'Inpatient Hospital',
       'Outpatient Hospital',
       'PCP',
@@ -69,7 +70,6 @@ describe('Arias comparison export labels', () => {
       'Fitness',
       'Chiropractic',
       'Other',
-      'Medical Deductible',
       'SSBCI Chronic Conditions',
     ]);
   });

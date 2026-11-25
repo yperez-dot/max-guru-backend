@@ -34,6 +34,7 @@
     ["Referrals Needed?", "referral"],
     ["MSP Levels", "mspLevels"],
     ["Max Out of Pocket", "moop"],
+    ["Medical Deductible", "planDeductible"],
     ["Inpatient Hospital", "inpatientHospital"],
     ["Outpatient Hospital", "outpatientHospital"],
     ["PCP", "pcpCopay"],
@@ -69,7 +70,6 @@
     ["Fitness", "fitness"],
     ["Chiropractic", "chiropractic"],
     ["Other", "other"],
-    ["Medical Deductible", "planDeductible"],
     ["SSBCI Chronic Conditions", "ssbciChronicConditions"],
   ];
 
@@ -3369,8 +3369,10 @@
   /** Sheet label for a doctor row: name + specialty only (never NPI). */
   function doctorExportLabel(doc) {
     const name = String((doc && doc.name) || "").replace(/\(\s*\)/g, "").replace(/\s+/g, " ").trim();
-    const role = String((doc && doc.role) || "").trim();
-    return name + (role ? " — " + role : "");
+    const role = String((doc && (doc.role || doc.specialty)) || "").trim();
+    const intake = String((doc && (doc.requestedSpecialty || doc.intakeSpecialty)) || "").trim();
+    const shown = (role && !/^unknown$/i.test(role)) ? role : (intake || role);
+    return name + (shown ? " — " + shown : "");
   }
 
   // "Show benefits for these plans": every column, looked up by contract-PBP across the WHOLE grid
@@ -3394,12 +3396,13 @@
   }
 
   const BENEFIT_ROWS = [
-    ["Premium", "premium"], ["Part B giveback", "partBGiveback"], ["MOOP", "moop"], ["PCP", "pcpCopay"],
+    ["Premium", "premium"], ["Part B giveback", "partBGiveback"], ["MOOP", "moop"],
+    ["Medical Deductible", "planDeductible"], ["PCP", "pcpCopay"],
     ["Specialist", "specialistCopay"], ["ER", "erCopay"], ["Urgent care", "urgentCareCopay"],
     ["Inpatient", "inpatientHospital"], ["Dental", "dental"], ["Vision", "vision"], ["Hearing", "hearing"],
     ["OTC", "otc"], ["Food / grocery card", "groceryCardDetail"], ["Referral", "referral"],
     ["Chiropractic", "chiropractic"], ["Other", "other"],
-    ["Medical Deductible", "planDeductible"], ["SSBCI Chronic Conditions", "ssbciChronicConditions"],
+    ["SSBCI Chronic Conditions", "ssbciChronicConditions"],
   ];
 
   /** One side-by-side benefit table for every column (same rows for all plans), from the grid. */
@@ -3824,6 +3827,7 @@
 
   return {
     FIELD_ROWS,
+    BENEFIT_ROWS,
     HIGHLIGHT_KEYS,
     SOB_EXTRA_AFTER,
     ASKED_SOB_EXPORT_KEYS,

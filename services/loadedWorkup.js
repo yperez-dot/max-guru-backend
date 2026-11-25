@@ -801,16 +801,27 @@ const MED_REMOVE_RE = /\b(?:remove|delete|drop|take\s+(?:out|off)|stopped(?:\s+t
 function medRemovalsIn(text, savedMeds) {
   const out = new Set();
   const t = String(text || '');
-  for (const m of t.matchAll(MED_REMOVE_RE)) {
-    const clause = m[1].toLowerCase();
+  const named = [];
+  for (const m of t.matchAll(MED_REMOVE_RE)) named.push(m[1].toLowerCase());
+  for (const m of t.matchAll(/\b([A-Za-z][A-Za-z0-9' .-]{0,40}?)\s+is\s+not\s+a\s+(?:med|medication|drug|prescription)\b/gi)) {
+    named.push(m[1].toLowerCase());
+  }
+  for (const clause of named) {
     if (/\b[HR]\d{4}-\d{3}\b/i.test(clause) || /\b(?:dr|dra|doctor)\b\.?/i.test(clause)) continue;
     for (const med of savedMeds || []) {
-      const head = String(med).toLowerCase().split(/[\s/]+/).filter((w) => /^[a-z]{4,}$/.test(w))[0];
+      const raw = String(med);
+      const head = raw.toLowerCase().split(/[\s/]+/).filter((w) => /^[a-z]{3,}$/.test(w))[0];
       if (head && new RegExp(`\\b${head}\\b`).test(clause)) out.add(med);
+      else if (head && medTypoAlias(clause, raw)) out.add(med);
+      else if (isBlankish(clause) && isBlankish(raw)) out.add(med);
     }
   }
   return [...out];
 }
+function isBlankish(s) {
+  return /^(?:null|nullo|none|n\/a|nil|undefined|nada)$/i.test(String(s || '').trim());
+}
+
 // "Levothyroxine Sodium is 0.2 mg" / "levothyroxine 0.2 mg" / "the levothyroxine dose is 0.2 mg": the saved med is that
 // strength from now on — the table, exports and saved workup read "Levothyroxine Sodium 0.2 mg" (Gerry Cabrera, 2026-10-19).
 const DOSE_RE = /\b([A-Za-z][A-Za-z-]{3,})(?:\s+[A-Za-z-]+){0,2}?\s+(?:dose\s+)?(?:is|=|:|at|takes?)?\s*(\d+(?:\.\d+)?)\s*(mg|mcg|ml|units?|%)\b/gi;

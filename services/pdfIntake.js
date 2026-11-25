@@ -120,14 +120,20 @@ function sectionsOf(text) {
   return out;
 }
 
-function clientFrom(headLines, all) {
+function clientFrom(headLines, all, opts = {}) {
   const src = [...headLines, ...all].join('\n');
   const m = src.match(/\b(?:patient(?:\s+name)?|client(?:\s+name)?|member(?:\s+name)?|name)\s*:\s*([A-Za-zÀ-ÿ'’.\- ]{3,60}?)(?=\s*(?:\||\s{2,}|\n|,|\bDOB\b|\bAs of\b|$))/i);
-  const name = m ? m[1].replace(/\s+/g, ' ').trim() : '';
+  const labeled = m ? m[1].replace(/\s+/g, ' ').trim() : '';
   // The client's own ZIP only when it is labeled as hers — never a doctor's or the pharmacy's address.
   const z = src.match(/\b(?:patient|client|member|home)?\s*(?:zip(?:\s*code)?|address)\s*:\s*[^\n]*?\b(\d{5})(?:-\d{4})?\b/i);
   const zip = z ? z[1] : '';
-  return { clientName: name, zip };
+  const clientName = MP.resolveClientName({
+    labeled,
+    extracted: labeled,
+    filename: opts.filename || '',
+    agentNames: opts.agentNames || [],
+  });
+  return { clientName, zip };
 }
 
 /** Rows of a column table: header chunks give the column starts; a row starts where its first column has text. */
@@ -284,6 +290,7 @@ function medItem(raw, extra = {}) {
     .replace(/^\s*\d{1,2}\s+(?!(?:HR|HRS|HOURS?|ER|XR|CR|SR|LA)\b)/i, '')
     .replace(/\s*\.\s*$/, '').trim();
   if (!text || /^\.+$/.test(text)) return null;
+  if (require('./comparisonRules').isBlankMedName(text)) return null;
   const parens = [...text.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]);
   const otc = OTC_RE.test(text);
   const sm = text.match(STRENGTH_RE);
@@ -366,8 +373,8 @@ function flattenDoctors(providers) {
   })));
 }
 
-function intakeFromMedicarePro(text) {
-  const parsed = MP.parseMedicareProPrint(text);
+function intakeFromMedicarePro(text, opts = {}) {
+  const parsed = MP.parseMedicareProPrint(text, opts);
   const allMeds = (parsed.meds || []).map((m) => (typeof m === 'string' ? medItem(m) : m)).filter(Boolean);
   const meds = allMeds.filter((m) => !m.otc);
   const skippedOtc = allMeds.filter((m) => m.otc);
@@ -388,10 +395,10 @@ function intakeFromMedicarePro(text) {
 }
 
 /** The structured intake from a PDF's text layer. Nothing is dropped: every provider row and every med line comes back. */
-function parseIntakeText(text) {
-  if (MP.isMedicareProClientPrint(text)) return intakeFromMedicarePro(text);
+function parseIntakeText(text, opts = {}) {
+  if (MP.isMedicareProClientPrint(text)) return intakeFromMedicarePro(text, opts);
   const sec = sectionsOf(text);
-  const { clientName, zip } = clientFrom(sec.head, []);
+  const { clientName, zip } = clientFrom(sec.head, [], opts);
   const providers = providersFrom(sec.providers);
   const allMeds = medsFrom(sec.meds);
   const pharmacy = pharmacyFrom(sec.pharmacy);
@@ -495,7 +502,7 @@ async function readPdfIntake(files, deps = {}) {
       f.bytes.fill(0); // the PDF itself is not kept past this read
     }
     if (!r.ok || r.noTextLayer) { results.push({ file: f.name, ok: false, noTextLayer: Boolean(r.noTextLayer), error: r.error }); continue; }
-    const p = parseIntakeText(r.text);
+    const p = parseIntakeText(r.text, { filename: f.name, agentNames: (deps && deps.agentNames) || [] });
     parsed.push(p);
     results.push({ file: f.name, ok: true, doctors: p.doctors.length, providers: p.providers.length, meds: p.meds.length, skippedOtc: p.skippedOtc.length });
   }

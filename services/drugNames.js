@@ -210,6 +210,9 @@ async function resolveDrugName(raw, fetchImpl = fetch) {
   const comboIngs = slashComboIngredients(input);
   const askedForm = requestedForm(input);
   if (!base || /^\d[\d-]*$/.test(base) || base.length < 3) return { status: 'exact', input, query: input, name: base || input };
+  if (require('./comparisonRules').isBlankMedName(input) || require('./comparisonRules').isBlankMedName(base)) {
+    return { status: 'ignored', input, query: input, name: input, reason: 'blank' };
+  }
   if (nameCache.has(base)) return { ...nameCache.get(base), input, query: swapName(input, base, nameCache.get(base)) };
 
   const comboQuery = comboIngs.length >= 2 ? comboIngs.join(' / ') : '';

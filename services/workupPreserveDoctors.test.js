@@ -426,7 +426,7 @@ describe('UI wires persist + pending ask + visible timeout', () => {
   const html = fs.readFileSync(path.join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
   it('create saves doctors/meds/plans from the paste, not an empty workup', () => {
     assert.match(html, /doctors: doctorRows, medications: medRows/);
-    assert.match(html, /pendingAsk: rawText/);
+    assert.equal(html.includes('openWorkup(workup.id, fullRequest ? { pendingAsk: rawText }'), false, 'new-client paste waits for the gate buttons before anything runs');
     assert.match(html, /isFullClientRequest/);
     assert.match(html, /pendingAsk: content/);
   });

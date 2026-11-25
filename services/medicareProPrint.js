@@ -30,6 +30,75 @@ const PCP_RE = /\b(?:pcp|primary(?:\s+care)?)\b/i;
 const INTRO_RE = /below is a list of your (?:annual )?healthcare information/i;
 const AGENT_NEAR_RE = /\b(?:co-?owner|health insurance|agent|the health experts)\b|@|\(\d{3}\)\s*\d{3}|^\s*\d+\s+\w+.+\b(?:ave|avenue|st|street|blvd|rd|road)\b/i;
 
+/** THEI agents who appear in PDF letterheads — never treat these as the client. */
+const KNOWN_AGENT_NAMES = [
+  'Yahoska Perez',
+  'Jill Taylor',
+  'Christian Munoz',
+  'Jendy',
+];
+
+function normPersonKey(s) {
+  return String(s || '').toLowerCase().replace(/[^a-zà-ÿ]+/g, ' ').trim();
+}
+
+function isKnownAgentName(name, extra = []) {
+  const key = normPersonKey(name);
+  if (!key) return false;
+  const all = KNOWN_AGENT_NAMES.concat(Array.isArray(extra) ? extra : [extra]).map(normPersonKey).filter(Boolean);
+  return all.some((a) => a === key || (a.length >= 5 && (key === a || key.startsWith(`${a} `) || a.startsWith(`${key} `) || key.endsWith(` ${a}`))));
+}
+
+/** "carol.anier.pcp info.pdf" → "Carol Anier". Generic scan names are ignored. */
+function clientNameFromFilename(filename) {
+  let base = String(filename || '').replace(/^.*[/\\]/, '').replace(/\.[^.]+$/, '');
+  base = base.replace(/\b(?:pcp\s*info|client\s*print|intake|workup|upload|scan|document|info)\b/gi, ' ');
+  const parts = base.split(/[._,\-]+|\s+/).map((w) => w.trim()).filter((w) => w && !/^\d+$/.test(w) && !/^(?:pdf|the|a|of|and)$/i.test(w));
+  if (parts.length < 2 || parts.length > 6) return '';
+  if (!parts.every((w) => /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’.\-]*$/.test(w))) return '';
+  const name = parts.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  return isKnownAgentName(name) ? '' : name;
+}
+
+/**
+ * Never use the logged-in / letterhead agent as the client.
+ * Prefer a labeled patient field, then a non-agent extracted name, then the filename, else blank (ask).
+ */
+function resolveClientName({ extracted = '', filename = '', agentNames = [], labeled = '' } = {}) {
+  const extras = Array.isArray(agentNames) ? agentNames : [agentNames];
+  const labeledName = String(labeled || '').replace(/\s+/g, ' ').trim();
+  if (labeledName && !isKnownAgentName(labeledName, extras) && isPersonName(labeledName)) return DN.displayPersonName(labeledName);
+  const got = String(extracted || '').replace(/\s+/g, ' ').trim();
+  if (got && !isKnownAgentName(got, extras)) return got;
+  const fromFile = clientNameFromFilename(filename);
+  if (fromFile && !isKnownAgentName(fromFile, extras)) return fromFile;
+  return '';
+}
+
+function compactMarketingCode(letters, rest) {
+  const L = String(letters || '').toUpperCase();
+  const r = String(rest || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const m = r.match(/^([A-Z]?)(\d+)([A-Z]?)$/);
+  if (!m) return L + r;
+  return `${L}${m[1]}${m[2].padStart(4, '0')}${m[3]}`;
+}
+
+/** Marketing codes like FL-0028 / FL 0028 / FL-D001 from a plan name or CRM print line. */
+function marketingCodesIn(s) {
+  const out = [];
+  const seen = new Set();
+  const raw = String(s || '');
+  const add = (letters, rest) => {
+    const code = compactMarketingCode(letters, rest);
+    if (code && !seen.has(code)) { seen.add(code); out.push(code); }
+  };
+  for (const m of raw.matchAll(/\b([A-Za-z]{2})\s*[-–—]\s*([A-Za-z]?\d{1,4}[A-Za-z]?)\b/g)) add(m[1], m[2]);
+  const n = normPlan(raw);
+  for (const m of n.matchAll(/\b([a-z]{2})\s+([a-z]?\d{1,4}[a-z]?)\b/g)) add(m[1], m[2]);
+  return out;
+}
+
+
 function isMedicareProClientPrint(text) {
   const t = String(text || '');
   if (/\bplan\s+name\s*:/i.test(t) && /\bprescription\s+drugs\b/i.test(t) && /^\s*providers\s*$/im.test(t)) return true;
@@ -104,10 +173,11 @@ function letterheadClientName(lines) {
   }));
   const rest = people.filter((p) => !agent || p.name.toLowerCase() !== agent.name.toLowerCase());
   if (introAt >= 0) {
-    const before = rest.filter((p) => p.i < introAt);
+    const before = rest.filter((p) => p.i < introAt && !isKnownAgentName(p.name));
     if (before.length) return before[before.length - 1].name;
   }
-  return (rest[0] || people[0]).name;
+  const pick = rest.find((p) => !isKnownAgentName(p.name)) || rest[0] || people[0];
+  return pick && !isKnownAgentName(pick.name) ? pick.name : '';
 }
 
 function splitPrintSections(text) {
@@ -136,16 +206,34 @@ function matchPlanName(raw, { county = '', year = 2027 } = {}) {
   if (!printed) return { planId: '', name: '', confidence: 'none' };
   const hay = ` ${normPlan(printed)} `;
   const rows = R.gridPlansForCounty(county || '', year) || [];
+  const printedCodes = marketingCodesIn(printed);
+  const printHasCarrier = /\b(?:uhc|united(?:healthcare)?|humana|devoted|aetna|solis|care\s*plus|well\s*care|health\s*sun|simply|doctors?)\b/i.test(printed);
   const hits = [];
   for (const g of rows) {
     const planName = normPlan(g.planName);
     const carrier = normPlan(g.carrier);
     if (!planName) continue;
     const bare = carrier && planName.startsWith(`${carrier} `) ? planName.slice(carrier.length + 1) : planName;
+    const id = String(g.planId || g.id || '').toUpperCase();
+    const codes = marketingCodesIn(String(g.planName || ''));
+    const codeHit = printedCodes.length && codes.some((c) => printedCodes.includes(c));
+    if (codeHit) {
+      const carrierOk = !printHasCarrier || !carrier
+        || hay.includes(` ${carrier} `)
+        || (carrier === 'uhc' && /\bunited\b/.test(hay));
+      if (!carrierOk) continue;
+      hits.push({
+        id,
+        key: id.slice(0, 9),
+        name: g.planName,
+        carrier: g.carrier,
+        len: 1000 + Math.max(planName.length, bare.length),
+      });
+      continue;
+    }
     // "Gold Plus" alone is too generic; "Humana Gold Plus" / "CORE 062" are distinctive.
     if (!/\d/.test(bare) && bare.split(' ').length < 3 && planName.split(' ').length < 3) continue;
     if (hay.includes(` ${planName} `) || (bare && hay.includes(` ${bare} `))) {
-      const id = String(g.planId || g.id || '').toUpperCase();
       hits.push({
         id,
         key: id.slice(0, 9),
@@ -277,9 +365,14 @@ function zipHintsFrom(pharmacies) {
   return hints;
 }
 
-function parseMedicareProPrint(text) {
+function parseMedicareProPrint(text, opts = {}) {
   const sec = splitPrintSections(text);
-  const clientName = letterheadClientName(String(text || '').replace(/\f/g, '\n').split('\n'));
+  const extracted = letterheadClientName(String(text || '').replace(/\f/g, '\n').split('\n'));
+  const clientName = resolveClientName({
+    extracted,
+    filename: opts.filename || '',
+    agentNames: opts.agentNames || [],
+  });
   const currentPlan = plansFrom(sec.plans);
   const providers = providersFromPrint(sec.providers);
   const meds = medLinesFrom(sec.meds);
@@ -362,4 +455,9 @@ module.exports = {
   formatPrintDate,
   isChromeLine,
   addressWithoutZip,
+  isKnownAgentName,
+  clientNameFromFilename,
+  resolveClientName,
+  marketingCodesIn,
+  KNOWN_AGENT_NAMES,
 };

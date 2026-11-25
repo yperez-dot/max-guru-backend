@@ -637,10 +637,41 @@ function saidNoMeds(text) {
   return SAID_NO_MEDS_RE.test(String(text || ''));
 }
 
+const BLANK_MED_RE = /^(?:null|nullo|none|n\/a|n\.a\.?|nil|undefined|nan|empty|-|—|–|\.|nada)$/i;
+function isBlankMedName(s) {
+  const t = String(s || '').replace(/\s+/g, ' ').trim();
+  if (!t) return true;
+  return BLANK_MED_RE.test(t);
+}
+
+/** Doctor corrections, med removals, and yes-to-offer lines are commands — never med rows. */
+function isFollowUpCommand(s) {
+  const t = String(s || '').replace(/\s+/g, ' ').trim();
+  if (!t) return false;
+  if (/\bis\s+not\s+a\s+(?:med|medication|drug|prescription)\b/i.test(t)) return true;
+  if (/\b(?:remove|delete|drop)\s+(?:it|them|that|this|the\s+(?:med|medication|drug|row)|[A-Za-z][A-Za-z0-9' .-]{0,40})\b/i.test(t)
+      && !/\b[HR]\d{4}-\d{3}\b/i.test(t)
+      && !/\d+(?:\.\d+)?\s*(?:mg|mcg|ml)\b/i.test(t)) return true;
+  if (/\b(?:yes|yeah|yep|yup|sure|ok|okay)\b[,.]?\s+(?:pls|please|run|search|look|check|do)\b/i.test(t)) return true;
+  if (/^(?:yes|yeah|yep|yup|sure|ok|okay),?\s+run\s+other\b/i.test(t)) return true;
+  if (/^[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.-]+(?:\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.-]+){0,5}\s+(?:is(?:\s+actually)?|should\s+be|=|→|->)\s+(?:(?:dr|dra|doctor|doctora)\.?\s+)?[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.-]+(?:\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.-]+){1,5}\.?$/i.test(t)
+      && !/\d+(?:\.\d+)?\s*(?:mg|mcg|ml|units?)\b/i.test(t)
+      && !/\bis\s+not\b/i.test(t)) return true;
+  return false;
+}
+
+function stripCommandSentences(text) {
+  return String(text || '')
+    .split(/(?<=[.!?])\s+|\n+/)
+    .filter((s) => !isFollowUpCommand(s))
+    .join('\n');
+}
+
 function medsFromAsk(askText) {
-  const t = normalizeMedListLabels(String(askText || ''));
+  const rawAsk = normalizeMedListLabels(String(askText || ''));
+  const t = stripCommandSentences(rawAsk);
   const out = [];
-  const add = (s0) => { const s = tidyLongMedName(cleanMedItem(s0)); if (s && !INSTRUCTION_WORD_RE.test(s) && !isPlanOrCarrierName(s) && s.length > 2 && s.length < 60 && !isNonDrugAnswer(s) && !/\b[HR]\d{4}-\d{3}|\b(?:grid|table|columns?)\b/i.test(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
+  const add = (s0) => { const s = tidyLongMedName(cleanMedItem(s0)); if (s && !isBlankMedName(s) && !isFollowUpCommand(s0) && !isFollowUpCommand(s) && !INSTRUCTION_WORD_RE.test(s) && !isPlanOrCarrierName(s) && s.length > 2 && s.length < 60 && !isNonDrugAnswer(s) && !/\b[HR]\d{4}-\d{3}|\b(?:grid|table|columns?)\b/i.test(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
   // "Meds: a, b" / "Medications a, b" / "Medicamentos: a y b" / "Takes a, b" — colon optional
   // (Martin Wiesenthal, 2026-10-09: "…, Medications esomeprazole, rasuvostatin, …" read 0 meds).
   // A practice / person name is never read as a label: "Med Eye Associates" (Tony Cabrera, 2026-10-19: "…, Med Eye
@@ -718,14 +749,18 @@ function medsFromAsk(askText) {
   }
   // Loaded workup: every saved med stays unless she names it for removal ("remove Farxiga", "she stopped metformin") —
   // loadedWorkup.medRemovalsIn, read from her own lines only (not the saved-workup block).
-  if (/structured facts only/i.test(t)) {
-    const own = t.split('\n').filter((l) => !/^\s*(?:-\s|LOADED CLIENT WORKUP|Client:|ZIP\/county:|Plans:|Doctors \(|Doctor NPIs|Medications \(|Current plan|Saved In\/Out)/.test(l)).join('\n');
+  if (/structured facts only/i.test(rawAsk)) {
+    const own = rawAsk.split('\n').filter((l) => !/^\s*(?:-\s|LOADED CLIENT WORKUP|Client:|ZIP\/county:|Plans:|Doctors \(|Doctor NPIs|Medications \(|Current plan|Saved In\/Out)/.test(l)).join('\n');
     if (saidNoMeds(own)) return [];
     const gone = require('./loadedWorkup').medRemovalsIn(own, out);
     const kept = gone.length ? out.filter((m) => !gone.includes(m)) : out;
-    return require('./loadedWorkup').applyMedSubstitutions(t, require('./loadedWorkup').applyConfirmedDoses(own, kept));
+    return require('./loadedWorkup').applyMedSubstitutions(rawAsk, require('./loadedWorkup').applyConfirmedDoses(own, kept));
   }
-  return require('./loadedWorkup').applyMedSubstitutions(t, out);
+  {
+    const gone = require('./loadedWorkup').medRemovalsIn(rawAsk, out);
+    const kept = gone.length ? out.filter((m) => !gone.includes(m)) : out;
+    return require('./loadedWorkup').applyMedSubstitutions(rawAsk, kept);
+  }
 }
 
 // ─── carriers the agent asks for by name ("show me Doctors, Solis, Devoted") ──
@@ -922,6 +957,9 @@ module.exports = {
   planEligibility,
   csnpHintsFromMeds,
   medsFromAsk,
+  isBlankMedName,
+  isFollowUpCommand,
+  stripCommandSentences,
   isMedListLabel,
   normalizeMedListLabels,
   dropDoctorNamesFromMeds,
