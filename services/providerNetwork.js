@@ -1109,9 +1109,19 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
     for (const drugName of meds) rawDrug.set(drugName, { planIds: earlyPlanIds, promise: lookupFormularyCached({ drugName, planIds: earlyPlanIds, year: year0 }).catch((e) => ({ drugName, byPlanId: {}, lookups: [], error: (e && e.message) || 'error' })) });
   }
   const doctorDeadline = meds.length && !earlyPlanIds.length && deadlineAt - Date.now() > MEDS_RESERVE_MS + 15_000 ? deadlineAt - MEDS_RESERVE_MS : deadlineAt;
-  const results = await Promise.all(doctors.map((d) => lookupDoctor(
-    { ...common, ...d, planId: undefined, planIds: guestPlanIdsFor([d.planId, common.planId, toolInput.planIds], planAskText) },
-    { deadlineAt: doctorDeadline, npiCap }
+  // Confirm / remove follow-ups: re-check only the doctors just confirmed. Everyone else keeps the last table's
+  // In/Out cells so a timeout cannot wipe Busse / Bostock / Valdes / Almerico (Carol Anier, 2026-11-25).
+  const priorTable = (tableMode || workupWithMeds) ? require('./loadedWorkup').lastDoctorTableResults(context.messages || []) : { planIds: [], rows: [] };
+  const recheckDoctors = (priorTable.rows && priorTable.rows.length)
+    ? Nscope.doctorsToRecheckFromAsk(doctors, planAskText)
+    : [];
+  const results = await Promise.all(doctors.map((d) => (
+    Nscope.shouldReusePriorDoctor(d, priorTable, recheckDoctors)
+      ? Promise.resolve(Nscope.priorLookupResult(d, priorTable))
+      : lookupDoctor(
+        { ...common, ...d, planId: undefined, planIds: guestPlanIdsFor([d.planId, common.planId, toolInput.planIds], planAskText) },
+        { deadlineAt: doctorDeadline, npiCap }
+      )
   )));
 
   if (!tableMode && !workupWithMeds) {
@@ -1129,7 +1139,7 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
   if (medsUnreadable) console.warn(`[comparison] WARNING ${doctors.length} doctors, 0 meds read, but the ask names drugs: ${unreadTokens.join(', ')}`);
   let drugs = [];
   if (meds.length) {
-    const chosen = selectComparison(doctorsStructured, askText, { answered });
+    const chosen = selectComparison(doctorsStructured, askText, { answered, messages: context.messages, priorTable, recheckDoctors });
     // A same-network twin ("Also checked: H4140-023 = same doctor results as H4140-022") gets its own drug
     // prices too: the export lists it as a column, and its meds read "Unverified" when only the lead plan was priced
     // (Candy Winfrey, 2026-10-13). Doctors are shared; tiers can differ between plan benefit packages.
@@ -1151,7 +1161,7 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
       }));
     }
   }
-  const summary = batchSummaryForModel(doctorsStructured, askText, { answered, drugs });
+  const summary = batchSummaryForModel(doctorsStructured, askText, { answered, drugs, messages: context.messages, priorTable, recheckDoctors });
   // Per-doctor notes only where something failed or is pending — no full plan dumps.
   const notes = results
     .filter((r) => r.status !== 'done' || /Could not complete|NOT CONFIRMED/.test(r.text))
@@ -1196,7 +1206,7 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
     text: [header, '', summary.text, notes.length ? `\nNOTES:\n${notes.join('\n')}` : '',
       medsUnreadable ? `\nMEDS NOT READ: the ask names drugs (${unreadTokens.join(', ')}) but no med list could be read. Tell the agent: "Couldn't read the medication list. Re-send as 'Meds: a, b, c'". Do not write a meds table.` : '',
     ].join('\n').slice(0, 12000),
-    structured: { doctors: doctorsStructured, finished: done, total: results.length, questions: summary.questions, rendered: renderedAnswer(doctorsStructured, askText, { answered, drugs, medsUnreadable, recheck: Boolean(recheckId) }), medsUnreadable, ...(recheckId ? { recheckId } : {}) },
+    structured: { doctors: doctorsStructured, finished: done, total: results.length, questions: summary.questions, rendered: renderedAnswer(doctorsStructured, askText, { answered, drugs, medsUnreadable, recheck: Boolean(recheckId), messages: context.messages, priorTable, recheckDoctors }), medsUnreadable, ...(recheckId ? { recheckId } : {}) },
     expand: doctorsStructured,
     // Priced meds ride along as their own tool results (fallback tables + Excel/PDF export read them).
     extraToolResults: [...drugs.map((r) => {

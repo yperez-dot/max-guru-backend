@@ -165,6 +165,56 @@ function lastTablePlanIds(msgs) {
   return [];
 }
 
+function parseDoctorTable(text) {
+  const lines = String(text || '').split(/\n/);
+  const headIdx = lines.findIndex((l) => /^\|\s*Doctor\s*\|/.test(l.trim())
+    || (/\bDoctor\b/i.test(l) && (l.match(/\b[HR]\d{4}-\d{3}[A-Z]?\b/gi) || []).length >= 2));
+  if (headIdx < 0) return null;
+  const head = lines[headIdx];
+  const planIds = [...new Set([...head.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase()))];
+  const cols = head.split('|').map((c) => c.trim()).filter((c, i, a) => !(i === 0 && c === '') && !(i === a.length - 1 && c === ''));
+  const idOfCol = cols.slice(1).map((h) => {
+    const m = String(h).match(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/i);
+    return m ? m[1].toUpperCase() : '';
+  });
+  let i = headIdx + 1;
+  if (i < lines.length && /^\s*\|?\s*-+/.test(lines[i])) i += 1;
+  const rows = [];
+  for (; i < lines.length && /^\s*\|/.test(lines[i]); i += 1) {
+    const parts = lines[i].split('|').map((c) => c.trim());
+    if (parts[0] === '') parts.shift();
+    if (parts.length && parts[parts.length - 1] === '') parts.pop();
+    const name = parts[0] || '';
+    if (!name || /^\*\*Doctors\*\*/i.test(name) || /^-{3}/.test(name)) continue;
+    const npi = (name.match(/\bNPI\s*:?\s*(\d{10})\b/i) || [])[1] || '';
+    const displayName = cleanAskedDoctorName(name.replace(/\s*·\s.*$/, '')) || name;
+    const cells = {};
+    idOfCol.forEach((id, k) => {
+      if (!id) return;
+      const cell = parts[k + 1] || '';
+      if (/✅/.test(cell) && /in\*/i.test(cell)) cells[id] = 'in_carrier';
+      else if (/✅/.test(cell) || /(?:^|\s)in(?:\s|$)/i.test(cell.replace(/not in network/ig, ''))) cells[id] = 'in';
+      else if (/❌|not in network|not listed/i.test(cell)) cells[id] = 'out';
+      else if (/timed out|⏱/i.test(cell)) cells[id] = 'timeout';
+      else if (/not confirmed|❔/i.test(cell)) cells[id] = 'not_confirmed';
+      else cells[id] = 'unchecked';
+    });
+    rows.push({ name, displayName, npi, cells });
+  }
+  return { planIds, rows, header: head };
+}
+
+function lastDoctorTableResults(msgs) {
+  const list = Array.isArray(msgs) ? msgs : [];
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const m = list[i];
+    if (!m || m.role !== 'assistant') continue;
+    const parsed = parseDoctorTable(messageText(m));
+    if (parsed && parsed.planIds.length && parsed.rows.length) return parsed;
+  }
+  return { planIds: [], rows: [], header: '' };
+}
+
 const currentPlanOf = (msgs) => N().currentPlanOf(msgs);
 
 function workupPlanAddSet(text, msgs) {
@@ -269,7 +319,26 @@ function isDoctorLikeRemoval(text) {
   if (/\b[HR]\d{4}-\d{3}/i.test(t)) return false;
   return /\bnpi\s*#?:?\s*\d{10}\b/i.test(t)
     || /\b(?:pharmacist|pharmacy)\b/i.test(t)
-    || /\b(?:dr|dra|doctor|doctora)\.?\s+[A-Z]/i.test(t);
+    || /\b(?:dr|dra|doctor|doctora)\.?\s+[A-Z]/i.test(t)
+    // "Remove Yusleidi Gil" is a first+last doctor drop, not a missing plan name (Carol Anier, 2026-11-25).
+    // "remove healthsun and humana" / "remove the current plan" still count as plan removals.
+    || isFirstLastDoctorRemoval(t);
+}
+
+function isFirstLastDoctorRemoval(text) {
+  const t = String(text || '');
+  // Carrier / current-plan drops are plan removals, even when they happen to have two words.
+  if (R.carriersRequested(t).length) return false;
+  if (typeof R.carriersRejected === 'function' && R.carriersRejected(t).length) return false;
+  const PLANISH = /\b(?:plans?|current|carrier|column|grid|table|comparison|hmo|ppo|d-?snp|c-?snp|giveback)\b/i;
+  if (PLANISH.test(t) && !/\b(?:dr|dra|doctor|doctora)\b/i.test(t)) return false;
+  return doctorRemovalClauses(t).some((words) => {
+    if (!words || words.length < 2) return false;
+    const joined = (words.raw || words).join(' ');
+    if (PLANISH.test(joined)) return false;
+    if (/\b[HR]\d{4}-\d{3}/i.test(joined)) return false;
+    return true;
+  });
 }
 
 function isComparisonRemoval(text) {
@@ -614,11 +683,22 @@ function respelledDoctors(latest, doctors) {
  * Strip honorifics and leftover prompt words ("Dr.", "Confirm Match") from a stored or displayed doctor name
  * so confirm replies never become part of the name (Carol Anier, 2026-11-25).
  */
+const SPECIALTY_PAREN_RE = /\b(?:surgeon|surgery|medicine|internal|cardiolog\w*|neurolog\w*|neuro-?oncolog\w*|oncolog\w*|pulmon\w*|endocrin\w*|nephrolog\w*|rehab(?:ilitation)?|physical medicine|vascular|thoracic|psychiatr\w*|dermatol\w*|gastro\w*|orthop\w*|urolog\w*|opthal\w*|ophthal\w*|optom\w*|family|pediatric\w*|geriatr\w*|hematol\w*|rheumat\w*|allerg\w*|immunolog\w*|radiolog\w*|patholog\w*|anesthes\w*|obgyn|obstetric\w*|gynecol\w*|palliative|hospitalist|specialist|physician|primary care|pcp|disease)s?\b/i;
+function isSpecialtyParen(inner) {
+  const s = String(inner || '').trim();
+  if (!s) return false;
+  if (/^(?:asked|requested):/i.test(s)) return true;
+  return SPECIALTY_PAREN_RE.test(s);
+}
+
 function cleanAskedDoctorName(s) {
   return String(s || '')
     .replace(/^\s*(?:dr|dra|doctor|doctora)\.?\s+/i, '')
     .replace(/\s*[⚠️?]+\s*/g, ' ')
     .replace(/\s*\((?:asked|requested):[^)]*\)\s*/ig, ' ')
+    // Intake names carry the specialty in parentheses ("Michele Taubman (Vascular surgeon)"); that is
+    // not a name difference (Carol Anier, 2026-11-25).
+    .replace(/\s*\(([^)]*)\)/g, (m, inner) => (isSpecialtyParen(inner) ? '' : m))
     .replace(/\s*(?:different name\s*[—–-]\s*)?confirm(?:\s+the)?(?:\s+doctor)?\s*match\b.*$/i, '')
     .replace(/\s*·\s*NPI\s*\d{10}\b.*$/i, '')
     .replace(/\s*\bNPI\s*:?\s*\d{10}\b/ig, '')
@@ -1131,10 +1211,10 @@ module.exports = {
   isComparisonRemoval,
   messageText,
   // plans
-  workupFacts, workupCarrierEditSet, workupPlanAddSet, replacePlanPairs, lastTablePlanIds, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,
+  workupFacts, workupCarrierEditSet, workupPlanAddSet, replacePlanPairs, lastTablePlanIds, parseDoctorTable, lastDoctorTableResults, isSpecialtyParen, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,
   NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, PRONOUN_TARGET_RE, KEEPS_CURRENT_RE, lineKeepsCurrentPlan, droppedIdsIn, removePlansNamedIn, OFF_GRID_RE, DROPS_CURRENT_RE, currentPlanRemovedBy, planLineVerdict, currentPlanFirst,
   // doctors
-  respelledDoctors, looseSameDoctor, fuzzySameDoctor, cleanAskedDoctorName, firstLastName, DOCTOR_REMOVE_RE, doctorRemovalClauses, doctorRemovalLines, stripRemovalSuffix, isDoctorLikeRemoval, NAME_TAIL_RE, SPECIALTY_RE, rawWords,
+  respelledDoctors, looseSameDoctor, fuzzySameDoctor, cleanAskedDoctorName, firstLastName, DOCTOR_REMOVE_RE, doctorRemovalClauses, doctorRemovalLines, stripRemovalSuffix, isDoctorLikeRemoval, isFirstLastDoctorRemoval, NAME_TAIL_RE, SPECIALTY_RE, rawWords,
   doctorCoreWords, specialtyWords, removedByClauses, sameCoreDoctor, RESOLVED_DOCTOR, dedupeDoctorRows, DUPLICATE_Q_RE,
   duplicateQuestions, confirmedDuplicateRemovals,
   // meds

@@ -287,13 +287,34 @@ function gridAetnaPlansFor(zip, year = PLAN_YEAR) {
   }
 }
 
+function planIdFromAetnaLabel(label) {
+  const m = String(label || '').match(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/i);
+  return m ? m[1].toUpperCase() : '';
+}
+
+// Hooks NPI 1033614565 is in-network in Aetna's directory at 8900 N Kendall Dr, but a successful
+// plan-level list for ZIP 33196 / 2027 only returns other H1609 SNPs — H1609-093 is simply absent.
+// That is a checked "not listed" on the county-grid plan, not an unknown (Carol Anier, 2026-11-25).
+// Only call this when every plan-level fetch actually succeeded; an HTTP/id/loc failure stays ❔.
+function markUnlistedGridAetnaPlansOut({ plans = [], outOfNetworkPlans = [], zip, year = PLAN_YEAR } = {}) {
+  const listed = new Set(
+    [...plans, ...outOfNetworkPlans].map(planIdFromAetnaLabel).filter(Boolean)
+  );
+  const extra = [];
+  for (const label of gridAetnaPlansFor(zip, year)) {
+    const id = planIdFromAetnaLabel(label);
+    if (id && !listed.has(id) && !extra.includes(label)) extra.push(label);
+  }
+  return extra;
+}
+
 async function fetchMedicarePlans(session, site, countyCode, year = PLAN_YEAR) {
   const id = site.id;
   const loc = site.service_location_number;
-  if (!id || !loc) return { inPlans: [], outPlans: [] };
+  if (!id || !loc) return { inPlans: [], outPlans: [], ok: false };
   const url = `${API03}/v3/ahpublic_providers/${encodeURIComponent(id)}/locations/${encodeURIComponent(loc)}/lobs/medicare/healthplans?plan_year=${encodeURIComponent(year)}&county_code=${encodeURIComponent(countyCode)}&plan_type=IND`;
   const res = await fetchJar(session.jar, url, { headers: authHeaders(session) });
-  if (!res.ok) return { inPlans: [], outPlans: [] };
+  if (!res.ok) return { inPlans: [], outPlans: [], ok: false };
   const data = await res.json();
   const rows = data.inside_area_plans || [];
   const seen = new Set();
@@ -306,7 +327,7 @@ async function fetchMedicarePlans(session, site, countyCode, year = PLAN_YEAR) {
     seen.add(key);
     (isInNetworkStatus(row.network_status) ? inPlans : outPlans).push(formatPlanLabel(hp));
   }
-  return { inPlans, outPlans };
+  return { inPlans, outPlans, ok: true };
 }
 
 function formatMatch(site) {
@@ -428,6 +449,15 @@ async function queryAetnaPublic(npi, { zip = '33176', state = 'FL', lastName = '
         if (!seen.has(label) && !outOfNetworkPlans.includes(label)) outOfNetworkPlans.push(label);
       }
     }
+    // Every plan-level fetch succeeded, but a county-grid Aetna plan never appeared: Out (not listed),
+    // not ❔. A failed fetch must not invent Out (Hooks / H1609-093, Carol Anier, 2026-11-25).
+    const anyOk = planLists.some((list) => list.ok);
+    const anyFail = planLists.some((list) => !list.ok);
+    if (anyOk && !anyFail) {
+      for (const label of markUnlistedGridAetnaPlansOut({ plans, outOfNetworkPlans, zip, year })) {
+        outOfNetworkPlans.push(label);
+      }
+    }
 
     const locationOon = sites.some((s) => {
       const st = (s.specialties || []).find((x) => x.primary)?.medical_network_status
@@ -480,6 +510,8 @@ module.exports = {
   isInNetworkStatus,
   isOutOfNetworkBanner,
   formatPlanLabel,
+  planIdFromAetnaLabel,
+  markUnlistedGridAetnaPlansOut,
   buildTaxonomyBody,
   buildMedicareSearchBody,
   parseSpaCredentials,
