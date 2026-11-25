@@ -39,14 +39,28 @@ const PLAN_ID_RE = /\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
 
 const LEGAL_SUFFIX_RE = /,\s*(?:inc|llc|l\.l\.c|pllc|pa|p\.a\.|md|m\.d\.|od|d\.o\.|pc|p\.c\.|llp|ltd)\b\.?/i;
 
+function protectParentheticalListDelimiters(text) {
+  // Specialties in parentheses may contain "&", "and", commas, or slashes
+  // ("Physical Medicine & Rehabilitation"). Those are not a second doctor
+  // (Carol Anier / Ojeda Correal, 2026-11-25). Zero-width spaces break the
+  // delimiter tokens so splitList leaves the parenthesis intact, including an
+  // unclosed wrap that stops at the end of the line.
+  return String(text || '').replace(/\([^)\n]*(?:\)|(?=\n|$))/g, (m) => m
+    .replace(/,/g, '\u201A')
+    .replace(/\s*&\s*/g, ' \u200B&\u200B ')
+    .replace(/\band\b/gi, (w) => `${w[0]}\u200B${w.slice(1)}`)
+    .replace(/\s+y\s+/gi, (w) => w.replace(/y/ig, 'y\u200B')));
+}
+
 function splitList(text) {
   const raw = String(text || '');
   // Never split "Cepero Eyecare Center, Inc" on the comma before Inc/LLC/PA/MD/OD.
-  const protectedText = raw.replace(LEGAL_SUFFIX_RE, (m) => m.replace(/,/g, '\u201A'));
+  const protectedText = protectParentheticalListDelimiters(raw.replace(LEGAL_SUFFIX_RE, (m) => m.replace(/,/g, '\u201A')));
   return protectedText
     .split(/\n|,|;|\band\b(?=\s+[A-Z])|\s&\s|\sy\s/i)
     .map((s) => stripListConnectors(String(s || '')
       .replace(/\u201A/g, ',')
+      .replace(/\u200B/g, '')
       .replace(/^[\s\-•*]+/, '')
       .replace(/^\d+[.)]\s+/, '')
       .replace(/^\d{1,2}\s+(?!(?:HR|HRS|HOURS?|ER|XR|CR|SR|LA)\b)/i, '')))
@@ -54,7 +68,8 @@ function splitList(text) {
 }
 
 function section(text, label, stops) {
-  const re = new RegExp(`\\b${label}\\s*:\\s*([\\s\\S]*?)(?=(?:\\b(?:${stops.join('|')})\\s*:)|$)`, 'i');
+  // "Doctors (must-haves):" / "Meds (4):" — a note in parentheses before the colon is still the section label.
+  const re = new RegExp(`\\b${label}(?:\\s*\\([^)]*\\))?\\s*:\\s*([\\s\\S]*?)(?=(?:\\b(?:${stops.join('|')})(?:\\s*\\([^)]*\\))?\\s*:)|$)`, 'i');
   const m = String(text || '').match(re);
   return m ? m[1].trim() : '';
 }

@@ -125,7 +125,9 @@
     if (!s || /^\d{10}$/.test(s)) return s;
     // "Dr.Armando Rivero" — a dotted title may be glued to the name (Victor Rocha, 2026-10-08).
     s = s.replace(/^(?:(?:dra?s?|mr|mrs|ms)\.\s*|(?:dra?s?|doctor|mr|mrs|ms)\s+)/i, '');
-    s = s.replace(/\(([^)]*)\)/g, ' ').replace(/\s+/g, ' ').trim();
+    // Closed or wrapped/unclosed parentheses (a specialty with "&" that got split mid-cell)
+    // must come off before the org-hint test: "… (Physical Medicine" would otherwise look like a clinic.
+    s = s.replace(/\(([^)]*)\)/g, ' ').replace(/\(([^)]+)$/g, ' ').replace(/\s+/g, ' ').trim();
     // "Natalie Regalado - Baptist Medical Group": the office after a dash is a hint (Jackie Alexander, 2026-10-13).
     const dashHead = s.split(/\s+[-–—]\s+/)[0].replace(/\*+$/, '').trim();
     if (dashHead !== s && dashHead.split(/\s+/).length >= 2 && !ORG_HINT_RE.test(dashHead)) s = dashHead;

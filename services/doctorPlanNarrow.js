@@ -2183,6 +2183,15 @@ function namedPlanColumns(named, matrix, doctors) {
       // A dentist row is drawn from the plan's DENTAL network (gridTable → dentalCell) and never counts toward
       // In / Out / unchecked or the ranking (Gerry Cabrera, 2026-10-19).
       if (isDentalProvider(d)) { (col.dental = col.dental || []).push(who); continue; }
+      const priorStatus = priorCellStatus(d, np.planId);
+      if (priorStatus === 'in' || priorStatus === 'in_carrier') {
+        if (priorStatus === 'in_carrier') col.inCarrier.push(who);
+        else col.in.push(who);
+        continue;
+      }
+      if (priorStatus === 'out') { col.out.push(who); continue; }
+      if (priorStatus === 'not_confirmed') { col.unknown.push(who); col.notConfirmed.push(who); continue; }
+      if (priorStatus === 'timeout' || priorStatus === 'unchecked') { col.unknown.push(who); continue; }
       const inIds = new Set((d.inNetworkPlans || []).map(planIdOf).filter(Boolean).map((x) => x.slice(0, 9)));
       const outIds = new Set((d.outOfNetworkPlans || []).map(planIdOf).filter(Boolean).map((x) => x.slice(0, 9)));
       const key = np.planId.slice(0, 9);
@@ -2446,7 +2455,9 @@ function doctorLabel(d) {
   const specName = displaySpecialty(d);
   const spec = specName ? ` · ${titleCase(specName)}` : '';
   const npi = d.npi ? ` · NPI ${d.npi}` : '';
-  return `${name}${spec}${npi}${flag}`;
+  // A raw "&" in a markdown table cell is how "Physical Medicine & Rehabilitation" wrapped
+  // into a second doctor row (Carol Anier, 2026-11-25). "and" is the same word and stays in one cell.
+  return `${name}${spec}${npi}${flag}`.replace(/\s*&\s*/g, ' and ').replace(/\s*\|\s*/g, ' / ');
 }
 
 function countsOf(p, n) {
@@ -2783,6 +2794,16 @@ function doctorsToRecheckFromAsk(docs, askText) {
   return names;
 }
 
+function priorCellStatus(d, planId) {
+  const cells = d && d.priorCells;
+  if (!cells) return '';
+  const want = String(planId || '').toUpperCase();
+  if (cells[want]) return cells[want];
+  const key = want.slice(0, 9);
+  const hit = Object.keys(cells).find((id) => String(id).toUpperCase().slice(0, 9) === key);
+  return hit ? cells[hit] : '';
+}
+
 function planLabelForPriorId(id, prior) {
   const want = String(id || '').toUpperCase();
   const head = String((prior && prior.header) || '');
@@ -2814,16 +2835,30 @@ function applyPriorDoctorResults(docs, prior, opts = {}) {
       else if (status === 'out') outOfNetworkPlans.push(label);
     }
     const matchedName = row.displayName || cleanAskedDoctorName(row.name) || d.doctorName;
+    const notConfirmedPlans = [];
+    const timeoutPlans = [];
+    for (const [id, status] of Object.entries(row.cells || {})) {
+      const label = planLabelForPriorId(id, prior);
+      if (status === 'not_confirmed') notConfirmedPlans.push(label);
+      else if (status === 'timeout') timeoutPlans.push(label);
+    }
+    const hasCells = inNetworkPlans.length || outOfNetworkPlans.length || notConfirmedPlans.length || timeoutPlans.length;
     return {
       ...d,
       doctorName: d.doctorName || matchedName,
       npi: d.npi || row.npi || d.requestedNpi,
-      status: ['timeout', 'error', 'not_found'].includes(d.status) && (inNetworkPlans.length || outOfNetworkPlans.length)
+      status: ['timeout', 'error', 'not_found'].includes(d.status) && hasCells
         ? 'done'
         : (d.status || 'done'),
-      identityPending: (inNetworkPlans.length || outOfNetworkPlans.length) ? '' : (d.identityPending || ''),
+      // Keep a ❔ row ❔ even if a later identity pass would now clear the flag and
+      // let a finished directory miss print as Out (Carol Anier / Ojeda, 2026-11-25).
+      identityPending: inNetworkPlans.length || outOfNetworkPlans.length
+        ? ''
+        : (d.identityPending || ''),
       inNetworkPlans,
       outOfNetworkPlans,
+      notConfirmedPlans,
+      priorCells: { ...(row.cells || {}) },
     };
   });
 }
@@ -2919,8 +2954,9 @@ function selectComparison(doctors, askText, opts = {}) {
     if (!issue || typedNpi || saidYes || confirmedMatches.some((nm) => sameDoctorName(nm, who))) return { ...d, identityPending: '' };
     return { ...d, identityPending: issue, inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] };
   }).map((d) => (d.identityPending ? d : GROUPS.applyGroupRuleToDoctor(d, ask0, (label) => carrierKey(label), groupYear)));
-  // Confirm/remove follow-ups: restore In/Out from the last table for every doctor that was not just confirmed,
-  // so a re-shop or a failed re-lookup cannot wipe Busse / Bostock / Valdes / Almerico (Carol Anier, 2026-11-25).
+  // Confirm/remove follow-ups: restore In/Out/❔ from the last table for every doctor that was not just confirmed,
+  // so a re-shop or a failed re-lookup cannot wipe Busse / Bostock / Valdes / Almerico, and a ❔ cannot flip
+  // to Out (Carol Anier / Ojeda Correal, 2026-11-25).
   const priorTable = opts.priorTable
     || (opts.messages ? LW.lastDoctorTableResults(opts.messages) : null);
   const recheckDoctors = opts.recheckDoctors
