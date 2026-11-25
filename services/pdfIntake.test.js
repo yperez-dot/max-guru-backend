@@ -148,14 +148,19 @@ test('page: paperclip takes PDFs (desktop and mobile file picker), preview befor
   const html = fs.readFileSync(path.join(__dirname, '../artifacts/max-demo-FINAL-v7.html'), 'utf8');
   assert.match(html, /data-testid="chat-attach-input"\s+type="file"\s+accept="image\/png,image\/jpeg,image\/webp,application\/pdf,\.pdf"\s+multiple/);
   assert.match(html, /function PdfIntakePreview\(/);
-  assert.match(html, /disabled=\{!zipOk \|\| open\.length > 0 \|\| !text\.trim\(\)\}/, 'no ZIP or an unanswered strength → it does not run');
-  assert.match(html, /onUse=\{\(t\) => \{ setPdfPreview\(null\); send\(t\); \}\}/);
+  assert.match(html, /const canRun = nameOk && zipOk && planOk && open\.length === 0;/);
+  assert.match(html, /disabled=\{!canRun\}/, 'Run Max stays off until name, ZIP, and plan are set');
+  assert.match(html, /onUse=\{\(t\) => \{ setPdfPreview\(null\); startNewClient\(\); void wsSubmit\(t\); \}\}/, 'composer PDF goes to the new-client gates, not a bare send');
   assert.match(html, /data-testid="ws-upload-pdf"/);
-  assert.match(html, /useLabel="Put it in the box"/);
+  assert.match(html, /useLabel="Run Max"/);
+  assert.match(html, /data-testid="pdf-intake-name"/);
+  assert.match(html, /data-testid="pdf-intake-plan"/);
+  assert.equal(html.includes('Put it in the box'), false);
   assert.match(html, /app\.use|compareRequest\("POST", "\/pdf"/);
   const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
   assert.match(server, /app\.use\('\/compare\/pdf', express\.json\(\{ limit: process\.env\.MAX_PDF_BODY_LIMIT \|\| '60mb' \}\)\);\napp\.use\(express\.json/);
-  assert.match(html, /pharmacy hints/);
+  assert.match(html, /pharmacy ZIP hints/);
+  assert.match(html, /data-testid="pdf-intake-need"/);
 });
 
 const MP = require('./medicareProPrint');

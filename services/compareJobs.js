@@ -649,7 +649,7 @@ async function runJob(job, { lookupOneDoctor = lookupDoctor, lookupRx = lookupFo
         clearTimeout(timer);
       }
       job.progress.doctors.done += 1;
-      return { ...(r.structured || {}), requestedName: d.name, ...(d.npi ? { requestedNpi: d.npi } : {}), status: r.status, mustKeep: Boolean(d.mustKeep) };
+      return { ...(r.structured || {}), requestedName: d.name, ...(d.npi ? { requestedNpi: d.npi } : {}), ...(d.specialty ? { requestedSpecialty: d.specialty } : {}), status: r.status, mustKeep: Boolean(d.mustKeep) };
     }));
     // A doctor that ran out of time: the card is a background job (no browser wait), so it gets more time — re-checked
     // once (the unfinished lookup kept running into the cache) before the table is drawn. Only what is still unfinished

@@ -183,7 +183,7 @@ describe('New client workspace', () => {
     assert.match(html, /are any of them a must\?/);
     // the comparison only starts once every question is answered
     const fn = html.slice(html.indexOf('const wsAnswer'), html.indexOf('const wsToggleMust'));
-    assert.match(fn, /answers\.medicaid != null && answers\.csnp != null && mustDone/);
+    assert.match(fn, /medicaidDone && csnpDone && mustDone/);
     // finished client updates the same workup and keeps its results
     const fin = html.slice(html.indexOf('const wsFinish'), html.indexOf('const wsPoll'));
     assert.match(fin, /body\.id = id/);

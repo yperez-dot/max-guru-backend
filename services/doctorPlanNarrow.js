@@ -62,6 +62,15 @@ function shortDoctor(d) {
 const CORE_ALL_RE = /\b(?:all|every|each)\s+(?:the\s+|of\s+the\s+)?(?:(?:miami[-\s]?)?dade\s+|broward\s+)?core\s+plans?\b|\bcore\s+plans?\s+(?:in|for|across)\s+(?:miami[-\s]?)?(?:dade|broward)\b/i;
 const CORE_ALL_LINE = 'Core plans: every regular (non-SNP) plan on the county grid, every carrier.';
 /** Max offered to search other 2027 plans where a must-keep doctor is in network. */
+
+/** NPI taxonomy "Unknown" falls back to the specialty from the intake / request (Michele Taubman, vascular surgeon). */
+function displaySpecialty(d, fallback) {
+  const npi = String((d && (d.specialty || d.taxonomy || d.taxonomyDescription)) || '').trim();
+  const intake = String(fallback || (d && (d.requestedSpecialty || d.intakeSpecialty || d.askedSpecialty)) || '').trim();
+  if (npi && !/^unknown$/i.test(npi)) return npi;
+  return intake || '';
+}
+
 function inNetworkSearchOfferText(text) {
   const t = String(text || '');
   return /search other 2027 plans where[\s\S]{0,80}?\b(?:are|is)\s+in network/i.test(t)
@@ -74,7 +83,7 @@ function acceptedInNetworkSearchOffer(msgs, lastUserAt) {
   const i = lastUserAt != null && lastUserAt >= 0 ? lastUserAt : list.map((m) => m && m.role).lastIndexOf('user');
   if (i < 0) return false;
   const latest = messageText(list[i]).trim();
-  if (!/^(?:yes|yeah|yep|yup|sure|ok|okay|please|pls|si|sí)\b/i.test(latest) && !/\byes\b[\s\S]{0,40}\bsearch\b/i.test(latest)) return false;
+  if (!/^(?:yes|yeah|yep|yup|sure|ok|okay|please|pls|si|sí)\b/i.test(latest) && !/\byes\b[\s\S]{0,80}\b(?:search|run)\b/i.test(latest)) return false;
   const prev = [...list.slice(0, i)].reverse().find((m) => m && m.role === 'assistant');
   return Boolean(prev && inNetworkSearchOfferText(messageText(prev)));
 }
@@ -386,10 +395,10 @@ function doctorEqualsCorrections(text) {
   // Several corrections in one message, comma-separated ("A = B, MD (…, NPI …) , C = D, MD (…)"): a comma outside the
   // parentheses that starts another "X = Y" is a new correction (Martha Muraglia, 2026-10-20: only the first applied).
   for (const seg of String(text || '').split(/\n|;(?![^()]*\))|,(?![^()]*\))(?=[^,=→()]*(?:=|→|->))/)) {
-    const mm = seg.match(/^\s*(?:\d+[.)]\s*)?(?:and\s+)?(?:the\s+)?(?:(?:dr|dra|doctor|doctora)\.?\s+)?([A-Za-zÀ-ÿ'’.-]+(?:\s+[A-Za-zÀ-ÿ'’.-]+){0,5}?)\s*(?:=|→|->|\bis\s+actually\b|\bshould\s+be\b|\bis(?=\s+(?:dr|dra|doctor|doctora)\b))\s*(.+?)\s*$/i);
+    const mm = seg.match(/^\s*(?:\d+[.)]\s*)?(?:and\s+)?(?:the\s+)?(?:(?:dr|dra|doctor|doctora)\.?\s+)?([A-Za-zÀ-ÿ'’.-]+(?:\s+[A-Za-zÀ-ÿ'’.-]+){0,5}?)\s*(?:=|→|->|\bis\s+actually\b|\bshould\s+be\b|\bis(?!\s+not\b)(?=\s+(?:(?:dr|dra|doctor|doctora)\.?\s+)?[A-ZÀ-Ý]))\s*(.+?)\s*$/i);
     if (!mm) continue;
     const right = mm[2];
-    if (/\b[HR]\d{4}-\d{3}/i.test(right) || /\d+(?:\.\d+)?\s*(?:mg|mcg|ml|units?)\b/i.test(right)) continue;
+    if (/\b[HR]\d{4}-\d{3}/i.test(right) || /\d+(?:\.\d+)?\s*(?:mg|mcg|ml|units?)\b/i.test(right) || /\bis\s+not\s+a\s+(?:med|medication|drug)\b/i.test(seg) || /\bnot\s+a\s+(?:med|medication|drug)\b/i.test(right)) continue;
     const npi = (right.match(/\b(\d{10})\b/) || [])[1] || '';
     const name = right.replace(/\([^)]*\)?/g, ' ').replace(/\bNPI\s*#?:?\s*\d{10}\b/gi, ' ').replace(/\b\d{10}\b/g, ' ')
       .replace(/^\s*(?:dr|dra|doctor|doctora)\.?\s+/i, '').replace(CRED_RE, ' ').replace(/[\s,.;:!-]+$/, '').replace(/\s{2,}/g, ' ').trim();
@@ -2367,7 +2376,8 @@ function doctorLabel(d) {
   const askedWords = plainWords(asked);
   const same = askedWords.length > 0 && askedWords.every((w) => plainWords(matched).includes(w)) && !lastNameOnly(d);
   const name = same ? matched : `${matched} (asked: ${asked})`;
-  const spec = d.specialty ? ` · ${titleCase(d.specialty)}` : '';
+  const specName = displaySpecialty(d);
+  const spec = specName ? ` · ${titleCase(specName)}` : '';
   const npi = d.npi ? ` · NPI ${d.npi}` : '';
   return `${name}${spec}${npi}${flag}`;
 }
@@ -4097,6 +4107,7 @@ module.exports = {
   namedPlanColumns,
   fallbackAnswer,
   doctorLabel,
+  displaySpecialty,
   countText,
   cellCountText,
   planLine,
