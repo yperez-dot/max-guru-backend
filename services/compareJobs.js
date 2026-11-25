@@ -156,7 +156,7 @@ function titledDoctors(t) {
 }
 
 // Words that end a titled name ("Dr. Lopez for her heart", "dr. smith is her PCP", "Dr. Ruiz cardiologist").
-const NAME_STOP_RE = /^(?:and|or|for|with|is|are|was|at|in|on|from|who|the|my|her|his|she|he|they|also|plus|but|to|of|as|that|this|has|have|had|takes?|taking|sees?|saw|meds?|medications?|rx|drugs?|zip|plans?|compare|current|no|none|pcp|primary|care|npi|md|do|dds|dmd|dpm|od)$/i;
+const NAME_STOP_RE = /^(?:and|or|for|with|is|are|was|at|in|on|from|who|the|my|her|his|she|he|they|also|plus|but|to|of|as|that|this|has|have|had|takes?|taking|sees?|saw|meds?|medications?|rx|drugs?|zip|plans?|compare|current|no|none|pcp|primary|care|npi|md|do|dds|dmd|dpm|od|confirm|match)$/i;
 const TITLE_WORD_RE = /^(?:dr|dra|drs|dras|doc|doctor|doctora)$/i;
 
 /**

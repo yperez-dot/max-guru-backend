@@ -13,7 +13,7 @@ const PLAN_NAME = require('../artifacts/plan-name.js');
 const { plainWords, cleanName, titleCase, sameDoctorName, ROLE_WORDS_RE } = DN;
 // Loaded-workup set rules (plans / doctors / meds) live in one module.
 const LW = require('./loadedWorkup');
-const { workupFacts, workupCarrierEditSet, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START, NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, respelledDoctors, looseSameDoctor, fuzzySameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords, doctorCoreWords, specialtyWords, removedByClauses, sameCoreDoctor, RESOLVED_DOCTOR, dedupeDoctorRows, DUPLICATE_Q_RE, duplicateQuestions, confirmedDuplicateRemovals } = LW;
+const { workupFacts, workupCarrierEditSet, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START, NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, respelledDoctors, looseSameDoctor, fuzzySameDoctor, cleanAskedDoctorName, DOCTOR_REMOVE_RE, doctorRemovalClauses, NAME_TAIL_RE, SPECIALTY_RE, rawWords, doctorCoreWords, specialtyWords, removedByClauses, sameCoreDoctor, RESOLVED_DOCTOR, dedupeDoctorRows, DUPLICATE_Q_RE, duplicateQuestions, confirmedDuplicateRemovals } = LW;
 const NS = require('./networkStatus');
 
 const PLAN_ID_RE = /\(([HR]\d{4}-\d{3}[A-Z]?)\)\s*$/i;
@@ -49,7 +49,8 @@ function carrierOf(label) {
 }
 
 function shortDoctor(d) {
-  return String(d.requestedName || d.doctorName || '').trim();
+  const raw = String((d && (d.requestedName || d.doctorName)) || '').trim();
+  return cleanAskedDoctorName(raw) || raw;
 }
 
 /**
@@ -451,16 +452,17 @@ function applyDoctorResolutions(doctors, resolutions, npis0) {
       const hit = sameDoctorName(cur, r.asked) || fuzzySameDoctor(cur, r.asked) || fuzzySameDoctor(r.asked, cur)
         || sameDoctorName(cur, r.name) || fuzzySameDoctor(cur, r.name) || fuzzySameDoctor(r.name, cur);
       if (!hit) continue;
-      const incomingLonger = plainWords(r.name).length > plainWords(cur).length;
-      const sameCount = plainWords(r.name).length === plainWords(cur).length;
+      const incoming = cleanAskedDoctorName(r.name) || r.name;
+      const incomingLonger = plainWords(incoming).length > plainWords(cur).length;
+      const sameCount = plainWords(incoming).length === plainWords(cur).length;
       // A fuller name wins; a same-length spelling ("Richardo" → "Ricardo") replaces; a shorter
       // later mention ("Dr. Ricardo Machado") must not strip "Ricardo Leoncio Machado".
-      if (incomingLonger || (sameCount && r.name !== cur)) {
-        if (npis[cur] && r.name !== cur) {
-          if (!npis[r.name]) npis[r.name] = r.npi || npis[cur];
+      if (incomingLonger || (sameCount && incoming !== cur)) {
+        if (npis[cur] && incoming !== cur) {
+          if (!npis[incoming]) npis[incoming] = r.npi || npis[cur];
           delete npis[cur];
         }
-        cur = r.name;
+        cur = incoming;
       }
       if (r.npi) npis[cur] = r.npi;
     }
@@ -521,9 +523,10 @@ function bindDoctorIdentity(people, ident, savedNpis) {
   if (!hit && ident.npi && pending.length === 1) hit = pending[0];
   if (!hit) return false;
   if (ident.name && plainWords(ident.name).length >= 2) {
-    const incomingLonger = plainWords(ident.name).length > plainWords(hit.name).length;
-    const sameCount = plainWords(ident.name).length === plainWords(hit.name).length;
-    if (incomingLonger || (sameCount && ident.name !== hit.name) || !hit.name) hit.name = ident.name;
+    const incoming = cleanAskedDoctorName(ident.name) || ident.name;
+    const incomingLonger = plainWords(incoming).length > plainWords(hit.name).length;
+    const sameCount = plainWords(incoming).length === plainWords(hit.name).length;
+    if (incomingLonger || (sameCount && incoming !== hit.name) || !hit.name) hit.name = incoming;
   }
   if (ident.npi) hit.npi = ident.npi;
   return true;
@@ -673,23 +676,32 @@ const NEG_RE = /\b(wrong|incorrect|not (the )?(right|correct|same)|isn'?t|aren'?
  * "yes" confirms every listed match; "Yavagal and Krajewski correct, Del Conde and
  * Sosa wrong" confirms two and rejects two. A name she does not mention stays open.
  */
+function significantNameWords(nm) {
+  const stop = new Set(['dr', 'dra', 'doctor', 'doctora', 'confirm', 'match', 'right', 'md', 'do', 'np', 'pa', 'npi']);
+  return plainWords(cleanAskedDoctorName(nm)).filter((w) => !stop.has(w));
+}
 function matchVerdicts(names, answer) {
   const a = String(answer || '');
   const clauses = a.split(/[,;.]|\bbut\b/i).map((c) => c.trim()).filter(Boolean);
-  const key = (nm) => plainWords(nm).slice(-1)[0] || '';
+  const key = (nm) => significantNameWords(nm).slice(-1)[0] || '';
   const ok = [];
   const bad = [];
   let anyNamed = false;
   for (const nm of names) {
-    const k = key(nm);
-    const clause = k ? clauses.find((c) => plainWords(c).includes(k)) : null;
+    const words = significantNameWords(nm);
+    const k = words[words.length - 1] || '';
+    const k2 = words.length >= 2 ? words[words.length - 2] + ' ' + k : '';
+    const clause = k ? clauses.find((c) => {
+      const pw = plainWords(c);
+      return pw.includes(k) || (k2 && (` ${pw.join(' ')} `).includes(` ${k2} `));
+    }) : null;
     if (!clause) continue;
     anyNamed = true;
     (NEG_RE.test(clause) ? bad : ok).push(nm);
   }
   if (!anyNamed) {
-    if (NO_RE.test(a) || /\b(wrong|incorrect)\b/i.test(a)) bad.push(...names);
-    else if (YES_RE.test(a)) ok.push(...names);
+    if (NO_RE.test(a) || (/\b(wrong|incorrect)\b/i.test(a) && !/\bright doctors?\b/i.test(a))) bad.push(...names);
+    else if (YES_RE.test(a) || /\byes\b[\s\S]{0,120}\bright doctors?\b/i.test(a) || /\bright doctors?\b/i.test(a) && /\b(?:yes|yep|yeah|correct)\b/i.test(a)) ok.push(...names);
   }
   const out = [];
   if (ok.length) out.push(`Doctor matches confirmed: ${ok.join(', ')}.`);
@@ -789,6 +801,20 @@ function comparisonAskText(messages, baseText) {
     if (!reply) continue;
     const answers = numberedAnswers(messageText(reply));
     qs.forEach((q, k) => { if (q && answers[k]) statementsFor(q, answers[k]).forEach((st) => lines.push(st)); });
+  }
+  // Unnumbered "Confirm the doctor match … Right doctors?" plus a later (possibly compound) reply.
+  for (let i = 0; i < msgs.length; i += 1) {
+    const m = msgs[i];
+    if (!m || m.role !== 'assistant') continue;
+    const q = messageText(m);
+    if (!/Confirm the (?:doctor )?match/i.test(q)) continue;
+    const reply = msgs.slice(i + 1).find((x) => x && x.role === 'user');
+    if (!reply) continue;
+    const names = [...q.matchAll(/(?:^|[:;]\s*)([^:;→]+?)\s*→/g)].map((x) => cleanAskedDoctorName(x[1].trim())).filter(Boolean);
+    if (!names.length) continue;
+    for (const st of matchVerdicts(names, messageText(reply))) {
+      if (!lines.includes(st)) lines.push(st);
+    }
   }
   // A workspace result pasted into chat ("Doctors: …\nPlans: H5420-001"): that single plan is the client's current plan.
   // Without this line the follow-up turns dropped it and showed three other plans (Jackie Alexander, 2026-10-13).
@@ -1630,7 +1656,7 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
     const hit = Object.entries(wk.npis || {}).find(([k]) => sameDoctorName(k, name) || fuzzySameDoctor(k, name) || fuzzySameDoctor(name, k));
     return hit ? hit[1] : '';
   };
-  const people = wk.doctors.map((name) => ({ name, npi: npiOf(name) }));
+  const people = wk.doctors.map((name) => ({ name: cleanAskedDoctorName(name) || name, npi: npiOf(name) }));
   let touched = false;
   for (let i = wkAt + 1; i <= lastUserAt; i += 1) {
     const m = msgs[i];
@@ -1651,7 +1677,31 @@ function workupDoctorFixes(msgs, lastUserAt, numbered) {
     const savedNpisEarly = (wk && wk.npis) || {};
     // "Dr. Ricardo Machado" / "Dr. Ricardo Leoncio Machado is a cardiologist with the NPI number …": map onto the
     // existing unresolved row (replace, never a duplicate). NPI dominates fuzzy Rafael/Alfredo suggestions.
+    // "Confirm the doctor match: A → B (NPI …). Right doctors?" + "Yes, Taubman and Ojeda Correal are the right doctors"
+    // or a plain "yes": confirm the pending matches (with their NPIs) and re-run the network checks.
+    if (prev && /Confirm the (?:doctor )?match/i.test(messageText(prev))) {
+      const q = messageText(prev);
+      const rows = [...q.matchAll(/(?:^|[:;]\s*)([^:;→]+?)\s*→\s*([^(\n→]+?)\s*\(NPI\s*(\d{10})\)/g)]
+        .map((m) => ({ asked: cleanAskedDoctorName(m[1]), name: cleanAskedDoctorName(m[2]), npi: m[3] }))
+        .filter((r) => r.asked && r.name);
+      const confirmed = matchVerdicts(rows.map((r) => r.asked), t)
+        .filter((v) => /^Doctor matches confirmed:/.test(v))
+        .flatMap((v) => v.replace(/^Doctor matches confirmed:\s*/, '').replace(/\.$/, '').split(/,/))
+        .map((s) => s.trim())
+        .filter(Boolean);
+      for (const row of rows) {
+        if (confirmed.length && !confirmed.some((nm) => sameDoctorName(nm, row.asked) || fuzzySameDoctor(nm, row.asked))) continue;
+        if (!confirmed.length) continue;
+        const who = people.find((p) => sameDoctorName(p.name, row.asked) || fuzzySameDoctor(p.name, row.asked)
+          || sameDoctorName(p.name, row.name) || fuzzySameDoctor(p.name, row.name) || (row.npi && p.npi === row.npi));
+        if (!who) continue;
+        who.name = cleanAskedDoctorName(who.name) || row.name;
+        if (row.npi) who.npi = row.npi;
+        touched = true;
+      }
+    }
     const ident = identityFromUserMessage(t);
+    if (ident && ident.name) ident.name = cleanAskedDoctorName(ident.name) || ident.name;
     const listEdit = /\b(?:replace|change|swap|correct|remove|delete|drop|take\s+out)\b/i.test(t);
     if (!listEdit && ident && bindDoctorIdentity(people, ident, savedNpisEarly)) {
       touched = true;
@@ -2338,16 +2388,20 @@ function identityIssue(d) {
   // (Gerry Cabrera, 2026-10-19: "Abilio Armando Coello (NPI 1720081037) is correct", then asked again two turns later).
   if (d.requestedNpi && d.npi && String(d.requestedNpi) === String(d.npi)) return '';
   if (lastNameOnly(d)) return 'last_name';
-  const asked = plainWords(shortDoctor(d));
-  const matched = plainWords(d.doctorName);
-  if (asked.length >= 2 && !matched.includes(asked[0])) return 'mismatch';
   // She named a medical practice ("Natalie Regalado - Baptist Medical Group") and the name search found a chiropractor /
   // optometrist / podiatrist / dentist with the same name: not the doctor she means (Jackie Alexander, 2026-10-13).
   const credTail = (String(d.doctorName || '').trim().match(/\b(dc|od|dpm|dds|dmd)\.?$/i) || [])[1];
-  const askedRaw = String(d.requestedName || '');
-  if (credTail && / [-–—] /.test(askedRaw)
-    && /\b(?:medical|hospital|institute|baptist|health|clinic|gastro|cardio\w*|surgeon|surgery|specialist|group|primary)\b/i.test(askedRaw)
-    && !/\b(?:dent\w*|dds|dmd|chiro\w*|optom\w*|eye|vision|podiat\w*|ophthal\w*)\b/i.test(askedRaw)) return 'confirm';
+  const requestedRaw = String(d.requestedName || '');
+  if (credTail && / [-–—] /.test(requestedRaw)
+    && /\b(?:medical|hospital|institute|baptist|health|clinic|gastro|cardio\w*|surgeon|surgery|specialist|group|primary)\b/i.test(requestedRaw)
+    && !/\b(?:dent\w*|dds|dmd|chiro\w*|optom\w*|eye|vision|podiat\w*|ophthal\w*)\b/i.test(requestedRaw)) return 'confirm';
+  const askedRaw = cleanAskedDoctorName(shortDoctor(d)) || shortDoctor(d);
+  const matchedRaw = cleanAskedDoctorName(d.doctorName) || d.doctorName;
+  const asked = plainWords(askedRaw);
+  const matched = plainWords(matchedRaw);
+  if (asked.length >= 2 && !matched.includes(asked[0])) return 'mismatch';
+  // Same first and last with only an extra/missing middle or initial (Michele Taubman ≈ Michele Lynn Taubman)
+  // auto-accepts below: a full middle she gave that the match lacks still flags (Carlos Santa Cruz ≠ Carlos A Cruz).
   // A full middle word she gave ("Carlos SANTA Cruz") that the match does not carry — not as a
   // word, not as its initial — is a different person (Carlos A Cruz ≠ Carlos Santa-Cruz).
   const orgTest = require('./npiRegistry').looksLikeOrganization;
@@ -2652,11 +2706,17 @@ function selectComparison(doctors, askText, opts = {}) {
     const typedNpi = d.npi && new RegExp(`\\b${String(d.npi).replace(/\D/g, '')}\\b`).test(typedNpisText);
     // "yes Zubair Ansari" / "Zubair Ansari is correct": her own words naming the matched doctor with a yes confirm it,
     // whatever wording Max's question used (Melmoth Alexander, 2026-10-13).
-    const matchedWords = plainWords(d.doctorName || '');
-    const saidYes = matchedWords.length >= 2 && ask0.split('\n').some((l) => {
+    const matchedWords = significantNameWords(d.doctorName || '');
+    const askedWords = significantNameWords(who);
+    const lastOf = (ws) => (ws && ws.length ? ws[ws.length - 1] : '');
+    const saidYes = ask0.split('\n').some((l) => {
+      if (!/\b(?:yes|yeah|yep|correct|right|confirm(?:ed)?|same)\b/i.test(l) || /\b(?:no|not|wrong)\b/i.test(l)) return false;
       const lw = ` ${plainWords(l).join(' ')} `;
-      return /\b(?:yes|yeah|yep|correct|right|confirm(?:ed)?|match|same)\b/i.test(l) && !/\b(?:no|not|wrong)\b/i.test(l)
-        && lw.includes(` ${matchedWords[0]} `) && lw.includes(` ${matchedWords[matchedWords.length - 1]} `) && l.length < 120;
+      const lastHit = (ws) => lastOf(ws) && lw.includes(` ${lastOf(ws)} `);
+      // First + last of the matched name, or the last name she used ("Yes, Taubman and Ojeda Correal are the right doctors").
+      if (matchedWords.length >= 2 && lw.includes(` ${matchedWords[0]} `) && lastHit(matchedWords) && l.length < 200) return true;
+      if (lastHit(matchedWords) || lastHit(askedWords)) return true;
+      return false;
     });
     if (!issue || typedNpi || saidYes || confirmedMatches.some((nm) => sameDoctorName(nm, who))) return { ...d, identityPending: '' };
     return { ...d, identityPending: issue, inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] };
@@ -3110,6 +3170,24 @@ function selectComparison(doctors, askText, opts = {}) {
         if (out.columns.length >= 2) break;
         take(c);
         if (!c.verifiable) out.flags.push(`⚠️ ${shortPlanHeader(c)}: over half the doctors unchecked — shown so the comparison has at least 2 plans; verify in the carrier directory.`);
+      }
+    }
+
+    // Miami-Dade top-plan selection always includes Doctors HealthCare's core plan
+    // (DrMax-Dade H4140-022) among the alternatives, unless she excluded that carrier
+    // or asked for an exclusive / named-only set (Yahoska, 2026-11-25, Carol Anier).
+    if (!carriers.length && !exclusiveSet && !namedSetLine && !only && !Array.isArray(opts.named)
+        && /miami\s*-?\s*dade/i.test(String(county || ''))) {
+      const docsCore = corePlanIdsFor('Doctors HealthCare', county);
+      const prefer = docsCore.includes('H4140-022') ? ['H4140-022', ...docsCore.filter((id) => id !== 'H4140-022')] : docsCore;
+      for (const id of prefer.slice(0, 1)) {
+        if (out.columns.some((c) => c.planId.slice(0, 9) === id) || pinIds.some((p) => String(p).slice(0, 9) === id)) continue;
+        const col = cols.find((c) => c.planId.slice(0, 9) === id);
+        if (!col) continue;
+        const e = R.planEligibility(col.grid || { name: col.name }, elig);
+        if (e.status !== 'eligible') continue;
+        out.columns.push(col);
+        break;
       }
     }
 
@@ -4114,4 +4192,6 @@ module.exports = {
   drugCell,
   statementsFor,
   shortDoctor,
+  cleanAskedDoctorName,
+  matchVerdicts,
 };

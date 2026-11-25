@@ -138,7 +138,7 @@ function formatLatLng(latitude, longitude) {
 
 function lastNameFromDisplay(name) {
   if (!name || typeof name !== 'string') return '';
-  const cleaned = name.replace(/,?\s+(MD|DO|NP|PA|RN|APRN|DDS|DMD|DPM|OD|DC|MA|MS|MSN|MED|PharmD|PhD)\.?$/i, '').trim();
+  const cleaned = name.replace(/,?\s+(MD|DO|NP|PA|RN|APRN|DDS|DMD|DPM|OD|DC|MA|MS|MSC|MSc|MSN|MBA|MED|PharmD|PhD)\.?$/i, '').trim();
   const noComma = cleaned.includes(',') ? cleaned.slice(0, cleaned.indexOf(',')).trim() : cleaned;
   const parts = noComma.split(/\s+/).filter(Boolean);
   return parts[parts.length - 1] || '';
@@ -164,11 +164,12 @@ function isInNetworkStatus(status) {
 function formatPlanLabel(plan) {
   const name = plan?.plan_name || plan?.planName || '';
   const id = String(plan?.plan_id || plan?.planId || '');
-  const cms = id.match(/^(H\d{4}-\d{3})/i);
-  // Keep the CMS ID on the label so Max can match it plan-by-plan (H1609-018), not just "Aetna".
-  if (name && cms) return `${name} (${cms[1].toUpperCase()})`;
+  // Aetna sometimes omits the hyphen (H1609093). Keep a CMS H####-### so Max can match H1609-093
+  // plan-by-plan instead of leaving that column ❔ not confirmed (Rebekka Hooks, 2026-11-25).
+  const cms = id.match(/^(H\d{4}-\d{3})/i) || (() => { const m = id.match(/^(H\d{4})(\d{3})\b/i); return m ? [m[0], `${m[1]}-${m[2]}`] : null; })();
+  if (name && cms) return `${name} (${String(cms[1]).toUpperCase()})`;
   if (name) return name;
-  if (cms) return `Aetna ${cms[1]}`;
+  if (cms) return `Aetna ${String(cms[1]).toUpperCase()}`;
   return id ? `${CARRIER_LABEL} – ${id}` : CARRIER_LABEL;
 }
 
