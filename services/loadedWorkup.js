@@ -156,7 +156,9 @@ function lastTablePlanIds(msgs) {
   for (let i = list.length - 1; i >= 0; i -= 1) {
     const m = list[i];
     if (!m || m.role !== 'assistant') continue;
-    const head = messageText(m).split('\n').find((l) => /^\|\s*(?:Doctor|Drug)\s*\|/.test(l.trim()));
+    const lines = messageText(m).split('\n');
+    const head = lines.find((l) => /^\|\s*(?:Doctor|Drug)\s*\|/.test(l.trim()))
+      || lines.find((l) => /\b(?:Doctor|Drug)\b/i.test(l) && (l.match(/\b[HR]\d{4}-\d{3}[A-Z]?\b/gi) || []).length >= 2);
     if (!head) continue;
     return [...new Set([...head.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)].map((x) => x[1].toUpperCase()))];
   }
@@ -412,7 +414,14 @@ function planRemovals(text, plans, currentIds = [], opts = {}) {
     if (/^(?:dr|dra|doctor|doctora)\.?\s+[a-z]/i.test(low) && !/^doctors?\s+(?:health|dr|plan)/i.test(low)) return;
     if (/\brows?\b|\bmeds?\b|\bmedications?\b|\bdoctors?\s+(?:rows?|list)\b/.test(low)) return;
     // A saved doctor or med she is removing is not a plan.
-    if (skipWords.some((w) => w && (low.includes(w) || w.includes(low)))) return;
+    // First + last is enough ("remove Yusleidi Gil" vs "Yusleidi De La Caridad Gil").
+    if (skipWords.some((w) => {
+      if (!w) return false;
+      if (low.includes(w) || w.includes(low)) return true;
+      const a = firstLastName(w);
+      const b = firstLastName(target);
+      return Boolean(a && b && a.first === b.first && a.last === b.last);
+    })) return;
     const ids = [...target.matchAll(/\b([HR]\d{4}-\d{1,3})/gi)].map((x) => x[1].toUpperCase().replace(/-(\d{1,3})$/, (m, d) => `-${d.padStart(3, '0')}`));
     if (ids.length) {
       for (const id of ids) {
@@ -602,6 +611,22 @@ function respelledDoctors(latest, doctors) {
 }
 
 /**
+ * Strip honorifics and leftover prompt words ("Dr.", "Confirm Match") from a stored or displayed doctor name
+ * so confirm replies never become part of the name (Carol Anier, 2026-11-25).
+ */
+function cleanAskedDoctorName(s) {
+  return String(s || '')
+    .replace(/^\s*(?:dr|dra|doctor|doctora)\.?\s+/i, '')
+    .replace(/\s*[⚠️?]+\s*/g, ' ')
+    .replace(/\s*\((?:asked|requested):[^)]*\)\s*/ig, ' ')
+    .replace(/\s*(?:different name\s*[—–-]\s*)?confirm(?:\s+the)?(?:\s+doctor)?\s*match\b.*$/i, '')
+    .replace(/\s*·\s*NPI\s*\d{10}\b.*$/i, '')
+    .replace(/\s*\bNPI\s*:?\s*\d{10}\b/ig, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/**
  * Her name for a doctor on the left of "X = Y" vs a saved / asked name, spelling aside: "Priscilla Escalona" ≈
  * "Priscila Escalona" (Evelyn Nieves, 2026-10-20 — the two-L spelling never matched the one-L row, so her pick was
  * dropped and the same question came back). Accents, Dr./MD, a missing middle name and a letter or two off are all the
@@ -713,12 +738,27 @@ function specialtyWords(text) {
   return rawWords(text).filter((w) => SPECIALTY_RE.test(w)).map((w) => w.slice(0, 5));
 }
 
-function removedByClauses(name, clauses) {
+const NAME_PARTICLE_RE = /^(?:de|del|la|las|los|da|das|do|dos|di|du|van|von|der|den|le|y|st)$/;
+function firstLastName(name) {
   const core = doctorCoreWords(name);
+  if (core.length < 2) return null;
+  return { first: core[0], last: core[core.length - 1], core };
+}
+
+function removedByClauses(name, clauses) {
+  const core = doctorCoreWords(cleanAskedDoctorName(name));
   if (core.length < 2) return false;
+  const first = core[0];
+  const last = core[core.length - 1];
   const rowSpec = specialtyWords(String(name || '').replace(/^\s*(?:dr|dra)\.?\s+/i, ''));
   return clauses.some((words) => {
-    if (!core.every((w) => words.includes(w))) return false;
+    if (!words || words.length < 2) return false;
+    // Exact first + last, ignoring middle names and surname particles ("Yusleidi Gil"
+    // matches "Yusleidi De La Caridad Gil"). Every core word in the clause still matches
+    // a precise typo'd row ("Neeta Erinjerri") without also dropping a differently spelled twin.
+    const firstLast = words.includes(first) && words.includes(last);
+    const everyCore = core.every((w) => NAME_PARTICLE_RE.test(w) || words.includes(w));
+    if (!firstLast && !everyCore) return false;
     const said = specialtyWords((words.raw || words).join(' '));
     return !said.length || !rowSpec.length || said.some((w) => rowSpec.includes(w));
   });
@@ -1094,7 +1134,7 @@ module.exports = {
   workupFacts, workupCarrierEditSet, workupPlanAddSet, replacePlanPairs, lastTablePlanIds, WORKUP_LINE_RE, KEEP_EXACT_RE, PLAN_EDIT_VERB_RE, isPlanEditLine, PLAN_START,
   NEW_SET_VERB_RE, ONLY_PLANS_RE, REMOVE_RE, PRONOUN_TARGET_RE, KEEPS_CURRENT_RE, lineKeepsCurrentPlan, droppedIdsIn, removePlansNamedIn, OFF_GRID_RE, DROPS_CURRENT_RE, currentPlanRemovedBy, planLineVerdict, currentPlanFirst,
   // doctors
-  respelledDoctors, looseSameDoctor, fuzzySameDoctor, DOCTOR_REMOVE_RE, doctorRemovalClauses, doctorRemovalLines, stripRemovalSuffix, isDoctorLikeRemoval, NAME_TAIL_RE, SPECIALTY_RE, rawWords,
+  respelledDoctors, looseSameDoctor, fuzzySameDoctor, cleanAskedDoctorName, firstLastName, DOCTOR_REMOVE_RE, doctorRemovalClauses, doctorRemovalLines, stripRemovalSuffix, isDoctorLikeRemoval, NAME_TAIL_RE, SPECIALTY_RE, rawWords,
   doctorCoreWords, specialtyWords, removedByClauses, sameCoreDoctor, RESOLVED_DOCTOR, dedupeDoctorRows, DUPLICATE_Q_RE,
   duplicateQuestions, confirmedDuplicateRemovals,
   // meds

@@ -7707,11 +7707,11 @@ function PdfIntakePreview({ preview, zipDefault, useLabel, onUse, onCancel }) {
   if (!zipOk) needBits.push("ZIP");
   if (!planOk) needBits.push("current plan");
   if (open.length) needBits.push("the strength pick");
-  const noteHints = [];
-  if (!zipOk && (intake.zipHints || []).length) noteHints.push("pharmacy ZIP hints " + intake.zipHints.join(", ") + " — confirm hers, don't auto-fill");
-  (intake.notes || []).forEach((n) => { if (n && !/enter her ZIP/i.test(n)) noteHints.push(n); });
-  otherQs.forEach((q) => { if (q && q.text) noteHints.push(q.text); });
-  const needLine = needBits.length ? ("Need: " + needBits.join(", ") + (noteHints.length ? " (" + noteHints[0] + ")" : "") + ".") : (noteHints.length ? "Need: " + noteHints[0] : "");
+  const needLine = needBits.length ? ("Need: " + needBits.join(", ") + ".") : "";
+  const zipHint = (!zipOk && (intake.zipHints || []).length) ? ("pharmacy ZIP hints " + intake.zipHints.join(", ") + " — confirm hers, don't auto-fill.") : "";
+  const extraNotes = [];
+  (intake.notes || []).forEach((n) => { if (n && !/enter her ZIP/i.test(n)) extraNotes.push(n); });
+  otherQs.forEach((q) => { if (q && q.text) extraNotes.push(q.text); });
   const box = { width: "100%", boxSizing: "border-box", padding: "9px 11px", borderRadius: 10, border: "1px solid var(--line)", fontFamily: "var(--font)", fontSize: 13, background: "#fff", color: "var(--ink)" };
   const zipBox = { ...box, width: 110, border: "1px solid " + (zipOk ? "var(--line)" : "#9B1C3C") };
   const rowBtn = { width: 28, height: 28, borderRadius: 8, border: "1px solid var(--line)", background: "#fff", color: "var(--plum)", cursor: "pointer", fontSize: 16, lineHeight: "26px", padding: 0, flexShrink: 0 };
@@ -7732,7 +7732,8 @@ function PdfIntakePreview({ preview, zipDefault, useLabel, onUse, onCancel }) {
     </label>
   );
   return (
-    <div data-testid="pdf-intake-preview" style={{ margin: "0 0 10px", padding: "10px 12px", borderRadius: 14, border: "1px solid var(--line)", background: "rgba(245,243,255,0.97)", fontSize: 13, lineHeight: 1.45, color: "var(--ink)", maxHeight: "60vh", overflowY: "auto" }}>
+    <div data-testid="pdf-intake-preview" style={{ margin: "0 0 10px", borderRadius: 14, border: "1px solid var(--line)", background: "rgba(245,243,255,0.97)", fontSize: 13, lineHeight: 1.45, color: "var(--ink)", maxHeight: "60vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div data-testid="pdf-intake-fields" style={{ padding: "10px 12px 8px", overflowY: "auto", flex: "1 1 auto", minHeight: 0 }}>
       <div style={{ fontWeight: 700, marginBottom: 8 }}>From the PDF — check it, then run Max</div>
       {(preview.results || []).map((r, i) => (
         <div key={"r" + i} style={{ fontSize: 12.5, color: r.ok ? "var(--muted)" : "#9B1C3C" }}>
@@ -7746,6 +7747,7 @@ function PdfIntakePreview({ preview, zipDefault, useLabel, onUse, onCancel }) {
       <div style={{ marginTop: 10 }}>
         {fieldLabel("ZIP", true)}
         <input data-testid="pdf-intake-zip" inputMode="numeric" maxLength={5} value={zip} onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))} style={zipBox} placeholder="33196" aria-required="true" />
+        {zipHint ? <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>{zipHint}</div> : null}
       </div>
       <div style={{ marginTop: 10 }}>
         {fieldLabel("Current plan", true)}
@@ -7782,10 +7784,14 @@ function PdfIntakePreview({ preview, zipDefault, useLabel, onUse, onCancel }) {
           </div>
         </div>
       ))}
-      {needLine ? <div data-testid="pdf-intake-need" style={{ marginTop: 10, fontSize: 12.5, color: "#9B1C3C" }}>{needLine}</div> : null}
-      <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+      {extraNotes.length ? <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>{extraNotes[0]}</div> : null}
+      </div>
+      <div data-testid="pdf-intake-runbar" style={{ position: "sticky", bottom: 0, flex: "0 0 auto", padding: "8px 12px 10px", borderTop: "1px solid var(--line)", background: "rgba(245,243,255,0.98)" }}>
+      {needLine ? <div data-testid="pdf-intake-need" style={{ marginBottom: 8, fontSize: 12.5, color: "#9B1C3C" }}>{needLine}</div> : null}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <button data-testid="pdf-intake-use" type="button" disabled={!canRun} onClick={run} style={queueBtn(true)}>{useLabel || "Run Max"}</button>
         <button type="button" onClick={onCancel} style={queueBtn(false)}>Cancel</button>
+      </div>
       </div>
     </div>
   );
@@ -8486,12 +8492,12 @@ function ClientWsCard({ ws, onSubmit, onAnswer, onToggleMust, onExport, onCancel
           <input ref={shotInputRef} data-testid="ws-upload-input" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden onChange={(e) => void readScreenshots(e.target.files)} />
           <input ref={pdfInputRef} data-testid="ws-pdf-input" type="file" accept="application/pdf,.pdf" multiple hidden onChange={(e) => void readCardPdfs(e.target.files)} />
           {cardPdf && <div style={{ marginTop: 8 }}><PdfIntakePreview key={cardPdf.key} preview={cardPdf} zipDefault="" useLabel="Run Max" onUse={(t) => { setText(t); setCardPdf(null); onSubmit(t); }} onCancel={() => setCardPdf(null)} /></div>}
-          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            {!cardPdf && <button data-testid="ws-continue" disabled={ws.busy || reading || !text.trim()} onClick={() => onSubmit(text)} style={queueBtn(true)}>{ws.busy ? "Setting up…" : "Continue"}</button>}
+          {!cardPdf && <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <button data-testid="ws-continue" disabled={ws.busy || reading || !text.trim()} onClick={() => onSubmit(text)} style={queueBtn(true)}>{ws.busy ? "Setting up…" : "Continue"}</button>
             <button data-testid="ws-upload" type="button" disabled={ws.busy || reading} onClick={() => shotInputRef.current && shotInputRef.current.click()} style={queueBtn(false)}>{reading ? "Reading…" : "Upload screenshot"}</button>
             <button data-testid="ws-upload-pdf" type="button" disabled={ws.busy || reading} onClick={() => pdfInputRef.current && pdfInputRef.current.click()} style={queueBtn(false)}>Upload PDF</button>
-            <span style={{ fontSize: 12, color: "var(--muted)" }}>Screenshot (PNG, JPEG, WebP) or the client's PDF (up to 10 MB, 4 at a time). Check the text, add the name and ZIP, then Continue.</span>
-          </div>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>Screenshot (PNG, JPEG, WebP) or the client's PDF (up to 10 MB, 4 at a time). After a PDF, check the fields, then Run Max.</span>
+          </div>}
         </>)}
         {stage !== "paste" && (<>
           <div style={{ fontWeight: 700 }}>{f.clientName || ws.name || "Client"}{f.zip ? " · ZIP " + f.zip : ""}</div>
@@ -8548,7 +8554,7 @@ function ClientWsCard({ ws, onSubmit, onAnswer, onToggleMust, onExport, onCancel
             {result ? <CompareResult result={result} onExport={onExport} /> : <div style={{ fontSize: 13, color: "var(--muted)" }}>Results aren't available on this device. Run the client again to see them.</div>}
           </div>
         )}
-        {stage !== "done" && stage !== "running" && stage !== "starting" && onCancel && (
+        {stage !== "done" && stage !== "running" && stage !== "starting" && onCancel && !(stage === "paste" && cardPdf) && (
           <div style={{ marginTop: 10 }}><button onClick={onCancel} style={{ ...queueBtn(false), padding: "6px 12px", fontSize: 12 }}>Start over</button></div>
         )}
       </div>

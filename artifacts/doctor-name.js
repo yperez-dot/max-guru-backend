@@ -201,7 +201,7 @@
   /** "Stephanie Sasha De La Guarda, DO" → "De La Guarda"; no particle → "". */
   function compoundLastName(name) {
     if (!name || typeof name !== 'string') return '';
-    const cleaned = name.replace(/,?\s+(MD|DO|NP|PA|RN|APRN|DDS|DMD|DPM|OD|DC|MA|MS|MSN|MED|PharmD|PhD)\.?$/i, '').trim();
+    const cleaned = name.replace(/,?\s+(MD|DO|NP|PA|RN|APRN|DDS|DMD|DPM|OD|DC|MA|MS|MSC|MSc|MSN|MBA|MED|PharmD|PhD)\.?$/i, '').trim();
     const noComma = cleaned.includes(',') ? cleaned.slice(0, cleaned.indexOf(',')).trim() : cleaned;
     const parts = noComma.split(/\s+/).filter(Boolean);
     const head = cleaned.includes(',') ? 0 : 1;
