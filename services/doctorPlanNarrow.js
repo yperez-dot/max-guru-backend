@@ -1078,6 +1078,18 @@ function comparisonAskText(messages, baseText) {
     // A message that names plan IDs decides the columns — "lets do H5420-014, H4140-022, …" needs no verb.
     if (idsNamed && /\b(compare|show|add|instead|vs|do|use|run|go with|check|re-?check|re-?run|verify)\b/i.test(t)) break;
   }
+  // Doctor-only confirm or remove: lock the last table's columns. Without this, the follow-up has no plan IDs,
+  // selectComparison re-shops, and a plan like HealthSun H5431-001 can drop off (Carol Anier, 2026-11-25).
+  if (!lines.some((l) => /^Named plan set:/m.test(l))) {
+    const lastIdx = msgs.map((x) => x && x.role).lastIndexOf('user');
+    const lastT = lastIdx >= 0 ? messageText(msgs[lastIdx]) : '';
+    if (isDoctorOnlyColumnFollowUp(lastT, msgs)) {
+      const tablePlans = tablePlansFor(msgs);
+      if (tablePlans.length) {
+        lines.push(`Named plan set: ${tablePlans.map((pl) => `${pl.name} (${pl.planId})`).join('; ')}.`);
+      }
+    }
+  }
   // Plan removals in her newest message that are not exact (a typo, a name not in the table) are asked, never guessed
   // or ignored; her "yes" to "Did you mean remove X (ID)?" drops that ID (Evelyn Nieves, 2026-10-20).
   lines.push(...planRemovalAskLines(msgs));
@@ -1161,7 +1173,8 @@ function planRemovalAskLines(msgs) {
   const plans = tablePlansFor(before);
   if (!plans.length) return [];
   const wk = workupFacts(before);
-  const skip = [...(wk ? wk.doctors : []), ...(wk ? wk.meds || [] : []), ...R.medsFromAsk(t)].map((x) => String(x || '').toLowerCase().split(/\s+[-–—(]/)[0].trim()).filter((x) => x.length >= 4);
+  const tableDocs = (LW.lastDoctorTableResults(before).rows || []).map((r) => r.displayName || r.name);
+  const skip = [...(wk ? wk.doctors : []), ...tableDocs, ...(wk ? wk.meds || [] : []), ...R.medsFromAsk(t)].map((x) => String(x || '').toLowerCase().split(/\s+[-–—(]/)[0].trim()).filter((x) => x.length >= 4);
   const rm = LW.planRemovals(t, plans, wk ? wk.current : currentPlanOf(before), { skip });
   const qs = LW.planRemovalLines(rm, plans);
   return [...drops, ...(qs.length ? [`Plan removal questions: ${qs.join(' | ')}`] : [])];
@@ -2676,6 +2689,191 @@ function bump(map, reason) {
   if (reason) map.set(reason, (map.get(reason) || 0) + 1);
 }
 
+
+/** True when the newest user message only confirms or removes doctors — columns stay as last shown. */
+function isDoctorOnlyColumnFollowUp(t, msgs) {
+  const text = String(t || '').trim();
+  if (!text) return false;
+  if (R.isExclusivePlanSet(text)) return false;
+  if (RANK_ASK_RE.test(text) || CORE_ALL_RE.test(text)) return false;
+  if (R.csnpRunAsk && R.csnpRunAsk(text)) return false;
+  if (/\brun\s+(?:other|more)\s+plans\b/i.test(text)) return false;
+  if (WANTS_ALTERNATIVES_RE.test(text)) return false;
+  if (planTypeAsk(text)) return false;
+  if (/\b[HR]\d{4}-\d{3}/i.test(text)) return false;
+  if (R.carriersRequested(text).length) return false;
+  if (R.wantsOtherCarrier && R.wantsOtherCarrier(text)) return false;
+  if (LW.isFirstLastDoctorRemoval(text)) return true;
+  if (LW.isComparisonRemoval(text)) return false;
+  if (typeof LW.workupPlanAddSet === 'function' && LW.workupPlanAddSet(text, msgs || []).length) return false;
+  if (workupCarrierEditSet(text, msgs || []).length) return false;
+  if (/^\s*(?:yes|yep|yeah|correct|right|ok(?:ay)?)\b/i.test(text)
+    && /\b(?:right|correct|same)\s+doctors?\b/i.test(text)) return true;
+  const prev = Array.isArray(msgs)
+    ? [...msgs].slice(0, msgs.map((x) => x && x.role).lastIndexOf('user')).reverse().find((m) => m && m.role === 'assistant')
+    : null;
+  const prevT = prev ? messageText(prev) : '';
+  if (/Confirm the (?:doctor )?match/i.test(prevT)
+    && /\b(?:yes|yep|yeah|correct|right|confirm(?:ed)?|ok(?:ay)?)\b/i.test(text)
+    && !/\b(?:no|not|wrong)\b/i.test(text)) return true;
+  return false;
+}
+
+function priorDoctorNames(d, row) {
+  const fromDoc = [shortDoctor(d), d && d.doctorName, d && d.requestedName, d && d.name].filter(Boolean);
+  const fromRow = row ? [row.displayName, row.name].filter(Boolean) : [];
+  return { fromDoc, fromRow };
+}
+
+function namesMatchDoctor(a, b) {
+  const x = cleanAskedDoctorName(a) || a;
+  const y = cleanAskedDoctorName(b) || b;
+  if (!x || !y) return false;
+  if (sameDoctorName(x, y) || looseSameDoctor(x, y) || fuzzySameDoctor(x, y)) return true;
+  const fa = LW.firstLastName(x);
+  const fb = LW.firstLastName(y);
+  return Boolean(fa && fb && fa.first === fb.first && fa.last === fb.last);
+}
+
+function findPriorDoctorRow(d, prior) {
+  const rows = (prior && prior.rows) || [];
+  const npi = String((d && (d.npi || d.requestedNpi)) || '').replace(/\D/g, '');
+  if (npi) {
+    const byNpi = rows.find((r) => r.npi && r.npi === npi);
+    if (byNpi) return byNpi;
+  }
+  const names = [shortDoctor(d), d && d.doctorName, d && d.requestedName, d && d.name].filter(Boolean);
+  return rows.find((r) => names.some((nm) => namesMatchDoctor(nm, r.displayName || r.name))) || null;
+}
+
+function isRecheckDoctor(d, recheckDoctors) {
+  const list = (recheckDoctors || []).map((n) => cleanAskedDoctorName(n) || n).filter(Boolean);
+  if (!list.length) return false;
+  const names = [shortDoctor(d), d && d.doctorName, d && d.requestedName, d && d.name].filter(Boolean);
+  return names.some((nm) => list.some((r) => namesMatchDoctor(nm, r)));
+}
+
+function saidYesForDoctor(askText, d) {
+  const who = shortDoctor(d);
+  const matchedWords = significantNameWords(d && d.doctorName || '');
+  const askedWords = significantNameWords(who);
+  const lastOf = (ws) => (ws && ws.length ? ws[ws.length - 1] : '');
+  return String(askText || '').split('\n').some((l) => {
+    if (!/\b(?:yes|yeah|yep|correct|right|confirm(?:ed)?|same)\b/i.test(l) || /\b(?:no|not|wrong)\b/i.test(l)) return false;
+    const lw = ` ${plainWords(l).join(' ')} `;
+    const hit = (w) => w && lw.includes(` ${w} `);
+    return hit(lastOf(matchedWords)) || hit(lastOf(askedWords))
+      || namesMatchDoctor(l, who) || namesMatchDoctor(l, d && d.doctorName);
+  });
+}
+
+function doctorsToRecheckFromAsk(docs, askText) {
+  const ask0 = String(askText || '');
+  const confirmed = [...ask0.matchAll(/Doctor matches confirmed:\s*([^\n]+)/gi)]
+    .flatMap((m) => m[1].split(/[,;]/)).map((x) => x.replace(/\.$/, '').trim()).filter(Boolean);
+  const names = [];
+  for (const d of docs || []) {
+    const who = shortDoctor(d);
+    if (confirmed.some((nm) => namesMatchDoctor(nm, who) || namesMatchDoctor(nm, d.doctorName))) {
+      names.push(who);
+      continue;
+    }
+    if (saidYesForDoctor(ask0, d)) names.push(who);
+  }
+  return names;
+}
+
+function planLabelForPriorId(id, prior) {
+  const want = String(id || '').toUpperCase();
+  const head = String((prior && prior.header) || '');
+  const cols = head.split('|').map((c) => c.trim()).filter(Boolean);
+  const col = cols.find((h) => {
+    const m = String(h).match(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/i);
+    return m && m[1].toUpperCase() === want;
+  });
+  if (col && /\(([HR]\d{4}-\d{3}[A-Z]?)\)\s*$/i.test(col)) return col;
+  const row = gridRowFor(want, '');
+  const name = row
+    ? (carrierKey(String(row.planName || '')) ? String(row.planName) : `${row.carrier || ''} ${row.planName || ''}`.trim())
+    : want;
+  return `${name} (${want})`;
+}
+
+function applyPriorDoctorResults(docs, prior, opts = {}) {
+  if (!prior || !prior.rows || !prior.rows.length) return docs;
+  const recheck = opts.recheckDoctors || [];
+  return (docs || []).map((d) => {
+    if (isRecheckDoctor(d, recheck)) return d;
+    const row = findPriorDoctorRow(d, prior);
+    if (!row) return d;
+    const inNetworkPlans = [];
+    const outOfNetworkPlans = [];
+    for (const [id, status] of Object.entries(row.cells || {})) {
+      const label = planLabelForPriorId(id, prior);
+      if (status === 'in' || status === 'in_carrier') inNetworkPlans.push(label);
+      else if (status === 'out') outOfNetworkPlans.push(label);
+    }
+    const matchedName = row.displayName || cleanAskedDoctorName(row.name) || d.doctorName;
+    return {
+      ...d,
+      doctorName: d.doctorName || matchedName,
+      npi: d.npi || row.npi || d.requestedNpi,
+      status: ['timeout', 'error', 'not_found'].includes(d.status) && (inNetworkPlans.length || outOfNetworkPlans.length)
+        ? 'done'
+        : (d.status || 'done'),
+      identityPending: (inNetworkPlans.length || outOfNetworkPlans.length) ? '' : (d.identityPending || ''),
+      inNetworkPlans,
+      outOfNetworkPlans,
+    };
+  });
+}
+
+function shouldReusePriorDoctor(d, prior, recheckDoctors) {
+  if (!prior || !prior.rows || !prior.rows.length) return false;
+  if (isRecheckDoctor(d, recheckDoctors)) return false;
+  return Boolean(findPriorDoctorRow(d, prior));
+}
+
+function structuredFromPriorDoctor(d, prior) {
+  const row = findPriorDoctorRow(d, prior);
+  const inNetworkPlans = [];
+  const outOfNetworkPlans = [];
+  if (row) {
+    for (const [id, status] of Object.entries(row.cells || {})) {
+      const label = planLabelForPriorId(id, prior);
+      if (status === 'in' || status === 'in_carrier') inNetworkPlans.push(label);
+      else if (status === 'out') outOfNetworkPlans.push(label);
+    }
+  }
+  const requestedName = (d && (d.doctorName || d.name || d.requestedName)) || (row && (row.displayName || row.name)) || '';
+  const doctorName = (row && row.displayName) || (d && d.doctorName) || requestedName;
+  const npi = (d && (d.npi || d.requestedNpi)) || (row && row.npi) || '';
+  return {
+    requestedName,
+    doctorName,
+    npi,
+    requestedNpi: (d && (d.npi || d.requestedNpi)) || npi,
+    status: 'done',
+    pending: [],
+    failed: [],
+    networks: [],
+    inNetworkPlans,
+    outOfNetworkPlans,
+    carriersIn: [],
+    preservedFromPriorTable: true,
+  };
+}
+
+function priorLookupResult(d, prior) {
+  const structured = structuredFromPriorDoctor(d, prior);
+  return {
+    doctorName: structured.requestedName,
+    status: 'done',
+    text: `${structured.doctorName} (preserved from last table)`,
+    structured,
+  };
+}
+
 /**
  * Doctor/Drug Comparison Table Rules, end to end:
  * eligibility filter → county pool from the THEI grid → doctor results for every
@@ -2694,7 +2892,7 @@ function selectComparison(doctors, askText, opts = {}) {
   const wrongMatches = [...ask0.matchAll(/Doctor matches wrong:\s*([^\n]+)/gi)]
     .flatMap((m) => m[1].split(/[,;]/)).map((x) => x.replace(/\.$/, '').trim()).filter(Boolean);
   const typedNpisText = ask0.split('\n').filter((l) => !/^Doctor NPIs/.test(l)).join('\n');
-  const docs = (Array.isArray(doctors) ? doctors : []).map((d) => {
+  let docs = (Array.isArray(doctors) ? doctors : []).map((d) => {
     const who = shortDoctor(d);
     // Her latest word wins: a wrong match is never counted, even if an older reply said yes.
     if (d.doctorName && wrongMatches.some((nm) => sameDoctorName(nm, who))) {
@@ -2721,6 +2919,15 @@ function selectComparison(doctors, askText, opts = {}) {
     if (!issue || typedNpi || saidYes || confirmedMatches.some((nm) => sameDoctorName(nm, who))) return { ...d, identityPending: '' };
     return { ...d, identityPending: issue, inNetworkPlans: [], outOfNetworkPlans: [], carriersIn: [] };
   }).map((d) => (d.identityPending ? d : GROUPS.applyGroupRuleToDoctor(d, ask0, (label) => carrierKey(label), groupYear)));
+  // Confirm/remove follow-ups: restore In/Out from the last table for every doctor that was not just confirmed,
+  // so a re-shop or a failed re-lookup cannot wipe Busse / Bostock / Valdes / Almerico (Carol Anier, 2026-11-25).
+  const priorTable = opts.priorTable
+    || (opts.messages ? LW.lastDoctorTableResults(opts.messages) : null);
+  const recheckDoctors = opts.recheckDoctors
+    || (priorTable && priorTable.rows && priorTable.rows.length ? doctorsToRecheckFromAsk(docs, ask0) : []);
+  if (priorTable && priorTable.rows && priorTable.rows.length) {
+    docs = applyPriorDoctorResults(docs, priorTable, { recheckDoctors });
+  }
   // Dentists are drawn in the grid but never counted ("No single plan has all the doctors", ranking, counts).
   const n = docs.filter((d) => !isDentalProvider(d)).length;
   // "Carriers requested: Doctors HealthCare, Solis, Devoted" (comparisonAskText) — newest wins.
@@ -3431,9 +3638,10 @@ function extrasLines(sel) {
  * Compact text for the model (tool result): carriers per doctor, the rule-built
  * table to copy as-is, and what to do next.
  */
-function batchSummaryForModel(doctors, askText, { answered = false, drugs = [] } = {}) {
+function batchSummaryForModel(doctors, askText, opts = {}) {
+  const { answered = false, drugs = [] } = opts;
   const total = doctors.length;
-  const sel = selectComparison(doctors, askText, { answered, drugs });
+  const sel = selectComparison(doctors, askText, opts);
   const lines = [];
   lines.push('DOCTORS → carriers in network (finished checks):');
   sel.doctors.forEach((d) => lines.push(doctorLine(d)));
@@ -3852,13 +4060,14 @@ function renderedAnswer(doctors, askText, opts = {}) {
   const drugsIn = dropSupersededNameChecks(opts.drugs || [], askText);
   return withTimedOutNote(renderedAnswerRaw(doctors, askText, { ...opts, drugs: drugsIn }), doctors, drugsIn, { recheck: Boolean(opts.recheck) });
 }
-function renderedAnswerRaw(doctors, askText, { answered = false, drugs = [], medsUnreadable = false } = {}) {
+function renderedAnswerRaw(doctors, askText, opts = {}) {
+  const { answered = false, drugs = [], medsUnreadable = false } = opts;
   if (String(askText || '').includes(CORE_ALL_LINE)) {
     const list = coreAllAnswer(doctors, askText);
     const dup = duplicateQuestions(doctors);
     return dup.length ? `${list}\n\n${FOLLOW_UP_MARKER}\n${dup.join('\n')}` : list;
   }
-  const sel = selectComparison(doctors, askText, { answered, drugs });
+  const sel = selectComparison(doctors, askText, opts);
   const top = sel.columns;
   if (sel.needCounty && !top.length) return R.COUNTY_QUESTION;
   if (!top.length) return '';
@@ -4055,8 +4264,9 @@ function fallbackAnswer(doctors, askText, opts = {}) {
   const drugsIn = dropSupersededNameChecks(opts.drugs || [], askText);
   return withTimedOutNote(fallbackAnswerRaw(doctors, askText, { ...opts, drugs: drugsIn }), doctors, drugsIn, { recheck: Boolean(opts.recheck) });
 }
-function fallbackAnswerRaw(doctors, askText, { answered = false, drugs = [] } = {}) {
-  const sel = selectComparison(doctors, askText, { answered, drugs });
+function fallbackAnswerRaw(doctors, askText, opts = {}) {
+  const { answered = false, drugs = [] } = opts;
+  const sel = selectComparison(doctors, askText, opts);
   const top = sel.columns;
   if (sel.needCounty && !top.length) return R.COUNTY_QUESTION;
   const lines = [];
@@ -4156,6 +4366,13 @@ module.exports = {
   narrowingAnswered,
   comparisonAskText,
   comparisonFollowUp,
+  isDoctorOnlyColumnFollowUp,
+  applyPriorDoctorResults,
+  shouldReusePriorDoctor,
+  structuredFromPriorDoctor,
+  priorLookupResult,
+  doctorsToRecheckFromAsk,
+  findPriorDoctorRow,
   currentPlanIdsIn,
   yearPlanId,
   applyYearPlanId,

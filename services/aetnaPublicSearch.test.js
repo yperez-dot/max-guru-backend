@@ -93,3 +93,23 @@ describe('Aetna 2027 plan-level (Padron)', () => {
     assert.equal(a.formatPlanLabel({ plan_name: 'Aetna Medicare Select (HMO)', plan_id: 'H1609-018-000' }), 'Aetna Medicare Select (HMO) (H1609-018)');
   });
 });
+
+describe('a plan missing from inside_area_plans stays not confirmed', () => {
+  it('does not mark H1609-093 Out for ZIP 33196 when a successful list only has other H1609 SNPs (Hooks)', () => {
+    const a = require('./aetnaPublicSearch');
+    const grid = a.gridAetnaPlansFor('33196', 2027);
+    assert.ok(grid.some((l) => /H1609-093/.test(l)), `grid missing H1609-093: ${grid.join(' | ')}`);
+
+    const listed = [
+      'Aetna Medicare Chronic Care (H1609-094)',
+      'Aetna Medicare Full Dual Select (H1609-073)',
+      'Aetna Medicare QMB Only Select (H1609-043)',
+      'Aetna Medicare Partial Dual Select (H1609-103)',
+    ];
+    const combined = a.combineMedicarePlanLists([{ inPlans: listed, outPlans: [], ok: true }]);
+    const ids = [...combined.plans, ...combined.outOfNetworkPlans].join(' ');
+    assert.match(ids, /H1609-094/);
+    assert.doesNotMatch(ids, /H1609-093/);
+    assert.equal(combined.outOfNetworkPlans.some((l) => /H1609-093/.test(l)), false);
+  });
+});

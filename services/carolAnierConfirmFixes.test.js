@@ -231,3 +231,245 @@ describe('Aetna H1609-093 plan-id labels (Hooks / not confirmed)', () => {
     );
   });
 });
+
+const UHC = 'UHC MedicareMax FL-0028 (H5420-001)';
+const AETNA = 'Aetna Medicare Select Care (H1609-093)';
+const HSUN = 'HealthSun HealthAdvantage (H5431-001)';
+const DOCS = 'Doctors DrMax-Dade (H4140-022)';
+const COL_IDS = ['H5420-001', 'H1609-093', 'H5431-001', 'H4140-022'];
+
+function carolDoc(requested, official, npi, ins, outs) {
+  return {
+    requestedName: requested,
+    doctorName: official,
+    npi,
+    requestedNpi: npi,
+    status: 'done',
+    pending: [],
+    failed: [],
+    networks: [],
+    inNetworkPlans: ins,
+    outOfNetworkPlans: outs,
+    carriersIn: [],
+  };
+}
+
+// Fixture In/Out after parenthetical specialties are stripped (item 20). Hooks on Aetna stays
+// ❔ not confirmed when H1609-093 is missing from inside_area_plans (Yahoska, 2026-11-25).
+function carolInitialDoctors() {
+  return [
+    carolDoc('Yusleidi De La Caridad Gil (Internal Medicine)', 'Yusleidi De La Caridad Gil', '1679101588',
+      [UHC, AETNA, HSUN, DOCS], []),
+    carolDoc('Michele Taubman (Vascular surgeon)', 'Michele Lynn Taubman', '1477727360',
+      [UHC], [HSUN, DOCS]),
+    carolDoc('Jorge C Busse (Nephrology)', 'Jorge C Busse', '1922091248',
+      [UHC, AETNA, HSUN], [DOCS]),
+    carolDoc('German Alberto Ojeda Correal (Physical Medicine & Rehabilitation)', 'German Alberto Ojeda Correal', '1710150339',
+      [UHC, AETNA, HSUN, DOCS], []),
+    carolDoc('Rebekka Hooks (Neuro-oncologist)', 'Rebekka Emilia Hooks', '1033614565',
+      [UHC], [HSUN, DOCS]),
+    carolDoc('Ian Christopher Bostock Rosenzweig (Thoracic Surgery)', 'Ian Christopher Bostock Rosenzweig', '1598104457',
+      [AETNA, HSUN, DOCS], [UHC]),
+    carolDoc('Heberto Ramon Valdes (Endocrinology)', 'Heberto Ramon Valdes', '1356731525',
+      [UHC, AETNA, HSUN], [DOCS]),
+    carolDoc('Kevin Michael Almerico (Pulmonary)', 'Kevin Michael Almerico', '1619339769',
+      [UHC, AETNA, HSUN], [DOCS]),
+  ];
+}
+
+const CAROL_INTAKE = [
+  'Client: Carol Anier',
+  'ZIP 33196 Miami-Dade.',
+  'Currently on UHC MedicareMax FL-0028 H5420-001.',
+  'No Medicaid. No MSP. No C-SNP.',
+  'Doctors (must-haves): Yusleidi De La Caridad Gil (Internal Medicine), Michele Taubman (Vascular surgeon), Jorge C Busse (Nephrology), German Alberto Ojeda Correal (Physical Medicine & Rehabilitation), Rebekka Hooks (Neuro-oncologist), Ian Christopher Bostock Rosenzweig (Thoracic Surgery), Heberto Ramon Valdes (Endocrinology), Kevin Michael Almerico (Pulmonary).',
+  'Meds: Ezetimibe 10 mg tab, Gabapentin 400 mg cap, Propranolol HCL 80 mg tab, Topiramate 25 mg cap.',
+].join('\n');
+
+function rowByLast(parsed, last) {
+  const l = String(last).toLowerCase();
+  return (parsed.rows || []).find((r) => {
+    const n = `${r.displayName || ''} ${r.name || ''}`.toLowerCase();
+    return n.split(/[^a-z]+/).includes(l);
+  });
+}
+
+function cellOf(parsed, last, planId) {
+  const row = rowByLast(parsed, last);
+  return row ? row.cells[planId] : undefined;
+}
+
+function assertKept(parsed, last, expected) {
+  const row = rowByLast(parsed, last);
+  assert.ok(row, `missing row for ${last}`);
+  for (const [id, status] of Object.entries(expected)) {
+    assert.equal(row.cells[id], status, `${last} ${id} expected ${status}, got ${row.cells[id]}`);
+  }
+}
+
+const PRESERVE_LASTS = [
+  ['Gil', { 'H5420-001': 'in', 'H1609-093': 'in', 'H5431-001': 'in', 'H4140-022': 'in' }],
+  ['Taubman', { 'H5420-001': 'in', 'H1609-093': 'not_confirmed', 'H5431-001': 'out', 'H4140-022': 'out' }],
+  ['Busse', { 'H5420-001': 'in', 'H1609-093': 'in', 'H5431-001': 'in', 'H4140-022': 'out' }],
+  ['Ojeda', { 'H5420-001': 'in', 'H1609-093': 'in', 'H5431-001': 'in', 'H4140-022': 'in' }],
+  // Hooks Aetna stays ❔ when H1609-093 is absent from the successful plan list.
+  ['Hooks', { 'H5420-001': 'in', 'H1609-093': 'not_confirmed', 'H5431-001': 'out', 'H4140-022': 'out' }],
+  ['Bostock', { 'H5420-001': 'out', 'H1609-093': 'in', 'H5431-001': 'in', 'H4140-022': 'in' }],
+  ['Valdes', { 'H5420-001': 'in', 'H1609-093': 'in', 'H5431-001': 'in', 'H4140-022': 'out' }],
+  ['Almerico', { 'H5420-001': 'in', 'H1609-093': 'in', 'H5431-001': 'in', 'H4140-022': 'out' }],
+];
+
+describe('20 parenthetical specialty is stripped before name compare', () => {
+  it('strips (Vascular surgeon) and auto-accepts Michele Taubman as Michele Lynn Taubman', () => {
+    assert.equal(N.cleanAskedDoctorName('Michele Taubman (Vascular surgeon)'), 'Michele Taubman');
+    assert.equal(N.cleanAskedDoctorName('Rebekka Hooks (Neuro-oncologist)'), 'Rebekka Hooks');
+    assert.equal(N.cleanAskedDoctorName('Ian Christopher Bostock Rosenzweig (Thoracic Surgery)'), 'Ian Christopher Bostock Rosenzweig');
+    assert.equal(N.cleanAskedDoctorName('Mary (Ann) Smith'), 'Mary (Ann) Smith');
+    const taubman = carolDoc('Michele Taubman (Vascular surgeon)', 'Michele Lynn Taubman', '1477727360', [UHC], []);
+    assert.equal(N.identityIssue(taubman), '');
+    assert.doesNotMatch(N.doctorLabel(taubman), /confirm match/i);
+    assert.doesNotMatch(N.doctorLabel(taubman), /asked:/);
+  });
+
+  it('still flags Carlos Santa Cruz vs Carlos A Cruz as a mismatch', () => {
+    const d = {
+      requestedName: 'Carlos Santa Cruz',
+      doctorName: 'Carlos A Cruz',
+      npi: '1234567890',
+      status: 'done',
+      inNetworkPlans: [UHC],
+      outOfNetworkPlans: [],
+    };
+    assert.equal(N.identityIssue(d), 'mismatch');
+  });
+});
+
+describe('18 Carol sequence: initial, remove Gil, confirm — no result lost', () => {
+  it('replays the full sequence and keeps every doctor cell and every plan column', () => {
+    const initialDocs = carolInitialDoctors();
+    const initialMsgs = [{ role: 'user', content: CAROL_INTAKE }];
+    const initialAsk = N.comparisonAskText(initialMsgs);
+    const initialSel = N.selectComparison(initialDocs, initialAsk, { answered: true });
+    const initialIds = initialSel.columns.map((c) => String(c.planId).slice(0, 9));
+    assert.equal(initialIds[0], 'H5420-001', `current plan should be first, got ${initialIds.join(',')}`);
+    for (const id of COL_IDS) {
+      assert.ok(initialIds.includes(id), `initial columns missing ${id}: ${initialIds.join(',')}`);
+    }
+    // Taubman is not confirmed on Aetna in this first-run fixture (directory miss before a confirm re-check).
+    const initialGrid = N.gridTable(initialSel.doctors, initialSel.columns);
+    const initialParsed = LW.parseDoctorTable(`${initialSel.header}\n${initialGrid}`);
+    for (const [last, cells] of PRESERVE_LASTS) assertKept(initialParsed, last, cells);
+    assert.equal(N.identityIssue(initialDocs.find((d) => d.npi === '1477727360')), '');
+
+    const afterInitial = [
+      ...initialMsgs,
+      { role: 'assistant', content: `${initialSel.header}\n\n${initialGrid}` },
+    ];
+
+    // Turn 2: Remove Yusleidi Gil — lock columns, do not re-check anyone, drop only Gil.
+    const removeMsgs = [...afterInitial, { role: 'user', content: 'Remove Yusleidi Gil' }];
+    const removeAsk = N.comparisonAskText(removeMsgs);
+    assert.match(removeAsk, /Named plan set:/);
+    assert.match(removeAsk, /H5431-001/);
+    assert.match(removeAsk, /H1609-093/);
+    assert.match(removeAsk, /H4140-022/);
+    assert.match(removeAsk, /H5420-001/);
+    assert.equal(N.isDoctorOnlyColumnFollowUp('Remove Yusleidi Gil', removeMsgs), true);
+    assert.equal(N.isDoctorOnlyColumnFollowUp('Yes, run other plans', removeMsgs), false);
+
+    const remaining = initialDocs.filter((d) => !/Gil/i.test(d.requestedName));
+    // Simulate a wiped re-lookup for everyone except we pass the prior table and recheck nobody.
+    const wiped = remaining.map((d) => ({
+      ...d,
+      status: 'timeout',
+      inNetworkPlans: [],
+      outOfNetworkPlans: [],
+    }));
+    const prior1 = LW.lastDoctorTableResults(removeMsgs);
+    assert.equal(prior1.planIds.includes('H5431-001'), true);
+    const recheck1 = N.doctorsToRecheckFromAsk(wiped, removeAsk);
+    assert.deepEqual(recheck1, []);
+    const removeSel = N.selectComparison(wiped, removeAsk, {
+      answered: true,
+      messages: removeMsgs,
+      priorTable: prior1,
+      recheckDoctors: recheck1,
+    });
+    const removeIds = removeSel.columns.map((c) => String(c.planId).slice(0, 9));
+    assert.deepEqual(removeIds, initialIds, `remove follow-up dropped a column: ${removeIds.join(',')}`);
+    assert.ok(!removeSel.doctors.some((d) => /Gil/i.test(`${d.requestedName} ${d.doctorName}`)));
+    const removeGrid = N.gridTable(removeSel.doctors, removeSel.columns);
+    const removeParsed = LW.parseDoctorTable(`${removeSel.header}\n${removeGrid}`);
+    assert.equal(rowByLast(removeParsed, 'Gil'), undefined);
+    for (const [last, cells] of PRESERVE_LASTS) {
+      if (last === 'Gil') continue;
+      assertKept(removeParsed, last, cells);
+    }
+    // Reuse helper: nobody should be re-queried on a remove-only follow-up.
+    for (const d of remaining) {
+      assert.equal(N.shouldReusePriorDoctor(d, prior1, recheck1), true, `should reuse ${d.requestedName}`);
+    }
+
+    // Turn 3: confirm Taubman and Ojeda — re-check only those two; everyone else stays put.
+    const afterRemove = [
+      ...removeMsgs,
+      { role: 'assistant', content: `${removeSel.header}\n\n${removeGrid}` },
+    ];
+    const confirmMsgs = [...afterRemove, { role: 'user', content: 'Yes, Taubman and Ojeda Correal are the right doctors' }];
+    const confirmAsk = N.comparisonAskText(confirmMsgs);
+    assert.match(confirmAsk, /Named plan set:/);
+    assert.match(confirmAsk, /H5431-001/);
+    assert.equal(N.isDoctorOnlyColumnFollowUp('Yes, Taubman and Ojeda Correal are the right doctors', confirmMsgs), true);
+
+    const prior2 = LW.lastDoctorTableResults(confirmMsgs);
+    const recheck2 = N.doctorsToRecheckFromAsk(remaining, confirmAsk);
+    const recheckLasts = recheck2.map((n) => n.toLowerCase());
+    assert.ok(recheck2.some((n) => /taubman/i.test(n)), `recheck missing Taubman: ${recheck2.join(' | ')}`);
+    assert.ok(recheck2.some((n) => /ojeda/i.test(n)), `recheck missing Ojeda: ${recheck2.join(' | ')}`);
+    assert.equal(recheck2.length, 2, `should re-check only the two confirmed doctors, got ${recheck2.join(' | ')}`);
+
+    // Fresh lookup for the two confirmed doctors: Taubman's Aetna miss is now a checked Out.
+    const taubmanFresh = {
+      ...remaining.find((d) => /Taubman/i.test(d.requestedName)),
+      inNetworkPlans: [UHC],
+      outOfNetworkPlans: [AETNA, HSUN, DOCS],
+      status: 'done',
+    };
+    const ojedaFresh = {
+      ...remaining.find((d) => /Ojeda/i.test(d.requestedName)),
+      inNetworkPlans: [UHC, AETNA, HSUN, DOCS],
+      outOfNetworkPlans: [],
+      status: 'done',
+    };
+    const confirmDocs = remaining.map((d) => {
+      if (/Taubman/i.test(d.requestedName)) return taubmanFresh;
+      if (/Ojeda/i.test(d.requestedName)) return ojedaFresh;
+      return { ...d, status: 'timeout', inNetworkPlans: [], outOfNetworkPlans: [] };
+    });
+    for (const d of confirmDocs) {
+      const reuse = N.shouldReusePriorDoctor(d, prior2, recheck2);
+      if (/Taubman|Ojeda/i.test(d.requestedName)) assert.equal(reuse, false);
+      else assert.equal(reuse, true, `should reuse ${d.requestedName}`);
+    }
+
+    const confirmSel = N.selectComparison(confirmDocs, confirmAsk, {
+      answered: true,
+      messages: confirmMsgs,
+      priorTable: prior2,
+      recheckDoctors: recheck2,
+    });
+    const confirmIds = confirmSel.columns.map((c) => String(c.planId).slice(0, 9));
+    assert.deepEqual(confirmIds, initialIds, `confirm follow-up dropped a column: ${confirmIds.join(',')}`);
+    const confirmGrid = N.gridTable(confirmSel.doctors, confirmSel.columns);
+    const confirmParsed = LW.parseDoctorTable(`${confirmSel.header}\n${confirmGrid}`);
+    assert.equal(rowByLast(confirmParsed, 'Gil'), undefined);
+    for (const [last, cells] of PRESERVE_LASTS) {
+      if (last === 'Gil') continue;
+      if (last === 'Taubman') {
+        assertKept(confirmParsed, last, { ...cells, 'H1609-093': 'out' });
+        continue;
+      }
+      assertKept(confirmParsed, last, cells);
+    }
+  });
+});

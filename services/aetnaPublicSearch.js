@@ -287,13 +287,40 @@ function gridAetnaPlansFor(zip, year = PLAN_YEAR) {
   }
 }
 
+function planIdFromAetnaLabel(label) {
+  const m = String(label || '').match(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/i);
+  return m ? m[1].toUpperCase() : '';
+}
+
+// Merge the plan-level lists from each office. A county-grid plan that never appears in a successful
+// inside_area_plans list (Hooks / H1609-093 for ZIP 33196, 2027) is left off both lists on purpose:
+// the cell stays ❔ not confirmed, not Out (Yahoska, 2026-11-25).
+function combineMedicarePlanLists(planLists) {
+  const plans = [];
+  const seen = new Set();
+  for (const list of planLists || []) {
+    for (const label of list.inPlans || []) {
+      if (seen.has(label)) continue;
+      seen.add(label);
+      plans.push(label);
+    }
+  }
+  const outOfNetworkPlans = [];
+  for (const list of planLists || []) {
+    for (const label of list.outPlans || []) {
+      if (!seen.has(label) && !outOfNetworkPlans.includes(label)) outOfNetworkPlans.push(label);
+    }
+  }
+  return { plans, outOfNetworkPlans };
+}
+
 async function fetchMedicarePlans(session, site, countyCode, year = PLAN_YEAR) {
   const id = site.id;
   const loc = site.service_location_number;
-  if (!id || !loc) return { inPlans: [], outPlans: [] };
+  if (!id || !loc) return { inPlans: [], outPlans: [], ok: false };
   const url = `${API03}/v3/ahpublic_providers/${encodeURIComponent(id)}/locations/${encodeURIComponent(loc)}/lobs/medicare/healthplans?plan_year=${encodeURIComponent(year)}&county_code=${encodeURIComponent(countyCode)}&plan_type=IND`;
   const res = await fetchJar(session.jar, url, { headers: authHeaders(session) });
-  if (!res.ok) return { inPlans: [], outPlans: [] };
+  if (!res.ok) return { inPlans: [], outPlans: [], ok: false };
   const data = await res.json();
   const rows = data.inside_area_plans || [];
   const seen = new Set();
@@ -306,7 +333,7 @@ async function fetchMedicarePlans(session, site, countyCode, year = PLAN_YEAR) {
     seen.add(key);
     (isInNetworkStatus(row.network_status) ? inPlans : outPlans).push(formatPlanLabel(hp));
   }
-  return { inPlans, outPlans };
+  return { inPlans, outPlans, ok: true };
 }
 
 function formatMatch(site) {
@@ -412,22 +439,9 @@ async function queryAetnaPublic(npi, { zip = '33176', state = 'FL', lastName = '
     const planLists = await Promise.all(
       sites.slice(0, 3).map((site) => fetchMedicarePlans(session, site, geo.countyCode, year))
     );
-    const plans = [];
-    const seen = new Set();
-    for (const list of planLists) {
-      for (const label of list.inPlans) {
-        if (seen.has(label)) continue;
-        seen.add(label);
-        plans.push(label);
-      }
-    }
-    // A plan is Out only if no office of this doctor lists it as in-network.
-    const outOfNetworkPlans = [];
-    for (const list of planLists) {
-      for (const label of list.outPlans) {
-        if (!seen.has(label) && !outOfNetworkPlans.includes(label)) outOfNetworkPlans.push(label);
-      }
-    }
+    // A plan is Out only if an office lists it as out-of-network. A grid plan the successful
+    // list simply omits (H1609-093 for Hooks in 33196) stays ❔, not Out.
+    const { plans, outOfNetworkPlans } = combineMedicarePlanLists(planLists);
 
     const locationOon = sites.some((s) => {
       const st = (s.specialties || []).find((x) => x.primary)?.medical_network_status
@@ -480,6 +494,8 @@ module.exports = {
   isInNetworkStatus,
   isOutOfNetworkBanner,
   formatPlanLabel,
+  planIdFromAetnaLabel,
+  combineMedicarePlanLists,
   buildTaxonomyBody,
   buildMedicareSearchBody,
   parseSpaCredentials,
