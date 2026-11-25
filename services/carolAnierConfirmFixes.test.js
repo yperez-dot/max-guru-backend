@@ -254,8 +254,8 @@ function carolDoc(requested, official, npi, ins, outs) {
   };
 }
 
-// Fixture In/Out after parenthetical specialties are stripped (item 20) and unlisted Aetna
-// grid plans are marked Out (item 19). These are the first-run cells that follow-ups must keep.
+// Fixture In/Out after parenthetical specialties are stripped (item 20). Hooks on Aetna stays
+// ❔ not confirmed when H1609-093 is missing from inside_area_plans (Yahoska, 2026-11-25).
 function carolInitialDoctors() {
   return [
     carolDoc('Yusleidi De La Caridad Gil (Internal Medicine)', 'Yusleidi De La Caridad Gil', '1679101588',
@@ -267,7 +267,7 @@ function carolInitialDoctors() {
     carolDoc('German Alberto Ojeda Correal (Physical Medicine & Rehabilitation)', 'German Alberto Ojeda Correal', '1710150339',
       [UHC, AETNA, HSUN, DOCS], []),
     carolDoc('Rebekka Hooks (Neuro-oncologist)', 'Rebekka Emilia Hooks', '1033614565',
-      [UHC], [AETNA, HSUN, DOCS]),
+      [UHC], [HSUN, DOCS]),
     carolDoc('Ian Christopher Bostock Rosenzweig (Thoracic Surgery)', 'Ian Christopher Bostock Rosenzweig', '1598104457',
       [AETNA, HSUN, DOCS], [UHC]),
     carolDoc('Heberto Ramon Valdes (Endocrinology)', 'Heberto Ramon Valdes', '1356731525',
@@ -312,8 +312,8 @@ const PRESERVE_LASTS = [
   ['Taubman', { 'H5420-001': 'in', 'H1609-093': 'not_confirmed', 'H5431-001': 'out', 'H4140-022': 'out' }],
   ['Busse', { 'H5420-001': 'in', 'H1609-093': 'in', 'H5431-001': 'in', 'H4140-022': 'out' }],
   ['Ojeda', { 'H5420-001': 'in', 'H1609-093': 'in', 'H5431-001': 'in', 'H4140-022': 'in' }],
-  // Hooks Aetna is Out (not listed) after the item 19 fill, not ❔.
-  ['Hooks', { 'H5420-001': 'in', 'H1609-093': 'out', 'H5431-001': 'out', 'H4140-022': 'out' }],
+  // Hooks Aetna stays ❔ when H1609-093 is absent from the successful plan list.
+  ['Hooks', { 'H5420-001': 'in', 'H1609-093': 'not_confirmed', 'H5431-001': 'out', 'H4140-022': 'out' }],
   ['Bostock', { 'H5420-001': 'out', 'H1609-093': 'in', 'H5431-001': 'in', 'H4140-022': 'in' }],
   ['Valdes', { 'H5420-001': 'in', 'H1609-093': 'in', 'H5431-001': 'in', 'H4140-022': 'out' }],
   ['Almerico', { 'H5420-001': 'in', 'H1609-093': 'in', 'H5431-001': 'in', 'H4140-022': 'out' }],
