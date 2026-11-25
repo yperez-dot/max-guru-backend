@@ -509,6 +509,22 @@ function isNonDrugAnswer(text) {
   return !words.length || words.every((w) => NON_DRUG_WORDS.has(w));
 }
 
+// A typo of "medications" ("Medicatiions") must still start a med list — never silently drop the drugs after it
+// (Mary Ann Faber, 2026-11-24: "Medicatiions: almodipine, carvedilol, tramadol" kept only carvedilol).
+const CANON_MED_LABELS = ['med', 'meds', 'medication', 'medications', 'medicine', 'medicines', 'medicamento', 'medicamentos', 'medicina', 'medicinas', 'prescription', 'prescriptions', 'rx', 'drug', 'drugs', 'takes', 'taking'];
+const NOT_MED_LABEL_RE = /^(?:medical|medicare|medicaid|medigap|medicinal|meditation)$/i;
+function isMedListLabel(word) {
+  const w = String(word || '').toLowerCase().replace(/[^a-z]/g, '');
+  if (!w || NOT_MED_LABEL_RE.test(w)) return false;
+  if (CANON_MED_LABELS.includes(w)) return true;
+  const { similarity } = require('./drugNames');
+  return CANON_MED_LABELS.filter((t) => t.length >= 8).some((t) => similarity(w, t) >= 0.82);
+}
+/** Rewrite typo'd med-list labels ("Medicatiions:") to "Medications" so every later reader sees the list. */
+function normalizeMedListLabels(text) {
+  return String(text || '').replace(/\b([A-Za-z]{4,})\b/g, (w) => (isMedListLabel(w) && !CANON_MED_LABELS.includes(w.toLowerCase()) ? 'Medications' : w));
+}
+
 // Labels agents put before a med list, English and Spanish, with or without a colon.
 const MED_LABEL = '(?:meds?|medications?|medicines?|rx|drugs?|takes?|taking|medicamentos?|medicinas?)';
 // Labels that are a med list even with one drug and no colon ("Takes Eliquis"). "Rx" / "drugs"
@@ -622,7 +638,7 @@ function saidNoMeds(text) {
 }
 
 function medsFromAsk(askText) {
-  const t = String(askText || '');
+  const t = normalizeMedListLabels(String(askText || ''));
   const out = [];
   const add = (s0) => { const s = tidyLongMedName(cleanMedItem(s0)); if (s && !INSTRUCTION_WORD_RE.test(s) && !isPlanOrCarrierName(s) && s.length > 2 && s.length < 60 && !isNonDrugAnswer(s) && !/\b[HR]\d{4}-\d{3}|\b(?:grid|table|columns?)\b/i.test(s) && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s); };
   // "Meds: a, b" / "Medications a, b" / "Medicamentos: a y b" / "Takes a, b" — colon optional
@@ -906,6 +922,8 @@ module.exports = {
   planEligibility,
   csnpHintsFromMeds,
   medsFromAsk,
+  isMedListLabel,
+  normalizeMedListLabels,
   dropDoctorNamesFromMeds,
   INSTRUCTION_WORD_RE,
   looksLikePracticeOrPerson,

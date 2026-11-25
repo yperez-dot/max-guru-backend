@@ -230,7 +230,8 @@ test('competing ingredients: no pricing, ask "did you mean …?"', async () => {
   assert.deepEqual(log, [], 'an unclear name is never priced');
   const table = N.medsTable([r], [{ planId: 'H1019-001', name: 'CarePlus CareOne Plus' }]);
   assert.match(table, /❓ 'metoprozol' — did you mean metoprolol\?/);
-  assert.match(table, /❓ check name/);
+  assert.match(table, /\| Confirm \|/);
+  assert.doesNotMatch(table, /❓ check name/);
 });
 
 test('ED drug labels', () => {

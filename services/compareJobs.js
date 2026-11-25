@@ -210,7 +210,7 @@ function unlabeledMeds(t, zip, doctors) {
 
 /** "Maria & Gaspar Padron, ZIP 33332 … Doctors: … Meds: … Compare H… " → fields. */
 function parseCompareAsk(text) {
-  let t = normalizePlanIds(String(text || '').replace(/\r/g, ''));
+  let t = normalizePlanIds(require('./comparisonRules').normalizeMedListLabels(String(text || '').replace(/\r/g, '')));
   const P = require('./pdfIntake');
   if (P.isMedicareProClientPrint(t)) {
     const cleaned = P.intakeRequestText(P.parseIntakeText(t));
