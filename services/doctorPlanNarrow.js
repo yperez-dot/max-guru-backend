@@ -61,6 +61,23 @@ function shortDoctor(d) {
 // "all Dade Core plans", "every core plan in Broward", "core plans in Miami-Dade".
 const CORE_ALL_RE = /\b(?:all|every|each)\s+(?:the\s+|of\s+the\s+)?(?:(?:miami[-\s]?)?dade\s+|broward\s+)?core\s+plans?\b|\bcore\s+plans?\s+(?:in|for|across)\s+(?:miami[-\s]?)?(?:dade|broward)\b/i;
 const CORE_ALL_LINE = 'Core plans: every regular (non-SNP) plan on the county grid, every carrier.';
+/** Max offered to search other 2027 plans where a must-keep doctor is in network. */
+function inNetworkSearchOfferText(text) {
+  const t = String(text || '');
+  return /search other 2027 plans where[\s\S]{0,80}?\b(?:are|is)\s+in network/i.test(t)
+    || /I can search other 2027 plans/i.test(t)
+    || /look at those other\s+(?:carriers?'?\s+)?(?:[\w-]+\s+)*plans/i.test(t);
+}
+/** A yes (or "yes pls search Dr X") to Max's own in-network search offer. */
+function acceptedInNetworkSearchOffer(msgs, lastUserAt) {
+  const list = Array.isArray(msgs) ? msgs : [];
+  const i = lastUserAt != null && lastUserAt >= 0 ? lastUserAt : list.map((m) => m && m.role).lastIndexOf('user');
+  if (i < 0) return false;
+  const latest = messageText(list[i]).trim();
+  if (!/^(?:yes|yeah|yep|yup|sure|ok|okay|please|pls|si|sí)\b/i.test(latest) && !/\byes\b[\s\S]{0,40}\bsearch\b/i.test(latest)) return false;
+  const prev = [...list.slice(0, i)].reverse().find((m) => m && m.role === 'assistant');
+  return Boolean(prev && inNetworkSearchOfferText(messageText(prev)));
+}
 const RANK_ASK_RE = /\bcover(?:s|ing)?\s+(?:the\s+)?most\b|\bmost\s+of\s+(?:her|his|their|the)\s+(?:\d+\s+)?doctors\b|\btop\s+\d\b|\brank(?:ed|ing)?\b|\bbest\s+plans?\s+for\s+(?:her|his)\s+doctors\b/i;
 const WANTS_ALTERNATIVES_RE = /\b(?:something|anything|options?|plans?)\s+(?:that(?:'s| is)\s+)?better\b|\bbetter\s+(?:options?|plans?|fit|deal)\b|\b(?:any\s+)?other\s+(?:options?|plans?)\b|\balternatives?\b|\bwhat\s+else\b|\bsee\s+what\s+else\b|\bshop(?:ping)?\s+around\b|\bsomething\s+else\b|\b(?:comparable|similar)\s+(?:to|plans?|options?)\b|\bplans?\s+(?:comparable|similar)\b|\banother\s+(?:\w+\s+){0,3}(?:option|plan)s?\b|\bgiveback\s+options?\b|\blooking\s+for\s+(?:another|other|a\s+different)|\b(?:suggest|recommend|find)\s+(?:(?:me|her|him|us|some|a few|better|other)\s+)*(?:plans?|options?)\b|\bfind\s+better\b/i;
 
@@ -808,6 +825,12 @@ function comparisonAskText(messages, baseText) {
   if (/Show quantity limits\?/i.test(priorText) && YES_RE.test(lastUserText) && !lines.some((l) => /show quantity limits/i.test(l))) {
     lines.push(R.SHOW_QL_LINE);
   }
+  // A yes to "I can search other 2027 plans where they ARE in network — want me to?" runs that search now
+  // (Mary Ann Faber, 2026-11-24: "yes pls search Carlos Samada" re-rendered the same 3 plans and asked again).
+  if (acceptedInNetworkSearchOffer(msgs)) {
+    if (!lines.some((l) => /^Rank all eligible plans\.$/m.test(l))) lines.push('Rank all eligible plans.');
+    if (!lines.some((l) => l === CORE_ALL_LINE)) lines.push(CORE_ALL_LINE);
+  }
   const qlChoice = R.quantityLimitsChoice(`${lines.join('\n')}\n${lastUserText}`);
   if (qlChoice === true && !lines.some((l) => /show quantity limits/i.test(l))) lines.push(R.SHOW_QL_LINE);
   // "any other plans comparable to what she has?" — her saved/named plan is the CURRENT plan; add alternatives around it.
@@ -1296,6 +1319,14 @@ function comparisonFollowUpRaw(messages) {
   if (lastUserAt < 0) return null;
   const latest = messageText(msgs[lastUserAt]);
   const reasons = [];
+  if (acceptedInNetworkSearchOffer(msgs, lastUserAt)) {
+    const wk = workupFacts(msgs.slice(0, lastUserAt + 1));
+    const doctors = (wk && wk.doctors.length) ? wk.doctors : [];
+    if (doctors.length) {
+      reasons.push('search other 2027 plans where the doctor is in network');
+      return { reason: reasons.join(' + '), doctors, zip: (wk && wk.zip) || newestZip(msgs.slice(0, lastUserAt + 1)) };
+    }
+  }
   const planAsk = namedPlanAskIds(latest, msgs.slice(0, lastUserAt + 1));
   const carriers = R.carriersRequested(latest);
   if (carriers.length) reasons.push(`carriers asked: ${carriers.join(', ')}`);
@@ -3266,6 +3297,9 @@ function selectComparison(doctors, askText, opts = {}) {
   for (const line of GROUPS.applyGroupRulesToColumns(cols, docs, shortDoctor, groupYear)) out.flags.push(line);
   const keepNote = mustKeepCoverageNote(docs, out.columns);
   if (keepNote && !(out.flags || []).includes(keepNote)) (out.flags || (out.flags = [])).push(keepNote);
+  // Standing rule: the client's current plan always comes first in every comparison table.
+  out.columns = LW.currentPlanFirst(out.columns || [], curAskIds);
+  if (out.ranked) out.ranked = LW.currentPlanFirst(out.ranked, curAskIds);
   return out;
 }
 
@@ -3500,7 +3534,8 @@ const OTC_SUPPLEMENT_CELL = 'Not on this plan\'s formulary — OTC vitamin — s
 
 function drugCell(row, unsureNotCovered, result, opts = {}) {
   const EXP = require('../artifacts/comparison-export.js');
-  if (result && result.nameCheck) return '❓ check name';
+  // Unresolved / typo'd names stay on the table as Confirm — never dropped, never a one-off 'check name' cell.
+  if (result && result.nameCheck) return 'Confirm';
   if (!row) return R.UNCHECKED;
   if (Array.isArray(row.strengths) && row.strengths.length > 1) {
     // Every strength answered and covered (different cost / QL): the split is real information, keep it.
@@ -4000,6 +4035,9 @@ module.exports = {
   stripStrengthSameNote,
   coreAllAnswer,
   CORE_ALL_RE,
+  CORE_ALL_LINE,
+  inNetworkSearchOfferText,
+  acceptedInNetworkSearchOffer,
   FOLLOW_UP_MARKER,
   corePlanIdsFor,
   manualCheckNotes,

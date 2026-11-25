@@ -3669,13 +3669,19 @@
   /** The plan she is ON ("current plan UHC MedicareMax H5420-001"), from her own words. */
   function currentPlanIdsFromText(text) {
     const ids = [];
-    const re = /\b(?:current(?:ly)?(?:\s+plan)?|is\s+on|stay(?:ing)?\s+on|her\s+plan|his\s+plan)\b[^.\n]{0,60}?\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
+    const add = (id) => {
+      const k = String(id || "").toUpperCase().slice(0, 9);
+      if (k && !ids.includes(k)) ids.push(k);
+    };
+    // "Current plan: H5420-001" on a loaded workup, plus "Currently on UHC … H5420-001".
+    const re = /\b(?:current(?:ly)?(?:\s+plan)?|is\s+on|stay(?:ing)?\s+on|her\s+plan|his\s+plan)\b[^.\n]{0,80}?\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi;
     let m;
     while ((m = re.exec(String(text || "")))) {
       if (/\b(?:with|vs\.?|versus|against|to|and|or|instead)\b/i.test(m[0].slice(0, m[0].length - m[1].length))) continue;
-      const id = m[1].toUpperCase().slice(0, 9);
-      if (!ids.includes(id)) ids.push(id);
+      add(m[1]);
     }
+    const line = (String(text || "").match(/^Current plan(?:\(s\))?:\s*(.+)$/m) || [])[1] || "";
+    for (const x of line.matchAll(/\b([HR]\d{4}-\d{3}[A-Z]?)\b/gi)) add(x[1]);
     return ids.slice(0, 3);
   }
 
@@ -3687,7 +3693,8 @@
     const named = new Set(citedPlanIdsFromText(mine).map((x) => String(x).toUpperCase().slice(0, 9)));
     const twins = new Set(sameNetworkTwinIds(threadText));
     if (twins.size) list = list.filter((p) => !twins.has(key(p)) || named.has(key(p)));
-    const cur = (Array.isArray(meta.currentPlanIds) && meta.currentPlanIds.length ? meta.currentPlanIds : currentPlanIdsFromText(mine)).map((x) => String(x).toUpperCase().slice(0, 9));
+    const cur = (Array.isArray(meta.currentPlanIds) && meta.currentPlanIds.length ? meta.currentPlanIds : currentPlanIdsFromText(mine + "\n" + String(threadText || ""))).map((x) => String(x).toUpperCase().slice(0, 9));
+    // Standing rule: current plan always first in Excel and PDF, even when the catalog or a later table shuffled the columns.
     if (cur.length) list = [...list.filter((p) => cur.includes(key(p))), ...list.filter((p) => !cur.includes(key(p)))];
     return list;
   }

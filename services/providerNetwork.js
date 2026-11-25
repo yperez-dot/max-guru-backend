@@ -1071,7 +1071,8 @@ async function lookupProviderNetwork(toolInput = {}, context = {}) {
     && !(Array.isArray(toolInput.planIds) && toolInput.planIds.length > 0)
     && require('./comparisonRules').carriersRequested(latestText).length > 0;
   // "Search all Dade Core plans for Dr X": one doctor, every core plan in the county — the server list, not a single-doctor dump.
-  const coreAllAsk = require('./doctorPlanNarrow').CORE_ALL_RE.test(latestText);
+  const Nscope = require('./doctorPlanNarrow');
+  const coreAllAsk = Nscope.CORE_ALL_RE.test(latestText) || Nscope.acceptedInNetworkSearchOffer(context.messages || []);
   const tableMode = !carrierOnlyFollowup && (coreAllAsk || doctors.length > 1 || /\b[HR]\d{4}-\d{3}/i.test(latestText) || Boolean(toolInput.planId) || (Array.isArray(toolInput.planIds) && toolInput.planIds.length > 0));
   // A loaded workup with saved meds + ONE doctor she just named (Paula Harris, 2026-10-08): still the full comparison —
   // the meds are priced here, so Max never asks for meds she already has.

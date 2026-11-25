@@ -117,6 +117,7 @@ LABEL_MAP = {
     "msp levels": "mspLevels",
     "deductible": "planDeductible",
     "plan deductible": "planDeductible",
+    "medical deductible": "planDeductible",
     "companionship": "companionship",
     "star ratings": "starRating",
     "star rating": "starRating",
