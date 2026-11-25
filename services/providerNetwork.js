@@ -805,7 +805,10 @@ function stripSavedStatus(raw) {
 }
 
 async function lookupDoctor(input, { deadlineAt, npiCap = SINGLE_NPI_CAP, useCache = true, background = false } = {}) {
-  const doctorName = stripSavedStatus(input.doctorName || input.name || input.npi || '');
+  const rawName = stripSavedStatus(input.doctorName || input.name || input.npi || '');
+  // Specialty parentheses ("Physical Medicine & Rehabilitation"), including an unclosed wrap,
+  // are not part of the search name. NPPES and every directory use the clean name (+ NPI).
+  const doctorName = cleanDoctorQuery(rawName) || rawName;
   const zip = String(input.zip || '33136');
   const planYear = Number(input.year) || Number(UHC_PLAN_YEAR);
   const guestPlanIds = planIdsFrom(input.planIds, input.planId);
@@ -980,7 +983,9 @@ function normalizeDoctorList(toolInput) {
   const add = (d) => {
     if (!d) return;
     const entry = typeof d === 'string' ? { doctorName: d } : { ...d };
-    entry.doctorName = String(entry.doctorName || entry.name || entry.npi || '').trim();
+    const raw = String(entry.doctorName || entry.name || entry.npi || '').trim();
+    entry.doctorName = cleanDoctorQuery(raw) || raw;
+    if (!entry.npi && extractNpi(raw)) entry.npi = extractNpi(raw);
     if (!entry.doctorName && !entry.npi) return;
     const k = (normalizeNpi(entry.npi) || entry.doctorName).toLowerCase();
     if (seen.has(k)) return;

@@ -7668,7 +7668,7 @@ function buildPdfIntakeRequest({ name, zip, planId, planLabel, doctors, meds, ph
   (doctors || []).forEach((d) => {
     const n = String(d.name || "").trim();
     if (!n) return;
-    const tag = String(d.specialty || "").replace(/,/g, " ").trim();
+    const tag = String(d.specialty || "").replace(/,/g, " ").replace(/\s*&\s*/g, " and ").replace(/\s+/g, " ").trim();
     lines.push((tag ? n + " (" + tag + ")" : n) + [d.practice, d.address, d.phone].filter(Boolean).map((x) => ", " + x).join(""));
   });
   const medNames = (meds || []).map((m) => String(m.name || m).trim()).filter((n) => n && !isBlankPdfMed(n));

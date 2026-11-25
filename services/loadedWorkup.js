@@ -165,6 +165,25 @@ function lastTablePlanIds(msgs) {
   return [];
 }
 
+/**
+ * A markdown table wrap that split a specialty on "&" or mid-cell
+ * ("… (Physical Medicine" then "Rehabilitation) ⚠️ confirm match") is one doctor,
+ * not a second row (Carol Anier / Ojeda Correal, 2026-11-25).
+ */
+function isDoctorTableContinuation(prevName, name) {
+  const prev = String(prevName || '');
+  const cur = String(name || '').trim();
+  if (!prev || !cur) return false;
+  const open = (prev.match(/\(/g) || []).length;
+  const close = (prev.match(/\)/g) || []).length;
+  if (open > close) return true;
+  if (/^\)/.test(cur)) return true;
+  const head = cur.replace(/^[⚠️?\s]+/, '').replace(/\s*[⚠️?].*$/, '').replace(/^\s*\)\s*/, '').trim();
+  if (!head || /\bNPI\b/i.test(cur)) return false;
+  if (isSpecialtyParen(head) && !/^[A-Z][a-z]+(?:\s+[A-Z][a-z.]+){1,}/.test(head)) return true;
+  return false;
+}
+
 function parseDoctorTable(text) {
   const lines = String(text || '').split(/\n/);
   const headIdx = lines.findIndex((l) => /^\|\s*Doctor\s*\|/.test(l.trim())
@@ -199,6 +218,17 @@ function parseDoctorTable(text) {
       else if (/not confirmed|❔/i.test(cell)) cells[id] = 'not_confirmed';
       else cells[id] = 'unchecked';
     });
+    if (rows.length && isDoctorTableContinuation(rows[rows.length - 1].name, name)) {
+      const prev = rows[rows.length - 1];
+      const open = (prev.name.match(/\(/g) || []).length;
+      const close = (prev.name.match(/\)/g) || []).length;
+      const joiner = (open > close && !/&\s*$/.test(prev.name)) ? ' & ' : ' ';
+      const mergedName = `${prev.name}${joiner}${name}`.replace(/\s+/g, ' ').trim();
+      prev.name = mergedName;
+      prev.npi = prev.npi || npi || (mergedName.match(/\bNPI\s*:?\s*(\d{10})\b/i) || [])[1] || '';
+      prev.displayName = cleanAskedDoctorName(mergedName.replace(/\s*·\s.*$/, '')) || mergedName;
+      continue;
+    }
     rows.push({ name, displayName, npi, cells });
   }
   return { planIds, rows, header: head };
@@ -696,9 +726,12 @@ function cleanAskedDoctorName(s) {
     .replace(/^\s*(?:dr|dra|doctor|doctora)\.?\s+/i, '')
     .replace(/\s*[⚠️?]+\s*/g, ' ')
     .replace(/\s*\((?:asked|requested):[^)]*\)\s*/ig, ' ')
-    // Intake names carry the specialty in parentheses ("Michele Taubman (Vascular surgeon)"); that is
-    // not a name difference (Carol Anier, 2026-11-25).
+    .replace(/\s*\((?:asked|requested):.*$/ig, ' ')
+    // Intake names carry the specialty in parentheses ("Michele Taubman (Vascular surgeon)",
+    // "German Alberto Ojeda Correal (Physical Medicine & Rehabilitation)"). An unclosed wrap
+    // ("… (Physical Medicine") is the same specialty, not a name difference (Carol Anier, 2026-11-25).
     .replace(/\s*\(([^)]*)\)/g, (m, inner) => (isSpecialtyParen(inner) ? '' : m))
+    .replace(/\s*\(([^)]+)$/g, (m, inner) => (isSpecialtyParen(inner) ? '' : m))
     .replace(/\s*(?:different name\s*[—–-]\s*)?confirm(?:\s+the)?(?:\s+doctor)?\s*match\b.*$/i, '')
     .replace(/\s*·\s*NPI\s*\d{10}\b.*$/i, '')
     .replace(/\s*\bNPI\s*:?\s*\d{10}\b/ig, '')
@@ -714,7 +747,7 @@ function cleanAskedDoctorName(s) {
  */
 function fuzzySameDoctor(known, said) {
   if (sameDoctorName(known, said)) return true;
-  const strip = (x) => String(x || '').split(/\s+[-–—]\s+/)[0].replace(/\([^)]*\)/g, ' ');
+  const strip = (x) => cleanAskedDoctorName(String(x || '').split(/\s+[-–—]\s+/)[0]) || String(x || '').split(/\s+[-–—]\s+/)[0].replace(/\([^)]*\)/g, ' ');
   const a = plainWords(strip(known));
   const b = plainWords(strip(said));
   if (a.length < 2 || b.length < 2) return false;
@@ -820,7 +853,7 @@ function specialtyWords(text) {
 
 const NAME_PARTICLE_RE = /^(?:de|del|la|las|los|da|das|do|dos|di|du|van|von|der|den|le|y|st)$/;
 function firstLastName(name) {
-  const core = doctorCoreWords(name);
+  const core = doctorCoreWords(cleanAskedDoctorName(name) || name);
   if (core.length < 2) return null;
   return { first: core[0], last: core[core.length - 1], core };
 }
